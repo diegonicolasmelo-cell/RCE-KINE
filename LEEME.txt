@@ -1,0 +1,130 @@
+════════════════════════════════════════════════════════════════
+  RCE KINE UCIA — Instalación en Google Apps Script
+  Carpeta: AppsScript/   ·   Versión v1.4 (texto clínico + turnos)
+════════════════════════════════════════════════════════════════
+
+POR QUÉ ANTES "NO SE VEÍA IGUAL"
+────────────────────────────────────────────────────────────────
+Apps Script NO puede cargar archivos .js externos con
+<script src="archivo.js">. Por eso, si el index llamaba a
+turnos.js / mock.js como archivos aparte, el tablero y la lógica
+nunca cargaban y la interfaz salía incompleta.
+
+SOLUCIÓN: este index.html es ÚNICO y autosuficiente — todo el
+CSS y todo el JavaScript (incluido el tablero de turno) está
+embebido dentro del mismo archivo. Se pega tal cual y funciona.
+
+
+QUÉ CONTIENE ESTA CARPETA
+────────────────────────────────────────────────────────────────
+  index.html                  → Archivo HTML de la Web App (UI completa)
+  00_Constantes.gs            → Mapas de columnas + hoja TURNOS
+  01_Utilidades.gs            → Helpers (ok/err, fechas, PI, etc.)
+  02_CamasYEvoluciones.gs     → CRUD camas, ingreso, alta, evoluciones
+  03_ProcTimelineTextoREM.gs  → Procedimientos, timeline, REM
+  04_LogicaSecundaria.gs      → Lógica de archivo/egreso/historial
+  06_Backup.gs                → Respaldos
+  07_WebApp.gs                → doGet + dispatcher (procesarRequest)
+  08_Turnos.gs                → Tablero de asignación de turno
+  09_Setup.gs                 → ★ CREA LA BASE DE DATOS (crearEstructuraBD)
+
+
+⚠️ SI NO CONECTA CON LA BASE DE DATOS — LEE ESTO PRIMERO
+────────────────────────────────────────────────────────────────
+La causa #1 de "no conecta" es que las HOJAS no existen todavía.
+El código las necesita creadas con su estructura exacta (9 hojas,
+18 camas). Eso lo hace la función crearEstructuraBD() del archivo
+09_Setup.gs. HAY QUE EJECUTARLA UNA VEZ:
+
+  • Pega 09_Setup.gs en el proyecto (igual que los otros .gs).
+  • Recarga el Google Sheet (F5).
+  • Menú nuevo "⚕️ RCE KINE" → "1 · Crear / reparar estructura".
+  • Acepta los permisos la primera vez.
+  • Verás "✅ Estructura lista". Recién ahí abre la Web App.
+
+(Alternativa: en el editor de Apps Script, elige la función
+ crearEstructuraBD en el selector y pulsa Ejecutar ▶.)
+
+
+PASOS DE INSTALACIÓN
+────────────────────────────────────────────────────────────────
+1. Abre tu Google Sheet (la base de datos) → Extensiones →
+   Apps Script.
+
+2. ARCHIVOS .gs  (uno por uno):
+   • Para cada archivo .gs de esta carpeta, crea/abre el archivo
+     con el MISMO nombre en Apps Script.
+   • Selecciona todo (Ctrl+A), borra y pega el contenido.
+   • Si "08_Turnos" no existe: clic en "+" → Script → nómbralo
+     "08_Turnos" → pega.
+   • Guarda (Ctrl+S).
+
+   Nota: el número/orden del nombre no afecta; lo importante es
+   que TODAS las funciones existan en el proyecto.
+
+3. ARCHIVO index.html:
+   • En Apps Script, clic en "+" → HTML → nómbralo exactamente
+     "index"  (sin .html).
+   • Selecciona todo, borra y pega el contenido de index.html.
+   • Guarda.
+
+4. ★ CREAR LA BASE DE DATOS (paso que faltaba):
+   • Recarga el Sheet (F5) → menú "⚕️ RCE KINE"
+     → "1 · Crear / reparar estructura".
+   • Esto crea las 9 hojas y siembra las 18 camas vacías.
+   • Espera el mensaje "✅ Estructura lista".
+
+5. PUBLICAR:
+   • Implementar → Administrar implementaciones → (lápiz/editar)
+   • Versión: "Nueva versión" → Implementar.
+   • Abre la URL /exec de la Web App. Ahora SÍ conecta.
+
+   Es seguro re-ejecutar "Crear / reparar estructura" cuando
+   quieras: no borra datos, solo crea lo que falte. Si alguna vez
+   quieres empezar de cero, usa "⚠️ Reiniciar TODO (borra datos)".
+
+
+FUNCIONALIDADES NUEVAS (v1.4)
+────────────────────────────────────────────────────────────────
+TABLERO DE TURNO  (botón "🎨 Asignar turno" sobre las camas)
+  • Marca hasta 3 colegas de turno (cada uno con su color).
+  • Pinta camas por sección (Adelante 1–6 · Medio 7–12 · Atrás
+    13–18) o cama por cama.
+  • La cama pintada muestra color + nombre del colega y un
+    contador de camas por colega.
+  • Al abrir el registro de una cama pintada, la FIRMA del colega
+    queda pre-seleccionada automáticamente.
+  • Se reinicia al cambiar de fecha o de turno (Día/Noche).
+  • Se comparte entre equipos (se guarda en la hoja TURNOS).
+
+FIRMA ESTANDARIZADA
+  • La firma dejó de ser texto libre: ahora es un desplegable con
+    los 15 colegas (14 de turno + Magdalena como apoyo).
+
+TEXTO CLÍNICO (genTexto) — redacción corregida
+  • Días ordinales: "Paciente en 5to día de estadía en UCI en
+    contexto de <Dx>." (cardinal desde el día 13).
+  • Sedación: "...para meta SAS". Con BNM: "Sedado y paralizado
+    con BNM para meta SAS 1."
+  • Vía aérea: "Vía aérea artificial en día X mediante tubo
+    orotraqueal N° X fijado a X cm a nivel de la comisura labial."
+  • Ventilación: narrativa cualitativa + bloque "Terapia
+    ventilatoria <modo>: ..." con todos los parámetros.
+  • Interacción P-VM: "adecuada/inadecuada" según el check
+    "Paciente adaptado al ventilador".
+  • Secreciones salen del examen físico y van a KTR:
+    "Se realiza KTR + SET: secreciones mucopurulentas (+++)."
+  • KTM se nombra "kinesiterapia motora (KTM)" (distinta de KTR).
+
+
+ROSTER DE COLEGAS (editable en el index, función Turnos → ROSTER)
+────────────────────────────────────────────────────────────────
+  MOW Mauricio Ortega Wanders     FGE Felipe Guerrero Espinoza
+  NPR Natalia Parra Rojas         SOG Sergio Ortiz Gómez
+  MVA María Vega Astudillo        AWE Álvaro Wilson Espinoza
+  EGT Eduardo González Tapia      DMV Diego Melo Villagrán
+  KGV Karen González Vásquez      CMF Carlos Morales Flores
+  AAG Andrés Ángel Gómez          MFB Manuel Fuentes Blanco
+  ACR Aline Campos Rivera         RC  Rodrigo Caamaño
+  MCC Magdalena Contando Cisternas (apoyo)
+════════════════════════════════════════════════════════════════
