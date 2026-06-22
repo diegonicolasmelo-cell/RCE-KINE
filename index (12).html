@@ -1906,6 +1906,7 @@ function abrirPanel(id, esIng) {
   }
   $('ovl').classList.add('on');
   $('sp').classList.add('on');
+  document.body.style.overflow = 'hidden';
 
   // ★ FIX scroll: asegurar que el panel arranca al inicio del formulario.
   //   Sin esto, a veces el navegador conserva la posición de scroll del
@@ -1922,6 +1923,7 @@ function abrirPanel(id, esIng) {
 function cerrarPanel() {
   $('sp').classList.remove('on');
   $('ovl').classList.remove('on');
+  document.body.style.overflow = '';
   // Resetear estado del botón guardar
   const btn=$('btnGuardar');
   if(btn){ btn.disabled=false; btn.textContent='💾 Guardar Evolución'; }
