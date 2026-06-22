@@ -726,4 +726,35 @@ function obtenerArchivoDetalle(idArchivo) {
     return err('obtenerArchivoDetalle: ' + e.message, e);
   }
 }
- 
+
+// ═══════════════════════════════════════════════════════════
+//  INIT COMBINADO — evita 2 round-trips seriales al arrancar
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * ★ NUEVO ★ — Reemplaza la secuencia GET_TODAS_CAMAS → GET_EVOLUCIONES_HOY
+ * en una sola llamada al servidor. Ahorra ~2-3s de latencia en cada recarga
+ * del panel (antes los 2 viajes eran seriales: el segundo no iniciaba hasta
+ * que el primero terminaba completamente).
+ *
+ * @param {string} [fecha]  "YYYY-MM-DD" — por defecto hoy en Santiago.
+ * @returns {{ camas: Array, evosHoy: Array, fecha: string }}
+ */
+function obtenerDashboardInit(fecha) {
+  try {
+    const fechaHoy = fecha || fechaHoyISO();
+
+    // Lee CAMAS + evaluaciones funcionales (incluye 1 lectura de EVOLUCIONES)
+    const resCamas = obtenerTodasLasCamas();
+    if (!resCamas.ok) return resCamas;
+
+    // Filtra EVOLUCIONES por FECHA del día seleccionado
+    const h    = obtenerHoja(SH.EVOLUCIONES);
+    const evos = leerHojaObjetos(h, COL_EVO, EVO_TOTAL_COLS, EVO_FILA_DATOS, 'FECHA', fechaHoy);
+    evos.forEach(e => { delete e.TEXTO_GENERADO; delete e.JSON_SNAPSHOT; });
+
+    return ok({ camas: resCamas.data, evosHoy: evos, fecha: fechaHoy });
+  } catch (e) {
+    return err('obtenerDashboardInit: ' + e.message, e);
+  }
+}

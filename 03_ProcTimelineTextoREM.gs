@@ -30,9 +30,10 @@ function _guardarProcedimientosInterno(idEvolucion, idCama, fecha, turno, listaP
     filasPrev.slice().reverse().forEach(f => h.deleteRow(f));
   }
  
-  // Insertar nuevos (★ batch: construir array y appendRow uno a uno
-  //   — no se puede batch-append en GAS sin getLastRow + setValues,
-  //   lo dejamos como estaba pero ya sin tomar lock anidado)
+  // ★ OPT v1.2: batch insert — acumula todas las filas y escribe en 1 sola I/O.
+  // Antes: N appendRow() = N viajes de red (~150ms c/u con 10 procs = ~1.5s extra).
+  // Ahora: 1 setValues() sin importar cuántos procedimientos tenga el turno.
+  const filas = [];
   listaProcedimientos.forEach(nombreProc => {
     if (!nombreProc || !nombreProc.trim()) return;
     const fila = new Array(9).fill('');
@@ -45,10 +46,13 @@ function _guardarProcedimientosInterno(idEvolucion, idCama, fecha, turno, listaP
     fila[COL_PROC.NOMBRE_PROC  - 1] = nombreProc.trim();
     fila[COL_PROC.DESCRIPCION  - 1] = '';
     fila[COL_PROC.TIMESTAMP    - 1] = timestampAhora();
-    h.appendRow(fila);
+    filas.push(fila);
   });
- 
-  return { idEvolucion, cantidad: listaProcedimientos.length };
+  if (filas.length > 0) {
+    h.getRange(h.getLastRow() + 1, 1, filas.length, 9).setValues(filas);
+  }
+
+  return { idEvolucion, cantidad: filas.length };
 }
  
 /** Versión PÚBLICA con lock (cuando se llama directo desde dispatcher) */

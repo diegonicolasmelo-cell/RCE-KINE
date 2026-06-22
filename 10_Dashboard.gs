@@ -345,24 +345,27 @@ function obtenerDiasVentilatorios(fechaHasta) {
     const ingPorCama = {};
     camas.forEach(c => { ingPorCama[String(c.ID_CAMA)] = _isoDe(c.FECHA_INGRESO); });
 
-    // Lee solo 3 columnas de EVOLUCIONES (liviano).
+    // ★ OPT v1.1: 1 sola lectura de bloque contiguo (cols ID_CAMA→VENT_SOPORTE)
+    // en vez de 3 getRange() separados — ahorra ~300-600ms por llamada.
+    // Leemos cols ID_CAMA(2) a VENT_SOPORTE(45): 44 columnas en 1 viaje de red.
     const hE = obtenerHoja(SH.EVOLUCIONES);
     const ult = hE.getLastRow();
     if (ult < EVO_FILA_DATOS) return ok({});
     const n = ult - EVO_FILA_DATOS + 1;
-    const idCol  = hE.getRange(EVO_FILA_DATOS, COL_EVO.ID_CAMA,      n, 1).getValues();
-    const fCol   = hE.getRange(EVO_FILA_DATOS, COL_EVO.FECHA,        n, 1).getValues();
-    const sopCol = hE.getRange(EVO_FILA_DATOS, COL_EVO.VENT_SOPORTE, n, 1).getValues();
+    const blk = hE.getRange(EVO_FILA_DATOS, COL_EVO.ID_CAMA, n,
+                              COL_EVO.VENT_SOPORTE - COL_EVO.ID_CAMA + 1).getValues();
+    const O_FECHA = COL_EVO.FECHA        - COL_EVO.ID_CAMA; // offset 0-based dentro del bloque
+    const O_SOP   = COL_EVO.VENT_SOPORTE - COL_EVO.ID_CAMA;
 
     const acc = {}; // idCama → { vm:{fecha:1}, vni:{fecha:1} }
     for (let i = 0; i < n; i++) {
-      const id = String(idCol[i][0] || '').trim();
+      const id = String(blk[i][0] || '').trim();
       if (!id) continue;
-      const iso = _isoDe(fCol[i][0]);
+      const iso = _isoDe(blk[i][O_FECHA]);
       if (!iso || iso > hasta) continue;
       const ing = ingPorCama[id];
       if (ing && iso < ing) continue; // evolución de un ingreso anterior
-      const sop = String(sopCol[i][0] || '').trim();
+      const sop = String(blk[i][O_SOP] || '').trim();
       if (sop !== 'VM' && sop !== 'VNI') continue;
       const a = acc[id] || (acc[id] = { vm: {}, vni: {} });
       if (sop === 'VM') a.vm[iso] = 1; else a.vni[iso] = 1;

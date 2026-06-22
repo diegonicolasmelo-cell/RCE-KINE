@@ -1,18 +1,13 @@
 /**
  * ============================================================
  *  07_WebApp.gs — Punto de entrada Web App (doGet / doPost)
- *  RCE KINE UCIA | GAS-v1.3
+ *  RCE KINE UCIA | GAS-v1.4
  *
- *  CAMBIOS v1.3:
- *  + doGet con routing: soporta ?page=informe para el
- *    Informe Estadístico Anual (archivo informe.html).
- *  + Resto del código sin cambios.
+ *  CAMBIOS v1.4:
+ *  + GET_DASHBOARD_INIT: combina GET_TODAS_CAMAS + GET_EVOLUCIONES_HOY
+ *    en una sola llamada → ahorra 1 round-trip (~2-3s) en cada recarga.
  * ============================================================
  */
-
-// ═══════════════════════════════════════════════════════════
-//  doGet — Sirve el HTML según ?page= (routing simple)
-// ═══════════════════════════════════════════════════════════
 
 function doGet(e) {
   return HtmlService
@@ -22,15 +17,15 @@ function doGet(e) {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
 }
 
-// ═══════════════════════════════════════════════════════════
-//  DISPATCHER — Todas las llamadas del frontend pasan aquí
-// ═══════════════════════════════════════════════════════════
-
 function procesarRequest(accion, datos) {
   console.log(`[RCE] REQUEST: ${accion}`, JSON.stringify(datos || {}).substring(0, 200));
 
   try {
     switch (accion) {
+
+      // ── DASHBOARD INIT (camas + evoluciones hoy en 1 llamada) ────
+      case 'GET_DASHBOARD_INIT':
+        return obtenerDashboardInit(datos.fecha);
 
       // ── DASHBOARD ──────────────────────────────────────────
       case 'GET_TODAS_CAMAS':

@@ -1511,12 +1511,13 @@ let APP_URL = '';
 
 function recargar() {
   loading(true,'Actualizando datos...');
-  gs('GET_TODAS_CAMAS', {}, data => {
-    DB = data;
-    loadEvoSet(() => {
-      renderGrid(); if(ATAB==='P') renderTabla();
-      loading(false); toast('✅ Datos actualizados');
-    });
+  const _rFecha = v('gDate')||hoy();
+  gs('GET_DASHBOARD_INIT', {fecha:_rFecha}, d => {
+    DB = d.camas;
+    const tkey = _rFecha+'-'+SHIFT;
+    EVO_SET = new Set((d.evosHoy||[]).filter(e=>String(e.TURNO_KEY)===tkey).map(e=>String(e.ID_CAMA)));
+    renderGrid(); if(ATAB==='P') renderTabla();
+    loading(false); toast('✅ Datos actualizados');
   }, ()=>loading(false));
 }
 
@@ -4594,8 +4595,8 @@ window.onload = function() {
   initControls();
   initClock();
   loading(true,'Cargando datos del servidor...');
-  gs('GET_TODAS_CAMAS', {},
-    data => { DB=data; if(window.Turnos) Turnos.init(); loadEvoSet(()=>{ renderGrid(); loading(false); }); },
+  gs('GET_DASHBOARD_INIT', {fecha: v('gDate')||hoy()},
+    d => { DB=d.camas; const tk=(v('gDate')||hoy())+'-'+SHIFT; EVO_SET=new Set((d.evosHoy||[]).filter(e=>String(e.TURNO_KEY)===tk).map(e=>String(e.ID_CAMA))); if(window.Turnos) Turnos.init(); renderGrid(); loading(false); },
     () => {
       loading(false);
       $('bedGrid').innerHTML='<div style="padding:40px;text-align:center;color:var(--danger);font-weight:600;">❌ No se pudo conectar con el servidor.<br><span style="font-size:.83rem;color:var(--muted);">Verifica que el script esté publicado como Web App.</span></div>';
