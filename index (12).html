@@ -1061,6 +1061,49 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div id="dPostExt" class="hidden fade mt">
                 <input type="text" id="fPostExt" placeholder="Describir soporte post-extubación..." style="height:35px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;width:100%;">
               </div>
+
+              <!-- PVE DIARIA -->
+              <div style="margin-top:10px;padding:10px 11px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#0369a1;margin-bottom:7px;letter-spacing:.04em;">🫁 PVE Diaria</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+                    <input type="radio" name="pveEst" value="no_aplica" id="pveNA" onchange="hPVE()" checked> No aplica
+                  </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+                    <input type="radio" name="pveEst" value="exito" id="pveOk" onchange="hPVE()"> ✅ Éxito
+                  </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+                    <input type="radio" name="pveEst" value="frustra" id="pveFr" onchange="hPVE()"> ⚠️ Frustra
+                  </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+                    <input type="radio" name="pveEst" value="sin_cond" id="pveSC" onchange="hPVE()"> ❌ Sin condiciones
+                  </label>
+                </div>
+                <!-- Éxito: tipo de extubación -->
+                <div id="dPveOk" class="hidden" style="margin-top:8px;">
+                  <label style="font-size:.73rem;font-weight:700;color:#0369a1;">Progresión:</label>
+                  <select id="fPveExtTipo" style="margin-top:4px;width:100%;height:30px;font-size:.78rem;border:1px solid #bae6fd;border-radius:6px;padding:0 8px;background:#fff;">
+                    <option value="planificar">Solo planificar — extubación en próximo turno</option>
+                    <option value="protocolo">Extubación programada c/protocolo</option>
+                    <option value="sin_protocolo">Extubación programada s/protocolo</option>
+                  </select>
+                </div>
+                <!-- Frustra: motivo/s -->
+                <div id="dPveFr" class="hidden" style="margin-top:8px;">
+                  <label style="font-size:.73rem;font-weight:700;color:#b45309;">Razón de fracaso:</label>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;">
+                    <label class="check wa"><input type="checkbox" name="pveFrMot" value="hemodinámico"> Hemodinámico</label>
+                    <label class="check wa"><input type="checkbox" name="pveFrMot" value="ventilatorio"> Ventilatorio</label>
+                    <label class="check wa"><input type="checkbox" name="pveFrMot" value="neurológico"> Neurológico</label>
+                    <label class="check wa"><input type="checkbox" name="pveFrMot" value="mecánica respiratoria"> Mec. respiratoria</label>
+                  </div>
+                </div>
+                <!-- Sin condiciones: razón libre -->
+                <div id="dPveSC" class="hidden" style="margin-top:8px;">
+                  <label style="font-size:.73rem;font-weight:700;color:#b91c1c;">Motivo:</label>
+                  <input type="text" id="fPveSCraz" placeholder="ej: sedación profunda, hemodinamia inestable..." style="margin-top:4px;height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
+                </div>
+              </div>
             </div>
 
             <!-- Manejo respiratorio / KTR -->
@@ -1868,6 +1911,7 @@ function abrirPanel(id, esIng) {
   const dl=$('lblDinamo'); if(dl){ dl.innerHTML='— <span style="opacity:.6;font-size:.65rem;">(usa sexo del paciente)</span>'; dl.className='interp-pill interp-empty'; }
   if(typeof setKTMstate==='function') setKTMstate('r');
   if(typeof renderKTMinterv==='function') renderKTMinterv();
+  hPVE();
   // defaults
   cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS();
 
@@ -2017,6 +2061,20 @@ function fillForm(s) {
   set('fDinamo',_ex.EVAL_T_DINAMO); interpDinamo();
   set('fFSSt',  _ex.EVAL_T_FSS);    interpFSS();
   set('fPIMt',  _ex.EVAL_T_PIM);    interpPIM();
+  // PVE diaria (desde snapshot)
+  (function(){
+    const est=_ex.PVE_ESTADO||'no_aplica';
+    const rb=document.querySelector(`input[name="pveEst"][value="${est}"]`);
+    if(rb){ rb.checked=true; } else { const na=$('pveNA'); if(na) na.checked=true; }
+    hPVE();
+    if(est==='exito'&&_ex.PVE_EXT_TIPO) set('fPveExtTipo',_ex.PVE_EXT_TIPO);
+    if(est==='frustra'){
+      let mots=[];try{mots=JSON.parse(_ex.PVE_FR_MOTIVOS||'[]');}catch(e){}
+      document.querySelectorAll('input[name="pveFrMot"]').forEach(c=>{c.checked=mots.includes(c.value);});
+    }
+    if(est==='sin_cond') set('fPveSCraz',_ex.PVE_SC_RAZON);
+  })();
+
   if(s.PROC_JSON){try{PROCS=JSON.parse(s.PROC_JSON)||[];}catch(e){} renderChips();}
   chk('cMue',s.MUE_REALIZADAS); hMue();
   set('fMueMec',s.MUE_MECANISMO); set('fMueOtro',s.MUE_OTRO);
@@ -2124,7 +2182,7 @@ function fillFormReplica(s) {
 function limpiarReplica() {
   const id=v('cBed'), fecha=v('gDate')||hoy();
   $('kf').reset(); PROCS=[]; KTM_INTERV_SEL=new Set(); renderChips(); renderKTMinterv();
-  cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS();
+  cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS(); hPVE();
   const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha);
   hide('repBanner');
   toast('📝 Formulario en blanco — listo para comenzar');
@@ -2192,12 +2250,25 @@ function guardar() {
     EVAL_T_DINAMO:   v('fDinamo'),
     EVAL_T_FSS:      v('fFSSt'),
     EVAL_T_PIM:      v('fPIMt'),
+    // ★ PVE diaria
+    PVE_ESTADO:    (document.querySelector('input[name="pveEst"]:checked')?.value)||'no_aplica',
+    PVE_EXT_TIPO:  v('fPveExtTipo'),
+    PVE_FR_MOTIVOS:JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
+    PVE_SC_RAZON:  v('fPveSCraz'),
     PROC_JSON: (function(){
       // ★ DEDUP: auto-derivar procedimientos desde campos clínicos
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if(v('fDCL')) auto.push('Posicionamiento ' + v('fDCL'));
+      // Auto-derivar PVE y extubación desde sección PVE
+      const _pve=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
+      if(_pve==='exito'||_pve==='frustra') auto.push('PVE');
+      if(_pve==='exito'){
+        const _et=v('fPveExtTipo');
+        if(_et==='protocolo')     auto.push('EXTUBACIÓN C/PROTOCOLO');
+        if(_et==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
+      }
       const merged=Array.from(new Set([...(PROCS||[]), ...auto]));
       return JSON.stringify(merged);
     })(),
@@ -2206,6 +2277,10 @@ function guardar() {
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if(v('fDCL')) auto.push('Posicionamiento ' + v('fDCL'));
+      const _pve=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
+      if(_pve==='exito'||_pve==='frustra') auto.push('PVE');
+      if(_pve==='exito'&&v('fPveExtTipo')==='protocolo')     auto.push('EXTUBACIÓN C/PROTOCOLO');
+      if(_pve==='exito'&&v('fPveExtTipo')==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
       return Array.from(new Set([...(PROCS||[]), ...auto])).join(', ');
     })(),
     PROC_CANTIDAD: (function(){
@@ -2213,6 +2288,10 @@ function guardar() {
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if(v('fDCL')) auto.push('Posicionamiento ' + v('fDCL'));
+      const _pve=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
+      if(_pve==='exito'||_pve==='frustra') auto.push('PVE');
+      if(_pve==='exito'&&v('fPveExtTipo')==='protocolo')     auto.push('EXTUBACIÓN C/PROTOCOLO');
+      if(_pve==='exito'&&v('fPveExtTipo')==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
       return new Set([...(PROCS||[]), ...auto]).size;
     })(),
     MUE_REALIZADAS:bv('cMue'), MUE_MECANISMO:v('fMueMec'), MUE_OTRO:v('fMueOtro'),
@@ -3037,6 +3116,29 @@ function genTexto() {
     if(gv('fPIMt'))  ev.push(`PIM ${gv('fPIMt')} cmH₂O (${$('lblPIMt')?.textContent||''})`);
     if(ev.length) L.push('Evaluaciones funcionales: ' + ev.join('; ') + '.');
   }
+  // PVE diaria — texto clínico estructurado
+  (function(){
+    const _pveEst=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
+    if(_pveEst==='no_aplica') return;
+    if(_pveEst==='exito'){
+      const _et=v('fPveExtTipo')||'planificar';
+      if(_et==='protocolo')
+        L.push('Según protocolo se realiza PVE diaria con éxito, por lo que se progresa a extubación programada con protocolo.');
+      else if(_et==='sin_protocolo')
+        L.push('Según protocolo se realiza PVE diaria con éxito, por lo que se progresa a extubación programada sin protocolo.');
+      else
+        L.push('Según protocolo se realiza PVE diaria con éxito. Paciente en condiciones de proceder a extubación en próximo turno.');
+    } else if(_pveEst==='frustra'){
+      const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
+      const _mstr=_mots.length
+        ? _mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]
+        : 'aspectos clínicos';
+      L.push(`Se realiza PVE según protocolo, sin embargo evoluciona torpidamente desde lo ${_mstr}.`);
+    } else if(_pveEst==='sin_cond'){
+      const _raz=v('fPveSCraz')||'sin especificar';
+      L.push(`Sin condiciones actuales de realizar PVE por ${_raz}.`);
+    }
+  })();
   if(PROCS.length) L.push(`Procedimientos: ${PROCS.join(', ')}.`);
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
   if(pl) L.push(`Plan: ${pl}`); if(no) L.push(`Nota: ${no}`); if(fi) L.push(`Kinesiólogo: ${fi}`);
@@ -3227,6 +3329,13 @@ function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='sin DVA'){show('
 function hSecr(){const c=v('fSecrC'),t=$('fSecrT');if(t){if(c)t.disabled=false;else{t.disabled=true;t.value='';}} }
 function hMue(){if($('cMue')?.checked)show('dMue');else hide('dMue');}
 function hEgr(){if($('cEgr')?.checked)show('dEgr');else hide('dEgr');}
+function hPVE(){
+  const est=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
+  ['dPveOk','dPveFr','dPveSC'].forEach(id=>hide(id));
+  if(est==='exito')    show('dPveOk');
+  if(est==='frustra')  show('dPveFr');
+  if(est==='sin_cond') show('dPveSC');
+}
 function hKTM(q){ setKTMstate(q); }
 function setKTMstate(q){
   const r = q==='r', s = q==='s', n = q==='n';
