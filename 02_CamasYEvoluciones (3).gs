@@ -22,18 +22,18 @@
 //  CAMAS — LECTURA
 // ═══════════════════════════════════════════════════════════
  
-function obtenerTodasLasCamas() {
+function obtenerTodasLasCamas(evalPorCama) {
   try {
     const h      = obtenerHoja(SH.CAMAS);
     const ultima = h.getLastRow();
     if (ultima < CAM_FILA_DATOS) return ok([]);
- 
+
     const datos = h.getRange(CAM_FILA_DATOS, 1, ultima - CAM_FILA_DATOS + 1, CAM_TOTAL_COLS).getValues();
     const camas = datos.map(fila => filaAObjeto(fila, COL_CAM));
- 
-    // Mapa de evaluaciones funcionales (MRC-SS / FSS-ICU / cooperación) por cama,
-    // a partir de la última evolución registrada. Una sola lectura de EVOLUCIONES.
-    const evalPorCama = _evalFuncionalPorCama();
+
+    // Mapa de evaluaciones funcionales (MRC-SS / FSS-ICU / cooperación) por cama.
+    // Si se pasa pre-calculado (desde obtenerDashboardInit), no se re-lee EVOLUCIONES.
+    if (!evalPorCama) evalPorCama = _evalFuncionalPorCama();
  
     const hoy = fechaHoyISO();
     camas.forEach(c => {
@@ -572,16 +572,17 @@ function _obtenerEvolucionesIdCama(idCama) {
  * - mrc/fss: valor de la evolución MÁS RECIENTE que tenga ese dato,
  *   junto con la fecha de esa evolución (para mostrar "MRC 48 · 12-06").
  */
-function _evalFuncionalPorCama() {
+function _evalFuncionalPorCama(evosAll) {
   const out = {};
   try {
-    const h = obtenerHoja(SH.EVOLUCIONES);
-    const evos = leerHojaObjetos(h, COL_EVO, EVO_TOTAL_COLS, EVO_FILA_DATOS);
-    // Orden cronológico ascendente: la última iteración deja lo más reciente.
-    evos.sort((a, b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
+    if (!evosAll) {
+      const h = obtenerHoja(SH.EVOLUCIONES);
+      evosAll = leerHojaObjetos(h, COL_EVO, EVO_TOTAL_COLS, EVO_FILA_DATOS);
+    }
+    const evos = evosAll.slice().sort((a, b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
     const tiene = x => x !== '' && x !== null && x !== undefined;
     evos.forEach(e => {
-      const id = String(e.ID_CAMA);
+      const id = String(e.ID_CAMA || '');
       if (!id) return;
       const r = out[id] || (out[id] = { coop:'', mrc:'', mrcFecha:'', fss:'', fssFecha:'' });
       if (tiene(e.SED_COOPERACION)) r.coop = e.SED_COOPERACION;
@@ -744,16 +745,22 @@ function obtenerDashboardInit(fecha) {
   try {
     const fechaHoy = fecha || fechaHoyISO();
 
-    // Lee CAMAS + evaluaciones funcionales (incluye 1 lectura de EVOLUCIONES)
-    const resCamas = obtenerTodasLasCamas();
+    // Leer EVOLUCIONES UNA sola vez: sirve tanto para evalFuncional como para evosHoy.
+    const hE      = obtenerHoja(SH.EVOLUCIONES);
+    const evosAll = leerHojaObjetos(hE, COL_EVO, EVO_TOTAL_COLS, EVO_FILA_DATOS);
+
+    // Evaluaciones funcionales (MRC-SS / FSS / cooperación) — sin segunda lectura.
+    const evalPorCama = _evalFuncionalPorCama(evosAll);
+
+    // Camas (pasa evalPorCama para evitar tercera lectura de EVOLUCIONES).
+    const resCamas = obtenerTodasLasCamas(evalPorCama);
     if (!resCamas.ok) return resCamas;
 
-    // Filtra EVOLUCIONES por FECHA del día seleccionado
-    const h    = obtenerHoja(SH.EVOLUCIONES);
-    const evos = leerHojaObjetos(h, COL_EVO, EVO_TOTAL_COLS, EVO_FILA_DATOS, 'FECHA', fechaHoy);
-    evos.forEach(e => { delete e.TEXTO_GENERADO; delete e.JSON_SNAPSHOT; });
+    // Filtrar evoluciones del día en memoria (sin nueva llamada a Sheets).
+    const evosHoy = evosAll.filter(e => String(e.FECHA || '').trim() === fechaHoy);
+    evosHoy.forEach(e => { delete e.TEXTO_GENERADO; delete e.JSON_SNAPSHOT; });
 
-    return ok({ camas: resCamas.data, evosHoy: evos, fecha: fechaHoy });
+    return ok({ camas: resCamas.data, evosHoy, fecha: fechaHoy });
   } catch (e) {
     return err('obtenerDashboardInit: ' + e.message, e);
   }
