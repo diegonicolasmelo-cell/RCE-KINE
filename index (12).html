@@ -1241,10 +1241,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <option value="0">0</option><option>1</option><option>2</option><option>3</option>
                     <option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
                   </select></div>
-                <div class="col ws"><label title="Succión Orofaríngea">SOF</label><input type="number" id="fSOFcnt" min="0" placeholder="0" style="width:55px;"></div>
-                <div class="col ws"><label title="Succión Nasofaríngea">SNF</label><input type="number" id="fSNFcnt" min="0" placeholder="0" style="width:55px;"></div>
-                <div class="col ws"><label title="Succión Endotraqueal">SET</label><input type="number" id="fSETcnt" min="0" placeholder="0" style="width:55px;"></div>
-                <div class="col ws"><label title="Asistencia de tos">A.Tos</label><input type="number" id="fATosCnt" min="0" placeholder="0" style="width:55px;"></div>
+                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cSOF"><label for="cSOF" title="Succión Orofaríngea">SOF</label></div>
+                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cSNF"><label for="cSNF" title="Succión Nasofaríngea">SNF</label></div>
+                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cSET"><label for="cSET" title="Succión Endotraqueal">SET</label></div>
+                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cATos"><label for="cATos">A.Tos</label></div>
                 <div class="col wa"><label>Posicionamiento</label>
                   <select id="fDCL">
                     <option value="">-- seleccionar --</option>
@@ -2170,8 +2170,8 @@ function fillForm(s) {
 
   // Respiratorio nuevos campos
   set('fKTRcnt',_ex.RESP_KTR_CANT);
-  set('fSOFcnt', _ex.RESP_SOF_CANT); set('fSNFcnt', _ex.RESP_SNF_CANT);
-  set('fSETcnt', _ex.RESP_SET_CANT); set('fATosCnt',_ex.RESP_ATOS_CANT);
+  chk('cSOF', _ex.RESP_SOF); chk('cSNF', _ex.RESP_SNF);
+  chk('cSET', _ex.RESP_SET); chk('cATos',_ex.RESP_ATOS);
   chk('cInhalo', _ex.RESP_INHALO);
   set('fDCL',   _ex.RESP_DCL);
 
@@ -2427,10 +2427,10 @@ function guardar() {
     KTM_INTERVENCIONES_JSON: JSON.stringify(Array.from(KTM_INTERV_SEL)),
     // ★ Respiratorio nuevos campos
     RESP_KTR_CANT:  v('fKTRcnt'),
-    RESP_SOF_CANT:  v('fSOFcnt'),
-    RESP_SNF_CANT:  v('fSNFcnt'),
-    RESP_SET_CANT:  v('fSETcnt'),
-    RESP_ATOS_CANT: v('fATosCnt'),
+    RESP_SOF:       bv('cSOF'),
+    RESP_SNF:       bv('cSNF'),
+    RESP_SET:       bv('cSET'),
+    RESP_ATOS:      bv('cATos'),
     RESP_INHALO:    bv('cInhalo'),
     RESP_DCL:       v('fDCL'),
     // ★ Evaluaciones funcionales por turno
@@ -3319,15 +3319,13 @@ function genTexto() {
   const dcl=gv('fDCL'); if(dcl) L.push(`Posicionamiento: ${dcl.toLowerCase()}.`);
   if($('cInhalo')?.checked) L.push('Se administra inhaloterapia según indicación médica (SOS).');
   (function(){
-    const ktr=parseInt(gv('fKTRcnt'))||0, sof=parseInt(gv('fSOFcnt'))||0;
-    const snf=parseInt(gv('fSNFcnt'))||0, set_=parseInt(gv('fSETcnt'))||0;
-    const atos=parseInt(gv('fATosCnt'))||0;
+    const ktr=parseInt(gv('fKTRcnt'))||0;
     const procs=[];
     if(ktr>0) procs.push(`KTR (${ktr})`);
-    if(set_>0) procs.push(`SET (${set_})`);
-    if(sof>0)  procs.push(`SOF (${sof})`);
-    if(snf>0)  procs.push(`SNF (${snf})`);
-    if(atos>0) procs.push(`asistencia de tos (${atos})`);
+    if($('cSET')?.checked) procs.push('SET');
+    if($('cSOF')?.checked) procs.push('SOF');
+    if($('cSNF')?.checked) procs.push('SNF');
+    if($('cATos')?.checked) procs.push('asistencia de tos');
     if(!procs.length) return;
     let kline=procs.join(' + ');
     const _secrC=gv('fSecrC'), _secrT=gv('fSecrT');
