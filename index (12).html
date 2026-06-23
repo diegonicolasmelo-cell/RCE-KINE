@@ -913,13 +913,18 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard-body">
           <div class="row" style="margin-bottom:0;">
             <div class="col grow"><label>Nombre</label><input type="text" id="fNombre" class="bold" placeholder="Nombre completo"></div>
-            <div class="col wm"><label>RUT</label><input type="text" id="fRut" placeholder="12345678-9"></div>
             <div class="col ws"><label>Edad</label><input type="number" id="fEdad"></div>
             <div class="col ws"><label>Sexo*</label><select id="fSexo" onchange="calcPI()"><option value="" disabled selected>-</option><option value="M">Masc</option><option value="F">Fem</option></select></div>
             <div class="col ws"><label>Talla cm</label><input type="number" id="fTalla" oninput="calcPI()"></div>
             <div class="col wa" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPI" style="font-size:.75rem;font-weight:600;padding:4px 8px;border-radius:5px;background:#eff6ff;border:1px solid #bfdbfe;color:var(--primary);white-space:nowrap;">PI: --</span></div>
             <div class="col ws"><label>Barthel</label><input type="number" id="fBarthel" placeholder="0-100"></div>
             <div class="col ws"><label>ECF</label><input type="number" id="fEcf" placeholder="0-9"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+            <div class="check cr wa"><input type="checkbox" id="cAisl" onchange="hAisl()"><label for="cAisl" style="font-weight:700;">🦠 Aislamiento</label></div>
+            <div id="dAislMicro" class="hidden" style="flex:1;min-width:180px;">
+              <input type="text" id="fAislMicro" placeholder="Microorganismo / motivo ej: SAMR, Klebsiella XDR..." style="height:30px;border:1px solid #fecdd3;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;background:#fff5f5;">
+            </div>
           </div>
         </div>
       </div>
@@ -932,6 +937,9 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             <div class="row">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:70px;" disabled></div>
               <div class="col grow"><label>Diagnóstico de Ingreso</label><input type="text" id="fDx" placeholder="Ej: Shock Séptico..."></div>
+              <div class="col wa" style="align-self:flex-end;margin-bottom:6px;">
+                <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReing"><label for="cReing" style="font-weight:700;">↩️ Reingreso</label></div>
+              </div>
               <div class="col wa"><label>Diagnóstico REM</label>
                 <select id="fRem" style="min-width:155px;">
                   <option value="" disabled selected>-- Grupo --</option>
@@ -958,6 +966,15 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <div class="col grow"><label>Tipo TQT</label><input type="text" id="fTQTt" placeholder="Ej: Shiley #7..."></div>
               </div>
             </div>
+            <!-- AET -->
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+              <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cAET" onchange="hAET()"><label for="cAET" style="font-weight:700;">⚖️ Adecuación del Esfuerzo Terapéutico (AET)</label></div>
+              <div id="dAETnivel" class="hidden" style="display:flex;gap:5px;">
+                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="A"> Nivel A</label>
+                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="B"> Nivel B</label>
+                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="C"> Nivel C</label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -973,6 +990,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="col ws"><label>S5Q /5</label><input type="number" id="fS5Q" min="0" max="5" oninput="autoCoopera()"></div>
               <div class="col wa"><label>Cooperación</label>
                 <select id="fCoop"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select></div>
+              <div class="col wa"><label>CAM-ICU</label>
+                <select id="fCAMICU"><option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option></select></div>
             </div>
             <div class="row" style="align-items:center;gap:6px;">
               <span style="font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;">GCS:</span>
@@ -1004,7 +1023,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               </div>
               <div class="check cr wa"><input type="checkbox" id="cHTrend" onchange="hHTrend()"><label for="cHTrend">Tendencia</label></div>
               <div id="gHTT" class="col wa hidden"><label>Tipo</label>
-                <select id="fHTT"><option>HTA</option><option>Hipotensión</option><option>Taquicardia</option><option>Bradicardia</option></select></div>
+                <select id="fHTT"><option>HTA</option><option>Hipotensión</option><option>Eucardia</option><option>Taquicardia</option><option>Taquiarritmia</option><option>Bradicardia</option><option>Bradiarritmia</option></select></div>
             </div>
           </div>
         </div>
@@ -1014,17 +1033,27 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           <div class="fcard-hdr" style="background:#f0f9ff;"><span class="fcard-title" style="color:var(--resp);">🫁 RESPIRATORIO</span></div>
           <div class="fcard-body">
 
-            <!-- Examen físico pulmonar -->
+            <!-- Examen físico pulmonar / Auscultación -->
             <div class="sub-sec">
-              <div class="sub-sec-title" style="color:var(--resp);">Examen físico pulmonar</div>
-              <div class="row">
+              <div class="sub-sec-title" style="color:var(--resp);">🩺 Auscultación</div>
+              <div class="row" style="margin-bottom:6px;">
                 <div class="col grow"><label>Murmullo Pulmonar</label>
                   <select id="fMP"><option>presente bilateral</option><option>disminuido derecho</option><option>disminuido izquierdo</option><option>disminuido bilateral</option><option>abolido derecho</option><option>abolido izquierdo</option></select></div>
-                <div class="col wa"><label>Ruidos Agregados</label>
-                  <select id="fRuidos" onchange="if(this.value==='Otro')show('dRuidosM');else hide('dRuidosM');">
-                    <option>sin ruidos agregados</option><option>crépitos</option><option>estertores</option><option>roncus</option><option>sibilancias</option><option>frote pleural</option><option>Otro</option>
-                  </select></div>
-                <div id="dRuidosM" class="col grow hidden"><label>Describir</label><input type="text" id="fRuidosM"></div>
+              </div>
+              <div>
+                <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Ruidos Agregados</label>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <label class="check wa"><input type="checkbox" name="ruidos" value="sin ruidos agregados" id="rSin" onchange="hRuidos(this)"> Sin ruidos</label>
+                  <label class="check wa"><input type="checkbox" name="ruidos" value="crépitos"> Crépitos</label>
+                  <label class="check wa"><input type="checkbox" name="ruidos" value="estertores"> Estertores</label>
+                  <label class="check wa"><input type="checkbox" name="ruidos" value="roncus"> Roncus</label>
+                  <label class="check wa"><input type="checkbox" name="ruidos" value="sibilancias"> Sibilancias</label>
+                  <label class="check wa"><input type="checkbox" name="ruidos" value="frote pleural"> Frote pleural</label>
+                  <label class="check wa"><input type="checkbox" name="ruidos" value="otro" onchange="if(this.checked)show('dRuidosM');else hide('dRuidosM');"> Otro</label>
+                </div>
+                <div id="dRuidosM" class="hidden" style="margin-top:5px;">
+                  <input type="text" id="fRuidosM" placeholder="Describir ruido..." style="height:30px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
+                </div>
               </div>
               <div class="row" style="margin-bottom:0;">
                 <div class="col wa"><label>Secreciones</label>
@@ -1064,44 +1093,81 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 
               <!-- PVE DIARIA -->
               <div style="margin-top:10px;padding:10px 11px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
-                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#0369a1;margin-bottom:7px;letter-spacing:.04em;">🫁 PVE Diaria</div>
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#0369a1;margin-bottom:7px;letter-spacing:.04em;">🫁 Prueba de Ventilación Espontánea (PVE)</div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                   <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
                     <input type="radio" name="pveEst" value="no_aplica" id="pveNA" onchange="hPVE()" checked> No aplica
                   </label>
                   <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
-                    <input type="radio" name="pveEst" value="exito" id="pveOk" onchange="hPVE()"> ✅ Éxito
+                    <input type="radio" name="pveEst" value="realizada" id="pveRe" onchange="hPVE()"> ✅ Realizada
                   </label>
                   <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
-                    <input type="radio" name="pveEst" value="frustra" id="pveFr" onchange="hPVE()"> ⚠️ Frustra
-                  </label>
-                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
-                    <input type="radio" name="pveEst" value="sin_cond" id="pveSC" onchange="hPVE()"> ❌ Sin condiciones
+                    <input type="radio" name="pveEst" value="no_realizada" id="pveNR" onchange="hPVE()"> ❌ No realizada
                   </label>
                 </div>
-                <!-- Éxito: tipo de extubación -->
-                <div id="dPveOk" class="hidden" style="margin-top:8px;">
-                  <label style="font-size:.73rem;font-weight:700;color:#0369a1;">Progresión:</label>
-                  <select id="fPveExtTipo" style="margin-top:4px;width:100%;height:30px;font-size:.78rem;border:1px solid #bae6fd;border-radius:6px;padding:0 8px;background:#fff;">
-                    <option value="planificar">Solo planificar — extubación en próximo turno</option>
-                    <option value="protocolo">Extubación programada c/protocolo</option>
-                    <option value="sin_protocolo">Extubación programada s/protocolo</option>
-                  </select>
-                </div>
-                <!-- Frustra: motivo/s -->
-                <div id="dPveFr" class="hidden" style="margin-top:8px;">
-                  <label style="font-size:.73rem;font-weight:700;color:#b45309;">Razón de fracaso:</label>
-                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;">
-                    <label class="check wa"><input type="checkbox" name="pveFrMot" value="hemodinámico"> Hemodinámico</label>
-                    <label class="check wa"><input type="checkbox" name="pveFrMot" value="ventilatorio"> Ventilatorio</label>
-                    <label class="check wa"><input type="checkbox" name="pveFrMot" value="neurológico"> Neurológico</label>
-                    <label class="check wa"><input type="checkbox" name="pveFrMot" value="mecánica respiratoria"> Mec. respiratoria</label>
+                <!-- Realizada: resultado -->
+                <div id="dPveRe" class="hidden" style="margin-top:8px;">
+                  <label style="font-size:.73rem;font-weight:700;color:#0369a1;display:block;margin-bottom:5px;">Resultado:</label>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #bbf7d0;background:#f0fdf4;">
+                      <input type="radio" name="pveRes" value="superada" onchange="hPVEres()"> ✅ Superada
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #fed7aa;background:#fff7ed;">
+                      <input type="radio" name="pveRes" value="frustra" onchange="hPVEres()"> ⚠️ Frustra
+                    </label>
+                  </div>
+                  <!-- Frustra: motivos -->
+                  <div id="dPveFr" class="hidden" style="margin-top:7px;padding:7px 9px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;">
+                    <label style="font-size:.72rem;font-weight:700;color:#b45309;display:block;margin-bottom:4px;">Razón del fracaso (puede ser más de una):</label>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="hemodinámico"> Hemodinámico</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="ventilatorio"> Ventilatorio</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="neurológico"> Neurológico</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="mecánica respiratoria"> Mec. respiratoria</label>
+                    </div>
                   </div>
                 </div>
-                <!-- Sin condiciones: razón libre -->
-                <div id="dPveSC" class="hidden" style="margin-top:8px;">
-                  <label style="font-size:.73rem;font-weight:700;color:#b91c1c;">Motivo:</label>
-                  <input type="text" id="fPveSCraz" placeholder="ej: sedación profunda, hemodinamia inestable..." style="margin-top:4px;height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
+                <!-- No realizada: motivo -->
+                <div id="dPveNR" class="hidden" style="margin-top:8px;">
+                  <label style="font-size:.73rem;font-weight:700;color:#b91c1c;display:block;margin-bottom:4px;">Sin condiciones por:</label>
+                  <input type="text" id="fPveSCraz" placeholder="ej: sedación profunda, hemodinamia inestable..." style="height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
+                </div>
+              </div>
+
+              <!-- EXTUBACIÓN (solo si VA = TOT) -->
+              <div id="dExtSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:7px;letter-spacing:.04em;">✂️ Extubación</div>
+                <div class="check wa" style="margin-bottom:8px;"><input type="checkbox" id="cExtOcurrio" onchange="hExt()"><label for="cExtOcurrio" style="font-weight:700;">Ocurrió extubación este turno</label></div>
+                <div id="dExtDet" class="hidden">
+                  <label style="font-size:.73rem;font-weight:700;color:#7c3aed;display:block;margin-bottom:5px;">Tipo de extubación:</label>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">
+                      <input type="radio" name="extTipo" value="protocolo" onchange="hExtTipo()"> ✅ Con protocolo
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">
+                      <input type="radio" name="extTipo" value="sin_protocolo" onchange="hExtTipo()"> ⚠️ Sin protocolo
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">
+                      <input type="radio" name="extTipo" value="accidental" onchange="hExtTipo()"> 🔴 Accidental
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">
+                      <input type="radio" name="extTipo" value="autoextubacion" onchange="hExtTipo()"> 🔴 Autoextubación
+                    </label>
+                  </div>
+                  <!-- Motivo solo para accidental/autoextubación -->
+                  <div id="dExtMotivo" class="hidden" style="margin-bottom:8px;">
+                    <input type="text" id="fExtMotivo" placeholder="Motivo / circunstancias de la extubación no programada..." style="height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;background:#fff5f5;">
+                  </div>
+                  <!-- Post-extubación y reintubación -->
+                  <div class="row" style="margin-bottom:0;gap:8px;">
+                    <div class="col grow">
+                      <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
+                      <input type="text" id="fPostExtDet" placeholder="Soporte, tolerancia, estridor, Stokes..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
+                    </div>
+                    <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
+                      <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintub"><label for="cReintub" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1911,7 +1977,7 @@ function abrirPanel(id, esIng) {
   const dl=$('lblDinamo'); if(dl){ dl.innerHTML='— <span style="opacity:.6;font-size:.65rem;">(usa sexo del paciente)</span>'; dl.className='interp-pill interp-empty'; }
   if(typeof setKTMstate==='function') setKTMstate('r');
   if(typeof renderKTMinterv==='function') renderKTMinterv();
-  hPVE();
+  hPVE(); hAisl(); hAET(); hExt();
   // defaults
   cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS();
 
@@ -1980,7 +2046,7 @@ function cerrarTodo(e) {
 
 function fillCama(c, fecha) {
   const s=(id,val)=>{ const e=$(id); if(e&&val!==undefined&&val!==null&&val!=='') e.value=String(val); };
-  s('fNombre',c.NOMBRE); s('fRut',c.RUT); s('fEdad',c.EDAD);
+  s('fNombre',c.NOMBRE); s('fEdad',c.EDAD);
   if(c.SEXO) { $('fSexo').value=c.SEXO; calcPI(); }
   s('fTalla',c.TALLA_CM); s('fBarthel',c.BARTHEL); s('fEcf',c.ECF);
   s('fDx',c.DIAGNOSTICO); s('fRem',c.DIAG_REM);
@@ -1996,7 +2062,7 @@ function fillCama(c, fecha) {
 function fillForm(s) {
   const set=(id,val)=>{ const e=$(id); if(e&&val!==undefined&&val!=='') e.value=String(val); };
   const chk=(id,val)=>{ const e=$(id); if(e) e.checked=(val===true||val==='TRUE'); };
-  set('fNombre',s.PAC_NOMBRE); set('fRut',s.PAC_RUT); set('fEdad',s.PAC_EDAD); set('fTalla',s.PAC_TALLA);
+  set('fNombre',s.PAC_NOMBRE); set('fEdad',s.PAC_EDAD); set('fTalla',s.PAC_TALLA);
   set('fBarthel',s.PAC_BARTHEL); set('fEcf',s.PAC_ECF);
   if(s.PAC_SEXO){ $('fSexo').value=s.PAC_SEXO; calcPI(); }
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
@@ -2061,18 +2127,49 @@ function fillForm(s) {
   set('fDinamo',_ex.EVAL_T_DINAMO); interpDinamo();
   set('fFSSt',  _ex.EVAL_T_FSS);    interpFSS();
   set('fPIMt',  _ex.EVAL_T_PIM);    interpPIM();
-  // PVE diaria (desde snapshot)
+  // S1: aislamiento
+  chk('cAisl',_ex.PAC_AISLAMIENTO); hAisl(); set('fAislMicro',_ex.PAC_AISL_MICRO);
+  // S2: reingreso + AET
+  chk('cReing',_ex.ES_REINGRESO);
+  chk('cAET',_ex.AET_ACTIVA); hAET();
+  if(_ex.AET_NIVEL){ const rb=document.querySelector(`input[name="aetNivel"][value="${_ex.AET_NIVEL}"]`); if(rb) rb.checked=true; }
+  // S3: CAM-ICU
+  set('fCAMICU',_ex.SED_CAM_ICU);
+  // Auscultación múltiple
+  (function(){
+    if(!_ex.EX_RUIDOS_MULTI) return;
+    let arr=[]; try{arr=JSON.parse(_ex.EX_RUIDOS_MULTI);}catch(e){}
+    document.querySelectorAll('input[name="ruidos"]').forEach(c=>{c.checked=arr.includes(c.value);});
+    if(arr.includes('otro')) set('fRuidosM',_ex.EX_RUIDOS_OTRO);
+    const otro=document.querySelector('input[name="ruidos"][value="otro"]');
+    if(otro&&otro.checked) show('dRuidosM'); else hide('dRuidosM');
+  })();
+  // PVE diaria (nueva estructura)
   (function(){
     const est=_ex.PVE_ESTADO||'no_aplica';
     const rb=document.querySelector(`input[name="pveEst"][value="${est}"]`);
     if(rb){ rb.checked=true; } else { const na=$('pveNA'); if(na) na.checked=true; }
     hPVE();
-    if(est==='exito'&&_ex.PVE_EXT_TIPO) set('fPveExtTipo',_ex.PVE_EXT_TIPO);
-    if(est==='frustra'){
-      let mots=[];try{mots=JSON.parse(_ex.PVE_FR_MOTIVOS||'[]');}catch(e){}
+    if(est==='realizada'&&_ex.PVE_RESULTADO){
+      const rr=document.querySelector(`input[name="pveRes"][value="${_ex.PVE_RESULTADO}"]`);
+      if(rr){ rr.checked=true; hPVEres(); }
+    }
+    if(_ex.PVE_RESULTADO==='frustra'){
+      let mots=[]; try{mots=JSON.parse(_ex.PVE_FR_MOTIVOS||'[]');}catch(e){}
       document.querySelectorAll('input[name="pveFrMot"]').forEach(c=>{c.checked=mots.includes(c.value);});
     }
-    if(est==='sin_cond') set('fPveSCraz',_ex.PVE_SC_RAZON);
+    if(est==='no_realizada') set('fPveSCraz',_ex.PVE_SC_RAZON);
+  })();
+  // Extubación
+  (function(){
+    chk('cExtOcurrio',_ex.EXT_OCURRIO); hExt();
+    if(_ex.EXT_OCURRIO===true||_ex.EXT_OCURRIO==='TRUE'){
+      const rt=document.querySelector(`input[name="extTipo"][value="${_ex.EXT_TIPO}"]`);
+      if(rt){ rt.checked=true; hExtTipo(); }
+      set('fExtMotivo',_ex.EXT_MOTIVO);
+      set('fPostExtDet',_ex.EXT_POST_DET);
+      chk('cReintub',_ex.EXT_REINTUB);
+    }
   })();
 
   if(s.PROC_JSON){try{PROCS=JSON.parse(s.PROC_JSON)||[];}catch(e){} renderChips();}
@@ -2182,7 +2279,7 @@ function fillFormReplica(s) {
 function limpiarReplica() {
   const id=v('cBed'), fecha=v('gDate')||hoy();
   $('kf').reset(); PROCS=[]; KTM_INTERV_SEL=new Set(); renderChips(); renderKTMinterv();
-  cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS(); hPVE();
+  cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS(); hPVE(); hAisl(); hAET(); hExt();
   const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha);
   hide('repBanner');
   toast('📝 Formulario en blanco — listo para comenzar');
@@ -2204,16 +2301,31 @@ function guardar() {
   }
   const datos={
     ID_CAMA:id, TURNO_KEY:tkey, ES_INGRESO:v('cIng')==='true',
-    PAC_NOMBRE:v('fNombre'), PAC_RUT:v('fRut'), PAC_EDAD:v('fEdad'),
+    PAC_NOMBRE:v('fNombre'), PAC_EDAD:v('fEdad'),
     PAC_SEXO:v('fSexo'), PAC_TALLA:v('fTalla'), PAC_BARTHEL:v('fBarthel'),
     PAC_ECF:v('fEcf'), PAC_DIAGNOSTICO:v('fDx'), PAC_DIAG_REM:v('fRem'),
+    // S1 extras
+    PAC_AISLAMIENTO:   $('cAisl')?.checked||false,
+    PAC_AISL_MICRO:    v('fAislMicro'),
+    // S2 extras
+    ES_REINGRESO:      $('cReing')?.checked||false,
+    AET_ACTIVA:        $('cAET')?.checked||false,
+    AET_NIVEL:         document.querySelector('input[name="aetNivel"]:checked')?.value||'',
     SED_TIPO:v('fSed'), SED_SAS:v('fSAS'), SED_S5Q:v('fS5Q'), SED_COOPERACION:v('fCoop'),
+    SED_CAM_ICU:       v('fCAMICU'),
     SED_GCS_O:v('fGCSO'), SED_GCS_V:v('fGCSV'), SED_GCS_M:v('fGCSM'),
     SED_GCS_TOT:$('lblGCS')?.textContent||'', SED_BNM:bv('cBNM'),
     HEMO_ESTADO:v('fHEst'), HEMO_DVA:v('fDVA'), HEMO_MULTI_DVA:bv('cMultiDVA'),
     HEMO_NUM_DVA:v('fDVAcnt'), HEMO_TENDENCIA:bv('cHTrend'), HEMO_TEND_TIPO:v('fHTT'),
     EX_MP:v('fMP'),
-    EX_RUIDOS:v('fRuidos')==='Otro'?v('fRuidosM'):v('fRuidos'),
+    EX_RUIDOS:(function(){
+      const sel=Array.from(document.querySelectorAll('input[name="ruidos"]:checked')).map(c=>c.value);
+      if(!sel.length) return '';
+      const res=sel.includes('otro')?sel.filter(s=>s!=='otro').concat(v('fRuidosM')?[v('fRuidosM')]:[]):sel;
+      return res.join(', ');
+    })(),
+    EX_RUIDOS_MULTI: JSON.stringify(Array.from(document.querySelectorAll('input[name="ruidos"]:checked')).map(c=>c.value)),
+    EX_RUIDOS_OTRO:  v('fRuidosM'),
     EX_SECR_CANT:v('fSecrC'), EX_SECR_TIPO:v('fSecrT'),
     VENT_VIA_AEREA:v('fVA'), VENT_TOT_NUM:v('fTOTn'), VENT_TOT_CM:v('fTOTcm'),
     VENT_TQT_TIPO:v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
@@ -2251,23 +2363,32 @@ function guardar() {
     EVAL_T_FSS:      v('fFSSt'),
     EVAL_T_PIM:      v('fPIMt'),
     // ★ PVE diaria
-    PVE_ESTADO:    (document.querySelector('input[name="pveEst"]:checked')?.value)||'no_aplica',
-    PVE_EXT_TIPO:  v('fPveExtTipo'),
-    PVE_FR_MOTIVOS:JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
-    PVE_SC_RAZON:  v('fPveSCraz'),
+    PVE_ESTADO:      (document.querySelector('input[name="pveEst"]:checked')?.value)||'no_aplica',
+    PVE_RESULTADO:   (document.querySelector('input[name="pveRes"]:checked')?.value)||'',
+    PVE_FR_MOTIVOS:  JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
+    PVE_SC_RAZON:    v('fPveSCraz'),
+    // ★ Extubación
+    EXT_OCURRIO:     $('cExtOcurrio')?.checked||false,
+    EXT_TIPO:        (document.querySelector('input[name="extTipo"]:checked')?.value)||'',
+    EXT_MOTIVO:      v('fExtMotivo'),
+    EXT_POST_DET:    v('fPostExtDet'),
+    EXT_REINTUB:     $('cReintub')?.checked||false,
     PROC_JSON: (function(){
-      // ★ DEDUP: auto-derivar procedimientos desde campos clínicos
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if(v('fDCL')) auto.push('Posicionamiento ' + v('fDCL'));
-      // Auto-derivar PVE y extubación desde sección PVE
+      // PVE
       const _pve=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
-      if(_pve==='exito'||_pve==='frustra') auto.push('PVE');
-      if(_pve==='exito'){
-        const _et=v('fPveExtTipo');
-        if(_et==='protocolo')     auto.push('EXTUBACIÓN C/PROTOCOLO');
-        if(_et==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
+      if(_pve==='realizada') auto.push('PVE');
+      // Extubación (sección propia)
+      if($('cExtOcurrio')?.checked){
+        const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+        if(_et==='protocolo')        auto.push('EXTUBACIÓN C/PROTOCOLO');
+        else if(_et==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
+        else if(_et==='accidental')   auto.push('EXTUBACIÓN ACCIDENTAL');
+        else if(_et==='autoextubacion') auto.push('AUTOEXTUBACIÓN');
+        if($('cReintub')?.checked)   auto.push('REINTUBACIÓN');
       }
       const merged=Array.from(new Set([...(PROCS||[]), ...auto]));
       return JSON.stringify(merged);
@@ -2277,10 +2398,15 @@ function guardar() {
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if(v('fDCL')) auto.push('Posicionamiento ' + v('fDCL'));
-      const _pve=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
-      if(_pve==='exito'||_pve==='frustra') auto.push('PVE');
-      if(_pve==='exito'&&v('fPveExtTipo')==='protocolo')     auto.push('EXTUBACIÓN C/PROTOCOLO');
-      if(_pve==='exito'&&v('fPveExtTipo')==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
+      if(document.querySelector('input[name="pveEst"]:checked')?.value==='realizada') auto.push('PVE');
+      if($('cExtOcurrio')?.checked){
+        const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+        if(_et==='protocolo') auto.push('EXTUBACIÓN C/PROTOCOLO');
+        else if(_et==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
+        else if(_et==='accidental') auto.push('EXTUBACIÓN ACCIDENTAL');
+        else if(_et==='autoextubacion') auto.push('AUTOEXTUBACIÓN');
+        if($('cReintub')?.checked) auto.push('REINTUBACIÓN');
+      }
       return Array.from(new Set([...(PROCS||[]), ...auto])).join(', ');
     })(),
     PROC_CANTIDAD: (function(){
@@ -2288,10 +2414,12 @@ function guardar() {
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if(v('fDCL')) auto.push('Posicionamiento ' + v('fDCL'));
-      const _pve=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
-      if(_pve==='exito'||_pve==='frustra') auto.push('PVE');
-      if(_pve==='exito'&&v('fPveExtTipo')==='protocolo')     auto.push('EXTUBACIÓN C/PROTOCOLO');
-      if(_pve==='exito'&&v('fPveExtTipo')==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
+      if(document.querySelector('input[name="pveEst"]:checked')?.value==='realizada') auto.push('PVE');
+      if($('cExtOcurrio')?.checked){
+        const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+        if(_et) auto.push('EXT');
+        if($('cReintub')?.checked) auto.push('REINTUBACIÓN');
+      }
       return new Set([...(PROCS||[]), ...auto]).size;
     })(),
     MUE_REALIZADAS:bv('cMue'), MUE_MECANISMO:v('fMueMec'), MUE_OTRO:v('fMueOtro'),
@@ -2993,6 +3121,12 @@ function genTexto() {
   const turno=SHIFT==='Noche'?'TURNO NOCHE':'TURNO DÍA';
   let L=[esIng?`KINESIOLOGÍA ${turno} — INGRESO`:`KINESIOLOGÍA ${turno}`];
   const dx=gv('fDx');
+  // Aislamiento
+  if($('cAisl')?.checked){ const mic=gv('fAislMicro'); L.push(`Paciente en aislamiento de contacto${mic?' por '+mic:''}.`); }
+  // AET
+  if($('cAET')?.checked){ const niv=document.querySelector('input[name="aetNivel"]:checked')?.value||''; L.push(`Paciente con adecuación del esfuerzo terapéutico (AET)${niv?' nivel '+niv:''}.`); }
+  // Reingreso
+  if($('cReing')?.checked) L.push('Corresponde a reingreso a UCI.');
   if(esIng){
     L.push(`Paciente ingresa a UCI${dx?' con diagnóstico de '+dx:''}.`);
   } else {
@@ -3005,6 +3139,7 @@ function genTexto() {
     L.push(_fd+(dx?` en contexto de ${dx}`:'')+'.');
   }
   const sed=gv('fSed')||'Sin sedación', sas=gv('fSAS'), s5q=gv('fS5Q'), coop=gv('fCoop');
+  const camicu=gv('fCAMICU');
   const gcsT=$('lblGCS')?.textContent||'?';
   const va=gv('fVA')||'Natural'; const intub=va==='TOT'||va==='TQT';
   let s;
@@ -3013,12 +3148,16 @@ function genTexto() {
   else if(sed==='Fuera de escalón') s=`Sedación fuera de escalón${sas?' (SAS '+sas+')':''}.`;
   else s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
   s+=` GCS ${gcsT}${intub?'':'/15'}(O:${gv('fGCSO')||'?'}, V:${gv('fGCSV')||'?'}, M:${gv('fGCSM')||'?'})`;
-  if(s5q) s+=`, S5Q ${s5q}/5`; if(coop) s+=` (${coop})`; s+='.';
+  if(s5q) s+=`, S5Q ${s5q}/5`; if(coop) s+=` (${coop})`;
+  if(camicu==='pos') s+=', CAM-ICU positivo (delirium presente)';
+  else if(camicu==='neg') s+=', CAM-ICU negativo';
+  else if(camicu==='ne') s+=', CAM-ICU no evaluable';
+  s+='.';
   L.push(s);
   const hEst=gv('fHEst')||'Estable', dva=gv('fDVA')||'sin DVA';
   let h=`Hemodinámicamente ${hEst==='Estable'?'estable':'inestable'}`;
   h+=dva==='sin DVA'?', sin DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase();
-  if($('cHTrend')?.checked) h+=`, tendencia a ${gv('fHTT')||''}`; L.push(h+'.');
+  if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt.toLowerCase()}`; } L.push(h+'.');
   const sop=gv('fSop')||'Ambiente', modo=gv('fModo')||'';
   const vt=parseFloat(gv('r_vt'))||0, fr=parseFloat(gv('r_fr'))||0;
   const peep=parseFloat(gv('r_peep'))||0, fio2=parseFloat(gv('r_fio2'))||0;
@@ -3068,7 +3207,20 @@ function genTexto() {
     if(_pb) L.push(`Terapia ventilatoria oxigenoterapia: ${_pb}.`);
   } else if(spo2) L.push(`En ventilación espontánea en ambiente, SpO₂ ${spo2}%.`);
   const mp=gv('fMP'), ru=gv('fRuidos'), secrC=gv('fSecrC'), secrT=gv('fSecrT');
-  if(mp){let e=`Al examen físico respiratorio: murmullo pulmonar ${mp}`;if(ru&&ru!=='sin ruidos agregados')e+=`, con ${ru}`;else if(ru)e+=', sin ruidos agregados';L.push(e+'.');}
+  if(mp){
+    const _ruSel=Array.from(document.querySelectorAll('input[name="ruidos"]:checked')).map(c=>c.value);
+    const _ruText=(function(){
+      if(!_ruSel.length) return '';
+      if(_ruSel.includes('sin ruidos agregados')) return null; // se agrega abajo
+      return _ruSel.includes('otro')
+        ? _ruSel.filter(x=>x!=='otro').concat(v('fRuidosM')?[v('fRuidosM')]:[]).join(', ')
+        : _ruSel.join(' y ');
+    })();
+    let e=`Al examen físico respiratorio: murmullo pulmonar ${mp}`;
+    if(_ruText) e+=`, con ${_ruText}`;
+    else if(_ruSel.includes('sin ruidos agregados')) e+=', sin ruidos agregados';
+    L.push(e+'.');
+  }
   const kR=$('cKTMr')?.checked, kS=$('cKTMs')?.checked, kN=$('bKTMn')?.classList.contains('on');
   if(kR){
     let k=`Se realiza kinesiterapia motora (KTM) nivel ${gv('fKTMniv')||'?'}`;
@@ -3116,28 +3268,41 @@ function genTexto() {
     if(gv('fPIMt'))  ev.push(`PIM ${gv('fPIMt')} cmH₂O (${$('lblPIMt')?.textContent||''})`);
     if(ev.length) L.push('Evaluaciones funcionales: ' + ev.join('; ') + '.');
   }
-  // PVE diaria — texto clínico estructurado
+  // PVE — texto clínico estructurado (nueva estructura)
   (function(){
     const _pveEst=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
     if(_pveEst==='no_aplica') return;
-    if(_pveEst==='exito'){
-      const _et=v('fPveExtTipo')||'planificar';
-      if(_et==='protocolo')
-        L.push('Según protocolo se realiza PVE diaria con éxito, por lo que se progresa a extubación programada con protocolo.');
-      else if(_et==='sin_protocolo')
-        L.push('Según protocolo se realiza PVE diaria con éxito, por lo que se progresa a extubación programada sin protocolo.');
-      else
-        L.push('Según protocolo se realiza PVE diaria con éxito. Paciente en condiciones de proceder a extubación en próximo turno.');
-    } else if(_pveEst==='frustra'){
-      const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
-      const _mstr=_mots.length
-        ? _mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]
-        : 'aspectos clínicos';
-      L.push(`Se realiza PVE según protocolo, sin embargo evoluciona torpidamente desde lo ${_mstr}.`);
-    } else if(_pveEst==='sin_cond'){
+    if(_pveEst==='realizada'){
+      const _res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
+      if(_res==='superada'){
+        L.push('Según protocolo se realiza PVE diaria con resultado superado. Paciente en condiciones de progresar a extubación.');
+      } else if(_res==='frustra'){
+        const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
+        const _mstr=_mots.length
+          ? _mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]
+          : 'aspectos clínicos';
+        L.push(`Se realiza PVE según protocolo, sin embargo evoluciona torpidamente desde lo ${_mstr}.`);
+      } else {
+        L.push('Se realiza PVE diaria según protocolo.');
+      }
+    } else if(_pveEst==='no_realizada'){
       const _raz=v('fPveSCraz')||'sin especificar';
       L.push(`Sin condiciones actuales de realizar PVE por ${_raz}.`);
     }
+  })();
+  // Extubación — texto clínico
+  (function(){
+    if(!$('cExtOcurrio')?.checked) return;
+    const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+    const _mot=v('fExtMotivo');
+    const _post=v('fPostExtDet');
+    const _reint=$('cReintub')?.checked;
+    const _tipos={protocolo:'con protocolo',sin_protocolo:'sin protocolo',accidental:'de forma accidental',autoextubacion:'por autoextubación'};
+    let _etxt=`Se realiza extubación ${_tipos[_et]||''}`.trim();
+    if((_et==='accidental'||_et==='autoextubacion')&&_mot) _etxt+=`. Motivo: ${_mot}`;
+    L.push(_etxt+'.');
+    if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
+    if(_reint) L.push('Paciente requiere reintubación.');
   })();
   if(PROCS.length) L.push(`Procedimientos: ${PROCS.join(', ')}.`);
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
@@ -3259,9 +3424,9 @@ function cascadeSop(preModo) {
 }
 function updateVAUI() {
   const va=v('fVA');
-  if(va==='TOT'){show('dVADet');show('dTOT');hide('dTQT');}
-  else if(va==='TQT'){show('dVADet');hide('dTOT');show('dTQT');}
-  else hide('dVADet');
+  if(va==='TOT'){show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');}
+  else if(va==='TQT'){show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');}
+  else{hide('dVADet');hide('dExtSec');}
 }
 
 // ═══════════════════════════════════
@@ -3329,12 +3494,35 @@ function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='sin DVA'){show('
 function hSecr(){const c=v('fSecrC'),t=$('fSecrT');if(t){if(c)t.disabled=false;else{t.disabled=true;t.value='';}} }
 function hMue(){if($('cMue')?.checked)show('dMue');else hide('dMue');}
 function hEgr(){if($('cEgr')?.checked)show('dEgr');else hide('dEgr');}
+function hAisl(){if($('cAisl')?.checked)show('dAislMicro');else hide('dAislMicro');}
+function hAET(){if($('cAET')?.checked)show('dAETnivel');else hide('dAETnivel');}
+function hRuidos(el){
+  // "Sin ruidos" es excluyente con el resto
+  if(el&&el.id==='rSin'&&el.checked){
+    document.querySelectorAll('input[name="ruidos"]').forEach(c=>{if(c.id!=='rSin')c.checked=false;});
+    hide('dRuidosM');
+  } else if(el&&el.id!=='rSin'){
+    const rSin=$('rSin'); if(rSin) rSin.checked=false;
+  }
+  const otro=document.querySelector('input[name="ruidos"][value="otro"]');
+  if(otro&&otro.checked) show('dRuidosM'); else hide('dRuidosM');
+}
 function hPVE(){
   const est=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
-  ['dPveOk','dPveFr','dPveSC'].forEach(id=>hide(id));
-  if(est==='exito')    show('dPveOk');
-  if(est==='frustra')  show('dPveFr');
-  if(est==='sin_cond') show('dPveSC');
+  hide('dPveRe'); hide('dPveNR'); hide('dPveFr');
+  if(est==='realizada')   show('dPveRe');
+  if(est==='no_realizada') show('dPveNR');
+}
+function hPVEres(){
+  const res=document.querySelector('input[name="pveRes"]:checked')?.value;
+  if(res==='frustra') show('dPveFr'); else hide('dPveFr');
+}
+function hExt(){
+  if($('cExtOcurrio')?.checked) show('dExtDet'); else hide('dExtDet');
+}
+function hExtTipo(){
+  const t=document.querySelector('input[name="extTipo"]:checked')?.value;
+  if(t==='accidental'||t==='autoextubacion') show('dExtMotivo'); else hide('dExtMotivo');
 }
 function hKTM(q){ setKTMstate(q); }
 function setKTMstate(q){
