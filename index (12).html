@@ -3474,10 +3474,10 @@ function autoCoopera(){
   // Auto-GCS 3 si BNM o SAS=1
   if(bnm||(sas===1)){
     const o=$('fGCSO'), vv=$('fGCSV'), m=$('fGCSM');
-    if(o) o.value='1';
-    if(vv) vv.value=intub?'1T':'1';
-    if(m) m.value='1';
-    calcGCS();
+    if(o){ o.value='1'; }
+    if(vv){ vv.value=intub?'1T':'1'; }
+    if(m){ m.value='1'; }
+    setTimeout(calcGCS, 0);
   }
 
   // Auto S5Q y Cooperación
