@@ -1236,7 +1236,11 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="sub-sec-title" style="color:var(--resp);margin-bottom:8px;">🫁 Manejo Respiratorio</div>
               <!-- Técnicas con número -->
               <div class="row" style="align-items:flex-end;flex-wrap:wrap;">
-                <div class="col ws"><label title="Kinesiterapia Respiratoria">KTR</label><input type="number" id="fKTRcnt" min="0" placeholder="0" style="width:55px;"></div>
+                <div class="col ws"><label title="Kinesiterapia Respiratoria">KTR</label>
+                  <select id="fKTRcnt" style="width:65px;">
+                    <option value="0">0</option><option>1</option><option>2</option><option>3</option>
+                    <option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
+                  </select></div>
                 <div class="col ws"><label title="Succión Orofaríngea">SOF</label><input type="number" id="fSOFcnt" min="0" placeholder="0" style="width:55px;"></div>
                 <div class="col ws"><label title="Succión Nasofaríngea">SNF</label><input type="number" id="fSNFcnt" min="0" placeholder="0" style="width:55px;"></div>
                 <div class="col ws"><label title="Succión Endotraqueal">SET</label><input type="number" id="fSETcnt" min="0" placeholder="0" style="width:55px;"></div>
