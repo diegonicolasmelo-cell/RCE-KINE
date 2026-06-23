@@ -2201,11 +2201,10 @@ function fillForm(s) {
   set('fKTMniv',''); set('fKTMt','');
   chk('cUMA',false); hide('dUMA');
 
-  // Respiratorio nuevos campos — ACCIÓN DIARIA: siempre parten en blanco
-  const e_ktrcnt=$('fKTRcnt'); if(e_ktrcnt) e_ktrcnt.value='0';
+  // Respiratorio — KTR persiste como referencia; maniobras son acción diaria
+  set('fKTRcnt',_ex.RESP_KTR_CANT);
   ['cSOF','cSNF','cSET','cATos','cInhalo'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
   const e_dcl=$('fDCL'); if(e_dcl) e_dcl.value='';
-  // (Los valores anteriores no se cargan: registra solo lo que hiciste hoy)
 
   // KTM extras
   set('fKTMnoRaz', _ex.KTM_NO_RAZON);
@@ -2260,8 +2259,9 @@ function fillForm(s) {
   })();
 
   if(s.PROC_JSON){try{PROCS=JSON.parse(s.PROC_JSON)||[];}catch(e){} renderChips();}
-  // Cultivo — ACCIÓN DIARIA: siempre desmarcado al cargar turno anterior
+  // Cultivo — casilla desmarcada (procedimiento diario); resultado previo sí persiste
   const e_mue=$('cMue'); if(e_mue) e_mue.checked=false; hMue();
+  (function(){ if(!s.MUE_RESULTADOS_JSON) return; let arr=[]; try{arr=JSON.parse(s.MUE_RESULTADOS_JSON);}catch(e){} fillCultRes(arr); })();
   chk('cEgr',s.EGR_ACTIVO); hEgr();
   set('fNivelMotor',s.EGR_NIVEL_MOTOR); set('fPrension',s.EGR_PRENSION);
   set('fMRC',s.EGR_MRC_SS); set('fFSS',s.EGR_FSS); set('fPIM',s.EGR_PIM); set('fPEM',s.EGR_PEM);
