@@ -922,8 +922,32 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
             <div class="check cr wa"><input type="checkbox" id="cAisl" onchange="hAisl()"><label for="cAisl" style="font-weight:700;">🦠 Aislamiento</label></div>
-            <div id="dAislMicro" class="hidden" style="flex:1;min-width:180px;">
-              <input type="text" id="fAislMicro" placeholder="Microorganismo / motivo ej: SAMR, Klebsiella XDR..." style="height:30px;border:1px solid #fecdd3;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;background:#fff5f5;">
+            <div id="dAislMicro" class="hidden" style="display:flex;gap:6px;flex:1;min-width:220px;flex-wrap:wrap;">
+              <select id="fAislLista" onchange="hAislLista()" style="height:30px;border:1px solid #fecdd3;border-radius:6px;padding:0 8px;font-size:.78rem;background:#fff5f5;flex:1;min-width:160px;">
+                <option value="">-- Seleccionar microorganismo --</option>
+                <optgroup label="Gram positivos">
+                  <option>SAMR (S. aureus meticilino resistente)</option>
+                  <option>SARM-AC (comunitario)</option>
+                  <option>ERV (Enterococo resistente a vancomicina)</option>
+                </optgroup>
+                <optgroup label="Gram negativos">
+                  <option>Klebsiella KPC (carbapenemasa)</option>
+                  <option>Klebsiella BLEE</option>
+                  <option>Acinetobacter XDR</option>
+                  <option>Pseudomonas MDR</option>
+                  <option>E. coli BLEE</option>
+                  <option>Enterobacter MDR</option>
+                </optgroup>
+                <optgroup label="Otros">
+                  <option>Clostridium difficile</option>
+                  <option>VRE</option>
+                  <option>MRSA piel/mucosas</option>
+                  <option value="otro">Otro (especificar)</option>
+                </optgroup>
+              </select>
+              <div id="dAislOtro" class="hidden" style="flex:1;min-width:140px;">
+                <input type="text" id="fAislOtro" placeholder="Especificar..." style="height:30px;border:1px solid #fecdd3;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;background:#fff5f5;">
+              </div>
             </div>
           </div>
         </div>
@@ -934,11 +958,30 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard fc-g">
           <div class="fcard-hdr"><span class="fcard-title" style="color:var(--muted);">📊 General y Diagnóstico</span></div>
           <div class="fcard-body">
+            <!-- Reingreso — primera línea -->
+            <div style="margin-bottom:6px;">
+              <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReing"><label for="cReing" style="font-weight:700;">↩️ Reingreso a UCI</label></div>
+            </div>
             <div class="row">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:70px;" disabled></div>
-              <div class="col grow"><label>Diagnóstico de Ingreso</label><input type="text" id="fDx" placeholder="Ej: Shock Séptico..."></div>
-              <div class="col wa" style="align-self:flex-end;margin-bottom:6px;">
-                <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReing"><label for="cReing" style="font-weight:700;">↩️ Reingreso</label></div>
+              <div class="col grow"><label>Diagnóstico de Ingreso</label>
+                <input type="text" id="fDx" placeholder="Ej: Shock Séptico..." list="listDx" autocomplete="off">
+                <datalist id="listDx">
+                  <option>Shock Séptico</option><option>Sepsis</option><option>Neumonía grave</option>
+                  <option>Insuficiencia respiratoria aguda</option><option>SDRA</option>
+                  <option>TEC grave</option><option>ACV isquémico</option><option>ACV hemorrágico</option>
+                  <option>Hemorragia subaracnoidea</option><option>Status epiléptico</option>
+                  <option>Guillain-Barré</option><option>Miastenia gravis</option>
+                  <option>Falla cardíaca descompensada</option><option>Shock cardiogénico</option>
+                  <option>Infarto agudo al miocardio</option>
+                  <option>Politraumatismo</option><option>Trauma torácico</option>
+                  <option>Trauma abdominal</option><option>Fractura de cadera</option>
+                  <option>Post operatorio cirugía cardíaca</option><option>Post operatorio cirugía abdominal</option>
+                  <option>Post operatorio neurocirugía</option>
+                  <option>Pancreatitis aguda grave</option><option>Falla hepática aguda</option>
+                  <option>Insuficiencia renal aguda</option><option>Cetoacidosis diabética</option>
+                  <option>Intoxicación aguda</option><option>Quemados</option>
+                </datalist>
               </div>
               <div class="col wa"><label>Diagnóstico REM</label>
                 <select id="fRem" style="min-width:155px;">
@@ -950,6 +993,18 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <option>Traumatológicos</option><option>Otros pre y post quirúrgicos</option>
                   <option>Oncológicos</option><option>Otros</option>
                 </select></div>
+            </div>
+            <!-- AET — después de dx, antes de VA -->
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
+              <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cAET" onchange="hAET()"><label for="cAET" style="font-weight:700;">⚖️ Adecuación del Esfuerzo Terapéutico (AET)</label></div>
+              <div id="dAETnivel" class="hidden" style="display:flex;gap:5px;">
+                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="A"> Nivel A</label>
+                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="B"> Nivel B</label>
+                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="C"> Nivel C</label>
+              </div>
+            </div>
+            <!-- Vía Aérea -->
+            <div class="row" style="margin-top:8px;">
               <div class="col wa"><label>Vía Aérea</label>
                 <select id="fVA" class="bold" onchange="cascadeVA()">
                   <option>Natural</option><option>TOT</option><option>TQT</option><option>Full Face</option><option>Oronasal</option>
@@ -957,22 +1012,27 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="col ws"><label>Días VA</label><input type="text" id="fDiasVA" class="tc" disabled></div>
             </div>
             <div id="dVADet" class="hidden fade" style="background:#eff6ff;padding:8px;border-radius:6px;border:1px solid #bfdbfe;margin-top:4px;">
+              <!-- Venía de otro hospital -->
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cVAExterno" onchange="hVAExterno()"><label for="cVAExterno" style="font-size:.78rem;">🏥 Venía de otro hospital / ya venía intubado</label></div>
+                <div id="dVAExtDias" class="hidden" style="display:flex;align-items:center;gap:5px;">
+                  <label style="font-size:.72rem;color:var(--muted);white-space:nowrap;">Días previos:</label>
+                  <input type="number" id="fVAExtDias" min="0" value="0" style="width:60px;height:28px;border:1px solid #bfdbfe;border-radius:5px;text-align:center;">
+                </div>
+              </div>
               <div id="dTOT" class="row hidden" style="margin-bottom:0;">
                 <div class="col wa"><label>TOT N°</label>
                   <select id="fTOTn" class="bold tc" style="height:34px;"><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option selected>8.0</option><option>8.5</option></select></div>
                 <div class="col ws"><label>Fijación cm</label><input type="number" id="fTOTcm" class="tc bold" value="22"></div>
+                <div class="col wa"><label>Punto fijación</label>
+                  <select id="fTOTfij" style="height:34px;">
+                    <option value="">-- seleccionar --</option>
+                    <option>Arcada dental</option>
+                    <option>Comisura labial</option>
+                  </select></div>
               </div>
               <div id="dTQT" class="row hidden" style="margin-bottom:0;">
                 <div class="col grow"><label>Tipo TQT</label><input type="text" id="fTQTt" placeholder="Ej: Shiley #7..."></div>
-              </div>
-            </div>
-            <!-- AET -->
-            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
-              <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cAET" onchange="hAET()"><label for="cAET" style="font-weight:700;">⚖️ Adecuación del Esfuerzo Terapéutico (AET)</label></div>
-              <div id="dAETnivel" class="hidden" style="display:flex;gap:5px;">
-                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="A"> Nivel A</label>
-                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="B"> Nivel B</label>
-                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="C"> Nivel C</label>
               </div>
             </div>
           </div>
@@ -982,27 +1042,32 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard fc-n">
           <div class="fcard-hdr"><span class="fcard-title" style="color:var(--neuro);">🧠 Sedación y Conciencia</span></div>
           <div class="fcard-body">
-            <div class="row">
+            <div class="row" style="align-items:flex-end;">
               <div class="col wa"><label>Sedación</label>
-                <select id="fSed" onchange="hSed()"><option>Sin sedación</option><option>Superficial</option><option>Moderada</option><option>Profunda</option><option>Fuera de escalón</option></select></div>
+                <select id="fSed" onchange="hSed()">
+                  <option>Sin sedación</option>
+                  <option>Escalón 1</option><option>Escalón 2</option><option>Escalón 3</option>
+                  <option>Escalón 4</option><option>Escalón 5</option><option>Escalón 6</option>
+                  <option>Fuera de escalón</option>
+                </select></div>
+              <div class="check cr wa" style="margin-bottom:6px;"><input type="checkbox" id="cBNM" onchange="autoCoopera()"><label for="cBNM" style="font-size:.75rem;">🔒 Más bloqueo neuromuscular</label></div>
               <div id="gSAS" class="col wa hidden"><label>SAS obj.</label>
-                <select id="fSAS"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                <select id="fSAS" onchange="autoCoopera()"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+              <span style="font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;align-self:flex-end;padding-bottom:8px;">GCS:</span>
+              <div class="col ws"><label>Ocular</label>
+                <select id="fGCSO" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option selected>4</option></select></div>
+              <div class="col ws"><label>Verbal</label>
+                <select id="fGCSV" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option value="1T">1T</option></select></div>
+              <div class="col ws"><label>Motor</label>
+                <select id="fGCSM" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></div>
+              <div class="mon" style="height:36px;"><span style="font-size:.58rem;color:var(--muted);">GCS</span><span id="lblGCS" class="bold">15</span></div>
+            </div>
+            <div class="row" style="margin-top:4px;">
               <div class="col ws"><label>S5Q /5</label><input type="number" id="fS5Q" min="0" max="5" oninput="autoCoopera()"></div>
               <div class="col wa"><label>Cooperación</label>
                 <select id="fCoop"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select></div>
               <div class="col wa"><label>CAM-ICU</label>
                 <select id="fCAMICU"><option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option></select></div>
-            </div>
-            <div class="row" style="align-items:center;gap:6px;">
-              <span style="font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;">GCS:</span>
-              <div class="col ws"><label>Ocular</label>
-                <select id="fGCSO" onchange="calcGCS()"><option>1</option><option>2</option><option>3</option><option selected>4</option></select></div>
-              <div class="col ws"><label>Verbal</label>
-                <select id="fGCSV" onchange="calcGCS()"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option value="1T">1T</option></select></div>
-              <div class="col ws"><label>Motor</label>
-                <select id="fGCSM" onchange="calcGCS()"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></div>
-              <div class="mon" style="height:36px;"><span style="font-size:.58rem;color:var(--muted);">GCS</span><span id="lblGCS" class="bold">15</span></div>
-              <div class="check cr wa"><input type="checkbox" id="cBNM"><label for="cBNM">BNM</label></div>
             </div>
           </div>
         </div>
@@ -1015,7 +1080,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="col wa"><label>Estado</label><select id="fHEst"><option>Estable</option><option>Inestable</option></select></div>
               <div class="col wa"><label>DVA</label>
                 <select id="fDVA" onchange="hMultiDVA()">
-                  <option>sin DVA</option><option>DVA dosis baja</option><option>DVA dosis media</option><option>DVA dosis alta</option>
+                  <option>Sin requerimientos</option><option>DVA dosis baja</option><option>DVA dosis media</option><option>DVA dosis alta</option>
                 </select></div>
               <div id="wMultiDVA" class="hidden" style="display:flex;align-items:center;gap:8px;">
                 <div class="check cr wa"><input type="checkbox" id="cMultiDVA" onchange="hMultiDVA()"><label for="cMultiDVA">Multi-DVA</label></div>
@@ -2128,7 +2193,12 @@ function fillForm(s) {
   set('fFSSt',  _ex.EVAL_T_FSS);    interpFSS();
   set('fPIMt',  _ex.EVAL_T_PIM);    interpPIM();
   // S1: aislamiento
-  chk('cAisl',_ex.PAC_AISLAMIENTO); hAisl(); set('fAislMicro',_ex.PAC_AISL_MICRO);
+  chk('cAisl',_ex.PAC_AISLAMIENTO); hAisl();
+  if(_ex.PAC_AISL_LISTA) set('fAislLista',_ex.PAC_AISL_LISTA);
+  if(_ex.PAC_AISL_LISTA==='otro'){ show('dAislOtro'); set('fAislOtro',_ex.PAC_AISL_MICRO); }
+  // VA externo + TOT fijación
+  chk('cVAExterno',_ex.VA_EXTERNO); hVAExterno(); set('fVAExtDias',_ex.VA_EXTERNO_DIAS);
+  set('fTOTfij',_ex.TOT_FIJACION);
   // S2: reingreso + AET
   chk('cReing',_ex.ES_REINGRESO);
   chk('cAET',_ex.AET_ACTIVA); hAET();
@@ -2306,7 +2376,11 @@ function guardar() {
     PAC_ECF:v('fEcf'), PAC_DIAGNOSTICO:v('fDx'), PAC_DIAG_REM:v('fRem'),
     // S1 extras
     PAC_AISLAMIENTO:   $('cAisl')?.checked||false,
-    PAC_AISL_MICRO:    v('fAislMicro'),
+    PAC_AISL_MICRO:    (function(){ const l=v('fAislLista'); return l==='otro'?v('fAislOtro'):l; })(),
+    PAC_AISL_LISTA:    v('fAislLista'),
+    VA_EXTERNO:        $('cVAExterno')?.checked||false,
+    VA_EXTERNO_DIAS:   v('fVAExtDias'),
+    TOT_FIJACION:      v('fTOTfij'),
     // S2 extras
     ES_REINGRESO:      $('cReing')?.checked||false,
     AET_ACTIVA:        $('cAET')?.checked||false,
@@ -3122,7 +3196,7 @@ function genTexto() {
   let L=[esIng?`KINESIOLOGÍA ${turno} — INGRESO`:`KINESIOLOGÍA ${turno}`];
   const dx=gv('fDx');
   // Aislamiento
-  if($('cAisl')?.checked){ const mic=gv('fAislMicro'); L.push(`Paciente en aislamiento de contacto${mic?' por '+mic:''}.`); }
+  if($('cAisl')?.checked){ const lista=gv('fAislLista'),otro=gv('fAislOtro'); const mic=lista==='otro'?otro:lista; L.push(`Paciente en aislamiento de contacto${mic?' por '+mic:''}.`); }
   // AET
   if($('cAET')?.checked){ const niv=document.querySelector('input[name="aetNivel"]:checked')?.value||''; L.push(`Paciente con adecuación del esfuerzo terapéutico (AET)${niv?' nivel '+niv:''}.`); }
   // Reingreso
@@ -3133,7 +3207,8 @@ function genTexto() {
     const _nd=parseInt(gv('fDias'),10);
     const _ord=['','1er','2do','3er','4to','5to','6to','7mo','8vo','9no','10mo','11vo','12vo'];
     let _fd;
-    if(!_nd||_nd<1) _fd='Paciente en día ? de estadía en UCI';
+    if(_nd===0) _fd='Paciente en día 0 de estadía en UCI (ingreso)';
+    else if(!_nd||_nd<0) _fd='Paciente en día ? de estadía en UCI';
     else if(_nd<=12) _fd=`Paciente en ${_ord[_nd]} día de estadía en UCI`;
     else _fd=`Paciente con ${_nd} días de estadía en UCI`;
     L.push(_fd+(dx?` en contexto de ${dx}`:'')+'.');
@@ -3143,9 +3218,10 @@ function genTexto() {
   const gcsT=$('lblGCS')?.textContent||'?';
   const va=gv('fVA')||'Natural'; const intub=va==='TOT'||va==='TQT';
   let s;
-  if($('cBNM')?.checked) s=`Sedado y paralizado con BNM para meta SAS ${sas||'1'}.`;
+  if($('cBNM')?.checked) s=`Sedado y con bloqueo neuromuscular para meta SAS ${sas||'1'}.`;
   else if(sed==='Sin sedación') s='Sin sedoanalgesia.';
   else if(sed==='Fuera de escalón') s=`Sedación fuera de escalón${sas?' (SAS '+sas+')':''}.`;
+  else if(sed.startsWith('Escalón')) s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
   else s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
   s+=` GCS ${gcsT}${intub?'':'/15'}(O:${gv('fGCSO')||'?'}, V:${gv('fGCSV')||'?'}, M:${gv('fGCSM')||'?'})`;
   if(s5q) s+=`, S5Q ${s5q}/5`; if(coop) s+=` (${coop})`;
@@ -3154,15 +3230,15 @@ function genTexto() {
   else if(camicu==='ne') s+=', CAM-ICU no evaluable';
   s+='.';
   L.push(s);
-  const hEst=gv('fHEst')||'Estable', dva=gv('fDVA')||'sin DVA';
+  const hEst=gv('fHEst')||'Estable', dva=gv('fDVA')||'Sin requerimientos';
   let h=`Hemodinámicamente ${hEst==='Estable'?'estable':'inestable'}`;
-  h+=dva==='sin DVA'?', sin DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase();
+  h+=dva==='Sin requerimientos'?', sin requerimientos de DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase();
   if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt.toLowerCase()}`; } L.push(h+'.');
   const sop=gv('fSop')||'Ambiente', modo=gv('fModo')||'';
   const vt=parseFloat(gv('r_vt'))||0, fr=parseFloat(gv('r_fr'))||0;
   const peep=parseFloat(gv('r_peep'))||0, fio2=parseFloat(gv('r_fio2'))||0;
   const spo2=parseFloat(gv('r_spo2'))||0, dVM=gv('fDiasVM')||'?', dVA=gv('fDiasVA')||'?';
-  if(va==='TOT') L.push(`Vía aérea artificial en día ${dVA} mediante tubo orotraqueal N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de la comisura labial.`);
+  if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`Vía aérea artificial en día ${dVA} mediante tubo orotraqueal N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()}.`); }
   else if(va==='TQT') L.push(`Vía aérea artificial en día ${dVA} mediante traqueostomía${gv('fTQTt')?' tipo '+gv('fTQTt'):''}.`);
   // — Helpers de soporte ventilatorio —
   const _np=id=>{ const x=parseFloat(gv(id)); return isNaN(x)?0:x; };
@@ -3389,7 +3465,20 @@ function calcResp() {
   const lit=parseFloat(v('r_litros'))||0;
   if(modo==='NRC'&&lit>0) set('l_fio2nrc',`~${Math.min(100,21+4*lit)}%`);
 }
-function autoCoopera(){const s=parseInt(v('fS5Q'));if(!isNaN(s)){const e=$('fCoop');if(e)e.value=s>=3?'Cooperador':'No cooperador';}}
+function autoCoopera(){
+  const bnm=$('cBNM')?.checked;
+  const sas=parseInt(v('fSAS'))||0;
+  const gcsO=parseInt(v('fGCSO'))||0, gcsV=parseInt(v('fGCSV'))||1, gcsM=parseInt(v('fGCSM'))||0;
+  const gcsNum=gcsO+(isNaN(parseInt(v('fGCSV')))?1:gcsV)+gcsM;
+  const noCooper=bnm||(sas===1)||(gcsNum<8);
+  if(noCooper){
+    const s5=$('fS5Q'); if(s5) s5.value='0';
+    const coop=$('fCoop'); if(coop) coop.value='No cooperador';
+  } else {
+    const s=parseInt(v('fS5Q'));
+    if(!isNaN(s)&&v('fS5Q')!==''){const e=$('fCoop');if(e)e.value=s>=3?'Cooperador':'No cooperador';}
+  }
+}
 
 // ═══════════════════════════════════
 //  CASCADAS VENTILATORIAS
@@ -3488,13 +3577,15 @@ function renderParams() {
 // ═══════════════════════════════════
 //  HANDLERS UI
 // ═══════════════════════════════════
-function hSed(){const s=v('fSed');if(s!=='Sin sedación'&&s!=='Fuera de escalón')show('gSAS');else hide('gSAS');}
+function hSed(){const s=v('fSed');if(s!=='Sin sedación'&&s!=='Fuera de escalón'){show('gSAS');}else{hide('gSAS');}autoCoopera();}
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
-function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='sin DVA'){show('wMultiDVA');if(m&&m.checked)show('gDVAcnt');else hide('gDVAcnt');}else{hide('wMultiDVA');if(m)m.checked=false;hide('gDVAcnt');}}
+function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='Sin requerimientos'){show('wMultiDVA');if(m&&m.checked)show('gDVAcnt');else hide('gDVAcnt');}else{hide('wMultiDVA');if(m)m.checked=false;hide('gDVAcnt');}}
 function hSecr(){const c=v('fSecrC'),t=$('fSecrT');if(t){if(c)t.disabled=false;else{t.disabled=true;t.value='';}} }
 function hMue(){if($('cMue')?.checked)show('dMue');else hide('dMue');}
 function hEgr(){if($('cEgr')?.checked)show('dEgr');else hide('dEgr');}
 function hAisl(){if($('cAisl')?.checked)show('dAislMicro');else hide('dAislMicro');}
+function hAislLista(){const v=$('fAislLista')?.value;if(v==='otro')show('dAislOtro');else hide('dAislOtro');}
+function hVAExterno(){if($('cVAExterno')?.checked)show('dVAExtDias');else hide('dVAExtDias');}
 function hAET(){if($('cAET')?.checked)show('dAETnivel');else hide('dAETnivel');}
 function hRuidos(el){
   // "Sin ruidos" es excluyente con el resto
