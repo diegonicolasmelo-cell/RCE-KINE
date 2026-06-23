@@ -2196,18 +2196,16 @@ function fillForm(s) {
   set('fKTMniv',s.KTM_NIVEL_KTR); set('fKTMt',s.KTM_TIEMPO_MIN);
   chk('cUMA',s.KTM_UMA); set('fUMA',s.KTM_UMA_VAL);
 
-  // KTM 3-way: realizada / suspendida (contraindicada) / no realizada
-  if(s.KTM_REALIZADA===true||s.KTM_REALIZADA==='TRUE') setKTMstate('r');
-  else if(s.KTM_SUSPENDIDA===true||s.KTM_SUSPENDIDA==='TRUE') setKTMstate('s');
-  else if(_ex && (_ex.KTM_NO_REALIZADA===true || _ex.KTM_NO_REALIZADA==='TRUE' || _ex.KTM_NO_RAZON)) setKTMstate('n');
-  else setKTMstate('r');
+  // KTM — ACCIÓN DIARIA: siempre parte sin estado seleccionado (el colega registra lo de hoy)
+  setKTMstate(null);
+  set('fKTMniv',''); set('fKTMt','');
+  chk('cUMA',false); hide('dUMA');
 
-  // Respiratorio nuevos campos
-  set('fKTRcnt',_ex.RESP_KTR_CANT);
-  chk('cSOF', _ex.RESP_SOF); chk('cSNF', _ex.RESP_SNF);
-  chk('cSET', _ex.RESP_SET); chk('cATos',_ex.RESP_ATOS);
-  chk('cInhalo', _ex.RESP_INHALO);
-  set('fDCL',   _ex.RESP_DCL);
+  // Respiratorio nuevos campos — ACCIÓN DIARIA: siempre parten en blanco
+  const e_ktrcnt=$('fKTRcnt'); if(e_ktrcnt) e_ktrcnt.value='0';
+  ['cSOF','cSNF','cSET','cATos','cInhalo'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
+  const e_dcl=$('fDCL'); if(e_dcl) e_dcl.value='';
+  // (Los valores anteriores no se cargan: registra solo lo que hiciste hoy)
 
   // KTM extras
   set('fKTMnoRaz', _ex.KTM_NO_RAZON);
@@ -2251,37 +2249,19 @@ function fillForm(s) {
     const otro=document.querySelector('input[name="ruidos"][value="otro"]');
     if(otro&&otro.checked) show('dRuidosM'); else hide('dRuidosM');
   })();
-  // PVE diaria (nueva estructura)
+  // PVE — ACCIÓN DIARIA: siempre parte en "no aplica"
   (function(){
-    const est=_ex.PVE_ESTADO||'no_aplica';
-    const rb=document.querySelector(`input[name="pveEst"][value="${est}"]`);
-    if(rb){ rb.checked=true; } else { const na=$('pveNA'); if(na) na.checked=true; }
+    const na=$('pveNA'); if(na) na.checked=true;
     hPVE();
-    if(est==='realizada'&&_ex.PVE_RESULTADO){
-      const rr=document.querySelector(`input[name="pveRes"][value="${_ex.PVE_RESULTADO}"]`);
-      if(rr){ rr.checked=true; hPVEres(); }
-    }
-    if(_ex.PVE_RESULTADO==='frustra'){
-      let mots=[]; try{mots=JSON.parse(_ex.PVE_FR_MOTIVOS||'[]');}catch(e){}
-      document.querySelectorAll('input[name="pveFrMot"]').forEach(c=>{c.checked=mots.includes(c.value);});
-    }
-    if(est==='no_realizada') set('fPveSCraz',_ex.PVE_SC_RAZON);
   })();
-  // Extubación
+  // Extubación — ACCIÓN DIARIA: siempre desmarcada
   (function(){
-    chk('cExtOcurrio',_ex.EXT_OCURRIO); hExt();
-    if(_ex.EXT_OCURRIO===true||_ex.EXT_OCURRIO==='TRUE'){
-      const rt=document.querySelector(`input[name="extTipo"][value="${_ex.EXT_TIPO}"]`);
-      if(rt){ rt.checked=true; hExtTipo(); }
-      set('fExtMotivo',_ex.EXT_MOTIVO);
-      set('fPostExtDet',_ex.EXT_POST_DET);
-      chk('cReintub',_ex.EXT_REINTUB);
-    }
+    const ext=$('cExtOcurrio'); if(ext) ext.checked=false; hExt();
   })();
 
   if(s.PROC_JSON){try{PROCS=JSON.parse(s.PROC_JSON)||[];}catch(e){} renderChips();}
-  chk('cMue',s.MUE_REALIZADAS); hMue();
-  (function(){ if(!s.MUE_RESULTADOS_JSON) return; let arr=[]; try{arr=JSON.parse(s.MUE_RESULTADOS_JSON);}catch(e){} fillCultRes(arr); })();
+  // Cultivo — ACCIÓN DIARIA: siempre desmarcado al cargar turno anterior
+  const e_mue=$('cMue'); if(e_mue) e_mue.checked=false; hMue();
   chk('cEgr',s.EGR_ACTIVO); hEgr();
   set('fNivelMotor',s.EGR_NIVEL_MOTOR); set('fPrension',s.EGR_PRENSION);
   set('fMRC',s.EGR_MRC_SS); set('fFSS',s.EGR_FSS); set('fPIM',s.EGR_PIM); set('fPEM',s.EGR_PEM);
@@ -3746,8 +3726,8 @@ function setKTMstate(q){
   $('bKTMn')?.classList.toggle('on', n);
   if(r){show('dKTMr');hide('dKTMs');hide('dKTMn');}
   else if(s){hide('dKTMr');show('dKTMs');hide('dKTMn');}
-  else {hide('dKTMr');hide('dKTMs');show('dKTMn');}
-  // Mantener compat con backend que lee cKTMr/cKTMs
+  else if(n){hide('dKTMr');hide('dKTMs');show('dKTMn');}
+  else {hide('dKTMr');hide('dKTMs');hide('dKTMn');} // null → sin selección
   if($('cKTMr')) $('cKTMr').checked = r;
   if($('cKTMs')) $('cKTMs').checked = s;
   if(r) renderKTMinterv();
