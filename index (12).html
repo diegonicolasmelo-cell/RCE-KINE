@@ -3468,6 +3468,19 @@ function calcResp() {
 function autoCoopera(){
   const bnm=$('cBNM')?.checked;
   const sas=parseInt(v('fSAS'))||0;
+  const va=v('fVA');
+  const intub=va==='TOT'||va==='TQT';
+
+  // Auto-GCS 3 si BNM o SAS=1
+  if(bnm||(sas===1)){
+    const o=$('fGCSO'), vv=$('fGCSV'), m=$('fGCSM');
+    if(o) o.value='1';
+    if(vv) vv.value=intub?'1T':'1';
+    if(m) m.value='1';
+    calcGCS();
+  }
+
+  // Auto S5Q y Cooperación
   const gcsO=parseInt(v('fGCSO'))||0, gcsV=parseInt(v('fGCSV'))||1, gcsM=parseInt(v('fGCSM'))||0;
   const gcsNum=gcsO+(isNaN(parseInt(v('fGCSV')))?1:gcsV)+gcsM;
   const noCooper=bnm||(sas===1)||(gcsNum<8);
