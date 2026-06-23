@@ -1267,21 +1267,18 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   </div>
                 </div>
                 <div id="dMue" class="hidden fade" style="margin-top:7px;padding:7px 9px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;">
-                  <div class="row" style="margin-bottom:5px;">
-                    <div class="col wa"><label>Mecanismo</label>
-                      <select id="fMueMec" onchange="if(this.value==='Otro')show('dMueOtro');else hide('dMueOtro');">
-                        <option value="">-- Seleccionar --</option>
-                        <option>Aspiración traqueal</option><option>Lavado broncoalveolar</option>
-                        <option>Hisopado nasofaríngeo</option><option>Otro</option>
-                      </select></div>
-                    <div id="dMueOtro" class="col grow hidden"><label>Especificar</label><input type="text" id="fMueOtro"></div>
-                  </div>
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px;">
                     <div class="check wa"><input type="checkbox" name="mtest" value="CCAET"><label title="Cultivo corriente aspirado endotraqueal">CCAET</label></div>
-                    <div class="check wa"><input type="checkbox" name="mtest" value="FilmArray"><label>FilmArray</label></div>
                     <div class="check wa"><input type="checkbox" name="mtest" value="Mini Lab"><label>Mini Lab</label></div>
                     <div class="check wa"><input type="checkbox" name="mtest" value="Hisopado COVID-19"><label>COVID-19</label></div>
                   </div>
+                  <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:4px;">Resultado(s)</div>
+                  <div id="dCultResultados" style="display:flex;flex-direction:column;gap:5px;">
+                    <div class="cult-res-row" style="display:flex;gap:5px;align-items:center;">
+                      <input type="text" class="cult-res" placeholder="Microorganismo..." style="flex:1;height:28px;border:1px solid #e9d5ff;border-radius:5px;padding:0 8px;font-size:.78rem;">
+                    </div>
+                  </div>
+                  <button type="button" onclick="addCultRes()" style="margin-top:5px;padding:2px 10px;font-size:.75rem;border:1px dashed #a78bfa;background:transparent;color:#7c3aed;border-radius:5px;cursor:pointer;">+ agregar microorganismo</button>
                 </div>
               </div>
             </div>
@@ -2247,7 +2244,7 @@ function fillForm(s) {
 
   if(s.PROC_JSON){try{PROCS=JSON.parse(s.PROC_JSON)||[];}catch(e){} renderChips();}
   chk('cMue',s.MUE_REALIZADAS); hMue();
-  set('fMueMec',s.MUE_MECANISMO); set('fMueOtro',s.MUE_OTRO);
+  (function(){ if(!s.MUE_RESULTADOS_JSON) return; let arr=[]; try{arr=JSON.parse(s.MUE_RESULTADOS_JSON);}catch(e){} fillCultRes(arr); })();
   chk('cEgr',s.EGR_ACTIVO); hEgr();
   set('fNivelMotor',s.EGR_NIVEL_MOTOR); set('fPrension',s.EGR_PRENSION);
   set('fMRC',s.EGR_MRC_SS); set('fFSS',s.EGR_FSS); set('fPIM',s.EGR_PIM); set('fPEM',s.EGR_PEM);
@@ -2330,7 +2327,7 @@ function fillFormReplica(s) {
 
   // Movilización
   chk('cMue',s.MUE_REALIZADAS); hMue();
-  set('fMueMec',s.MUE_MECANISMO); set('fMueOtro',s.MUE_OTRO);
+  (function(){ if(!s.MUE_RESULTADOS_JSON) return; let arr=[]; try{arr=JSON.parse(s.MUE_RESULTADOS_JSON);}catch(e){} fillCultRes(arr); })();
 
   // Procedimientos
   if(s.PROC_JSON){ try{ PROCS=JSON.parse(s.PROC_JSON)||[]; }catch(e){} renderChips(); }
@@ -2499,8 +2496,9 @@ function guardar() {
       }
       return new Set([...(PROCS||[]), ...auto]).size;
     })(),
-    MUE_REALIZADAS:bv('cMue'), MUE_MECANISMO:v('fMueMec'), MUE_OTRO:v('fMueOtro'),
+    MUE_REALIZADAS:bv('cMue'),
     MUE_TIPOS_JSON:JSON.stringify(Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value)),
+    MUE_RESULTADOS_JSON:JSON.stringify(Array.from(document.querySelectorAll('#dCultResultados .cult-res')).map(i=>i.value.trim()).filter(Boolean)),
     EGR_ACTIVO:bv('cEgr'), EGR_NIVEL_MOTOR:v('fNivelMotor'), EGR_PRENSION:n(v('fPrension')),
     EGR_MRC_SS:n(v('fMRC')), EGR_FSS:n(v('fFSS')),
     EGR_GROSOR_DIAF:n(v('fGrosor')), EGR_PIM:n(v('fPIM')), EGR_PEM:n(v('fPEM')),
@@ -3337,6 +3335,15 @@ function genTexto() {
     }
     L.push(kline+'.');
   })();
+  // Cultivo de secreciones
+  if($('cMue')?.checked){
+    const _tipos=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
+    const _res=Array.from(document.querySelectorAll('#dCultResultados .cult-res')).map(i=>i.value.trim()).filter(Boolean);
+    let _cline='Se toman muestras para cultivo';
+    if(_tipos.length) _cline+=' ('+_tipos.join(', ')+')';
+    if(_res.length) _cline+='. Resultado'+((_res.length>1)?'s':'')+': '+_res.join(', ')+'.'; else _cline+=', resultado pendiente.';
+    L.push(_cline);
+  }
   // Evaluaciones funcionales del turno
   if($('cEvalT')?.checked){
     const ev=[];
@@ -3597,6 +3604,21 @@ function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='Sin requerimientos'){show('wMultiDVA');if(m&&m.checked)show('gDVAcnt');else hide('gDVAcnt');}else{hide('wMultiDVA');if(m)m.checked=false;hide('gDVAcnt');}}
 function hSecr(){} // obsoleta — fSecrT ya no depende de fSecrC
 function hMue(){if($('cMue')?.checked)show('dMue');else hide('dMue');}
+function addCultRes(){
+  const c=document.createElement('div');
+  c.className='cult-res-row';
+  c.style.cssText='display:flex;gap:5px;align-items:center;';
+  c.innerHTML='<input type="text" class="cult-res" placeholder="Microorganismo..." style="flex:1;height:28px;border:1px solid #e9d5ff;border-radius:5px;padding:0 8px;font-size:.78rem;"><button type="button" onclick="this.parentElement.remove()" style="padding:0 7px;height:28px;border:1px solid #fecaca;background:#fff5f5;color:#ef4444;border-radius:5px;cursor:pointer;font-size:.85rem;">✕</button>';
+  $('dCultResultados').appendChild(c);
+}
+function fillCultRes(arr){
+  const box=$('dCultResultados'); if(!box) return;
+  box.innerHTML='<div class="cult-res-row" style="display:flex;gap:5px;align-items:center;"><input type="text" class="cult-res" placeholder="Microorganismo..." style="flex:1;height:28px;border:1px solid #e9d5ff;border-radius:5px;padding:0 8px;font-size:.78rem;"></div>';
+  if(!arr||!arr.length) return;
+  const rows=box.querySelectorAll('.cult-res');
+  if(rows[0]) rows[0].value=arr[0]||'';
+  for(let i=1;i<arr.length;i++){addCultRes(); box.querySelectorAll('.cult-res')[i].value=arr[i];}
+}
 function hEgr(){if($('cEgr')?.checked)show('dEgr');else hide('dEgr');}
 function hAisl(){if($('cAisl')?.checked)show('dAislMicro');else hide('dAislMicro');}
 function hAislLista(){const v=$('fAislLista')?.value;if(v==='otro')show('dAislOtro');else hide('dAislOtro');}
