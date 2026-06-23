@@ -1120,12 +1120,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <input type="text" id="fRuidosM" placeholder="Describir ruido..." style="height:30px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
                 </div>
               </div>
-              <div class="row" style="margin-bottom:0;">
-                <div class="col wa"><label>Secreciones</label>
-                  <select id="fSecrC" onchange="hSecr()"><option value="">-</option><option>escasa</option><option>moderada</option><option>abundante</option></select></div>
-                <div class="col wa"><label>Tipo</label>
-                  <select id="fSecrT" disabled><option value="">-</option><option>mucosa</option><option>mucopurulenta</option><option>purulenta</option><option>hemática</option><option>carbonizadas</option></select></div>
-              </div>
             </div>
 
             <!-- Terapia ventilatoria -->
@@ -1237,47 +1231,53 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               </div>
             </div>
 
-            <!-- Manejo respiratorio / KTR -->
+            <!-- Manejo respiratorio -->
             <div class="sub-sec">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
-                <div class="sub-sec-title" style="color:var(--resp);margin:0;">Manejo respiratorio (KTR)</div>
-                <div class="check wa" style="border:none;background:transparent;padding:0;">
-                  <input type="checkbox" id="cMue" onchange="hMue()">
-                  <label for="cMue" style="font-size:.78rem;">🧪 Se tomaron muestras</label>
-                </div>
-              </div>
-              <div class="row">
-                <div class="col ws"><label title="Sesiones de Kinesiterapia Respiratoria del turno">KTR (n°)</label><input type="number" id="fKTRcnt" min="0" placeholder="0"></div>
-                <div class="col wa"><label>Posicionamiento DCL</label>
+              <div class="sub-sec-title" style="color:var(--resp);margin-bottom:8px;">🫁 Manejo Respiratorio</div>
+              <!-- Técnicas con número -->
+              <div class="row" style="align-items:flex-end;flex-wrap:wrap;">
+                <div class="col ws"><label title="Kinesiterapia Respiratoria">KTR</label><input type="number" id="fKTRcnt" min="0" placeholder="0" style="width:55px;"></div>
+                <div class="col ws"><label title="Succión Orofaríngea">SOF</label><input type="number" id="fSOFcnt" min="0" placeholder="0" style="width:55px;"></div>
+                <div class="col ws"><label title="Succión Nasofaríngea">SNF</label><input type="number" id="fSNFcnt" min="0" placeholder="0" style="width:55px;"></div>
+                <div class="col ws"><label title="Succión Endotraqueal">SET</label><input type="number" id="fSETcnt" min="0" placeholder="0" style="width:55px;"></div>
+                <div class="col ws"><label title="Asistencia de tos">A.Tos</label><input type="number" id="fATosCnt" min="0" placeholder="0" style="width:55px;"></div>
+                <div class="col wa"><label>Posicionamiento</label>
                   <select id="fDCL">
-                    <option value="">No DCL</option>
-                    <option>DCL derecho</option>
-                    <option>DCL izquierdo</option>
-                    <option>Alternado</option>
+                    <option value="">-- seleccionar --</option>
+                    <option>DCL derecho</option><option>DCL izquierdo</option><option>Alternado</option>
                   </select></div>
-              </div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
-                <div class="check wa"><input type="checkbox" id="cSET"><label for="cSET" title="Succión endotraqueal">SET</label></div>
-                <div class="check wa"><input type="checkbox" id="cSOF"><label for="cSOF" title="Succión orofaríngea">SOF</label></div>
-                <div class="check wa"><input type="checkbox" id="cSNF"><label for="cSNF" title="Succión nasofaríngea">SNF</label></div>
-                <div class="check wa"><input type="checkbox" id="cATos"><label for="cATos">Asistencia de tos</label></div>
-              </div>
-              <!-- Muestras (integrado) — cultivos de secreciones -->
-              <div id="dMue" class="hidden fade" style="margin-top:10px;padding:9px 10px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;">
-                <div class="row" style="margin-bottom:6px;">
-                  <div class="col wa"><label>Mecanismo de obtención</label>
-                    <select id="fMueMec" onchange="if(this.value==='Otro')show('dMueOtro');else hide('dMueOtro');">
-                      <option value="">-- Seleccionar --</option>
-                      <option>Aspiración traqueal</option><option>Lavado broncoalveolar</option>
-                      <option>Hisopado nasofaríngeo</option><option>Otro</option>
-                    </select></div>
-                  <div id="dMueOtro" class="col grow hidden"><label>Especificar</label><input type="text" id="fMueOtro"></div>
+                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;">
+                  <input type="checkbox" id="cInhalo"><label for="cInhalo">💊 Inhaloterapia <span style="font-size:.68rem;color:var(--muted);">(SOS)</span></label>
                 </div>
-                <div style="display:flex;gap:7px;flex-wrap:wrap;">
-                  <div class="check wa"><input type="checkbox" name="mtest" value="CCAET"><label title="Cultivo corriente de aspirado endotraqueal">CCAET</label></div>
-                  <div class="check wa"><input type="checkbox" name="mtest" value="FilmArray"><label title="Panel molecular multiplex respiratorio">FilmArray</label></div>
-                  <div class="check wa"><input type="checkbox" name="mtest" value="Mini Lab"><label title="Mini Lab">Mini Lab</label></div>
-                  <div class="check wa"><input type="checkbox" name="mtest" value="Hisopado COVID-19"><label title="Hisopado para COVID-19">Hisopado COVID-19</label></div>
+              </div>
+              <!-- Secreciones -->
+              <div style="margin-top:8px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;">
+                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:var(--resp);margin-bottom:6px;letter-spacing:.04em;">💧 Secreciones</div>
+                <div class="row" style="margin-bottom:0;align-items:flex-end;">
+                  <div class="col wa"><label>Reología</label>
+                    <select id="fSecrT"><option value="">-</option><option>mucosa</option><option>mucopurulenta</option><option>purulenta</option><option>hemática</option><option>carbonizadas</option></select></div>
+                  <div class="col wa"><label>Cantidad</label>
+                    <select id="fSecrC"><option value="">-</option><option>escasa</option><option>moderada</option><option>abundante</option></select></div>
+                  <div class="check wa" style="margin-bottom:6px;">
+                    <input type="checkbox" id="cMue" onchange="hMue()"><label for="cMue">🧪 Cultivo</label>
+                  </div>
+                </div>
+                <div id="dMue" class="hidden fade" style="margin-top:7px;padding:7px 9px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;">
+                  <div class="row" style="margin-bottom:5px;">
+                    <div class="col wa"><label>Mecanismo</label>
+                      <select id="fMueMec" onchange="if(this.value==='Otro')show('dMueOtro');else hide('dMueOtro');">
+                        <option value="">-- Seleccionar --</option>
+                        <option>Aspiración traqueal</option><option>Lavado broncoalveolar</option>
+                        <option>Hisopado nasofaríngeo</option><option>Otro</option>
+                      </select></div>
+                    <div id="dMueOtro" class="col grow hidden"><label>Especificar</label><input type="text" id="fMueOtro"></div>
+                  </div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <div class="check wa"><input type="checkbox" name="mtest" value="CCAET"><label title="Cultivo corriente aspirado endotraqueal">CCAET</label></div>
+                    <div class="check wa"><input type="checkbox" name="mtest" value="FilmArray"><label>FilmArray</label></div>
+                    <div class="check wa"><input type="checkbox" name="mtest" value="Mini Lab"><label>Mini Lab</label></div>
+                    <div class="check wa"><input type="checkbox" name="mtest" value="Hisopado COVID-19"><label>COVID-19</label></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2166,10 +2166,9 @@ function fillForm(s) {
 
   // Respiratorio nuevos campos
   set('fKTRcnt',_ex.RESP_KTR_CANT);
-  chk('cSET',   _ex.RESP_SET);
-  chk('cSOF',   _ex.RESP_SOF);
-  chk('cSNF',   _ex.RESP_SNF);
-  chk('cATos',  _ex.RESP_ATOS);
+  set('fSOFcnt', _ex.RESP_SOF_CANT); set('fSNFcnt', _ex.RESP_SNF_CANT);
+  set('fSETcnt', _ex.RESP_SET_CANT); set('fATosCnt',_ex.RESP_ATOS_CANT);
+  chk('cInhalo', _ex.RESP_INHALO);
   set('fDCL',   _ex.RESP_DCL);
 
   // KTM extras
@@ -2305,8 +2304,7 @@ function fillFormReplica(s) {
 
   // Respiratorio
   set('fKTRcnt',_ex.RESP_KTR_CANT);
-  chk('cSET',_ex.RESP_SET); chk('cSOF',_ex.RESP_SOF); chk('cSNF',_ex.RESP_SNF);
-  chk('cATos',_ex.RESP_ATOS); set('fDCL',_ex.RESP_DCL);
+  set('fDCL',_ex.RESP_DCL);
 
   // KTM estado y nivel (replica estado previo como punto de partida)
   if(s.KTM_REALIZADA===true||s.KTM_REALIZADA==='TRUE') setKTMstate('r');
@@ -2425,10 +2423,11 @@ function guardar() {
     KTM_INTERVENCIONES_JSON: JSON.stringify(Array.from(KTM_INTERV_SEL)),
     // ★ Respiratorio nuevos campos
     RESP_KTR_CANT:  v('fKTRcnt'),
-    RESP_SET:       bv('cSET'),
-    RESP_SOF:       bv('cSOF'),
-    RESP_SNF:       bv('cSNF'),
-    RESP_ATOS:      bv('cATos'),
+    RESP_SOF_CANT:  v('fSOFcnt'),
+    RESP_SNF_CANT:  v('fSNFcnt'),
+    RESP_SET_CANT:  v('fSETcnt'),
+    RESP_ATOS_CANT: v('fATosCnt'),
+    RESP_INHALO:    bv('cInhalo'),
     RESP_DCL:       v('fDCL'),
     // ★ Evaluaciones funcionales por turno
     EVAL_T_REALIZAR: bv('cEvalT'),
@@ -3312,29 +3311,30 @@ function genTexto() {
   } else if(kN){
     L.push(`KTM no realizada. ${gv('fKTMnoRaz')||'Sin especificar'}${gv('fKTMnoCom')?'. '+gv('fKTMnoCom'):''}.`);
   }
-  // Manejo respiratorio (cualitativo; las cantidades de KTR/succiones van solo a estadística)
+  // Manejo respiratorio
   const dcl=gv('fDCL'); if(dcl) L.push(`Posicionamiento: ${dcl.toLowerCase()}.`);
-  const _ktrN=parseInt(gv('fKTRcnt'))||0;
-  if(_ktrN>0){
-    let kline='Se realiza KTR';
-    const _succs=[];
-    if($('cSET')?.checked) _succs.push('SET');
-    if($('cSOF')?.checked) _succs.push('SOF');
-    if($('cSNF')?.checked) _succs.push('SNF');
-    if($('cATos')?.checked) _succs.push('asistencia de tos');
-    if(_succs.length) kline += ' + ' + _succs.join(' + ');
-    const _cruces={escasa:'+',escasas:'+',moderada:'++',moderadas:'++',abundante:'+++',abundantes:'+++'};
-    if(secrC){ const _cr=_cruces[String(secrC).toLowerCase()]||''; let _st=secrT||secrC; if(_st&&!/s$/i.test(_st)) _st+='s'; kline += `: secreciones ${_st}${_cr?' ('+_cr+')':''}`; }
-    L.push(kline + '.');
-  } else {
-    // Si no se hizo KTR pero igual se realizaron succiones o asistencia de tos
-    const _succs=[];
-    if($('cSET')?.checked) _succs.push('endotraqueal');
-    if($('cSOF')?.checked) _succs.push('orofaríngea');
-    if($('cSNF')?.checked) _succs.push('nasofaríngea');
-    if(_succs.length) L.push(`Se realizan succiones de secreciones (${_succs.join(', ')}).`);
-    if($('cATos')?.checked) L.push('Se asiste tos durante el turno.');
-  }
+  if($('cInhalo')?.checked) L.push('Se administra inhaloterapia según indicación médica (SOS).');
+  (function(){
+    const ktr=parseInt(gv('fKTRcnt'))||0, sof=parseInt(gv('fSOFcnt'))||0;
+    const snf=parseInt(gv('fSNFcnt'))||0, set_=parseInt(gv('fSETcnt'))||0;
+    const atos=parseInt(gv('fATosCnt'))||0;
+    const procs=[];
+    if(ktr>0) procs.push(`KTR (${ktr})`);
+    if(set_>0) procs.push(`SET (${set_})`);
+    if(sof>0)  procs.push(`SOF (${sof})`);
+    if(snf>0)  procs.push(`SNF (${snf})`);
+    if(atos>0) procs.push(`asistencia de tos (${atos})`);
+    if(!procs.length) return;
+    let kline=procs.join(' + ');
+    const _secrC=gv('fSecrC'), _secrT=gv('fSecrT');
+    const _cruces={escasa:'+',moderada:'++',abundante:'+++'};
+    if(_secrC||_secrT){
+      const _cr=_cruces[String(_secrC).toLowerCase()]||'';
+      const _st=_secrT||'';
+      kline+=`: secreciones${_st?' '+_st:''}${_cr?' ('+_cr+')':''}`;
+    }
+    L.push(kline+'.');
+  })();
   // Evaluaciones funcionales del turno
   if($('cEvalT')?.checked){
     const ev=[];
@@ -3593,7 +3593,7 @@ function renderParams() {
 function hSed(){const s=v('fSed');if(s!=='Sin sedación'&&s!=='Fuera de escalón'){show('gSAS');}else{hide('gSAS');}autoCoopera();}
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='Sin requerimientos'){show('wMultiDVA');if(m&&m.checked)show('gDVAcnt');else hide('gDVAcnt');}else{hide('wMultiDVA');if(m)m.checked=false;hide('gDVAcnt');}}
-function hSecr(){const c=v('fSecrC'),t=$('fSecrT');if(t){if(c)t.disabled=false;else{t.disabled=true;t.value='';}} }
+function hSecr(){} // obsoleta — fSecrT ya no depende de fSecrC
 function hMue(){if($('cMue')?.checked)show('dMue');else hide('dMue');}
 function hEgr(){if($('cEgr')?.checked)show('dEgr');else hide('dEgr');}
 function hAisl(){if($('cAisl')?.checked)show('dAislMicro');else hide('dAislMicro');}
