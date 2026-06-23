@@ -912,7 +912,14 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard-hdr"><span class="fcard-title">👤 Identificación del Paciente</span></div>
         <div class="fcard-body">
           <div class="row" style="margin-bottom:0;">
-            <div class="col grow"><label>Nombre</label><input type="text" id="fNombre" class="bold" placeholder="Nombre completo"></div>
+            <div class="col grow"><label>Nombre</label>
+              <input type="text" id="fNombre" class="bold" placeholder="Nombre completo" oninput="chkNombreDB(this.value)" autocomplete="off">
+              <div id="dNombreAlert" class="hidden" style="margin-top:4px;padding:6px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:.76rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span>⚠️ <span id="lblNombreMatch"></span></span>
+                <button type="button" onclick="confirmarReingreso()" style="padding:2px 10px;background:#f59e0b;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.74rem;font-weight:700;">Sí, es reingreso</button>
+                <button type="button" onclick="hide('dNombreAlert')" style="padding:2px 10px;background:#fff;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;font-size:.74rem;">Paciente nuevo</button>
+              </div>
+            </div>
             <div class="col ws"><label>Edad</label><input type="number" id="fEdad"></div>
             <div class="col ws"><label>Sexo*</label><select id="fSexo" onchange="calcPI()"><option value="" disabled selected>-</option><option value="M">Masc</option><option value="F">Fem</option></select></div>
             <div class="col ws"><label>Talla cm</label><input type="number" id="fTalla" oninput="calcPI()"></div>
@@ -2031,7 +2038,7 @@ function renderTabla() {
 function abrirPanel(id, esIng) {
   const fecha=v('gDate')||hoy();
   const tkey=`${fecha}-${SHIFT}`;
-  $('cBed').value=id; $('cIng').value=String(esIng);
+  $('cBed').value=id; $('cIng').value=String(esIng); window._camaEvo=id;
   $('spBed').textContent=`CAMA ${id}`;
   $('spTitle').textContent=esIng?'Registro — INGRESO':'Registro Evolución';
   $('spShift').textContent=`${fecha} · Turno ${SHIFT}`;
@@ -3620,6 +3627,25 @@ function fillCultRes(arr){
   for(let i=1;i<arr.length;i++){addCultRes(); box.querySelectorAll('.cult-res')[i].value=arr[i];}
 }
 function hEgr(){if($('cEgr')?.checked)show('dEgr');else hide('dEgr');}
+function chkNombreDB(val){
+  const q=(val||'').trim().toLowerCase();
+  if(q.length<3){hide('dNombreAlert');return;}
+  const camaActual=v('cIng')==='true'?null:window._camaEvo; // cama en edición (no comparar consigo misma)
+  const match=(DB||[]).filter(c=>{
+    if(!(c.OCUPADA===true||c.OCUPADA==='TRUE')) return false;
+    if(c.ID_CAMA&&camaActual&&c.ID_CAMA===camaActual) return false;
+    return (c.NOMBRE||'').toLowerCase().includes(q);
+  });
+  if(match.length){
+    const info=match.map(c=>`Cama ${c.ID_CAMA||'?'} (${c.NOMBRE||''})`).join(', ');
+    $('lblNombreMatch').textContent=`Coincide con: ${info}`;
+    show('dNombreAlert');
+  } else { hide('dNombreAlert'); }
+}
+function confirmarReingreso(){
+  const cb=$('cReing'); if(cb){cb.checked=true;}
+  hide('dNombreAlert');
+}
 function hAisl(){if($('cAisl')?.checked)show('dAislMicro');else hide('dAislMicro');}
 function hAislLista(){const v=$('fAislLista')?.value;if(v==='otro')show('dAislOtro');else hide('dAislOtro');}
 function hVAExterno(){if($('cVAExterno')?.checked)show('dVAExtDias');else hide('dVAExtDias');}
