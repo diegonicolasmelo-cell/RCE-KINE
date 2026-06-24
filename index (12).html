@@ -248,45 +248,43 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .ent-tbl .et-cama{font-weight:800;color:var(--pdark);}
 .ent-tbl .et-vm{color:var(--resp);font-weight:700;}
 
-/* Fichas */
-.ent-fichas{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.ent-ficha{border:1px solid #d7dee8;border-radius:9px;padding:12px 14px;break-inside:avoid;}
-.ent-ficha-h{display:flex;align-items:center;border-bottom:1.5px solid #eceff3;padding-bottom:8px;margin-bottom:10px;gap:10px;}
-.ent-ficha-cama{font-size:1rem;font-weight:800;color:#fff;background:var(--pdark);border-radius:6px;padding:3px 10px;flex-shrink:0;}
-.ent-ficha-nm{font-weight:700;color:var(--txt);font-size:.88rem;}
-.ent-ficha-meta{font-size:.7rem;color:var(--muted);text-align:right;}
-.ent-rowf{display:flex;gap:7px;margin-bottom:5px;font-size:.74rem;line-height:1.4;}
-.ent-rowf .ef-k{font-weight:700;color:#64748b;flex-shrink:0;min-width:74px;text-transform:uppercase;font-size:.62rem;letter-spacing:.3px;padding-top:2px;}
-.ent-rowf .ef-v{color:var(--txt);flex-grow:1;}
-.ent-tag{display:inline-block;padding:1px 7px;border-radius:4px;font-size:.66rem;font-weight:700;margin-right:3px;}
-.ent-tag-vm{background:#dbeafe;color:#1e40af;}
-.ent-tag-sed{background:#ede9fe;color:#5b21b6;}
-.ent-tag-alert{background:#fee2e2;color:#991b1b;}
-.ent-tag-ktm{background:#fef3c7;color:#92400e;}
-.ent-tag-coop{background:#dcfce7;color:#166534;}
-.ent-tag-pend{background:#ffedd5;color:#9a3412;}
-.ent-alerta-func{background:#fff7ed;border:1px solid #fdba74;border-left:3px solid #f97316;border-radius:6px;padding:6px 10px;margin-bottom:7px;font-size:.74rem;color:#9a3412;font-weight:600;}
-.ent-pend{background:#fffbeb;border:1px dashed #fde68a;border-radius:6px;padding:6px 9px;margin-top:7px;font-size:.74rem;color:#78350f;}
-.ent-pend b{font-size:.62rem;text-transform:uppercase;letter-spacing:.3px;color:#92400e;display:block;margin-bottom:2px;}
-.ent-pend textarea{width:100%;border:none;background:transparent;font-family:inherit;font-size:.74rem;color:#78350f;resize:vertical;min-height:30px;outline:none;}
-/* Secciones clínicas de la ficha */
-.ent-sec{border-left:3px solid var(--sc,#94a3b8);border-radius:0 6px 6px 0;padding:7px 10px;margin-bottom:7px;background:var(--sc-bg,#f8fafc);}
-.ent-sec-t{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.55px;color:var(--sc,#64748b);margin-bottom:6px;}
-.ent-sec-sed{--sc:#ca8a04;--sc-bg:#fefce8;}
-.ent-sec-vent{--sc:#0284c7;--sc-bg:#f0f9ff;}
-.ent-sec-secr{--sc:#059669;--sc-bg:#f0fdf4;}
-.ent-sec-motor{--sc:#b45309;--sc-bg:#fffbeb;}
-/* Fecha destacada en ficha */
-.ent-ficha-ingreso{font-size:.72rem;color:#64748b;margin-top:2px;}
-.ent-hitos{margin-top:6px;font-size:.7rem;color:#475569;}
-.ent-hitos .eh{display:inline-block;background:#f1f5f9;border-radius:4px;padding:1px 6px;margin:2px 3px 0 0;}
-.ent-hitos .eh b{color:var(--pdark);}
-.ent-firma{display:flex;justify-content:flex-end;margin-top:8px;font-size:.72rem;color:#64748b;}
-.ent-firma b{color:var(--kine);}
+/* Fichas — diseño compacto */
+.ent-fichas{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ent-ficha{border:1px solid #d7dee8;border-radius:8px;overflow:hidden;break-inside:avoid;}
+/* Header de ficha */
+.ent-ficha-h{display:flex;align-items:baseline;gap:9px;padding:7px 11px;background:#f0f4f9;border-bottom:1px solid #dde3ec;}
+.ent-ficha-cama{font-size:.9rem;font-weight:900;color:#fff;background:var(--pdark);border-radius:5px;padding:2px 8px;flex-shrink:0;line-height:1.4;}
+.ent-ficha-nm{font-weight:700;color:#0f172a;font-size:.84rem;flex-grow:1;}
+.ent-ficha-meta{font-size:.67rem;color:#64748b;white-space:nowrap;flex-shrink:0;}
+/* Líneas clínicas compactas */
+.ent-clin{padding:5px 11px;display:flex;flex-direction:column;gap:2px;}
+.ent-ln{display:flex;align-items:baseline;gap:5px;font-size:.73rem;color:#1e293b;line-height:1.45;flex-wrap:wrap;}
+.ent-ln-ico{flex-shrink:0;font-size:.78rem;}
+.ent-ln-body{flex-grow:1;flex-wrap:wrap;}
+.ent-ln-body b{font-weight:700;}
+.ent-ln + .ent-ln{border-top:1px solid #f1f5f9;padding-top:2px;}
+/* Separador diagnóstico */
+.ent-dx{font-size:.68rem;color:#475569;padding:2px 11px 5px;border-bottom:1px solid #eceff3;font-style:italic;}
+/* Planes */
+.ent-pend{background:#fffbeb;border-top:1px dashed #fde68a;padding:5px 11px;font-size:.71rem;color:#78350f;}
+.ent-pend textarea{width:100%;border:none;background:transparent;font-family:inherit;font-size:.71rem;color:#78350f;resize:vertical;min-height:26px;outline:none;}
+/* Firma */
+.ent-firma{text-align:right;padding:3px 11px 6px;font-size:.66rem;color:#94a3b8;}
+.ent-firma b{color:var(--kine);font-weight:700;}
+/* Resto */
+.ent-ficha-ingreso{font-size:.68rem;color:#64748b;margin-top:1px;}
 .ent-libre{color:#94a3b8;font-style:italic;font-size:.78rem;padding:8px 0;}
 .ent-foot{margin-top:24px;padding-top:12px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;font-size:.72rem;color:#94a3b8;}
 .ent-foot .ent-sign{text-align:center;}
 .ent-foot .ent-sign-line{width:160px;border-top:1px solid #94a3b8;margin-top:30px;padding-top:4px;}
+/* Clases heredadas que pueden seguir usándose */
+.ent-rowf{display:flex;gap:7px;margin-bottom:4px;font-size:.73rem;line-height:1.4;}
+.ent-rowf .ef-k{font-weight:700;color:#64748b;flex-shrink:0;min-width:70px;text-transform:uppercase;font-size:.61rem;letter-spacing:.3px;padding-top:2px;}
+.ent-rowf .ef-v{color:var(--txt);}
+.ent-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.65rem;font-weight:700;margin-right:3px;}
+.ent-tag-vm{background:#dbeafe;color:#1e40af;}
+.ent-tag-alert{background:#fee2e2;color:#991b1b;}
+.ent-tag-pend{background:#ffedd5;color:#9a3412;}
 
 @media print{
   @page{size:A4 landscape;margin:10mm;}
@@ -299,7 +297,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
   #tcE{position:absolute;left:0;top:0;width:100%;}
   .ent-fichas{grid-template-columns:1fr 1fr;}
   .ent-ficha{break-inside:avoid;}
-  .ent-pend textarea{color:#78350f!important;}
+  .ent-pend textarea{color:#78350f!important;-webkit-print-color-adjust:exact;}
 }
 
 /* RETRO BANNER (vista de día anterior) */
@@ -4880,114 +4878,92 @@ function renderEntrega(d) {
   d.fichas.forEach((f,ix)=>{
     if (!f.ocupada && !f.tieneEvo) return;
 
-    const _row = (k,val) => `<div class="ent-rowf"><span class="ef-k">${k}</span><span class="ef-v">${val}</span></div>`;
-    const _sec = (titulo, cls, items) => {
-      const r = items.filter(Boolean);
-      if (!r.length) return '';
-      return `<div class="ent-sec ${cls}"><div class="ent-sec-t">${titulo}</div>${r.join('')}</div>`;
+    // helper: línea clínica con emoji al inicio; si excede ~70 chars hace wrap natural
+    const _ln = (ico, partes) => {
+      const txt = partes.filter(Boolean).join(' · ');
+      if (!txt) return '';
+      return `<div class="ent-ln"><span class="ent-ln-ico">${ico}</span><span class="ent-ln-body">${txt}</span></div>`;
     };
 
-    // ── HEADER: nombre, edad, cama, ingreso, estadía ───────
-    const ingresoTxt = f.fechaIngreso
-      ? `Ingreso: ${f.fechaIngreso} · `
-      : '';
-    const metaTxt = `${ingresoTxt}${f.diasEstadia||'?'} días UCI`;
+    // Meta
+    const metaTxt = `${f.edad||'?'}a ${f.sexo||''} · ${f.diasEstadia||'?'}d UCI`;
 
-    // ── SEDOANALGESIA (amarillo) ────────────────────────────
-    const sedItems = [];
-    if (f.sedTipo)     sedItems.push(_row('Sedación', f.sedTipo));
-    if (f.sas)         sedItems.push(_row('SAS', f.sas));
-    if (f.bnm)         sedItems.push(_row('BNM', '<b style="color:#be123c;">Activo</b>'));
-    if (f.cooperacion) sedItems.push(_row('Cooperación', f.cooperacion));
-    if (f.dva)         sedItems.push(_row('DVA', `<b>${f.dva}</b>`));
-    const secSed = _sec('🧠 Sedoanalgesia', 'ent-sec-sed', sedItems);
+    // 🔵 VENTILATORIO
+    // Línea 1: vía aérea + soporte + días VM
+    const vaPartes = [f.viaAerea];
+    if (f.soporte === 'VM')  vaPartes.push('VM');
+    else if (f.soporte)      vaPartes.push(f.soporte);
+    if (f.diasVM!=null&&f.diasVM!=='') vaPartes.push(`D-VM:${f.diasVM}`);
+    const lnVA = _ln('🔵', vaPartes);
+    // Línea 2: modo + parámetros (solo si existen)
+    const lnParams = (f.modo||f.params) ? _ln('&nbsp;&nbsp;&nbsp;&nbsp;', [f.modo, f.params]) : '';
+    // Eventos de vía aérea (extubación, TQT, etc.)
+    const evVA = [
+      f.extubFecha  ? `Extub. ${[f.extubFecha,f.extubForma].filter(Boolean).join(' ')}` : '',
+      f.postExtubSoporte ? `Post-extub: ${f.postExtubSoporte}` : '',
+      f.reintubFecha ? `⚠️ Reintub. ${f.reintubFecha}` : '',
+      f.tqtFecha    ? `TQT ${f.tqtFecha}` : '',
+      f.decanFecha  ? `Decan. ${f.decanFecha}` : '',
+    ].filter(Boolean);
+    const lnEvVA = evVA.length ? _ln('&nbsp;&nbsp;&nbsp;&nbsp;', evVA) : '';
 
-    // ── VENTILATORIO (azul) ─────────────────────────────────
-    // Vía aérea + soporte
-    const soporteLabel = (s => {
-      if (!s) return 'Sin soporte ventilatorio';
-      if (s==='VM')  return 'VM invasiva';
-      if (s==='VNI') return 'VNI';
-      return s;
-    })(f.soporte);
-    const vaLabel = [f.viaAerea&&`${f.viaAerea}`, soporteLabel].filter(Boolean).join(' · ');
-    const modoTxt = [f.modo, f.params].filter(Boolean).join(' · ');
+    // 🟡 SEDOANALGESIA
+    const sedPartes = [
+      f.sas!=null&&f.sas!=='' ? `SAS ${f.sas}` : '',
+      f.sedTipo || '',
+      f.bnm ? '<b style="color:#be123c;">BNM ✓</b>' : '',
+      f.cooperacion ? f.cooperacion : '',
+      f.dva ? `DVA ${f.dva}` : '',
+    ];
+    const lnSed = _ln('🟡', sedPartes);
 
-    const ventItems = [];
-    ventItems.push(_row('Vía aérea', vaLabel));
-    if (modoTxt)                         ventItems.push(_row('Modo / Parámetros', modoTxt));
-    if (f.diasVM!=null&&f.diasVM!=='')   ventItems.push(_row('Días VM', `${f.diasVM} días`));
-    // Extubación
-    if (f.extubFecha) {
-      const extTxt = [f.extubFecha, f.extubForma].filter(Boolean).join(' · ');
-      ventItems.push(_row('Extubación', extTxt));
-    }
-    if (f.postExtubSoporte)              ventItems.push(_row('Soporte post-extub.', f.postExtubSoporte));
-    if (f.reintubFecha)                  ventItems.push(_row('Reintubación', f.reintubFecha));
-    // TQT / decanulación
-    if (f.tqtFecha)                      ventItems.push(_row('TQT', f.tqtFecha));
-    if (f.decanFecha)                    ventItems.push(_row('Decanulación', f.decanFecha));
-    const secVent = _sec('🫁 Ventilatorio', 'ent-sec-vent', ventItems);
+    // 🟢 SECRECIONES
+    const secrPartes = [
+      [f.secrCant, f.secrTipo].filter(Boolean).join('/') || '',
+      f.ultimoCultivoFecha && f.ultimoCultivo ? `Cultivo ${f.ultimoCultivoFecha}→${f.ultimoCultivo}`
+        : f.ultimoCultivo ? `Cultivo ${f.ultimoCultivo}` : '',
+    ];
+    const lnSecr = _ln('🟢', secrPartes);
 
-    // ── SECRECIONES (verde) ─────────────────────────────────
-    const secrTxt = [f.secrCant, f.secrTipo].filter(Boolean).join(' ');
-    const cultivoTxt = (() => {
-      const partes = [f.ultimoCultivoFecha, f.ultimoCultivo].filter(Boolean);
-      if (!partes.length) return '';
-      return partes.join(' → ');
-    })();
-    // fallback: campo combinado legacy
-    const cultivoLegacy = (!cultivoTxt && f.ultimoCultivo) ? f.ultimoCultivo : '';
-    const secrItems = [];
-    if (secrTxt)                         secrItems.push(_row('Secreciones', secrTxt));
-    if (cultivoTxt)                      secrItems.push(_row('Último cultivo', `<b>${cultivoTxt}</b>`));
-    else if (cultivoLegacy)              secrItems.push(_row('Último cultivo', `<b>${cultivoLegacy}</b>`));
-    const secSecr = _sec('💨 Secreciones', 'ent-sec-secr', secrItems);
-
-    // ── MOTOR / FUNCIONAL (naranja) ─────────────────────────
-    const ktmParts = [];
-    if (f.ktmNivel)        ktmParts.push(`Nivel ${f.ktmNivel}`);
-    if (f.ktmMin)          ktmParts.push(`${f.ktmMin} min`);
-    if (f.ktmSuspendida)   ktmParts.push('⚠️ Suspendida');
-    const ktmTxt = ktmParts.join(' · ');
-
-    const motorItems = [];
-    if (ktmTxt)                          motorItems.push(_row('KTM', ktmTxt));
-    if (f.suspFechas)                    motorItems.push(_row('Suspensiones', f.suspFechas));
-    if (f.suspCausaFrecuente)            motorItems.push(_row('Causa frecuente', f.suspCausaFrecuente));
-    else if (f.ktmContra)               motorItems.push(_row('Causa suspensión', f.ktmContra));
-
-    // Evaluaciones funcionales
-    const evalParts = [];
-    if (f.mrc!=null&&f.mrc!=='')        evalParts.push(`MRC-SS ${f.mrc}`);
-    if (f.fss!=null&&f.fss!=='')        evalParts.push(`FSS ${f.fss}`);
-    if (evalParts.length) {
-      const evalStr = evalParts.join(' · ') + (f.evalFecha ? ` (${f.evalFecha})` : '');
-      motorItems.push(_row('Eval. funcional', evalStr));
-    } else if (f.pendientesFuncionales&&f.pendientesFuncionales.length) {
-      motorItems.push(_row('Eval. funcional', `<span style="color:#b45309;">⚠️ Pendiente: ${f.pendientesFuncionales.join(' + ')}</span>`));
-    }
-    const secMotor = _sec('🏃 Motor / Funcional', 'ent-sec-motor', motorItems);
+    // 🟠 MOTOR / FUNCIONAL
+    const ktmPartes = [
+      f.ktmNivel ? `KTR Nv${f.ktmNivel}` : '',
+      f.ktmMin   ? `${f.ktmMin}min` : '',
+      f.ktmSuspendida ? '⚠️ Susp.' : '',
+      f.suspCausaFrecuente ? f.suspCausaFrecuente : (f.ktmContra||''),
+    ];
+    const evalPartes = [
+      f.mrc!=null&&f.mrc!=='' ? `MRC-SS ${f.mrc}` : '',
+      f.fss!=null&&f.fss!=='' ? `FSS ${f.fss}` : '',
+      f.nivelMotor ? f.nivelMotor : '',
+    ];
+    // Evaluaciones pendientes
+    const evalPend = (!evalPartes.some(Boolean) && f.pendientesFuncionales&&f.pendientesFuncionales.length)
+      ? `<span style="color:#b45309;">⚠️ Pend: ${f.pendientesFuncionales.join(' + ')}</span>` : '';
+    const lnKTM  = _ln('🟠', ktmPartes);
+    const lnEval = evalPartes.some(Boolean) ? _ln('&nbsp;&nbsp;&nbsp;&nbsp;', evalPartes)
+                 : (evalPend ? `<div class="ent-ln"><span class="ent-ln-ico">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="ent-ln-body">${evalPend}</span></div>` : '');
 
     const planVal = (f.plan||'').replace(/"/g,'&quot;');
+    const dxTxt = f.diagnostico ? `<div class="ent-dx">${f.diagnostico}</div>` : '';
 
     H += `<div class="ent-ficha">
       <div class="ent-ficha-h">
         <span class="ent-ficha-cama">${f.idCama}</span>
-        <div style="flex-grow:1;">
-          <div class="ent-ficha-nm">${f.nombre||'—'}</div>
-          <div class="ent-ficha-ingreso">${f.edad||'?'}a ${f.sexo||''} · ${metaTxt}</div>
-        </div>
+        <span class="ent-ficha-nm">${f.nombre||'—'}</span>
+        <span class="ent-ficha-meta">${metaTxt}</span>
       </div>
-      ${secSed}
-      ${secVent}
-      ${secSecr}
-      ${secMotor}
+      ${dxTxt}
+      <div class="ent-clin">
+        ${lnVA}${lnParams}${lnEvVA}
+        ${lnSed}
+        ${lnSecr}
+        ${lnKTM}${lnEval}
+      </div>
       <div class="ent-pend">
-        <b>📋 Planes / Pendientes turno entrante</b>
-        <textarea data-cama="${f.idCama}" rows="2" placeholder="Sin pendientes registrados…">${planVal}</textarea>
+        <textarea data-cama="${f.idCama}" rows="2" placeholder="📋 Planes / Pendientes…">${planVal}</textarea>
       </div>
-      <div class="ent-firma">Kine saliente: <b style="margin-left:5px;">${f.firma||'—'}</b></div>
+      <div class="ent-firma">▸ <b>${f.firma||'—'}</b></div>
     </div>`;
   });
   H += `</div>`;
