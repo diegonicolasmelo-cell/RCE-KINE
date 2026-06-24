@@ -133,13 +133,13 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .dcard-h .dh-meta{font-size:.68rem;font-weight:600;color:var(--muted);}
 
 /* Horizontal bar chart */
-.hbar{margin-bottom:11px;}
-.hbar:last-child{margin-bottom:0;}
-.hbar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;font-size:.76rem;}
-.hbar-lbl{font-weight:700;color:var(--txt);}
-.hbar-val{font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;}
-.hbar-track{height:9px;background:#eef2f7;border-radius:5px;overflow:hidden;}
-.hbar-fill{height:100%;border-radius:5px;background:var(--bar-c,var(--primary));transition:width .5s cubic-bezier(.4,0,.2,1);}
+.chbar{margin-bottom:11px;}
+.chbar:last-child{margin-bottom:0;}
+.chbar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;font-size:.76rem;}
+.chbar-lbl{font-weight:700;color:var(--txt);}
+.chbar-val{font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;}
+.chbar-track{height:9px;background:#eef2f7;border-radius:5px;overflow:hidden;}
+.chbar-fill{height:100%;border-radius:5px;background:var(--bar-c,var(--primary));transition:width .5s cubic-bezier(.4,0,.2,1);}
 
 /* Donut + legend */
 .donut-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
@@ -952,7 +952,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard-body">
           <div class="row" style="margin-bottom:0;">
             <div class="col grow"><label>Nombre</label>
-              <input type="text" id="fNombre" class="bold" placeholder="Nombre completo" oninput="chkNombreDB(this.value)" autocomplete="off">
+              <input type="text" id="fNombre" class="bold" placeholder="Nombre completo" oninput="_debouncedChkNombre(this.value)" autocomplete="off">
               <div id="dNombreAlert" class="hidden" style="margin-top:4px;padding:6px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:.76rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span>⚠️ <span id="lblNombreMatch"></span></span>
                 <button type="button" onclick="confirmarReingreso()" style="padding:2px 10px;background:#f59e0b;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.74rem;font-weight:700;">Sí, es reingreso</button>
@@ -1638,9 +1638,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 <div id="tc"></div>
 
 <script>
-// ═══════════════════════════════════
 //  ESTADO
-// ═══════════════════════════════════
 let DB       = [];
 let SHIFT    = 'Dia';
 let ATAB     = 'G';
@@ -1659,14 +1657,13 @@ let TL_TURNO = 'all';       // 'all' | 'Dia' | 'Noche'
 let TL_VARS_SEL = new Set(); // variables seleccionadas para el gráfico (multi)
 let TL_NOMBRE= '';
 
-// ═══════════════════════════════════
 //  HELPERS
-// ═══════════════════════════════════
 const $  = id => document.getElementById(id);
 const v  = id => { const e=$(id); return e ? e.value : ''; };
 const show = id => $(id)?.classList.remove('hidden');
 const hide = id => $(id)?.classList.add('hidden');
 const pad  = n  => String(n).padStart(2,'0');
+const noop = () => {};
 const hoy  = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
 const dias = (a,b) => {
   if(!a) return 0;
@@ -1674,9 +1671,7 @@ const dias = (a,b) => {
   return ms<0 ? 0 : Math.floor(ms/86400000);
 };
 
-// ═══════════════════════════════════
 //  LOADING & TOAST
-// ═══════════════════════════════════
 function loading(on, msg='Cargando...') {
   $('lov').style.display = on ? 'flex' : 'none';
   if(msg) $('lmsg').textContent = msg;
@@ -1687,12 +1682,9 @@ function toast(msg, t=3200) {
   setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, t);
 }
 
-// ═══════════════════════════════════
 //  GAS CALL
-// ═══════════════════════════════════
 function gs(accion, datos, ok, fail) {
   if (typeof google === 'undefined' || !google.script || !google.script.run) {
-    console.warn('google.script.run no disponible (se está abriendo fuera de Apps Script).');
     if (fail) fail('offline');
     return;
   }
@@ -1705,9 +1697,7 @@ function gs(accion, datos, ok, fail) {
     .procesarRequest(accion, datos||{});
 }
 
-// ═══════════════════════════════════
 //  INIT
-// ═══════════════════════════════════
 function initControls() {
   // ── Turno Noche: 20:01 del día D → 08:00 del día D+1.
   // Si son 00:00–07:59, seguimos en el NOCHE del día ANTERIOR → mostrar esa fecha.
@@ -1738,9 +1728,7 @@ function recargar() {
   }, ()=>loading(false));
 }
 
-// ═══════════════════════════════════
 //  EVOLUCIONES DEL DÍA SELECCIONADO (para dots + retrospectiva)
-// ═══════════════════════════════════
 // Pide al servidor qué camas tienen evolución en la fecha elegida y arma el
 // Set del turno actual. Así un día pasado muestra correctamente sus dots
 // verdes (✅) aunque no sea el "último turno" registrado.
@@ -1786,9 +1774,7 @@ function volverAHoy() {
   refrescarVista();
 }
 
-// ═══════════════════════════════════
 //  TABS / SHIFT
-// ═══════════════════════════════════
 function switchTab(t) {
   ATAB=t;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
@@ -1807,15 +1793,15 @@ function toggleShift() {
 }
 function onFechaChange() { $('gDate').classList.remove('turno-hoy'); refrescarVista(); }
 
-// ═══════════════════════════════════
 //  DASHBOARD (GRID)
-// ═══════════════════════════════════
 function renderGrid() {
   const fecha = v('gDate')||hoy();
   const tkey  = `${fecha}-${SHIFT}`;
   actualizarRetroBar();
   if(window.Turnos) Turnos.syncKey();
-  const g = $('bedGrid'); g.innerHTML='';
+  const g = $('bedGrid');
+  const frag = document.createDocumentFragment();
+  g.innerHTML='';
   let oc=0, vm=0;
 
   DB.forEach(c => {
@@ -1877,16 +1863,15 @@ function renderGrid() {
         <div class="bfoot"><button class="bevo" style="background:#e2e8f0;color:#475569;" onclick="abrirPanel('${c.ID_CAMA}',true)">+ Ingresar Paciente</button></div>`;
     }
     if(window.Turnos) Turnos.decorateCard(el, c);
-    g.appendChild(el);
+    frag.appendChild(el);
   });
+  g.appendChild(frag);
   $('stOc').textContent=oc;
   $('stVM').textContent=vm;
   if(window.Turnos) Turnos.renderLegend();
 }
 
-// ═══════════════════════════════════
 //  TABLA PACIENTES
-// ═══════════════════════════════════
 function sBadge(s) {
   const m={'VM':'bs-VM','VNI':'bs-VNI','CNAF':'bs-CNAF','Oxigenoterapia':'bs-Ox'};
   return `<span class="bs ${m[s]||'bs-def'}">${s||'-'}</span>`;
@@ -1905,7 +1890,7 @@ function cargarDiasVent(fecha){
   _diasVentKey = fecha;
   gs('GET_DIAS_VENT', {fecha},
     data => { DIAS_VENT = data||{}; if(ATAB==='P') renderTabla(); },
-    () => {}                                  // offline: usa fallback de episodio actual
+    noop
   );
 }
 
@@ -1925,7 +1910,7 @@ function cargarEgresosDia(fecha){
       EGR_DIA = map;
       if(ATAB==='P') renderTabla();
     },
-    () => {}
+    noop
   );
 }
 
@@ -2066,9 +2051,7 @@ function renderTabla() {
     .forEach(i=>{s.innerHTML+=`<div class="stat-box"><span class="stat-lbl">${i.l}</span><span class="stat-val" style="color:${i.c};">${i.v}</span></div>`;});
 }
 
-// ═══════════════════════════════════
 //  PANEL EVOLUCIÓN
-// ═══════════════════════════════════
 function abrirPanel(id, esIng) {
   const fecha=v('gDate')||hoy();
   const tkey=`${fecha}-${SHIFT}`;
@@ -2277,9 +2260,7 @@ function fillForm(s) {
   if(s.KTM_UMA===true||s.KTM_UMA==='TRUE') show('dUMA');
 }
 
-// ═══════════════════════════════════
 //  RÉPLICA DEL TURNO ANTERIOR
-// ═══════════════════════════════════
 /**
  * Copia SOLO los campos clínicos (ventilación, sedación, hemodinámica,
  * examen físico, KTM, planes) desde un snapshot previo, SIN tocar los
@@ -2373,9 +2354,7 @@ function limpiarReplica() {
   toast('📝 Formulario en blanco — listo para comenzar');
 }
 
-// ═══════════════════════════════════
 //  GUARDAR → SERVIDOR
-// ═══════════════════════════════════
 function guardar() {
   const id=v('cBed'), fecha=v('gDate')||hoy(), tkey=`${fecha}-${SHIFT}`;
   const n=x=>parseFloat(x)||null;
@@ -2536,9 +2515,7 @@ function guardar() {
   }, ()=>{ btn.disabled=false; btn.textContent='💾 Guardar Evolución'; });
 }
 
-// ═══════════════════════════════════
 //  EGRESO
-// ═══════════════════════════════════
 function egreso(id) {
   const c = DB.find(x => String(x.ID_CAMA) === String(id));
   if (!c || (c.OCUPADA !== true && c.OCUPADA !== 'TRUE')) { toast('La cama está libre.'); return; }
@@ -2629,9 +2606,7 @@ function confirmarEgreso() {
   });
 }
 
-// ═══════════════════════════════════
 //  TRASLADO
-// ═══════════════════════════════════
 function mover(id) {
   if(MOVECAMA===null){
     MOVECAMA=id; renderGrid(); toast('🛏️ Haz clic en otra cama para intercambiar.');
@@ -2644,12 +2619,8 @@ function mover(id) {
   }
 }
 
-// ═══════════════════════════════════
 //  TIMELINE
-// ═══════════════════════════════════
-// ═══════════════════════════════════
 //  ARCHIVADOS (pacientes egresados)
-// ═══════════════════════════════════
 let ARC_LIST = [];
 
 function loadArchivos() {
@@ -2835,9 +2806,7 @@ function exportArchivosCSV() {
   toast('✅ CSV exportado');
 }
 
-// ═══════════════════════════════════
 //  TIMELINE MODAL — historial clínico con tabs y gráficos
-// ═══════════════════════════════════
 
 // Variables ventilatorias — selector
 const VENT_VARS = [
@@ -3206,9 +3175,7 @@ function _niceMax(v) {
   return 10 * mag;
 }
 
-// ═══════════════════════════════════
 //  PROCEDIMIENTOS CHIPS
-// ═══════════════════════════════════
 function addProc() {
   const inp=$('inProc'), val=inp.value.trim();
   if(!val) return;
@@ -3222,9 +3189,7 @@ function renderChips() {
 }
 $('inProc')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addProc();} });
 
-// ═══════════════════════════════════
 //  PREVIEW TEXTO (local)
-// ═══════════════════════════════════
 function previewTexto() {
   $('rtxt').value = genTexto();
   show('rarea');
@@ -3439,9 +3404,7 @@ function genTexto() {
   return L.filter(Boolean).join('\n');
 }
 
-// ═══════════════════════════════════
 //  REM
-// ═══════════════════════════════════
 function generarREM() {
   const anio=v('remAnio'), mes=v('remMes');
   $('remOut').innerHTML='<div style="color:#64748b;text-align:center;padding:40px;">⏳ Generando reporte...</div>';
@@ -3462,9 +3425,7 @@ function generarREM() {
 }
 function copiarREM(){const t=$('remTxt');if(!t)return;t.select();try{document.execCommand('copy');toast('✅ REM copiado');}catch(e){}}
 
-// ═══════════════════════════════════
 //  CSV
-// ═══════════════════════════════════
 function exportCSV() {
   const fecha=v('gDate')||hoy();
   let csv='CAMA,PACIENTE,SEXO,EDAD,DIAS_ESTADIA,DIAS_VM,SOPORTE,DIAGNOSTICO,KTR,FIRMA\n';
@@ -3481,9 +3442,7 @@ function exportCSV() {
   toast('✅ CSV exportado');
 }
 
-// ═══════════════════════════════════
 //  CÁLCULOS CLÍNICOS
-// ═══════════════════════════════════
 function calcPI() {
   const sexo=v('fSexo'), t=parseFloat(v('fTalla'));
   let pi=0;
@@ -3546,7 +3505,6 @@ function autoCoopera(){
   }
 }
 
-// ═══════════════════════════════════
 //  CASCADAS VENTILATORIAS
 //  ★ FIX: el primer "sop" de cada vía aérea es ahora el DEFAULT clínico:
 //    - TOT / TQT  → VM (no Oxigenoterapia)
@@ -3554,7 +3512,6 @@ function autoCoopera(){
 //    - Natural    → Ambiente
 //  Antes el orden tenía Oxigenoterapia primero en TOT/TQT, y al ingresar
 //  un paciente nuevo el form ponía "Oxigenoterapia" como soporte default.
-// ═══════════════════════════════════
 const VMAPS={
   'Natural':  {sops:['Ambiente','Oxigenoterapia'],  modos:{'Ambiente':['Sin soporte'],'Oxigenoterapia':['NRC','MMV','Mascarilla']}},
   'TOT':      {sops:['VM','Oxigenoterapia'],         modos:{'VM':['ACVC','ACPC','CPAP/PS'],'Oxigenoterapia':['HME','Tubo T','CNAF']}},
@@ -3584,9 +3541,7 @@ function updateVAUI() {
   else{hide('dVADet');hide('dExtSec');}
 }
 
-// ═══════════════════════════════════
 //  PARÁMETROS VENTILATORIOS
-// ═══════════════════════════════════
 const fld=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><label>${lbl}</label><input type="number" id="${id}" oninput="calcResp()" style="height:35px;"></div>`;
 const mon=(id,lbl,y=false)=>`<div class="mon${y?' mon-y':''}" style="height:35px;min-width:68px;"><span style="font-size:.58rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.82rem;">--</span></div>`;
 const lbl=txt=>`<div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--resp);margin:8px 0 4px;padding-bottom:2px;border-bottom:1px solid #bae6fd;">${txt}</div>`;
@@ -3640,9 +3595,7 @@ function renderParams() {
   b.innerHTML=h; calcResp();
 }
 
-// ═══════════════════════════════════
 //  HANDLERS UI
-// ═══════════════════════════════════
 function hSed(){const s=v('fSed');if(s!=='Sin sedación'&&s!=='Fuera de escalón'){show('gSAS');}else{hide('gSAS');}autoCoopera();}
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='Sin requerimientos'){show('wMultiDVA');if(m&&m.checked)show('gDVAcnt');else hide('gDVAcnt');}else{hide('wMultiDVA');if(m)m.checked=false;hide('gDVAcnt');}}
@@ -3664,6 +3617,8 @@ function fillCultRes(arr){
   for(let i=1;i<arr.length;i++){addCultRes(); box.querySelectorAll('.cult-res')[i].value=arr[i];}
 }
 function hEgr(){if($('cEgr')?.checked)show('dEgr');else hide('dEgr');}
+let _nombreTimer=null;
+function _debouncedChkNombre(val){clearTimeout(_nombreTimer);_nombreTimer=setTimeout(()=>chkNombreDB(val),300);}
 function chkNombreDB(val){
   const q=(val||'').trim().toLowerCase();
   if(q.length<3){hide('dNombreAlert');return;}
@@ -3836,33 +3791,13 @@ function updateKTMraz(){
   ((KTMmap[t]||{})[c]||[]).forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s.appendChild(o);});
 }
 
-// ═══════════════════════════════════
 //  RELOJ
-// ═══════════════════════════════════
 function initClock(){function up(){const d=new Date();const e=$('clk');if(e)e.textContent=`${pad(d.getHours())}:${pad(d.getMinutes())}`;}up();setInterval(up,1000);}
 
-// ═══════════════════════════════════
 //  INICIO
-// ═══════════════════════════════════
-/* ════════ TABLERO DE TURNO (embebido) ════════ */
-/* ════════════════════════════════════════════════════════════════════
-   turnos.js — Tablero de asignación de turno (colegas + colores + firma)
-   ────────────────────────────────────────────────────────────────────
-   • Roster fijo de kinesiólogos (nombre + firma/iniciales).
-   • Se marca quién está de turno → cada uno recibe un color.
-   • Se "pintan" camas (manual o por sección Adelante/Medio/Atrás).
-   • Pintar una cama = asignarla a un colega → su firma queda pre-
-     seleccionada al abrir el Smart Evo de esa cama.
-   • Estado por clave `${fecha}-${SHIFT}` → se reinicia al cambiar
-     fecha o turno. Persiste en servidor (GET/SET_ASIGNACION_TURNO)
-     con respaldo en localStorage.
-   Depende de globals de index.html: gs, $, v, hoy, SHIFT, DB,
-   renderGrid, toast.
-   ════════════════════════════════════════════════════════════════════ */
 window.Turnos = (function () {
   'use strict';
 
-  /* ── ROSTER ──────────────────────────────────────────────────────── */
   // aux:true → no hace turnos habitualmente, pero puede evolucionar.
   const ROSTER = [
     { n: 'Mauricio Ortega Wanders',     f: 'MOW' },
@@ -3882,7 +3817,6 @@ window.Turnos = (function () {
     { n: 'Magdalena Contando Cisternas', f: 'MCC', aux: true },
   ];
 
-  /* ── PALETA (distinguible; 1ros 4 = turno típico) ────────────────── */
   const PALETTE = [
     { bar: '#16a34a', tint: '#f0fdf4', text: '#15803d', chip: '#dcfce7', name: 'Verde'   },
     { bar: '#2563eb', tint: '#eff6ff', text: '#1d4ed8', chip: '#dbeafe', name: 'Azul'    },
@@ -3898,7 +3832,6 @@ window.Turnos = (function () {
     { id: 'P', label: 'Atrás',    camas: [13, 14, 15, 16, 17, 18] },
   ];
 
-  /* ── ESTADO ──────────────────────────────────────────────────────── */
   let KEY = null;                       // `${fecha}-${SHIFT}` vigente
   let STATE = { team: [], assign: {} }; // team: firmas en orden (color = índice); assign:{idCama:firma}
   let BRUSH = null;                      // firma activa para pintar
@@ -3911,7 +3844,6 @@ window.Turnos = (function () {
   };
   const lsKey = k => 'rce_turno_' + k;
 
-  /* ── PERSISTENCIA ────────────────────────────────────────────────── */
   function currentKey() {
     const fecha = (typeof v === 'function' && v('gDate')) || (typeof hoy === 'function' ? hoy() : '');
     return fecha + '-' + ((typeof SHIFT !== 'undefined' && SHIFT) ? SHIFT : 'Dia');
@@ -3920,7 +3852,7 @@ window.Turnos = (function () {
   function persist() {
     try { localStorage.setItem(lsKey(KEY), JSON.stringify(STATE)); } catch (e) {}
     if (typeof gs === 'function') {
-      gs('SET_ASIGNACION_TURNO', { key: KEY, data: JSON.stringify(STATE) }, function () {}, function () {});
+      gs('SET_ASIGNACION_TURNO', { key: KEY, data: JSON.stringify(STATE) }, noop, noop);
     }
   }
 
@@ -3943,7 +3875,7 @@ window.Turnos = (function () {
           if (BRUSH && STATE.team.indexOf(BRUSH) < 0) BRUSH = STATE.team[0] || null;
           repaint();
         }
-      }, function () {});
+      }, noop);
     }
   }
 
@@ -3956,7 +3888,6 @@ window.Turnos = (function () {
     return STATE.assign[String(idCama)] || null;
   }
 
-  /* ── MUTACIONES ──────────────────────────────────────────────────── */
   const MAX_TURNO = 3; // máximo de colegas simultáneos en un turno
 
   function toggleTeam(f) {
@@ -4003,7 +3934,6 @@ window.Turnos = (function () {
     return Object.values(STATE.assign).filter(x => x === f).length;
   }
 
-  /* ── RENDER: decorar tarjeta del dashboard ───────────────────────── */
   function decorateCard(el, c) {
     const f = firmaDeCama(c.ID_CAMA);
     if (!f) return;
@@ -4029,7 +3959,6 @@ window.Turnos = (function () {
     renderLegend();
   }
 
-  /* ── RENDER: barra-leyenda sobre el grid ─────────────────────────── */
   function renderLegend() {
     const host = document.getElementById('turnoLegend');
     if (!host) return;
@@ -4049,7 +3978,6 @@ window.Turnos = (function () {
       <button class="tl-btn" onclick="Turnos.open()">🎨 Asignar turno</button>`;
   }
 
-  /* ── PANEL (modal) ───────────────────────────────────────────────── */
   function ensurePanel() {
     if (document.getElementById('turnoModal')) return;
     const wrap = document.createElement('div');
@@ -4146,7 +4074,6 @@ window.Turnos = (function () {
   function open() { ensurePanel(); syncKey(); renderPanel(); document.getElementById('turnoModal').classList.add('on'); }
   function close() { const m = document.getElementById('turnoModal'); if (m) m.classList.remove('on'); }
 
-  /* ── SELECT DE FIRMA (Smart Evo / egreso) ────────────────────────── */
   function fillFirmaSelect(sel, current) {
     if (!sel) return;
     const opts = ['<option value="">— Seleccionar firma —</option>']
@@ -4169,7 +4096,6 @@ window.Turnos = (function () {
     return firmaDeCama(idCama) || firmaPrevia || '';
   }
 
-  /* ── INIT ────────────────────────────────────────────────────────── */
   function init() {
     fillFirmaSelect(document.getElementById('fFirma'));
     fillFirmaSelect(document.getElementById('egFirma'));
@@ -4194,9 +4120,7 @@ function aplicarFirmaTurno(firmaPrevia){
   Turnos.fillFirmaSelect(sel, board || firmaPrevia || '');
 }
 
-// ═══════════════════════════════════════════════════════════
 //  ████  DASHBOARD / PANEL DE ESTADÍSTICAS  ████
-// ═══════════════════════════════════════════════════════════
 let DASH_DATA = null;
 
 // Paletas de color para gráficos (coherentes con la app)
@@ -4206,7 +4130,6 @@ const DASH_COLORS = {
   slate:'#64748b', violet:'#7c3aed', teal:'#0d9488', amber:'#d97706', rose:'#e11d48'
 };
 
-// ── Rango por defecto y presets ──────────────────────────
 function _primerDiaMes(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-01`; }
 function _hoyISO(){ return hoy(); }
 
@@ -4237,9 +4160,7 @@ function loadEstadisticas(){
   loadActividad();
 }
 
-// ═════════════════════════════════════════════════════════
 //  TABLA DINÁMICA (PIVOTE) — quién hizo qué
-// ═════════════════════════════════════════════════════════
 let ACT_DATA = null;        // {registros, dimensiones, meta}
 let PIVOT_SORT = {col:null, dir:-1};
 const PV_DIM_LABEL = {kine:'Kinesiólogo', evento:'Evento', categoria:'Categoría', turno:'Turno', mes:'Mes'};
@@ -4425,9 +4346,7 @@ const ACT_MOCK = (function(){
     dimensiones:{kines:uniq('kine'),turnos:uniq('turno'),meses:uniq('mes'),categorias:uniq('categoria'),eventos:uniq('evento')}};
 })();
 
-// ─────────────────────────────────────────────────────────
 //  CONSTRUCTORES DE GRÁFICOS (HTML/SVG puro, sin librerías)
-// ─────────────────────────────────────────────────────────
 function _kpi(lbl, val, sub, color, icon){
   return `<div class="kpi" style="--kpi-c:${color||DASH_COLORS.primary}">
     <div class="kpi-lbl">${icon?icon+' ':''}${lbl}</div>
@@ -4448,9 +4367,9 @@ function _hbars(data, color, opts){
     const c = (opts.colorMap && opts.colorMap[i.k]) || color || DASH_COLORS.primary;
     const pct=Math.round((i.v/max)*100);
     const lbl=(opts.labelMap && opts.labelMap[i.k]) || i.k;
-    return `<div class="hbar">
-      <div class="hbar-top"><span class="hbar-lbl">${lbl}</span><span class="hbar-val">${opts.fmt?opts.fmt(i.v):i.v}</span></div>
-      <div class="hbar-track"><div class="hbar-fill" style="width:${pct}%;--bar-c:${c}"></div></div>
+    return `<div class="chbar">
+      <div class="chbar-top"><span class="chbar-lbl">${lbl}</span><span class="chbar-val">${opts.fmt?opts.fmt(i.v):i.v}</span></div>
+      <div class="chbar-track"><div class="chbar-fill" style="width:${pct}%;--bar-c:${c}"></div></div>
     </div>`;
   }).join('');
 }
@@ -4522,9 +4441,7 @@ function _beforeAfter(rows){
   }).join('');
 }
 
-// ─────────────────────────────────────────────────────────
 //  PANEL CONFIGURABLE — 4 espacios editables por el usuario
-// ─────────────────────────────────────────────────────────
 // Cada widget es una métrica de un solo valor. El usuario elige
 // qué mostrar en cada espacio desde un menú; la elección se guarda.
 const _gv = (obj, path, def) => {
@@ -4606,14 +4523,11 @@ function renderSlots(){
   document.head.appendChild(st);
 })();
 
-// ─────────────────────────────────────────────────────────
 //  RENDER PRINCIPAL
-// ─────────────────────────────────────────────────────────
 function renderDash(d){
   if(!d){ $('dashBody').innerHTML='<div style="padding:50px;text-align:center;color:#94a3b8;">Sin datos.</div>'; return; }
   const va=d.viaAerea, pos=d.posicion, ktm=d.ktm, sed=d.sedacion, demo=d.demografia, out=d.outcome;
 
-  // ── KPIs principales ──
   const kpis = [
     _kpi('Pacientes período', d.resumen.pacientesRango, `${d.resumen.activosAhora} activos ahora`, DASH_COLORS.primary, '👥'),
     _kpi('Egresos', out.n, out.estadiaProm!=null?`Estadía prom. ${out.estadiaProm} días`:'', DASH_COLORS.fisico, '🚪'),
@@ -4638,27 +4552,22 @@ function renderDash(d){
     'REINTUBACION':DASH_COLORS.rose,'DECANULACION':DASH_COLORS.resp,'PVE':DASH_COLORS.slate
   };
 
-  // ── KTM niveles ──
   const ktmColors = {'1':'#cbd5e1','2':'#93c5fd','3':DASH_COLORS.kine,'4':'#f59e0b','5':'#92400e'};
   const ktmLabels = {'1':'Nivel 1','2':'Nivel 2','3':'Nivel 3 ★','4':'Nivel 4','5':'Nivel 5'};
 
-  // ── SAS donut ──
   const sasData = Object.keys(sed.sasDist).map((k,i)=>({
     lbl:'SAS '+k, v:sed.sasDist[k],
     c:['#1e3a8a','#2563eb','#0284c7','#059669','#d97706','#dc2626','#7f1d1d'][i]
   }));
 
-  // ── Sexo donut ──
   const sexoData=[
     {lbl:'Masculino', v:demo.sexo.M, c:DASH_COLORS.resp},
     {lbl:'Femenino',  v:demo.sexo.F, c:DASH_COLORS.rose},
     {lbl:'Otro/NR',   v:demo.sexo.otro, c:DASH_COLORS.slate}
   ];
 
-  // ── Edad buckets ──
   const edadColors={'≤39':'#93c5fd','40-54':'#60a5fa','55-69':'#3b82f6','70-79':'#2563eb','≥80':'#1e3a8a'};
 
-  // ── Hitos motores ──
   const hitoLabels={'1':'Hito 1','2':'Hito 2','3':'Hito 3','4':'Hito 4','5':'Hito 5'};
 
   $('dashBody').innerHTML = `
@@ -4767,7 +4676,6 @@ function renderDash(d){
   renderSlots();
 }
 
-// ── MOCK para preview fuera de Apps Script ──
 const DASH_MOCK = {
   meta:{desde:'2026-06-01',hasta:'2026-06-30',generado:new Date().toISOString()},
   resumen:{pacientesRango:24,activosAhora:14,egresados:9,turnosRegistrados:312},
@@ -4782,9 +4690,7 @@ const DASH_MOCK = {
   hitos:{'1':12,'2':9,'3':7,'4':4,'5':2}
 };
 
-// ═══════════════════════════════════════════════════════════
 //  ████  ENTREGA DE TURNO (handoff imprimible)  ████
-// ═══════════════════════════════════════════════════════════
 let ENT_DATA = null;     // última entrega generada
 let ENT_SEL  = new Set(); // ids de cama marcados
 let ENT_INIT = false;
@@ -4956,7 +4862,6 @@ function renderEntrega(d) {
   d.fichas.forEach((f,ix)=>{
     if (!f.ocupada && !f.tieneEvo) return;
 
-    // ── helpers ────────────────────────────────────────────
     const _row = (k,val) => `<div class="ent-rowf"><span class="ef-k">${k}</span><span class="ef-v">${val}</span></div>`;
     const _sec = (titulo, cls, items) => {
       const r = items.filter(Boolean);
@@ -5046,7 +4951,6 @@ function renderEntrega(d) {
     }
     const secMotor = _sec('🏃 Motor / Funcional', 'ent-sec-motor', motorItems);
 
-    // ── PLAN ───────────────────────────────────────────────
     const planVal = (f.plan||'').replace(/"/g,'&quot;');
 
     H += `<div class="ent-ficha">
