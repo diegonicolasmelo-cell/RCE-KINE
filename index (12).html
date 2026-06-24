@@ -441,8 +441,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 @keyframes tin{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
 
 /* TEXTO */
-#rarea{background:#0f172a;border-radius:8px;padding:13px;margin-top:13px;}
-#rarea textarea{width:100%;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:5px;padding:10px;font-family:'Courier New',monospace;font-size:.75rem;resize:none;outline:none;line-height:1.6;}
+#rarea{background:#0f172a;border-radius:10px;padding:16px;margin-top:13px;}
+#rarea textarea{width:100%;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:14px 16px;font-family:'Courier New',monospace;font-size:.97rem;resize:vertical;outline:none;line-height:1.75;}
 
 /* TIMELINE MODAL (centrado, flotante) */
 .tlmodal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.95);width:min(820px,94vw);max-height:88vh;background:#fff;z-index:102;border-radius:12px;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .22s,transform .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
@@ -1581,7 +1581,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           <span style="color:#94a3b8;font-size:.7rem;font-weight:700;">📄 TEXTO GENERADO (COPIA Y PEGA EN LA FICHA)</span>
           <button type="button" class="btn btn-c" style="width:auto;padding:8px 20px;font-size:.85rem;font-weight:800;" onclick="copiar()">📋 Copiar Texto</button>
         </div>
-        <textarea id="rtxt" rows="13" readonly></textarea>
+        <textarea id="rtxt" rows="20" readonly></textarea>
       </div>
     </form>
   </div>
@@ -3241,14 +3241,16 @@ function genTexto() {
   const gv=id=>{ const e=$(id); return e&&e.value?e.value:null; };
   const esIng=v('cIng')==='true';
   const turno=SHIFT==='Noche'?'TURNO NOCHE':'TURNO DÍA';
+  const _sec = lbl => `\n── ${lbl} ──`;
   let L=[esIng?`KINESIOLOGÍA ${turno} — INGRESO`:`KINESIOLOGÍA ${turno}`];
   const dx=gv('fDx');
-  // Aislamiento
-  if($('cAisl')?.checked){ const lista=gv('fAislLista'),otro=gv('fAislOtro'); const mic=lista==='otro'?otro:lista; L.push(`Paciente en aislamiento de contacto${mic?' por '+mic:''}.`); }
-  // AET
-  if($('cAET')?.checked){ const niv=document.querySelector('input[name="aetNivel"]:checked')?.value||''; L.push(`Paciente con adecuación del esfuerzo terapéutico (AET)${niv?' nivel '+niv:''}.`); }
-  // Reingreso
-  if($('cReing')?.checked) L.push('Corresponde a reingreso a UCI.');
+  // Aislamiento / AET / Reingreso
+  const _preItems=[];
+  if($('cAisl')?.checked){ const lista=gv('fAislLista'),otro=gv('fAislOtro'); const mic=lista==='otro'?otro:lista; _preItems.push(`Paciente en aislamiento de contacto${mic?' por '+mic:''}.`); }
+  if($('cAET')?.checked){ const niv=document.querySelector('input[name="aetNivel"]:checked')?.value||''; _preItems.push(`Paciente con adecuación del esfuerzo terapéutico (AET)${niv?' nivel '+niv:''}.`); }
+  if($('cReing')?.checked) _preItems.push('Corresponde a reingreso a UCI.');
+  if(_preItems.length) L.push(..._preItems);
+  L.push(_sec('GENERAL'));
   if(esIng){
     L.push(`Paciente ingresa a UCI${dx?' con diagnóstico de '+dx:''}.`);
   } else {
@@ -3261,6 +3263,7 @@ function genTexto() {
     else _fd=`Paciente con ${_nd} días de estadía en UCI`;
     L.push(_fd+(dx?` en contexto de ${dx}`:'')+'.');
   }
+  L.push(_sec('NEUROLÓGICO'));
   const sed=gv('fSed')||'Sin sedación', sas=gv('fSAS'), s5q=gv('fS5Q'), coop=gv('fCoop');
   const camicu=gv('fCAMICU');
   const gcsT=$('lblGCS')?.textContent||'?';
@@ -3278,10 +3281,12 @@ function genTexto() {
   else if(camicu==='ne') s+=', CAM-ICU no evaluable';
   s+='.';
   L.push(s);
+  L.push(_sec('HEMODINAMIA'));
   const hEst=gv('fHEst')||'Estable', dva=gv('fDVA')||'Sin requerimientos';
   let h=`Hemodinámicamente ${hEst==='Estable'?'estable':'inestable'}`;
   h+=dva==='Sin requerimientos'?', sin requerimientos de DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase();
   if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt.toLowerCase()}`; } L.push(h+'.');
+  L.push(_sec('RESPIRATORIO'));
   const sop=gv('fSop')||'Ambiente', modo=gv('fModo')||'';
   const vt=parseFloat(gv('r_vt'))||0, fr=parseFloat(gv('r_fr'))||0;
   const peep=parseFloat(gv('r_peep'))||0, fio2=parseFloat(gv('r_fio2'))||0;
@@ -3330,6 +3335,7 @@ function genTexto() {
     const _pb=_pjoin([_lit?`${_lit} L/min`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null]);
     if(_pb) L.push(`Terapia ventilatoria oxigenoterapia: ${_pb}.`);
   } else if(spo2) L.push(`En ventilación espontánea en ambiente, SpO₂ ${spo2}%.`);
+  L.push(_sec('EXAMEN FÍSICO'));
   const mp=gv('fMP'), ru=gv('fRuidos'), secrC=gv('fSecrC'), secrT=gv('fSecrT');
   if(mp){
     const _ruSel=Array.from(document.querySelectorAll('input[name="ruidos"]:checked')).map(c=>c.value);
@@ -3345,6 +3351,7 @@ function genTexto() {
     else if(_ruSel.includes('sin ruidos agregados')) e+=', sin ruidos agregados';
     L.push(e+'.');
   }
+  L.push(_sec('KINESIOLOGÍA'));
   const kR=$('cKTMr')?.checked, kS=$('cKTMs')?.checked, kN=$('bKTMn')?.classList.contains('on');
   if(kR){
     let k=`Se realiza kinesiterapia motora (KTM) nivel ${gv('fKTMniv')||'?'}`;
@@ -3437,6 +3444,7 @@ function genTexto() {
     if(_reint) L.push('Paciente requiere reintubación.');
   })();
   if(PROCS.length) L.push(`Procedimientos: ${PROCS.join(', ')}.`);
+  L.push(_sec('PLAN'));
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
   if(pl) L.push(`Plan: ${pl}`); if(no) L.push(`Nota: ${no}`); if(fi) L.push(`Kinesiólogo: ${fi}`);
   return L.filter(Boolean).join('\n');
