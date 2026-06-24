@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="data:image/png;base64,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">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- SEGURIDAD: Metaetiquetas Anti-Caché -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>SmartEvoGen v10</title>
+    
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            --bg-body: #f4f6f8; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b; --border: #d1d5db; --primary: #2563eb; --primary-dark: #1e40af;
+            --c-neuro: #7e22ce; --bg-neuro: #faf5ff; --b-neuro: #e9d5ff;
+            --c-hemo: #dc2626; --bg-hemo: #fef2f2; --b-hemo: #fecaca;
+            --c-resp: #2563eb; --bg-resp: #eff6ff; --b-resp: #bfdbfe;
+            --c-fisico: #059669; --bg-fisico: #f0fdf4; --b-fisico: #bbf7d0;
+            --c-kine: #d97706; --bg-kine: #fffbeb; --b-kine: #fde68a;
+            --c-planes: #475569;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-body); color: var(--text-main); font-size: 15px; padding-bottom: 80px; }
+
+        /* --- UTILIDADES CSS --- */
+        .text-muted { color: var(--text-muted) !important; } .hidden { display: none !important; } .font-bold { font-weight: 700; } .font-500 { font-weight: 500; } .text-center { text-align: center; } .text-xs { font-size: 0.75rem; }
+        .h-36 { height: 40px; } .h-28 { height: 30px; } .w-auto { flex-grow: 0; width: auto; min-width: min-content; } .w-full { width: 100%; }
+        .w-small { width: 72px; flex-grow: 0; } .w-medium { width: 105px; flex-grow: 0; } .w-70 { width: 70px; } .w-60 { width: 60px; } .p-0 { padding: 0 !important; }
+        .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-4 { margin-top: 16px; } .mb-3 { margin-bottom: 12px; } .mb-0 { margin-bottom: 0 !important; } .ml-0 { margin-left: 0; } .ml-auto { margin-left: auto; }
+        .col-stack { display: flex; flex-direction: column; gap: 16px; } .flex-center-gap { display: flex; align-items: center; gap: 10px; } .flex-gap { display: flex; gap: 4px; } .grow { flex-grow: 1; } .flex-end-gap { display: flex; justify-content: flex-end; gap: 8px; } .flex-wrap-gap { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+        .text-neuro { color: var(--c-neuro); } .text-hemo { color: var(--c-hemo); } .text-resp { color: var(--c-resp); } .text-fisico { color: var(--c-fisico); } .text-kine { color: var(--c-kine); } .text-planes { color: var(--c-planes); } .text-warn { color: #854d0e; }
+        .input-warning { border-color: #f59e0b !important; background-color: #fffbeb !important; box-shadow: 0 0 0 1px #f59e0b !important; } .warning-msg { color: #b45309; font-size: 0.72rem; font-weight: 700; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+        .fade-in { animation: fadeIn 0.25s ease-out forwards; } @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- MODO NOCHE --- */
+        body.modo-noche { --bg-body: #0f172a; }
+        body.modo-noche .header { background: #020617; }
+        body.modo-noche .result-area { background: #020617; border-color: #1e293b; }
+
+        /* --- HEADER --- */
+        .header { background: #0f172a; color: white; padding: 13px 18px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.18); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .header-icon { width: 28px; height: 28px; }
+        .header-tag-v6 { margin-left: 8px; font-size: 0.7rem; color: #94a3b8; background: #334155; padding: 2px 7px; border-radius: 4px; font-family: monospace; }
+
+        /* --- LAYOUT --- */
+        .container { max-width: 1140px; margin: 0 auto; padding: 18px 16px; display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 1024px) { .container { grid-template-columns: 1fr 1fr; align-items: start; } }
+        .sticky-footer { grid-column: 1 / -1; position: sticky; bottom: 20px; z-index: 90; }
+
+        /* --- CARDS --- */
+        .card { background: var(--bg-card); border-radius: 10px; padding: 16px 18px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 0; }
+        .card-header { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 14px; }
+        .card-header.header-planes { justify-content: space-between; }
+        .card-title { font-size: 0.97rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
+        .dot-general { background-color: var(--text-muted); } .dot-neuro { background-color: var(--c-neuro); } .dot-hemo { background-color: var(--c-hemo); } .dot-resp { background-color: var(--c-resp); } .dot-fisico { background-color: var(--c-fisico); } .dot-kine { background-color: var(--c-kine); } .dot-planes { background-color: var(--c-planes); }
+
+        /* Left border accents instead of top */
+        .border-general { border-left: 4px solid var(--text-muted); }
+        .border-neuro   { border-left: 4px solid var(--c-neuro); }
+        .border-hemo    { border-left: 4px solid var(--c-hemo); }
+        .border-resp    { border-left: 4px solid var(--c-resp); }
+        .border-fisico  { border-left: 4px solid var(--c-fisico); }
+        .border-kine    { border-left: 4px solid var(--c-kine); }
+        .border-planes  { border-left: 4px solid var(--c-planes); }
+
+        /* --- INPUTS --- */
+        .input-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+        .input-group { display: flex; flex-direction: column; flex-grow: 0; }
+        label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.3px; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px; font-size: 1rem; background: #fff; color: #1e293b; height: 40px; transition: border-color 0.15s, box-shadow 0.15s; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px #bfdbfe; }
+        input:disabled, select:disabled, textarea:disabled { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; opacity: 0.7; }
+        textarea { height: auto; resize: none; min-height: 40px; }
+        input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .select-highlight { background: #fefce8; color: #854d0e; font-weight: bold; }
+        .input-bold { font-weight: bold; } .select-bg-slate { background: #f8fafc; font-weight: bold; } .input-warn-bg { background: #fff7ed; border-color: #fdba74; }
+        .input-resp-highlight { font-weight: bold; color: var(--c-resp); }
+        .gcs-select { height: 30px; padding: 0; font-size: 0.85rem; }
+        .label-center-neuro { color: var(--c-neuro); text-align: center; }
+
+        /* --- PANELS --- */
+        .panel { padding: 10px 12px; border-radius: 7px; margin-bottom: 10px; border: 1px solid transparent; }
+        .panel-blue { background: var(--bg-resp); border-color: var(--b-resp); } .panel-purple { background: var(--bg-neuro); border-color: var(--b-neuro); } .panel-orange { background: var(--bg-kine); border-color: var(--b-kine); } .panel-red { background: var(--bg-hemo); border-color: var(--b-hemo); }
+        .monitor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; margin-top: 8px; }
+        .monitor-input { background: white; text-align: center; font-size: 0.85rem; }
+        .monitor-box-gray { background: #f8fafc; padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px; } .monitor-box-yellow { background: #fefce8; padding: 4px 8px; border-radius: 6px; border: 1px solid #fef08a; display: flex; align-items: center; gap: 8px; } .mini-input { width: 60px !important; height: 30px; }
+        .gcs-total-box { background: white; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--b-neuro); font-weight: bold; color: var(--c-neuro); white-space: nowrap; font-size: 1rem; }
+        .vm-header-row { border-bottom: 1px solid #bfdbfe; padding-bottom: 8px; margin-bottom: 12px; display: flex; align-items: center; } .vm-section-title { font-weight: bold; font-size: 0.75rem; color: #2563eb; margin-right: 8px; align-self: center; } .vm-assist-chk { font-size: 0.75rem; padding: 2px 6px; } .vm-flow-select { font-size: 0.65rem; padding: 0; border: none; height: 18px; } .vm-sat-box { background: #fff; border-radius: 4px; border: 1px solid #bfdbfe; display: flex; flex-direction: column; } .vm-sat-label { color: #2563eb; text-align: center; font-size: 0.65rem; margin-top: 2px; } .vm-sat-input { border: none; text-align: center; font-weight: bold; height: 26px; width: 100%; } .label-xs-center { font-size: 0.65rem; text-align: center; }
+        .low-flow-container { display: flex; gap: 8px; align-items: flex-end; padding: 8px; } .low-flow-select { font-size: 0.75rem; border: none; background: transparent; font-weight: bold; color: var(--text-muted); }
+        .panel-noche-msg { background: #f1f5f9; text-align: center; font-style: italic; color: var(--text-muted); } .planes-check-wrapper { border: none; background: transparent; padding: 0; height: auto; margin-bottom: 4px; }
+
+        /* --- SUB-SECTIONS --- */
+        .sub-section { border-top: 1px dashed #cbd5e1; margin-top: 10px; padding-top: 10px; }
+        .sub-title { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: block; }
+
+        /* --- ACTIONS / BUTTONS --- */
+        .btn { border: none; cursor: pointer; border-radius: 7px; padding: 7px 14px; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s; }
+        .btn-reset { background: #334155; color: white; border: 1px solid #475569; } .btn-reset:hover { background: #475569; }
+        .btn-main { width: 100%; padding: 15px; font-size: 1.05rem; color: white; background: linear-gradient(to right, #2563eb, #1d4ed8); box-shadow: 0 4px 10px rgba(37,99,235,0.25); justify-content: center; border-radius: 9px; }
+        .btn-main:active { transform: translateY(1px); }
+        .btn-copy { background: #059669; color: white; } .btn-copy:hover { background: #047857; }
+        .check-wrap { display: flex; align-items: center; gap: 7px; padding: 5px 10px; border-radius: 7px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; user-select: none; height: 40px; }
+        .check-wrap:hover { background: #f8fafc; }
+        .check-wrap input { width: 16px; height: 16px; accent-color: currentColor; margin: 0; cursor: pointer; }
+        .check-wrap label { font-size: 0.88rem; font-weight: 600; margin-bottom: 0; text-transform: none; letter-spacing: 0; cursor: pointer; }
+        .c-red { color: #dc2626; border-color: #fecaca; background: #fef2f2; } .c-green { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; } .c-blue { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; } .c-purple { color: #7e22ce; border-color: #e9d5ff; background: #faf5ff; } .c-orange { color: #ea580c; border-color: #fed7aa; background: #fff7ed; }
+        .icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* --- RESULT AREA --- */
+        .result-area { background: #0f172a; color: #e2e8f0; padding: 20px; border-radius: 10px; margin: 20px auto; box-shadow: 0 10px 24px rgba(0,0,0,0.15); border: 1px solid #1e293b; max-width: 1140px; display: block; }
+        .result-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 13px; margin-bottom: 14px; }
+        .result-list { list-style: none; }
+        .result-list li { margin-bottom: 9px; line-height: 1.65; text-align: justify; white-space: pre-line; font-size: 1rem; }
+        .result-title { color: #34d399; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0; font-size: 1rem; }
+
+        /* --- TOAST / MODAL --- */
+        #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0f172a; color: white; padding: 10px 20px; border-radius: 50px; font-size: 0.88rem; box-shadow: 0 10px 15px rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 200; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--bg-card); padding: 22px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25); width: 90%; max-width: 820px; max-height: 90vh; display: flex; flex-direction: column; }
+        .modal-content textarea { flex-grow: 1; min-height: 200px; margin-bottom: 15px; font-size: 1rem; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--primary-dark); }
+        .btn-close-modal { background: #ef4444; color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; transition: background 0.2s; }
+        .btn-close-modal:hover { background: #dc2626; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>
+            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="2" y="3" width="20" height="13" rx="2"/>
+  <path d="M8 21h8M12 16v5"/>
+  <polyline points="4,9.5 6,9.5 7.5,6.5 9.5,13 11.5,7 13,11 14.5,9.5 20,9.5" stroke="#60a5fa" stroke-width="1.5"/>
+</svg>
+            &nbsp;SmartEvoGen <span class="tag header-tag-v6">v10</span>
+        </h1>
+        <button onclick="resetForm()" class="btn btn-reset">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Limpiar
+        </button>
+    </header>
+    <form id="kineForm" class="container" onsubmit="return false;" autocomplete="off">
+        <div class="col-stack">
+            <div class="card border-general">
+                <div class="card-header"><span class="dot dot-general"></span><span class="card-title text-muted">General</span></div>
+                <div class="input-row">
+                    <div class="input-group w-auto">
+                        <label>Turno</label>
+                        <select id="turno" class="select-highlight" onchange="handleTurno()">
+                            <option value="Día">Día</option><option value="Noche">Noche</option>
+                        </select>
+                    </div>
+                    <div class="input-group w-small"><label>Día Est.</label><input type="number" inputmode="numeric" id="diaEstadia" class="text-center" placeholder="#"></div>
+                    <div class="input-group w-auto">
+                        <label>Vía Aérea</label>
+                        <select id="viaAerea" onchange="handleViaAerea()">
+                            <option value="Natural">Natural</option><option value="TOT">TOT (Tubo)</option><option value="TQT">TQT (Traqueo)</option><option value="Full Face">Full Face</option><option value="Oronasal">Oronasal</option>
+                        </select>
+                    </div>
+                    <div id="divDiasVA" class="input-group w-small hidden"><label>Días VA</label><input type="text" inputmode="numeric" id="diasVA" class="text-center input-warn-bg" placeholder="#"></div>
+                    <div id="divVF" class="check-wrap c-green hidden h-36"><input type="checkbox" id="checkVF" onchange="handleVF()"><label for="checkVF">VF</label></div>
+                    <div class="check-wrap c-blue"><input type="checkbox" id="checkIngreso" onchange="handleIngreso()"><label for="checkIngreso">Ingreso</label></div>
+                    <div id="divDiagnostico" class="input-group grow hidden"><label>Diagnóstico de Ingreso</label><input type="text" id="txtDiagnostico" placeholder="Ej: Shock Séptico..."></div>
+                </div>
+            </div>
+            <div class="card border-neuro">
+                <div class="card-header"><span class="dot dot-neuro"></span><span class="card-title text-neuro">Neuro</span></div>
+                <div class="panel panel-purple flex-center-gap">
+                    <div class="gcs-total-box">GCS <span id="lblGCS">15</span></div>
+                    <div class="flex-gap">
+                        <div class="input-group w-small"><label class="label-center-neuro">O</label><select id="gcsO" class="text-center gcs-select" onmousedown="expandGCS(this, 'O')" onblur="shrinkGCS(this)" onchange="shrinkGCS(this); calcGCS()"><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></div>
+                        <div class="input-group w-small"><label class="label-center-neuro">V</label><select id="gcsV" class="text-center gcs-select" onmousedown="expandGCS(this, 'V')" onblur="shrinkGCS(this)" onchange="shrinkGCS(this); calcGCS()"><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></div>
+                        <div class="input-group w-small"><label class="label-center-neuro">M</label><select id="gcsM" class="text-center gcs-select" onmousedown="expandGCS(this, 'M')" onblur="shrinkGCS(this)" onchange="shrinkGCS(this); calcGCS()"><option value="6">6</option><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></div>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group w-auto"><label>Sedación</label><select id="sedacion" onchange="handleSedacionSAS()"><option value="Sin sedación">Sin sedación</option><option value="Escalón 1">Escalón 1</option><option value="Escalón 2">Escalón 2</option><option value="Escalón 3">Escalón 3</option><option value="Escalón 4">Escalón 4</option><option value="Escalón 5">Escalón 5</option><option value="Escalón 6">Escalón 6</option><option value="Fuera de escalón">Fuera de escalón</option></select></div>
+                    <div id="sasGroup" class="input-group w-small hidden"><label>SAS</label><select id="sas" class="text-center" onmousedown="expandSAS(this)" onblur="shrinkSAS(this)" onchange="shrinkSAS(this)"><option value="" selected disabled>--</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option></select></div>
+                    <div class="check-wrap c-red"><input type="checkbox" id="checkBNM"><label for="checkBNM">+BNM</label></div>
+                    <div class="check-wrap c-purple"><input type="checkbox" id="checkNeuroCrit" onchange="handleNeuroCrit()"><label for="checkNeuroCrit">NeuroCrítico</label></div>
+                </div>
+                <div id="divNeuroCrit" class="input-row hidden">
+                    <div class="input-group w-small"><label>PIC</label><input type="number" id="valPIC" class="text-center" placeholder="mmHg"></div>
+                    <div class="input-group w-small"><label>PPC</label><input type="number" id="valPPC" class="text-center" placeholder="mmHg"></div>
+                </div>
+            </div>
+            <div class="card border-hemo">
+                <div class="card-header"><span class="dot dot-hemo"></span><span class="card-title text-hemo">Hemodinamia</span></div>
+                <div class="input-row">
+                    <div class="input-group w-auto"><label>Estado</label><select id="hemoEstado" class="font-500"><option value="Estable">Estable</option><option value="Inestable">Inestable</option></select></div>
+                    <div class="input-group"><label>Drogas Vasoactivas</label><select id="hemoDVA" onchange="handleMultiDVA()"><option value="sin DVA">Sin requerimientos</option><option value="DVA dosis bajas">Dosis Bajas</option><option value="DVA dosis medias">Dosis Medias</option><option value="DVA dosis altas">Dosis Altas</option></select></div>
+                </div>
+                <div class="input-row">
+                     <div class="check-wrap c-red h-36"><input type="checkbox" id="checkHemoTrend" onchange="handleHemoTrend()"><label for="checkHemoTrend">Tendencia HD</label></div>
+                    <div id="grpHemoTrendType" class="input-group w-auto hidden"><label>Tendencia</label><select id="hemoTrendType"><option value="HTA">HTA</option><option value="Hipotensión">Hipotensión</option><option value="Taquicardia">Taquicardia</option><option value="Bradicardia">Bradicardia</option><option value="HTA y Taquicardia">HTA y Taquicardia</option><option value="Hipotensión y Taquicardia">Hipotensión y Taquicardia</option><option value="HTA y Bradicardia">HTA y Bradicardia</option><option value="Hipotensión y Bradicardia">Hipotensión y Bradicardia</option></select></div>
+                     <div id="wrapMultiDVA" class="check-wrap c-red hidden h-36"><input type="checkbox" id="checkMultiDVA" onchange="handleMultiDVA()"><label for="checkMultiDVA">Múltiples DVA</label></div>
+                    <div id="grpDVACount" class="input-group w-small hidden"><label>N° DVA</label><select id="dvaCount" class="text-center input-bold"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+                </div>
+            </div>
+            <div class="card border-fisico">
+                <div class="card-header" style="justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="dot dot-fisico"></span>
+                        <span class="card-title text-fisico">Examen Físico</span>
+                    </div>
+                    <div style="display:flex;gap:6px;">
+                        <div class="check-wrap c-green" style="height:28px;padding:2px 8px;"><input type="checkbox" id="checkLab" onchange="handleCheckLab()"><label for="checkLab" style="font-size:0.75rem;margin-bottom:0;cursor:pointer;">Laboratorio</label></div>
+                        <div class="check-wrap c-blue" style="height:28px;padding:2px 8px;"><input type="checkbox" id="checkImg" onchange="handleCheckImg()"><label for="checkImg" style="font-size:0.75rem;margin-bottom:0;cursor:pointer;">Imágenes</label></div>
+                    </div>
+                </div>
+                <div class="input-row"><div class="input-group"><label>Murmullo Pulmonar</label><select id="exMP"><option value="presente bilateral">Presente Bilateral</option><option value="disminuido global">Disminuido Global</option><option value="disminuido bases">Disminuido en Bases</option><option value="disminuido CPIz">Disminuido CPIz</option><option value="disminuido CPD">Disminuido CPD</option><option value="abolido CPIz">Abolido CPIz</option><option value="abolido CPD">Abolido CPD</option></select></div></div>
+                <div class="input-row">
+                    <div class="input-group w-auto"><label>Ruidos</label><select id="exRuidos" onchange="checkManualInput('exRuidos', 'exRuidosMan')"><option value="sin ruidos agregados">Sin ruidos agregados</option><option value="crépitos">Crépitos</option><option value="sibilancias">Sibilancias</option><option value="roncus">Roncus</option><option value="estridor">Estridor</option><option value="estertores">Estertores</option><option value="Otro">Otro (Manual)</option></select><input type="text" id="exRuidosMan" class="hidden fade-in mt-1 w-full" placeholder="Describir..."></div>
+                    <div class="input-group w-small"><label>Cantidad</label><select id="exSecrCant" class="w-small select-bg-slate" onchange="handleSecreciones()"><option value="">-</option><option value="+">+</option><option value="++">++</option><option value="+++">+++</option></select></div>
+                    <div class="input-group grow"><label>Secreciones</label><select id="exSecrTipo" style="width:100%;" disabled onchange="handleSecreciones()"><option value="" disabled selected>-- Reología --</option><option value="Mucosa">Mucosa</option><option value="Purulenta">Purulenta</option><option value="Mucopurulenta">Mucopur.</option><option value="Hemática">Hemática</option><option value="Otro">Otro...</option></select><div id="exSecrWarn" class="warning-msg hidden fade-in">⚠️ Pendiente: definir reología</div><input type="text" id="exSecrMan" class="hidden fade-in mt-1" placeholder="Describa secreciones..." oninput="handleSecreciones()"></div>
+                </div>
+
+                <!-- LABORATORIO -->
+                <div id="divLabBody" class="hidden fade-in">
+                    <div class="sub-section" style="margin-top:8px;">
+                        <span class="sub-title text-fisico">🧪 Laboratorio</span>
+                        <div class="sub-section" style="margin-top:0;border-top:none;padding-top:0;">
+                            <span class="sub-title">Serie Roja</span>
+                            <div class="input-row">
+                                <div class="input-group w-small"><label>Hb (g/dL)</label><input type="number" id="labHb" class="text-center" placeholder="—" step="0.1"></div>
+                                <div class="input-group w-small"><label>Hto (%)</label><input type="number" id="labHto" class="text-center" placeholder="—" step="1"></div>
+                            </div>
+                        </div>
+                        <div class="sub-section">
+                            <span class="sub-title">Serie Blanca</span>
+                            <div class="input-row">
+                                <div class="input-group w-medium"><label>Leucocitos (x10³)</label><input type="number" id="labLeuco" class="text-center" placeholder="—" step="0.1"></div>
+                                <div class="input-group w-medium"><label>Plaquetas (x10³)</label><input type="number" id="labPlaq" class="text-center" placeholder="—" step="1"></div>
+                            </div>
+                        </div>
+                        <div class="sub-section">
+                            <span class="sub-title">GSA</span>
+                            <div class="input-row">
+                                <div class="input-group w-small"><label>pH</label><input type="number" id="labGsaPH" class="text-center" placeholder="—" step="0.01"></div>
+                                <div class="input-group w-small"><label>PaCO₂</label><input type="number" id="labGsaCO2" class="text-center" placeholder="—" step="1"></div>
+                                <div class="input-group w-small"><label>PaO₂</label><input type="number" id="labGsaO2" class="text-center" placeholder="—" step="1"></div>
+                                <div class="input-group w-small"><label>HCO₃</label><input type="number" id="labGsaHCO3" class="text-center" placeholder="—" step="0.1"></div>
+                                <div class="input-group w-small"><label>EB</label><input type="number" id="labGsaEB" class="text-center" placeholder="—" step="0.1"></div>
+                                <div class="input-group w-small"><label>Sat (%)</label><input type="number" id="labGsaSat" class="text-center" placeholder="—" step="0.1"></div>
+                                <div class="input-group w-small"><label>PaFi</label><input type="number" id="labGsaPafi" class="text-center" placeholder="—" step="1"></div>
+                            </div>
+                        </div>
+                        <div class="sub-section">
+                            <span class="sub-title">GSV</span>
+                            <div class="input-row">
+                                <div class="input-group w-small"><label>pH</label><input type="number" id="labGsvPH" class="text-center" placeholder="—" step="0.01"></div>
+                                <div class="input-group w-small"><label>PvCO₂</label><input type="number" id="labGsvCO2" class="text-center" placeholder="—" step="1"></div>
+                                <div class="input-group w-small"><label>PaO₂</label><input type="number" id="labGsvO2" class="text-center" placeholder="—" step="1"></div>
+                                <div class="input-group w-small"><label>HCO₃</label><input type="number" id="labGsvHCO3" class="text-center" placeholder="—" step="0.1"></div>
+                                <div class="input-group w-small"><label>EB</label><input type="number" id="labGsvEB" class="text-center" placeholder="—" step="0.1"></div>
+                                <div class="input-group w-small"><label>Sat (%)</label><input type="number" id="labGsvSat" class="text-center" placeholder="—" step="0.1"></div>
+                            </div>
+                        </div>
+                        <div class="sub-section">
+                            <span class="sub-title">Bioquímica</span>
+                            <div class="input-row">
+                                <div class="input-group w-small"><label>Lactato</label><input type="number" id="labLactato" class="text-center" placeholder="—" step="0.1"></div>
+                                <div class="input-group w-small"><label>K⁺ (mEq/L)</label><input type="number" id="labK" class="text-center" placeholder="—" step="0.1"></div>
+                                <div class="input-group w-small"><label>Na⁺ (mEq/L)</label><input type="number" id="labNa" class="text-center" placeholder="—" step="1"></div>
+                                <div class="input-group w-small"><label>Glucosa</label><input type="number" id="labGlucosa" class="text-center" placeholder="—" step="1"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IMÁGENES -->
+                <div id="divImgBody" class="hidden fade-in">
+                    <div class="sub-section" style="margin-top:8px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <span class="sub-title text-fisico" style="margin-bottom:0;">🩻 Imágenes</span>
+                            <button type="button" class="btn btn-copy" style="padding:3px 10px;font-size:0.75rem;" onclick="addImagen()">+ Agregar</button>
+                        </div>
+                        <div id="imgContainer" class="col-stack" style="gap:10px;"></div>
+                        <p id="imgEmptyMsg" class="text-muted text-xs text-center mt-2" style="font-style:italic;">Sin exámenes agregados</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-stack">
+            <div class="card border-resp">
+                <div class="card-header"><span class="dot dot-resp"></span><span class="card-title text-resp">Respiratorio</span></div>
+                <div class="panel panel-blue">
+                    <div class="input-row">
+                        <div class="input-group w-auto"><label>Soporte Actual</label><select id="soporteTipo" class="input-resp-highlight" onchange="handleSoporte()"><option value="Ambiente">Aire Ambiente</option><option value="CNAF">CNAF</option><option value="VNI">VNI</option><option value="VM">Vent. Mecánica</option><option value="Naricera">Naricera</option><option value="Venturi">Venturi</option><option value="TQT">TQT</option><option value="TQTVF">TQT + VF</option></select></div>
+                        <div id="divModoVM" class="input-group w-medium hidden"><label>Modo VM</label><select id="modoVM" onchange="renderVMFields()"><option value="AC/VC">AC/VC</option><option value="AC/PC">AC/PC</option><option value="CPAP+PS">CPAP+PS</option></select></div>
+                        <div id="divModoVNI" class="input-group w-medium hidden"><label>Modo VNI</label><select id="modoVNI" onchange="renderVNIFields()"><option value="S/T">S/T</option><option value="CPAP">CPAP</option><option value="AVAPS">AVAPS</option></select></div>
+                        <div id="divDiasSoporte" class="input-group w-small hidden"><label>Días</label><input type="number" inputmode="numeric" id="diasSoporte" class="text-center" placeholder="#"></div>
+                        <div class="check-wrap c-orange ml-0"><input type="checkbox" id="checkUMA" onchange="handleUMA()"><label for="checkUMA">UMA</label></div>
+                        <div id="umaSelectGroup" class="input-group w-small hidden"><label>UMA</label><select id="valUMA" class="text-center h-36 input-bold"><option value="+">+</option><option value="++">++</option><option value="+++">+++</option></select></div>
+                        <div class="check-wrap c-blue ml-auto"><input type="checkbox" id="checkPostExt" onchange="handlePostExt()"><label for="checkPostExt">Post-Ext</label></div>
+                        <div id="postExtTimeGroup" class="input-group w-medium hidden"><label>Horas Post-Ext</label><input type="number" id="valPostExt" class="text-center" placeholder="hrs"></div>
+                    </div>
+                </div>
+                <div id="panelParams" class="hidden fade-in"></div>
+                <div id="divSatGen" class="hidden flex-end-gap mt-2" style="flex-wrap:wrap;">
+                     <div id="frSpontBox" class="hidden monitor-box-gray"><label class="text-muted mb-0">FR</label><input type="number" id="valFRSpont" class="text-center font-bold mini-input" placeholder="rpm" min="0" max="100" step="1"></div>
+                    <div class="monitor-box-yellow"><label class="text-warn mb-0">Sat</label><input type="number" id="valSatGen" class="text-center font-bold mini-input" placeholder="%" min="0" max="100" step="1"></div>
+                </div>
+            </div>
+            <div class="card border-kine">
+                <div class="card-header"><span class="dot dot-kine"></span><span class="card-title text-kine">Intervención</span></div>
+                <div id="panelKineDia" class="panel panel-orange">
+                    <div class="input-row" style="align-items:center;">
+                        <div class="check-wrap c-green"><input type="checkbox" id="checkKtmRealizada" onchange="handleKtmToggle('realizada')"><label for="checkKtmRealizada">KTM Realizada</label></div>
+                        <div id="divKtmConfig" class="flex-gap" style="gap:8px;">
+                            <div class="input-group w-70"><label class="text-kine">Nivel</label><select id="selKtmNivel" class="text-center h-36 p-0"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+                            <div class="input-group w-60"><label class="text-kine">Min</label><input type="text" inputmode="numeric" id="txtKtmTiempo" class="text-center" placeholder="0"></div>
+                        </div>
+                        <div class="check-wrap c-orange"><input type="checkbox" id="checkKtmSusp" onchange="handleKtmToggle('suspendida')"><label for="checkKtmSusp">Suspender</label></div>
+                    </div>
+                    <!-- Structured Suspension Options -->
+                    <div id="divKtmSuspOptions" class="hidden col-stack mt-2">
+                        <div class="input-row">
+                            <div class="input-group grow">
+                                <label>Tipo Contraindicación</label>
+                                <select id="selKtmContraType" class="text-center input-bold" onchange="updateKtmCategories()">
+                                    <option value="" disabled selected>-- Seleccionar --</option>
+                                    <option value="Absoluta">Absoluta</option>
+                                    <option value="Relativa">Relativa</option>
+                                    <option value="Otro">Otro (Manual)</option>
+                                </select>
+                            </div>
+                            <div class="input-group grow">
+                                <label>Categoría</label>
+                                <select id="selKtmCategory" class="text-center" disabled onchange="updateKtmReasons()">
+                                    <option value="" disabled selected>-- --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-group w-full">
+                            <label>Motivo Específico</label>
+                            <select id="selKtmReason" disabled onchange="handleKtmReasonChange()">
+                                <option value="" disabled selected>-- Seleccione Categoría --</option>
+                            </select>
+                        </div>
+                        <div id="divKtmReasonSub" class="input-group w-full hidden fade-in">
+                            <label>Especificar</label>
+                            <select id="selKtmReasonSub"></select>
+                        </div>
+                        <input type="text" id="txtKtmContraMan" class="hidden fade-in mt-1 w-full" placeholder="Especifique motivo...">
+                    </div>
+                </div>
+                <div id="panelKineNoche" class="hidden panel panel-noche-msg">Turno Noche: Intervención motora no aplica.</div>
+                <div class="input-row">
+                    <div class="input-group"><label>Observaciones</label><select id="selKtmObs" disabled onchange="checkManualInput('selKtmObs', 'txtKtmObsMan')"><option value="Sin incidentes">Bien tolerado / Sin incidentes</option><option value="Desaturación">Desaturación</option><option value="Taquicardia">Taquicardia</option><option value="Bradicardia">Bradicardia</option><option value="Hipertensión">Hipertensión</option><option value="Hipotensión">Hipotensión</option><option value="Fatiga">Fatiga / Disnea</option><option value="Agitación">Agitación</option><option value="Suspensión por inestabilidad">Suspensión por inestabilidad</option><option value="Otro">Otro...</option></select><input type="text" id="txtKtmObsMan" class="hidden fade-in mt-1 w-full" placeholder="Describir..."></div>
+                </div>
+                <div class="input-group w-full"><label>Procedimientos</label><textarea id="txtProcedimientos" rows="2" placeholder="Ej: VMNI, aspiración de secreciones..." onclick="openModal(this.id, 'Procedimientos')"></textarea></div>
+
+                <!-- ═══ MÓDULO MUESTRA RESPIRATORIA ═══ -->
+                <div class="sub-section">
+                    <span class="sub-title text-kine">🧫 Muestra Respiratoria</span>
+                    <div class="input-row" style="align-items:center;">
+                        <div class="check-wrap c-blue">
+                            <input type="checkbox" id="checkMuestra" onchange="handleMuestra()">
+                            <label for="checkMuestra">Muestra Tomada</label>
+                        </div>
+                        <div id="divMuestraTipo" class="input-group w-auto hidden fade-in">
+                            <label>Tipo de Muestra</label>
+                            <select id="selMuestraTipo" onchange="handleMuestraOtro()">
+                                <option value="Mini-BAL">Mini-BAL</option>
+                                <option value="Aspirado Traqueal">Aspirado Traqueal</option>
+                                <option value="Esputo">Esputo</option>
+                                <option value="Otro">Otro (Manual)</option>
+                            </select>
+                        </div>
+                        <div id="divMuestraOtro" class="input-group grow hidden fade-in">
+                            <label>Especificar</label>
+                            <input type="text" id="txtMuestraOtro" placeholder="Describir tipo de muestra...">
+                        </div>
+                    </div>
+                    <div id="divMuestraDestino" class="input-row hidden fade-in">
+                        <div class="input-group w-auto">
+                            <label>Destino / Análisis</label>
+                            <select id="selMuestraDestino">
+                                <option value="cultivo corriente">Cultivo Corriente</option>
+                                <option value="cultivo + FilmArray">Cultivo + FilmArray</option>
+                                <option value="PCR COVID">PCR COVID</option>
+                                <option value="PCR TBC + BK">PCR TBC + BK</option>
+                                <option value="panel viral respiratorio">Panel Viral Respiratorio</option>
+                            </select>
+                        </div>
+                        <div class="check-wrap c-orange">
+                            <input type="checkbox" id="checkMuestraRotulada">
+                            <label for="checkMuestraRotulada">Rotulada y Enviada</label>
+                        </div>
+                    </div>
+                </div>
+                <!-- ═══ FIN MÓDULO MUESTRA RESPIRATORIA ═══ -->
+
+            </div>
+            <div class="card border-planes">
+                <div class="card-header header-planes">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="dot dot-planes" style="background-color: var(--c-planes)"></span>
+                        <span class="card-title text-planes">Planes</span>
+                    </div>
+                    <div class="check-wrap c-blue" style="height:28px; padding:2px 8px;">
+                        <input type="checkbox" id="checkEgreso" onchange="handleEgreso()">
+                        <label for="checkEgreso" style="font-size:0.75rem; margin-bottom:0; cursor:pointer;">Egreso</label>
+                    </div>
+                </div>
+                
+                <!-- EGRESO SECTION -->
+                <div id="divEgresoOptions" class="hidden col-stack mb-3 fade-in" style="background: var(--bg-body); padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                    <div class="sub-section" style="margin-top:0; border-top:none; padding-top:0;">
+                        <span class="sub-title">Rehabilitación Motora</span>
+                        <div class="input-row">
+                            <div class="input-group w-auto">
+                                <label class="text-warn">Nivel Motor (KTM)*</label>
+                                <select id="egresoNivelMotor" class="input-bold">
+                                    <option value="" disabled selected>KTM 1-5</option>
+                                    <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                                </select>
+                            </div>
+                            <div class="input-group w-small"><label>MRCSS</label><input type="number" id="egresoMRCSS" class="text-center" placeholder="#"></div>
+                            <div class="input-group w-small"><label>FSS-ICU</label><input type="number" id="egresoFSS" class="text-center" placeholder="#"></div>
+                            <div class="input-group w-small"><label>Grosor Cuad.</label><input type="number" id="egresoGrosor" class="text-center" placeholder="cm"></div>
+                        </div>
+                    </div>
+                    <div class="sub-section">
+                        <span class="sub-title">Rehabilitación Respiratoria</span>
+                        <div class="input-row">
+                            <div class="input-group w-small"><label>PIM</label><input type="number" id="egresoPIM" class="text-center" placeholder="cmH2O"></div>
+                            <div class="input-group w-small"><label>PEM</label><input type="number" id="egresoPEM" class="text-center" placeholder="cmH2O"></div>
+                            <div class="input-group w-small"><label>FEM</label><input type="number" id="egresoFEM" class="text-center" placeholder="L/min"></div>
+                            <div class="input-group w-small"><label>FED</label><input type="number" id="egresoFED" class="text-center" placeholder="%"></div>
+                            <div class="input-group w-medium"><label>Exc. Diafragma</label><input type="number" id="egresoDiafrag" class="text-center" placeholder="cm"></div>
+                        </div>
+                        <div id="divEgresoTQT" class="hidden mt-2" style="border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+                            <span class="sub-title text-blue">Traqueostomía</span>
+                            <div class="input-row">
+                                <div class="input-group w-medium"><label>Blue Dye (+)</label><input type="number" id="egresoBDT_Pos" class="text-center" placeholder="#"></div>
+                                <div class="input-group w-medium"><label>Blue Dye (-)</label><input type="number" id="egresoBDT_Neg" class="text-center" placeholder="#"></div>
+                                <div class="input-group w-medium"><label>Presión VA</label><input type="number" id="egresoPresionVA" class="text-center" placeholder="cmH2O"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group mb-3 w-full"><textarea id="txtPlanes" rows="1" placeholder="Objetivos para el próximo turno..." onclick="openModal(this.id, 'Planes')"></textarea></div>
+                
+                <div class="panel-red panel p-0 mb-0" style="padding:8px;">
+                    <div class="check-wrap c-red planes-check-wrapper"><input type="checkbox" id="checkPendientes" onchange="handlePendientes()"><label for="checkPendientes">Dejar Pendientes</label></div>
+                    <textarea id="txtPendientes" rows="1" class="hidden fade-in w-full" placeholder="Detalle..."></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="sticky-footer"><button type="button" onclick="generarTexto()" class="btn btn-main">✨ Generar Evolución</button></div>
+    </form>
+
+    <div id="resultArea" class="result-area hidden">
+        <div class="result-header"><h3 class="result-title">Texto Generado</h3><button onclick="copiarAlPortapapeles()" class="btn btn-copy"><svg class="icon" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1M8 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M8 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m0 0h2a2 2 0 0 1 2 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg> Copiar</button></div>
+        <ul id="listaResultado" class="result-list"></ul>
+    </div>
+    <div id="toast"></div>
+    <div id="editModal" class="modal-overlay hidden" onclick="if(event.target === this) closeModal()"><div class="modal-content"><div class="modal-header"><h3 id="modalTitle" class="modal-title">Editar Texto</h3><button type="button" class="btn-close-modal" onclick="closeModal()">Cerrar</button></div><textarea id="modalTextarea"></textarea></div></div>
+
+    <script>
+        // --------------------------------------------------------
+        // 1. DATA LAYER
+        // --------------------------------------------------------
+        const CLINICAL_TEXT = {
+            turno: "TURNO",
+            general: { dia: (d) => `Paciente cursando día ${d} de estadía.`, uci: "Paciente hospitalizado en UCI." },
+            neuro: { gcs: (total, o, v, m, sed) => `GCS ${total}/15 (AO:${o}, V:${v}, M:${m}), ${sed}`, sas: (s) => `, SAS ${s}`, bnm: " + BNM", neuroCrit: (pic, ppc) => `${pic ? ', PIC ' + pic : ''}${ppc ? ', PPC ' + ppc : ''}`, noData: ", PIC/PPC no consignadas" },
+            hemo: { prefix: "Hemodinamia ", sinDva: ", sin requerimientos de DVA", conDva: (d) => `, con ${d}`, tendencia: (t) => `, tendencia a ${t}`, multiDva: (n) => ` (${n} DVA)` },
+            resp: {
+                soportes: { 'Ambiente': 'Ventilación espontánea, FiO₂ 21%', 'CNAF': 'Soporte por CNAF', 'VNI': 'Soporte por VNI', 'VM': 'Soporte por Vent. Mecánica', 'Naricera': 'Soporte por Naricera', 'Venturi': 'Soporte por Mascarilla Venturi', 'TQT': 'Soporte por Traqueostomía', 'TQTVF': 'Soporte por Traqueostomía + Válvula Fonatoria' },
+                fallback: (s) => `Soporte por ${s}`, diaSoporte: (d) => ` (Día ${d})`, via: (v) => ` vía ${v}`, diasVia: (d) => ` (Día ${d})`, interfaz: (i) => ` interfaz ${i}`, vf: " + Válvula fonatoria", postExt: (h) => `, post-extubación hace ${h} hrs`, paramsCnaf: "Parámetros CNAF: ", fio2NoConsignada: "FiO₂ no consignada", artificialAmbienteWarning: "Paciente con vía aérea artificial, condición ventilatoria a consignar"
+            },
+            fisico: { mp: (m, r) => `MP ${m}, ${r}.`, ruidosNo: "ruidos no consignados", sinRuidos: "sin ruidos agregados", secNo: "Secreciones: No se observan.", secSi: (c, t) => `Secreciones ${t.toLowerCase()} ${c.toLowerCase()}.`, secPend: (c) => `Secreciones ${c.toLowerCase()} (reología no especificada).`, cantidades: { '+': 'Escasas', '++': 'Moderadas', '+++': 'Abundantes' }, presentes: "Presentes" },
+            kine: { suspendida: (m) => `Kinesiología Motora suspendida${m ? ' por ' + m : ', motivo no consignado'}. `, realizada: (n, t) => `Se realiza atención integral, KTM Nivel ${n}` + (t !== '' ? ` por ${t} min` : ``) + `. `, obsSinIncidentes: "Procedimiento bien tolerado sin incidentes.", obsPrefix: "Observación: ", noRealizada: (m) => `Kinesiología Motora no realizada${m ? ' (' + m + ')' : ''}. `, fallback: "Cuidados respiratorios estándar." },
+            planes: { titulo: "Planes: ", pendientes: "Pendientes: " },
+            params: { vm: { modo: (m, a) => `Modo ${m}${m !== 'CPAP+PS' ? (a ? ' Asistido' : ' Controlado') : ''}`, ie: (v) => `I:E 1:${v}`, fio2_no_consignada: "FiO₂ no consignada" }, vni: { modo: (m) => `Modo ${m}` }, cnaf: "Parámetros CNAF: " }
+        };
+
+        const KTM_CONTRAINDICATIONS = {
+            "Absoluta": {
+                "Hemodinámica": ["Isquemia miocárdica reciente (<24h)", { label: "FC <40 o >130 lpm", options: ["FC <40 lpm", "FC >130 lpm"] }, "PAM <60 mmHg", "Hemoglobina <7 mg/dL", "Plaquetas <20.000", { label: "Dosis altas DVA (Dopa >10 / Nora >0.3)", options: ["Dopa >10 mcg/kg/min", "Nora >0.3 mcg/kg/min"] }],
+                "Ventilatoria": ["SpO₂ ≤ 90% con FiO₂ > 0.6", "PEEP >14 cmH₂O", "Frecuencia respiratoria >40 rpm"],
+                "Metabólica": ["Temperatura ≥38,5 °C", { label: "Glicemia <70 o >200 mg/dL", options: ["Glicemia <70 mg/dL", "Glicemia >200 mg/dL"] }],
+                "Nivel de conciencia": ["Agitación psicomotora peligrosa (SAS >5)"]
+            },
+            "Relativa": {
+                "Hemodinámica y generales": ["PAM >110 mmHg", "Fracturas inestables", "Inestabilidad neuroquirúrgica (PIC >20)", { label: "CVC o línea arterial insegura", options: ["CVC inseguro", "Línea arterial insegura"] }, "Electrolitos plasmáticos alterados"],
+                "Aspectos clínicos": ["Alteración del nivel de conciencia", "Sudoración profusa", "Cambios coloración piel", "Dolor difícil control"]
+            }
+        };
+
+        const GCS_DESC = { O: {4:"Espontánea",3:"A la voz",2:"Al dolor",1:"Ninguna"}, V: {5:"Orientado",4:"Confuso",3:"Inapropiado",2:"Incomprensible",1:"Ninguna"}, M: {6:"Obedece",5:"Localiza",4:"Retira",3:"Flexión Anormal",2:"Extensión Anormal",1:"Ninguna"} };
+        const SAS_DESC = { 1:"No despierta / no responde", 2:"Muy sedado", 3:"Sedado", 4:"Calmo y cooperador", 5:"Agitado", 6:"Muy agitado", 7:"Peligrosamente agitado" };
+        let clipboardTimer = null, __isSyncing = false, __prevGCSV = null, gcsAutoAdjusted = false, currentModalTextareaId = '', imgCounter = 0;
+
+        // --------------------------------------------------------
+        // 2. UTILS & ACTIONS
+        // --------------------------------------------------------
+        const getEl = (id) => document.getElementById(id);
+        const getVal = (id) => { const el = getEl(id); return el ? el.value : ''; };
+        const show = (id) => { const el = getEl(id); if(el) el.classList.remove('hidden'); };
+        const hide = (id) => { const el = getEl(id); if(el) el.classList.add('hidden'); };
+
+        function showToast(msg, duration = 2000) {
+            let t = document.getElementById('toast');
+            if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+            t.textContent = msg; t.style.opacity = '1';
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => t.style.opacity = '0', duration);
+        }
+
+        // 3. MODALS
+        function openModal(textareaId, title) {
+            currentModalTextareaId = textareaId;
+            const originalTextarea = getEl(textareaId);
+            const modalTextarea = getEl('modalTextarea');
+            const modalTitle = getEl('modalTitle');
+            if (originalTextarea && modalTextarea && modalTitle) {
+                modalTextarea.value = originalTextarea.value;
+                modalTitle.textContent = 'Editar ' + title;
+                show('editModal');
+                modalTextarea.focus();
+            }
+        }
+        function closeModal() {
+            const originalTextarea = getEl(currentModalTextareaId);
+            const modalTextarea = getEl('modalTextarea');
+            if (originalTextarea && modalTextarea) {
+                originalTextarea.value = modalTextarea.value;
+            }
+            hide('editModal');
+            currentModalTextareaId = '';
+        }
+
+        // 4. CRITICAL FUNCTIONS
+        async function copiarAlPortapapeles() {
+            const listItems = document.querySelectorAll('#listaResultado li');
+            let text = "";
+            listItems.forEach(li => text += li.innerText + "\n");
+            let success = false;
+            const isSecure = navigator.clipboard && window.isSecureContext;
+            try { if (isSecure) { window.focus(); await navigator.clipboard.writeText(text); success = true; } } catch (err) { console.warn("Clipboard API blocked"); }
+            if (!success) { try { const area = document.createElement('textarea'); area.value = text; area.style.position = 'fixed'; area.style.left = '-9999px'; area.style.top = '0'; document.body.appendChild(area); area.focus(); area.select(); success = document.execCommand('copy'); document.body.removeChild(area); } catch (e) { success = false; } }
+            if (success) {
+                if (clipboardTimer) clearTimeout(clipboardTimer);
+                clipboardTimer = setTimeout(async () => {
+                    try { await navigator.clipboard.writeText(''); } catch(e) {}
+                    clipboardTimer = null;
+                    resetForm();
+                    showToast("🔒 Formulario y portapapeles limpiados automáticamente", 3000);
+                }, 60000);
+                showToast("Texto copiado ✅ (formulario se limpiará en 60s)", 3000);
+            } else { showToast("❌ Copia manual requerida"); }
+        }
+
+        function resetForm() {
+            const turnoActual = getVal('turno');
+            document.getElementById('kineForm').reset();
+            getEl('turno').value = turnoActual;
+            hide('resultArea');
+            __prevGCSV = null;
+            gcsAutoAdjusted = false;
+            
+            handleTurno(); 
+            handleNeuroCrit(); 
+            handleSedacionSAS(); 
+            handlePostExt(); 
+            handleIngreso();
+            handleEgreso();
+
+            updateViaAereaUI(); 
+            updateSoporteUI(); 
+            syncClinicalCoherence('soporte'); 
+            
+            handleKtmToggle('realizada'); 
+            calcGCS(); 
+            handleSecreciones(); 
+            handleHemoTrend(); 
+            handleMultiDVA(); 
+            handleUMA();
+            
+            // Reset KTM suspension
+            getEl('selKtmContraType').value = "";
+            getEl('selKtmCategory').innerHTML = '<option value="" disabled selected>-- --</option>';
+            getEl('selKtmCategory').disabled = true;
+            getEl('selKtmReason').innerHTML = '<option value="" disabled selected>-- Seleccione Categoría --</option>';
+            getEl('selKtmReason').disabled = true;
+            hide('divKtmReasonSub');
+            getEl('selKtmReasonSub').innerHTML = '';
+            hide('txtKtmContraMan');
+            getEl('txtKtmContraMan').value = '';
+
+            ['exRuidosMan', 'exSecrMan', 'txtKtmObsMan'].forEach(id => { const el = getEl(id); if(el) { el.value=''; hide(id); } });
+
+            // Reset Muestra Respiratoria
+            if (getEl('checkMuestra')) {
+                getEl('checkMuestra').checked = false;
+                getEl('checkMuestraRotulada').checked = false;
+                hide('divMuestraTipo');
+                hide('divMuestraDestino');
+                hide('divMuestraOtro');
+                getEl('txtMuestraOtro').value = '';
+                getEl('selMuestraTipo').value = 'Mini-BAL';
+            }
+
+            // Reset Laboratorio e Imágenes
+            if(getEl('checkLab')) { getEl('checkLab').checked = false; hide('divLabBody'); }
+            if(getEl('checkImg')) { getEl('checkImg').checked = false; hide('divImgBody'); }
+            getEl('imgContainer').innerHTML = '';
+            imgCounter = 0;
+            show('imgEmptyMsg');
+
+            closeModal();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function generarTexto() {
+            const ul = getEl('listaResultado'); ul.innerHTML = '';
+            const addLi = (txt, isTitle) => { if(!txt) return; const li = document.createElement('li'); if(isTitle) li.className="result-title"; li.textContent = txt; ul.appendChild(li); };
+
+            addLi(`${CLINICAL_TEXT.turno} ${getVal('turno')}`, true);
+
+            let block1 = [];
+            const diaEst = getVal('diaEstadia');
+            let tGeneral = "";
+            if (getEl('checkIngreso').checked) {
+                const dg = getVal('txtDiagnostico');
+                const contexto = dg ? ` en contexto de ${dg}` : '';
+                if (diaEst) { tGeneral = `Paciente cursando día ${diaEst} de estadía, ingresa a UCI${contexto}`; } 
+                else { tGeneral = `Paciente ingresa a UCI${contexto}`; }
+            } else {
+                if (diaEst) { tGeneral = `Paciente cursando día ${diaEst} de estadía`; } 
+                else { tGeneral = "Paciente hospitalizado en UCI"; }
+            }
+            block1.push(tGeneral + ".");
+            
+            const o=parseInt(getVal('gcsO'))||0, v=parseInt(getVal('gcsV'))||0, m=parseInt(getVal('gcsM'))||0;
+            let sed = getVal('sedacion'); if(sed==='Fuera de escalón') sed='fuera de escalón';
+            let neuro = CLINICAL_TEXT.neuro.gcs(o+v+m, o, v, m, sed);
+            if(sed !== 'Sin sedación' && getVal('sas')) neuro += CLINICAL_TEXT.neuro.sas(getVal('sas'));
+            if(getEl('checkBNM').checked) neuro += CLINICAL_TEXT.neuro.bnm;
+            if(getEl('checkNeuroCrit').checked) { const pic=getVal('valPIC'), ppc=getVal('valPPC'); neuro+=CLINICAL_TEXT.neuro.neuroCrit(pic, ppc); }
+            block1.push(neuro + ".");
+
+            let hemoTxt = CLINICAL_TEXT.hemo.prefix + getVal('hemoEstado');
+            const dva = getVal('hemoDVA'); if (dva === 'sin DVA') hemoTxt += CLINICAL_TEXT.hemo.sinDva; else hemoTxt += CLINICAL_TEXT.hemo.conDva(dva);
+            if (getEl('checkHemoTrend')?.checked) { const tt = getVal('hemoTrendType'); if (tt) hemoTxt += CLINICAL_TEXT.hemo.tendencia(tt); }
+            if (getEl('checkMultiDVA')?.checked) { const n = getVal('dvaCount'); if (n) hemoTxt += CLINICAL_TEXT.hemo.multiDva(n); }
+            block1.push(hemoTxt + '.');
+
+            const sop = getVal('soporteTipo'); const va = getVal('viaAerea'); 
+            let resp = "";
+            if (sop === 'Ambiente' && (va === 'TOT' || va === 'TQT')) { resp = CLINICAL_TEXT.resp.artificialAmbienteWarning; } 
+            else {
+                resp = CLINICAL_TEXT.resp.soportes[sop] || CLINICAL_TEXT.resp.fallback(sop);
+                const ds = getVal('diasSoporte'); if(ds && ['VM','VNI','CNAF'].includes(sop)) resp += CLINICAL_TEXT.resp.diaSoporte(ds);
+                if(va==='TOT'||va==='TQT') { resp+=CLINICAL_TEXT.resp.via(va); const dva=getVal('diasVA'); if(dva) resp+=CLINICAL_TEXT.resp.diasVia(dva); }
+                else if(['Full Face','Oronasal'].includes(va)) resp+=CLINICAL_TEXT.resp.interfaz(va);
+                const vf = (va==='TQT') && getEl('checkVF')?.checked; if(vf && !resp.includes('Válvula Fonatoria')) resp+=CLINICAL_TEXT.resp.vf;
+            }
+            if(getEl('checkPostExt').checked) { const vpe = getVal('valPostExt'); if(vpe) resp+=CLINICAL_TEXT.resp.postExt(vpe); }
+            block1.push(resp + ".");
+
+            let pList = []; const addP = (v, l, s='') => { if(v) pList.push(`${l} ${v}${s}`); };
+            let mList = []; const addM = (v, l, s='') => { if(v) mList.push(`${l} ${v}${s}`); };
+            
+            if(sop==='VM') {
+                const mo = getVal('modoVM'); const assist = getEl('vmAssist')?getEl('vmAssist').checked:false;
+                pList.push(CLINICAL_TEXT.params.vm.modo(mo, assist));
+                if(mo==='AC/VC') { 
+                    addP(getVal('vmVt'), 'Vt', 'ml');
+                    const ft=getVal('vmFlowType'), fv=getVal('vmFlowVal'); 
+                    if(ft==='Flujo') addP(fv, 'Flujo', 'L/min'); else addP(fv, 'Ti', 's'); 
+                    addP(getVal('vmFR'), 'FR', 'rpm');
+                } else if(mo==='AC/PC') { 
+                    addP(getVal('vmPC'), 'PC', 'cmH2O'); 
+                    addP(getVal('vmTi'), 'Ti', 's'); 
+                    addP(getVal('vmFR'), 'FR', 'rpm');
+                    addM(getVal('vmVt'), 'Vt Exh', 'ml'); 
+                } else if (mo === 'CPAP+PS') { 
+                    addP(getVal('vmPS'), 'PS', 'cmH2O'); 
+                    addM(getVal('vmVt'), 'Vt Esp', 'ml');
+                    addM(getVal('vmFR'), 'FR Esp', 'rpm');
+                }
+                addP(getVal('vmPEEP'), 'PEEP', 'cmH2O'); 
+                let f = validateFiO2('vmFiO2'); addP(f, 'FiO2', '%'); 
+                addM(getVal('vmPmax'), 'Pmax', 'cmH2O'); 
+                addM(getVal('vmPmean'), 'Pmedia', 'cmH2O');
+                if(mo==='AC/VC' && !assist) { 
+                    addM(getVal('vmPlat'), 'Plat', 'cmH2O'); 
+                    addM(getVal('vmDP'), 'DP', 'cmH2O'); 
+                    addM(getVal('vmCstat'), 'Cstat', 'ml/cmH2O'); 
+                    addM(getVal('vmAuto'), 'AutoPEEP', 'cmH2O'); 
+                }
+                let rawIE = getVal('vmIE'); 
+                if(rawIE) { let valIE = parseFloat(rawIE.replace(',', '.')); if (!isNaN(valIE) && valIE >= 1.0) { mList.push(CLINICAL_TEXT.params.vm.ie(valIE)); } }
+                addM(getVal('vmRSB'), 'RSB'); 
+                addM(getVal('vmVe'), 'Vmin', 'L/min'); 
+                addM(getVal('vmSat'), 'Sat', '%');
+            } else if(sop==='VNI') {
+                pList.push(CLINICAL_TEXT.params.vni.modo(getVal('modoVNI')));
+                addP(getVal('vniIPAP'), 'IPAP', 'cmH2O'); addP(getVal('vniEPAP'), 'EPAP', 'cmH2O'); addP(getVal('vniCPAP'), 'CPAP', 'cmH2O'); addP(getVal('vniFR'), 'FR', 'rpm');
+                let f = validateFiO2('vniFiO2'); addP(f, 'FiO2', '%'); 
+                addM(getVal('vniVtT'), 'Vt Target', 'ml'); addM(getVal('vniVtExh'), 'Vt', 'ml'); addM(getVal('vniTi'), 'Ti', 's'); addM(getVal('vniIPmin'), 'IPmin', 'cmH2O'); addM(getVal('vniIPmax'), 'IPmax', 'cmH2O'); addM(getVal('vniFuga'), 'Fuga', 'L/min'); addM(getVal('vniSat'), 'Sat', '%');
+            } else if(sop==='CNAF') {
+                addP(getVal('cnafF'), 'Flujo', 'L/min'); addP(getVal('cnafT'), 'T°', '°C'); 
+                let f = validateFiO2('cnafFi'); addP(f, 'FiO2', '%'); 
+                addP(getVal('cnafFR'), 'FR', 'rpm'); addP(getVal('cnafS'), 'Sat', '%');
+            } else if(['Naricera','Venturi','TQT','TQTVF'].includes(sop)) {
+                const nt=getVal('lowFlowType'), nv=getVal('lowFlowVal');
+                if(sop==='Venturi') { if(nv) { let f = validateFiO2('lowFlowVal'); addP(f, 'FiO2', '%'); } else pList.push(CLINICAL_TEXT.params.vm.fio2_no_consignada); }
+                else { if(nt==='L/min') addP(nv, 'Flujo', 'L/min'); else { let f = validateFiO2('lowFlowVal'); addP(f, 'FiO2', '%'); } }
+                addP(getVal('valFRSpont'), 'FR', 'rpm'); addP(getVal('valSatGen'), 'Sat', '%');
+            } else {
+                addP(getVal('valFRSpont'), 'FR', 'rpm'); addP(getVal('valSatGen'), 'Sat', '%');
+            }
+            if(getEl('checkUMA') && getEl('checkUMA').checked) { addP(getVal('valUMA'), 'UMA'); }
+
+            if(pList.length > 0) { let pStr = (sop==='CNAF' ? CLINICAL_TEXT.params.cnaf : '') + pList.join(', ') + '.'; block1.push(pStr); }
+            if(mList.length > 0) { let mStr = mList.join(', ') + '.'; block1.push(mStr); }
+            block1.forEach(s=>{ if(s && String(s).trim()) addLi(String(s).trim()); });
+
+            // ── LABORATORIO ──
+            const labParts = [];
+            const _lab = (id) => { const v = getVal(id); return v !== '' ? parseFloat(v) : null; };
+
+            const hb = _lab('labHb'), hto = _lab('labHto');
+            const leuco = _lab('labLeuco'), plaq = _lab('labPlaq');
+            const gsaPH=_lab('labGsaPH'), gsaCO2=_lab('labGsaCO2'), gsaO2=_lab('labGsaO2'), gsaHCO3=_lab('labGsaHCO3'), gsaEB=_lab('labGsaEB'), gsaSat=_lab('labGsaSat'), gsaPafi=_lab('labGsaPafi');
+            const gsvPH=_lab('labGsvPH'), gsvCO2=_lab('labGsvCO2'), gsvO2=_lab('labGsvO2'), gsvHCO3=_lab('labGsvHCO3'), gsvEB=_lab('labGsvEB'), gsvSat=_lab('labGsvSat');
+            const lactato=_lab('labLactato'), kVal=_lab('labK'), naVal=_lab('labNa'), glucosa=_lab('labGlucosa');
+
+            let srItems = []; if(hb!==null) srItems.push(`Hb ${hb} g/dL`); if(hto!==null) srItems.push(`Hto ${hto}%`);
+            let sbItems = []; if(leuco!==null) sbItems.push(`Leucocitos ${leuco.toLocaleString('es-CL')} x10³/µL`); if(plaq!==null) sbItems.push(`Plaquetas ${plaq.toLocaleString('es-CL')} x10³/µL`);
+            let gsaItems = []; if(gsaPH!==null) gsaItems.push(`pH ${gsaPH}`); if(gsaCO2!==null) gsaItems.push(`PaCO₂ ${gsaCO2} mmHg`); if(gsaO2!==null) gsaItems.push(`PaO₂ ${gsaO2} mmHg`); if(gsaHCO3!==null) gsaItems.push(`HCO₃ ${gsaHCO3} mEq/L`); if(gsaEB!==null) gsaItems.push(`EB ${gsaEB} mEq/L`); if(gsaSat!==null) gsaItems.push(`Sat ${gsaSat}%`); if(gsaPafi!==null) gsaItems.push(`PaFi ${gsaPafi}`);
+            let gsvItems = []; if(gsvPH!==null) gsvItems.push(`pH ${gsvPH}`); if(gsvCO2!==null) gsvItems.push(`PvCO₂ ${gsvCO2} mmHg`); if(gsvO2!==null) gsvItems.push(`PaO₂ ${gsvO2} mmHg`); if(gsvHCO3!==null) gsvItems.push(`HCO₃ ${gsvHCO3} mEq/L`); if(gsvEB!==null) gsvItems.push(`EB ${gsvEB} mEq/L`); if(gsvSat!==null) gsvItems.push(`Sat ${gsvSat}%`);
+            let bqItems = []; if(lactato!==null) bqItems.push(`Lactato ${lactato} mmol/L`); if(kVal!==null) bqItems.push(`K⁺ ${kVal} mEq/L`); if(naVal!==null) bqItems.push(`Na⁺ ${naVal} mEq/L`); if(glucosa!==null) bqItems.push(`Glucosa ${glucosa} mg/dL`);
+
+            if(srItems.length) labParts.push(`Serie Roja: ${srItems.join(', ')}`);
+            if(sbItems.length) labParts.push(`Serie Blanca: ${sbItems.join(', ')}`);
+            if(gsaItems.length) labParts.push(`GSA: ${gsaItems.join(', ')}`);
+            if(gsvItems.length) labParts.push(`GSV: ${gsvItems.join(', ')}`);
+            if(bqItems.length) labParts.push(`Bioquímica: ${bqItems.join(', ')}`);
+
+            if(labParts.length) addLi(`Se destaca en ${labParts.join('. ')}.`);
+
+            // ── IMÁGENES ──
+            const imgPartes = getImagenesTexto();
+            imgPartes.forEach(p => addLi(cleanEnd(p)));
+
+            // Bloque 2 - Examen Físico
+            let block2 = [];
+            const mp = getVal('exMP');
+            let ruidos = getVal('exRuidos'); if(ruidos==='Otro') { const rMan = getVal('exRuidosMan'); ruidos = rMan ? rMan : CLINICAL_TEXT.fisico.ruidosNo; } if(ruidos==='sin ruidos agregados') ruidos=CLINICAL_TEXT.fisico.sinRuidos; 
+            block2.push(CLINICAL_TEXT.fisico.mp(mp, ruidos));
+            const secCant = getVal('exSecrCant') || '-'; const secT = getVal('exSecrTipo'); const cantMap = CLINICAL_TEXT.fisico.cantidades;
+            if(secCant==='-' || secCant==='') { block2.push(CLINICAL_TEXT.fisico.secNo); } 
+            else { 
+                let rheo = secT; if(rheo==='Otro') rheo = getVal('exSecrMan'); if(rheo==='Sin secreciones' || !rheo) rheo = '';
+                const cantTxt = cantMap[secCant] ? cantMap[secCant] : CLINICAL_TEXT.fisico.presentes;
+                if(rheo === 'Tose y Deglute') { block2.push(`Secreciones ${cantTxt.toLowerCase()}, tose y deglute.`); }
+                else if(rheo) { if(!rheo.toLowerCase().includes('reología')) { block2.push(CLINICAL_TEXT.fisico.secSi(cantTxt, rheo)); } } 
+                else {
+                    if (getVal('viaAerea') === 'Natural') { block2.push(`Secreciones ${cantTxt.toLowerCase()}, tose y deglute.`); }
+                    else { block2.push(CLINICAL_TEXT.fisico.secPend(cantTxt)); }
+                }
+            }
+            addLi(block2.join(" "));
+
+            // Kine & Suspension
+            let kine = ""; 
+            const proc = getVal('txtProcedimientos');
+            const obsSel = getVal('selKtmObs'); const obsMan = getVal('txtKtmObsMan');
+
+            if(getVal('turno') !== 'Noche') {
+                if(getEl('checkKtmSusp').checked) {
+                    const type = getVal('selKtmContraType');
+                    if (type === 'Otro') {
+                         const manReason = getVal('txtKtmContraMan');
+                         kine = manReason ? `Kinesiología Motora suspendida por ${manReason}.` : "Kinesiología Motora suspendida (motivo no especificado).";
+                    } else {
+                        let reason = getVal('selKtmReason');
+                        const subDiv = getEl('divKtmReasonSub');
+                        if (subDiv && !subDiv.classList.contains('hidden')) {
+                            const subVal = getVal('selKtmReasonSub');
+                            if (subVal) reason = subVal;
+                        }
+                        if (reason) { kine = `Kinesiología Motora suspendida por ${reason}.`; }
+                        else { kine = "Kinesiología Motora suspendida (motivo no especificado)."; }
+                    }
+                } else if(getEl('checkKtmRealizada').checked) {
+                    const tRaw = getVal('txtKtmTiempo'); const t = tRaw ? tRaw.replace(/\D/g,'') : ''; 
+                    kine = CLINICAL_TEXT.kine.realizada(getVal('selKtmNivel'), t);
+                    if(obsSel==='Sin incidentes') kine += CLINICAL_TEXT.kine.obsSinIncidentes; 
+                    else if(obsSel==='Otro') { if(obsMan) kine += ` ${CLINICAL_TEXT.kine.obsPrefix}${obsMan}.`; } 
+                    else if(obsSel) kine += ` ${CLINICAL_TEXT.kine.obsPrefix}${obsSel}.`;
+                } else { 
+                    kine = "Kinesiología Motora no realizada."; 
+                }
+            }
+            if(kine) addLi(kine);
+
+            let procText = ""; if(proc) procText = `${cleanEnd(proc)}`; else if(kine.includes('no realizada') || kine.includes('suspendida') || !kine) { procText = CLINICAL_TEXT.kine.fallback; }
+            addLi(procText);
+
+            // ── MUESTRA RESPIRATORIA ──
+            if (getEl('checkMuestra') && getEl('checkMuestra').checked) {
+                let tipo = getVal('selMuestraTipo');
+                if (tipo === 'Otro') tipo = getVal('txtMuestraOtro').trim();
+                const destino = getVal('selMuestraDestino');
+                const rotulada = getEl('checkMuestraRotulada').checked;
+                if (tipo) {
+                    let muestraTxt = `Se obtiene muestra de ${tipo} para ${destino}`;
+                    muestraTxt += rotulada ? ', rotulada y enviada a laboratorio.' : ', pendiente de envío.';
+                    addLi(muestraTxt);
+                }
+            }
+            
+            // EGRESO
+            if (getEl('checkEgreso').checked) {
+                const nm = getVal('egresoNivelMotor');
+                if (!nm) {
+                    showToast("⚠️ Falta Nivel Motor en Egreso (Obligatorio)");
+                    getEl('egresoNivelMotor').classList.add('input-warning');
+                } else {
+                    getEl('egresoNivelMotor').classList.remove('input-warning');
+                }
+                let rehabMot = [];
+                if(nm) rehabMot.push(`Nivel Motor ${nm}`);
+                const mrc = getVal('egresoMRCSS'); if(mrc) rehabMot.push(`MRCSS ${mrc}`);
+                const fss = getVal('egresoFSS'); if(fss) rehabMot.push(`FSS-ICU ${fss}`);
+                const grosor = getVal('egresoGrosor'); if(grosor) rehabMot.push(`Grosor Cuádriceps ${grosor} cm`);
+                if (rehabMot.length > 0) addLi("Rehabilitación Motora: " + rehabMot.join(", ") + ".");
+
+                let rehabResp = [];
+                const pim = getVal('egresoPIM'); if(pim) rehabResp.push(`PIM ${pim} cmH2O`);
+                const pem = getVal('egresoPEM'); if(pem) rehabResp.push(`PEM ${pem} cmH2O`);
+                const fem = getVal('egresoFEM'); if(fem) rehabResp.push(`FEM ${fem} L/min`);
+                const fed = getVal('egresoFED'); if(fed) rehabResp.push(`FED ${fed}%`);
+                const diaf = getVal('egresoDiafrag'); if(diaf) rehabResp.push(`Excursión Diafragmática ${diaf} cm`);
+                if (rehabResp.length > 0) addLi("Rehabilitación Respiratoria: " + rehabResp.join(", ") + ".");
+
+                if(getEl('divEgresoTQT') && !getEl('divEgresoTQT').classList.contains('hidden')) {
+                    let rehabTQT = [];
+                    const bdtP = getVal('egresoBDT_Pos'); if(bdtP) rehabTQT.push(`Blue Dye (+) ${bdtP}`);
+                    const bdtN = getVal('egresoBDT_Neg'); if(bdtN) rehabTQT.push(`Blue Dye (-) ${bdtN}`);
+                    const pva = getVal('egresoPresionVA'); if(pva) rehabTQT.push(`Presión VA ${pva} cmH2O`);
+                    if (rehabTQT.length > 0) addLi("Evaluación de Vía Aérea Artificial (TQT): " + rehabTQT.join(", ") + ".");
+                }
+            }
+
+            // Planes
+            let pl = getVal('txtPlanes'), pe = getEl('checkPendientes').checked ? getVal('txtPendientes') : '';
+            if(pl) addLi(CLINICAL_TEXT.planes.titulo + cleanEnd(pl)); 
+            if(pe) addLi(CLINICAL_TEXT.planes.pendientes + cleanEnd(pe));
+            
+            show('resultArea'); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        // ── LOGIC HELPERS ──
+        function expandGCS(el, type) { for(let i=0; i<el.options.length; i++) { const val = parseInt(el.options[i].value); if(GCS_DESC[type][val]) el.options[i].text = `${val} - ${GCS_DESC[type][val]}`; } }
+        function shrinkGCS(el) { for(let i=0; i<el.options.length; i++) el.options[i].text = el.options[i].value; }
+        function expandSAS(el) { for(let i=0; i<el.options.length; i++) { const val = parseInt(el.options[i].value); if(SAS_DESC[val]) el.options[i].text = `${val} - ${SAS_DESC[val]}`; } }
+        function shrinkSAS(el) { for(let i=0; i<el.options.length; i++) el.options[i].text = el.options[i].value; }
+        function calcGCS() { const o = parseInt(getVal('gcsO'))||0; const v = parseInt(getVal('gcsV'))||0; const m = parseInt(getVal('gcsM'))||0; getEl('lblGCS').innerText = (o + v + m); }
+        function cleanEnd(str) { return str ? str.trim().replace(/\.+$/, '') + '.' : ''; }
+        function _numVal(id) { const raw = (getVal(id) || '').toString().trim().replace(',', '.'); const n = parseFloat(raw); return Number.isFinite(n) ? n : null; }
+        function _fmtNum(n, dec) { if (n === null || !Number.isFinite(n)) return ''; const fixed = n.toFixed(dec); return fixed.replace(/\.0+$/, '').replace(/(\.[0-9]*[1-9])0+$/, '$1'); }
+
+        // ── UI BUILDERS ──
+        function mkInp(id, lbl, wClass='w-small') { return `<div class="input-group ${wClass}"><label>${lbl}</label><input type="text" id="${id}" class="text-center input-bold"></div>`; }
+        function mkMon(id, lbl) { return `<div class="input-group"><label class="label-xs-center">${lbl}</label><input type="text" id="${id}" class="monitor-input"></div>`; }
+        function mkNumInp(id, lbl, min, max, step, wClass='w-small') { return `<div class="input-group ${wClass}"><label>${lbl}</label><input type="number" id="${id}" class="text-center input-bold" min="${min}" max="${max}" step="${step}"></div>`; }
+        function mkNumMon(id, lbl, min, max, step) { return `<div class="input-group"><label class="label-xs-center">${lbl}</label><input type="number" id="${id}" class="monitor-input" min="${min}" max="${max}" step="${step}"></div>`; }
+
+        // ── VALIDATIONS & CALCULATIONS ──
+        function enforceRange(el) {
+            if (el.value === '') return;
+            let val = parseFloat(el.value);
+            const min = parseFloat(el.getAttribute('min'));
+            const max = parseFloat(el.getAttribute('max'));
+            const isFiO2 = el.id.toLowerCase().includes('fio2') || el.id.includes('cnafFi') || (el.id === 'lowFlowVal' && getVal('lowFlowType') === 'FiO2');
+            if (isFiO2 && val > 0 && val <= 1.0) { const newVal = parseFloat((val * 100).toFixed(0)); showToast(`🔄 Conversión automática: ${val} -> ${newVal}%`); el.value = newVal; val = newVal; }
+            if (!isNaN(min) && val < min) { el.value = min; showToast(`⚠️ Valor ${val} fuera de rango. Ajustado al mínimo: ${min}`); el.classList.add('input-warning'); if (el.warningTimer) clearTimeout(el.warningTimer); el.warningTimer = setTimeout(() => { el.classList.remove('input-warning'); el.warningTimer = null; }, 2000); } 
+            else if (!isNaN(max) && val > max) { el.value = max; showToast(`⚠️ Valor ${val} fuera de rango. Ajustado al máximo: ${max}`); el.classList.add('input-warning'); if (el.warningTimer) clearTimeout(el.warningTimer); el.warningTimer = setTimeout(() => { el.classList.remove('input-warning'); el.warningTimer = null; }, 2000); }
+        }
+
+        function validateFiO2(id) {
+            let val = _numVal(id);
+            if (val === null) return null;
+            if (val > 0 && val <= 1.0) val = parseFloat((val * 100).toFixed(1)); 
+            if (val < 21 || val > 100) showToast(`⚠️ Alerta: FiO₂ del ${val}% fuera de rango clínico (21-100%)`);
+            return val;
+        }
+
+        function calcDerivedVM() {
+            const mode = getVal('modoVM'); if (!mode) return;
+            const assist = getEl('vmAssist') ? getEl('vmAssist').checked : false;
+            const vt = _numVal('vmVt'); const fr = _numVal('vmFR');
+            const frTotEl = getEl('vmFR'); 
+            if (frTotEl && (assist || mode === 'CPAP+PS')) {
+                if (!frTotEl.value.trim()) { frTotEl.classList.add('input-warning'); frTotEl.title = "Dato pendiente"; } else { frTotEl.classList.remove('input-warning'); frTotEl.title = ""; }
+            }
+            if (vt !== null && fr !== null) { const vmin = fr * (vt / 1000); const veEl = getEl('vmVe'); if (veEl) veEl.value = _fmtNum(vmin, 2); }
+            if (mode === 'AC/VC' && !assist) {
+                const plat = _numVal('vmPlat'); const peep = _numVal('vmPEEP'); const auto = _numVal('vmAuto') || 0;
+                if (plat !== null && peep !== null) {
+                    const dp = plat - (peep + auto);
+                    const dpEl = getEl('vmDP'); if (dpEl) dpEl.value = _fmtNum(dp, 1);
+                    if (vt !== null && dp !== null && dp > 0) { const cstat = vt / dp; const cEl = getEl('vmCstat'); if (cEl) cEl.value = _fmtNum(cstat, 1); }
+                }
+            }
+            if ((mode === 'CPAP+PS' || assist) && fr !== null && vt !== null && vt > 0) { const rsb = fr / (vt / 1000); const rsbEl = getEl('vmRSB'); if (rsbEl) rsbEl.value = _fmtNum(rsb, 0); }
+        }
+
+        function lockAutoVMFields() { const autoIds = ['vmVe', 'vmDP', 'vmCstat', 'vmRSB']; autoIds.forEach(id => { const el = getEl(id); if (el) { el.readOnly = true; el.style.background = '#f1f5f9'; el.style.fontWeight = '700'; }}); }
+        function bindVMCalcs() { const ids=['vmVt', 'vmFR', 'vmTi', 'vmFlowVal', 'vmPC', 'vmPS', 'vmPEEP', 'vmPlat', 'vmAuto', 'vmPmax', 'vmPmean', 'vmIE', 'vmAssist', 'modoVM', 'vmFlowType']; ids.forEach(id => { const el = getEl(id); if (el && !el.__hasVMCalcBind) { el.__hasVMCalcBind = true; el.addEventListener('input', calcDerivedVM); el.addEventListener('change', calcDerivedVM); }}); }
+
+        // ── HANDLERS ──
+        function handleViaAerea() { updateViaAereaUI(); syncClinicalCoherence('viaAerea'); }
+        function handleVF() { syncClinicalCoherence('vf'); }
+        function handleSoporte() { updateSoporteUI(); syncClinicalCoherence('soporte'); }
+        function handleTurno() { const t = getVal('turno'); if(t==='Noche'){ hide('panelKineDia'); show('panelKineNoche'); document.body.classList.add('modo-noche'); } else { show('panelKineDia'); hide('panelKineNoche'); document.body.classList.remove('modo-noche'); } }
+        function handleIngreso() { const chk = getEl('checkIngreso'); if (chk.checked) { show('divDiagnostico'); getEl('txtDiagnostico').focus(); } else { hide('divDiagnostico'); getEl('txtDiagnostico').value = ''; } }
+        function handleNeuroCrit() { if(getEl('checkNeuroCrit').checked) show('divNeuroCrit'); else hide('divNeuroCrit'); }
+        function handleSedacionSAS() { const sed = getVal('sedacion'); const wrap = getEl('sasGroup'); const sel = getEl('sas'); if (!wrap || !sel) return; if (sed === 'Sin sedación') { wrap.classList.add('hidden'); sel.value = ''; shrinkSAS(sel); } else { wrap.classList.remove('hidden'); if (!sel.value) sel.value = '4'; shrinkSAS(sel); } }
+        function handlePostExt() { if(getEl('checkPostExt').checked) show('postExtTimeGroup'); else hide('postExtTimeGroup'); }
+        function handleKtmToggle(action) { const r = getEl('checkKtmRealizada'), s = getEl('checkKtmSusp'); if(action==='suspendida' && s.checked) { r.checked=false; } else if(action==='realizada' && r.checked) { s.checked=false; } if(r.checked) { show('divKtmConfig'); hide('divKtmSuspOptions'); } else { hide('divKtmConfig'); if (s.checked) { show('divKtmSuspOptions'); } else { hide('divKtmSuspOptions'); } } const obs = getEl('selKtmObs'); if(obs) obs.disabled = (!r.checked && !s.checked); }
+        function handleSecreciones() { const cant = getVal('exSecrCant'); const tipoEl = getEl('exSecrTipo'); const manId = 'exSecrMan'; const manEl = getEl(manId); const warnEl = getEl('exSecrWarn'); if (!cant) { if (tipoEl) { tipoEl.value = ''; tipoEl.disabled = true; tipoEl.classList.remove('input-warning'); } hide(manId); if(manEl) { manEl.value = ''; manEl.classList.remove('input-warning'); } if(warnEl) hide('exSecrWarn'); return; } if (tipoEl) tipoEl.disabled = false; const tipoVal = getVal('exSecrTipo'); const vaNatural = getVal('viaAerea') === 'Natural'; if (tipoVal === 'Otro') { show(manId); } else { hide(manId); if(manEl) manEl.value = ''; } let isPending = false; if (!tipoVal) { isPending = vaNatural ? false : true; } else if (tipoVal === 'Otro') { if (!getVal(manId).trim()) { isPending = true; if(manEl) manEl.classList.add('input-warning'); } else { if(manEl) manEl.classList.remove('input-warning'); } } if (isPending) { tipoEl.classList.add('input-warning'); if(warnEl) show('exSecrWarn'); } else { tipoEl.classList.remove('input-warning'); if(manEl) manEl.classList.remove('input-warning'); if(warnEl) hide('exSecrWarn'); } }
+        function checkManualInput(selId, inpId) { const sel = getEl(selId); const inp = getEl(inpId); if(sel.value === 'Otro') show(inpId); else { hide(inpId); if(inp) inp.value=''; } }
+        function handleHemoTrend() { if(getEl('checkHemoTrend').checked) show('grpHemoTrendType'); else hide('grpHemoTrendType'); }
+        function handleMultiDVA() { const d = getVal('hemoDVA'); const chk = getEl('checkMultiDVA'); const wrap = document.getElementById('wrapMultiDVA'); if(d !== 'sin DVA') { if(wrap) wrap.classList.remove('hidden'); if(chk.checked) show('grpDVACount'); else hide('grpDVACount'); } else { if(wrap) wrap.classList.add('hidden'); chk.checked = false; hide('grpDVACount'); } }
+        function handleUMA() { const chk = getEl('checkUMA'); if(!chk) return; if(chk.checked) { show('umaSelectGroup'); } else { hide('umaSelectGroup'); const v=getEl('valUMA'); if(v) v.value='+'; } }
+        function handlePendientes() { const chk = getEl('checkPendientes'); const txt = getEl('txtPendientes'); if(chk.checked) { show('txtPendientes'); } else { hide('txtPendientes'); txt.value = ''; } }
+        function handleLowFlowValidation() { const s = getVal('soporteTipo'); const inp = getEl('lowFlowVal'); if (!inp) return; if (s === 'Venturi' && !inp.value.trim()) inp.classList.add('input-warning'); else inp.classList.remove('input-warning'); }
+        function handleLowFlowTypeChange() { const select = getEl('lowFlowType'); const input = getEl('lowFlowVal'); if (!select || !input) return; if (select.value === 'FiO2') { input.placeholder = '%'; input.setAttribute('min', '21'); input.setAttribute('max', '100'); input.setAttribute('step', '1'); } else { input.placeholder = 'L/min'; input.setAttribute('min', '0'); input.setAttribute('max', '60'); input.setAttribute('step', '0.5'); } handleLowFlowValidation(); }
+        function handleIEValidation() { const inp = getEl('vmIE'); if (!inp) return; const raw = inp.value.trim(); if (raw === '') { inp.classList.remove('input-warning'); return; } const val = parseFloat(raw.replace(',', '.')); if (isNaN(val) || val < 1.0) { inp.classList.add('input-warning'); inp.title = "Error: Debe ser valor numérico ≥ 1.0"; } else { inp.classList.remove('input-warning'); inp.title = ""; } }
+        function handleVMFlowType() { const type = getVal('vmFlowType'); const input = getEl('vmFlowVal'); if (!input) return; input.value = ''; input.classList.remove('input-warning'); if (type === 'Flujo') { input.setAttribute('min', '0'); input.setAttribute('max', '80'); input.setAttribute('step', '1'); } else { input.setAttribute('min', '0.2'); input.setAttribute('max', '3.0'); input.setAttribute('step', '0.1'); } }
+        function handleVmAssist() { const assistEl = getEl('vmAssist'); if(!assistEl) return; const isAssist = assistEl.checked; const mode = getVal('modoVM'); if(mode==='AC/VC') { if(isAssist) hide('grpMechanics'); else show('grpMechanics'); } }
+
+        // ── MUESTRA RESPIRATORIA HANDLERS ──
+        function handleMuestra() {
+            const chk = getEl('checkMuestra');
+            if (chk.checked) {
+                show('divMuestraTipo');
+                show('divMuestraDestino');
+            } else {
+                hide('divMuestraTipo');
+                hide('divMuestraDestino');
+                hide('divMuestraOtro');
+                getEl('selMuestraTipo').value = 'Mini-BAL';
+                getEl('txtMuestraOtro').value = '';
+            }
+        }
+
+        function handleCheckLab() { if(getEl('checkLab').checked) show('divLabBody'); else hide('divLabBody'); }
+        function handleCheckImg() { if(getEl('checkImg').checked) show('divImgBody'); else hide('divImgBody'); }
+
+        function handleMuestraOtro() {
+            const tipo = getVal('selMuestraTipo');
+            if (tipo === 'Otro') {
+                show('divMuestraOtro');
+                getEl('txtMuestraOtro').focus();
+            } else {
+                hide('divMuestraOtro');
+                getEl('txtMuestraOtro').value = '';
+            }
+        }
+
+        function updateKtmCategories() {
+            const type = getVal('selKtmContraType');
+            const catSel = getEl('selKtmCategory');
+            const reasonSel = getEl('selKtmReason');
+            const manInput = getEl('txtKtmContraMan'); 
+            catSel.innerHTML = '<option value="" disabled selected>-- --</option>';
+            reasonSel.innerHTML = '<option value="" disabled selected>-- Seleccione Motivo --</option>';
+            catSel.disabled = true;
+            reasonSel.disabled = true;
+            hide('txtKtmContraMan');
+            if (type === 'Otro') {
+                show('txtKtmContraMan');
+                manInput.focus();
+            } else if (type && KTM_CONTRAINDICATIONS[type]) {
+                catSel.disabled = false;
+                Object.keys(KTM_CONTRAINDICATIONS[type]).forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    catSel.appendChild(opt);
+                });
+            }
+        }
+
+        function updateKtmReasons() {
+            const type = getVal('selKtmContraType');
+            const cat = getVal('selKtmCategory');
+            const reasonSel = getEl('selKtmReason');
+            reasonSel.innerHTML = '<option value="" disabled selected>-- Seleccione Categoría --</option>';
+            hide('divKtmReasonSub');
+            if (type && cat && KTM_CONTRAINDICATIONS[type] && KTM_CONTRAINDICATIONS[type][cat]) {
+                reasonSel.disabled = false;
+                KTM_CONTRAINDICATIONS[type][cat].forEach(reason => {
+                    const opt = document.createElement('option');
+                    if (typeof reason === 'object') {
+                        opt.value = reason.label;
+                        opt.textContent = reason.label;
+                        opt.dataset.options = JSON.stringify(reason.options);
+                    } else {
+                        opt.value = reason;
+                        opt.textContent = reason;
+                    }
+                    reasonSel.appendChild(opt);
+                });
+            } else {
+                reasonSel.disabled = true;
+            }
+        }
+
+        function handleKtmReasonChange() {
+            const reasonSel = getEl('selKtmReason');
+            const selected = reasonSel.options[reasonSel.selectedIndex];
+            const subDiv = getEl('divKtmReasonSub');
+            const subSel = getEl('selKtmReasonSub');
+            if (selected && selected.dataset.options) {
+                const opts = JSON.parse(selected.dataset.options);
+                subSel.innerHTML = '';
+                opts.forEach(o => {
+                    const op = document.createElement('option');
+                    op.value = o; op.textContent = o;
+                    subSel.appendChild(op);
+                });
+                show('divKtmReasonSub');
+            } else {
+                hide('divKtmReasonSub');
+                subSel.innerHTML = '';
+            }
+        }
+
+        function handleEgreso() {
+            const chk = getEl('checkEgreso');
+            if(chk.checked) { show('divEgresoOptions'); updateEgresoTQT(); } 
+            else { hide('divEgresoOptions'); }
+        }
+
+        function updateEgresoTQT() {
+            const va = getVal('viaAerea');
+            const isTQT = (va === 'TQT' || va === 'TQTVF');
+            const divTQT = getEl('divEgresoTQT');
+            if(divTQT) { if(isTQT) show('divEgresoTQT'); else hide('divEgresoTQT'); }
+        }
+
+        // ── RENDER FUNCTIONS ──
+        function renderLowFlowFields(s) {
+            const p=getEl('panelParams');
+            let h = '<div class="low-flow-container"><div class="input-group w-medium">';
+            let ph = 'L/min'; let extraAttrs = 'min="0" max="60" step="0.5"'; 
+            if(s==='Venturi') { h+=`<select id="lowFlowType" class="low-flow-select" disabled><option value="FiO2">FiO2 %</option></select>`; ph = '%'; extraAttrs = 'min="21" max="100" step="1"'; } 
+            else { h+=`<select id="lowFlowType" class="low-flow-select" onchange="handleLowFlowTypeChange()"><option value="L/min">L/min</option><option value="FiO2">FiO2 %</option></select>`; }
+            h+=`<input type="number" id="lowFlowVal" class="text-center font-bold" placeholder="${ph}" ${extraAttrs} oninput="handleLowFlowValidation()"></div></div>`;
+            p.innerHTML = h;
+        }
+
+        function renderVMFields() {
+            const m = getVal('modoVM'); const p = getEl('panelParams');
+            let h = '<div class="vm-header-row"><div class="vm-section-title">SETEO</div>';
+            if(m!=='CPAP+PS') h+=`<div class="check-wrap c-blue vm-assist-chk"><input type="checkbox" id="vmAssist" onchange="handleVmAssist()"><label for="vmAssist">ASISTE</label></div>`;
+            h+='</div><div class="input-row">';
+            if(m==='AC/VC') { h+=mkNumInp('vmVt','Vt', 0, 1200, 10); h+=`<div class="input-group w-small"><select id="vmFlowType" class="vm-flow-select" onchange="handleVMFlowType()"><option value="Flujo">FLUJO</option><option value="Ti">Ti</option></select><input type="number" id="vmFlowVal" class="text-center input-bold" min="0" max="80" step="1"></div>`; h+=mkNumInp('vmFR','FR', 0, 100, 1, 'w-small'); h+=mkNumInp('vmPEEP','PEEP', 0, 30, 1); h+=mkNumInp('vmFiO2','FiO2', 21, 100, 1); } 
+            else if(m==='AC/PC') { h+=mkNumInp('vmPC','PC', 0, 30, 1); h+=mkNumInp('vmTi','Ti', 0.2, 3.0, 0.1); h+=mkNumInp('vmFR','FR', 0, 100, 1, 'w-small'); h+=mkNumInp('vmPEEP','PEEP', 0, 30, 1); h+=mkNumInp('vmFiO2','FiO2', 21, 100, 1); } 
+            else { h+=mkNumInp('vmPS','PS', 0, 30, 1); h+=mkNumInp('vmPEEP','PEEP', 0, 30, 1); h+=mkNumInp('vmFiO2','FiO2', 21, 100, 1); }
+            h+='</div><div class="monitor-grid">';
+            h+=mkMon('vmVe','Vmin'); 
+            if(m==='AC/PC') { h+=mkNumMon('vmVt','Vt Exh', 0, 1500, 10); }
+            if(m==='CPAP+PS') { h+=mkNumMon('vmVt','Vt Esp', 0, 1500, 10); h+=mkNumMon('vmFR','FR Esp', 0, 80, 1); }
+            h+=mkNumMon('vmPmax','Pmax', 0, 60, 1); h+=mkNumMon('vmPmean','Pmedia', 0, 60, 1); 
+            if(m==='AC/VC') { h+=`<div id="grpMechanics" style="display:contents;">`; h+=mkNumMon('vmPlat','Plat', 0, 60, 1); h+=mkMon('vmDP','DP'); h+=mkMon('vmCstat','Cstat'); h+=mkNumMon('vmAuto','Auto', 0, 60, 1); h+=`</div>`; }
+            if(m!=='CPAP+PS') h+=`<div class="input-group"><label class="label-xs-center">I:E</label><div class="flex-gap" style="gap:4px; align-items: center;"><span class="font-bold text-muted" style="font-size:0.9rem;">1 :</span><input type="text" id="vmIE" class="monitor-input" style="flex:1;text-align:center;" placeholder="2.0" oninput="handleIEValidation()"></div></div>`;
+            if(m==='CPAP+PS') h+=mkMon('vmRSB','RSB'); 
+            h+=`<div class="vm-sat-box"><label class="vm-sat-label">Sat %</label><input id="vmSat" class="vm-sat-input" type="number" min="0" max="100"></div></div>`;
+            p.innerHTML=h;
+            handleVMFlowType(); lockAutoVMFields(); bindVMCalcs(); calcDerivedVM();
+        }
+
+        function renderVNIFields() {
+            const m = getVal('modoVNI'); const p = getEl('panelParams');
+            let h = '<div class="vm-header-row"><div class="vm-section-title">SETEO</div></div><div class="input-row">';
+            if(m==='CPAP') { h+=mkNumInp('vniCPAP','CPAP', 0, 30, 1); h+=mkNumInp('vniFiO2','FiO2', 21, 100, 1); }
+            else if(m==='S/T') { h+=mkNumInp('vniIPAP','IPAP', 0, 40, 1); h+=mkNumInp('vniEPAP','EPAP', 0, 20, 1); h+=mkNumInp('vniFR','FR', 0, 100, 1, 'w-small'); h+=mkNumInp('vniTi','Ti', 0.2, 3.0, 0.1); h+=mkNumInp('vniFiO2','FiO2', 21, 100, 1); }
+            else { h+=mkNumInp('vniVtT','Vt T', 0, 1500, 10); h+=mkNumInp('vniIPmin','IPmin', 0, 30, 1); h+=mkNumInp('vniIPmax','IPmax', 0, 40, 1); h+=mkNumInp('vniEPAP','EPAP', 0, 20, 1); h+=mkNumInp('vniFR','FR', 0, 100, 1, 'w-small'); }
+            h+='</div><div class="monitor-grid">'; h+=mkNumMon('vniVtExh','Vt', 0, 1500, 10); h+=mkNumMon('vniFuga','Fuga', 0, 200, 1);
+            h+=`<div class="vm-sat-box"><label class="vm-sat-label">Sat %</label><input id="vniSat" class="vm-sat-input" type="number" min="0" max="100"></div></div>`;
+            p.innerHTML=h;
+        }
+
+        // ── ORCHESTRATION ──
+        function updateViaAereaUI() {
+            const va = getVal('viaAerea');
+            const divDias = document.getElementById('divDiasVA');
+            if(divDias){ divDias.classList.toggle('hidden', !(va==='TOT' || va==='TQT')); }
+            const divVF = document.getElementById('divVF');
+            const chkVF = document.getElementById('checkVF');
+            if(divVF){ const showVF = (va==='TQT'); divVF.classList.toggle('hidden', !showVF); if(!showVF && chkVF) chkVF.checked = false; }
+            if(getEl('checkEgreso').checked) { updateEgresoTQT(); }
+        }
+
+        function updateSoporteUI() {
+            const s = getVal('soporteTipo');
+            hide('divModoVM'); hide('divModoVNI'); hide('divDiasSoporte'); hide('panelParams'); hide('divSatGen'); hide('frSpontBox');
+            const p = getEl('panelParams'); p.innerHTML=''; p.classList.add('hidden'); p.classList.remove('panel-blue');
+            if(s==='CNAF') { show('divDiasSoporte'); p.classList.remove('hidden'); p.classList.add('fade-in', 'panel-blue');
+                let h='<div class="monitor-grid">';
+                h+='<div class="input-group"><label>Flujo</label><select id="cnafF">';
+                for(let i=30;i<=60;i+=5) h+=`<option value="${i}" ${i===60?'selected':''}>${i}</option>`;
+                h+='</select></div><div class="input-group"><label>T°</label><select id="cnafT"><option value="31">31</option><option value="34">34</option><option value="37">37</option></select></div>';
+                h+=mkNumInp('cnafFi','FiO2', 21, 100, 1); h+=mkNumInp('cnafS','Sat', 0, 100, 1, 'w-small'); h+=mkNumInp('cnafFR','FR', 0, 80, 1, 'w-small');
+                h+='</div>'; p.innerHTML=h;
+            } else if(s==='VM') { show('divModoVM'); show('divDiasSoporte'); p.classList.remove('hidden'); p.classList.add('fade-in', 'panel-blue'); renderVMFields(); }
+            else if(s==='VNI') { show('divModoVNI'); show('divDiasSoporte'); p.classList.remove('hidden'); p.classList.add('fade-in', 'panel-blue'); renderVNIFields(); }
+            else if(['Naricera','Venturi','TQT','TQTVF','Ambiente'].includes(s)) {
+                show('divSatGen'); show('frSpontBox'); 
+                if(['Naricera','Venturi','TQT','TQTVF'].includes(s)) { p.classList.remove('hidden'); p.classList.add('fade-in', 'panel-blue'); renderLowFlowFields(s); handleLowFlowValidation(); }
+            } else { show('divSatGen'); show('frSpontBox'); }
+            if(s==='VM') bindVMCalcs();
+        }
+
+        function syncClinicalCoherence(trigger) {
+            if (__isSyncing) return;
+            __isSyncing = true; 
+            const vaEl = getEl('viaAerea'); const sEl = getEl('soporteTipo'); const vfEl = getEl('checkVF');
+            if (trigger === 'soporte') {
+                const s = sEl.value;
+                if (s === 'TQT' || s === 'TQTVF') { if (vaEl.value !== 'TQT') { vaEl.value = 'TQT'; updateViaAereaUI(); showToast('⚠️ Vía aérea ajustada a TQT por soporte'); } } 
+                else if (s === 'VNI') { if (vaEl.value === 'Natural' || vaEl.value === 'TOT' || vaEl.value === 'TQT') { if (vaEl.value !== 'Full Face' && vaEl.value !== 'Oronasal') { vaEl.value = 'Oronasal'; updateViaAereaUI(); showToast('⚠️ Interfaz ajustada a Oronasal para VNI'); } } } 
+                else if (s === 'VM') { if (vaEl.value === 'Natural') { vaEl.value = 'TOT'; updateViaAereaUI(); showToast('⚠️ Vía aérea ajustada a TOT para VM'); } }
+            }
+            if (trigger === 'viaAerea') {
+                const va = vaEl.value;
+                if (va === 'TOT') { if (sEl.value === 'Ambiente' || sEl.value === 'VNI') { sEl.value = 'VM'; updateSoporteUI(); showToast('⚠️ Soporte ajustado a VM por TOT'); } } 
+                else if (va === 'Natural') { if (sEl.value === 'TQT' || sEl.value === 'TQTVF') { sEl.value = 'Ambiente'; updateSoporteUI(); showToast('⚠️ Soporte ajustado a Ambiente por vía Natural'); } }
+            }
+            const va = vaEl.value; const vf = vfEl ? vfEl.checked : false; const selV = getEl('gcsV');
+            if (selV) {
+                const mustLock = (va === 'TOT') || (va === 'TQT' && !vf);
+                if (mustLock) { if (!selV.disabled) { if (__prevGCSV === null) __prevGCSV = selV.value; selV.value = '1'; selV.disabled = true; gcsAutoAdjusted = true; } } 
+                else { if (selV.disabled) { selV.disabled = false; if (__prevGCSV !== null) { selV.value = __prevGCSV; } __prevGCSV = null; gcsAutoAdjusted = false; } }
+                calcGCS(); 
+            }
+            __isSyncing = false; 
+        }
+
+        // ── INIT ──
+        window.onload = function() {
+            getEl('turno').value = 'Día';
+            handleTurno();
+            updateViaAereaUI();
+            updateSoporteUI();
+            syncClinicalCoherence('soporte');
+            handleKtmToggle('realizada');
+            handleSecreciones();
+            handleSedacionSAS();
+            document.addEventListener("wheel", function(event){ if(document.activeElement.type === "number"){ document.activeElement.blur(); } });
+            document.addEventListener('focusout', function(e) { if (e.target && e.target.type === 'number') { enforceRange(e.target); } });
+        };
+        // ── COLLAPSE TOGGLE ──
+        function toggleCollapse(bodyId, chevronId) {
+            const body = getEl(bodyId);
+            const chev = getEl(chevronId);
+            if(!body) return;
+            const isHidden = body.classList.contains('hidden');
+            if(isHidden) { body.classList.remove('hidden'); if(chev) chev.style.transform = 'rotate(180deg)'; }
+            else { body.classList.add('hidden'); if(chev) chev.style.transform = 'rotate(0deg)'; }
+        }
+
+        // ── IMÁGENES ──
+        function addImagen() {
+            imgCounter++;
+            const id = imgCounter;
+            const container = getEl('imgContainer');
+            hide('imgEmptyMsg');
+
+            const div = document.createElement('div');
+            div.id = `imgRow_${id}`;
+            div.style.cssText = 'border:1px solid var(--border); border-radius:6px; padding:10px; background:var(--bg-body); position:relative;';
+            div.innerHTML = `
+                <button type="button" onclick="removeImagen(${id})" style="position:absolute;top:6px;right:6px;background:#ef4444;color:white;border:none;border-radius:4px;padding:2px 7px;font-size:0.7rem;cursor:pointer;">✕</button>
+                <div class="input-row" style="margin-bottom:6px;">
+                    <div class="input-group w-auto">
+                        <label>Tipo</label>
+                        <select id="imgTipo_${id}" onchange="renderImagenSubFields(${id})">
+                            <option value="Rx">Radiografía Tórax</option>
+                            <option value="TAC">TAC</option>
+                            <option value="Eco">Ecografía</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div id="imgSub_${id}" class="flex-gap" style="align-items:flex-end; flex-wrap:wrap; gap:8px;"></div>
+                </div>
+                <div class="input-group w-full">
+                    <label>Hallazgos</label>
+                    <textarea id="imgHallazgos_${id}" rows="2" placeholder="Describir hallazgos..." style="height:56px;resize:vertical;"></textarea>
+                </div>`;
+            container.appendChild(div);
+            renderImagenSubFields(id);
+        }
+
+        function removeImagen(id) {
+            const el = getEl(`imgRow_${id}`);
+            if(el) el.remove();
+            if(getEl('imgContainer').children.length === 0) show('imgEmptyMsg');
+        }
+
+        function renderImagenSubFields(id) {
+            const tipo = getVal(`imgTipo_${id}`);
+            const sub = getEl(`imgSub_${id}`);
+            sub.innerHTML = '';
+
+            if(tipo === 'TAC') {
+                sub.innerHTML = `
+                    <div class="input-group w-auto">
+                        <label>Segmento</label>
+                        <select id="imgSegmento_${id}">
+                            <option value="Cerebro">Cerebro</option>
+                            <option value="Cuello">Cuello</option>
+                            <option value="Tórax">Tórax</option>
+                            <option value="Abdomen">Abdomen</option>
+                            <option value="Pelvis">Pelvis</option>
+                            <option value="TAP">TAP</option>
+                        </select>
+                    </div>
+                    <div class="input-group w-auto">
+                        <label>Contraste</label>
+                        <select id="imgContraste_${id}">
+                            <option value="sin contraste">Sin contraste</option>
+                            <option value="con contraste">Con contraste</option>
+                            <option value="Angio">AngioTAC</option>
+                        </select>
+                    </div>`;
+            } else if(tipo === 'Eco') {
+                sub.innerHTML = `
+                    <div class="input-group w-auto">
+                        <label>Tipo Eco</label>
+                        <select id="imgEcoTipo_${id}">
+                            <option value="Cardíaca">Cardíaca</option>
+                            <option value="Pulmonar">Pulmonar</option>
+                            <option value="Diafragma">Diafragma</option>
+                            <option value="Muscular">Muscular</option>
+                        </select>
+                    </div>`;
+            } else if(tipo === 'Otro') {
+                sub.innerHTML = `
+                    <div class="input-group grow" style="min-width:180px;">
+                        <label>Especificar</label>
+                        <input type="text" id="imgOtroNombre_${id}" placeholder="Nombre del examen...">
+                    </div>`;
+            }
+        }
+
+        function getImagenesTexto() {
+            const rows = getEl('imgContainer').querySelectorAll('[id^="imgRow_"]');
+            const parts = [];
+            rows.forEach(row => {
+                const id = row.id.replace('imgRow_', '');
+                const tipo = getVal(`imgTipo_${id}`);
+                const hallazgos = (getVal(`imgHallazgos_${id}`) || '').trim();
+                let nombre = '';
+
+                if(tipo === 'Rx') {
+                    nombre = 'Radiografía de Tórax';
+                } else if(tipo === 'TAC') {
+                    const seg = getVal(`imgSegmento_${id}`);
+                    const cont = getVal(`imgContraste_${id}`);
+                    if(cont === 'Angio') nombre = `AngioTAC de ${seg}`;
+                    else nombre = `TAC de ${seg} ${cont}`;
+                } else if(tipo === 'Eco') {
+                    nombre = `Ecografía ${getVal(`imgEcoTipo_${id}`)}`;
+                } else if(tipo === 'Otro') {
+                    nombre = getVal(`imgOtroNombre_${id}`).trim() || 'Examen imagenológico';
+                }
+
+                if(nombre) parts.push(`${nombre}${hallazgos ? ': ' + hallazgos : ''}`);
+            });
+            return parts;
+        }
+
+        // ── FIN IMÁGENES ──
+    </script>
+</body>
+</html>
