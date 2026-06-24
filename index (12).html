@@ -251,9 +251,9 @@ body{background:var(--bg);color:var(--txt);font-size:14px;overflow-x:hidden;}
 /* Fichas */
 .ent-fichas{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .ent-ficha{border:1px solid #d7dee8;border-radius:9px;padding:12px 14px;break-inside:avoid;}
-.ent-ficha-h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid #eceff3;padding-bottom:7px;margin-bottom:8px;gap:10px;}
-.ent-ficha-cama{font-size:1rem;font-weight:800;color:#fff;background:var(--pdark);border-radius:6px;padding:2px 9px;flex-shrink:0;}
-.ent-ficha-nm{font-weight:700;color:var(--txt);font-size:.86rem;flex-grow:1;}
+.ent-ficha-h{display:flex;align-items:center;border-bottom:1.5px solid #eceff3;padding-bottom:8px;margin-bottom:10px;gap:10px;}
+.ent-ficha-cama{font-size:1rem;font-weight:800;color:#fff;background:var(--pdark);border-radius:6px;padding:3px 10px;flex-shrink:0;}
+.ent-ficha-nm{font-weight:700;color:var(--txt);font-size:.88rem;}
 .ent-ficha-meta{font-size:.7rem;color:var(--muted);text-align:right;}
 .ent-rowf{display:flex;gap:7px;margin-bottom:5px;font-size:.74rem;line-height:1.4;}
 .ent-rowf .ef-k{font-weight:700;color:#64748b;flex-shrink:0;min-width:74px;text-transform:uppercase;font-size:.62rem;letter-spacing:.3px;padding-top:2px;}
@@ -269,6 +269,15 @@ body{background:var(--bg);color:var(--txt);font-size:14px;overflow-x:hidden;}
 .ent-pend{background:#fffbeb;border:1px dashed #fde68a;border-radius:6px;padding:6px 9px;margin-top:7px;font-size:.74rem;color:#78350f;}
 .ent-pend b{font-size:.62rem;text-transform:uppercase;letter-spacing:.3px;color:#92400e;display:block;margin-bottom:2px;}
 .ent-pend textarea{width:100%;border:none;background:transparent;font-family:inherit;font-size:.74rem;color:#78350f;resize:vertical;min-height:30px;outline:none;}
+/* Secciones clínicas de la ficha */
+.ent-sec{border-left:3px solid var(--sc,#94a3b8);border-radius:0 6px 6px 0;padding:7px 10px;margin-bottom:7px;background:var(--sc-bg,#f8fafc);}
+.ent-sec-t{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.55px;color:var(--sc,#64748b);margin-bottom:6px;}
+.ent-sec-sed{--sc:#ca8a04;--sc-bg:#fefce8;}
+.ent-sec-vent{--sc:#0284c7;--sc-bg:#f0f9ff;}
+.ent-sec-secr{--sc:#059669;--sc-bg:#f0fdf4;}
+.ent-sec-motor{--sc:#b45309;--sc-bg:#fffbeb;}
+/* Fecha destacada en ficha */
+.ent-ficha-ingreso{font-size:.72rem;color:#64748b;margin-top:2px;}
 .ent-hitos{margin-top:6px;font-size:.7rem;color:#475569;}
 .ent-hitos .eh{display:inline-block;background:#f1f5f9;border-radius:4px;padding:1px 6px;margin:2px 3px 0 0;}
 .ent-hitos .eh b{color:var(--pdark);}
@@ -4868,80 +4877,114 @@ function renderEntrega(d) {
   H += `<div class="ent-fichas">`;
   d.fichas.forEach((f,ix)=>{
     if (!f.ocupada && !f.tieneEvo) return;
-    const tags = [];
-    if (f.soporte==='VM'||f.soporte==='VNI') tags.push(`<span class="ent-tag ent-tag-vm">${f.soporte}</span>`);
-    if (f.sas) tags.push(`<span class="ent-tag ent-tag-sed">SAS ${f.sas}</span>`);
-    if (f.bnm) tags.push(`<span class="ent-tag ent-tag-alert">BNM</span>`);
-    if (f.dva) tags.push(`<span class="ent-tag ent-tag-alert">DVA</span>`);
-    if (f.ktmNivel) tags.push(`<span class="ent-tag ent-tag-ktm">KTM N${f.ktmNivel}</span>`);
-    if (f.cooperador) tags.push(`<span class="ent-tag ent-tag-coop">Cooperador</span>`);
-    if (f.pendientesFuncionales && f.pendientesFuncionales.length) tags.push(`<span class="ent-tag ent-tag-pend">⚠️ Pendiente ${f.pendientesFuncionales.join(' + ')}</span>`);
 
-    // ── Secciones clínicas ──────────────────────────────────
+    // ── helpers ────────────────────────────────────────────
     const _row = (k,val) => `<div class="ent-rowf"><span class="ef-k">${k}</span><span class="ef-v">${val}</span></div>`;
-    const _sec = (titulo, color, items) => {
+    const _sec = (titulo, cls, items) => {
       const r = items.filter(Boolean);
       if (!r.length) return '';
-      return `<div class="ent-sec" style="--sc:${color}"><div class="ent-sec-t">${titulo}</div>${r.join('')}</div>`;
+      return `<div class="ent-sec ${cls}"><div class="ent-sec-t">${titulo}</div>${r.join('')}</div>`;
     };
 
-    // VENTILATORIO
-    const via = [f.viaAerea, f.soporte&&`${f.soporte}${f.modo?` · ${f.modo}`:''}`, f.params].filter(Boolean).join(' · ');
-    const secVent = _sec('🫁 Ventilatorio','#0284c7',[
-      via ? _row('Vía aérea / Modo', via) : '',
-      (f.diasVM!==''&&f.diasVM!=null) ? _row('Días VM', f.diasVM) : ''
-    ]);
-
-    // RESPIRATORIO (secreciones + cultivo)
-    const secr = [f.secrCant, f.secrTipo].filter(Boolean).join(' ');
-    const secResp = _sec('💨 Respiratorio','#0d9488',[
-      secr ? _row('Secreciones', secr) : '',
-      f.ultimoCultivo ? _row('🧪 Último cultivo', `<b>${f.ultimoCultivo}</b>`) : ''
-    ]);
-
-    // NEUROLÓGICO (sedación, cooperación, BNM)
-    const secNeuro = _sec('🧠 Neurológico','#7c3aed',[
-      f.sedTipo ? _row('Sedación', f.sedTipo) : '',
-      f.sas ? _row('SAS', f.sas) : '',
-      f.cooperacion ? _row('Cooperación', f.cooperacion) : '',
-      f.bnm ? _row('BNM', '<b style="color:#be123c;">Sí</b>') : ''
-    ]);
-
-    // HEMODINAMIA
-    const secHemo = _sec('❤️ Hemodinamia','#be123c',[
-      f.hemoEstado ? _row('Estado', f.hemoEstado) : '',
-      f.dva ? _row('DVA', `<b>${f.dva}</b>`) : ''
-    ]);
-
-    // MOTOR / FUNCIONAL (KTM + pruebas funcionales)
-    const ktmTxt = [f.ktmNivel&&`Nivel ${f.ktmNivel}`, f.ktmMin&&`${f.ktmMin}min`, f.ktmSuspendida&&'⚠️ suspendida', f.ktmContra&&`contra: ${f.ktmContra}`].filter(Boolean).join(' · ');
-    const _funcTxt = [f.mrc!==''&&f.mrc!=null?`MRC-SS ${f.mrc}`:'', f.fss!==''&&f.fss!=null?`FSS ${f.fss}`:''].filter(Boolean).join(' · ');
-    const secMotor = _sec('🏃 Motor / Funcional','#b45309',[
-      ktmTxt ? _row('KTM', ktmTxt) : '',
-      _funcTxt ? _row('Pruebas', _funcTxt) : ''
-    ]);
-
-    const rows = [secVent, secResp, secNeuro, secHemo, secMotor];
-    const _pendAlert = (f.pendientesFuncionales && f.pendientesFuncionales.length)
-      ? `<div class="ent-alerta-func">⚠️ Paciente cooperador — pendiente evaluar <b>${f.pendientesFuncionales.join(' y ')}</b></div>` : '';
-
-    const hitos = (f.hitos&&f.hitos.length)
-      ? `<div class="ent-hitos">${f.hitos.map(h=>`<span class="eh"><b>${h.fecha}</b> ${h.texto}</span>`).join('')}</div>`
+    // ── HEADER: nombre, edad, cama, ingreso, estadía ───────
+    const ingresoTxt = f.fechaIngreso
+      ? `Ingreso: ${f.fechaIngreso} · `
       : '';
+    const metaTxt = `${ingresoTxt}${f.diasEstadia||'?'} días UCI`;
 
+    // ── SEDOANALGESIA (amarillo) ────────────────────────────
+    const sedItems = [];
+    if (f.sedTipo)     sedItems.push(_row('Sedación', f.sedTipo));
+    if (f.sas)         sedItems.push(_row('SAS', f.sas));
+    if (f.bnm)         sedItems.push(_row('BNM', '<b style="color:#be123c;">Activo</b>'));
+    if (f.cooperacion) sedItems.push(_row('Cooperación', f.cooperacion));
+    if (f.dva)         sedItems.push(_row('DVA', `<b>${f.dva}</b>`));
+    const secSed = _sec('🧠 Sedoanalgesia', 'ent-sec-sed', sedItems);
+
+    // ── VENTILATORIO (azul) ─────────────────────────────────
+    // Vía aérea + soporte
+    const soporteLabel = (s => {
+      if (!s) return 'Sin soporte ventilatorio';
+      if (s==='VM')  return 'VM invasiva';
+      if (s==='VNI') return 'VNI';
+      return s;
+    })(f.soporte);
+    const vaLabel = [f.viaAerea&&`${f.viaAerea}`, soporteLabel].filter(Boolean).join(' · ');
+    const modoTxt = [f.modo, f.params].filter(Boolean).join(' · ');
+
+    const ventItems = [];
+    ventItems.push(_row('Vía aérea', vaLabel));
+    if (modoTxt)                         ventItems.push(_row('Modo / Parámetros', modoTxt));
+    if (f.diasVM!=null&&f.diasVM!=='')   ventItems.push(_row('Días VM', `${f.diasVM} días`));
+    // Extubación
+    if (f.extubFecha) {
+      const extTxt = [f.extubFecha, f.extubForma].filter(Boolean).join(' · ');
+      ventItems.push(_row('Extubación', extTxt));
+    }
+    if (f.postExtubSoporte)              ventItems.push(_row('Soporte post-extub.', f.postExtubSoporte));
+    if (f.reintubFecha)                  ventItems.push(_row('Reintubación', f.reintubFecha));
+    // TQT / decanulación
+    if (f.tqtFecha)                      ventItems.push(_row('TQT', f.tqtFecha));
+    if (f.decanFecha)                    ventItems.push(_row('Decanulación', f.decanFecha));
+    const secVent = _sec('🫁 Ventilatorio', 'ent-sec-vent', ventItems);
+
+    // ── SECRECIONES (verde) ─────────────────────────────────
+    const secrTxt = [f.secrCant, f.secrTipo].filter(Boolean).join(' ');
+    const cultivoTxt = (() => {
+      const partes = [f.ultimoCultivoFecha, f.ultimoCultivo].filter(Boolean);
+      if (!partes.length) return '';
+      return partes.join(' → ');
+    })();
+    // fallback: campo combinado legacy
+    const cultivoLegacy = (!cultivoTxt && f.ultimoCultivo) ? f.ultimoCultivo : '';
+    const secrItems = [];
+    if (secrTxt)                         secrItems.push(_row('Secreciones', secrTxt));
+    if (cultivoTxt)                      secrItems.push(_row('Último cultivo', `<b>${cultivoTxt}</b>`));
+    else if (cultivoLegacy)              secrItems.push(_row('Último cultivo', `<b>${cultivoLegacy}</b>`));
+    const secSecr = _sec('💨 Secreciones', 'ent-sec-secr', secrItems);
+
+    // ── MOTOR / FUNCIONAL (naranja) ─────────────────────────
+    const ktmParts = [];
+    if (f.ktmNivel)        ktmParts.push(`Nivel ${f.ktmNivel}`);
+    if (f.ktmMin)          ktmParts.push(`${f.ktmMin} min`);
+    if (f.ktmSuspendida)   ktmParts.push('⚠️ Suspendida');
+    const ktmTxt = ktmParts.join(' · ');
+
+    const motorItems = [];
+    if (ktmTxt)                          motorItems.push(_row('KTM', ktmTxt));
+    if (f.suspFechas)                    motorItems.push(_row('Suspensiones', f.suspFechas));
+    if (f.suspCausaFrecuente)            motorItems.push(_row('Causa frecuente', f.suspCausaFrecuente));
+    else if (f.ktmContra)               motorItems.push(_row('Causa suspensión', f.ktmContra));
+
+    // Evaluaciones funcionales
+    const evalParts = [];
+    if (f.mrc!=null&&f.mrc!=='')        evalParts.push(`MRC-SS ${f.mrc}`);
+    if (f.fss!=null&&f.fss!=='')        evalParts.push(`FSS ${f.fss}`);
+    if (evalParts.length) {
+      const evalStr = evalParts.join(' · ') + (f.evalFecha ? ` (${f.evalFecha})` : '');
+      motorItems.push(_row('Eval. funcional', evalStr));
+    } else if (f.pendientesFuncionales&&f.pendientesFuncionales.length) {
+      motorItems.push(_row('Eval. funcional', `<span style="color:#b45309;">⚠️ Pendiente: ${f.pendientesFuncionales.join(' + ')}</span>`));
+    }
+    const secMotor = _sec('🏃 Motor / Funcional', 'ent-sec-motor', motorItems);
+
+    // ── PLAN ───────────────────────────────────────────────
     const planVal = (f.plan||'').replace(/"/g,'&quot;');
+
     H += `<div class="ent-ficha">
       <div class="ent-ficha-h">
         <span class="ent-ficha-cama">${f.idCama}</span>
-        <span class="ent-ficha-nm">${f.nombre||'—'}</span>
-        <span class="ent-ficha-meta">${f.rut||''}<br>${f.edad||'?'}a ${f.sexo||''} · ${f.diasEstadia||'?'}d UCI</span>
+        <div style="flex-grow:1;">
+          <div class="ent-ficha-nm">${f.nombre||'—'}</div>
+          <div class="ent-ficha-ingreso">${f.edad||'?'}a ${f.sexo||''} · ${metaTxt}</div>
+        </div>
       </div>
-      ${tags.length?`<div style="margin-bottom:7px;">${tags.join('')}</div>`:''}
-      ${_pendAlert}
-      ${rows.join('')}
-      ${hitos}
+      ${secSed}
+      ${secVent}
+      ${secSecr}
+      ${secMotor}
       <div class="ent-pend">
-        <b>Pendientes / plan turno entrante</b>
+        <b>📋 Planes / Pendientes turno entrante</b>
         <textarea data-cama="${f.idCama}" rows="2" placeholder="Sin pendientes registrados…">${planVal}</textarea>
       </div>
       <div class="ent-firma">Kine saliente: <b style="margin-left:5px;">${f.firma||'—'}</b></div>
