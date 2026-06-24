@@ -1514,7 +1514,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <!-- MUESTRAS integradas en RESPIRATORIO — sección separada removida -->
 
         <!-- EVALUACIÓN FUNCIONAL (RHB) -->
-        <div class="fcard fc-f">
+        <div class="fcard fc-f" id="fcEgrCard">
           <div class="fcard-hdr">
             <span class="fcard-title" style="color:var(--fisico);">📏 Evaluación funcional (RHB)</span>
             <div class="check wa" style="border:none;background:transparent;padding:0;">
@@ -2873,6 +2873,10 @@ function cerrarTL() {
 
 function setTLtab(t) {
   TL_TAB = t;
+  // RHB solo es diurno: forzar filtro a Día
+  if (t === 'reh' && TL_TURNO !== 'Dia') {
+    TL_TURNO = 'Dia';
+  }
   _updateTLTabsUI();
   _updateTLFiltersUI();
   renderTL();
@@ -2892,17 +2896,25 @@ function _updateTLFiltersUI() {
   const tipoVisible = TL_TAB === 'ev';
   $('tlTipoLbl').classList.toggle('hidden', !tipoVisible);
   $('tlTipoSel').classList.toggle('hidden', !tipoVisible);
+
+  // Filtro turno: RHB solo de día → ocultar botones Todos y Noche
+  const esReh = TL_TAB === 'reh';
+  document.querySelectorAll('#tlSegTurno button').forEach(b => {
+    const t = b.dataset.turno;
+    // Para RHB: solo mostrar el botón Día
+    b.classList.toggle('hidden', esReh && t !== 'Dia');
+    b.classList.toggle('on', esReh ? t === 'Dia' : t === TL_TURNO);
+  });
+
   // Variables → solo en 'vent' / 'reh'
   const varVisible = TL_TAB !== 'ev';
   $('tlVarLbl').classList.toggle('hidden', !varVisible);
   $('tlVarChips').classList.toggle('hidden', !varVisible);
   if (varVisible) {
     const vars = TL_TAB === 'vent' ? VENT_VARS : REH_VARS;
-    // Selección por defecto al entrar al tab si no hay nada válido elegido
     const validKeys = vars.map(v => v.key);
     const current = [...TL_VARS_SEL].filter(k => validKeys.includes(k));
     if (!current.length) {
-      // Reh: Hito motor + MRC-SS; Vent: PEEP + FiO₂ (o las 2 primeras)
       const def = TL_TAB === 'reh' ? ['EGR_NIVEL_MOTOR','EGR_MRC_SS'] : ['VENT_PEEP','VENT_FIO2'];
       TL_VARS_SEL = new Set(def.filter(k => validKeys.includes(k)));
       if (!TL_VARS_SEL.size) TL_VARS_SEL = new Set([vars[0].key]);
@@ -3616,7 +3628,13 @@ function fillCultRes(arr){
   if(rows[0]) rows[0].value=arr[0]||'';
   for(let i=1;i<arr.length;i++){addCultRes(); box.querySelectorAll('.cult-res')[i].value=arr[i];}
 }
-function hEgr(){if($('cEgr')?.checked)show('dEgr');else hide('dEgr');}
+function hEgr(){
+  // RHB solo se registra de día
+  const esNoche = SHIFT === 'Noche';
+  const card = $('fcEgrCard');
+  if (card) card.classList.toggle('hidden', esNoche);
+  if (!esNoche && $('cEgr')?.checked) show('dEgr'); else hide('dEgr');
+}
 let _nombreTimer=null;
 function _debouncedChkNombre(val){clearTimeout(_nombreTimer);_nombreTimer=setTimeout(()=>chkNombreDB(val),300);}
 function chkNombreDB(val){
