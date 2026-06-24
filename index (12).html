@@ -1282,11 +1282,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cSNF"><label for="cSNF" title="Succión Nasofaríngea">SNF</label></div>
                 <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cSET"><label for="cSET" title="Succión Endotraqueal">SET</label></div>
                 <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cATos"><label for="cATos">A.Tos</label></div>
-                <div class="col wa"><label>Posicionamiento</label>
-                  <select id="fDCL">
-                    <option value="">-- seleccionar --</option>
-                    <option>DCL derecho</option><option>DCL izquierdo</option><option>Alternado</option>
-                  </select></div>
                 <div class="check wa" style="align-self:flex-end;margin-bottom:6px;">
                   <input type="checkbox" id="cInhalo"><label for="cInhalo">💊 Inhaloterapia <span style="font-size:.68rem;color:var(--muted);">(SOS)</span></label>
                 </div>
@@ -2204,7 +2199,6 @@ function fillForm(s) {
   // Respiratorio — KTR persiste como referencia; maniobras son acción diaria
   set('fKTRcnt',_ex.RESP_KTR_CANT);
   ['cSOF','cSNF','cSET','cATos','cInhalo'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
-  const e_dcl=$('fDCL'); if(e_dcl) e_dcl.value='';
 
   // KTM extras
   set('fKTMnoRaz', _ex.KTM_NO_RAZON);
@@ -2322,7 +2316,6 @@ function fillFormReplica(s) {
 
   // Respiratorio
   set('fKTRcnt',_ex.RESP_KTR_CANT);
-  set('fDCL',_ex.RESP_DCL);
 
   // KTM estado y nivel (replica estado previo como punto de partida)
   if(s.KTM_REALIZADA===true||s.KTM_REALIZADA==='TRUE') setKTMstate('r');
@@ -2446,7 +2439,6 @@ function guardar() {
     RESP_SET:       bv('cSET'),
     RESP_ATOS:      bv('cATos'),
     RESP_INHALO:    bv('cInhalo'),
-    RESP_DCL:       v('fDCL'),
     // ★ Evaluaciones funcionales por turno
     EVAL_T_REALIZAR: bv('cEvalT'),
     EVAL_T_MRC:      v('fMRCt'),
@@ -2468,7 +2460,6 @@ function guardar() {
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
-      if(v('fDCL')) auto.push('Posicionamiento ' + v('fDCL'));
       // PVE
       const _pve=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
       if(_pve==='realizada') auto.push('PVE');
@@ -2488,7 +2479,6 @@ function guardar() {
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
-      if(v('fDCL')) auto.push('Posicionamiento ' + v('fDCL'));
       if(document.querySelector('input[name="pveEst"]:checked')?.value==='realizada') auto.push('PVE');
       if($('cExtOcurrio')?.checked){
         const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
@@ -2504,7 +2494,6 @@ function guardar() {
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
-      if(v('fDCL')) auto.push('Posicionamiento ' + v('fDCL'));
       if(document.querySelector('input[name="pveEst"]:checked')?.value==='realizada') auto.push('PVE');
       if($('cExtOcurrio')?.checked){
         const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
@@ -3361,7 +3350,6 @@ function genTexto() {
     L.push(`KTM no realizada. ${gv('fKTMnoRaz')||'Sin especificar'}${gv('fKTMnoCom')?'. '+gv('fKTMnoCom'):''}.`);
   }
   // Manejo respiratorio
-  const dcl=gv('fDCL'); if(dcl) L.push(`Posicionamiento: ${dcl.toLowerCase()}.`);
   if($('cInhalo')?.checked) L.push('Se administra inhaloterapia según indicación médica (SOS).');
   (function(){
     const ktr=parseInt(gv('fKTRcnt'))||0;
