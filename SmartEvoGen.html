@@ -42,10 +42,15 @@
         body.modo-noche .result-area { background: #020617; border-color: #1e293b; }
 
         /* --- HEADER --- */
-        .header { background: #0f172a; color: white; padding: 13px 18px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.18); display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .header { background: #0f172a; color: white; padding: 13px 18px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.18); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .header h1 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .header-icon { width: 28px; height: 28px; }
         .header-tag-v6 { margin-left: 8px; font-size: 0.7rem; color: #94a3b8; background: #334155; padding: 2px 7px; border-radius: 4px; font-family: monospace; }
+        .header-patient-wrap { flex-grow: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .header-patient-label { font-size: 0.75rem; color: #94a3b8; font-weight: 600; white-space: nowrap; }
+        #inputPaciente { background: #1e293b; border: 1px solid #334155; color: #f1f5f9; border-radius: 6px; padding: 5px 10px; font-size: 0.88rem; width: 100%; min-width: 0; outline: none; transition: border-color 0.2s; }
+        #inputPaciente:focus { border-color: #3b82f6; }
+        #inputPaciente::placeholder { color: #475569; }
 
         /* --- LAYOUT --- */
         .container { max-width: 1140px; margin: 0 auto; padding: 18px 16px; display: grid; grid-template-columns: 1fr; gap: 16px; }
@@ -141,6 +146,10 @@
 </svg>
             &nbsp;SmartEvoGen <span class="tag header-tag-v6">v10</span>
         </h1>
+        <div class="header-patient-wrap">
+            <span class="header-patient-label">Paciente:</span>
+            <input id="inputPaciente" type="text" placeholder="Nombre del paciente..." autocomplete="off" oninput="actualizarTituloPaciente(this.value)">
+        </div>
         <button onclick="resetForm()" class="btn btn-reset">
             <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             Limpiar
@@ -466,7 +475,7 @@
         <ul id="listaResultado" class="result-list"></ul>
     </div>
     <div id="toast"></div>
-    <div id="editModal" class="modal-overlay hidden" onclick="if(event.target === this) closeModal()"><div class="modal-content"><div class="modal-header"><h3 id="modalTitle" class="modal-title">Editar Texto</h3><button type="button" class="btn-close-modal" onclick="closeModal()">Cerrar</button></div><textarea id="modalTextarea"></textarea></div></div>
+    <div id="editModal" class="modal-overlay hidden"><div class="modal-content"><div class="modal-header"><h3 id="modalTitle" class="modal-title">Editar Texto</h3><button type="button" class="btn-close-modal" onclick="closeModal()">Cerrar</button></div><textarea id="modalTextarea"></textarea></div></div>
 
     <script>
         // --------------------------------------------------------
@@ -511,6 +520,10 @@
         const getVal = (id) => { const el = getEl(id); return el ? el.value : ''; };
         const show = (id) => { const el = getEl(id); if(el) el.classList.remove('hidden'); };
         const hide = (id) => { const el = getEl(id); if(el) el.classList.add('hidden'); };
+
+        function actualizarTituloPaciente(nombre) {
+            document.title = nombre.trim() ? `${nombre.trim()} — SmartEvoGen` : 'SmartEvoGen v10';
+        }
 
         function showToast(msg, duration = 2000) {
             let t = document.getElementById('toast');
@@ -622,6 +635,9 @@
             show('imgEmptyMsg');
 
             closeModal();
+            const inputPaciente = getEl('inputPaciente');
+            if (inputPaciente) { inputPaciente.value = ''; }
+            document.title = 'SmartEvoGen v10';
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
