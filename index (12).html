@@ -422,6 +422,9 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .xbtn:hover{color:#fff;}
 .mbtn{background:transparent;border:none;color:#94a3b8;font-size:1.45rem;cursor:pointer;line-height:1;padding:0 4px;}
 .mbtn:hover{color:#fff;}
+.aisl-tag{display:inline-flex;align-items:center;gap:4px;background:#fecdd3;color:#9f1239;border:1px solid #fda4af;border-radius:20px;padding:2px 8px;font-size:.73rem;font-weight:700;white-space:nowrap;}
+.aisl-tag button{background:none;border:none;color:#9f1239;cursor:pointer;font-size:.8rem;line-height:1;padding:0 1px;opacity:.7;}
+.aisl-tag button:hover{opacity:1;}
 #spMinTag{position:fixed;bottom:20px;left:20px;z-index:200;background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none;align-items:center;gap:8px;border:1px solid #1e5a8f;transition:background .2s;}
 #spMinTag:hover{background:#1e5a8f;}
 #spMinTag::before{content:'📋';font-size:.9rem;}
@@ -952,8 +955,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <button type="button" onclick="limpiarReplica()" style="background:#fff;border:1px solid #cbd5e1;color:var(--muted);padding:5px 11px;border-radius:6px;font-weight:700;font-size:.72rem;cursor:pointer;white-space:nowrap;">Empezar en blanco</button>
       </div>
 
-      <!-- IDENTIFICACIÓN -->
-      <div class="fcard fc-id">
+      <!-- IDENTIFICACIÓN — solo visible en ingreso -->
+      <div class="fcard fc-id" id="fcId">
         <div class="fcard-hdr"><span class="fcard-title">👤 Identificación del Paciente</span></div>
         <div class="fcard-body">
           <div class="row" style="margin-bottom:0;">
@@ -967,40 +970,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             </div>
             <div class="col ws"><label>Edad</label><input type="number" id="fEdad"></div>
             <div class="col ws"><label>Sexo*</label><select id="fSexo" onchange="calcPI()"><option value="" disabled selected>-</option><option value="M">Masc</option><option value="F">Fem</option></select></div>
-            <div class="col ws"><label>Talla cm</label><input type="number" id="fTalla" oninput="calcPI()"></div>
-            <div class="col wa" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPI" style="font-size:.75rem;font-weight:600;padding:4px 8px;border-radius:5px;background:#eff6ff;border:1px solid #bfdbfe;color:var(--primary);white-space:nowrap;">PI: --</span></div>
-            <div class="col ws"><label>Barthel</label><input type="number" id="fBarthel" placeholder="0-100"></div>
-            <div class="col ws"><label>ECF</label><input type="number" id="fEcf" placeholder="0-9"></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
-            <div class="check cr wa"><input type="checkbox" id="cAisl" onchange="hAisl()"><label for="cAisl" style="font-weight:700;">🦠 Aislamiento</label></div>
-            <div id="dAislMicro" class="hidden" style="display:flex;gap:6px;flex:1;min-width:220px;flex-wrap:wrap;">
-              <select id="fAislLista" onchange="hAislLista()" style="height:30px;border:1px solid #fecdd3;border-radius:6px;padding:0 8px;font-size:.78rem;background:#fff5f5;flex:1;min-width:160px;">
-                <option value="">-- Seleccionar microorganismo --</option>
-                <optgroup label="Gram positivos">
-                  <option>SAMR (S. aureus meticilino resistente)</option>
-                  <option>SARM-AC (comunitario)</option>
-                  <option>ERV (Enterococo resistente a vancomicina)</option>
-                </optgroup>
-                <optgroup label="Gram negativos">
-                  <option>Klebsiella KPC (carbapenemasa)</option>
-                  <option>Klebsiella BLEE</option>
-                  <option>Acinetobacter XDR</option>
-                  <option>Pseudomonas MDR</option>
-                  <option>E. coli BLEE</option>
-                  <option>Enterobacter MDR</option>
-                </optgroup>
-                <optgroup label="Otros">
-                  <option>Clostridium difficile</option>
-                  <option>VRE</option>
-                  <option>MRSA piel/mucosas</option>
-                  <option value="otro">Otro (especificar)</option>
-                </optgroup>
-              </select>
-              <div id="dAislOtro" class="hidden" style="flex:1;min-width:140px;">
-                <input type="text" id="fAislOtro" placeholder="Especificar..." style="height:30px;border:1px solid #fecdd3;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;background:#fff5f5;">
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1010,6 +979,24 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard fc-g">
           <div class="fcard-hdr"><span class="fcard-title" style="color:var(--muted);">📊 General y Diagnóstico</span></div>
           <div class="fcard-body">
+            <!-- Talla / PI / Barthel / ECF -->
+            <div class="row" style="margin-bottom:8px;">
+              <div class="col ws"><label>Talla cm</label><input type="number" id="fTalla" oninput="calcPI()"></div>
+              <div class="col wa" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPI" style="font-size:.75rem;font-weight:600;padding:4px 8px;border-radius:5px;background:#eff6ff;border:1px solid #bfdbfe;color:var(--primary);white-space:nowrap;">PI: --</span></div>
+              <div class="col ws"><label>Barthel</label><input type="number" id="fBarthel" placeholder="0-100"></div>
+              <div class="col ws"><label>ECF</label><input type="number" id="fEcf" placeholder="0-9"></div>
+            </div>
+            <!-- Aislamiento con tags -->
+            <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+              <div class="check cr wa" style="flex-shrink:0;margin-top:2px;"><input type="checkbox" id="cAisl" onchange="hAisl()"><label for="cAisl" style="font-weight:700;">🦠 Aislamiento</label></div>
+              <div id="dAislMicro" class="hidden" style="flex:1;min-width:220px;">
+                <div id="aislTagsWrap" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:5px 8px;border:1px solid #fecdd3;border-radius:8px;background:#fff5f5;min-height:34px;cursor:text;" onclick="$('fAislInput').focus()">
+                  <div id="aislTags" style="display:contents;"></div>
+                  <input id="fAislInput" type="text" placeholder="Escribir y presionar Enter..." style="border:none;outline:none;background:transparent;font-size:.78rem;flex:1;min-width:120px;color:#374151;" onkeydown="aislTagKeydown(event)">
+                </div>
+                <input type="hidden" id="fAislMicroVal">
+              </div>
+            </div>
             <!-- Reingreso — primera línea -->
             <div style="margin-bottom:6px;">
               <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReing"><label for="cReing" style="font-weight:700;">↩️ Reingreso a UCI</label></div>
@@ -2064,6 +2051,8 @@ function abrirPanel(id, esIng) {
   $('cBed').value=id; $('cIng').value=String(esIng); window._camaEvo=id;
   $('spBed').textContent=`CAMA ${id}`;
   $('spTitle').textContent=esIng?'Registro — INGRESO':'Registro Evolución';
+  esIng ? show('fcId') : hide('fcId');
+  _aislTags=[]; renderAislTags();
   $('spShift').textContent=`${fecha} · Turno ${SHIFT}`;
   hide('rarea'); hide('repBanner');
   $('kf').reset(); PROCS=[]; renderChips();
@@ -2246,8 +2235,7 @@ function fillForm(s) {
   set('fPIMt',  _ex.EVAL_T_PIM);    interpPIM();
   // S1: aislamiento
   chk('cAisl',_ex.PAC_AISLAMIENTO); hAisl();
-  if(_ex.PAC_AISL_LISTA) set('fAislLista',_ex.PAC_AISL_LISTA);
-  if(_ex.PAC_AISL_LISTA==='otro'){ show('dAislOtro'); set('fAislOtro',_ex.PAC_AISL_MICRO); }
+  setAislTags(_ex.PAC_AISL_MICRO||_ex.PAC_AISL_LISTA||'');
   // VA externo + TOT fijación
   chk('cVAExterno',_ex.VA_EXTERNO); hVAExterno(); set('fVAExtDias',_ex.VA_EXTERNO_DIAS);
   set('fTOTfij',_ex.TOT_FIJACION);
@@ -2405,8 +2393,8 @@ function guardar() {
     PAC_ECF:v('fEcf'), PAC_DIAGNOSTICO:v('fDx'), PAC_DIAG_REM:v('fRem'),
     // S1 extras
     PAC_AISLAMIENTO:   $('cAisl')?.checked||false,
-    PAC_AISL_MICRO:    (function(){ const l=v('fAislLista'); return l==='otro'?v('fAislOtro'):l; })(),
-    PAC_AISL_LISTA:    v('fAislLista'),
+    PAC_AISL_MICRO:    $('fAislMicroVal')?.value||'',
+    PAC_AISL_LISTA:    $('fAislMicroVal')?.value||'',
     VA_EXTERNO:        $('cVAExterno')?.checked||false,
     VA_EXTERNO_DIAS:   v('fVAExtDias'),
     TOT_FIJACION:      v('fTOTfij'),
@@ -3251,7 +3239,7 @@ function genTexto() {
   let L=[esIng?`KINESIOLOGÍA ${turno} — INGRESO`:`KINESIOLOGÍA ${turno}`];
   const dx=gv('fDx');
   // Aislamiento
-  if($('cAisl')?.checked){ const lista=gv('fAislLista'),otro=gv('fAislOtro'); const mic=lista==='otro'?otro:lista; L.push(`Paciente en aislamiento de contacto${mic?' por '+mic:''}.`); }
+  if($('cAisl')?.checked){ const mic=$('fAislMicroVal')?.value||''; L.push(`Paciente en aislamiento de contacto${mic?' por '+mic:''}.`); }
   // AET
   if($('cAET')?.checked){ const niv=document.querySelector('input[name="aetNivel"]:checked')?.value||''; L.push(`Paciente con adecuación del esfuerzo terapéutico (AET)${niv?' nivel '+niv:''}.`); }
   // Reingreso
@@ -3689,7 +3677,24 @@ function confirmarReingreso(){
   hide('dNombreAlert');
 }
 function hAisl(){if($('cAisl')?.checked)show('dAislMicro');else hide('dAislMicro');}
-function hAislLista(){const v=$('fAislLista')?.value;if(v==='otro')show('dAislOtro');else hide('dAislOtro');}
+let _aislTags=[];
+function aislTagKeydown(e){
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    const val=e.target.value.trim();
+    if(val&&!_aislTags.includes(val)){ _aislTags.push(val); renderAislTags(); }
+    e.target.value='';
+  } else if(e.key==='Backspace'&&e.target.value===''&&_aislTags.length){
+    _aislTags.pop(); renderAislTags();
+  }
+}
+function renderAislTags(){
+  const wrap=$('aislTags'); if(!wrap) return;
+  wrap.innerHTML=_aislTags.map((t,i)=>`<span class="aisl-tag">${t}<button type="button" onclick="removeAislTag(${i})">×</button></span>`).join('');
+  $('fAislMicroVal').value=_aislTags.join(', ');
+}
+function removeAislTag(i){ _aislTags.splice(i,1); renderAislTags(); }
+function setAislTags(str){ _aislTags=str?str.split(',').map(s=>s.trim()).filter(Boolean):[]; renderAislTags(); }
 function hVAExterno(){if($('cVAExterno')?.checked)show('dVAExtDias');else hide('dVAExtDias');}
 function hAET(){if($('cAET')?.checked)show('dAETnivel');else hide('dAETnivel');}
 function hRuidos(el){
