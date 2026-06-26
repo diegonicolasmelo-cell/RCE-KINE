@@ -418,6 +418,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 }
 .phdr{padding:13px 17px;background:#0e3a5f;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-shrink:0;}
 .ptitle{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:.9rem;}
+.phdr-btns{display:flex;align-items:center;gap:2px;flex-shrink:0;}
 .xbtn{background:transparent;border:none;color:#94a3b8;font-size:1.45rem;cursor:pointer;line-height:1;padding:0 4px;}
 .xbtn:hover{color:#fff;}
 .mbtn{background:transparent;border:none;color:#94a3b8;font-size:1.45rem;cursor:pointer;line-height:1;padding:0 4px;}
@@ -425,9 +426,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .aisl-tag{display:inline-flex;align-items:center;gap:4px;background:#fecdd3;color:#9f1239;border:1px solid #fda4af;border-radius:20px;padding:2px 8px;font-size:.73rem;font-weight:700;white-space:nowrap;}
 .aisl-tag button{background:none;border:none;color:#9f1239;cursor:pointer;font-size:.8rem;line-height:1;padding:0 1px;opacity:.7;}
 .aisl-tag button:hover{opacity:1;}
-#spMinTag{position:fixed;bottom:20px;left:20px;z-index:200;background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none;align-items:center;gap:8px;border:1px solid #1e5a8f;transition:background .2s;}
-#spMinTag:hover{background:#1e5a8f;}
-#spMinTag::before{content:'📋';font-size:.9rem;}
+#minTray{position:fixed;bottom:20px;left:20px;z-index:200;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none;}
+.min-pill{background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1px solid #1e5a8f;transition:background .2s;display:flex;align-items:center;gap:8px;pointer-events:all;}
+.min-pill:hover{background:#1e5a8f;}
+.min-pill::before{content:'📋';font-size:.9rem;}
 .pcontent{flex-grow:1;overflow-y:auto;padding:16px;}
 
 /* FORM CARDS */
@@ -927,8 +929,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 
 <!-- OVERLAY -->
 <div class="ovl" id="ovl" onclick="cerrarTodo(event)"></div>
-<!-- PASTILLA MINIMIZADO -->
-<div id="spMinTag" onclick="restaurarPanel()"></div>
+<!-- BANDEJA DE MINIMIZADOS -->
+<div id="minTray"></div>
 
 <!-- SIDE PANEL EVOLUCIÓN -->
 <div class="spanel" id="sp">
@@ -937,8 +939,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
       <span id="spBed" style="background:#1e293b;padding:4px 10px;border-radius:5px;border:1px solid #334155;font-size:.83rem;">Cama X</span>
       <span id="spTitle">Registro Evolución</span>
     </div>
-    <button class="mbtn" onclick="minimizarPanel()" title="Minimizar">−</button>
-    <button class="xbtn" onclick="cerrarPanel()">×</button>
+    <div class="phdr-btns">
+      <button class="mbtn" onclick="minimizarPanel()" title="Minimizar">−</button>
+      <button class="xbtn" onclick="cerrarPanel()">×</button>
+    </div>
   </div>
   <div class="pcontent">
     <form id="kf" onsubmit="return false;" autocomplete="off">
@@ -2120,36 +2124,56 @@ function actualizarTituloPanel(nombre) {
   if (!el) return;
   el.textContent = nombre && nombre.trim() ? nombre.trim() : 'Registro Evolución';
 }
+// ── Minimizar múltiples pacientes ──────────────────────────────────────────
+const _minStack = []; // [{camaId, label, esIng}]
+
+function _renderMinTray() {
+  const tray = $('minTray');
+  if (!tray) return;
+  tray.innerHTML = _minStack.map((m, i) =>
+    `<div class="min-pill" onclick="restaurarDesdeMin(${i})">${m.label}</div>`
+  ).join('');
+}
+
 function minimizarPanel() {
   const sp = $('sp');
-  const ovl = $('ovl');
-  const tag = $('spMinTag');
   if (!sp.classList.contains('on')) return;
-  sp.classList.remove('on');
-  ovl.classList.remove('on');
-  const cama = ($('spBed').textContent || '').replace('Cama ', '').trim();
-  const nombre = ($('fNombre') && $('fNombre').value.trim()) || '';
+  const camaId = $('cBed')?.value || '';
+  const esIng = $('cIng')?.value === 'true';
+  const cama = ($('spBed').textContent || '').replace('CAMA ', '').trim();
+  const nombre = ($('fNombre')?.value || '').trim();
   const pila = nombre.split(' ')[0];
-  tag.textContent = '';
-  tag.style.display = 'flex';
-  tag.innerHTML = `📋 ${cama}${pila ? '. ' + pila : ''}`;
+  const label = `${cama}${pila ? '. ' + pila : ''}`;
+  // Si ya está minimizada esta cama, no duplicar
+  if (!_minStack.find(m => m.camaId === camaId)) {
+    _minStack.push({ camaId, label, esIng });
+  }
+  sp.classList.remove('on');
+  $('ovl').classList.remove('on');
+  _renderMinTray();
 }
-function restaurarPanel() {
-  $('sp').classList.add('on');
-  $('ovl').classList.add('on');
-  $('spMinTag').style.display = 'none';
+
+function restaurarDesdeMin(i) {
+  const m = _minStack[i];
+  if (!m) return;
+  _minStack.splice(i, 1);
+  _renderMinTray();
+  abrirPanel(m.camaId, m.esIng);
 }
+
 function cerrarPanel() {
   $('sp').classList.remove('on');
   $('ovl').classList.remove('on');
   document.body.style.overflow = '';
-  // Resetear estado del botón guardar
   const btn=$('btnGuardar');
   if(btn){ btn.disabled=false; btn.textContent='💾 Guardar Evolución'; }
   hide('btnCerrarPost');
   hide('rarea');
   actualizarTituloPanel('');
-  $('spMinTag').style.display = 'none';
+  // Limpiar de la bandeja si estaba minimizada
+  const camaId = $('cBed')?.value || '';
+  const idx = _minStack.findIndex(m => m.camaId === camaId);
+  if (idx !== -1) { _minStack.splice(idx, 1); _renderMinTray(); }
 }
 function cerrarTodo(e) {
   if(e.target===$('ovl')) { cerrarTL(); cerrarArcDet(); cerrarEgreso(); }
