@@ -441,6 +441,11 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ti-tag.violet{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;}
 .ti-tag button{background:none;border:none;cursor:pointer;font-size:.8rem;line-height:1;padding:0 1px;opacity:.6;color:inherit;}
 .ti-tag button:hover{opacity:1;}
+.ti-presets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;}
+.ti-chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;cursor:pointer;border:1px solid #bae6fd;background:#e0f2fe;color:#0369a1;transition:background .15s;}
+.ti-chip:hover{background:#bae6fd;}
+.ti-chip.violet{border-color:#c4b5fd;background:#ede9fe;color:#5b21b6;}
+.ti-chip.violet:hover{background:#c4b5fd;}
 #minTray{position:fixed;bottom:20px;left:20px;z-index:200;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none;}
 .min-pill{background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1px solid #1e5a8f;transition:background .2s;display:flex;align-items:center;gap:8px;pointer-events:all;}
 .min-pill:hover{background:#1e5a8f;}
@@ -1162,19 +1167,33 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           <div class="fcard-body">
             <div style="margin-bottom:8px;">
               <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Murmullo Pulmonar</label>
+              <div class="ti-presets">
+                <span class="ti-chip" onclick="tiAddChip('fMPTags','fMPVal','sky','presente bilateral')">presente bilateral</span>
+                <span class="ti-chip" onclick="tiAddChip('fMPTags','fMPVal','sky','disminuido derecho')">disminuido dcho</span>
+                <span class="ti-chip" onclick="tiAddChip('fMPTags','fMPVal','sky','disminuido izquierdo')">disminuido izq</span>
+                <span class="ti-chip" onclick="tiAddChip('fMPTags','fMPVal','sky','disminuido bilateral')">disminuido bilat</span>
+                <span class="ti-chip" onclick="tiAddChip('fMPTags','fMPVal','sky','abolido derecho')">abolido dcho</span>
+                <span class="ti-chip" onclick="tiAddChip('fMPTags','fMPVal','sky','abolido izquierdo')">abolido izq</span>
+              </div>
               <div class="ti-wrap sky" onclick="document.getElementById('fMPInput').focus()">
                 <div id="fMPTags" style="display:contents;"></div>
-                <input id="fMPInput" class="ti-input" type="text" placeholder="Ej: disminuido izq… + Enter"
-                  onkeydown="tiKeydown(event,'fMPTags','fMPVal','sky',['presente bilateral','disminuido derecho','disminuido izquierdo','disminuido bilateral','abolido derecho','abolido izquierdo'])">
+                <input id="fMPInput" class="ti-input" type="text" placeholder="Otro… + Enter">
               </div>
               <input type="hidden" id="fMPVal">
             </div>
             <div>
               <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Ruidos Agregados</label>
+              <div class="ti-presets">
+                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','sin ruidos agregados')">sin ruidos</span>
+                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','crépitos')">crépitos</span>
+                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','estertores')">estertores</span>
+                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','roncus')">roncus</span>
+                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','sibilancias')">sibilancias</span>
+                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','frote pleural')">frote pleural</span>
+              </div>
               <div class="ti-wrap sky" onclick="document.getElementById('fRuidosInput').focus()">
                 <div id="fRuidosTags" style="display:contents;"></div>
-                <input id="fRuidosInput" class="ti-input" type="text" placeholder="Ej: crépitos… + Enter"
-                  onkeydown="tiKeydown(event,'fRuidosTags','fRuidosVal','sky',['sin ruidos agregados','crépitos','estertores','roncus','sibilancias','frote pleural'])">
+                <input id="fRuidosInput" class="ti-input" type="text" placeholder="Otro… + Enter">
               </div>
               <input type="hidden" id="fRuidosVal">
             </div>
@@ -1284,11 +1303,37 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <div id="dExtMotivo" class="hidden" style="margin-bottom:8px;">
                     <input type="text" id="fExtMotivo" placeholder="Motivo / circunstancias de la extubación no programada..." style="height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;background:#fff5f5;">
                   </div>
+                  <!-- Queda con (dispositivo post-extubación) -->
+                  <div style="margin-bottom:8px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
+                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:6px;letter-spacing:.04em;">✅ Queda con</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+                      <select id="fExtQueda" onchange="hExtQueda()" style="height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;background:#fff;flex:1;min-width:150px;">
+                        <option value="">— Seleccionar dispositivo —</option>
+                        <option value="Mascarilla de oxígeno">Mascarilla O₂</option>
+                        <option value="Nasal de alto flujo (OAF)">OAF / Optiflow</option>
+                        <option value="Cánula nasal">Cánula nasal</option>
+                        <option value="Tubo en T">Tubo en T</option>
+                        <option value="VNI">VNI (BiPAP/CPAP)</option>
+                        <option value="Ambiente">Ambiente</option>
+                      </select>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <label style="font-size:.68rem;color:#15803d;font-weight:700;">Flujo/FiO₂</label>
+                        <input type="text" id="fExtFlujo" placeholder="ej: 4 L/min" style="width:90px;height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 7px;background:#fff;">
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <label style="font-size:.68rem;color:#15803d;font-weight:700;">SpO₂%</label>
+                        <input type="number" id="fExtSpo2" placeholder="95" style="width:60px;height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 7px;background:#fff;">
+                      </div>
+                    </div>
+                    <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;">
+                      💡 El siguiente turno evolucionará desde este estado
+                    </div>
+                  </div>
                   <!-- Post-extubación y reintubación -->
                   <div class="row" style="margin-bottom:0;gap:8px;">
                     <div class="col grow">
                       <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
-                      <input type="text" id="fPostExtDet" placeholder="Soporte, tolerancia, estridor, Stokes..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
+                      <input type="text" id="fPostExtDet" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
                     </div>
                     <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
                       <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintub"><label for="cReintub" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
@@ -1321,10 +1366,17 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:var(--resp);margin-bottom:8px;letter-spacing:.04em;">💧 Secreciones</div>
                 <div style="margin-bottom:6px;">
                   <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Características</label>
+                  <div class="ti-presets">
+                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','mucosa escasa')">mucosa +</span>
+                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','mucosa moderada')">mucosa ++</span>
+                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','mucosa abundante')">mucosa +++</span>
+                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','mucopurulenta moderada')">mucopurul ++</span>
+                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','purulenta moderada')">purulenta ++</span>
+                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','hemática')">hemática</span>
+                  </div>
                   <div class="ti-wrap sky" onclick="document.getElementById('fSecrInput').focus()">
                     <div id="fSecrTags" style="display:contents;"></div>
-                    <input id="fSecrInput" class="ti-input" type="text" placeholder="Ej: mucosa, escasa… + Enter"
-                      onkeydown="tiKeydown(event,'fSecrTags','fSecrVal','sky',['mucosa escasa','mucosa moderada','mucosa abundante','mucopurulenta escasa','mucopurulenta moderada','mucopurulenta abundante','purulenta escasa','purulenta moderada','purulenta abundante','hemática','carbonizadas'])">
+                    <input id="fSecrInput" class="ti-input" type="text" placeholder="Otro… + Enter">
                   </div>
                   <input type="hidden" id="fSecrVal">
                 </div>
@@ -2238,8 +2290,12 @@ function fillForm(s) {
   tiSet('fMPTags','fMPVal','sky',s.EX_MP||'');
   tiSet('fRuidosTags','fRuidosVal','sky',s.EX_RUIDOS||'');
   tiSet('fSecrTags','fSecrVal','sky',s.EX_SECR_TIPO||'');
-  if(s.VENT_VIA_AEREA){ $('fVA').value=s.VENT_VIA_AEREA; cascadeVA(s.VENT_SOPORTE); }
-  if(s.VENT_SOPORTE) cascadeSop(s.VENT_MODO);
+  // Prioriza estado FINAL de VA si hubo extubación en el turno anterior
+  const _vaFinal = s.VENT_VIA_AEREA_FINAL||s.VENT_VIA_AEREA;
+  const _sopFinal = s.VENT_SOPORTE_FINAL||s.VENT_SOPORTE;
+  const _modoFinal = s.VENT_MODO_FINAL||s.VENT_MODO;
+  if(_vaFinal){ $('fVA').value=_vaFinal; cascadeVA(_sopFinal); }
+  if(_sopFinal) cascadeSop(_modoFinal);
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM); set('fTQTt',s.VENT_TQT_TIPO);
   chk('cHAct',s.VENT_H_ACTIVA); chk('cPostExt',s.VENT_POST_EXT); set('fPostExt',s.VENT_POST_EXT_VAL);
   // params
@@ -2359,9 +2415,12 @@ function fillFormReplica(s) {
   tiSet('fRuidosTags','fRuidosVal','sky',s.EX_RUIDOS||'');
   tiSet('fSecrTags','fSecrVal','sky',s.EX_SECR_TIPO||'');
 
-  // Vía aérea y soporte ventilatorio
-  if(s.VENT_VIA_AEREA){ $('fVA').value=s.VENT_VIA_AEREA; cascadeVA(s.VENT_SOPORTE); }
-  if(s.VENT_SOPORTE) cascadeSop(s.VENT_MODO);
+  // Vía aérea — prioriza estado FINAL si hubo extubación en turno anterior
+  const _vaF = s.VENT_VIA_AEREA_FINAL||s.VENT_VIA_AEREA;
+  const _sopF = s.VENT_SOPORTE_FINAL||s.VENT_SOPORTE;
+  const _modoF = s.VENT_MODO_FINAL||s.VENT_MODO;
+  if(_vaF){ $('fVA').value=_vaF; cascadeVA(_sopF); }
+  if(_sopF) cascadeSop(_modoF);
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM); set('fTQTt',s.VENT_TQT_TIPO);
   chk('cHAct',s.VENT_H_ACTIVA); chk('cPostExt',s.VENT_POST_EXT); set('fPostExt',s.VENT_POST_EXT_VAL);
   if(s.VENT_POST_EXT===true||s.VENT_POST_EXT==='TRUE') show('dPostExt');
@@ -2511,6 +2570,13 @@ function guardar() {
     EXT_MOTIVO:      v('fExtMotivo'),
     EXT_POST_DET:    v('fPostExtDet'),
     EXT_REINTUB:     $('cReintub')?.checked||false,
+    EXT_QUEDA_DISP:  v('fExtQueda'),
+    EXT_QUEDA_FLUJO: v('fExtFlujo'),
+    EXT_QUEDA_SPO2:  v('fExtSpo2'),
+    // ★ Si hubo extubación y no reintubación → el estado FINAL de VA es el post-extubación
+    VENT_VIA_AEREA_FINAL: ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('fExtQueda')||'') : v('fVA'),
+    VENT_SOPORTE_FINAL:   ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? 'Oxigenoterapia' : v('fSop'),
+    VENT_MODO_FINAL:      ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('fExtQueda')||'') : v('fModo'),
     PROC_JSON: (function(){
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
@@ -3465,8 +3531,14 @@ function genTexto() {
     const _post=v('fPostExtDet');
     const _reint=$('cReintub')?.checked;
     const _tipos={protocolo:'con protocolo',sin_protocolo:'sin protocolo',accidental:'de forma accidental',autoextubacion:'por autoextubación'};
+    const _queda=v('fExtQueda'), _flujo=v('fExtFlujo'), _spo2ext=v('fExtSpo2');
     let _etxt=`Se realiza extubación ${_tipos[_et]||''}`.trim();
     if((_et==='accidental'||_et==='autoextubacion')&&_mot) _etxt+=`. Motivo: ${_mot}`;
+    if(_queda&&!_reint){
+      _etxt+=`. Paciente queda con ${_queda}`;
+      if(_flujo) _etxt+=` (${_flujo})`;
+      if(_spo2ext) _etxt+=`, SpO₂ ${_spo2ext}%`;
+    }
     L.push(_etxt+'.');
     if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
     if(_reint) L.push('Paciente requiere reintubación.');
@@ -3792,13 +3864,18 @@ function hPVEres(){
   const res=document.querySelector('input[name="pveRes"]:checked')?.value;
   if(res==='frustra') show('dPveFr'); else hide('dPveFr');
 }
+function tiAddChip(tagsId, hiddenId, colorClass, val) {
+  if(!_tiState[tagsId]) _tiState[tagsId]=[];
+  if(!_tiState[tagsId].includes(val)) { _tiState[tagsId].push(val); tiRender(tagsId,hiddenId,colorClass); }
+}
 function hExt(){
-  if($('cExtOcurrio')?.checked) show('dExtDet'); else hide('dExtDet');
+  if($('cExtOcurrio')?.checked) show('dExtDet'); else { hide('dExtDet'); }
 }
 function hExtTipo(){
   const t=document.querySelector('input[name="extTipo"]:checked')?.value;
   if(t==='accidental'||t==='autoextubacion') show('dExtMotivo'); else hide('dExtMotivo');
 }
+function hExtQueda(){}
 function hKTM(q){ setKTMstate(q); }
 function setKTMstate(q){
   const r = q==='r', s = q==='s', n = q==='n';
