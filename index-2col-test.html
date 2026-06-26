@@ -1135,39 +1135,42 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           </div>
         </div>
 
-        </div><!-- /sp-col izquierda -->
-        <div class="sp-col"><!-- columna derecha -->
-        <!-- ▌ RESPIRATORIO (Examen + Ventilatorio + Manejo) -->
-        <div class="fcard fc-r mega-card">
-          <div class="fcard-hdr" style="background:#f0f9ff;"><span class="fcard-title" style="color:var(--resp);">🫁 RESPIRATORIO</span></div>
+        <!-- ▌ RESPIRATORIO — Auscultación (izquierda) -->
+        <div class="fcard fc-r">
+          <div class="fcard-hdr" style="background:#f0f9ff;"><span class="fcard-title" style="color:var(--resp);">🫁 Respiratorio — 🩺 Auscultación</span></div>
           <div class="fcard-body">
-
-            <!-- Examen físico pulmonar / Auscultación -->
-            <div class="sub-sec">
-              <div class="sub-sec-title" style="color:var(--resp);">🩺 Auscultación</div>
-              <div class="row" style="margin-bottom:6px;">
-                <div class="col grow"><label>Murmullo Pulmonar</label>
-                  <select id="fMP"><option>presente bilateral</option><option>disminuido derecho</option><option>disminuido izquierdo</option><option>disminuido bilateral</option><option>abolido derecho</option><option>abolido izquierdo</option></select></div>
+            <div class="row" style="margin-bottom:6px;">
+              <div class="col grow"><label>Murmullo Pulmonar</label>
+                <select id="fMP"><option>presente bilateral</option><option>disminuido derecho</option><option>disminuido izquierdo</option><option>disminuido bilateral</option><option>abolido derecho</option><option>abolido izquierdo</option></select></div>
+            </div>
+            <div>
+              <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Ruidos Agregados</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <label class="check wa"><input type="checkbox" name="ruidos" value="sin ruidos agregados" id="rSin" onchange="hRuidos(this)"> Sin ruidos</label>
+                <label class="check wa"><input type="checkbox" name="ruidos" value="crépitos"> Crépitos</label>
+                <label class="check wa"><input type="checkbox" name="ruidos" value="estertores"> Estertores</label>
+                <label class="check wa"><input type="checkbox" name="ruidos" value="roncus"> Roncus</label>
+                <label class="check wa"><input type="checkbox" name="ruidos" value="sibilancias"> Sibilancias</label>
+                <label class="check wa"><input type="checkbox" name="ruidos" value="frote pleural"> Frote pleural</label>
+                <label class="check wa"><input type="checkbox" name="ruidos" value="otro" onchange="if(this.checked)show('dRuidosM');else hide('dRuidosM');"> Otro</label>
               </div>
-              <div>
-                <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Ruidos Agregados</label>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <label class="check wa"><input type="checkbox" name="ruidos" value="sin ruidos agregados" id="rSin" onchange="hRuidos(this)"> Sin ruidos</label>
-                  <label class="check wa"><input type="checkbox" name="ruidos" value="crépitos"> Crépitos</label>
-                  <label class="check wa"><input type="checkbox" name="ruidos" value="estertores"> Estertores</label>
-                  <label class="check wa"><input type="checkbox" name="ruidos" value="roncus"> Roncus</label>
-                  <label class="check wa"><input type="checkbox" name="ruidos" value="sibilancias"> Sibilancias</label>
-                  <label class="check wa"><input type="checkbox" name="ruidos" value="frote pleural"> Frote pleural</label>
-                  <label class="check wa"><input type="checkbox" name="ruidos" value="otro" onchange="if(this.checked)show('dRuidosM');else hide('dRuidosM');"> Otro</label>
-                </div>
-                <div id="dRuidosM" class="hidden" style="margin-top:5px;">
-                  <input type="text" id="fRuidosM" placeholder="Describir ruido..." style="height:30px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
-                </div>
+              <div id="dRuidosM" class="hidden" style="margin-top:5px;">
+                <input type="text" id="fRuidosM" placeholder="Describir ruido..." style="height:30px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
               </div>
             </div>
+          </div>
+        </div>
+
+        </div><!-- /sp-col izquierda -->
+        <div class="sp-col"><!-- columna derecha -->
+
+        <!-- ▌ RESPIRATORIO — Terapia Ventilatoria + Manejo -->
+        <div class="fcard fc-r mega-card">
+          <div class="fcard-hdr" style="background:#f0f9ff;"><span class="fcard-title" style="color:var(--resp);">🫁 Respiratorio — 💨 Terapia Ventilatoria</span></div>
+          <div class="fcard-body">
 
             <!-- Terapia ventilatoria -->
-            <div class="sub-sec">
+            <div class="sub-sec" style="border-top:none;padding-top:0;">
               <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
                 <div class="sub-sec-title" style="color:var(--resp);margin:0;">💨 Terapia ventilatoria</div>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
