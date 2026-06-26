@@ -428,6 +428,18 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .aisl-tag{display:inline-flex;align-items:center;gap:4px;background:#fecdd3;color:#9f1239;border:1px solid #fda4af;border-radius:20px;padding:2px 8px;font-size:.73rem;font-weight:700;white-space:nowrap;}
 .aisl-tag button{background:none;border:none;color:#9f1239;cursor:pointer;font-size:.8rem;line-height:1;padding:0 1px;opacity:.7;}
 .aisl-tag button:hover{opacity:1;}
+/* --- TAG INPUT SIMPLE (Enter para agregar) --- */
+.ti-wrap{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:5px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;min-height:36px;cursor:text;}
+.ti-wrap:focus-within{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15);}
+.ti-wrap.sky{border-color:#bae6fd;background:#f0f9ff;}.ti-wrap.sky:focus-within{border-color:#0ea5e9;}
+.ti-wrap.violet{border-color:#e9d5ff;background:#faf5ff;}.ti-wrap.violet:focus-within{border-color:#a78bfa;}
+.ti-input{border:none;outline:none;background:transparent;font-size:.78rem;flex:1;min-width:100px;color:#374151;}
+.ti-tag{display:inline-flex;align-items:center;gap:3px;border-radius:20px;padding:2px 8px;font-size:.73rem;font-weight:700;white-space:nowrap;}
+.ti-tag.blue{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;}
+.ti-tag.sky{background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;}
+.ti-tag.violet{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;}
+.ti-tag button{background:none;border:none;cursor:pointer;font-size:.8rem;line-height:1;padding:0 1px;opacity:.6;color:inherit;}
+.ti-tag button:hover{opacity:1;}
 #spMinTag{position:fixed;bottom:20px;left:20px;z-index:200;background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none;align-items:center;gap:8px;border:1px solid #1e5a8f;transition:background .2s;}
 #spMinTag:hover{background:#1e5a8f;}
 #spMinTag::before{content:'📋';font-size:.9rem;}
@@ -1105,7 +1117,12 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="mon" style="height:36px;"><span style="font-size:.58rem;color:var(--muted);">GCS</span><span id="lblGCS" class="bold">15</span></div>
             </div>
             <div class="row" style="margin-top:4px;">
-              <div class="col ws"><label>S5Q /5</label><input type="number" id="fS5Q" min="0" max="5" oninput="autoCoopera()"></div>
+              <div class="col wa"><label>S5Q</label>
+                <select id="fS5Q" onchange="autoCoopera()">
+                  <option value="">-</option>
+                  <option value="lt3">&lt;3 — No cooperador</option>
+                  <option value="gte3">≥3 — Cooperador</option>
+                </select></div>
               <div class="col wa"><label>Cooperación</label>
                 <select id="fCoop"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select></div>
               <div class="col wa"><label>CAM-ICU</label>
@@ -1139,24 +1156,23 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard fc-r">
           <div class="fcard-hdr" style="background:#f0f9ff;"><span class="fcard-title" style="color:var(--resp);">🫁 Respiratorio — 🩺 Auscultación</span></div>
           <div class="fcard-body">
-            <div class="row" style="margin-bottom:6px;">
-              <div class="col grow"><label>Murmullo Pulmonar</label>
-                <select id="fMP"><option>presente bilateral</option><option>disminuido derecho</option><option>disminuido izquierdo</option><option>disminuido bilateral</option><option>abolido derecho</option><option>abolido izquierdo</option></select></div>
+            <div style="margin-bottom:8px;">
+              <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Murmullo Pulmonar</label>
+              <div class="ti-wrap sky" onclick="document.getElementById('fMPInput').focus()">
+                <div id="fMPTags" style="display:contents;"></div>
+                <input id="fMPInput" class="ti-input" type="text" placeholder="Ej: disminuido izq… + Enter"
+                  onkeydown="tiKeydown(event,'fMPTags','fMPVal','sky',['presente bilateral','disminuido derecho','disminuido izquierdo','disminuido bilateral','abolido derecho','abolido izquierdo'])">
+              </div>
+              <input type="hidden" id="fMPVal">
             </div>
             <div>
               <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Ruidos Agregados</label>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <label class="check wa"><input type="checkbox" name="ruidos" value="sin ruidos agregados" id="rSin" onchange="hRuidos(this)"> Sin ruidos</label>
-                <label class="check wa"><input type="checkbox" name="ruidos" value="crépitos"> Crépitos</label>
-                <label class="check wa"><input type="checkbox" name="ruidos" value="estertores"> Estertores</label>
-                <label class="check wa"><input type="checkbox" name="ruidos" value="roncus"> Roncus</label>
-                <label class="check wa"><input type="checkbox" name="ruidos" value="sibilancias"> Sibilancias</label>
-                <label class="check wa"><input type="checkbox" name="ruidos" value="frote pleural"> Frote pleural</label>
-                <label class="check wa"><input type="checkbox" name="ruidos" value="otro" onchange="if(this.checked)show('dRuidosM');else hide('dRuidosM');"> Otro</label>
+              <div class="ti-wrap sky" onclick="document.getElementById('fRuidosInput').focus()">
+                <div id="fRuidosTags" style="display:contents;"></div>
+                <input id="fRuidosInput" class="ti-input" type="text" placeholder="Ej: crépitos… + Enter"
+                  onkeydown="tiKeydown(event,'fRuidosTags','fRuidosVal','sky',['sin ruidos agregados','crépitos','estertores','roncus','sibilancias','frote pleural'])">
               </div>
-              <div id="dRuidosM" class="hidden" style="margin-top:5px;">
-                <input type="text" id="fRuidosM" placeholder="Describir ruido..." style="height:30px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
-              </div>
+              <input type="hidden" id="fRuidosVal">
             </div>
           </div>
         </div>
@@ -1298,29 +1314,32 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               </div>
               <!-- Secreciones -->
               <div style="margin-top:8px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;">
-                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:var(--resp);margin-bottom:6px;letter-spacing:.04em;">💧 Secreciones</div>
-                <div class="row" style="margin-bottom:0;align-items:flex-end;">
-                  <div class="col wa"><label>Reología</label>
-                    <select id="fSecrT"><option value="">-</option><option>mucosa</option><option>mucopurulenta</option><option>purulenta</option><option>hemática</option><option>carbonizadas</option></select></div>
-                  <div class="col wa"><label>Cantidad</label>
-                    <select id="fSecrC"><option value="">-</option><option>escasa</option><option>moderada</option><option>abundante</option></select></div>
-                  <div class="check wa" style="margin-bottom:6px;">
-                    <input type="checkbox" id="cMue" onchange="hMue()"><label for="cMue">🧪 Cultivo</label>
+                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:var(--resp);margin-bottom:8px;letter-spacing:.04em;">💧 Secreciones</div>
+                <div style="margin-bottom:6px;">
+                  <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Características</label>
+                  <div class="ti-wrap sky" onclick="document.getElementById('fSecrInput').focus()">
+                    <div id="fSecrTags" style="display:contents;"></div>
+                    <input id="fSecrInput" class="ti-input" type="text" placeholder="Ej: mucosa, escasa… + Enter"
+                      onkeydown="tiKeydown(event,'fSecrTags','fSecrVal','sky',['mucosa escasa','mucosa moderada','mucosa abundante','mucopurulenta escasa','mucopurulenta moderada','mucopurulenta abundante','purulenta escasa','purulenta moderada','purulenta abundante','hemática','carbonizadas'])">
                   </div>
+                  <input type="hidden" id="fSecrVal">
+                </div>
+                <div class="check wa" style="margin-bottom:6px;">
+                  <input type="checkbox" id="cMue" onchange="hMue()"><label for="cMue">🧪 Cultivo</label>
                 </div>
                 <div id="dMue" class="hidden fade" style="margin-top:7px;padding:7px 9px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;">
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px;">
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
                     <div class="check wa"><input type="checkbox" name="mtest" value="CCAET"><label title="Cultivo corriente aspirado endotraqueal">CCAET</label></div>
                     <div class="check wa"><input type="checkbox" name="mtest" value="Mini Lab"><label>Mini Lab</label></div>
                     <div class="check wa"><input type="checkbox" name="mtest" value="Hisopado COVID-19"><label>COVID-19</label></div>
                   </div>
-                  <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:4px;">Resultado(s)</div>
-                  <div id="dCultResultados" style="display:flex;flex-direction:column;gap:5px;">
-                    <div class="cult-res-row" style="display:flex;gap:5px;align-items:center;">
-                      <input type="text" class="cult-res" placeholder="Microorganismo..." style="flex:1;height:28px;border:1px solid #e9d5ff;border-radius:5px;padding:0 8px;font-size:.78rem;">
-                    </div>
+                  <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:6px;">Resultado(s)</div>
+                  <div class="ti-wrap violet" onclick="document.getElementById('fCultInput').focus()">
+                    <div id="fCultTags" style="display:contents;"></div>
+                    <input id="fCultInput" class="ti-input" type="text" placeholder="Microorganismo… + Enter"
+                      onkeydown="tiKeydown(event,'fCultTags','fCultVal','violet',[])">
                   </div>
-                  <button type="button" onclick="addCultRes()" style="margin-top:5px;padding:2px 10px;font-size:.75rem;border:1px dashed #a78bfa;background:transparent;color:#7c3aed;border-radius:5px;cursor:pointer;">+ agregar microorganismo</button>
+                  <input type="hidden" id="fCultVal">
                 </div>
               </div>
             </div>
@@ -2062,6 +2081,7 @@ function abrirPanel(id, esIng) {
   $('spTitle').textContent=esIng?'Registro — INGRESO':'Registro Evolución';
   esIng ? show('fcId') : hide('fcId');
   _aislTags=[]; renderAislTags();
+  ['fMPTags','fRuidosTags','fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   $('spShift').textContent=`${fecha} · Turno ${SHIFT}`;
   hide('rarea'); hide('repBanner');
   $('kf').reset(); PROCS=[]; renderChips();
@@ -2193,7 +2213,9 @@ function fillForm(s) {
   set('fHEst',s.HEMO_ESTADO); set('fDVA',s.HEMO_DVA);
   chk('cMultiDVA',s.HEMO_MULTI_DVA); set('fDVAcnt',s.HEMO_NUM_DVA);
   chk('cHTrend',s.HEMO_TENDENCIA); set('fHTT',s.HEMO_TEND_TIPO);
-  set('fMP',s.EX_MP); set('fRuidos',s.EX_RUIDOS); set('fSecrC',s.EX_SECR_CANT); set('fSecrT',s.EX_SECR_TIPO);
+  tiSet('fMPTags','fMPVal','sky',s.EX_MP||'');
+  tiSet('fRuidosTags','fRuidosVal','sky',s.EX_RUIDOS||'');
+  tiSet('fSecrTags','fSecrVal','sky',s.EX_SECR_TIPO||'');
   if(s.VENT_VIA_AEREA){ $('fVA').value=s.VENT_VIA_AEREA; cascadeVA(s.VENT_SOPORTE); }
   if(s.VENT_SOPORTE) cascadeSop(s.VENT_MODO);
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM); set('fTQTt',s.VENT_TQT_TIPO);
@@ -2254,14 +2276,10 @@ function fillForm(s) {
   if(_ex.AET_NIVEL){ const rb=document.querySelector(`input[name="aetNivel"][value="${_ex.AET_NIVEL}"]`); if(rb) rb.checked=true; }
   // S3: CAM-ICU
   set('fCAMICU',_ex.SED_CAM_ICU);
-  // Auscultación múltiple
+  // Cultivo resultado previo → tags
   (function(){
-    if(!_ex.EX_RUIDOS_MULTI) return;
-    let arr=[]; try{arr=JSON.parse(_ex.EX_RUIDOS_MULTI);}catch(e){}
-    document.querySelectorAll('input[name="ruidos"]').forEach(c=>{c.checked=arr.includes(c.value);});
-    if(arr.includes('otro')) set('fRuidosM',_ex.EX_RUIDOS_OTRO);
-    const otro=document.querySelector('input[name="ruidos"][value="otro"]');
-    if(otro&&otro.checked) show('dRuidosM'); else hide('dRuidosM');
+    if(!_ex.EX_CULT_RESULTADO) return;
+    tiSet('fCultTags','fCultVal','violet',_ex.EX_CULT_RESULTADO);
   })();
   // PVE — ACCIÓN DIARIA: siempre parte en "no aplica"
   (function(){
@@ -2315,7 +2333,9 @@ function fillFormReplica(s) {
   chk('cHTrend',s.HEMO_TENDENCIA); set('fHTT',s.HEMO_TEND_TIPO);
 
   // Examen físico
-  set('fMP',s.EX_MP); set('fRuidos',s.EX_RUIDOS); set('fSecrC',s.EX_SECR_CANT); set('fSecrT',s.EX_SECR_TIPO);
+  tiSet('fMPTags','fMPVal','sky',s.EX_MP||'');
+  tiSet('fRuidosTags','fRuidosVal','sky',s.EX_RUIDOS||'');
+  tiSet('fSecrTags','fSecrVal','sky',s.EX_SECR_TIPO||'');
 
   // Vía aérea y soporte ventilatorio
   if(s.VENT_VIA_AEREA){ $('fVA').value=s.VENT_VIA_AEREA; cascadeVA(s.VENT_SOPORTE); }
@@ -2335,6 +2355,7 @@ function fillFormReplica(s) {
 
   // Respiratorio
   set('fKTRcnt',_ex.RESP_KTR_CANT);
+  if(_ex.EX_CULT_RESULTADO) tiSet('fCultTags','fCultVal','violet',_ex.EX_CULT_RESULTADO);
 
   // KTM estado y nivel (replica estado previo como punto de partida)
   if(s.KTM_REALIZADA===true||s.KTM_REALIZADA==='TRUE') setKTMstate('r');
@@ -2356,7 +2377,6 @@ function fillFormReplica(s) {
 
   // Movilización
   chk('cMue',s.MUE_REALIZADAS); hMue();
-  (function(){ if(!s.MUE_RESULTADOS_JSON) return; let arr=[]; try{arr=JSON.parse(s.MUE_RESULTADOS_JSON);}catch(e){} fillCultRes(arr); })();
 
   // Procedimientos
   if(s.PROC_JSON){ try{ PROCS=JSON.parse(s.PROC_JSON)||[]; }catch(e){} renderChips(); }
@@ -2377,6 +2397,8 @@ function fillFormReplica(s) {
 function limpiarReplica() {
   const id=v('cBed'), fecha=v('gDate')||hoy();
   $('kf').reset(); PROCS=[]; KTM_INTERV_SEL=new Set(); renderChips(); renderKTMinterv();
+  _aislTags=[]; renderAislTags();
+  ['fMPTags','fRuidosTags','fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS(); hPVE(); hAisl(); hAET(); hExt();
   const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha);
   hide('repBanner');
@@ -2417,16 +2439,10 @@ function guardar() {
     SED_GCS_TOT:$('lblGCS')?.textContent||'', SED_BNM:bv('cBNM'),
     HEMO_ESTADO:v('fHEst'), HEMO_DVA:v('fDVA'), HEMO_MULTI_DVA:bv('cMultiDVA'),
     HEMO_NUM_DVA:v('fDVAcnt'), HEMO_TENDENCIA:bv('cHTrend'), HEMO_TEND_TIPO:v('fHTT'),
-    EX_MP:v('fMP'),
-    EX_RUIDOS:(function(){
-      const sel=Array.from(document.querySelectorAll('input[name="ruidos"]:checked')).map(c=>c.value);
-      if(!sel.length) return '';
-      const res=sel.includes('otro')?sel.filter(s=>s!=='otro').concat(v('fRuidosM')?[v('fRuidosM')]:[]):sel;
-      return res.join(', ');
-    })(),
-    EX_RUIDOS_MULTI: JSON.stringify(Array.from(document.querySelectorAll('input[name="ruidos"]:checked')).map(c=>c.value)),
-    EX_RUIDOS_OTRO:  v('fRuidosM'),
-    EX_SECR_CANT:v('fSecrC'), EX_SECR_TIPO:v('fSecrT'),
+    EX_MP:     v('fMPVal'),
+    EX_RUIDOS: v('fRuidosVal'),
+    EX_SECR_TIPO: v('fSecrVal'),
+    EX_CULT_RESULTADO: v('fCultVal'),
     VENT_VIA_AEREA:v('fVA'), VENT_TOT_NUM:v('fTOTn'), VENT_TOT_CM:v('fTOTcm'),
     VENT_TQT_TIPO:v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
     VENT_H_ACTIVA:bv('cHAct'), VENT_POST_EXT:bv('cPostExt'), VENT_POST_EXT_VAL:v('fPostExt'),
@@ -2521,7 +2537,7 @@ function guardar() {
     })(),
     MUE_REALIZADAS:bv('cMue'),
     MUE_TIPOS_JSON:JSON.stringify(Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value)),
-    MUE_RESULTADOS_JSON:JSON.stringify(Array.from(document.querySelectorAll('#dCultResultados .cult-res')).map(i=>i.value.trim()).filter(Boolean)),
+    MUE_RESULTADOS_JSON:JSON.stringify((_tiState['fCultTags']||[]).filter(Boolean)),
     EGR_ACTIVO:bv('cEgr'), EGR_NIVEL_MOTOR:v('fNivelMotor'), EGR_PRENSION:n(v('fPrension')),
     EGR_MRC_SS:n(v('fMRC')), EGR_FSS:n(v('fFSS')),
     EGR_GROSOR_DIAF:n(v('fGrosor')), EGR_PIM:n(v('fPIM')), EGR_PEM:n(v('fPEM')),
@@ -3276,7 +3292,7 @@ function genTexto() {
   else if(sed.startsWith('Escalón')) s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
   else s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
   s+=` GCS ${gcsT}${intub?'':'/15'}(O:${gv('fGCSO')||'?'}, V:${gv('fGCSV')||'?'}, M:${gv('fGCSM')||'?'})`;
-  if(s5q) s+=`, S5Q ${s5q}/5`; if(coop) s+=` (${coop})`;
+  if(s5q==='lt3') s+=', S5Q <3'; else if(s5q==='gte3') s+=', S5Q ≥3'; if(coop) s+=` (${coop})`;
   if(camicu==='pos') s+=', CAM-ICU positivo (delirium presente)';
   else if(camicu==='neg') s+=', CAM-ICU negativo';
   else if(camicu==='ne') s+=', CAM-ICU no evaluable';
@@ -3334,19 +3350,15 @@ function genTexto() {
     const _pb=_pjoin([_lit?`${_lit} L/min`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null]);
     if(_pb) L.push(`Terapia ventilatoria oxigenoterapia: ${_pb}.`);
   } else if(spo2) L.push(`En ventilación espontánea en ambiente, SpO₂ ${spo2}%.`);
-  const mp=gv('fMP'), ru=gv('fRuidos'), secrC=gv('fSecrC'), secrT=gv('fSecrT');
-  if(mp){
-    const _ruSel=Array.from(document.querySelectorAll('input[name="ruidos"]:checked')).map(c=>c.value);
-    const _ruText=(function(){
-      if(!_ruSel.length) return '';
-      if(_ruSel.includes('sin ruidos agregados')) return null; // se agrega abajo
-      return _ruSel.includes('otro')
-        ? _ruSel.filter(x=>x!=='otro').concat(v('fRuidosM')?[v('fRuidosM')]:[]).join(', ')
-        : _ruSel.join(' y ');
-    })();
-    let e=`Al examen físico respiratorio: murmullo pulmonar ${mp}`;
-    if(_ruText) e+=`, con ${_ruText}`;
-    else if(_ruSel.includes('sin ruidos agregados')) e+=', sin ruidos agregados';
+  const mp=v('fMPVal'), ru=v('fRuidosVal'), secrT=v('fSecrVal');
+  if(mp||ru){
+    let e='Al examen físico respiratorio';
+    if(mp) e+=`: murmullo pulmonar ${mp}`;
+    if(ru){
+      const _ruTags=(_tiState['fRuidosTags']||[]);
+      if(_ruTags.includes('sin ruidos agregados')) e+=', sin ruidos agregados';
+      else e+=(mp?', con ':': ')+ru;
+    }
     L.push(e+'.');
   }
   const kR=$('cKTMr')?.checked, kS=$('cKTMs')?.checked, kN=$('bKTMn')?.classList.contains('on');
@@ -3376,24 +3388,22 @@ function genTexto() {
     if($('cATos')?.checked) procs.push('asistencia de tos');
     if(!procs.length) return;
     let kline=procs.join(' + ');
-    const _secrC=gv('fSecrC'), _secrT=gv('fSecrT');
-    const _cruces={escasa:'+',moderada:'++',abundante:'+++'};
-    if(_secrC||_secrT){
-      const _cr=_cruces[String(_secrC).toLowerCase()]||'';
-      const _st=_secrT||'';
-      kline+=`: secreciones${_st?' '+_st:''}${_cr?' ('+_cr+')':''}`;
-    }
+    const _secrT=v('fSecrVal');
+    if(_secrT) kline+=`: secreciones ${_secrT}`;
     L.push(kline+'.');
   })();
   // Cultivo de secreciones
-  if($('cMue')?.checked){
-    const _tipos=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
-    const _res=Array.from(document.querySelectorAll('#dCultResultados .cult-res')).map(i=>i.value.trim()).filter(Boolean);
-    let _cline='Se toman muestras para cultivo';
-    if(_tipos.length) _cline+=' ('+_tipos.join(', ')+')';
-    if(_res.length) _cline+='. Resultado'+((_res.length>1)?'s':'')+': '+_res.join(', ')+'.'; else _cline+=', resultado pendiente.';
-    L.push(_cline);
-  }
+  (function(){
+    const _res=(_tiState['fCultTags']||[]).filter(Boolean);
+    if(_res.length) L.push('Resultado de cultivo: '+_res.join(', ')+'.');
+    if($('cMue')?.checked){
+      const _tipos=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
+      let _cline='Se toman muestras para cultivo';
+      if(_tipos.length) _cline+=' ('+_tipos.join(', ')+')';
+      _cline+=', resultado pendiente.';
+      L.push(_cline);
+    }
+  })();
   // Evaluaciones funcionales del turno
   if($('cEvalT')?.checked){
     const ev=[];
@@ -3538,11 +3548,12 @@ function autoCoopera(){
   const gcsNum=gcsO+(isNaN(parseInt(v('fGCSV')))?1:gcsV)+gcsM;
   const noCooper=bnm||(sas===1)||(gcsNum<8);
   if(noCooper){
-    const s5=$('fS5Q'); if(s5) s5.value='0';
+    const s5=$('fS5Q'); if(s5) s5.value='lt3';
     const coop=$('fCoop'); if(coop) coop.value='No cooperador';
   } else {
-    const s=parseInt(v('fS5Q'));
-    if(!isNaN(s)&&v('fS5Q')!==''){const e=$('fCoop');if(e)e.value=s>=3?'Cooperador':'No cooperador';}
+    const s5v=v('fS5Q');
+    if(s5v==='lt3'){const e=$('fCoop');if(e)e.value='No cooperador';}
+    else if(s5v==='gte3'){const e=$('fCoop');if(e)e.value='Cooperador';}
   }
 }
 
@@ -3685,6 +3696,38 @@ function confirmarReingreso(){
   const cb=$('cReing'); if(cb){cb.checked=true;}
   hide('dNombreAlert');
 }
+// ── Tag Input genérico (Enter para agregar, Backspace para borrar último) ──
+const _tiState={};
+function tiKeydown(e,tagsId,hiddenId,colorClass){
+  const key=e.key,input=e.target,val=input.value.trim();
+  if(key==='Enter'||key===','){
+    e.preventDefault();
+    if(!val) return;
+    if(!_tiState[tagsId]) _tiState[tagsId]=[];
+    if(!_tiState[tagsId].includes(val)) _tiState[tagsId].push(val);
+    tiRender(tagsId,hiddenId,colorClass);
+    input.value='';
+  } else if(key==='Backspace'&&input.value===''&&_tiState[tagsId]?.length){
+    _tiState[tagsId].pop();
+    tiRender(tagsId,hiddenId,colorClass);
+  }
+}
+function tiRender(tagsId,hiddenId,colorClass){
+  const wrap=$(tagsId),hidden=$(hiddenId);
+  if(!wrap) return;
+  const tags=_tiState[tagsId]||[];
+  wrap.innerHTML=tags.map((t,i)=>`<span class="ti-tag ${colorClass}">${t}<button type="button" onclick="tiRemove('${tagsId}','${hiddenId}','${colorClass}',${i})">×</button></span>`).join('');
+  if(hidden) hidden.value=tags.join(', ');
+}
+function tiRemove(tagsId,hiddenId,colorClass,i){
+  if(_tiState[tagsId]) _tiState[tagsId].splice(i,1);
+  tiRender(tagsId,hiddenId,colorClass);
+}
+function tiSet(tagsId,hiddenId,colorClass,str){
+  _tiState[tagsId]=str?str.split(',').map(s=>s.trim()).filter(Boolean):[];
+  tiRender(tagsId,hiddenId,colorClass);
+}
+
 function hAisl(){if($('cAisl')?.checked)show('dAislMicro');else hide('dAislMicro');}
 let _aislTags=[];
 function aislTagKeydown(e){
