@@ -4180,14 +4180,18 @@ function actualizarContadores(){
   const vaa=tot+tqt+prev;
   _diasVABase=tot+tqt;
   // VAA
-  const elTOT=$('fDiasTOT'); if(elTOT) elTOT.value=tot||'';
-  const elTQT=$('fDiasTQT'); if(elTQT) elTQT.value=tqt||'';
-  const elVAA=$('fDiasVAA'); if(elVAA) elVAA.value=vaa||'';
-  const elVA=$('fDiasVA');   if(elVA)  elVA.value=vaa||'';
+  const va=v('fVA');
+  const esInv=va==='TOT'||va==='TQT';
+  const esVNI=va==='Full Face'||va==='Oronasal';
+  // Mostrar 0 cuando el contador está activo (VA seleccionado), vacío si no aplica
+  const elTOT=$('fDiasTOT'); if(elTOT) elTOT.value=esInv?tot:(tot||'');
+  const elTQT=$('fDiasTQT'); if(elTQT) elTQT.value=(va==='TQT')?tqt:(tqt||'');
+  const elVAA=$('fDiasVAA'); if(elVAA) elVAA.value=esInv?vaa:(vaa||'');
+  const elVA=$('fDiasVA');   if(elVA)  elVA.value=esInv?vaa:(vaa||'');
   // VM
   const vmTotal=_diasVMPrevios+_diasVMEpisodio;
   const elVM=$('fDiasVM');
-  if(elVM) elVM.value=(_nReintub>0&&_diasVMEpisodio>0)?`${vmTotal}/${_diasVMEpisodio}`:(vmTotal||'');
+  if(elVM) elVM.value=(_nReintub>0&&_diasVMEpisodio>0)?`${vmTotal}/${_diasVMEpisodio}`:(esInv?vmTotal:(vmTotal||''));
   const elVMLbl=$('lblDiasVM');
   if(elVMLbl) elVMLbl.textContent=_nReintub>0?'VM tot/ep':'Días VM';
   // Reintubaciones
@@ -4195,7 +4199,7 @@ function actualizarContadores(){
   if(_nReintub>0) _showCol('colReintub'); else _hideCol('colReintub');
   // VNI
   const vniTotal=_diasVNIPrevios+_diasVNIEpisodio;
-  const elVNI=$('fDiasVNI'); if(elVNI) elVNI.value=vniTotal||'';
+  const elVNI=$('fDiasVNI'); if(elVNI) elVNI.value=esVNI?vniTotal:(vniTotal||'');
   // Aviso TQT + modo VNI
   const va=v('fVA'), modo=v('fModo');
   const wEl=$('dTQTVNIWarn');
