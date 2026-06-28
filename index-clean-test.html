@@ -1003,7 +1003,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
   <div class="phdr">
     <div class="ptitle">
       <span id="spBed" style="background:#1e293b;padding:4px 10px;border-radius:5px;border:1px solid #334155;font-size:.83rem;">Cama X</span>
-      <span id="spTitle">Registro Evolución</span>
     </div>
     <div class="phdr-btns">
       <button class="mbtn" onclick="minimizarPanel()" title="Minimizar">−</button>
@@ -1014,32 +1013,65 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
     <form id="kf" onsubmit="return false;" autocomplete="off">
       <input type="hidden" id="cBed">
       <input type="hidden" id="cIng" value="false">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px 6px;">
-        <span style="font-size:.72rem;color:var(--muted);font-weight:600;">Turno: <span id="spShift" style="color:var(--kine);font-weight:700;">--</span></span>
+      <!-- Fecha y turno — encabezado visible -->
+      <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);">
+        <div id="spShift" style="font-size:1.25rem;font-weight:800;color:var(--txt);letter-spacing:-.01em;">--</div>
+        <div id="spTitle" style="font-size:.7rem;font-weight:600;color:var(--muted);margin-top:1px;">Registro Evolución</div>
       </div>
 
-      <!-- AVISO: datos replicados del turno anterior -->
-      <div id="repBanner" class="hidden" style="display:flex;align-items:center;gap:9px;background:#eff6ff;border-bottom:1px solid #bfdbfe;border-left:4px solid var(--primary);padding:8px 14px;margin-bottom:0;">
-        <span style="font-size:1.05rem;">📋</span>
-        <span id="repBannerTxt" style="font-size:.78rem;color:var(--pdark);font-weight:600;line-height:1.35;flex-grow:1;"></span>
-        <button type="button" onclick="limpiarReplica()" style="background:#fff;border:1px solid #cbd5e1;color:var(--muted);padding:5px 11px;border-radius:6px;font-weight:700;font-size:.72rem;cursor:pointer;white-space:nowrap;">Empezar en blanco</button>
-      </div>
+      <!-- repBanner oculto permanentemente en esta versión -->
+      <div id="repBanner" class="hidden"><span id="repBannerTxt"></span></div>
 
       <!-- IDENTIFICACIÓN — solo visible en ingreso -->
       <div class="fcard fc-id" id="fcId">
-        <div class="fcard-hdr"><span class="fcard-title">👤 Identificación del Paciente</span></div>
+        <div class="fcard-hdr"><span class="fcard-title">👤 Identificación</span></div>
         <div class="fcard-body">
-          <div class="row" style="margin-bottom:0;">
+          <!-- Fila 1: Nombre + Edad + Sexo -->
+          <div class="row">
             <div class="col grow"><label>Nombre</label>
               <input type="text" id="fNombre" class="bold" placeholder="Nombre completo" oninput="_debouncedChkNombre(this.value); actualizarTituloPanel(this.value);" autocomplete="off">
-              <div id="dNombreAlert" class="hidden" style="margin-top:4px;padding:6px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:.76rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <div id="dNombreAlert" class="hidden" style="margin-top:4px;padding:5px 9px;border:1px solid #fde68a;border-radius:5px;font-size:.75rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span>⚠️ <span id="lblNombreMatch"></span></span>
-                <button type="button" onclick="confirmarReingreso()" style="padding:2px 10px;background:#f59e0b;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.74rem;font-weight:700;">Sí, es reingreso</button>
-                <button type="button" onclick="hide('dNombreAlert')" style="padding:2px 10px;background:#fff;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;font-size:.74rem;">Paciente nuevo</button>
+                <button type="button" onclick="confirmarReingreso()" style="padding:2px 9px;background:#f59e0b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.73rem;font-weight:700;">Sí, es reingreso</button>
+                <button type="button" onclick="hide('dNombreAlert')" style="padding:2px 9px;background:#fff;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:.73rem;">Paciente nuevo</button>
               </div>
             </div>
-            <div class="col ws"><label>Edad</label><input type="number" id="fEdad"></div>
-            <div class="col ws"><label>Sexo*</label><select id="fSexo" onchange="calcPI()"><option value="" disabled selected>-</option><option value="M">Masc</option><option value="F">Fem</option></select></div>
+            <div class="col ws"><label>Edad</label><input type="number" id="fEdad" min="0" max="120"></div>
+            <div class="col ws"><label>Sexo</label><select id="fSexo" onchange="calcPI()"><option value="" disabled selected>-</option><option value="M">M</option><option value="F">F</option></select></div>
+            <div class="col ws"><label>Talla cm</label><input type="number" id="fTalla" oninput="calcPI()"></div>
+            <div class="col wa" style="align-self:flex-end;padding-bottom:2px;"><span id="lblPI" style="font-size:.73rem;font-weight:600;padding:3px 7px;border-radius:4px;background:#eff6ff;border:1px solid #bfdbfe;color:var(--primary);white-space:nowrap;">PI: --</span></div>
+          </div>
+          <!-- Fila 2: Diagnóstico de ingreso + REM -->
+          <div class="row" style="margin-bottom:0;">
+            <div class="col grow"><label>Diagnóstico de Ingreso</label>
+              <input type="text" id="fDx" placeholder="Ej: Shock Séptico…" list="listDx" autocomplete="off">
+              <datalist id="listDx">
+                <option>Shock Séptico</option><option>Sepsis</option><option>Neumonía grave</option>
+                <option>Insuficiencia respiratoria aguda</option><option>SDRA</option>
+                <option>TEC grave</option><option>ACV isquémico</option><option>ACV hemorrágico</option>
+                <option>Hemorragia subaracnoidea</option><option>Status epiléptico</option>
+                <option>Guillain-Barré</option><option>Miastenia gravis</option>
+                <option>Falla cardíaca descompensada</option><option>Shock cardiogénico</option>
+                <option>Infarto agudo al miocardio</option><option>Politraumatismo</option>
+                <option>Trauma torácico</option><option>Trauma abdominal</option>
+                <option>Fractura de cadera</option><option>Post operatorio cirugía cardíaca</option>
+                <option>Post operatorio cirugía abdominal</option><option>Post operatorio neurocirugía</option>
+                <option>Pancreatitis aguda grave</option><option>Falla hepática aguda</option>
+                <option>Insuficiencia renal aguda</option><option>Cetoacidosis diabética</option>
+                <option>Intoxicación aguda</option><option>Quemados</option>
+              </datalist>
+            </div>
+            <div class="col wa"><label>Grupo REM</label>
+              <select id="fRem" style="min-width:160px;">
+                <option value="" disabled selected>-- Grupo --</option>
+                <option>ACV</option><option>TEC</option><option>LM</option><option>ENM agudas</option>
+                <option>ENM crónicas</option><option>Otras neurológicas</option><option>Sd. Post-UCI</option>
+                <option>COVID-19</option><option>Enfermedades respiratorias</option>
+                <option>Enfermedades cardíacas</option><option>Otras reumatológicas</option>
+                <option>Traumatológicos</option><option>Otros pre y post quirúrgicos</option>
+                <option>Oncológicos</option><option>Otros</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -1047,63 +1079,27 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
       <div class="sp-2col"><div class="sp-col">
         <!-- DIAGNÓSTICO -->
         <div class="fcard fc-g">
-          <div class="fcard-hdr"><span class="fcard-title">📊 General y Diagnóstico</span></div>
+          <div class="fcard-hdr"><span class="fcard-title">📊 General</span></div>
           <div class="fcard-body">
-            <!-- Talla / PI / Barthel / ECF -->
-            <div class="row" style="margin-bottom:8px;">
-              <div class="col ws"><label>Talla cm</label><input type="number" id="fTalla" oninput="calcPI()"></div>
-              <div class="col wa" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPI" style="font-size:.75rem;font-weight:600;padding:4px 8px;border-radius:5px;background:#eff6ff;border:1px solid #bfdbfe;color:var(--primary);white-space:nowrap;">PI: --</span></div>
+            <!-- Día estadía + Barthel + ECF -->
+            <div class="row" style="margin-bottom:6px;">
+              <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:64px;" disabled></div>
               <div class="col ws"><label>Barthel</label><input type="number" id="fBarthel" placeholder="0-100"></div>
               <div class="col ws"><label>ECF</label><input type="number" id="fEcf" placeholder="0-9"></div>
             </div>
-            <!-- Aislamiento con tags -->
-            <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-              <div class="check cr wa" style="flex-shrink:0;margin-top:2px;"><input type="checkbox" id="cAisl" onchange="hAisl()"><label for="cAisl" style="font-weight:700;">🦠 Aislamiento</label></div>
-              <div id="dAislMicro" class="hidden" style="flex:1;min-width:220px;">
-                <div id="aislTagsWrap" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:5px 8px;border:1px solid #fecdd3;border-radius:8px;background:#fff5f5;min-height:34px;cursor:text;" onclick="$('fAislInput').focus()">
+            <!-- Checkboxes y campos de aislamiento/reingreso — ocultos, solo para compatibilidad JS/guardar -->
+            <div style="display:none;">
+              <input type="checkbox" id="cReing">
+              <input type="checkbox" id="cAisl" onchange="hAisl()">
+              <div id="dAislMicro">
+                <div id="aislTagsWrap" onclick="$('fAislInput').focus()">
                   <div id="aislTags" style="display:contents;"></div>
-                  <input id="fAislInput" type="text" placeholder="Escribir y presionar Enter..." style="border:none;outline:none;background:transparent;font-size:.78rem;flex:1;min-width:120px;color:#374151;" onkeydown="aislTagKeydown(event)">
+                  <input id="fAislInput" type="text" onkeydown="aislTagKeydown(event)">
                 </div>
                 <input type="hidden" id="fAislMicroVal">
               </div>
             </div>
-            <!-- Reingreso — primera línea -->
-            <div style="margin-bottom:6px;">
-              <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReing"><label for="cReing" style="font-weight:700;">↩️ Reingreso a UCI</label></div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:70px;" disabled></div>
-              <div class="col grow"><label>Diagnóstico de Ingreso</label>
-                <input type="text" id="fDx" placeholder="Ej: Shock Séptico..." list="listDx" autocomplete="off">
-                <datalist id="listDx">
-                  <option>Shock Séptico</option><option>Sepsis</option><option>Neumonía grave</option>
-                  <option>Insuficiencia respiratoria aguda</option><option>SDRA</option>
-                  <option>TEC grave</option><option>ACV isquémico</option><option>ACV hemorrágico</option>
-                  <option>Hemorragia subaracnoidea</option><option>Status epiléptico</option>
-                  <option>Guillain-Barré</option><option>Miastenia gravis</option>
-                  <option>Falla cardíaca descompensada</option><option>Shock cardiogénico</option>
-                  <option>Infarto agudo al miocardio</option>
-                  <option>Politraumatismo</option><option>Trauma torácico</option>
-                  <option>Trauma abdominal</option><option>Fractura de cadera</option>
-                  <option>Post operatorio cirugía cardíaca</option><option>Post operatorio cirugía abdominal</option>
-                  <option>Post operatorio neurocirugía</option>
-                  <option>Pancreatitis aguda grave</option><option>Falla hepática aguda</option>
-                  <option>Insuficiencia renal aguda</option><option>Cetoacidosis diabética</option>
-                  <option>Intoxicación aguda</option><option>Quemados</option>
-                </datalist>
-              </div>
-              <div class="col wa"><label>Diagnóstico REM</label>
-                <select id="fRem" style="min-width:155px;">
-                  <option value="" disabled selected>-- Grupo --</option>
-                  <option>ACV</option><option>TEC</option><option>LM</option><option>ENM agudas</option>
-                  <option>ENM crónicas</option><option>Otras neurológicas</option><option>Sd. Post-UCI</option>
-                  <option>COVID-19</option><option>Enfermedades respiratorias</option>
-                  <option>Enfermedades cardíacas</option><option>Otras reumatológicas</option>
-                  <option>Traumatológicos</option><option>Otros pre y post quirúrgicos</option>
-                  <option>Oncológicos</option><option>Otros</option>
-                </select></div>
-            </div>
-            <!-- AET — después de dx, antes de VA -->
+            <!-- AET — después de días, antes de VA -->
             <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
               <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cAET" onchange="hAET()"><label for="cAET" style="font-weight:700;">⚖️ Adecuación del Esfuerzo Terapéutico (AET)</label></div>
               <div id="dAETnivel" class="hidden" style="display:flex;gap:5px;">
@@ -2180,11 +2176,13 @@ function abrirPanel(id, esIng) {
   const tkey=`${fecha}-${SHIFT}`;
   $('cBed').value=id; $('cIng').value=String(esIng); window._camaEvo=id;
   $('spBed').textContent=`CAMA ${id}`;
-  $('spTitle').textContent=esIng?'Registro — INGRESO':'Registro Evolución';
+  const _tipo = esIng ? 'Ingreso' : 'Evolución';
+  const _st = $('spTitle'); if(_st){ _st.dataset.tipo=_tipo; _st.textContent=_tipo; }
   esIng ? show('fcId') : hide('fcId');
   _aislTags=[]; renderAislTags();
   ['fMPTags','fRuidosTags','fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
-  $('spShift').textContent=`${fecha} · Turno ${SHIFT}`;
+  const _emoji = SHIFT==='Dia' ? '☀️' : '🌙';
+  $('spShift').textContent=`${_emoji} ${fecha}`;
   hide('rarea'); hide('repBanner');
   $('kf').reset(); PROCS=[]; renderChips();
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
@@ -2249,7 +2247,8 @@ function abrirPanel(id, esIng) {
 function actualizarTituloPanel(nombre) {
   const el = $('spTitle');
   if (!el) return;
-  el.textContent = nombre && nombre.trim() ? nombre.trim() : 'Registro Evolución';
+  const tipo = el.dataset.tipo || 'Evolución';
+  el.textContent = nombre && nombre.trim() ? `${nombre.trim()} — ${tipo}` : tipo;
 }
 // ── Minimizar múltiples pacientes ──────────────────────────────────────────
 const _minStack = [];
