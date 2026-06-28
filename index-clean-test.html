@@ -1135,11 +1135,18 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             </div>
             <!-- AET — después de días, antes de VA -->
             <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
-              <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cAET" onchange="hAET()"><label for="cAET" style="font-weight:700;">⚖️ Adecuación del Esfuerzo Terapéutico (AET)</label></div>
-              <div id="dAETnivel" class="hidden" style="display:flex;gap:5px;">
-                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="A"> Nivel A</label>
-                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="B"> Nivel B</label>
-                <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="C"> Nivel C</label>
+              <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cAET" onchange="hAET()"><label for="cAET" style="font-weight:700;">⚖️ AET</label></div>
+              <div id="dAETnivel" class="hidden" style="display:flex;align-items:center;gap:6px;">
+                <select id="fAETnivel" class="bold" style="height:32px;font-size:.83rem;">
+                  <option value="">-- Grupo --</option>
+                  <option value="I">Grupo I</option>
+                  <option value="II">Grupo II</option>
+                  <option value="IIIA">Grupo IIIA</option>
+                  <option value="IIIB">Grupo IIIB</option>
+                  <option value="IIIC">Grupo IIIC</option>
+                </select>
+                <span class="interp-tip interp-leve" style="font-size:.75rem;"
+                  data-tip="I: Soporte Total · II: Soporte Total c/orden no RCP · IIIA: Sin medidas invasivas · IIIB: Sin medidas adicionales · IIIC: Retiro de todas las medidas">ⓘ</span>
               </div>
             </div>
             <!-- Vía Aérea + contadores -->
@@ -2575,7 +2582,7 @@ function fillForm(s) {
   // S2: reingreso + AET
   chk('cReing',_ex.ES_REINGRESO);
   chk('cAET',_ex.AET_ACTIVA); hAET();
-  if(_ex.AET_NIVEL){ const rb=document.querySelector(`input[name="aetNivel"][value="${_ex.AET_NIVEL}"]`); if(rb) rb.checked=true; }
+  if(_ex.AET_NIVEL && $('fAETnivel')) $('fAETnivel').value=_ex.AET_NIVEL;
   // S3: CAM-ICU
   set('fCAMICU',_ex.SED_CAM_ICU);
   // Cultivo resultado previo → tags
@@ -2767,7 +2774,7 @@ function guardar() {
     // S2 extras
     ES_REINGRESO:      $('cReing')?.checked||false,
     AET_ACTIVA:        $('cAET')?.checked||false,
-    AET_NIVEL:         document.querySelector('input[name="aetNivel"]:checked')?.value||'',
+    AET_NIVEL:         v('fAETnivel')||'',
     SED_TIPO:v('fSed'), SED_SAS:v('fSAS'), SED_S5Q:v('fS5Q'), SED_COOPERACION:v('fCoop'),
     SED_CAM_ICU:       v('fCAMICU'),
     SED_GCS_O:v('fGCSO'), SED_GCS_V:v('fGCSV'), SED_GCS_M:v('fGCSM'),
@@ -3615,7 +3622,7 @@ function genTexto() {
   // Aislamiento
   if($('cAisl')?.checked){ const mic=$('fAislMicroVal')?.value||''; L.push(`Paciente en aislamiento de contacto${mic?' por '+mic:''}.`); }
   // AET
-  if($('cAET')?.checked){ const niv=document.querySelector('input[name="aetNivel"]:checked')?.value||''; L.push(`Paciente con adecuación del esfuerzo terapéutico (AET)${niv?' nivel '+niv:''}.`); }
+  if($('cAET')?.checked){ const niv=v('fAETnivel')||''; L.push(`Paciente con AET${niv?' Grupo '+niv:''}.`); }
   // Reingreso
   if($('cReing')?.checked) L.push('Corresponde a reingreso a UCI.');
   if(esIng){
