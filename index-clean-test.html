@@ -1112,8 +1112,12 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             <!-- Vía Aérea + contadores -->
             <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-top:8px;">
               <div style="display:flex;flex-direction:column;">
-                <label style="font-size:.72rem;color:var(--muted);">Días VM</label>
-                <input type="text" id="fDiasVM" class="tc" disabled style="height:34px;width:62px;border:1px solid #cbd5e1;border-radius:5px;text-align:center;">
+                <label id="lblDiasVM" style="font-size:.72rem;color:var(--muted);">Días VM</label>
+                <input type="text" id="fDiasVM" class="tc" disabled style="height:34px;width:72px;border:1px solid #cbd5e1;border-radius:5px;text-align:center;">
+              </div>
+              <div id="colReintub" class="hidden" style="display:none;flex-direction:column;">
+                <label style="font-size:.72rem;color:var(--danger);">Reint. N°</label>
+                <input type="text" id="fReintub" class="tc bold" disabled style="height:34px;width:54px;border:1px solid #fecaca;border-radius:5px;text-align:center;color:var(--danger);">
               </div>
               <div style="display:flex;flex-direction:column;min-width:80px;">
                 <label>Vía Aérea</label>
@@ -1128,6 +1132,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div id="colDiasTQT" class="hidden" style="display:none;flex-direction:column;">
                 <label style="font-size:.72rem;color:var(--resp);">Días TQT</label>
                 <input type="text" id="fDiasTQT" class="tc bold" disabled style="height:34px;width:62px;border:1px solid #bfdbfe;border-radius:5px;text-align:center;color:var(--resp);">
+              </div>
+              <div id="colDiasVNI" class="hidden" style="display:none;flex-direction:column;">
+                <label style="font-size:.72rem;color:#0891b2;">Días VNI</label>
+                <input type="text" id="fDiasVNI" class="tc bold" disabled style="height:34px;width:62px;border:1px solid #a5f3fc;border-radius:5px;text-align:center;color:#0891b2;">
               </div>
               <div id="colDiasVAA" class="hidden" style="display:none;flex-direction:column;">
                 <label style="font-size:.72rem;color:var(--primary);">Días VAA</label>
@@ -1154,6 +1162,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <option>Arcada dental</option>
                     <option>Comisura labial</option>
                   </select></div>
+              </div>
+              <!-- Aviso TQT con modo VNI -->
+              <div id="dTQTVNIWarn" class="hidden" style="font-size:.7rem;background:#fef3c7;border:1px solid #fde68a;border-radius:5px;padding:5px 8px;margin-bottom:6px;color:#92400e;">
+                ⚠️ Modo S/T o CPAP por TQT — se contabiliza como <b>VMI</b>. Considerar registro separado para indicadores de VNI.
               </div>
               <!-- TQT -->
               <div id="dTQT" class="row hidden" style="margin-bottom:6px;align-items:flex-end;">
@@ -2392,14 +2404,22 @@ function fillCama(c, fecha) {
   s('fDx',c.DIAGNOSTICO); s('fRem',c.DIAG_REM);
   $('fDias').value = dias(c.FECHA_INGRESO,fecha);
   _fechaInicioVA=c.FECHA_INICIO_VA||'';
-  _fechaInicioTQT=''; // se sobreescribe en fillFormReplica si existe
-  if(c.VIA_AEREA==='TQT'){
+  _fechaInicioTQT=''; _fechaInicioVNI='';
+  _diasVMPrevios=0; _diasVNIPrevios=0; _nReintub=0;
+  const _vaDb=c.VIA_AEREA||'';
+  const _esVNIDb=_vaDb==='Full Face'||_vaDb==='Oronasal';
+  const _esInvDb=_vaDb==='TOT'||_vaDb==='TQT';
+  if(_vaDb==='TQT'){
     _diasTOTBase=0; _diasTQTBase=parseInt(dias(c.FECHA_INICIO_VA,fecha))||0;
-  } else {
+  } else if(_esInvDb){
     _diasTOTBase=parseInt(dias(c.FECHA_INICIO_VA,fecha))||0; _diasTQTBase=0;
+  } else {
+    _diasTOTBase=0; _diasTQTBase=0;
   }
-  actualizarDiasVA();
-  $('fDiasVM').value=dias(c.FECHA_INICIO_SOPORTE,fecha);
+  _diasVMEpisodio=_esInvDb?(parseInt(dias(c.FECHA_INICIO_SOPORTE||c.FECHA_INICIO_VA,fecha))||0):0;
+  _diasVNIEpisodio=_esVNIDb?(parseInt(dias(c.FECHA_INICIO_SOPORTE||c.FECHA_INICIO_VA,fecha))||0):0;
+  _vaAnterior=_vaDb;
+  actualizarContadores();
   if(c.VIA_AEREA) { $('fVA').value=c.VIA_AEREA; cascadeVA(c.SOPORTE); }
   if(c.SOPORTE) cascadeSop(c.MODO);
   if(c.KTM_NIVEL) $('fKTMniv').value=c.KTM_NIVEL;
@@ -2495,18 +2515,28 @@ function fillForm(s) {
   setAislTags(_ex.PAC_AISL_MICRO||_ex.PAC_AISL_LISTA||'');
   // VA externo + TOT fijación
   set('fTQTn',_ex.VENT_TQT_CALIBRE); set('fTOTfij',_ex.TOT_FIJACION);
-  // Restaurar FECHA_INICIO_TQT y recalcular bases de contadores
+  const _fR=v('gDate')||hoy();
+  // Restaurar FECHA_INICIO_TQT
   if(_ex.FECHA_INICIO_TQT){
     _fechaInicioTQT=_ex.FECHA_INICIO_TQT;
-    const _f=v('gDate')||hoy();
     _diasTOTBase=parseInt(dias(_fechaInicioVA,_fechaInicioTQT))||0;
-    _diasTQTBase=parseInt(dias(_fechaInicioTQT,_f))||0;
+    _diasTQTBase=parseInt(dias(_fechaInicioTQT,_fR))||0;
   }
+  // Restaurar contadores VM
+  _diasVMPrevios=parseInt(_ex.DIAS_VM_PREVIOS)||0;
+  _nReintub=parseInt(_ex.N_REINTUB)||0;
+  if(_ex.FECHA_INICIO_VM){ _diasVMEpisodio=parseInt(dias(_ex.FECHA_INICIO_VM,_fR))||0; }
+  // Restaurar contadores VNI
+  _diasVNIPrevios=parseInt(_ex.DIAS_VNI_PREVIOS)||0;
+  _fechaInicioVNI=_ex.FECHA_INICIO_VNI||'';
+  if(_fechaInicioVNI){ _diasVNIEpisodio=parseInt(dias(_fechaInicioVNI,_fR))||0; }
+  // Días previos VAA
   if(_ex.VA_EXTERNO && parseInt(_ex.VA_EXTERNO_DIAS)>0){
     const cb=$('cVAExtPrev'); if(cb) cb.checked=true; hVAExtPrev();
     set('fVAExtDias',_ex.VA_EXTERNO_DIAS);
   }
-  actualizarDiasVA();
+  _vaAnterior=v('fVA');
+  actualizarContadores(); updateVAUI();
   // S2: reingreso + AET
   chk('cReing',_ex.ES_REINGRESO);
   chk('cAET',_ex.AET_ACTIVA); hAET();
@@ -2672,6 +2702,26 @@ function guardar() {
     VA_EXTERNO_DIAS:   $('cVAExtPrev')?.checked ? (v('fVAExtDias')||0) : 0,
     TOT_FIJACION:      v('fTOTfij'),
     FECHA_INICIO_TQT:  _fechaInicioTQT||'',
+    // Contadores VM
+    DIAS_VM_PREVIOS:   _diasVMPrevios,
+    FECHA_INICIO_VM:   (()=>{
+      // Si hay reintubación en este turno, el siguiente episodio arranca hoy
+      if($('cReintub')?.checked) return v('gDate')||hoy();
+      return ''; // el episodio actual viene de fillCama (FECHA_INICIO_SOPORTE)
+    })(),
+    N_REINTUB:         _nReintub + ($('cReintub')?.checked ? 1 : 0),
+    // Contadores VNI
+    DIAS_VNI_PREVIOS:  _diasVNIPrevios,
+    FECHA_INICIO_VNI:  (()=>{
+      const va=v('fVA');
+      // Si hubo extubación/decanulación y el paciente quedó con VNI, el siguiente turno inicia VNI
+      const extVNI=['Full Face','Oronasal','VNI'].includes(v('fExtQueda')||'');
+      const decanVNI=['Full Face','Oronasal','VNI'].includes(v('fDecanQueda')||'');
+      if((($('cExtOcurrio')?.checked&&!$('cReintub')?.checked&&extVNI)||
+          ($('cDecanOcurrio')?.checked&&!$('cRecanul')?.checked&&decanVNI)))
+        return v('gDate')||hoy();
+      return _fechaInicioVNI||'';
+    })(),
     DECAN_OCURRIO:     $('cDecanOcurrio')?.checked||false,
     DECAN_TIPO:        (document.querySelector('input[name="decanTipo"]:checked')?.value)||'',
     DECAN_QUEDA_DISP:  v('fDecanQueda'),
@@ -3848,13 +3898,45 @@ function poblar(id, opts, def) {
 function cascadeVA(preSop) {
   const va=v('fVA'); const r=VMAPS[va]||VMAPS['Natural'];
   poblar('fSop', r.sops, preSop); cascadeSop();
-  // Detectar transición TOT → TQT: congelar días TOT, arrancar TQT en 0
-  if(va==='TQT' && !_fechaInicioTQT && _diasTOTBase>0){
-    _fechaInicioTQT=v('gDate')||hoy();
-    // _diasTOTBase queda congelado, TQT arranca en 0
-    _diasTQTBase=0;
-    actualizarDiasVA();
+  // Detectar transiciones solo si el usuario cambió VA (no durante carga inicial)
+  if(_vaAnterior && _vaAnterior!==va){
+    const prevInv=_vaAnterior==='TOT'||_vaAnterior==='TQT';
+    const prevVNI=_vaAnterior==='Full Face'||_vaAnterior==='Oronasal';
+    const nowInv=va==='TOT'||va==='TQT';
+    const nowVNI=va==='Full Face'||va==='Oronasal';
+    const hoyFecha=v('gDate')||hoy();
+    // TOT → TQT: congelar Días TOT, arrancar TQT en 0 (VM sigue)
+    if(_vaAnterior==='TOT'&&va==='TQT'&&!_fechaInicioTQT){
+      _fechaInicioTQT=hoyFecha; _diasTQTBase=0;
+    }
+    // TQT → TOT (edge case): congelar TQT
+    if(_vaAnterior==='TQT'&&va==='TOT'){
+      _diasTOTBase=_diasTQTBase; _diasTQTBase=0; _fechaInicioTQT='';
+    }
+    // Invasivo → VNI: congelar VM, iniciar VNI
+    if(prevInv&&nowVNI){
+      _diasVMPrevios+=_diasVMEpisodio; _diasVMEpisodio=0;
+      _fechaInicioVNI=hoyFecha; _diasVNIEpisodio=0;
+    }
+    // Invasivo → Natural/O2: congelar VM
+    if(prevInv&&!nowInv&&!nowVNI){
+      _diasVMPrevios+=_diasVMEpisodio; _diasVMEpisodio=0;
+    }
+    // VNI → Invasivo: reintubación → congelar VNI, nuevo episodio VM
+    if(prevVNI&&nowInv){
+      _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
+      _nReintub++; _diasVMEpisodio=0;
+      // TOT o TQT nuevo
+      if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
+      if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;}
+    }
+    // VNI → Natural/O2: congelar VNI
+    if(prevVNI&&!nowVNI&&!nowInv){
+      _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
+    }
+    actualizarContadores();
   }
+  _vaAnterior=va;
   updateVAUI(); calcGCS();
 }
 function cascadeSop(preModo) {
@@ -3862,11 +3944,15 @@ function cascadeSop(preModo) {
   const modos=(r.modos&&r.modos[sop])||['Sin soporte'];
   poblar('fModo', modos, preModo); renderParams();
   if(sop==='VM'||sop==='VNI') show('dHAct'); else { hide('dHAct'); if($('cHAct'))$('cHAct').checked=false; }
+  // Warning TQT + modo VNI se actualiza al cambiar modo también
+  actualizarContadores();
 }
 function _showCol(id){ const el=$(id); if(el){el.classList.remove('hidden');el.style.display='flex';} }
 function _hideCol(id){ const el=$(id); if(el){el.classList.add('hidden');el.style.display='none';} }
 function updateVAUI() {
   const va=v('fVA');
+  const esInv=va==='TOT'||va==='TQT';
+  const esVNI=va==='Full Face'||va==='Oronasal';
   if(va==='TOT'){
     show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');
     _showCol('colDiasTOT'); _hideCol('colDiasTQT'); _showCol('colDiasVAA');
@@ -3876,8 +3962,13 @@ function updateVAUI() {
     _showCol('colDiasTQT'); _showCol('colDiasVAA');
   } else {
     hide('dVADet');hide('dExtSec');hide('dDecanSec');
-    _hideCol('colDiasTOT');_hideCol('colDiasTQT');_hideCol('colDiasVAA');
+    _hideCol('colDiasTOT');_hideCol('colDiasTQT');
+    // VAA se oculta si no hay historia de VAA
+    if(_diasVABase>0||esVNI) _showCol('colDiasVAA'); else _hideCol('colDiasVAA');
   }
+  // VNI contador
+  const vniTotal=_diasVNIPrevios+_diasVNIEpisodio;
+  if(esVNI||vniTotal>0) _showCol('colDiasVNI'); else _hideCol('colDiasVNI');
 }
 
 //  PARÁMETROS VENTILATORIOS
@@ -4040,21 +4131,46 @@ function hVAExtPrev(){
   const inp=$('fVAExtDias');
   if(inp){ inp.style.display=on?'inline-block':'none'; if(!on){inp.value=0;actualizarDiasVA();} }
 }
-let _diasVABase=0; // legacy compat (= _diasTOTBase + _diasTQTBase)
+let _diasVABase=0;
 let _diasTOTBase=0;
 let _diasTQTBase=0;
 let _fechaInicioVA='';
 let _fechaInicioTQT='';
-function actualizarDiasVA(){
+// Contadores VM y VNI
+let _diasVMEpisodio=0;   // días del episodio actual de VM
+let _diasVMPrevios=0;    // días VM acumulados de episodios anteriores
+let _nReintub=0;         // N° de reintubaciones
+let _diasVNIEpisodio=0;  // días del episodio actual de VNI
+let _diasVNIPrevios=0;   // días VNI acumulados
+let _fechaInicioVNI='';  // fecha inicio VNI actual
+let _vaAnterior='';      // VA previa para detectar transiciones
+function actualizarDiasVA(){ actualizarContadores(); } // alias legacy
+function actualizarContadores(){
   const prev=parseInt($('fVAExtDias')?.value)||0;
-  const tot=_diasTOTBase;
-  const tqt=_diasTQTBase;
+  const tot=_diasTOTBase, tqt=_diasTQTBase;
   const vaa=tot+tqt+prev;
   _diasVABase=tot+tqt;
+  // VAA
   const elTOT=$('fDiasTOT'); if(elTOT) elTOT.value=tot||'';
-  const elTQT=$('fDiasTQT'); if(elTQT) elTQT.value=tqt;
+  const elTQT=$('fDiasTQT'); if(elTQT) elTQT.value=tqt||'';
   const elVAA=$('fDiasVAA'); if(elVAA) elVAA.value=vaa||'';
   const elVA=$('fDiasVA');   if(elVA)  elVA.value=vaa||'';
+  // VM
+  const vmTotal=_diasVMPrevios+_diasVMEpisodio;
+  const elVM=$('fDiasVM');
+  if(elVM) elVM.value=(_nReintub>0&&_diasVMEpisodio>0)?`${vmTotal}/${_diasVMEpisodio}`:(vmTotal||'');
+  const elVMLbl=$('lblDiasVM');
+  if(elVMLbl) elVMLbl.textContent=_nReintub>0?'VM tot/ep':'Días VM';
+  // Reintubaciones
+  const elReint=$('fReintub'); if(elReint) elReint.value=_nReintub||0;
+  if(_nReintub>0) _showCol('colReintub'); else _hideCol('colReintub');
+  // VNI
+  const vniTotal=_diasVNIPrevios+_diasVNIEpisodio;
+  const elVNI=$('fDiasVNI'); if(elVNI) elVNI.value=vniTotal||'';
+  // Aviso TQT + modo VNI
+  const va=v('fVA'), modo=v('fModo');
+  const wEl=$('dTQTVNIWarn');
+  if(wEl){ if(va==='TQT'&&(modo==='S/T'||modo==='CPAP')) show('dTQTVNIWarn'); else hide('dTQTVNIWarn'); }
 }
 function hDecan(){
   if($('cDecanOcurrio')?.checked) show('dDecanDet'); else hide('dDecanDet');
