@@ -978,17 +978,15 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 
     <div class="row" style="margin-bottom:14px;">
       <div class="col grow"><label>Barthel egreso (opcional)</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <select id="egBarthel" onchange="updBarthelLbl('egBarthel','lblEgBarthel')" style="width:80px;">
-            <option value="">--</option>
-            <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
-            <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
-            <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
-            <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
-            <option>100</option>
-          </select>
-          <span id="lblEgBarthel" style="font-size:.72rem;color:var(--muted);font-weight:600;white-space:nowrap;"></span>
-        </div>
+        <select id="egBarthel" onchange="updBarthelLbl('egBarthel','lblEgBarthel')" style="width:80px;">
+          <option value="">--</option>
+          <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
+          <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
+          <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
+          <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
+          <option>100</option>
+        </select>
+        <span id="lblEgBarthel" class="interp-badge"></span>
       </div>
       <div class="col wm"><label>Firma kine</label><select id="egFirma" class="bold tc"></select></div>
     </div>
@@ -1098,27 +1096,23 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             <div class="row" style="margin-bottom:6px;">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:64px;" disabled></div>
               <div class="col ws"><label>Barthel</label>
-                <div style="display:flex;align-items:center;gap:6px;">
-                  <select id="fBarthel" onchange="updBarthelLbl('fBarthel','lblBarthel')" style="width:72px;">
-                    <option value="">--</option>
-                    <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
-                    <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
-                    <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
-                    <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
-                    <option>100</option>
-                  </select>
-                  <span id="lblBarthel" style="font-size:.68rem;color:var(--muted);font-weight:600;white-space:nowrap;"></span>
-                </div>
+                <select id="fBarthel" onchange="updBarthelLbl('fBarthel','lblBarthel')" style="width:72px;">
+                  <option value="">--</option>
+                  <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
+                  <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
+                  <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
+                  <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
+                  <option>100</option>
+                </select>
+                <span id="lblBarthel" class="interp-badge"></span>
               </div>
               <div class="col ws"><label>ECF</label>
-                <div style="display:flex;align-items:center;gap:6px;">
-                  <select id="fEcf" onchange="updEcfLbl('fEcf','lblEcf')" style="width:56px;">
-                    <option value="">--</option>
-                    <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
-                    <option>6</option><option>7</option><option>8</option><option>9</option>
-                  </select>
-                  <span id="lblEcf" style="font-size:.68rem;color:var(--muted);font-weight:600;white-space:nowrap;"></span>
-                </div>
+                <select id="fEcf" onchange="updEcfLbl('fEcf','lblEcf')" style="width:56px;">
+                  <option value="">--</option>
+                  <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                  <option>6</option><option>7</option><option>8</option><option>9</option>
+                </select>
+                <span id="lblEcf" class="interp-badge"></span>
               </div>
             </div>
             <!-- Checkboxes y campos de aislamiento/reingreso — ocultos, solo para compatibilidad JS/guardar -->
@@ -3856,19 +3850,39 @@ function calcPI() {
   $('lblPI').textContent=pi>0?`PI: ${pi.toFixed(1)} kg`:'PI: --';
   calcResp();
 }
-const _BARTHEL_LBL=[[0,20,'Dep. total'],[21,60,'Dep. severa'],[61,90,'Dep. moderada'],[91,99,'Dep. leve'],[100,100,'Independiente']];
-const _ECF_LBL={1:'Muy en forma',2:'En forma',3:'Manejando bien',4:'Vulnerable',5:'Fragilidad leve',6:'Fragilidad moderada',7:'Fragilidad severa',8:'Fragilidad muy severa',9:'Enf. terminal'};
+const _BARTHEL_LBL=[
+  [0,20,  'Dep. total',   'interp-tot'],
+  [21,60, 'Dep. severa',  'interp-sev'],
+  [61,90, 'Dep. moderada','interp-mod'],
+  [91,99, 'Dep. leve',    'interp-leve'],
+  [100,100,'Independiente','interp-ok'],
+];
+const _ECF_LBL={
+  1:['Muy en forma',   'interp-ok'],
+  2:['En forma',       'interp-ok'],
+  3:['Manejando bien', 'interp-leve'],
+  4:['Vulnerable',     'interp-leve'],
+  5:['Fragilidad leve','interp-mod'],
+  6:['Fragilidad mod.','interp-mod'],
+  7:['Fragilidad sev.','interp-sev'],
+  8:['Frag. muy sev.', 'interp-tot'],
+  9:['Enf. terminal',  'interp-tot'],
+};
+const _INTERP_CLASSES=['interp-ok','interp-leve','interp-mod','interp-sev','interp-tot'];
 function updBarthelLbl(selId,lblId){
   const n=parseInt($(selId)?.value);
   const el=$(lblId); if(!el) return;
+  el.classList.remove(..._INTERP_CLASSES);
   if(isNaN(n)){el.textContent='';return;}
   const r=_BARTHEL_LBL.find(([a,b])=>n>=a&&n<=b);
-  el.textContent=r?r[2]:'';
+  if(r){el.textContent=r[2];el.classList.add(r[3]);}
 }
 function updEcfLbl(selId,lblId){
   const n=parseInt($(selId)?.value);
   const el=$(lblId); if(!el) return;
-  el.textContent=_ECF_LBL[n]||'';
+  el.classList.remove(..._INTERP_CLASSES);
+  const r=_ECF_LBL[n];
+  if(r){el.textContent=r[0];el.classList.add(r[1]);}else el.textContent='';
 }
 function calcGCS() {
   const va=v('fVA'), vSel=$('fGCSV');
@@ -5635,6 +5649,14 @@ window.onload = function() {
 </script>
 
 <style>
+/* ── Badges de interpretación (Barthel / ECF) ── */
+.interp-badge{display:inline-block;font-size:.67rem;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:4px;white-space:nowrap;letter-spacing:.01em;line-height:1.5;border:1px solid transparent;}
+.interp-badge:empty{display:none;}
+.interp-ok  {background:#dcfce7;color:#166534;border-color:#bbf7d0;}
+.interp-leve{background:#fef9c3;color:#854d0e;border-color:#fde68a;}
+.interp-mod {background:#ffedd5;color:#9a3412;border-color:#fed7aa;}
+.interp-sev {background:#fee2e2;color:#991b1b;border-color:#fecaca;}
+.interp-tot {background:#fca5a5;color:#7f1d1d;border-color:#f87171;}
 /* ── Modal confirmación reintubación ── */
 #modalReintubOverlay{position:fixed;inset:0;background:rgba(17,24,39,.45);backdrop-filter:blur(3px);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;}
 #modalReintubOverlay.visible{opacity:1;pointer-events:all;}
