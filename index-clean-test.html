@@ -978,15 +978,17 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 
     <div class="row" style="margin-bottom:14px;">
       <div class="col grow"><label>Barthel egreso (opcional)</label>
-        <select id="egBarthel" onchange="updBarthelLbl('egBarthel','lblEgBarthel')" style="width:80px;">
-          <option value="">--</option>
-          <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
-          <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
-          <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
-          <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
-          <option>100</option>
-        </select>
-        <span id="lblEgBarthel" class="interp-badge"></span>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <select id="egBarthel" onchange="updBarthelLbl('egBarthel','lblEgBarthel')" style="width:80px;">
+            <option value="">--</option>
+            <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
+            <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
+            <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
+            <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
+            <option>100</option>
+          </select>
+          <span id="lblEgBarthel" class="interp-tip" title=""></span>
+        </div>
       </div>
       <div class="col wm"><label>Firma kine</label><select id="egFirma" class="bold tc"></select></div>
     </div>
@@ -1096,23 +1098,27 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             <div class="row" style="margin-bottom:6px;">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:64px;" disabled></div>
               <div class="col ws"><label>Barthel</label>
-                <select id="fBarthel" onchange="updBarthelLbl('fBarthel','lblBarthel')" style="width:72px;">
-                  <option value="">--</option>
-                  <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
-                  <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
-                  <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
-                  <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
-                  <option>100</option>
-                </select>
-                <span id="lblBarthel" class="interp-badge"></span>
+                <div style="display:flex;align-items:center;gap:5px;">
+                  <select id="fBarthel" onchange="updBarthelLbl('fBarthel','lblBarthel')" style="width:72px;">
+                    <option value="">--</option>
+                    <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
+                    <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
+                    <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
+                    <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
+                    <option>100</option>
+                  </select>
+                  <span id="lblBarthel" class="interp-tip" title=""></span>
+                </div>
               </div>
               <div class="col ws"><label>ECF</label>
-                <select id="fEcf" onchange="updEcfLbl('fEcf','lblEcf')" style="width:56px;">
-                  <option value="">--</option>
-                  <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
-                  <option>6</option><option>7</option><option>8</option><option>9</option>
-                </select>
-                <span id="lblEcf" class="interp-badge"></span>
+                <div style="display:flex;align-items:center;gap:5px;">
+                  <select id="fEcf" onchange="updEcfLbl('fEcf','lblEcf')" style="width:56px;">
+                    <option value="">--</option>
+                    <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                    <option>6</option><option>7</option><option>8</option><option>9</option>
+                  </select>
+                  <span id="lblEcf" class="interp-tip" title=""></span>
+                </div>
               </div>
             </div>
             <!-- Checkboxes y campos de aislamiento/reingreso — ocultos, solo para compatibilidad JS/guardar -->
@@ -3873,16 +3879,17 @@ function updBarthelLbl(selId,lblId){
   const n=parseInt($(selId)?.value);
   const el=$(lblId); if(!el) return;
   el.classList.remove(..._INTERP_CLASSES);
-  if(isNaN(n)){el.textContent='';return;}
+  if(isNaN(n)){el.textContent='';el.removeAttribute('data-tip');return;}
   const r=_BARTHEL_LBL.find(([a,b])=>n>=a&&n<=b);
-  if(r){el.textContent=r[2];el.classList.add(r[3]);}
+  if(r){el.textContent='ⓘ';el.setAttribute('data-tip',r[2]);el.classList.add(r[3]);}
 }
 function updEcfLbl(selId,lblId){
   const n=parseInt($(selId)?.value);
   const el=$(lblId); if(!el) return;
   el.classList.remove(..._INTERP_CLASSES);
   const r=_ECF_LBL[n];
-  if(r){el.textContent=r[0];el.classList.add(r[1]);}else el.textContent='';
+  if(r){el.textContent='ⓘ';el.setAttribute('data-tip',r[0]);el.classList.add(r[1]);}
+  else{el.textContent='';el.removeAttribute('data-tip');}
 }
 function calcGCS() {
   const va=v('fVA'), vSel=$('fGCSV');
@@ -5649,14 +5656,17 @@ window.onload = function() {
 </script>
 
 <style>
-/* ── Badges de interpretación (Barthel / ECF) ── */
-.interp-badge{display:inline-block;font-size:.67rem;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:4px;white-space:nowrap;letter-spacing:.01em;line-height:1.5;border:1px solid transparent;}
-.interp-badge:empty{display:none;}
-.interp-ok  {background:#dcfce7;color:#166534;border-color:#bbf7d0;}
-.interp-leve{background:#fef9c3;color:#854d0e;border-color:#fde68a;}
-.interp-mod {background:#ffedd5;color:#9a3412;border-color:#fed7aa;}
-.interp-sev {background:#fee2e2;color:#991b1b;border-color:#fecaca;}
-.interp-tot {background:#fca5a5;color:#7f1d1d;border-color:#f87171;}
+/* ── Tooltip ícono interpretación (Barthel / ECF) ── */
+.interp-tip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:.7rem;font-weight:800;cursor:default;flex-shrink:0;position:relative;transition:opacity .15s;}
+.interp-tip:empty{display:none;}
+.interp-tip::after{content:attr(data-tip);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);background:#1e293b;color:#f8fafc;font-size:.72rem;font-weight:600;white-space:nowrap;padding:5px 10px;border-radius:7px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.25);}
+.interp-tip::before{content:'';position:absolute;left:calc(100% + 4px);top:50%;transform:translateY(-50%);border:4px solid transparent;border-right-color:#1e293b;pointer-events:none;opacity:0;transition:opacity .15s;}
+.interp-tip:hover::after,.interp-tip:hover::before{opacity:1;}
+.interp-ok  {background:#dcfce7;color:#166534;}
+.interp-leve{background:#fef9c3;color:#854d0e;}
+.interp-mod {background:#ffedd5;color:#9a3412;}
+.interp-sev {background:#fee2e2;color:#991b1b;}
+.interp-tot {background:#fca5a5;color:#7f1d1d;}
 /* ── Modal confirmación reintubación ── */
 #modalReintubOverlay{position:fixed;inset:0;background:rgba(17,24,39,.45);backdrop-filter:blur(3px);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;}
 #modalReintubOverlay.visible{opacity:1;pointer-events:all;}
