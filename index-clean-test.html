@@ -3902,14 +3902,15 @@ function cascadeVA(preSop) {
   if(_vaAnterior && _vaAnterior!==va){
     const prevInv=_vaAnterior==='TOT'||_vaAnterior==='TQT';
     const prevVNI=_vaAnterior==='Full Face'||_vaAnterior==='Oronasal';
+    const prevNoInv=!prevInv; // Natural, O2, VNI, etc.
     const nowInv=va==='TOT'||va==='TQT';
     const nowVNI=va==='Full Face'||va==='Oronasal';
     const hoyFecha=v('gDate')||hoy();
-    // TOT → TQT: congelar Días TOT, arrancar TQT en 0 (VM sigue)
+    // TOT → TQT: cambio de interfaz invasiva (VM sigue, solo cambia contador de vía)
     if(_vaAnterior==='TOT'&&va==='TQT'&&!_fechaInicioTQT){
       _fechaInicioTQT=hoyFecha; _diasTQTBase=0;
     }
-    // TQT → TOT (edge case): congelar TQT
+    // TQT → TOT (edge case)
     if(_vaAnterior==='TQT'&&va==='TOT'){
       _diasTOTBase=_diasTQTBase; _diasTQTBase=0; _fechaInicioTQT='';
     }
@@ -3918,17 +3919,25 @@ function cascadeVA(preSop) {
       _diasVMPrevios+=_diasVMEpisodio; _diasVMEpisodio=0;
       _fechaInicioVNI=hoyFecha; _diasVNIEpisodio=0;
     }
-    // Invasivo → Natural/O2: congelar VM
+    // Invasivo → Natural/O2 (no VNI): congelar VM
     if(prevInv&&!nowInv&&!nowVNI){
       _diasVMPrevios+=_diasVMEpisodio; _diasVMEpisodio=0;
     }
-    // VNI → Invasivo: reintubación → congelar VNI, nuevo episodio VM
-    if(prevVNI&&nowInv){
-      _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
-      _nReintub++; _diasVMEpisodio=0;
-      // TOT o TQT nuevo
+    // No-invasivo (cualquiera) → Invasivo: reintubación o primera intubación
+    if(prevNoInv&&nowInv){
+      // Si había VNI en curso, congelarlo
+      if(prevVNI){
+        _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
+      }
+      // Reintubación: existe historial de VM previo
+      const hayHistorialVM=_diasVMPrevios>0||_diasTOTBase>0||_diasTQTBase>0;
+      if(hayHistorialVM){
+        _nReintub++;
+      }
+      // En ambos casos (primera intubación o reintubación): episodio VM y contadores vía empiezan en 0
+      _diasVMEpisodio=0;
       if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
-      if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;}
+      if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;_diasTOTBase=0;}
     }
     // VNI → Natural/O2: congelar VNI
     if(prevVNI&&!nowVNI&&!nowInv){
