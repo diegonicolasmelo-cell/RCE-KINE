@@ -3926,25 +3926,29 @@ function cascadeVA(preSop) {
     if(prevNoInv&&nowInv){
       const hayHistorialVM=_diasVMPrevios>0||_diasTOTBase>0||_diasTQTBase>0;
       if(hayHistorialVM){
-        // Pedir confirmación antes de contar reintubación
-        const nNuevo=_nReintub+1;
-        const confirmar=window.confirm(
-          `¿Confirmar reintubación?\n\nEsto registrará Reintubación N° ${nNuevo} y reiniciará los contadores del episodio actual.\n\nSi fue un cambio accidental, presione Cancelar.`
-        );
-        if(!confirmar){
-          // Revertir selección sin cambiar contadores
-          $('fVA').value=_vaAnterior;
-          cascadeSop(preSop);
-          updateVAUI(); calcGCS();
-          return;
-        }
-        if(prevVNI){
-          _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
-        }
-        _nReintub++;
-        _diasVMEpisodio=0;
-        if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
-        if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;_diasTOTBase=0;}
+        // Mostrar modal de confirmación (async)
+        const vaOrigen=_vaAnterior;
+        confirmarReintubacion(_nReintub+1).then(ok=>{
+          if(!ok){
+            $('fVA').value=vaOrigen;
+            const rOrig=VMAPS[vaOrigen]||VMAPS['Natural'];
+            poblar('fSop', rOrig.sops); cascadeSop();
+            _vaAnterior=vaOrigen;
+            updateVAUI(); calcGCS();
+            return;
+          }
+          if(prevVNI){
+            _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
+          }
+          _nReintub++;
+          _diasVMEpisodio=0;
+          if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
+          if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;_diasTOTBase=0;}
+          actualizarContadores();
+        });
+        _vaAnterior=va;
+        updateVAUI(); calcGCS();
+        return; // esperar resolución del modal
       } else {
         // Primera intubación: arrancar en 0 sin confirmación
         if(prevVNI){
@@ -5574,6 +5578,72 @@ window.onload = function() {
     }
   );
 };
+</script>
+
+<style>
+/* ── Modal confirmación reintubación ── */
+#modalReintubOverlay{position:fixed;inset:0;background:rgba(17,24,39,.45);backdrop-filter:blur(3px);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;}
+#modalReintubOverlay.visible{opacity:1;pointer-events:all;}
+#modalReintub{background:#fff;border-radius:14px;padding:0;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.22);transform:translateY(12px) scale(.97);transition:transform .2s cubic-bezier(.4,0,.2,1);}
+#modalReintubOverlay.visible #modalReintub{transform:translateY(0) scale(1);}
+#modalReintub .mr-head{background:linear-gradient(135deg,#dc2626,#b91c1c);border-radius:14px 14px 0 0;padding:16px 20px 14px;display:flex;align-items:center;gap:10px;}
+#modalReintub .mr-head svg{flex-shrink:0;opacity:.95;}
+#modalReintub .mr-head-txt{color:#fff;}
+#modalReintub .mr-head-txt h3{font-size:.95rem;font-weight:700;letter-spacing:.01em;margin-bottom:2px;}
+#modalReintub .mr-head-txt p{font-size:.73rem;opacity:.82;font-weight:500;}
+#modalReintub .mr-body{padding:18px 20px 14px;}
+#modalReintub .mr-badge{display:inline-flex;align-items:center;gap:6px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;margin-bottom:12px;width:100%;}
+#modalReintub .mr-badge-n{font-size:1.4rem;font-weight:800;color:#dc2626;line-height:1;}
+#modalReintub .mr-badge-lbl{font-size:.75rem;color:#7f1d1d;font-weight:600;line-height:1.3;}
+#modalReintub .mr-info{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:16px;}
+#modalReintub .mr-info b{color:#374151;}
+#modalReintub .mr-warn{font-size:.73rem;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:7px 10px;color:#92400e;margin-bottom:16px;}
+#modalReintub .mr-actions{display:flex;gap:8px;}
+#modalReintub .mr-btn{flex:1;height:38px;border:none;border-radius:9px;font-size:.84rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;}
+#modalReintub .mr-btn-confirm{background:var(--danger);color:#fff;}
+#modalReintub .mr-btn-confirm:hover{background:#b91c1c;box-shadow:0 4px 12px rgba(220,38,38,.35);}
+#modalReintub .mr-btn-cancel{background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;}
+#modalReintub .mr-btn-cancel:hover{background:#e2e8f0;}
+</style>
+
+<!-- Modal confirmación reintubación -->
+<div id="modalReintubOverlay">
+  <div id="modalReintub">
+    <div class="mr-head">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div class="mr-head-txt">
+        <h3>Confirmar reintubación</h3>
+        <p>Acción sobre contadores ventilatorios</p>
+      </div>
+    </div>
+    <div class="mr-body">
+      <div class="mr-badge">
+        <span class="mr-badge-n" id="mrBadgeN">1</span>
+        <span class="mr-badge-lbl">Reintubación<br>a registrar</span>
+      </div>
+      <p class="mr-info">Se reiniciarán los contadores del <b>episodio actual</b> (Días TOT/TQT y Días VM episodio). Los días previos acumulados se conservan.</p>
+      <p class="mr-warn">⚠️ Si fue un cambio accidental de selección, presione <b>Cancelar</b> para revertir sin afectar los contadores.</p>
+      <div class="mr-actions">
+        <button class="mr-btn mr-btn-cancel" onclick="_mrResolver(false)">Cancelar</button>
+        <button class="mr-btn mr-btn-confirm" onclick="_mrResolver(true)">Confirmar reintubación</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let _mrResolver=null;
+function confirmarReintubacion(nNuevo){
+  return new Promise(res=>{
+    $('mrBadgeN').textContent=nNuevo;
+    $('modalReintubOverlay').classList.add('visible');
+    _mrResolver=ok=>{
+      $('modalReintubOverlay').classList.remove('visible');
+      _mrResolver=null;
+      res(ok);
+    };
+  });
+}
 </script>
 </body>
 </html>
