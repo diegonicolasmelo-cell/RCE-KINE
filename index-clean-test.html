@@ -3898,19 +3898,18 @@ function poblar(id, opts, def) {
 function cascadeVA(preSop) {
   const va=v('fVA'); const r=VMAPS[va]||VMAPS['Natural'];
   poblar('fSop', r.sops, preSop); cascadeSop();
-  // Detectar transiciones solo si el usuario cambió VA (no durante carga inicial)
   if(_vaAnterior && _vaAnterior!==va){
     const prevInv=_vaAnterior==='TOT'||_vaAnterior==='TQT';
     const prevVNI=_vaAnterior==='Full Face'||_vaAnterior==='Oronasal';
-    const prevNoInv=!prevInv; // Natural, O2, VNI, etc.
+    const prevNoInv=!prevInv;
     const nowInv=va==='TOT'||va==='TQT';
     const nowVNI=va==='Full Face'||va==='Oronasal';
     const hoyFecha=v('gDate')||hoy();
-    // TOT → TQT: cambio de interfaz invasiva (VM sigue, solo cambia contador de vía)
+    // TOT → TQT: cambio de interfaz invasiva (VM sigue)
     if(_vaAnterior==='TOT'&&va==='TQT'&&!_fechaInicioTQT){
       _fechaInicioTQT=hoyFecha; _diasTQTBase=0;
     }
-    // TQT → TOT (edge case)
+    // TQT → TOT
     if(_vaAnterior==='TQT'&&va==='TOT'){
       _diasTOTBase=_diasTQTBase; _diasTQTBase=0; _fechaInicioTQT='';
     }
@@ -3919,27 +3918,44 @@ function cascadeVA(preSop) {
       _diasVMPrevios+=_diasVMEpisodio; _diasVMEpisodio=0;
       _fechaInicioVNI=hoyFecha; _diasVNIEpisodio=0;
     }
-    // Invasivo → Natural/O2 (no VNI): congelar VM
+    // Invasivo → Natural: congelar VM
     if(prevInv&&!nowInv&&!nowVNI){
       _diasVMPrevios+=_diasVMEpisodio; _diasVMEpisodio=0;
     }
-    // No-invasivo (cualquiera) → Invasivo: reintubación o primera intubación
+    // No-invasivo → Invasivo: primera intubación o reintubación (con confirmación)
     if(prevNoInv&&nowInv){
-      // Si había VNI en curso, congelarlo
-      if(prevVNI){
-        _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
-      }
-      // Reintubación: existe historial de VM previo
       const hayHistorialVM=_diasVMPrevios>0||_diasTOTBase>0||_diasTQTBase>0;
       if(hayHistorialVM){
+        // Pedir confirmación antes de contar reintubación
+        const nNuevo=_nReintub+1;
+        const confirmar=window.confirm(
+          `¿Confirmar reintubación?\n\nEsto registrará Reintubación N° ${nNuevo} y reiniciará los contadores del episodio actual.\n\nSi fue un cambio accidental, presione Cancelar.`
+        );
+        if(!confirmar){
+          // Revertir selección sin cambiar contadores
+          $('fVA').value=_vaAnterior;
+          cascadeSop(preSop);
+          updateVAUI(); calcGCS();
+          return;
+        }
+        if(prevVNI){
+          _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
+        }
         _nReintub++;
+        _diasVMEpisodio=0;
+        if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
+        if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;_diasTOTBase=0;}
+      } else {
+        // Primera intubación: arrancar en 0 sin confirmación
+        if(prevVNI){
+          _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
+        }
+        _diasVMEpisodio=0;
+        if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
+        if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;_diasTOTBase=0;}
       }
-      // En ambos casos (primera intubación o reintubación): episodio VM y contadores vía empiezan en 0
-      _diasVMEpisodio=0;
-      if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
-      if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;_diasTOTBase=0;}
     }
-    // VNI → Natural/O2: congelar VNI
+    // VNI → Natural: congelar VNI
     if(prevVNI&&!nowVNI&&!nowInv){
       _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
     }
