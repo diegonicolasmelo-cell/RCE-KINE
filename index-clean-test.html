@@ -1117,15 +1117,9 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 </select></div>
               <div class="col ws"><label>Días VA</label><input type="text" id="fDiasVA" class="tc" disabled></div>
             </div>
+            <!-- compat oculto -->
+            <input type="hidden" id="cVAExterno"><div id="dVAExtDias" style="display:none;"><input type="hidden" id="_cVAExt_compat"></div>
             <div id="dVADet" class="hidden fade" style="background:#eff6ff;padding:8px;border-radius:6px;border:1px solid #bfdbfe;margin-top:4px;">
-              <!-- Venía de otro hospital -->
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-                <div class="check cr wa" style="margin:0;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="cVAExterno" onchange="hVAExterno()" style="margin:0;flex-shrink:0;"><label for="cVAExterno" style="font-size:.78rem;margin:0;line-height:1.2;">N° de días previos con VAA</label></div>
-                <div id="dVAExtDias" class="hidden" style="display:flex;align-items:center;gap:5px;">
-                  <label style="font-size:.72rem;color:var(--muted);white-space:nowrap;">Días previos:</label>
-                  <input type="number" id="fVAExtDias" min="0" value="0" style="width:60px;height:28px;border:1px solid #bfdbfe;border-radius:5px;text-align:center;">
-                </div>
-              </div>
               <div id="dTOT" class="row hidden" style="margin-bottom:0;">
                 <div class="col wa"><label>TOT N°</label>
                   <select id="fTOTn" class="bold tc" style="height:34px;"><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option selected>8.0</option><option>8.5</option></select></div>
@@ -1136,6 +1130,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <option>Arcada dental</option>
                     <option>Comisura labial</option>
                   </select></div>
+                <div class="col ws"><label>Días previos VAA</label><input type="number" id="fVAExtDias" min="0" value="0" class="tc" oninput="actualizarDiasVA()" style="height:34px;"></div>
               </div>
               <div id="dTQT" class="row hidden" style="margin-bottom:0;">
                 <div class="col grow"><label>Tipo TQT</label><input type="text" id="fTQTt" placeholder="Ej: Shiley #7..."></div>
@@ -2312,7 +2307,7 @@ function fillCama(c, fecha) {
   s('fTalla',c.TALLA_CM); s('fBarthel',c.BARTHEL); s('fEcf',c.ECF);
   s('fDx',c.DIAGNOSTICO); s('fRem',c.DIAG_REM);
   $('fDias').value = dias(c.FECHA_INGRESO,fecha);
-  $('fDiasVA').value = dias(c.FECHA_INICIO_VA,fecha);
+  _diasVABase=parseInt(dias(c.FECHA_INICIO_VA,fecha))||0; actualizarDiasVA();
   $('fDiasVM').value = dias(c.FECHA_INICIO_SOPORTE,fecha);
   if(c.VIA_AEREA) { $('fVA').value=c.VIA_AEREA; cascadeVA(c.SOPORTE); }
   if(c.SOPORTE) cascadeSop(c.MODO);
@@ -2327,7 +2322,8 @@ function fillForm(s) {
   set('fBarthel',s.PAC_BARTHEL); set('fEcf',s.PAC_ECF);
   if(s.PAC_SEXO){ $('fSexo').value=s.PAC_SEXO; calcPI(); }
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
-  set('fDias',s.DIA_ESTADIA); set('fDiasVA',s.DIAS_VA); set('fDiasVM',s.DIAS_VM);
+  set('fDias',s.DIA_ESTADIA); set('fDiasVM',s.DIAS_VM);
+  if(s.VA_EXTERNO_DIAS!==undefined){ set('fVAExtDias',s.VA_EXTERNO_DIAS||0); actualizarDiasVA(); }
   set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
   set('fGCSO',s.SED_GCS_O); set('fGCSV',s.SED_GCS_V); set('fGCSM',s.SED_GCS_M);
   chk('cBNM',s.SED_BNM);
@@ -2393,7 +2389,7 @@ function fillForm(s) {
   chk('cAisl',_ex.PAC_AISLAMIENTO); hAisl();
   setAislTags(_ex.PAC_AISL_MICRO||_ex.PAC_AISL_LISTA||'');
   // VA externo + TOT fijación
-  chk('cVAExterno',_ex.VA_EXTERNO); hVAExterno(); set('fVAExtDias',_ex.VA_EXTERNO_DIAS);
+  set('fVAExtDias',_ex.VA_EXTERNO_DIAS||0); actualizarDiasVA();
   set('fTOTfij',_ex.TOT_FIJACION);
   // S2: reingreso + AET
   chk('cReing',_ex.ES_REINGRESO);
@@ -3888,7 +3884,12 @@ function renderAislTags(){
 }
 function removeAislTag(i){ _aislTags.splice(i,1); renderAislTags(); }
 function setAislTags(str){ _aislTags=str?str.split(',').map(s=>s.trim()).filter(Boolean):[]; renderAislTags(); }
-function hVAExterno(){if($('cVAExterno')?.checked)show('dVAExtDias');else hide('dVAExtDias');}
+function hVAExterno(){} // legacy compat — días previos siempre visible en dTOT
+let _diasVABase=0;
+function actualizarDiasVA(){
+  const prev=parseInt($('fVAExtDias')?.value)||0;
+  const el=$('fDiasVA'); if(el) el.value=_diasVABase+prev;
+}
 function hAET(){if($('cAET')?.checked)show('dAETnivel');else hide('dAETnivel');}
 function hRuidos(el){
   // "Sin ruidos" es excluyente con el resto
