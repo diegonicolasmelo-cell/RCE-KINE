@@ -4201,7 +4201,7 @@ function actualizarContadores(){
   const vniTotal=_diasVNIPrevios+_diasVNIEpisodio;
   const elVNI=$('fDiasVNI'); if(elVNI) elVNI.value=esVNI?vniTotal:(vniTotal||'');
   // Aviso TQT + modo VNI
-  const va=v('fVA'), modo=v('fModo');
+  const modo=v('fModo');
   const wEl=$('dTQTVNIWarn');
   if(wEl){ if(va==='TQT'&&(modo==='S/T'||modo==='CPAP')) show('dTQTVNIWarn'); else hide('dTQTVNIWarn'); }
 }
