@@ -1118,22 +1118,41 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="col ws"><label>Días VA</label><input type="text" id="fDiasVA" class="tc" disabled></div>
             </div>
             <!-- compat oculto -->
-            <input type="hidden" id="cVAExterno"><div id="dVAExtDias" style="display:none;"><input type="hidden" id="_cVAExt_compat"></div>
+            <input type="hidden" id="cVAExterno"><div id="dVAExtDias" style="display:none;"></div>
             <div id="dVADet" class="hidden fade" style="background:#eff6ff;padding:8px;border-radius:6px;border:1px solid #bfdbfe;margin-top:4px;">
-              <div id="dTOT" class="row hidden" style="margin-bottom:0;">
+              <!-- TOT -->
+              <div id="dTOT" class="row hidden" style="margin-bottom:6px;align-items:flex-end;">
                 <div class="col wa"><label>TOT N°</label>
                   <select id="fTOTn" class="bold tc" style="height:34px;"><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option selected>8.0</option><option>8.5</option></select></div>
-                <div class="col ws"><label>Fijación</label><input type="number" id="fTOTcm" class="tc bold" value="22"></div>
-                <div class="col wa"><label>Punto fijación</label>
+                <div class="col ws"><label>Fijación</label><input type="number" id="fTOTcm" class="tc bold" value="22" style="height:34px;"></div>
+                <div class="col grow"><label>Punto fijación</label>
                   <select id="fTOTfij" style="height:34px;">
                     <option value="">-- seleccionar --</option>
                     <option>Arcada dental</option>
                     <option>Comisura labial</option>
                   </select></div>
-                <div class="col ws"><label>Días previos VAA</label><input type="number" id="fVAExtDias" min="0" value="0" class="tc" oninput="actualizarDiasVA()" style="height:34px;"></div>
               </div>
-              <div id="dTQT" class="row hidden" style="margin-bottom:0;">
-                <div class="col grow"><label>Tipo TQT</label><input type="text" id="fTQTt" placeholder="Ej: Shiley #7..."></div>
+              <!-- TQT -->
+              <div id="dTQT" class="row hidden" style="margin-bottom:6px;align-items:flex-end;">
+                <div class="col wa"><label>Calibre</label>
+                  <select id="fTQTn" class="bold tc" style="height:34px;"><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option selected>8.0</option><option>8.5</option></select></div>
+                <div class="col grow"><label>Tipo</label>
+                  <select id="fTQTt" style="height:34px;">
+                    <option value="">-- seleccionar --</option>
+                    <option>Convencional</option>
+                    <option>Con puerto subglótico</option>
+                    <option>XL distal</option>
+                    <option>XL proximal</option>
+                    <option>Ajustable</option>
+                  </select></div>
+              </div>
+              <!-- Días previos VAA — compartido TOT/TQT -->
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <label style="display:flex;align-items:center;gap:5px;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+                  <input type="checkbox" id="cVAExtPrev" onchange="hVAExtPrev()" style="margin:0;flex-shrink:0;">
+                  Días previos VAA
+                </label>
+                <input type="number" id="fVAExtDias" min="0" value="0" class="tc" oninput="actualizarDiasVA()" style="height:30px;width:70px;display:none;border:1px solid #bfdbfe;border-radius:5px;text-align:center;">
               </div>
             </div>
           </div>
@@ -1314,6 +1333,60 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <div id="dPveNR" class="hidden" style="margin-top:8px;">
                   <label style="font-size:.73rem;font-weight:700;color:#b91c1c;display:block;margin-bottom:4px;">Sin condiciones por:</label>
                   <input type="text" id="fPveSCraz" placeholder="ej: sedación profunda, hemodinamia inestable..." style="height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
+                </div>
+              </div>
+
+              <!-- DECANULACIÓN (solo si VA = TQT) -->
+              <div id="dDecanSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:7px;letter-spacing:.04em;">✂️ Decanulación</div>
+                <div class="check wa" style="margin-bottom:8px;"><input type="checkbox" id="cDecanOcurrio" onchange="hDecan()"><label for="cDecanOcurrio" style="font-weight:700;">Ocurrió decanulación este turno</label></div>
+                <div id="dDecanDet" class="hidden">
+                  <label style="font-size:.73rem;font-weight:700;color:#7c3aed;display:block;margin-bottom:5px;">Tipo de decanulación:</label>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">
+                      <input type="radio" name="decanTipo" value="protocolo"> ✅ Con protocolo
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">
+                      <input type="radio" name="decanTipo" value="sin_protocolo"> ⚠️ Sin protocolo
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">
+                      <input type="radio" name="decanTipo" value="accidental"> 🔴 Accidental
+                    </label>
+                  </div>
+                  <!-- Queda con (dispositivo post-decanulación) -->
+                  <div style="margin-bottom:8px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
+                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:6px;letter-spacing:.04em;">✅ Queda con</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+                      <select id="fDecanQueda" style="height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;background:#fff;flex:1;min-width:150px;">
+                        <option value="">— Seleccionar dispositivo —</option>
+                        <option value="Mascarilla de oxígeno">Mascarilla O₂</option>
+                        <option value="Nasal de alto flujo (OAF)">OAF / Optiflow</option>
+                        <option value="Cánula nasal">Cánula nasal</option>
+                        <option value="VNI">VNI (BiPAP/CPAP)</option>
+                        <option value="Ambiente">Ambiente</option>
+                      </select>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <label style="font-size:.68rem;color:#15803d;font-weight:700;">Flujo/FiO₂</label>
+                        <input type="text" id="fDecanFlujo" placeholder="ej: 4 L/min" style="width:90px;height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 7px;background:#fff;">
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <label style="font-size:.68rem;color:#15803d;font-weight:700;">SpO₂%</label>
+                        <input type="number" id="fDecanSpo2" placeholder="95" style="width:60px;height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 7px;background:#fff;">
+                      </div>
+                    </div>
+                    <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;">
+                      💡 El siguiente turno evolucionará desde este estado
+                    </div>
+                  </div>
+                  <div class="row" style="margin-bottom:0;gap:8px;">
+                    <div class="col grow">
+                      <label style="font-size:.72rem;font-weight:700;">Evaluación post-decanulación</label>
+                      <input type="text" id="fDecanDet" placeholder="Tolerancia, trabajo respiratorio, voz, deglución..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
+                    </div>
+                    <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
+                      <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cRecanul"><label for="cRecanul" style="font-weight:700;color:var(--danger);">↩️ Re-canulación</label></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2339,7 +2412,13 @@ function fillForm(s) {
   const _modoFinal = s.VENT_MODO_FINAL||s.VENT_MODO;
   if(_vaFinal){ $('fVA').value=_vaFinal; cascadeVA(_sopFinal); }
   if(_sopFinal) cascadeSop(_modoFinal);
-  set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM); set('fTQTt',s.VENT_TQT_TIPO);
+  set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM);
+  set('fTQTn',s.VENT_TQT_CALIBRE); set('fTQTt',s.VENT_TQT_TIPO);
+  if(s.VA_EXTERNO && parseInt(s.VA_EXTERNO_DIAS)>0){
+    const cb=$('cVAExtPrev'); if(cb) cb.checked=true; hVAExtPrev();
+    set('fVAExtDias',s.VA_EXTERNO_DIAS);
+  }
+  actualizarDiasVA();
   chk('cHAct',s.VENT_H_ACTIVA); chk('cPostExt',s.VENT_POST_EXT); set('fPostExt',s.VENT_POST_EXT_VAL);
   // params
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
@@ -2389,8 +2468,12 @@ function fillForm(s) {
   chk('cAisl',_ex.PAC_AISLAMIENTO); hAisl();
   setAislTags(_ex.PAC_AISL_MICRO||_ex.PAC_AISL_LISTA||'');
   // VA externo + TOT fijación
-  set('fVAExtDias',_ex.VA_EXTERNO_DIAS||0); actualizarDiasVA();
-  set('fTOTfij',_ex.TOT_FIJACION);
+  set('fTQTn',_ex.VENT_TQT_CALIBRE); set('fTOTfij',_ex.TOT_FIJACION);
+  if(_ex.VA_EXTERNO && parseInt(_ex.VA_EXTERNO_DIAS)>0){
+    const cb=$('cVAExtPrev'); if(cb) cb.checked=true; hVAExtPrev();
+    set('fVAExtDias',_ex.VA_EXTERNO_DIAS);
+  }
+  actualizarDiasVA();
   // S2: reingreso + AET
   chk('cReing',_ex.ES_REINGRESO);
   chk('cAET',_ex.AET_ACTIVA); hAET();
@@ -2407,9 +2490,10 @@ function fillForm(s) {
     const na=$('pveNA'); if(na) na.checked=true;
     hPVE();
   })();
-  // Extubación — ACCIÓN DIARIA: siempre desmarcada
+  // Extubación / Decanulación — ACCIÓN DIARIA: siempre desmarcada
   (function(){
     const ext=$('cExtOcurrio'); if(ext) ext.checked=false; hExt();
+    const dec=$('cDecanOcurrio'); if(dec) dec.checked=false; hDecan();
   })();
 
   if(s.PROC_JSON){try{PROCS=JSON.parse(s.PROC_JSON)||[];}catch(e){} renderChips();}
@@ -2464,7 +2548,8 @@ function fillFormReplica(s) {
   const _modoF = s.VENT_MODO_FINAL||s.VENT_MODO;
   if(_vaF){ $('fVA').value=_vaF; cascadeVA(_sopF); }
   if(_sopF) cascadeSop(_modoF);
-  set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM); set('fTQTt',s.VENT_TQT_TIPO);
+  set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM);
+  set('fTQTn',s.VENT_TQT_CALIBRE); set('fTQTt',s.VENT_TQT_TIPO);
   chk('cHAct',s.VENT_H_ACTIVA); chk('cPostExt',s.VENT_POST_EXT); set('fPostExt',s.VENT_POST_EXT_VAL);
   if(s.VENT_POST_EXT===true||s.VENT_POST_EXT==='TRUE') show('dPostExt');
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
@@ -2550,9 +2635,16 @@ function guardar() {
     PAC_AISLAMIENTO:   $('cAisl')?.checked||false,
     PAC_AISL_MICRO:    $('fAislMicroVal')?.value||'',
     PAC_AISL_LISTA:    $('fAislMicroVal')?.value||'',
-    VA_EXTERNO:        $('cVAExterno')?.checked||false,
-    VA_EXTERNO_DIAS:   v('fVAExtDias'),
+    VA_EXTERNO:        $('cVAExtPrev')?.checked||false,
+    VA_EXTERNO_DIAS:   $('cVAExtPrev')?.checked ? (v('fVAExtDias')||0) : 0,
     TOT_FIJACION:      v('fTOTfij'),
+    DECAN_OCURRIO:     $('cDecanOcurrio')?.checked||false,
+    DECAN_TIPO:        (document.querySelector('input[name="decanTipo"]:checked')?.value)||'',
+    DECAN_QUEDA_DISP:  v('fDecanQueda'),
+    DECAN_QUEDA_FLUJO: v('fDecanFlujo'),
+    DECAN_QUEDA_SPO2:  v('fDecanSpo2'),
+    DECAN_DET:         v('fDecanDet'),
+    DECAN_RECANUL:     $('cRecanul')?.checked||false,
     // S2 extras
     ES_REINGRESO:      $('cReing')?.checked||false,
     AET_ACTIVA:        $('cAET')?.checked||false,
@@ -2568,7 +2660,7 @@ function guardar() {
     EX_SECR_TIPO: v('fSecrVal'),
     EX_CULT_RESULTADO: v('fCultVal'),
     VENT_VIA_AEREA:v('fVA'), VENT_TOT_NUM:v('fTOTn'), VENT_TOT_CM:v('fTOTcm'),
-    VENT_TQT_TIPO:v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
+    VENT_TQT_CALIBRE:v('fTQTn'), VENT_TQT_TIPO:v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
     VENT_H_ACTIVA:bv('cHAct'), VENT_POST_EXT:bv('cPostExt'), VENT_POST_EXT_VAL:v('fPostExt'),
     VENT_VT:n(v('r_vt')), VENT_FR:n(v('r_fr')), VENT_PEEP:n(v('r_peep')),
     VENT_PMAX:n(v('r_pmax')), VENT_PMEDIA:n(v('r_pmedia')), VENT_PPL:n(v('r_ppl')),
@@ -2616,10 +2708,16 @@ function guardar() {
     EXT_QUEDA_DISP:  v('fExtQueda'),
     EXT_QUEDA_FLUJO: v('fExtFlujo'),
     EXT_QUEDA_SPO2:  v('fExtSpo2'),
-    // ★ Si hubo extubación y no reintubación → el estado FINAL de VA es el post-extubación
-    VENT_VIA_AEREA_FINAL: ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('fExtQueda')||'') : v('fVA'),
-    VENT_SOPORTE_FINAL:   ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? 'Oxigenoterapia' : v('fSop'),
-    VENT_MODO_FINAL:      ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('fExtQueda')||'') : v('fModo'),
+    // ★ Estado FINAL de VA: extubación o decanulación sin re-intubación/re-canulación
+    VENT_VIA_AEREA_FINAL: ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('fExtQueda')||'')
+                        : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'Natural')
+                        : v('fVA'),
+    VENT_SOPORTE_FINAL:   ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? 'Oxigenoterapia'
+                        : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? 'Oxigenoterapia'
+                        : v('fSop'),
+    VENT_MODO_FINAL:      ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('fExtQueda')||'')
+                        : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'')
+                        : v('fModo'),
     PROC_JSON: (function(){
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
@@ -3725,9 +3823,9 @@ function cascadeSop(preModo) {
 }
 function updateVAUI() {
   const va=v('fVA');
-  if(va==='TOT'){show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');}
-  else if(va==='TQT'){show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');}
-  else{hide('dVADet');hide('dExtSec');}
+  if(va==='TOT'){show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');}
+  else if(va==='TQT'){show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');}
+  else{hide('dVADet');hide('dExtSec');hide('dDecanSec');}
 }
 
 //  PARÁMETROS VENTILATORIOS
@@ -3884,11 +3982,19 @@ function renderAislTags(){
 }
 function removeAislTag(i){ _aislTags.splice(i,1); renderAislTags(); }
 function setAislTags(str){ _aislTags=str?str.split(',').map(s=>s.trim()).filter(Boolean):[]; renderAislTags(); }
-function hVAExterno(){} // legacy compat — días previos siempre visible en dTOT
+function hVAExterno(){} // legacy compat
+function hVAExtPrev(){
+  const on=$('cVAExtPrev')?.checked;
+  const inp=$('fVAExtDias');
+  if(inp){ inp.style.display=on?'':'none'; if(!on){inp.value=0;actualizarDiasVA();} }
+}
 let _diasVABase=0;
 function actualizarDiasVA(){
   const prev=parseInt($('fVAExtDias')?.value)||0;
   const el=$('fDiasVA'); if(el) el.value=_diasVABase+prev;
+}
+function hDecan(){
+  if($('cDecanOcurrio')?.checked) show('dDecanDet'); else hide('dDecanDet');
 }
 function hAET(){if($('cAET')?.checked)show('dAETnivel');else hide('dAETnivel');}
 function hRuidos(el){
