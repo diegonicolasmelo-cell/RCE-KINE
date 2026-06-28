@@ -977,7 +977,19 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
     </div>
 
     <div class="row" style="margin-bottom:14px;">
-      <div class="col grow"><label>Barthel egreso (opcional)</label><input type="number" id="egBarthel" min="0" max="100" placeholder="0-100"></div>
+      <div class="col grow"><label>Barthel egreso (opcional)</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <select id="egBarthel" onchange="updBarthelLbl('egBarthel','lblEgBarthel')" style="width:80px;">
+            <option value="">--</option>
+            <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
+            <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
+            <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
+            <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
+            <option>100</option>
+          </select>
+          <span id="lblEgBarthel" style="font-size:.72rem;color:var(--muted);font-weight:600;white-space:nowrap;"></span>
+        </div>
+      </div>
       <div class="col wm"><label>Firma kine</label><select id="egFirma" class="bold tc"></select></div>
     </div>
 
@@ -1085,8 +1097,29 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             <!-- Día estadía + Barthel + ECF -->
             <div class="row" style="margin-bottom:6px;">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:64px;" disabled></div>
-              <div class="col ws"><label>Barthel</label><input type="number" id="fBarthel" placeholder="0-100"></div>
-              <div class="col ws"><label>ECF</label><input type="number" id="fEcf" placeholder="0-9"></div>
+              <div class="col ws"><label>Barthel</label>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <select id="fBarthel" onchange="updBarthelLbl('fBarthel','lblBarthel')" style="width:72px;">
+                    <option value="">--</option>
+                    <option>0</option><option>5</option><option>10</option><option>15</option><option>20</option>
+                    <option>25</option><option>30</option><option>35</option><option>40</option><option>45</option>
+                    <option>50</option><option>55</option><option>60</option><option>65</option><option>70</option>
+                    <option>75</option><option>80</option><option>85</option><option>90</option><option>95</option>
+                    <option>100</option>
+                  </select>
+                  <span id="lblBarthel" style="font-size:.68rem;color:var(--muted);font-weight:600;white-space:nowrap;"></span>
+                </div>
+              </div>
+              <div class="col ws"><label>ECF</label>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <select id="fEcf" onchange="updEcfLbl('fEcf','lblEcf')" style="width:56px;">
+                    <option value="">--</option>
+                    <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                    <option>6</option><option>7</option><option>8</option><option>9</option>
+                  </select>
+                  <span id="lblEcf" style="font-size:.68rem;color:var(--muted);font-weight:600;white-space:nowrap;"></span>
+                </div>
+              </div>
             </div>
             <!-- Checkboxes y campos de aislamiento/reingreso — ocultos, solo para compatibilidad JS/guardar -->
             <div style="display:none;">
@@ -2401,6 +2434,7 @@ function fillCama(c, fecha) {
   s('fNombre',c.NOMBRE); s('fEdad',c.EDAD); if(c.NOMBRE) actualizarTituloPanel(c.NOMBRE);
   if(c.SEXO) { $('fSexo').value=c.SEXO; calcPI(); }
   s('fTalla',c.TALLA_CM); s('fBarthel',c.BARTHEL); s('fEcf',c.ECF);
+  updBarthelLbl('fBarthel','lblBarthel'); updEcfLbl('fEcf','lblEcf');
   s('fDx',c.DIAGNOSTICO); s('fRem',c.DIAG_REM);
   $('fDias').value = dias(c.FECHA_INGRESO,fecha);
   _fechaInicioVA=c.FECHA_INICIO_VA||'';
@@ -2431,6 +2465,7 @@ function fillForm(s) {
   const chk=(id,val)=>{ const e=$(id); if(e) e.checked=(val===true||val==='TRUE'); };
   set('fNombre',s.PAC_NOMBRE); set('fEdad',s.PAC_EDAD); set('fTalla',s.PAC_TALLA);
   set('fBarthel',s.PAC_BARTHEL); set('fEcf',s.PAC_ECF);
+  updBarthelLbl('fBarthel','lblBarthel'); updEcfLbl('fEcf','lblEcf');
   if(s.PAC_SEXO){ $('fSexo').value=s.PAC_SEXO; calcPI(); }
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
   set('fDias',s.DIA_ESTADIA); set('fDiasVM',s.DIAS_VM);
@@ -2884,6 +2919,7 @@ function egreso(id) {
   hide('egOtroBox'); hide('egMotivoInfo');
   $('egOtroVal').value = '';
   $('egBarthel').value = c.BARTHEL || '';
+  updBarthelLbl('egBarthel','lblEgBarthel');
   $('egFirma').value = v('fFirma') || '';
   $('egObs').value = '';
   $('egConfBtn').disabled = false;
@@ -3819,6 +3855,20 @@ function calcPI() {
   if(t>0&&sexo) pi=sexo==='M'?50+0.91*(t-152.4):45.5+0.91*(t-152.4);
   $('lblPI').textContent=pi>0?`PI: ${pi.toFixed(1)} kg`:'PI: --';
   calcResp();
+}
+const _BARTHEL_LBL=[[0,20,'Dep. total'],[21,60,'Dep. severa'],[61,90,'Dep. moderada'],[91,99,'Dep. leve'],[100,100,'Independiente']];
+const _ECF_LBL={1:'Muy en forma',2:'En forma',3:'Manejando bien',4:'Vulnerable',5:'Fragilidad leve',6:'Fragilidad moderada',7:'Fragilidad severa',8:'Fragilidad muy severa',9:'Enf. terminal'};
+function updBarthelLbl(selId,lblId){
+  const n=parseInt($(selId)?.value);
+  const el=$(lblId); if(!el) return;
+  if(isNaN(n)){el.textContent='';return;}
+  const r=_BARTHEL_LBL.find(([a,b])=>n>=a&&n<=b);
+  el.textContent=r?r[2]:'';
+}
+function updEcfLbl(selId,lblId){
+  const n=parseInt($(selId)?.value);
+  const el=$(lblId); if(!el) return;
+  el.textContent=_ECF_LBL[n]||'';
 }
 function calcGCS() {
   const va=v('fVA'), vSel=$('fGCSV');
