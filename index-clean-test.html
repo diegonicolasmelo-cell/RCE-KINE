@@ -1004,6 +1004,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
     <div class="ptitle">
       <span id="spBed" style="background:#1e293b;padding:4px 10px;border-radius:5px;border:1px solid #334155;font-size:.83rem;">Cama X</span>
     </div>
+    <span id="spRepInfo" style="flex:1;text-align:right;font-size:.7rem;color:#94a3b8;padding:0 10px;display:none;"></span>
     <div class="phdr-btns">
       <button class="mbtn" onclick="minimizarPanel()" title="Minimizar">−</button>
       <button class="xbtn" onclick="cerrarPanel()">×</button>
@@ -2183,7 +2184,7 @@ function abrirPanel(id, esIng) {
   ['fMPTags','fRuidosTags','fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   const _emoji = SHIFT==='Dia' ? '☀️' : '🌙';
   $('spShift').textContent=`${_emoji} ${fecha}`;
-  hide('rarea'); hide('repBanner');
+  hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   $('kf').reset(); PROCS=[]; renderChips();
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
   if(typeof KTM_INTERV_SEL!=='undefined') KTM_INTERV_SEL=new Set();
@@ -2214,8 +2215,9 @@ function abrirPanel(id, esIng) {
             // Muestra el banner de aviso
             const [py,pm,pd,pTurno]=String(prev.TURNO_KEY||'').split('-');
             const fl= py ? new Date(+py,+pm-1,+pd).toLocaleDateString('es-CL',{day:'numeric',month:'long'}) : '–';
-            $('repBannerTxt').innerHTML=`Datos replicados del turno <b>${pTurno||''} del ${fl}</b>. Revisá y modificá solo lo que cambió.`;
-            show('repBanner');
+            const _turnoLabel = (pTurno||'').toLowerCase()==='dia' ? 'Dia' : 'Noche';
+            const _ri=$('spRepInfo'); if(_ri){_ri.textContent=`Datos replicados del turno ${_turnoLabel} del ${fl}`;_ri.style.display='';}
+            $('repBannerTxt').innerHTML='';hide('repBanner');
           } else {
             // Sin turno previo: arranca en blanco con datos del paciente
             const c=DB.find(x=>String(x.ID_CAMA)===String(id));
@@ -2527,7 +2529,7 @@ function limpiarReplica() {
   ['fMPTags','fRuidosTags','fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS(); hPVE(); hAisl(); hAET(); hExt();
   const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha);
-  hide('repBanner');
+  hide('repBanner'); const _riClr2=$('spRepInfo');if(_riClr2){_riClr2.textContent='';_riClr2.style.display='none';}
   toast('📝 Formulario en blanco — listo para comenzar');
 }
 
