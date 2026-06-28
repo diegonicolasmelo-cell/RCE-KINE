@@ -1109,16 +1109,39 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <label style="display:flex;align-items:center;gap:3px;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;cursor:pointer;background:#fff;"><input type="radio" name="aetNivel" value="C"> Nivel C</label>
               </div>
             </div>
-            <!-- Vía Aérea -->
-            <div class="row" style="margin-top:8px;">
-              <div class="col wa"><label>Vía Aérea</label>
-                <select id="fVA" class="bold" onchange="cascadeVA()">
+            <!-- Vía Aérea + contadores -->
+            <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-top:8px;">
+              <div style="display:flex;flex-direction:column;">
+                <label style="font-size:.72rem;color:var(--muted);">Días VM</label>
+                <input type="text" id="fDiasVM" class="tc" disabled style="height:34px;width:62px;border:1px solid #cbd5e1;border-radius:5px;text-align:center;">
+              </div>
+              <div style="display:flex;flex-direction:column;min-width:80px;">
+                <label>Vía Aérea</label>
+                <select id="fVA" class="bold" onchange="cascadeVA()" style="height:34px;">
                   <option>Natural</option><option>TOT</option><option>TQT</option><option>Full Face</option><option>Oronasal</option>
-                </select></div>
-              <div class="col ws"><label>Días VA</label><input type="text" id="fDiasVA" class="tc" disabled></div>
+                </select>
+              </div>
+              <div id="colDiasTOT" class="hidden" style="display:none;flex-direction:column;">
+                <label style="font-size:.72rem;color:var(--muted);">Días TOT</label>
+                <input type="text" id="fDiasTOT" class="tc bold" disabled style="height:34px;width:62px;border:1px solid #bfdbfe;border-radius:5px;text-align:center;">
+              </div>
+              <div id="colDiasTQT" class="hidden" style="display:none;flex-direction:column;">
+                <label style="font-size:.72rem;color:var(--resp);">Días TQT</label>
+                <input type="text" id="fDiasTQT" class="tc bold" disabled style="height:34px;width:62px;border:1px solid #bfdbfe;border-radius:5px;text-align:center;color:var(--resp);">
+              </div>
+              <div id="colDiasVAA" class="hidden" style="display:none;flex-direction:column;">
+                <label style="font-size:.72rem;color:var(--primary);">Días VAA</label>
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <input type="text" id="fDiasVAA" class="tc bold" disabled style="height:34px;width:52px;border:1px solid #bfdbfe;border-radius:5px;text-align:center;color:var(--primary);">
+                  <label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:.7rem;color:var(--muted);white-space:nowrap;">
+                    <input type="checkbox" id="cVAExtPrev" onchange="hVAExtPrev()" style="margin:0;">+prev
+                  </label>
+                  <input type="number" id="fVAExtDias" min="0" value="0" oninput="actualizarDiasVA()" style="height:34px;width:52px;display:none;border:1px solid #bfdbfe;border-radius:5px;text-align:center;font-size:.85rem;">
+                </div>
+              </div>
             </div>
             <!-- compat oculto -->
-            <input type="hidden" id="cVAExterno"><div id="dVAExtDias" style="display:none;"></div>
+            <input type="hidden" id="fDiasVA"><input type="hidden" id="cVAExterno"><div id="dVAExtDias" style="display:none;"></div>
             <div id="dVADet" class="hidden fade" style="background:#eff6ff;padding:8px;border-radius:6px;border:1px solid #bfdbfe;margin-top:4px;">
               <!-- TOT -->
               <div id="dTOT" class="row hidden" style="margin-bottom:6px;align-items:flex-end;">
@@ -1145,14 +1168,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <option>XL proximal</option>
                     <option>Ajustable</option>
                   </select></div>
-              </div>
-              <!-- Días previos VAA — compartido TOT/TQT -->
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                <label style="display:flex;align-items:center;gap:5px;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;">
-                  <input type="checkbox" id="cVAExtPrev" onchange="hVAExtPrev()" style="margin:0;flex-shrink:0;">
-                  Días previos VAA
-                </label>
-                <input type="number" id="fVAExtDias" min="0" value="0" class="tc" oninput="actualizarDiasVA()" style="height:30px;width:70px;display:none;border:1px solid #bfdbfe;border-radius:5px;text-align:center;">
               </div>
             </div>
           </div>
@@ -1277,10 +1292,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <div style="display:flex;align-items:center;gap:5px;">
                     <label style="font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--muted);">Modo</label>
                     <select id="fModo" onchange="renderParams()" style="height:27px;font-size:.78rem;border:1px solid #cbd5e1;border-radius:4px;padding:0 6px;"></select>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:5px;">
-                    <label style="font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--muted);">Días VM</label>
-                    <input type="text" id="fDiasVM" class="tc" style="width:50px;height:27px;border:1px solid #cbd5e1;border-radius:4px;" disabled>
                   </div>
                 </div>
               </div>
@@ -2380,8 +2391,15 @@ function fillCama(c, fecha) {
   s('fTalla',c.TALLA_CM); s('fBarthel',c.BARTHEL); s('fEcf',c.ECF);
   s('fDx',c.DIAGNOSTICO); s('fRem',c.DIAG_REM);
   $('fDias').value = dias(c.FECHA_INGRESO,fecha);
-  _diasVABase=parseInt(dias(c.FECHA_INICIO_VA,fecha))||0; actualizarDiasVA();
-  $('fDiasVM').value = dias(c.FECHA_INICIO_SOPORTE,fecha);
+  _fechaInicioVA=c.FECHA_INICIO_VA||'';
+  _fechaInicioTQT=''; // se sobreescribe en fillFormReplica si existe
+  if(c.VIA_AEREA==='TQT'){
+    _diasTOTBase=0; _diasTQTBase=parseInt(dias(c.FECHA_INICIO_VA,fecha))||0;
+  } else {
+    _diasTOTBase=parseInt(dias(c.FECHA_INICIO_VA,fecha))||0; _diasTQTBase=0;
+  }
+  actualizarDiasVA();
+  $('fDiasVM').value=dias(c.FECHA_INICIO_SOPORTE,fecha);
   if(c.VIA_AEREA) { $('fVA').value=c.VIA_AEREA; cascadeVA(c.SOPORTE); }
   if(c.SOPORTE) cascadeSop(c.MODO);
   if(c.KTM_NIVEL) $('fKTMniv').value=c.KTM_NIVEL;
@@ -2429,6 +2447,14 @@ function fillForm(s) {
   // ★ NUEVO: extras desde JSON_SNAPSHOT (campos que no tienen columna dedicada)
   let _ex = {};
   try { _ex = s.JSON_SNAPSHOT ? JSON.parse(s.JSON_SNAPSHOT) : {}; } catch(e){}
+  // Restaurar FECHA_INICIO_TQT (turno actual)
+  if(_ex.FECHA_INICIO_TQT){
+    _fechaInicioTQT=_ex.FECHA_INICIO_TQT;
+    const _f=v('gDate')||hoy();
+    _diasTOTBase=parseInt(dias(_fechaInicioVA,_fechaInicioTQT))||0;
+    _diasTQTBase=parseInt(dias(_fechaInicioTQT,_f))||0;
+    actualizarDiasVA(); updateVAUI();
+  }
 
   chk('cKTMr',s.KTM_REALIZADA); chk('cKTMs',s.KTM_SUSPENDIDA);
   set('fKTMct',s.KTM_CONTRA_TIPO); set('fKTMraz',s.KTM_CONTRA_RAZON); set('fKTMman',s.KTM_CONTRA_MANUAL);
@@ -2469,6 +2495,13 @@ function fillForm(s) {
   setAislTags(_ex.PAC_AISL_MICRO||_ex.PAC_AISL_LISTA||'');
   // VA externo + TOT fijación
   set('fTQTn',_ex.VENT_TQT_CALIBRE); set('fTOTfij',_ex.TOT_FIJACION);
+  // Restaurar FECHA_INICIO_TQT y recalcular bases de contadores
+  if(_ex.FECHA_INICIO_TQT){
+    _fechaInicioTQT=_ex.FECHA_INICIO_TQT;
+    const _f=v('gDate')||hoy();
+    _diasTOTBase=parseInt(dias(_fechaInicioVA,_fechaInicioTQT))||0;
+    _diasTQTBase=parseInt(dias(_fechaInicioTQT,_f))||0;
+  }
   if(_ex.VA_EXTERNO && parseInt(_ex.VA_EXTERNO_DIAS)>0){
     const cb=$('cVAExtPrev'); if(cb) cb.checked=true; hVAExtPrev();
     set('fVAExtDias',_ex.VA_EXTERNO_DIAS);
@@ -2638,6 +2671,7 @@ function guardar() {
     VA_EXTERNO:        $('cVAExtPrev')?.checked||false,
     VA_EXTERNO_DIAS:   $('cVAExtPrev')?.checked ? (v('fVAExtDias')||0) : 0,
     TOT_FIJACION:      v('fTOTfij'),
+    FECHA_INICIO_TQT:  _fechaInicioTQT||'',
     DECAN_OCURRIO:     $('cDecanOcurrio')?.checked||false,
     DECAN_TIPO:        (document.querySelector('input[name="decanTipo"]:checked')?.value)||'',
     DECAN_QUEDA_DISP:  v('fDecanQueda'),
@@ -3813,7 +3847,15 @@ function poblar(id, opts, def) {
 }
 function cascadeVA(preSop) {
   const va=v('fVA'); const r=VMAPS[va]||VMAPS['Natural'];
-  poblar('fSop', r.sops, preSop); cascadeSop(); updateVAUI(); calcGCS();
+  poblar('fSop', r.sops, preSop); cascadeSop();
+  // Detectar transición TOT → TQT: congelar días TOT, arrancar TQT en 0
+  if(va==='TQT' && !_fechaInicioTQT && _diasTOTBase>0){
+    _fechaInicioTQT=v('gDate')||hoy();
+    // _diasTOTBase queda congelado, TQT arranca en 0
+    _diasTQTBase=0;
+    actualizarDiasVA();
+  }
+  updateVAUI(); calcGCS();
 }
 function cascadeSop(preModo) {
   const va=v('fVA'), sop=v('fSop'); const r=VMAPS[va]||VMAPS['Natural'];
@@ -3821,11 +3863,21 @@ function cascadeSop(preModo) {
   poblar('fModo', modos, preModo); renderParams();
   if(sop==='VM'||sop==='VNI') show('dHAct'); else { hide('dHAct'); if($('cHAct'))$('cHAct').checked=false; }
 }
+function _showCol(id){ const el=$(id); if(el){el.classList.remove('hidden');el.style.display='flex';} }
+function _hideCol(id){ const el=$(id); if(el){el.classList.add('hidden');el.style.display='none';} }
 function updateVAUI() {
   const va=v('fVA');
-  if(va==='TOT'){show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');}
-  else if(va==='TQT'){show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');}
-  else{hide('dVADet');hide('dExtSec');hide('dDecanSec');}
+  if(va==='TOT'){
+    show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');
+    _showCol('colDiasTOT'); _hideCol('colDiasTQT'); _showCol('colDiasVAA');
+  } else if(va==='TQT'){
+    show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');
+    if(_diasTOTBase>0) _showCol('colDiasTOT'); else _hideCol('colDiasTOT');
+    _showCol('colDiasTQT'); _showCol('colDiasVAA');
+  } else {
+    hide('dVADet');hide('dExtSec');hide('dDecanSec');
+    _hideCol('colDiasTOT');_hideCol('colDiasTQT');_hideCol('colDiasVAA');
+  }
 }
 
 //  PARÁMETROS VENTILATORIOS
@@ -3986,12 +4038,23 @@ function hVAExterno(){} // legacy compat
 function hVAExtPrev(){
   const on=$('cVAExtPrev')?.checked;
   const inp=$('fVAExtDias');
-  if(inp){ inp.style.display=on?'':'none'; if(!on){inp.value=0;actualizarDiasVA();} }
+  if(inp){ inp.style.display=on?'inline-block':'none'; if(!on){inp.value=0;actualizarDiasVA();} }
 }
-let _diasVABase=0;
+let _diasVABase=0; // legacy compat (= _diasTOTBase + _diasTQTBase)
+let _diasTOTBase=0;
+let _diasTQTBase=0;
+let _fechaInicioVA='';
+let _fechaInicioTQT='';
 function actualizarDiasVA(){
   const prev=parseInt($('fVAExtDias')?.value)||0;
-  const el=$('fDiasVA'); if(el) el.value=_diasVABase+prev;
+  const tot=_diasTOTBase;
+  const tqt=_diasTQTBase;
+  const vaa=tot+tqt+prev;
+  _diasVABase=tot+tqt;
+  const elTOT=$('fDiasTOT'); if(elTOT) elTOT.value=tot||'';
+  const elTQT=$('fDiasTQT'); if(elTQT) elTQT.value=tqt;
+  const elVAA=$('fDiasVAA'); if(elVAA) elVAA.value=vaa||'';
+  const elVA=$('fDiasVA');   if(elVA)  elVA.value=vaa||'';
 }
 function hDecan(){
   if($('cDecanOcurrio')?.checked) show('dDecanDet'); else hide('dDecanDet');
