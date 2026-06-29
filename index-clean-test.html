@@ -1300,50 +1300,43 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           <div class="fcard-body">
             <div style="margin-bottom:10px;">
               <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Murmullo Pulmonar</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <select id="fMPCalidad" onchange="buildMP()" style="height:32px;font-size:.85rem;">
-                  <option value="">-- Calidad --</option>
-                  <option value="Presente">Presente</option>
-                  <option value="Disminuido">Disminuido</option>
-                  <option value="Ausente">Ausente</option>
-                </select>
-                <select id="fMPLoc" onchange="buildMP()" style="height:32px;font-size:.85rem;">
-                  <option value="">-- Localización --</option>
-                  <option value="bilateral">bilateral</option>
-                  <option value="CPD">CPD</option>
-                  <option value="CPI">CPI</option>
-                  <option value="CPD y CPI">CPD y CPI</option>
-                </select>
-              </div>
-              <input type="hidden" id="fMPVal">
-              <!-- compat multitag oculto -->
+              <select id="fMPVal" style="height:32px;font-size:.85rem;width:100%;max-width:260px;">
+                <option value="">-- seleccionar --</option>
+                <option>Presente Bilateral</option>
+                <option>Disminuido Global</option>
+                <option>Disminuido en Bases</option>
+                <option>Disminuido CPIz</option>
+                <option>Disminuido CPD</option>
+                <option>Abolido CPIz</option>
+                <option>Abolido CPD</option>
+              </select>
+              <!-- compat oculto -->
               <div id="fMPTags" style="display:none;"></div>
+              <input type="hidden" id="fMPCalidad"><input type="hidden" id="fMPLoc">
             </div>
             <div>
               <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Ruidos Agregados</label>
-              <div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap;">
-                <select id="fRuidoTipo" style="height:32px;font-size:.85rem;">
-                  <option value="">-- Tipo --</option>
-                  <option>Crépitos</option>
-                  <option>Estertores</option>
-                  <option>Roncus</option>
-                  <option>Sibilancias</option>
-                  <option>Frote pleural</option>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <select id="fRuidosVal" style="height:32px;font-size:.85rem;">
+                  <option value="">-- seleccionar --</option>
                   <option>Sin ruidos agregados</option>
+                  <option>Crépitos</option>
+                  <option>Sibilancias</option>
+                  <option>Roncus</option>
+                  <option>Estridor</option>
+                  <option>Estertores</option>
+                  <option>Frote pleural</option>
                 </select>
-                <select id="fRuidoLoc" style="height:32px;font-size:.85rem;">
+                <select id="fRuidosLoc" style="height:32px;font-size:.85rem;">
                   <option value="">-- Localización --</option>
                   <option>bilateral</option>
                   <option>CPD</option>
                   <option>CPI</option>
                   <option>CPD y CPI</option>
                 </select>
-                <button type="button" onclick="addRuido()" style="height:32px;padding:0 12px;border-radius:7px;border:1px solid var(--primary);background:var(--primary);color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;">+ Agregar</button>
               </div>
-              <div class="ti-wrap sky" style="min-height:34px;">
-                <div id="fRuidosTags" style="display:contents;"></div>
-              </div>
-              <input type="hidden" id="fRuidosVal">
+              <!-- compat oculto -->
+              <div id="fRuidosTags" style="display:none;"></div>
             </div>
           </div>
         </div>
@@ -2336,10 +2329,10 @@ function abrirPanel(id, esIng) {
   const _st = $('spTitle'); if(_st){ _st.dataset.tipo=_tipo; _st.textContent=_tipo; }
   esIng ? show('fcId') : hide('fcId');
   _aislTags=[]; renderAislTags();
-  ['fRuidosTags','fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
-  if($('fMPCalidad')) $('fMPCalidad').value='';
-  if($('fMPLoc'))     $('fMPLoc').value='';
+  ['fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   if($('fMPVal'))     $('fMPVal').value='';
+  if($('fRuidosVal')) $('fRuidosVal').value='';
+  if($('fRuidosLoc')) $('fRuidosLoc').value='';
   const _emoji = SHIFT==='Dia' ? '☀️' : '🌙';
   $('spShift').textContent=`${_emoji} ${fecha}`;
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
@@ -2511,7 +2504,8 @@ function fillForm(s) {
   chk('cMultiDVA',s.HEMO_MULTI_DVA); set('fDVAcnt',s.HEMO_NUM_DVA);
   chk('cHTrend',s.HEMO_TENDENCIA); set('fHTT',s.HEMO_TEND_TIPO);
   loadMP(s.EX_MP||'');
-  tiSet('fRuidosTags','fRuidosVal','sky',s.EX_RUIDOS||'');
+  if($('fRuidosVal')) $('fRuidosVal').value=s.EX_RUIDOS||'';
+  if($('fRuidosLoc')) $('fRuidosLoc').value=s.EX_RUIDOS_LOC||'';
   tiSet('fSecrTags','fSecrVal','sky',s.EX_SECR_TIPO||'');
   // Prioriza estado FINAL de VA si hubo extubación en el turno anterior
   const _vaFinal = s.VENT_VIA_AEREA_FINAL||s.VENT_VIA_AEREA;
@@ -2671,7 +2665,8 @@ function fillFormReplica(s) {
 
   // Examen físico
   loadMP(s.EX_MP||'');
-  tiSet('fRuidosTags','fRuidosVal','sky',s.EX_RUIDOS||'');
+  if($('fRuidosVal')) $('fRuidosVal').value=s.EX_RUIDOS||'';
+  if($('fRuidosLoc')) $('fRuidosLoc').value=s.EX_RUIDOS_LOC||'';
   tiSet('fSecrTags','fSecrVal','sky',s.EX_SECR_TIPO||'');
 
   // Vía aérea — prioriza estado FINAL si hubo extubación en turno anterior
@@ -2739,10 +2734,10 @@ function limpiarReplica() {
   const id=v('cBed'), fecha=v('gDate')||hoy();
   $('kf').reset(); PROCS=[]; KTM_INTERV_SEL=new Set(); renderChips(); renderKTMinterv();
   _aislTags=[]; renderAislTags();
-  ['fRuidosTags','fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
-  if($('fMPCalidad')) $('fMPCalidad').value='';
-  if($('fMPLoc'))     $('fMPLoc').value='';
+  ['fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   if($('fMPVal'))     $('fMPVal').value='';
+  if($('fRuidosVal')) $('fRuidosVal').value='';
+  if($('fRuidosLoc')) $('fRuidosLoc').value='';
   cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS(); hPVE(); hAisl(); hAET(); hExt();
   const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha);
   hide('repBanner'); const _riClr2=$('spRepInfo');if(_riClr2){_riClr2.textContent='';_riClr2.style.display='none';}
@@ -2812,7 +2807,7 @@ function guardar() {
     HEMO_ESTADO:v('fHEst'), HEMO_DVA:v('fDVA'), HEMO_MULTI_DVA:bv('cMultiDVA'),
     HEMO_NUM_DVA:v('fDVAcnt'), HEMO_TENDENCIA:bv('cHTrend'), HEMO_TEND_TIPO:v('fHTT'),
     EX_MP:     v('fMPVal'),
-    EX_RUIDOS: v('fRuidosVal'),
+    EX_RUIDOS: v('fRuidosVal'), EX_RUIDOS_LOC: v('fRuidosLoc'),
     EX_SECR_TIPO: v('fSecrVal'),
     EX_CULT_RESULTADO: v('fCultVal'),
     VENT_VIA_AEREA:v('fVA'), VENT_TOT_NUM:v('fTOTn'), VENT_TOT_CM:v('fTOTcm'),
@@ -4179,7 +4174,7 @@ function addRuido(){
   if(!(_tiState['fRuidosTags']||[]).includes(label)){
     (_tiState['fRuidosTags']=_tiState['fRuidosTags']||[]).push(label);
   }
-  tiRender('fRuidosTags','fRuidosVal','sky');
+  // ruidos ahora es select directo, no multitag
   $('fRuidoTipo').value=''; $('fRuidoLoc').value='';
 }
 function buildMP(){
@@ -4188,16 +4183,7 @@ function buildMP(){
   if(el) el.value=(cal&&loc)?`${cal} ${loc}`:(cal||loc||'');
 }
 function loadMP(str){
-  if(!str){return;}
-  // Intentar parsear "Calidad Localización" desde el string guardado
-  const cals=['Presente','Disminuido','Ausente'];
-  const locs=['bilateral','CPD y CPI','CPD','CPI'];
-  let cal='', loc='';
-  for(const c of cals){ if(str.startsWith(c)){cal=c;break;} }
-  for(const l of locs){ if(str.includes(l)){loc=l;break;} }
-  if($('fMPCalidad')) $('fMPCalidad').value=cal;
-  if($('fMPLoc'))     $('fMPLoc').value=loc;
-  if($('fMPVal'))     $('fMPVal').value=str;
+  if($('fMPVal')) $('fMPVal').value=str||'';
 }
 function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='Sin requerimientos'){show('wMultiDVA');if(m&&m.checked)show('gDVAcnt');else hide('gDVAcnt');}else{hide('wMultiDVA');if(m)m.checked=false;hide('gDVAcnt');}}
 function hSecr(){} // obsoleta — fSecrT ya no depende de fSecrC
