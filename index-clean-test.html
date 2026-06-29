@@ -3704,7 +3704,7 @@ function genTexto() {
     const _pb=_pjoin([
       vt?`Vti ${vt} ml`:null, fr?`FR ${fr} rpm`:null, _numTxt('l_vm')?`VM ${_numTxt('l_vm')} L/min`:null,
       _np('r_flujo')?`Flujo ${_np('r_flujo')} L/min`:null, _np('r_ti')?`Ti ${_np('r_ti')} s`:null,
-      _mon('l_ie')?`I:E ${_mon('l_ie')}`:null, _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH₂O`:null,
+      (_mon('l_ie')&&_mon('l_ie')!=='--'&&_mon('l_ie')!=='!')?`I:E ${_mon('l_ie')}`:null, _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH₂O`:null,
       _np('r_pmedia')?`Pmedia ${_np('r_pmedia')} cmH₂O`:null, peep?`PEEP ${peep} cmH₂O`:null,
       _np('r_ppl')?`Ppl ${_np('r_ppl')} cmH₂O`:null, _numTxt('l_dp')?`PD ${_numTxt('l_dp')} cmH₂O`:null,
       _numTxt('l_cesr')?`Cest ${_numTxt('l_cesr')} ml/cmH₂O`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null
@@ -3938,7 +3938,8 @@ function calcResp() {
   const set=(id,val)=>{ const e=$(id); if(e) e.textContent=val; };
   if(vt&&pi>0) set('l_mlkg',`${(vt/pi).toFixed(1)} ml/kg`);
   if(vt&&fr) set('l_vm',`${(vt*fr/1000).toFixed(1)} L/m`);
-  if(['ACVC','ACPC'].includes(modo)&&fl>0&&fr>0&&ti>0){const te=60/fr-ti;if(te>0)set('l_ie',`1:${(te/ti).toFixed(1)}`);}
+  if(fr>0&&ti>0){const te=60/fr-ti;if(te>0)set('l_ie',`1:${(te/ti).toFixed(1)}`);else set('l_ie','!');}
+  else{const eie=$('l_ie');if(eie&&eie.textContent!=='--')eie.textContent='--';}
   if(ppl>0) set('l_dp',`DP: ${(ppl-peep).toFixed(0)}`);
   if(vt>0&&(ppl-peep)>0) set('l_cesr',`${(vt/(ppl-peep)).toFixed(0)}`);
   if(['CPAP/PS','CFLEX'].includes(modo)&&fr>0&&vt>0) set('l_tobin',`${(fr/(vt/1000)).toFixed(0)}`);
@@ -4144,7 +4145,7 @@ function renderParams() {
     h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
   } else if(modo==='S/T'){
     h+=lbl('Ventilación');
-    h+=`<div class="row">${fld('r_ipap','IPAP',80)}${fld('r_epap','EPAP',80)}${mon('l_pscalc','PS calc.',true)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld('r_ipap','IPAP',80)}${fld('r_epap','EPAP',80)}${mon('l_pscalc','PS calc.',true)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}${_umaFld()}</div>`;
     if(sop==='VNI'){h+=lbl('Oxigenación');h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;}
   } else if(modo==='AVAPS'){
     h+=lbl('Presiones');
