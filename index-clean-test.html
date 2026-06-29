@@ -1238,7 +1238,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <option>Fuera de escalón</option>
                 </select></div>
               <div class="check cr wa" style="margin-bottom:6px;"><input type="checkbox" id="cBNM" onchange="autoCoopera()"><label for="cBNM" style="font-size:.75rem;">🔒 Más bloqueo neuromuscular</label></div>
-              <div id="gSAS" class="col wa hidden"><label>SAS obj.</label>
+              <div id="gSAS" class="col wa hidden"><label id="lblSAS">SAS obj.</label>
                 <select id="fSAS" onchange="autoCoopera()"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
               <span style="font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;align-self:flex-end;padding-bottom:8px;">GCS:</span>
               <div class="col ws"><label>Ocular</label>
@@ -4133,7 +4133,13 @@ function renderParams() {
 }
 
 //  HANDLERS UI
-function hSed(){const s=v('fSed');if(s!=='Sin sedación'&&s!=='Fuera de escalón'){show('gSAS');}else{hide('gSAS');}autoCoopera();}
+function hSed(){
+  const s=v('fSed');
+  if(s!=='Sin sedación'){show('gSAS');}else{hide('gSAS');}
+  const lbl=$('lblSAS');
+  if(lbl) lbl.textContent=s==='Fuera de escalón'?'SAS real':'SAS obj.';
+  autoCoopera();
+}
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='Sin requerimientos'){show('wMultiDVA');if(m&&m.checked)show('gDVAcnt');else hide('gDVAcnt');}else{hide('wMultiDVA');if(m)m.checked=false;hide('gDVAcnt');}}
 function hSecr(){} // obsoleta — fSecrT ya no depende de fSecrC
