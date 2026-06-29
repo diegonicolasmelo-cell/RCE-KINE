@@ -1369,9 +1369,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   </div>
                 </div>
               </div>
-              <div id="dHAct" class="hidden" style="margin-bottom:8px;">
-                <div class="check cg wa"><input type="checkbox" id="cHAct"><label for="cHAct">🌡️ Humidificación Activa</label></div>
-              </div>
               <div id="paramsBox"></div>
               <div class="check cg mt wa"><input type="checkbox" id="cPostExt" onchange="if(this.checked)show('dPostExt');else hide('dPostExt');"><label for="cPostExt">Post-extubación / Post-decanulación</label></div>
               <div id="dPostExt" class="hidden fade mt">
@@ -2530,7 +2527,8 @@ function fillForm(s) {
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
    ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
    ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],
-   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP']]
+   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
+   ['r_uma','VENT_UMA']]
     .forEach(([id,k])=>{ const e=$(id); if(e&&s[k]!==undefined&&s[k]!=='') e.value=s[k]; });
   // ★ NUEVO: extras desde JSON_SNAPSHOT (campos que no tienen columna dedicada)
   let _ex = {};
@@ -2687,7 +2685,8 @@ function fillFormReplica(s) {
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
    ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
    ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],
-   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP']]
+   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
+   ['r_uma','VENT_UMA']]
     .forEach(([id,k])=>{ const e=$(id); if(e&&s[k]!==undefined&&s[k]!=='') e.value=s[k]; });
 
   // JSON_SNAPSHOT extras
@@ -2817,7 +2816,7 @@ function guardar() {
     EX_CULT_RESULTADO: v('fCultVal'),
     VENT_VIA_AEREA:v('fVA'), VENT_TOT_NUM:v('fTOTn'), VENT_TOT_CM:v('fTOTcm'),
     VENT_TQT_CALIBRE:v('fTQTn'), VENT_TQT_TIPO:v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
-    VENT_H_ACTIVA:bv('cHAct'), VENT_POST_EXT:bv('cPostExt'), VENT_POST_EXT_VAL:v('fPostExt'),
+    VENT_H_ACTIVA:bv('cHAct'), VENT_UMA:v('r_uma')||'', VENT_POST_EXT:bv('cPostExt'), VENT_POST_EXT_VAL:v('fPostExt'),
     VENT_VT:n(v('r_vt')), VENT_FR:n(v('r_fr')), VENT_PEEP:n(v('r_peep')),
     VENT_PMAX:n(v('r_pmax')), VENT_PMEDIA:n(v('r_pmedia')), VENT_PPL:n(v('r_ppl')),
     VENT_PS:n(v('r_ps')), VENT_IPAP:n(v('r_ipap')), VENT_EPAP:n(v('r_epap')),
@@ -4080,7 +4079,7 @@ function cascadeSop(preModo) {
   const va=v('fVA'), sop=v('fSop'); const r=VMAPS[va]||VMAPS['Natural'];
   const modos=(r.modos&&r.modos[sop])||['Sin soporte'];
   poblar('fModo', modos, preModo); renderParams();
-  if(sop==='VM'||sop==='VNI') show('dHAct'); else { hide('dHAct'); if($('cHAct'))$('cHAct').checked=false; }
+  // Humidificación ahora se inyecta dentro de renderParams()
   // Warning TQT + modo VNI se actualiza al cambiar modo también
   actualizarContadores();
 }
@@ -4113,12 +4112,24 @@ const fld=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><la
 const mon=(id,lbl,y=false)=>`<div class="mon${y?' mon-y':''}" style="height:35px;min-width:68px;"><span style="font-size:.58rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.82rem;">--</span></div>`;
 const lbl=txt=>`<div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--resp);margin:8px 0 4px;padding-bottom:2px;border-bottom:1px solid #bae6fd;">${txt}</div>`;
 
+const _UMA_TIP='+ Tiraje subcostal · ++ Tiraje supraesternal · +++ + Espiración forzada';
+const _umaFld=()=>`<div class="col" style="flex-grow:0;"><label>UMA</label><div style="display:flex;align-items:center;gap:4px;"><select id="r_uma" style="height:35px;width:60px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option><option>+</option><option>++</option><option>+++</option></select><span class="interp-tip interp-leve" data-tip="${_UMA_TIP}" style="font-size:.75rem;">ⓘ</span></div></div>`;
+const _humChk=(haAdapt)=>{
+  const humVal=($('cHAct')&&$('cHAct').checked)||false;
+  const adaptVal=($('cAdapt')&&$('cAdapt').checked)||true;
+  let row=`<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;flex-wrap:wrap;">`;
+  if(haAdapt) row+=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:600;"><input type="checkbox" id="cAdapt" ${adaptVal?'checked':''} style="width:15px;height:15px;accent-color:var(--primary);"> Paciente adaptado al ventilador</label>`;
+  row+=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:600;"><input type="checkbox" id="cHAct" ${humVal?'checked':''} style="width:15px;height:15px;accent-color:var(--primary);">🌡️ Humidificación Activa</label>`;
+  row+=`</div>`;
+  return row;
+};
 function renderParams() {
   const modo=v('fModo'), va=v('fVA'), sop=v('fSop');
   const b=$('paramsBox'); if(!b) return;
   let h='';
   const ctrl=['ACVC','ACPC'].includes(modo);
-  if(ctrl) h+=`<div class="check cg mb" style="margin-bottom:8px;"><input type="checkbox" id="cAdapt" checked><label for="cAdapt">Paciente adaptado al ventilador</label></div>`;
+  const esVM=sop==='VM'||va==='TOT'||va==='TQT';
+  if(esVM) h+=_humChk(ctrl);
 
   if(modo==='ACVC'){
     h+=lbl('Ventilación');
@@ -4134,30 +4145,30 @@ function renderParams() {
     h+=`<div class="row">${fld('r_peep','PEEP',70)}${fld('r_pmax','Pmax',70)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
   } else if(modo==='CPAP/PS'){
     h+=lbl('Ventilación');
-    h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${mon('l_tobin','I.Tobin',true)}</div>`;
+    h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${mon('l_tobin','I.Tobin',true)}${_umaFld()}</div>`;
     h+=lbl('Oxigenación');
     h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
   } else if(modo==='S/T'){
     h+=lbl('Ventilación');
-    h+=`<div class="row">${fld('r_ipap','IPAP',80)}${fld('r_epap','EPAP',80)}${mon('l_pscalc','PS calc.',true)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}</div>`;
+    h+=`<div class="row">${fld('r_ipap','IPAP',80)}${fld('r_epap','EPAP',80)}${mon('l_pscalc','PS calc.',true)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${_umaFld()}</div>`;
     if(sop==='VNI'){h+=lbl('Oxigenación');h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;}
   } else if(modo==='AVAPS'){
     h+=lbl('Presiones');
-    h+=`<div class="row">${fld('r_ipap','IPAP min',88)}${fld('r_epap','EPAP',80)}</div>`;
+    h+=`<div class="row">${fld('r_ipap','IPAP min',88)}${fld('r_epap','EPAP',80)}${_umaFld()}</div>`;
     h+=lbl('Ventilación');
     h+=`<div class="row">${fld('r_vt','VT med.',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}</div>`;
     h+=lbl('Oxigenación');
     h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
   } else if(modo==='CPAP'){
-    h+=`<div class="row">${fld('r_peep','CPAP',80)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
+    h+=`<div class="row">${fld('r_peep','CPAP',80)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
   } else if(modo==='CFLEX'){
-    h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_tobin','I.Tobin',true)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
+    h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_tobin','I.Tobin',true)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
   } else if(['CNAF','OAF/CTAF'].includes(modo)){
-    h+=`<div class="row">${fld('r_flujo','Flujo L/m',80)}${fld('r_temp','T° °C',70)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${mon('l_irox','IROX',true)}</div>`;
+    h+=`<div class="row">${fld('r_flujo','Flujo L/m',80)}${fld('r_temp','T° °C',70)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${mon('l_irox','IROX',true)}${_umaFld()}</div>`;
   } else if(modo==='NRC'){
-    h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${mon('l_fio2nrc','FiO₂~')}</div>`;
+    h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${mon('l_fio2nrc','FiO₂~')}${_umaFld()}</div>`;
   } else {
-    h+=`<div class="row">${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}</div>`;
+    h+=`<div class="row">${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
   }
   b.innerHTML=h; calcResp();
 }
