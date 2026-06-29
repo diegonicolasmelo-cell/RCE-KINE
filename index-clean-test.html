@@ -1321,17 +1321,27 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             </div>
             <div>
               <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Ruidos Agregados</label>
-              <div class="ti-presets">
-                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','sin ruidos agregados')">sin ruidos</span>
-                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','crépitos')">crépitos</span>
-                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','estertores')">estertores</span>
-                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','roncus')">roncus</span>
-                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','sibilancias')">sibilancias</span>
-                <span class="ti-chip" onclick="tiAddChip('fRuidosTags','fRuidosVal','sky','frote pleural')">frote pleural</span>
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap;">
+                <select id="fRuidoTipo" style="height:32px;font-size:.85rem;">
+                  <option value="">-- Tipo --</option>
+                  <option>Crépitos</option>
+                  <option>Estertores</option>
+                  <option>Roncus</option>
+                  <option>Sibilancias</option>
+                  <option>Frote pleural</option>
+                  <option>Sin ruidos agregados</option>
+                </select>
+                <select id="fRuidoLoc" style="height:32px;font-size:.85rem;">
+                  <option value="">-- Localización --</option>
+                  <option>bilateral</option>
+                  <option>CPD</option>
+                  <option>CPI</option>
+                  <option>CPD y CPI</option>
+                </select>
+                <button type="button" onclick="addRuido()" style="height:32px;padding:0 12px;border-radius:7px;border:1px solid var(--primary);background:var(--primary);color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;">+ Agregar</button>
               </div>
-              <div class="ti-wrap sky" onclick="document.getElementById('fRuidosInput').focus()">
+              <div class="ti-wrap sky" style="min-height:34px;">
                 <div id="fRuidosTags" style="display:contents;"></div>
-                <input id="fRuidosInput" class="ti-input" type="text" placeholder="Otro… + Enter">
               </div>
               <input type="hidden" id="fRuidosVal">
             </div>
@@ -4159,6 +4169,19 @@ function hSed(){
   autoCoopera();
 }
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
+function addRuido(){
+  const tipo=v('fRuidoTipo'), loc=v('fRuidoLoc');
+  if(!tipo) return;
+  const label=tipo==='Sin ruidos agregados'?'Sin ruidos agregados':(loc?`${tipo} ${loc}`:tipo);
+  // Si se agrega "Sin ruidos", limpiar el resto
+  if(tipo==='Sin ruidos agregados'){ _tiState['fRuidosTags']=[]; }
+  else { _tiState['fRuidosTags']=(_tiState['fRuidosTags']||[]).filter(t=>t!=='Sin ruidos agregados'); }
+  if(!(_tiState['fRuidosTags']||[]).includes(label)){
+    (_tiState['fRuidosTags']=_tiState['fRuidosTags']||[]).push(label);
+  }
+  tiRender('fRuidosTags','fRuidosVal','sky');
+  $('fRuidoTipo').value=''; $('fRuidoLoc').value='';
+}
 function buildMP(){
   const cal=v('fMPCalidad'), loc=v('fMPLoc');
   const el=$('fMPVal');
