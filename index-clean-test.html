@@ -1370,10 +1370,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 </div>
               </div>
               <div id="paramsBox"></div>
-              <div class="check cg mt wa"><input type="checkbox" id="cPostExt" onchange="if(this.checked)show('dPostExt');else hide('dPostExt');"><label for="cPostExt">Post-extubación / Post-decanulación</label></div>
-              <div id="dPostExt" class="hidden fade mt">
-                <input type="text" id="fPostExt" placeholder="Describir soporte post-extubación..." style="height:35px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;width:100%;">
-              </div>
 
               <!-- PVE DIARIA -->
               <div style="margin-top:10px;padding:10px 11px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
@@ -2522,7 +2518,7 @@ function fillForm(s) {
     set('fVAExtDias',s.VA_EXTERNO_DIAS);
   }
   actualizarDiasVA();
-  chk('cHAct',s.VENT_H_ACTIVA); chk('cPostExt',s.VENT_POST_EXT); set('fPostExt',s.VENT_POST_EXT_VAL);
+  chk('cHAct',s.VENT_H_ACTIVA);
   // params
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
    ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
@@ -2637,7 +2633,6 @@ function fillForm(s) {
   set('fPlanes',s.PLAN_PLANES); set('fNota',s.PLAN_NOTA_TURNO); set('fFirma',s.PLAN_FIRMA_KINE);
   aplicarFirmaTurno(s.PLAN_FIRMA_KINE);
   hSed(); hHTrend(); hMultiDVA(); hSecr(); calcGCS(); calcPI();
-  if(s.VENT_POST_EXT===true||s.VENT_POST_EXT==='TRUE') show('dPostExt');
   if(s.KTM_UMA===true||s.KTM_UMA==='TRUE') show('dUMA');
 }
 
@@ -2680,8 +2675,7 @@ function fillFormReplica(s) {
   if(_sopF) cascadeSop(_modoF);
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM);
   set('fTQTn',s.VENT_TQT_CALIBRE); set('fTQTt',s.VENT_TQT_TIPO);
-  chk('cHAct',s.VENT_H_ACTIVA); chk('cPostExt',s.VENT_POST_EXT); set('fPostExt',s.VENT_POST_EXT_VAL);
-  if(s.VENT_POST_EXT===true||s.VENT_POST_EXT==='TRUE') show('dPostExt');
+  chk('cHAct',s.VENT_H_ACTIVA);
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
    ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
    ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],
@@ -2816,7 +2810,7 @@ function guardar() {
     EX_CULT_RESULTADO: v('fCultVal'),
     VENT_VIA_AEREA:v('fVA'), VENT_TOT_NUM:v('fTOTn'), VENT_TOT_CM:v('fTOTcm'),
     VENT_TQT_CALIBRE:v('fTQTn'), VENT_TQT_TIPO:v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
-    VENT_H_ACTIVA:bv('cHAct'), VENT_UMA:v('r_uma')||'', VENT_POST_EXT:bv('cPostExt'), VENT_POST_EXT_VAL:v('fPostExt'),
+    VENT_H_ACTIVA:bv('cHAct'), VENT_UMA:v('r_uma')||'',
     VENT_VT:n(v('r_vt')), VENT_FR:n(v('r_fr')), VENT_PEEP:n(v('r_peep')),
     VENT_PMAX:n(v('r_pmax')), VENT_PMEDIA:n(v('r_pmedia')), VENT_PPL:n(v('r_ppl')),
     VENT_PS:n(v('r_ps')), VENT_IPAP:n(v('r_ipap')), VENT_EPAP:n(v('r_epap')),
