@@ -1381,11 +1381,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #fecaca;background:#fff5f5;">
                     <input type="radio" name="pveEst" value="no_realizada" id="pveNR" onchange="hPVE()"> ❌ No realizada
                   </label>
-                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
-                    <input type="radio" name="pveEst" value="no_aplica" id="pveNA" onchange="hPVE()" checked> No aplica PVE
-                  </label>
                 </div>
-                <div id="dPveNAraz" class="hidden" style="margin-top:5px;font-size:.72rem;color:#64748b;font-style:italic;">No aplica: &lt;24 hrs en VM</div>
                 <!-- Realizada: resultado -->
                 <div id="dPveRe" class="hidden" style="margin-top:8px;">
                   <label style="font-size:.73rem;font-weight:700;color:#0369a1;display:block;margin-bottom:5px;">Resultado:</label>
@@ -2613,7 +2609,7 @@ function fillForm(s) {
   })();
   // PVE — ACCIÓN DIARIA: siempre parte en "no aplica"
   (function(){
-    const na=$('pveNA'); if(na) na.checked=true;
+    document.querySelectorAll('input[name="pveEst"]').forEach(r=>r.checked=false);
     hPVE();
   })();
   // Extubación / Decanulación — ACCIÓN DIARIA: siempre desmarcada
@@ -2845,7 +2841,7 @@ function guardar() {
     EVAL_T_FSS:      v('fFSSt'),
     EVAL_T_PIM:      v('fPIMt'),
     // ★ PVE diaria
-    PVE_ESTADO:      (document.querySelector('input[name="pveEst"]:checked')?.value)||'no_aplica',
+    PVE_ESTADO:      (document.querySelector('input[name="pveEst"]:checked')?.value)||'',
     PVE_RESULTADO:   (document.querySelector('input[name="pveRes"]:checked')?.value)||'',
     PVE_FR_MOTIVOS:  JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
     PVE_SC_RAZON:    v('fPveSCraz'),
@@ -3795,8 +3791,8 @@ function genTexto() {
   }
   // PVE — texto clínico estructurado (nueva estructura)
   (function(){
-    const _pveEst=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
-    if(_pveEst==='no_aplica') return;
+    const _pveEst=document.querySelector('input[name="pveEst"]:checked')?.value||'';
+    if(!_pveEst) return;
     if(_pveEst==='realizada'){
       const _res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
       if(_res==='superada'){
@@ -4377,14 +4373,10 @@ function hRuidos(el){
   if(otro&&otro.checked) show('dRuidosM'); else hide('dRuidosM');
 }
 function hPVE(){
-  const est=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
-  hide('dPveRe'); hide('dPveNR'); hide('dPveFr'); hide('dPveNAraz');
+  const est=document.querySelector('input[name="pveEst"]:checked')?.value||'';
+  hide('dPveRe'); hide('dPveNR'); hide('dPveFr');
   if(est==='realizada')    show('dPveRe');
   if(est==='no_realizada') show('dPveNR');
-  if(est==='no_aplica'){
-    const diasVM=(_diasVMEpisodio||0)+(_diasVMPrevios||0);
-    if(diasVM<1) show('dPveNAraz');
-  }
 }
 function hPVEres(){
   const res=document.querySelector('input[name="pveRes"]:checked')?.value;
