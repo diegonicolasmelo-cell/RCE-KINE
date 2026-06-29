@@ -1372,19 +1372,20 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div id="paramsBox"></div>
 
               <!-- PVE DIARIA -->
-              <div style="margin-top:10px;padding:10px 11px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
+              <div id="dPVEsec" style="margin-top:10px;padding:10px 11px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
                 <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#0369a1;margin-bottom:7px;letter-spacing:.04em;">🫁 Prueba de Ventilación Espontánea (PVE)</div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
-                    <input type="radio" name="pveEst" value="no_aplica" id="pveNA" onchange="hPVE()" checked> No aplica
-                  </label>
-                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #bbf7d0;background:#f0fdf4;">
                     <input type="radio" name="pveEst" value="realizada" id="pveRe" onchange="hPVE()"> ✅ Realizada
                   </label>
-                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #fecaca;background:#fff5f5;">
                     <input type="radio" name="pveEst" value="no_realizada" id="pveNR" onchange="hPVE()"> ❌ No realizada
                   </label>
+                  <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 9px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+                    <input type="radio" name="pveEst" value="no_aplica" id="pveNA" onchange="hPVE()" checked> No aplica PVE
+                  </label>
                 </div>
+                <div id="dPveNAraz" class="hidden" style="margin-top:5px;font-size:.72rem;color:#64748b;font-style:italic;">No aplica: &lt;24 hrs en VM</div>
                 <!-- Realizada: resultado -->
                 <div id="dPveRe" class="hidden" style="margin-top:8px;">
                   <label style="font-size:.73rem;font-weight:700;color:#0369a1;display:block;margin-bottom:5px;">Resultado:</label>
@@ -4087,15 +4088,17 @@ function updateVAUI() {
   if(va==='TOT'){
     show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');
     _showCol('colDiasTOT'); _hideCol('colDiasTQT'); _showCol('colDiasVAA');
+    show('dPVEsec');
   } else if(va==='TQT'){
     show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');
     if(_diasTOTBase>0) _showCol('colDiasTOT'); else _hideCol('colDiasTOT');
     _showCol('colDiasTQT'); _showCol('colDiasVAA');
+    hide('dPVEsec');
   } else {
     hide('dVADet');hide('dExtSec');hide('dDecanSec');
     _hideCol('colDiasTOT');_hideCol('colDiasTQT');
-    // VAA se oculta si no hay historia de VAA
     if(_diasVABase>0||esVNI) _showCol('colDiasVAA'); else _hideCol('colDiasVAA');
+    show('dPVEsec');
   }
   // VNI contador
   const vniTotal=_diasVNIPrevios+_diasVNIEpisodio;
@@ -4375,9 +4378,13 @@ function hRuidos(el){
 }
 function hPVE(){
   const est=document.querySelector('input[name="pveEst"]:checked')?.value||'no_aplica';
-  hide('dPveRe'); hide('dPveNR'); hide('dPveFr');
-  if(est==='realizada')   show('dPveRe');
+  hide('dPveRe'); hide('dPveNR'); hide('dPveFr'); hide('dPveNAraz');
+  if(est==='realizada')    show('dPveRe');
   if(est==='no_realizada') show('dPveNR');
+  if(est==='no_aplica'){
+    const diasVM=(_diasVMEpisodio||0)+(_diasVMPrevios||0);
+    if(diasVM<1) show('dPveNAraz');
+  }
 }
 function hPVEres(){
   const res=document.querySelector('input[name="pveRes"]:checked')?.value;
