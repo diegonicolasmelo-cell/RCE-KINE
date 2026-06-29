@@ -3837,7 +3837,7 @@ function genTexto() {
   if(PROCS.length) L.push(`Procedimientos: ${PROCS.join(', ')}.`);
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
   if(pl) L.push(`Plan: ${pl}`); if(no) L.push(`Nota: ${no}`); if(fi) L.push(`Kinesiólogo: ${fi}`);
-  return L.filter(Boolean).join('\n');
+  return L.filter(Boolean).join('\n').replace(/₂/g,'2');
 }
 
 //  REM
