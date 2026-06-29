@@ -1137,7 +1137,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
               <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cAET" onchange="hAET()"><label for="cAET" style="font-weight:700;">⚖️ AET</label></div>
               <div id="dAETnivel" class="hidden" style="display:flex;align-items:center;gap:6px;">
-                <select id="fAETnivel" class="bold" style="height:32px;font-size:.83rem;">
+                <select id="fAETnivel" class="bold" style="height:32px;font-size:.83rem;" onchange="hAETtip()">
                   <option value="">-- Grupo --</option>
                   <option value="I">Grupo I</option>
                   <option value="II">Grupo II</option>
@@ -1145,8 +1145,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <option value="IIIB">Grupo IIIB</option>
                   <option value="IIIC">Grupo IIIC</option>
                 </select>
-                <span class="interp-tip interp-leve" style="font-size:.75rem;"
-                  data-tip="I: Soporte Total · II: Soporte Total c/orden no RCP · IIIA: Sin medidas invasivas · IIIB: Sin medidas adicionales · IIIC: Retiro de todas las medidas">ⓘ</span>
+                <span id="aetTip" class="interp-tip" style="font-size:.75rem;"></span>
               </div>
             </div>
             <!-- Vía Aérea + contadores -->
@@ -2582,7 +2581,7 @@ function fillForm(s) {
   // S2: reingreso + AET
   chk('cReing',_ex.ES_REINGRESO);
   chk('cAET',_ex.AET_ACTIVA); hAET();
-  if(_ex.AET_NIVEL && $('fAETnivel')) $('fAETnivel').value=_ex.AET_NIVEL;
+  if(_ex.AET_NIVEL && $('fAETnivel')){ $('fAETnivel').value=_ex.AET_NIVEL; hAETtip(); }
   // S3: CAM-ICU
   set('fCAMICU',_ex.SED_CAM_ICU);
   // Cultivo resultado previo → tags
@@ -4287,6 +4286,20 @@ function hDecan(){
   if($('cDecanOcurrio')?.checked) show('dDecanDet'); else hide('dDecanDet');
 }
 function hAET(){if($('cAET')?.checked)show('dAETnivel');else hide('dAETnivel');}
+const _AET_TIPS={
+  'I':    ['Soporte Total','interp-ok'],
+  'II':   ['Soporte Total con orden de no RCP','interp-leve'],
+  'IIIA': ['No instauración de medidas invasivas','interp-mod'],
+  'IIIB': ['No instauración de medidas adicionales de ninguna clase','interp-sev'],
+  'IIIC': ['Retiro de todas las medidas','interp-tot'],
+};
+function hAETtip(){
+  const el=$('aetTip'); if(!el) return;
+  el.classList.remove(..._INTERP_CLASSES);
+  const r=_AET_TIPS[v('fAETnivel')];
+  if(r){el.textContent='ⓘ';el.setAttribute('data-tip',r[0]);el.classList.add(r[1]);}
+  else{el.textContent='';el.removeAttribute('data-tip');}
+}
 function hRuidos(el){
   // "Sin ruidos" es excluyente con el resto
   if(el&&el.id==='rSin'&&el.checked){
