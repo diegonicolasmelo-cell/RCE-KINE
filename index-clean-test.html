@@ -1094,8 +1094,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard fc-g">
           <div class="fcard-hdr"><span class="fcard-title">📊 General</span></div>
           <div class="fcard-body">
-            <!-- Día estadía + Barthel + ECF -->
-            <div class="row" style="margin-bottom:6px;">
+            <!-- Día estadía + Barthel + ECF + AET en la misma fila -->
+            <div class="row" style="margin-bottom:6px;align-items:flex-end;flex-wrap:wrap;">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:64px;" disabled></div>
               <div class="col ws" style="margin-right:18px;"><label>Barthel</label>
                 <div style="display:flex;align-items:center;gap:5px;">
@@ -1110,7 +1110,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <span id="lblBarthel" class="interp-tip" title=""></span>
                 </div>
               </div>
-              <div class="col ws"><label>ECF</label>
+              <div class="col ws" style="margin-right:18px;"><label>ECF</label>
                 <div style="display:flex;align-items:center;gap:5px;">
                   <select id="fEcf" onchange="updEcfLbl('fEcf','lblEcf')" style="width:56px;">
                     <option value="">--</option>
@@ -1118,6 +1118,22 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <option>6</option><option>7</option><option>8</option><option>9</option>
                   </select>
                   <span id="lblEcf" class="interp-tip" title=""></span>
+                </div>
+              </div>
+              <div class="col wa"><label>⚖️ AET</label>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <input type="checkbox" id="cAET" onchange="hAET()" style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer;">
+                  <div id="dAETnivel" class="hidden" style="display:flex;align-items:center;gap:6px;">
+                    <select id="fAETnivel" class="bold" style="height:32px;font-size:.83rem;" onchange="hAETtip()">
+                      <option value="">-- Grupo --</option>
+                      <option value="I">Grupo I</option>
+                      <option value="II">Grupo II</option>
+                      <option value="IIIA">Grupo IIIA</option>
+                      <option value="IIIB">Grupo IIIB</option>
+                      <option value="IIIC">Grupo IIIC</option>
+                    </select>
+                    <span id="aetTip" class="interp-tip" style="font-size:.75rem;"></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1131,21 +1147,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <input id="fAislInput" type="text" onkeydown="aislTagKeydown(event)">
                 </div>
                 <input type="hidden" id="fAislMicroVal">
-              </div>
-            </div>
-            <!-- AET — después de días, antes de VA -->
-            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
-              <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cAET" onchange="hAET()"><label for="cAET" style="font-weight:700;">⚖️ AET</label></div>
-              <div id="dAETnivel" class="hidden" style="display:flex;align-items:center;gap:6px;">
-                <select id="fAETnivel" class="bold" style="height:32px;font-size:.83rem;" onchange="hAETtip()">
-                  <option value="">-- Grupo --</option>
-                  <option value="I">Grupo I</option>
-                  <option value="II">Grupo II</option>
-                  <option value="IIIA">Grupo IIIA</option>
-                  <option value="IIIB">Grupo IIIB</option>
-                  <option value="IIIC">Grupo IIIC</option>
-                </select>
-                <span id="aetTip" class="interp-tip" style="font-size:.75rem;"></span>
               </div>
             </div>
             <!-- Vía Aérea + contadores -->
