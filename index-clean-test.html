@@ -1428,7 +1428,13 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <!-- EXTUBACIÓN (solo si VA = TOT) -->
               <div id="dExtSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
                 <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:7px;letter-spacing:.04em;">✂️ Extubación</div>
-                <div class="check wa" style="margin-bottom:8px;"><input type="checkbox" id="cExtOcurrio" onchange="hExt()"><label for="cExtOcurrio" style="font-weight:700;">Extubación</label></div>
+                <div class="row" style="align-items:center;gap:10px;margin-bottom:8px;">
+                  <div class="check wa" style="margin:0;"><input type="checkbox" id="cExtOcurrio" onchange="hExt()"><label for="cExtOcurrio" style="font-weight:700;">Extubación</label></div>
+                  <div id="dExtHoraWrap" class="hidden" style="display:flex;align-items:center;gap:4px;">
+                    <label style="font-size:.72rem;color:var(--muted);">Hora:</label>
+                    <input type="time" id="fExtHora" style="height:28px;font-size:.78rem;border:1px solid #ddd6fe;border-radius:5px;padding:0 6px;">
+                  </div>
+                </div>
                 <div id="dExtDet" class="hidden">
                   <!-- Nivel 1: Programada vs No programada -->
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
@@ -1522,13 +1528,30 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     </div>
                   </div>
                   <!-- Post-extubación y reintubación -->
-                  <div class="row" style="margin-bottom:0;gap:8px;">
+                  <div class="row" style="margin-bottom:6px;gap:8px;">
                     <div class="col grow">
                       <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
                       <input type="text" id="fPostExtDet" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
                     </div>
                     <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
-                      <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintub"><label for="cReintub" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
+                      <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintub" onchange="hReintubCheck()"><label for="cReintub" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
+                    </div>
+                  </div>
+                  <!-- Razón reintubación + nota (visible solo si cReintub marcado) -->
+                  <div id="dReintubDet" class="hidden" style="background:#fff5f5;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;margin-top:2px;">
+                    <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;">
+                      <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Razón:</label>
+                      <select id="fReintubRaz" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;">
+                        <option value="">-- Seleccionar --</option>
+                        <option>Falla respiratoria aguda</option>
+                        <option>Obstrucción de vía aérea</option>
+                        <option>Secreciones / desaturación</option>
+                        <option>Hemodinámicamente inestable</option>
+                        <option>Otras</option>
+                      </select>
+                    </div>
+                    <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
+                      ℹ️ Actualiza TOT, modo y parámetros en la sección <strong>Terapia Ventilatoria</strong> ↑
                     </div>
                   </div>
                 </div>
@@ -2847,11 +2870,13 @@ function guardar() {
     PVE_SC_RAZON:    v('fPveSCraz'),
     // ★ Extubación
     EXT_OCURRIO:     $('cExtOcurrio')?.checked||false,
+    EXT_HORA:        v('fExtHora'),
     EXT_PROG:        (document.querySelector('input[name="extProg"]:checked')?.value)||'',
     EXT_TIPO:        (document.querySelector('input[name="extTipo"]:checked')?.value)||'',
     EXT_MOTIVO:      v('fExtMotivo'),
     EXT_POST_DET:    v('fPostExtDet'),
     EXT_REINTUB:     $('cReintub')?.checked||false,
+    EXT_REINTUB_RAZ: v('fReintubRaz'),
     EXT_PE_VA:       peVA(),
     EXT_PE_SOP:      peSop(),
     EXT_PE_MODO:     v('peModo'),
@@ -3795,6 +3820,8 @@ function genTexto() {
     const _post=v('fPostExtDet');
     const _reint=$('cReintub')?.checked;
     const _peModo=v('peModo');
+    const _hora=v('fExtHora');
+    const _horaTxt=_hora?` a las ${_hora} hrs`:'';
     if(_prog==='no_programada'){
       const _tnp=_et==='autoextubacion'?'autoextubación':'extubación accidental';
       let _etxt=`Paciente presenta ${_tnp}`;
@@ -3805,14 +3832,14 @@ function genTexto() {
         const _res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
         const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
         const _mstr=_mots.length?_mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]:'aspectos clínicos';
-        if(_res==='superada')  L.push('Se realiza PVE según protocolo con resultado superado. Se procede a extubación.');
-        else if(_res==='frustra') L.push(`Se realiza PVE según protocolo con resultado fallido desde lo ${_mstr}. Se procede a extubación.`);
-        else L.push('Se realiza PVE y extubación programada con protocolo.');
+        if(_res==='superada')  L.push(`Se realiza PVE con éxito progresando a extubación programada${_horaTxt}.`);
+        else if(_res==='frustra') L.push(`Se realiza PVE según protocolo con resultado fallido desde lo ${_mstr}. Se procede a extubación${_horaTxt}.`);
+        else L.push(`Se realiza PVE y extubación programada con protocolo${_horaTxt}.`);
       } else if(_et==='sin_protocolo'){
         const _raz=v('fPveSCraz')||'sin especificar';
-        L.push(`Se realiza extubación programada sin protocolo PVE por ${_raz}.`);
+        L.push(`Se realiza extubación programada sin protocolo PVE por ${_raz}${_horaTxt}.`);
       } else {
-        L.push('Se realiza extubación programada.');
+        L.push(`Se realiza extubación programada${_horaTxt}.`);
       }
     }
     if(_peModo&&!_reint){
@@ -3829,7 +3856,13 @@ function genTexto() {
       L.push(_qtxt+'.');
     }
     if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
-    if(_reint) L.push('Paciente requiere reintubación.');
+    if(_reint){
+      const _rraz=v('fReintubRaz');
+      let _rtxt='Sin embargo, paciente evoluciona';
+      if(_rraz) _rtxt+=` con ${_rraz.toLowerCase()}`;
+      _rtxt+=' requiriendo reintubación. Parámetros ventilatorios post-reintubación registrados en sección Terapia Ventilatoria.';
+      L.push(_rtxt);
+    }
   })();
   if(PROCS.length) L.push(`Procedimientos: ${PROCS.join(', ')}.`);
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
@@ -4394,8 +4427,24 @@ function tiAddChip(tagsId, hiddenId, colorClass, val) {
   if(!_tiState[tagsId].includes(val)) { _tiState[tagsId].push(val); tiRender(tagsId,hiddenId,colorClass); }
 }
 function hExt(){
-  if($('cExtOcurrio')?.checked) show('dExtDet');
-  else { hide('dExtDet'); document.querySelectorAll('input[name="extProg"]').forEach(r=>r.checked=false); hExtProg(); }
+  if($('cExtOcurrio')?.checked){ show('dExtDet'); show('dExtHoraWrap'); }
+  else {
+    hide('dExtDet'); hide('dExtHoraWrap');
+    document.querySelectorAll('input[name="extProg"]').forEach(r=>r.checked=false); hExtProg();
+    const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); }
+  }
+}
+function hReintubCheck(){
+  const checked=$('cReintub')?.checked;
+  if(checked){
+    confirmarReintubacion(_nReintub+1).then(ok=>{
+      if(ok){ _nReintub++; const el=$('fReintub'); if(el) el.value=_nReintub; show('dReintubDet'); }
+      else { const cr=$('cReintub'); if(cr) cr.checked=false; hide('dReintubDet'); }
+    });
+  } else {
+    hide('dReintubDet');
+    const raz=$('fReintubRaz'); if(raz) raz.value='';
+  }
 }
 function hExtProg(){
   const p=document.querySelector('input[name="extProg"]:checked')?.value||'';
