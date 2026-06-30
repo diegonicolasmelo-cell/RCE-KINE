@@ -1573,13 +1573,14 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 
               <!-- KTR + Sin requerimientos -->
               <div class="row" style="align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
-                <div class="col ws">
-                  <label title="Kinesiterapia Respiratoria" style="font-size:.72rem;font-weight:700;">KTR Sesiones</label>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <label title="Kinesiterapia Respiratoria" style="font-size:.72rem;font-weight:700;white-space:nowrap;">KTR</label>
                   <select id="fKTRcnt" style="width:70px;height:30px;font-size:.82rem;">
                     <option value="0">0</option><option>1</option><option>2</option><option>3</option>
                     <option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
                     <option>9</option><option>10</option>
                   </select>
+                  <span style="font-size:.67rem;color:var(--muted);">sesiones</span>
                 </div>
                 <div id="dSinKTR" class="hidden check wa" style="align-self:flex-end;margin-bottom:3px;">
                   <input type="checkbox" id="cSinKTR"><label for="cSinKTR" style="color:var(--muted);">Sin requerimientos KTR</label>
@@ -1591,7 +1592,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <!-- Header -->
                 <div style="background:#e0f2fe;padding:6px 12px;font-size:.68rem;font-weight:800;text-transform:uppercase;color:#0369a1;letter-spacing:.05em;">💧 Permeabilización de Vía Aérea</div>
                 <!-- Grid 2 columnas -->
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;">
+                <div style="display:grid;grid-template-columns:5fr 7fr;gap:0;">
                   <!-- Col izquierda: Técnicas -->
                   <div style="padding:10px 12px;border-right:1px solid #e0f2fe;">
                     <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;color:#0369a1;margin-bottom:8px;letter-spacing:.04em;">Técnica</div>
