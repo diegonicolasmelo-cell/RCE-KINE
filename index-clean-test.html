@@ -4434,7 +4434,7 @@ function renderParamsPE(){
   if(modo==='Ambiente'){
     h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(modo==='MMV'){
-    h+=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">FiO2 prog. %</label><select id="pe_fio2" style="height:30px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;width:80px;"><option value="">--</option><option>24</option><option>26</option><option>28</option><option>30</option><option>35</option><option>40</option><option>60</option></select></div>`;
+    h+=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">FiO2 prog. %</label><select id="pe_fio2" style="height:30px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;width:80px;"><option value="">--</option><option>24</option><option>26</option><option>28</option><option>30</option><option>35</option><option>40</option><option>50</option></select></div>`;
     h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(['NRC','Mascarilla'].includes(modo)){
     h+=pef('pe_litros','Litros L/m',85)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_fio2calc','FiO2~')+peUma;
