@@ -1551,7 +1551,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                       </select>
                     </div>
                     <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
-                      ℹ️ Actualiza TOT, modo y parámetros en la sección <strong>Terapia Ventilatoria</strong> ↑
+                      ℹ️ El texto generado tomará TOT, modo y parámetros desde <strong>Terapia Ventilatoria</strong> ↑
                     </div>
                   </div>
                 </div>
@@ -3822,28 +3822,28 @@ function genTexto() {
     const _peModo=v('peModo');
     const _hora=v('fExtHora');
     const _horaTxt=_hora?` a las ${_hora} hrs`:'';
-    if(_prog==='no_programada'){
-      const _tnp=_et==='autoextubacion'?'autoextubación':'extubación accidental';
-      let _etxt=`Paciente presenta ${_tnp}`;
-      if(_mot) _etxt+=`. ${_mot}`;
-      L.push(_etxt+'.');
-    } else if(_prog==='programada'){
-      if(_et==='protocolo'){
-        const _res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
-        const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
-        const _mstr=_mots.length?_mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]:'aspectos clínicos';
-        if(_res==='superada')  L.push(`Se realiza PVE con éxito progresando a extubación programada${_horaTxt}.`);
-        else if(_res==='frustra') L.push(`Se realiza PVE según protocolo con resultado fallido desde lo ${_mstr}. Se procede a extubación${_horaTxt}.`);
-        else L.push(`Se realiza PVE y extubación programada con protocolo${_horaTxt}.`);
-      } else if(_et==='sin_protocolo'){
-        const _raz=v('fPveSCraz')||'sin especificar';
-        L.push(`Se realiza extubación programada sin protocolo PVE por ${_raz}${_horaTxt}.`);
-      } else {
-        L.push(`Se realiza extubación programada${_horaTxt}.`);
-      }
-    }
-    if(_peModo&&!_reint){
-      const _sop=peSop();
+    // Helper: texto de parámetros VM post-reintubación
+    const _vmReintTxt=()=>{
+      const _totn=v('fTOTn'), _totcm=v('fTOTcm'), _totfij=v('fTOTfij')||'comisura labial';
+      const _modoR=v('fModo'), _vtR=v('r_vt'), _frR=v('r_fr'), _peepR=v('r_peep');
+      const _pinsR=v('r_pinsp'), _psR=v('r_ps'), _ipapR=v('r_ipap'), _epapR=v('r_epap');
+      const _fio2R=v('r_fio2'), _spo2R=v('r_spo2'), _ieR=$('l_ie')?.textContent;
+      let t='';
+      if(_totn) t+=`Se reintuba con TOT N° ${_totn} fijado a ${_totcm||'?'} cm a nivel de ${_totfij.toLowerCase()}.`;
+      let p='';
+      if(_modoR) p+=` Se ventila en modo ${_modoR},`;
+      if(_vtR) p+=` Vt ${_vtR} ml,`; if(_frR) p+=` FR ${_frR} rpm,`;
+      if(_pinsR) p+=` Pinsp ${_pinsR} cmH2O,`; if(_psR) p+=` PS ${_psR} cmH2O,`;
+      if(_ipapR) p+=` IPAP ${_ipapR} cmH2O,`; if(_epapR) p+=` EPAP ${_epapR} cmH2O,`;
+      if(_peepR) p+=` PEEP ${_peepR} cmH2O,`;
+      if(_fio2R) p+=` FiO2 ${_fio2R}%,`; if(_spo2R) p+=` SpO2 ${_spo2R}%,`;
+      if(_ieR&&_ieR!=='--'&&_ieR!=='!') p+=` I:E ${_ieR},`;
+      if(p) t+=(t?' ':'')+p.replace(/,\s*$/,'.')||'';
+      return t;
+    };
+    // Helper: texto soporte PE
+    const _peTxt=()=>{
+      if(!_peModo) return '';
       let _qtxt=_peModo==='Ambiente'?'Paciente queda en vía aérea natural sin soporte'
                :['S/T','AVAPS','CPAP'].includes(_peModo)?`Paciente queda con VNI modo ${_peModo}`
                :_peModo==='CNAF'?'Paciente queda con CNAF'
@@ -3853,16 +3853,69 @@ function genTexto() {
       if(_ipap) _qtxt+=` IPAP ${_ipap} cmH2O`; if(_epap) _qtxt+=` EPAP ${_epap} cmH2O`;
       if(_fio2pe) _qtxt+=` FiO2 ${_fio2pe}%`; if(_lit) _qtxt+=` ${_lit} L/min`; if(_fl) _qtxt+=` flujo ${_fl} L/min`;
       if(_spo2pe) _qtxt+=`, SpO2 ${_spo2pe}%`; if(_frpe) _qtxt+=`, FR ${_frpe} rpm`;
-      L.push(_qtxt+'.');
+      return _qtxt+'.';
+    };
+    const _rraz=v('fReintubRaz');
+    if(_prog==='no_programada'){
+      if(_et==='autoextubacion'){
+        let _etxt=`Paciente se autoextuba${_horaTxt}`;
+        if(_mot) _etxt+=`. ${_mot}`;
+        L.push(_etxt+'.');
+        if(_reint){
+          let _rt=`Evolucionando con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+          const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
+          L.push(_rt);
+        } else if(_peModo){ L.push(_peTxt()); }
+      } else {
+        let _etxt=`Paciente presenta extubación accidental${_horaTxt}`;
+        if(_mot) _etxt+=`. ${_mot}`;
+        L.push(_etxt+'.');
+        if(_reint){
+          let _rt=`Evolucionando con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+          const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
+          L.push(_rt);
+        } else if(_peModo){ L.push(_peTxt()); }
+      }
+    } else if(_prog==='programada'){
+      if(_et==='protocolo'){
+        const _res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
+        const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
+        const _mstr=_mots.length?_mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]:'aspectos clínicos';
+        if(_res==='superada'){
+          L.push(`Se realiza PVE con éxito progresando a extubación programada${_horaTxt}.`);
+          if(_reint){
+            let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+            const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
+            L.push(_rt);
+          } else if(_peModo){ L.push(_peTxt()); }
+        } else if(_res==='frustra'){
+          L.push(`Se realiza PVE según protocolo con resultado fallido desde lo ${_mstr}. Paciente continúa con soporte ventilatorio.`);
+        } else {
+          L.push(`Se realiza PVE y extubación programada con protocolo${_horaTxt}.`);
+          if(_reint){
+            let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+            const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
+            L.push(_rt);
+          } else if(_peModo){ L.push(_peTxt()); }
+        }
+      } else if(_et==='sin_protocolo'){
+        const _raz=v('fPveSCraz')||'sin especificar';
+        L.push(`Se realiza extubación programada sin protocolo PVE por ${_raz}${_horaTxt}.`);
+        if(_reint){
+          let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+          const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
+          L.push(_rt);
+        } else if(_peModo){ L.push(_peTxt()); }
+      } else {
+        L.push(`Se realiza extubación programada${_horaTxt}.`);
+        if(_reint){
+          let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+          const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
+          L.push(_rt);
+        } else if(_peModo){ L.push(_peTxt()); }
+      }
     }
     if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
-    if(_reint){
-      const _rraz=v('fReintubRaz');
-      let _rtxt='Sin embargo, paciente evoluciona';
-      if(_rraz) _rtxt+=` con ${_rraz.toLowerCase()}`;
-      _rtxt+=' requiriendo reintubación. Parámetros ventilatorios post-reintubación registrados en sección Terapia Ventilatoria.';
-      L.push(_rtxt);
-    }
   })();
   if(PROCS.length) L.push(`Procedimientos: ${PROCS.join(', ')}.`);
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
