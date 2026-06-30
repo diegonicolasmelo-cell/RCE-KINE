@@ -1586,85 +1586,89 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 </div>
               </div>
 
-              <!-- Permeabilización de vía aérea -->
-              <div style="margin-bottom:8px;padding:7px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;">
-                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#0369a1;margin-bottom:6px;letter-spacing:.04em;">Permeabilización de vía aérea</div>
-                <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center;">
-                  <div class="check wa"><input type="checkbox" id="cSOF"><label for="cSOF" title="Succión Orofaríngea">SOF</label></div>
-                  <div class="check wa"><input type="checkbox" id="cSNF"><label for="cSNF" title="Succión Nasofaríngea">SNF</label></div>
-                  <div class="check wa"><input type="checkbox" id="cSET"><label for="cSET" title="Succión Endotraqueal">SET</label></div>
-                  <div class="check wa"><input type="checkbox" id="cATos"><label for="cATos" title="Asistencia de tos">A. Tos</label></div>
-                </div>
-              </div>
-
-              <!-- Secreciones -->
-              <div style="margin-bottom:8px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;">
-                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:var(--resp);margin-bottom:7px;letter-spacing:.04em;">💧 Secreciones</div>
-                <!-- Reología -->
-                <div style="margin-bottom:6px;">
-                  <label style="font-size:.68rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;">REOLOGÍA</label>
-                  <div style="display:flex;gap:5px;flex-wrap:wrap;">
-                    <select id="fSecrReol" style="height:28px;font-size:.78rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 6px;flex:1;min-width:160px;">
-                      <option value="">-- Reología --</option>
-                      <option>Mucosas</option>
-                      <option>Mucopurulentas</option>
-                      <option>Purulentas</option>
-                      <option>Mucohemáticas</option>
-                      <option>Hemopurulentas</option>
-                      <option>Mucopurulentas con tinte hemático</option>
-                      <option>Mucosas con tinte hemático</option>
-                      <option>Herrumbrosas</option>
-                      <option>Carbonizadas</option>
-                    </select>
-                  </div>
-                </div>
-                <!-- Características + Cantidad en fila -->
-                <div class="row" style="gap:8px;align-items:flex-end;margin-bottom:6px;">
-                  <div class="col" style="flex:1;">
-                    <label style="font-size:.68rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px;">CARACTERÍSTICAS</label>
-                    <select id="fSecrCar" style="height:28px;font-size:.78rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 6px;width:100%;">
-                      <option value="">-- Características --</option>
-                      <option>Fluidas</option>
-                      <option>Ligosas</option>
-                      <option>Adherentes</option>
-                    </select>
-                  </div>
-                  <div class="col" style="flex-grow:0;">
-                    <label style="font-size:.68rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px;">CANTIDAD</label>
-                    <div style="display:flex;gap:4px;">
-                      <button type="button" class="secr-qty" id="sqBtn0" onclick="hSecrQty('-')"   data-tip="Sin secreciones" style="width:30px;height:28px;font-size:.85rem;">−</button>
-                      <button type="button" class="secr-qty" id="sqBtn1" onclick="hSecrQty('+')"   data-tip="Escasas"         style="width:30px;height:28px;font-size:.82rem;">+</button>
-                      <button type="button" class="secr-qty" id="sqBtn2" onclick="hSecrQty('++')"  data-tip="Moderadas"       style="width:36px;height:28px;font-size:.78rem;">++</button>
-                      <button type="button" class="secr-qty" id="sqBtn3" onclick="hSecrQty('+++')" data-tip="Abundantes"      style="width:42px;height:28px;font-size:.75rem;">+++</button>
+              <!-- Permeabilización de vía aérea + Secreciones — card unificada 2 columnas -->
+              <div style="margin-bottom:8px;border:1px solid #bae6fd;border-radius:8px;overflow:hidden;">
+                <!-- Header -->
+                <div style="background:#e0f2fe;padding:6px 12px;font-size:.68rem;font-weight:800;text-transform:uppercase;color:#0369a1;letter-spacing:.05em;">💧 Permeabilización de Vía Aérea</div>
+                <!-- Grid 2 columnas -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+                  <!-- Col izquierda: Técnicas -->
+                  <div style="padding:10px 12px;border-right:1px solid #e0f2fe;">
+                    <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;color:#0369a1;margin-bottom:8px;letter-spacing:.04em;">Técnica</div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <div class="check wa"><input type="checkbox" id="cSOF"><label for="cSOF" title="Succión Orofaríngea">SOF <span style="font-size:.65rem;color:var(--muted);">Succión orofaríngea</span></label></div>
+                      <div class="check wa"><input type="checkbox" id="cSNF"><label for="cSNF" title="Succión Nasofaríngea">SNF <span style="font-size:.65rem;color:var(--muted);">Succión nasofaríngea</span></label></div>
+                      <div class="check wa"><input type="checkbox" id="cSET"><label for="cSET" title="Succión Endotraqueal">SET <span style="font-size:.65rem;color:var(--muted);">Succión endotraqueal</span></label></div>
+                      <div class="check wa"><input type="checkbox" id="cATos"><label for="cATos">A. Tos <span style="font-size:.65rem;color:var(--muted);">Asistencia de tos</span></label></div>
                     </div>
                   </div>
+                  <!-- Col derecha: Evaluación de secreciones -->
+                  <div style="padding:10px 12px;">
+                    <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;color:#0369a1;margin-bottom:8px;letter-spacing:.04em;">Secreciones</div>
+                    <!-- Reología -->
+                    <div style="margin-bottom:6px;">
+                      <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Reología</label>
+                      <select id="fSecrReol" style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
+                        <option value="">-- Seleccionar --</option>
+                        <option>Mucosas</option>
+                        <option>Mucopurulentas</option>
+                        <option>Purulentas</option>
+                        <option>Mucohemáticas</option>
+                        <option>Hemopurulentas</option>
+                        <option>Mucopurulentas con tinte hemático</option>
+                        <option>Mucosas con tinte hemático</option>
+                        <option>Herrumbrosas</option>
+                        <option>Carbonizadas</option>
+                      </select>
+                    </div>
+                    <!-- Características -->
+                    <div style="margin-bottom:6px;">
+                      <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Características</label>
+                      <select id="fSecrCar" style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
+                        <option value="">-- Seleccionar --</option>
+                        <option>Fluidas</option>
+                        <option>Ligosas</option>
+                        <option>Adherentes</option>
+                      </select>
+                    </div>
+                    <!-- Cantidad -->
+                    <div>
+                      <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Cantidad</label>
+                      <div style="display:flex;gap:4px;">
+                        <button type="button" class="secr-qty" id="sqBtn0" onclick="hSecrQty('-')"   data-tip="Sin secreciones" style="width:30px;height:28px;font-size:.85rem;">−</button>
+                        <button type="button" class="secr-qty" id="sqBtn1" onclick="hSecrQty('+')"   data-tip="Escasas"         style="width:30px;height:28px;font-size:.82rem;">+</button>
+                        <button type="button" class="secr-qty" id="sqBtn2" onclick="hSecrQty('++')"  data-tip="Moderadas"       style="width:36px;height:28px;font-size:.78rem;">++</button>
+                        <button type="button" class="secr-qty" id="sqBtn3" onclick="hSecrQty('+++')" data-tip="Abundantes"      style="width:42px;height:28px;font-size:.75rem;">+++</button>
+                      </div>
+                    </div>
+                    <input type="hidden" id="fSecrQty" value="">
+                  </div>
                 </div>
-                <input type="hidden" id="fSecrQty" value="">
-                <!-- Cultivo -->
-                <div class="check wa" style="margin-top:4px;margin-bottom:4px;">
-                  <input type="checkbox" id="cMue" onchange="hMue()"><label for="cMue">🧪 Cultivo</label>
-                </div>
-                <div id="dMue" class="hidden fade" style="margin-top:6px;padding:7px 9px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;">
-                  <div style="font-size:.68rem;font-weight:700;color:#7c3aed;margin-bottom:6px;">Técnica</div>
-                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-                    <div class="check wa"><input type="checkbox" name="mtest" value="CCAET" onchange="hCultTec(this)"><label title="Cultivo corriente aspirado endotraqueal">CCAET</label></div>
-                    <div class="check wa"><input type="checkbox" name="mtest" value="Mini Lab" onchange="hCultTec(this)"><label>Mini Lab</label></div>
-                    <div class="check wa"><input type="checkbox" name="mtest" value="Hisopado" onchange="hCultTec(this)"><label>Hisopado</label></div>
+                <!-- Cultivo — ancho completo debajo del grid -->
+                <div style="border-top:1px solid #e0f2fe;padding:8px 12px;">
+                  <div class="check wa" style="margin-bottom:4px;">
+                    <input type="checkbox" id="cMue" onchange="hMue()"><label for="cMue">🧪 Cultivo</label>
                   </div>
-                  <!-- Objetivo MiniLab/Hisopado -->
-                  <div id="dCultObj" class="hidden" style="margin-bottom:7px;">
-                    <label style="font-size:.68rem;font-weight:700;color:#7c3aed;display:block;margin-bottom:3px;">Objetivo búsqueda</label>
-                    <input type="text" id="fCultObj" placeholder="PCR jirovecii, TBC, COVID-19…" style="height:28px;font-size:.78rem;border:1px solid #e9d5ff;border-radius:5px;padding:0 8px;width:100%;">
+                  <div id="dMue" class="hidden fade" style="margin-top:6px;padding:7px 9px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;">
+                    <div style="font-size:.68rem;font-weight:700;color:#7c3aed;margin-bottom:6px;">Técnica</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                      <div class="check wa"><input type="checkbox" name="mtest" value="CCAET" onchange="hCultTec(this)"><label title="Cultivo corriente aspirado endotraqueal">CCAET</label></div>
+                      <div class="check wa"><input type="checkbox" name="mtest" value="Mini Lab" onchange="hCultTec(this)"><label>Mini Lab</label></div>
+                      <div class="check wa"><input type="checkbox" name="mtest" value="Hisopado" onchange="hCultTec(this)"><label>Hisopado</label></div>
+                    </div>
+                    <div id="dCultObj" class="hidden" style="margin-bottom:7px;">
+                      <label style="font-size:.68rem;font-weight:700;color:#7c3aed;display:block;margin-bottom:3px;">Objetivo búsqueda</label>
+                      <input type="text" id="fCultObj" placeholder="PCR jirovecii, TBC, COVID-19…" style="height:28px;font-size:.78rem;border:1px solid #e9d5ff;border-radius:5px;padding:0 8px;width:100%;">
+                    </div>
+                    <div id="dCultBadges" style="margin-bottom:6px;min-height:0;"></div>
+                    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:4px;">Resultado(s)</div>
+                    <div class="ti-wrap violet" onclick="document.getElementById('fCultInput').focus()">
+                      <div id="fCultTags" style="display:contents;"></div>
+                      <input id="fCultInput" class="ti-input" type="text" placeholder="Microorganismo… + Enter"
+                        onkeydown="tiKeydown(event,'fCultTags','fCultVal','violet',[])">
+                    </div>
+                    <input type="hidden" id="fCultVal">
                   </div>
-                  <!-- Badges de técnicas tomadas -->
-                  <div id="dCultBadges" style="margin-bottom:6px;min-height:0;"></div>
-                  <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:4px;">Resultado(s)</div>
-                  <div class="ti-wrap violet" onclick="document.getElementById('fCultInput').focus()">
-                    <div id="fCultTags" style="display:contents;"></div>
-                    <input id="fCultInput" class="ti-input" type="text" placeholder="Microorganismo… + Enter"
-                      onkeydown="tiKeydown(event,'fCultTags','fCultVal','violet',[])">
-                  </div>
-                  <input type="hidden" id="fCultVal">
                 </div>
               </div>
 
