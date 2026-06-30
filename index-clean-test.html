@@ -4897,7 +4897,7 @@ function hAETtip(){
   const r=_AET_TIPS[niv];
   if(r){el.textContent='ⓘ';el.setAttribute('data-tip',r[0]);el.classList.add(r[1]);}
   else{el.textContent='';el.removeAttribute('data-tip');}
-  _aetKTMsuspend(['IIIA','IIIB','IIIC'].includes(niv) && !!$('cAET')?.checked);
+  _aetKTMsuspend(niv==='IIIC' && !!$('cAET')?.checked);
 }
 function _aetKTMsuspend(on){
   if(on){
