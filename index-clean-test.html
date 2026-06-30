@@ -1434,93 +1434,126 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 </div>
               </div>
 
-              <!-- EXTUBACIÓN (solo si VA = TOT) -->
+              <!-- EXTUBACIÓN / PVE (solo si VA = TOT) -->
               <div id="dExtSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
-                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:7px;letter-spacing:.04em;">✂️ Extubación</div>
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:8px;letter-spacing:.04em;">✂️ Extubación / PVE</div>
                 <div id="dExtBadge" class="hidden" style="margin-bottom:8px;"></div>
-                <div class="row" style="align-items:center;gap:10px;margin-bottom:8px;">
-                  <div class="check wa" style="margin:0;"><input type="checkbox" id="cExtOcurrio" onchange="hExt()"><label for="cExtOcurrio" style="font-weight:700;">Extubación</label></div>
-                  <div id="dExtHoraWrap" class="hidden" style="display:flex;align-items:center;gap:4px;">
-                    <label style="font-size:.72rem;color:var(--muted);">Hora:</label>
-                    <input type="time" id="fExtHora" style="height:28px;font-size:.78rem;border:1px solid #ddd6fe;border-radius:5px;padding:0 6px;">
+
+                <!-- Toggle PVE Sí / No -->
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <span style="font-size:.78rem;font-weight:700;color:#6d28d9;">PVE</span>
+                  <button type="button" id="btnPVESi" onclick="hPVEtoggle('si')"
+                    style="padding:3px 14px;border-radius:20px;border:1.5px solid #c4b5fd;background:#f5f3ff;color:#6d28d9;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;">Sí</button>
+                  <button type="button" id="btnPVENo" onclick="hPVEtoggle('no')"
+                    style="padding:3px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;">No</button>
+                  <input type="hidden" id="fPVEval" value="">
+                </div>
+
+                <!-- ── Rama SÍ PVE ── -->
+                <div id="dPVESiRama" class="hidden" style="padding:8px 10px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:7px;margin-bottom:6px;">
+                  <label style="font-size:.7rem;font-weight:700;color:#6d28d9;display:block;margin-bottom:6px;">Resultado PVE:</label>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 12px;border-radius:6px;border:1px solid #bbf7d0;background:#f0fdf4;">
+                      <input type="radio" name="pveRes" value="superada" onchange="hPVEres()"> ✅ Superada
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 12px;border-radius:6px;border:1px solid #fed7aa;background:#fff7ed;">
+                      <input type="radio" name="pveRes" value="frustra" onchange="hPVEres()"> ⚠️ Fracasada
+                    </label>
+                  </div>
+
+                  <!-- Superada → hora + soporte PE + eval post + reintubación -->
+                  <div id="dPVESuperada" class="hidden" style="margin-top:8px;">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                      <label style="font-size:.72rem;font-weight:700;color:#15803d;">Hora extubación:</label>
+                      <input type="time" id="fExtHora" style="height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;">
+                    </div>
+                    <!-- Soporte PE -->
+                    <div style="margin-bottom:8px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
+                      <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:8px;letter-spacing:.04em;">✅ Soporte PE</div>
+                      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                        <label style="font-size:.68rem;font-weight:700;color:#15803d;">MODO</label>
+                        <select id="peModo" onchange="renderParamsPE()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 8px;background:#fff;">
+                          <option value="">-- seleccionar --</option>
+                          <option value="Ambiente">Ambiente</option>
+                          <option value="NRC">NRC</option>
+                          <option value="MMV">MMV</option>
+                          <option value="Mascarilla">Mascarilla O2</option>
+                          <option value="CNAF">CNAF</option>
+                          <option value="S/T">VNI S/T</option>
+                          <option value="AVAPS">VNI AVAPS</option>
+                          <option value="CPAP">VNI CPAP</option>
+                        </select>
+                      </div>
+                      <div id="peParamsBox"></div>
+                      <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;margin-top:6px;">
+                        💡 El siguiente turno evolucionará desde este estado
+                      </div>
+                    </div>
+                    <!-- Eval post + reintubación -->
+                    <div class="row" style="margin-bottom:6px;gap:8px;">
+                      <div class="col grow">
+                        <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
+                        <input type="text" id="fPostExtDet" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
+                      </div>
+                      <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
+                        <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintub" onchange="hReintubCheck()"><label for="cReintub" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
+                      </div>
+                    </div>
+                    <div id="dReintubDet" class="hidden" style="background:#fff5f5;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;margin-top:2px;">
+                      <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;">
+                        <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Razón:</label>
+                        <select id="fReintubRaz" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;">
+                          <option value="">-- Seleccionar --</option>
+                          <option>Falla respiratoria aguda</option>
+                          <option>Obstrucción de vía aérea</option>
+                          <option>Secreciones / desaturación</option>
+                          <option>Hemodinámicamente inestable</option>
+                          <option>Otras</option>
+                        </select>
+                      </div>
+                      <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
+                        ℹ️ El texto generado tomará TOT, modo y parámetros desde <strong>Terapia Ventilatoria</strong> ↑
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Fracasada → razón del fracaso → FIN -->
+                  <div id="dPVEFracasada" class="hidden" style="margin-top:8px;padding:7px 9px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;">
+                    <label style="font-size:.72rem;font-weight:700;color:#b45309;display:block;margin-bottom:4px;">Razón del fracaso:</label>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="hemodinámico"> Hemodinámico</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="ventilatorio"> Ventilatorio</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="neurológico"> Neurológico</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="mecánica respiratoria"> Mec. respiratoria</label>
+                    </div>
                   </div>
                 </div>
-                <div id="dExtDet" class="hidden">
-                  <!-- Nivel 1: Programada vs No programada -->
+
+                <!-- ── Rama NO PVE ── -->
+                <div id="dPVENoRama" class="hidden" style="padding:8px 10px;background:#fff5f5;border:1px solid #fca5a5;border-radius:7px;margin-bottom:6px;">
+                  <label style="font-size:.7rem;font-weight:700;color:#b91c1c;display:block;margin-bottom:6px;">Tipo de extubación:</label>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #c4b5fd;background:#f5f3ff;">
-                      <input type="radio" name="extProg" value="programada" onchange="hExtProg()"> 📋 Programada
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 12px;border-radius:6px;border:1px solid #fde68a;background:#fffbeb;">
+                      <input type="radio" name="extTipo" value="sin_protocolo" onchange="hExtTipo()"> ⚠️ Sin protocolo
                     </label>
-                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #fca5a5;background:#fff5f5;">
-                      <input type="radio" name="extProg" value="no_programada" onchange="hExtProg()"> 🔴 No programada
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 12px;border-radius:6px;border:1px solid #fca5a5;background:#fff;">
+                      <input type="radio" name="extTipo" value="autoextubacion" onchange="hExtTipo()"> 🔄 Autoextubación
+                    </label>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 12px;border-radius:6px;border:1px solid #fca5a5;background:#fff;">
+                      <input type="radio" name="extTipo" value="accidental" onchange="hExtTipo()"> ⚡ Accidental
                     </label>
                   </div>
-                  <!-- Programada: con o sin protocolo -->
-                  <div id="dExtProgDet" class="hidden" style="margin-bottom:8px;padding:8px 10px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:7px;">
-                    <label style="font-size:.7rem;font-weight:700;color:#6d28d9;display:block;margin-bottom:6px;">PVE:</label>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
-                      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #bbf7d0;background:#f0fdf4;">
-                        <input type="radio" name="extTipo" value="protocolo" onchange="hExtTipo()"> ✅ Realizada
-                      </label>
-                      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #fde68a;background:#fffbeb;">
-                        <input type="radio" name="extTipo" value="sin_protocolo" onchange="hExtTipo()"> ⚠️ No realizada
-                      </label>
-                    </div>
-                    <!-- PVE Realizada: resultado -->
-                    <div id="dExtPVEres" class="hidden">
-                      <label style="font-size:.7rem;font-weight:700;color:#15803d;display:block;margin-bottom:5px;">Resultado:</label>
-                      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #bbf7d0;background:#f0fdf4;">
-                          <input type="radio" name="pveRes" value="superada" onchange="hPVEres()"> ✅ Superada
-                        </label>
-                        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #fed7aa;background:#fff7ed;">
-                          <input type="radio" name="pveRes" value="frustra" onchange="hPVEres()"> ⚠️ Fallida
-                        </label>
-                      </div>
-                      <div id="dPveFr" class="hidden" style="margin-top:7px;padding:7px 9px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;">
-                        <label style="font-size:.72rem;font-weight:700;color:#b45309;display:block;margin-bottom:4px;">Razón del fracaso:</label>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                          <label class="check wa"><input type="checkbox" name="pveFrMot" value="hemodinámico"> Hemodinámico</label>
-                          <label class="check wa"><input type="checkbox" name="pveFrMot" value="ventilatorio"> Ventilatorio</label>
-                          <label class="check wa"><input type="checkbox" name="pveFrMot" value="neurológico"> Neurológico</label>
-                          <label class="check wa"><input type="checkbox" name="pveFrMot" value="mecánica respiratoria"> Mec. respiratoria</label>
-                        </div>
-                      </div>
-                    </div>
-                    <!-- PVE No realizada: razón -->
-                    <div id="dExtSinProt" class="hidden" style="margin-top:6px;">
-                      <label style="font-size:.7rem;font-weight:700;color:#b45309;display:block;margin-bottom:4px;">Razón:</label>
-                      <select id="fPveSCraz" style="height:32px;border:1px solid #fde68a;border-radius:6px;padding:0 8px;width:100%;font-size:.8rem;background:#fffbeb;">
-                        <option value="">-- Seleccionar razón --</option>
-                        <option>≤ 24 hrs VM</option>
-                        <option>Indicación médica</option>
-                        <option>Agitación psicomotora</option>
-                        <option>Post Pabellón</option>
-                        <option>Inestabilidad Metabólica</option>
-                        <option>DVA &gt;0.1</option>
-                        <option>Dependencia P(+)</option>
-                      </select>
-                    </div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                    <label style="font-size:.72rem;font-weight:700;color:#b91c1c;white-space:nowrap;">Hora extubación:</label>
+                    <input type="time" id="fExtHoraNo" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;">
                   </div>
-                  <!-- No programada: tipo -->
-                  <div id="dExtNoProgDet" class="hidden" style="margin-bottom:8px;padding:8px 10px;background:#fff5f5;border:1px solid #fca5a5;border-radius:7px;">
-                    <label style="font-size:.7rem;font-weight:700;color:#b91c1c;display:block;margin-bottom:6px;">Tipo:</label>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
-                      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #fca5a5;background:#fff;">
-                        <input type="radio" name="extTipo" value="autoextubacion" onchange="hExtTipo()"> Autoextubación
-                      </label>
-                      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #fca5a5;background:#fff;">
-                        <input type="radio" name="extTipo" value="accidental" onchange="hExtTipo()"> Accidental
-                      </label>
-                    </div>
-                    <input type="text" id="fExtMotivo" placeholder="Circunstancias..." style="height:28px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;background:#fff;">
-                  </div>
-                  <!-- Soporte PE (post-extubación) -->
-                  <div style="margin-bottom:8px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
+                  <input type="text" id="fExtMotivo" placeholder="Circunstancias..." style="height:28px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;background:#fff;margin-bottom:8px;">
+                  <!-- Soporte PE rama NO -->
+                  <div style="padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
                     <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:8px;letter-spacing:.04em;">✅ Soporte PE</div>
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                       <label style="font-size:.68rem;font-weight:700;color:#15803d;">MODO</label>
-                      <select id="peModo" onchange="renderParamsPE()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 8px;background:#fff;">
+                      <select id="peModoNo" onchange="renderParamsPEno()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 8px;background:#fff;">
                         <option value="">-- seleccionar --</option>
                         <option value="Ambiente">Ambiente</option>
                         <option value="NRC">NRC</option>
@@ -1532,26 +1565,25 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                         <option value="CPAP">VNI CPAP</option>
                       </select>
                     </div>
-                    <div id="peParamsBox"></div>
+                    <div id="peParamsBoxNo"></div>
                     <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;margin-top:6px;">
                       💡 El siguiente turno evolucionará desde este estado
                     </div>
                   </div>
-                  <!-- Post-extubación y reintubación -->
-                  <div class="row" style="margin-bottom:6px;gap:8px;">
+                  <!-- Eval post + reintubación rama NO -->
+                  <div class="row" style="margin-top:8px;margin-bottom:6px;gap:8px;">
                     <div class="col grow">
                       <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
-                      <input type="text" id="fPostExtDet" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
+                      <input type="text" id="fPostExtDetNo" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
                     </div>
                     <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
-                      <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintub" onchange="hReintubCheck()"><label for="cReintub" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
+                      <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintubNo" onchange="hReintubCheckNo()"><label for="cReintubNo" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
                     </div>
                   </div>
-                  <!-- Razón reintubación + nota (visible solo si cReintub marcado) -->
-                  <div id="dReintubDet" class="hidden" style="background:#fff5f5;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;margin-top:2px;">
+                  <div id="dReintubDetNo" class="hidden" style="background:#fff5f5;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;">
                     <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;">
                       <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Razón:</label>
-                      <select id="fReintubRaz" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;">
+                      <select id="fReintubRazNo" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;">
                         <option value="">-- Seleccionar --</option>
                         <option>Falla respiratoria aguda</option>
                         <option>Obstrucción de vía aérea</option>
@@ -1565,6 +1597,9 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     </div>
                   </div>
                 </div>
+
+                <!-- hidden para compatibilidad guardar() -->
+                <input type="hidden" id="cExtOcurrio" value="">
               </div>
             </div>
 
@@ -2740,7 +2775,7 @@ function fillForm(s) {
   })();
   // Extubación / Decanulación — ACCIÓN DIARIA: siempre desmarcada
   (function(){
-    const ext=$('cExtOcurrio'); if(ext) ext.checked=false; hExt();
+    const fpve=$('fPVEval'); if(fpve) fpve.value=''; _pveBtnReset?.(); hide('dPVESiRama'); hide('dPVENoRama'); _pveCleanSi?.(); _pveCleanNo?.();
     const dec=$('cDecanOcurrio'); if(dec) dec.checked=false; hDecan();
   })();
 
@@ -2899,18 +2934,18 @@ function guardar() {
     DIAS_VM_PREVIOS:   _diasVMPrevios,
     FECHA_INICIO_VM:   (()=>{
       // Si hay reintubación en este turno, el siguiente episodio arranca hoy
-      if($('cReintub')?.checked) return v('gDate')||hoy();
+      if(_extReintub()) return v('gDate')||hoy();
       return ''; // el episodio actual viene de fillCama (FECHA_INICIO_SOPORTE)
     })(),
-    N_REINTUB:         _nReintub + ($('cReintub')?.checked ? 1 : 0),
+    N_REINTUB:         _nReintub + (_extReintub() ? 1 : 0),
     // Contadores VNI
     DIAS_VNI_PREVIOS:  _diasVNIPrevios,
     FECHA_INICIO_VNI:  (()=>{
       const va=v('fVA');
       // Si hubo extubación/decanulación y el paciente quedó con VNI, el siguiente turno inicia VNI
-      const extVNI=['S/T','AVAPS','CPAP'].includes(v('peModo')||'');
+      const extVNI=['S/T','AVAPS','CPAP'].includes(_extPeModo()||'');
       const decanVNI=['Full Face','Oronasal','VNI'].includes(v('fDecanQueda')||'');
-      if((($('cExtOcurrio')?.checked&&!$('cReintub')?.checked&&extVNI)||
+      if(((_extOcurrio()&&!_extReintub()&&extVNI)||
           ($('cDecanOcurrio')?.checked&&!$('cRecanul')?.checked&&decanVNI)))
         return v('gDate')||hoy();
       return _fechaInicioVNI||'';
@@ -2991,35 +3026,33 @@ function guardar() {
     PVE_RESULTADO:   (document.querySelector('input[name="pveRes"]:checked')?.value)||'',
     PVE_FR_MOTIVOS:  JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
     PVE_SC_RAZON:    v('fPveSCraz'),
-    // ★ Extubación
-    EXT_OCURRIO:     $('cExtOcurrio')?.checked||false,
-    EXT_HORA:        v('fExtHora'),
+    // ★ Extubación / PVE
+    PVE_VAL:         v('fPVEval'),
+    EXT_OCURRIO:     _extOcurrio(),
+    EXT_HORA:        _extHora(),
     RESP_EXTUB_TS:   (function(){
-      if(!$('cExtOcurrio')?.checked) return '';
-      const reintub=$('cReintub')?.checked;
-      const hora=v('fExtHora');
-      if(!hora) return '';
-      const hoy=new Date(); const [hh,mm]=hora.split(':');
-      hoy.setHours(+hh,+mm,0,0);
-      return JSON.stringify({ts:hoy.toISOString(),reintub:!!reintub,hora});
+      if(!_extOcurrio()) return '';
+      const hora=_extHora(); if(!hora) return '';
+      const d=new Date(); const [hh,mm]=hora.split(':');
+      d.setHours(+hh,+mm,0,0);
+      return JSON.stringify({ts:d.toISOString(),reintub:_extReintub(),hora});
     })(),
-    EXT_PROG:        (document.querySelector('input[name="extProg"]:checked')?.value)||'',
-    EXT_TIPO:        (document.querySelector('input[name="extTipo"]:checked')?.value)||'',
+    EXT_TIPO:        _extTipo(),
     EXT_MOTIVO:      v('fExtMotivo'),
-    EXT_POST_DET:    v('fPostExtDet'),
-    EXT_REINTUB:     $('cReintub')?.checked||false,
-    EXT_REINTUB_RAZ: v('fReintubRaz'),
-    EXT_PE_VA:       peVA(),
-    EXT_PE_SOP:      peSop(),
-    EXT_PE_MODO:     v('peModo'),
+    EXT_POST_DET:    _extPostDet(),
+    EXT_REINTUB:     _extReintub(),
+    EXT_REINTUB_RAZ: _extReintubRaz(),
+    EXT_PE_VA:       peVAext(),
+    EXT_PE_SOP:      peSopext(),
+    EXT_PE_MODO:     _extPeModo(),
     // ★ Estado FINAL de VA: extubación o decanulación sin re-intubación/re-canulación
-    VENT_VIA_AEREA_FINAL: ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? peVA()
+    VENT_VIA_AEREA_FINAL: (_extOcurrio() && !_extReintub()) ? peVAext()
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'Natural')
                         : v('fVA'),
-    VENT_SOPORTE_FINAL:   ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? peSop()
+    VENT_SOPORTE_FINAL:   (_extOcurrio() && !_extReintub()) ? peSopext()
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? 'Oxigenoterapia/OAF'
                         : v('fSop'),
-    VENT_MODO_FINAL:      ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('peModo')||'')
+    VENT_MODO_FINAL:      (_extOcurrio() && !_extReintub()) ? (_extPeModo()||'')
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'')
                         : v('fModo'),
     PROC_JSON: (function(){
@@ -3028,14 +3061,14 @@ function guardar() {
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
       if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
-      if($('cExtOcurrio')?.checked){
-        const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+      if(_extOcurrio()||v('fPVEval')){
+        const _et=_extTipo();
         if(_et==='protocolo')          auto.push('EXTUBACIÓN C/PROTOCOLO');
         else if(_et==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
         else if(_et==='accidental')    auto.push('EXTUBACIÓN ACCIDENTAL');
         else if(_et==='autoextubacion')auto.push('AUTOEXTUBACIÓN');
-        if(_et==='protocolo'||(document.querySelector('input[name="pveRes"]:checked')?.value)) auto.push('PVE');
-        if($('cReintub')?.checked)     auto.push('REINTUBACIÓN');
+        if(v('fPVEval')==='si') auto.push('PVE');
+        if(_extReintub())              auto.push('REINTUBACIÓN');
       }
       const merged=Array.from(new Set([...(PROCS||[]), ...auto]));
       return JSON.stringify(merged);
@@ -3046,14 +3079,14 @@ function guardar() {
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
       if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
-      if($('cExtOcurrio')?.checked){
-        const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+      if(_extOcurrio()||v('fPVEval')){
+        const _et=_extTipo();
         if(_et==='protocolo') auto.push('EXTUBACIÓN C/PROTOCOLO');
         else if(_et==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
         else if(_et==='accidental') auto.push('EXTUBACIÓN ACCIDENTAL');
         else if(_et==='autoextubacion') auto.push('AUTOEXTUBACIÓN');
-        if(_et==='protocolo') auto.push('PVE');
-        if($('cReintub')?.checked) auto.push('REINTUBACIÓN');
+        if(v('fPVEval')==='si') auto.push('PVE');
+        if(_extReintub()) auto.push('REINTUBACIÓN');
       }
       return Array.from(new Set([...(PROCS||[]), ...auto])).join(', ');
     })(),
@@ -3063,10 +3096,9 @@ function guardar() {
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if($('cProno')?.checked) auto.push('PRONO');
       if($('cSupino')?.checked) auto.push('SUPINACIÓN');
-      if($('cExtOcurrio')?.checked){
-        const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
-        if(_et) auto.push('EXT');
-        if($('cReintub')?.checked) auto.push('REINTUBACIÓN');
+      if(_extOcurrio()||v('fPVEval')){
+        if(_extTipo()) auto.push('EXT');
+        if(_extReintub()) auto.push('REINTUBACIÓN');
       }
       return new Set([...(PROCS||[]), ...auto]).size;
     })(),
@@ -3969,16 +4001,16 @@ function genTexto() {
   }
   // Extubación + PVE — texto clínico unificado
   (function(){
-    if(!$('cExtOcurrio')?.checked) return;
-    const _prog=document.querySelector('input[name="extProg"]:checked')?.value||'';
-    const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+    const _pve=v('fPVEval');
+    if(!_pve) return;
+    const _et=_extTipo();
     const _mot=v('fExtMotivo');
-    const _post=v('fPostExtDet');
-    const _reint=$('cReintub')?.checked;
-    const _peModo=v('peModo');
-    const _hora=v('fExtHora');
+    const _post=_extPostDet();
+    const _reint=_extReintub();
+    const _peModo=_extPeModo();
+    const _hora=_extHora();
     const _horaTxt=_hora?` a las ${_hora} hrs`:'';
-    // Helper: texto de parámetros VM post-reintubación
+    const _rraz=_extReintubRaz();
     const _vmReintTxt=()=>{
       const _totn=v('fTOTn'), _totcm=v('fTOTcm'), _totfij=v('fTOTfij')||'comisura labial';
       const _modoR=v('fModo'), _vtR=v('r_vt'), _frR=v('r_fr'), _peepR=v('r_peep');
@@ -3997,7 +4029,6 @@ function genTexto() {
       if(p) t+=(t?' ':'')+p.replace(/,\s*$/,'.')||'';
       return t;
     };
-    // Helper: texto soporte PE
     const _peTxt=()=>{
       if(!_peModo) return '';
       let _qtxt=_peModo==='Ambiente'?'Paciente queda en vía aérea natural sin soporte'
@@ -4005,71 +4036,50 @@ function genTexto() {
                :_peModo==='CNAF'?'Paciente queda con CNAF'
                :_peModo==='MMV'?'Paciente queda con mascarilla de Venturi (MMV)'
                :`Paciente queda con oxigenoterapia ${_peModo}`;
-      const _spo2pe=v('pe_spo2'),_frpe=v('pe_fr'),_lit=v('pe_litros'),_fl=v('pe_flujo'),_fio2pe=v('pe_fio2'),_ipap=v('pe_ipap'),_epap=v('pe_epap');
+      const _spo2pe=v('pe_spo2')||v('peSpO2No'),_frpe=v('pe_fr')||v('peFRNo'),_lit=v('pe_litros')||v('peLtNo'),
+            _fl=v('pe_flujo')||v('peFNo'),_fio2pe=v('pe_fio2')||v('peFiO2No'),_ipap=v('pe_ipap')||v('peIPAPNo'),_epap=v('pe_epap')||v('peEPAPNo');
       if(_ipap) _qtxt+=` IPAP ${_ipap} cmH2O`; if(_epap) _qtxt+=` EPAP ${_epap} cmH2O`;
       if(_fio2pe) _qtxt+=` FiO2 ${_fio2pe}%`; if(_lit) _qtxt+=` ${_lit} L/min`; if(_fl) _qtxt+=` flujo ${_fl} L/min`;
       if(_spo2pe) _qtxt+=`, SpO2 ${_spo2pe}%`; if(_frpe) _qtxt+=`, FR ${_frpe} rpm`;
       return _qtxt+'.';
     };
-    const _rraz=v('fReintubRaz');
-    if(_prog==='no_programada'){
+    if(_pve==='si'){
+      // Rama SÍ PVE
+      const _res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
+      const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
+      const _mstr=_mots.length?_mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]:'aspectos clínicos';
+      if(_res==='superada'){
+        L.push(`Se realiza PVE con resultado superado, progresando a extubación${_horaTxt}.`);
+        if(_reint){
+          let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+          const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
+          L.push(_rt);
+        } else if(_peModo){ L.push(_peTxt()); }
+      } else if(_res==='frustra'){
+        L.push(`Se realiza PVE según protocolo con resultado fallido desde lo ${_mstr}. Paciente continúa con soporte ventilatorio.`);
+      } else {
+        L.push('Se realiza PVE según protocolo.');
+      }
+    } else {
+      // Rama NO PVE
       if(_et==='autoextubacion'){
         let _etxt=`Paciente se autoextuba${_horaTxt}`;
         if(_mot) _etxt+=`. ${_mot}`;
         L.push(_etxt+'.');
-        if(_reint){
-          let _rt=`Evolucionando con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
-          const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
-          L.push(_rt);
-        } else if(_peModo){ L.push(_peTxt()); }
-      } else {
+      } else if(_et==='accidental'){
         let _etxt=`Paciente presenta extubación accidental${_horaTxt}`;
         if(_mot) _etxt+=`. ${_mot}`;
         L.push(_etxt+'.');
-        if(_reint){
-          let _rt=`Evolucionando con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
-          const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
-          L.push(_rt);
-        } else if(_peModo){ L.push(_peTxt()); }
-      }
-    } else if(_prog==='programada'){
-      if(_et==='protocolo'){
-        const _res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
-        const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
-        const _mstr=_mots.length?_mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]:'aspectos clínicos';
-        if(_res==='superada'){
-          L.push(`Se realiza PVE con éxito progresando a extubación programada${_horaTxt}.`);
-          if(_reint){
-            let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
-            const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
-            L.push(_rt);
-          } else if(_peModo){ L.push(_peTxt()); }
-        } else if(_res==='frustra'){
-          L.push(`Se realiza PVE según protocolo con resultado fallido desde lo ${_mstr}. Paciente continúa con soporte ventilatorio.`);
-        } else {
-          L.push(`Se realiza PVE y extubación programada con protocolo${_horaTxt}.`);
-          if(_reint){
-            let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
-            const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
-            L.push(_rt);
-          } else if(_peModo){ L.push(_peTxt()); }
-        }
       } else if(_et==='sin_protocolo'){
-        const _raz=v('fPveSCraz')||'sin especificar';
-        L.push(`Se realiza extubación programada sin protocolo PVE por ${_raz}${_horaTxt}.`);
-        if(_reint){
-          let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
-          const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
-          L.push(_rt);
-        } else if(_peModo){ L.push(_peTxt()); }
-      } else {
-        L.push(`Se realiza extubación programada${_horaTxt}.`);
-        if(_reint){
-          let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
-          const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
-          L.push(_rt);
-        } else if(_peModo){ L.push(_peTxt()); }
+        let _etxt=`Se realiza extubación sin protocolo PVE${_horaTxt}`;
+        if(_mot) _etxt+=`. ${_mot}`;
+        L.push(_etxt+'.');
       }
+      if(_reint){
+        let _rt=`Evolucionando con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+        const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
+        L.push(_rt);
+      } else if(_peModo){ L.push(_peTxt()); }
     }
     if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
   })();
@@ -4079,14 +4089,14 @@ function genTexto() {
     if(mu.length) auto.push('CULTIVO DE SECRECIONES');
     if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
     if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
-    if($('cExtOcurrio')?.checked){
-      const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+    if(v('fPVEval')){
+      const _et=_extTipo();
       if(_et==='protocolo')           auto.push('EXTUBACIÓN C/PROTOCOLO');
       else if(_et==='sin_protocolo')  auto.push('EXTUBACIÓN S/PROTOCOLO');
       else if(_et==='accidental')     auto.push('EXTUBACIÓN ACCIDENTAL');
       else if(_et==='autoextubacion') auto.push('AUTOEXTUBACIÓN');
-      if(_et==='protocolo'||(document.querySelector('input[name="pveRes"]:checked')?.value)) auto.push('PVE');
-      if($('cReintub')?.checked) auto.push('REINTUBACIÓN');
+      if(v('fPVEval')==='si') auto.push('PVE');
+      if(_extReintub()) auto.push('REINTUBACIÓN');
     }
     const all=Array.from(new Set([...(PROCS||[]),...auto]));
     if(all.length) L.push(`Procedimientos: ${all.join(', ')}.`);
@@ -4836,21 +4846,65 @@ function hRuidos(el){
   if(otro&&otro.checked) show('dRuidosM'); else hide('dRuidosM');
 }
 function hPVE(){} // integrada en flujo de extubación
+// ── Toggle PVE Sí/No ──
+function hPVEtoggle(val){
+  const prev=v('fPVEval');
+  if(prev===val){ // deseleccionar
+    $('fPVEval').value='';
+    _pveBtnReset();
+    hide('dPVESiRama'); hide('dPVENoRama');
+    _pveCleanSi(); _pveCleanNo();
+    return;
+  }
+  $('fPVEval').value=val;
+  _pveBtnReset();
+  if(val==='si'){
+    $('btnPVESi').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #7c3aed;background:#7c3aed;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
+    show('dPVESiRama'); hide('dPVENoRama'); _pveCleanNo();
+    // extTipo implícito protocolo en rama SÍ
+    $('fPVEval') && ($('fPVEval').dataset.extTipo='protocolo');
+  } else {
+    $('btnPVENo').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #dc2626;background:#dc2626;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
+    hide('dPVESiRama'); show('dPVENoRama'); _pveCleanSi();
+  }
+  // marca cExtOcurrio como compatibilidad con guardar()
+  const hid=$('cExtOcurrio'); if(hid) hid.value=val?'true':'';
+}
+function _pveBtnReset(){
+  $('btnPVESi').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #c4b5fd;background:#f5f3ff;color:#6d28d9;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
+  $('btnPVENo').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
+}
+function _pveCleanSi(){
+  document.querySelectorAll('input[name="pveRes"]').forEach(r=>r.checked=false);
+  hide('dPVESuperada'); hide('dPVEFracasada');
+  document.querySelectorAll('input[name="pveFrMot"]').forEach(c=>c.checked=false);
+  const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); }
+  const pe=$('peModo'); if(pe) pe.value=''; renderParamsPE();
+  const h=$('fExtHora'); if(h) h.value='';
+  const p=$('fPostExtDet'); if(p) p.value='';
+}
+function _pveCleanNo(){
+  document.querySelectorAll('input[name="extTipo"]').forEach(r=>r.checked=false);
+  const h=$('fExtHoraNo'); if(h) h.value='';
+  const m=$('fExtMotivo'); if(m) m.value='';
+  const cr=$('cReintubNo'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDetNo'); }
+  const pe=$('peModoNo'); if(pe) pe.value=''; renderParamsPEno();
+  const p=$('fPostExtDetNo'); if(p) p.value='';
+}
 function hPVEres(){
   const res=document.querySelector('input[name="pveRes"]:checked')?.value;
-  if(res==='frustra') show('dPveFr'); else hide('dPveFr');
+  if(res==='superada'){ show('dPVESuperada'); hide('dPVEFracasada');
+    document.querySelectorAll('input[name="pveFrMot"]').forEach(c=>c.checked=false); }
+  else if(res==='frustra'){ hide('dPVESuperada'); show('dPVEFracasada');
+    const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); } }
+  else { hide('dPVESuperada'); hide('dPVEFracasada'); }
 }
 function tiAddChip(tagsId, hiddenId, colorClass, val) {
   if(!_tiState[tagsId]) _tiState[tagsId]=[];
   if(!_tiState[tagsId].includes(val)) { _tiState[tagsId].push(val); tiRender(tagsId,hiddenId,colorClass); }
 }
 function hExt(){
-  if($('cExtOcurrio')?.checked){ show('dExtDet'); show('dExtHoraWrap'); }
-  else {
-    hide('dExtDet'); hide('dExtHoraWrap');
-    document.querySelectorAll('input[name="extProg"]').forEach(r=>r.checked=false); hExtProg();
-    const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); }
-  }
+  // legacy — ya no se usa directamente; PVE toggle maneja todo
 }
 function hReintubCheck(){
   const checked=$('cReintub')?.checked;
@@ -4864,21 +4918,54 @@ function hReintubCheck(){
     const raz=$('fReintubRaz'); if(raz) raz.value='';
   }
 }
-function hExtProg(){
-  const p=document.querySelector('input[name="extProg"]:checked')?.value||'';
-  if(p==='programada'){show('dExtProgDet');hide('dExtNoProgDet');}
-  else if(p==='no_programada'){hide('dExtProgDet');show('dExtNoProgDet');}
-  else{hide('dExtProgDet');hide('dExtNoProgDet');}
-  document.querySelectorAll('input[name="extTipo"]').forEach(r=>r.checked=false);
-  hide('dExtPVEres');hide('dExtSinProt');hide('dPveFr');
-}
-function hExtTipo(){
-  const t=document.querySelector('input[name="extTipo"]:checked')?.value||'';
-  hide('dExtPVEres');hide('dExtSinProt');hide('dPveFr');
-  if(t==='protocolo') show('dExtPVEres');
-  if(t==='sin_protocolo') show('dExtSinProt');
-}
+function hExtProg(){ /* legacy — reemplazado por hPVEtoggle */ }
+function hExtTipo(){ /* rama NO PVE: solo registra el radio, no necesita show/hide adicional */ }
 function hExtQueda(){}
+function hReintubCheckNo(){
+  const checked=$('cReintubNo')?.checked;
+  if(checked){
+    confirmarReintubacion(_nReintub+1).then(ok=>{
+      if(ok){ _nReintub++; const el=$('fReintub'); if(el) el.value=_nReintub; show('dReintubDetNo'); }
+      else { const cr=$('cReintubNo'); if(cr) cr.checked=false; hide('dReintubDetNo'); }
+    });
+  } else {
+    hide('dReintubDetNo');
+    const raz=$('fReintubRazNo'); if(raz) raz.value='';
+  }
+}
+function renderParamsPEno(){
+  const modo=v('peModoNo')||'';
+  const box=$('peParamsBoxNo'); if(!box) return;
+  // Reutiliza misma lógica que renderParamsPE pero apuntando a IDs con sufijo No
+  const _meta=_PE_META[modo]||{};
+  // Genera HTML igual que renderParamsPE pero con IDs distintos
+  let html='';
+  if(!modo){ box.innerHTML=''; return; }
+  if(modo==='Ambiente'){ box.innerHTML='<div style="font-size:.72rem;color:#15803d;">Sin dispositivo</div>'; return; }
+  if(['NRC','MMV','Mascarilla'].includes(modo)){
+    html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">Litros L/M</label><input id="peLtNo" type="number" min="0" max="15" step=".5" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FR RPM</label><input id="peFRNo" type="number" min="0" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div></div>`;
+  } else if(modo==='CNAF'){
+    html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FiO2~</label><input id="peFiO2No" type="number" min="21" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;" placeholder="~29%"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">F L/min</label><input id="peFNo" type="number" min="1" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div></div>`;
+  } else if(['S/T','AVAPS'].includes(modo)){
+    html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">IPAP</label><input id="peIPAPNo" type="number" min="0" max="35" style="width:65px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">EPAP</label><input id="peEPAPNo" type="number" min="0" max="20" style="width:65px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FiO2 %</label><input id="peFiO2No" type="number" min="21" max="100" style="width:65px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:65px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div></div>`;
+  } else if(modo==='CPAP'){
+    html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">EPAP</label><input id="peEPAPNo" type="number" min="0" max="20" style="width:65px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FiO2 %</label><input id="peFiO2No" type="number" min="21" max="100" style="width:65px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:65px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div></div>`;
+  }
+  box.innerHTML=html;
+}
 // Mapa modo PE → VA y Soporte implícitos (para guardar estado final)
 const _PE_META={
   'Ambiente':  {va:'Natural',    sop:'Ambiente'},
@@ -4922,6 +5009,25 @@ function renderParamsPE(){
 }
 function peVA(){ return (_PE_META[v('peModo')]||{}).va||'Natural'; }
 function peSop(){ return (_PE_META[v('peModo')]||{}).sop||'Ambiente'; }
+// ── Helpers unificados PVE ──
+function _extOcurrio(){
+  const pve=v('fPVEval');
+  if(pve==='si') return document.querySelector('input[name="pveRes"]:checked')?.value==='superada';
+  if(pve==='no') return !!document.querySelector('input[name="extTipo"]:checked')?.value;
+  return false;
+}
+function _extHora(){ return v('fPVEval')==='si'?v('fExtHora'):v('fExtHoraNo'); }
+function _extReintub(){ return v('fPVEval')==='si'?!!$('cReintub')?.checked:!!$('cReintubNo')?.checked; }
+function _extReintubRaz(){ return v('fPVEval')==='si'?v('fReintubRaz'):v('fReintubRazNo'); }
+function _extPeModo(){ return v('fPVEval')==='si'?v('peModo'):v('peModoNo'); }
+function _extPostDet(){ return v('fPVEval')==='si'?v('fPostExtDet'):v('fPostExtDetNo'); }
+function _extTipo(){
+  const pve=v('fPVEval');
+  if(pve==='si') return document.querySelector('input[name="pveRes"]:checked')?.value==='superada'?'protocolo':'';
+  return document.querySelector('input[name="extTipo"]:checked')?.value||'';
+}
+function peVAext(){ return (_PE_META[_extPeModo()]||{}).va||'Natural'; }
+function peSopext(){ return (_PE_META[_extPeModo()]||{}).sop||'Ambiente'; }
 function hKTM(q){ setKTMstate(q); }
 function setKTMstate(q){
   const r = q==='r', s = q==='s', n = q==='n';
