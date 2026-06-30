@@ -443,10 +443,15 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ti-chip:hover{background:#bae6fd;}
 .ti-chip.violet{border-color:#c4b5fd;background:#ede9fe;color:#5b21b6;}
 .ti-chip.violet:hover{background:#c4b5fd;}
-.secr-qty{transition:background .12s,border-color .12s;}
-.secr-qty.active{background:#0ea5e9!important;border-color:#0284c7!important;color:#fff!important;font-weight:700;}
-.secr-qty[data-tip]{position:relative;}
-.secr-qty[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1e293b;color:#f8fafc;font-size:.68rem;white-space:nowrap;padding:3px 8px;border-radius:5px;pointer-events:none;z-index:999;}
+.secr-qty{transition:background .12s,border-color .12s,color .12s;color:#475569;background:#f8fafc;border:1px solid #cbd5e1;border-radius:5px;cursor:pointer;font-weight:600;line-height:1;user-select:none;position:relative;}
+.secr-qty:hover{background:#e2e8f0;border-color:#94a3b8;}
+.secr-qty.active{background:#0284c7!important;border-color:#0369a1!important;color:#fff!important;}
+.secr-qty::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1e293b;color:#f8fafc;font-size:.67rem;white-space:nowrap;padding:3px 8px;border-radius:5px;pointer-events:none;z-index:999;opacity:0;transition:opacity .12s;}
+.secr-qty:hover::after{opacity:1;}
+.cult-badge{display:inline-flex;align-items:center;gap:5px;background:#f3e8ff;border:1px solid #d8b4fe;color:#6d28d9;border-radius:20px;padding:2px 10px 2px 8px;font-size:.72rem;font-weight:600;margin:2px 4px 2px 0;}
+.cult-badge .cb-x{background:none;border:none;cursor:pointer;color:#9333ea;font-size:.75rem;padding:0;line-height:1;opacity:.7;}
+.cult-badge .cb-x:hover{opacity:1;}
+.cult-badge.hist{background:#faf5ff;border-color:#e9d5ff;color:#7c3aed;}
 #minTray{position:fixed;bottom:20px;left:20px;z-index:200;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none;}
 .min-pill{background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1px solid #1e5a8f;transition:background .2s;display:flex;align-items:center;gap:8px;pointer-events:all;}
 .min-pill:hover{background:#1e5a8f;}
@@ -1627,10 +1632,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <div class="col" style="flex-grow:0;">
                     <label style="font-size:.68rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px;">CANTIDAD</label>
                     <div style="display:flex;gap:4px;">
-                      <button type="button" class="secr-qty" id="sqBtn0" onclick="hSecrQty('')"    data-tip="Sin secreciones"  style="width:32px;height:28px;border:1px solid #cbd5e1;border-radius:5px;font-size:.8rem;background:#f8fafc;cursor:pointer;">−</button>
-                      <button type="button" class="secr-qty" id="sqBtn1" onclick="hSecrQty('+')"   data-tip="Escasas"          style="width:32px;height:28px;border:1px solid #cbd5e1;border-radius:5px;font-size:.8rem;background:#f8fafc;cursor:pointer;">+</button>
-                      <button type="button" class="secr-qty" id="sqBtn2" onclick="hSecrQty('++')"  data-tip="Moderadas"        style="width:32px;height:28px;border:1px solid #cbd5e1;border-radius:5px;font-size:.8rem;background:#f8fafc;cursor:pointer;">++</button>
-                      <button type="button" class="secr-qty" id="sqBtn3" onclick="hSecrQty('+++')" data-tip="Abundantes"       style="width:32px;height:28px;border:1px solid #cbd5e1;border-radius:5px;font-size:.8rem;background:#f8fafc;cursor:pointer;">+++</button>
+                      <button type="button" class="secr-qty" id="sqBtn0" onclick="hSecrQty('-')"   data-tip="Sin secreciones" style="width:30px;height:28px;font-size:.85rem;">−</button>
+                      <button type="button" class="secr-qty" id="sqBtn1" onclick="hSecrQty('+')"   data-tip="Escasas"         style="width:30px;height:28px;font-size:.82rem;">+</button>
+                      <button type="button" class="secr-qty" id="sqBtn2" onclick="hSecrQty('++')"  data-tip="Moderadas"       style="width:36px;height:28px;font-size:.78rem;">++</button>
+                      <button type="button" class="secr-qty" id="sqBtn3" onclick="hSecrQty('+++')" data-tip="Abundantes"      style="width:42px;height:28px;font-size:.75rem;">+++</button>
                     </div>
                   </div>
                 </div>
@@ -1651,8 +1656,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <label style="font-size:.68rem;font-weight:700;color:#7c3aed;display:block;margin-bottom:3px;">Objetivo búsqueda</label>
                     <input type="text" id="fCultObj" placeholder="PCR jirovecii, TBC, COVID-19…" style="height:28px;font-size:.78rem;border:1px solid #e9d5ff;border-radius:5px;padding:0 8px;width:100%;">
                   </div>
-                  <!-- Fechas de toma (read-only, se setean automático) -->
-                  <div id="dCultFechas" style="font-size:.7rem;color:#7c3aed;margin-bottom:6px;display:none;"></div>
+                  <!-- Badges de técnicas tomadas -->
+                  <div id="dCultBadges" style="margin-bottom:6px;min-height:0;"></div>
                   <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:4px;">Resultado(s)</div>
                   <div class="ti-wrap violet" onclick="document.getElementById('fCultInput').focus()">
                     <div id="fCultTags" style="display:contents;"></div>
@@ -2666,6 +2671,7 @@ function fillForm(s) {
   // Respiratorio — KTR persiste como referencia; maniobras son acción diaria
   set('fKTRcnt',_ex.RESP_KTR_CANT);
   ['cSOF','cSNF','cSET','cATos','cInhalo'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
+  _loadCultFechas(_ex.RESP_CULT_FECHAS||'');
 
   // KTM extras
   set('fKTMnoRaz', _ex.KTM_NO_RAZON);
@@ -2734,6 +2740,9 @@ function fillForm(s) {
   if(s.PROC_JSON){try{PROCS=JSON.parse(s.PROC_JSON)||[];}catch(e){} renderChips();}
   // Cultivo — casilla desmarcada (procedimiento diario); resultado previo sí persiste
   const e_mue=$('cMue'); if(e_mue) e_mue.checked=false; hMue();
+  // Resetear estado de cultivo del turno anterior (histórico se carga vía _loadCultFechas)
+  _cultFechas={}; _cultTurno=new Set();
+  const dbCult=$('dCultBadges'); if(dbCult) dbCult.innerHTML='';
   (function(){ if(!s.MUE_RESULTADOS_JSON) return; let arr=[]; try{arr=JSON.parse(s.MUE_RESULTADOS_JSON);}catch(e){} fillCultRes(arr); })();
   chk('cEgr',s.EGR_ACTIVO); hEgr();
   set('fNivelMotor',s.EGR_NIVEL_MOTOR); set('fPrension',s.EGR_PRENSION);
@@ -2799,6 +2808,7 @@ function fillFormReplica(s) {
 
   // Respiratorio
   set('fKTRcnt',_ex.RESP_KTR_CANT);
+  _loadCultFechas(_ex.RESP_CULT_FECHAS||'');
   if(_ex.EX_CULT_RESULTADO) tiSet('fCultTags','fCultVal','violet',_ex.EX_CULT_RESULTADO);
 
   // KTM estado y nivel (replica estado previo como punto de partida)
@@ -4445,10 +4455,11 @@ function hMue(){if($('cMue')?.checked)show('dMue');else hide('dMue');}
 
 // — Secreciones: cantidad con botones toggle —
 let _secrQty='';
+const _SECR_VALS=['-','+','++','+++'];
 function hSecrQty(val){
   _secrQty=(_secrQty===val)?'':val;
-  ['','+',' ++','+++'].forEach((_,i)=>{
-    const b=$('sqBtn'+i); if(b) b.classList.toggle('active',['','+','++','+++'][i]===_secrQty);
+  _SECR_VALS.forEach((v,i)=>{
+    const b=$('sqBtn'+i); if(b) b.classList.toggle('active',v===_secrQty);
   });
   const h=$('fSecrQty'); if(h) h.value=_secrQty;
 }
@@ -4520,25 +4531,76 @@ function _updateSupinoTip(){
 // Refresca tips cada minuto mientras la página está abierta
 setInterval(()=>{ if(_pronoTs&&$('cProno')?.checked) _updatePronoTip(); },60000);
 
-// — Cultivo: técnica con objetivo condicional —
+// — Cultivo: badges reactivos con X, histórico sin X —
+// _cultFechas: {CCAET:'30-06-2026', ...}  — persiste entre turnos
+// _cultTurno:  Set de técnicas marcadas en ESTE turno (puede borrarse con X)
+let _cultFechas={}, _cultTurno=new Set();
+
 function hCultTec(cb){
   const tecs=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
   const needObj=tecs.some(t=>['Mini Lab','Hisopado'].includes(t));
   needObj?show('dCultObj'):hide('dCultObj');
-  // Primera vez que se marca: guardar fecha
-  if(cb?.checked){
+  if(cb.checked){
     const hoy=new Date().toLocaleDateString('es-CL');
-    let fechas={}; try{ fechas=JSON.parse(v('fCultFechas')||'{}'); }catch(e){}
-    if(!fechas[cb.value]){ fechas[cb.value]=hoy; const h=$('fCultFechas'); if(h) h.value=JSON.stringify(fechas); }
-    _renderCultFechas(fechas);
+    if(!_cultFechas[cb.value]) _cultFechas[cb.value]=hoy;
+    _cultTurno.add(cb.value);
+  } else {
+    // Desmarcó checkbox directamente → quitar del turno actual
+    _cultTurno.delete(cb.value);
+    // Si la fecha era de este turno, borramos también del histórico
+    const hoy=new Date().toLocaleDateString('es-CL');
+    if(_cultFechas[cb.value]===hoy) delete _cultFechas[cb.value];
   }
+  _saveCultFechas();
+  _renderCultBadges();
 }
-function _renderCultFechas(fechas){
-  const el=$('dCultFechas'); if(!el) return;
-  const entries=Object.entries(fechas);
-  if(!entries.length){ el.style.display='none'; return; }
-  el.style.display='block';
-  el.innerHTML=entries.map(([t,f])=>`<span style="margin-right:8px;">📅 <strong>${t}</strong>: tomado el ${f}</span>`).join('');
+
+function _cultQuitarTec(tec){
+  _cultTurno.delete(tec);
+  const hoy=new Date().toLocaleDateString('es-CL');
+  if(_cultFechas[tec]===hoy) delete _cultFechas[tec];
+  _saveCultFechas();
+  // Desmarcar checkbox
+  const cb=document.querySelector(`input[name="mtest"][value="${tec}"]`);
+  if(cb) cb.checked=false;
+  // Ocultar objetivo si ya no hay MiniLab/Hisopado
+  const tecs=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
+  tecs.some(t=>['Mini Lab','Hisopado'].includes(t))?show('dCultObj'):hide('dCultObj');
+  _renderCultBadges();
+}
+
+function _saveCultFechas(){
+  const h=$('fCultFechas'); if(h) h.value=JSON.stringify(_cultFechas);
+}
+
+function _renderCultBadges(){
+  const el=$('dCultBadges'); if(!el) return;
+  const hoy=new Date().toLocaleDateString('es-CL');
+  const html=Object.entries(_cultFechas).map(([tec,fecha])=>{
+    const esHoy=fecha===hoy&&_cultTurno.has(tec);
+    const x=esHoy?`<button type="button" class="cb-x" onclick="_cultQuitarTec('${tec}')" title="Quitar">✕</button>`:'';
+    const cls=esHoy?'cult-badge':'cult-badge hist';
+    return `<span class="${cls}">📅 <strong>${tec}</strong>: ${fecha}${x}</span>`;
+  }).join('');
+  el.innerHTML=html;
+}
+
+// Cargar fechas históricas al abrir registro anterior
+function _loadCultFechas(jsonStr){
+  try{ _cultFechas=JSON.parse(jsonStr||'{}')||{}; }catch(e){ _cultFechas={}; }
+  _cultTurno=new Set(); // histórico = no es del turno actual
+  // Marcar checkboxes que ya tienen fecha hoy
+  const hoy=new Date().toLocaleDateString('es-CL');
+  Object.entries(_cultFechas).forEach(([tec,fecha])=>{
+    if(fecha===hoy){
+      const cb=document.querySelector(`input[name="mtest"][value="${tec}"]`);
+      if(cb) cb.checked=true;
+      _cultTurno.add(tec);
+    }
+  });
+  _renderCultBadges();
+  const tecs=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
+  tecs.some(t=>['Mini Lab','Hisopado'].includes(t))?show('dCultObj'):hide('dCultObj');
 }
 
 // — Sin requerimientos KTR: visible solo con NRC/MMV/Ambiente —
