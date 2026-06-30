@@ -4110,7 +4110,13 @@ function hUMA(){
   tip.setAttribute('data-tip',_UMA_TIPS[v]||'');
   tip.classList.remove(..._INTERP_CLASSES);
   tip.classList.add(_UMA_CLS[v]||'interp-ok');
-  tip.textContent=v?'ⓘ':'ⓘ';
+}
+function hPEUMA(){
+  const sel=$('pe_uma'); const tip=$('pe_umatip'); if(!sel||!tip) return;
+  const v=sel.value;
+  tip.setAttribute('data-tip',_UMA_TIPS[v]||'');
+  tip.classList.remove(..._INTERP_CLASSES);
+  tip.classList.add(_UMA_CLS[v]||'interp-ok');
 }
 const _umaFld=()=>`<div class="col" style="flex-grow:0;"><label>UMA</label><div style="display:flex;align-items:center;gap:4px;"><select id="r_uma" onchange="hUMA()" style="height:35px;width:60px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option><option>+</option><option>++</option><option>+++</option></select><span id="umatip" class="interp-tip interp-ok" data-tip="${_UMA_TIPS['']}" style="font-size:.75rem;">ⓘ</span></div></div>`;
 const _humChk=(haAdapt)=>{
@@ -4423,18 +4429,19 @@ function renderParamsPE(){
   const peft=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><label style="font-size:.65rem;">${lbl}</label><input type="text" id="${id}" style="height:30px;font-size:.82rem;"></div>`;
   const mon2=(id,lbl)=>`<div class="mon" style="height:30px;min-width:60px;"><span style="font-size:.55rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.78rem;">--</span></div>`;
   if(!modo){b.innerHTML='';return;}
+  const peUma=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">UMA</label><div style="display:flex;align-items:center;gap:3px;"><select id="pe_uma" onchange="hPEUMA()" style="height:30px;width:58px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option><option>+</option><option>++</option><option>+++</option></select><span id="pe_umatip" class="interp-tip interp-ok" data-tip="${_UMA_TIPS['']}" style="font-size:.72rem;">ⓘ</span></div></div>`;
   let h='<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:4px;">';
   if(modo==='Ambiente'){
-    h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70);
+    h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(modo==='MMV'){
     h+=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">FiO2 prog. %</label><select id="pe_fio2" style="height:30px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;width:80px;"><option value="">--</option><option>24</option><option>26</option><option>28</option><option>30</option><option>35</option><option>40</option><option>60</option></select></div>`;
-    h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70);
+    h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(['NRC','Mascarilla'].includes(modo)){
-    h+=pef('pe_litros','Litros L/m',85)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_fio2calc','FiO2~');
+    h+=pef('pe_litros','Litros L/m',85)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_fio2calc','FiO2~')+peUma;
   } else if(modo==='CNAF'){
-    h+=pef('pe_flujo','Flujo L/m',80)+peft('pe_temp','T° °C',68)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70);
+    h+=pef('pe_flujo','Flujo L/m',80)+peft('pe_temp','T° °C',68)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(['S/T','AVAPS','CPAP'].includes(modo)){
-    h+=pef('pe_ipap','IPAP',65)+pef('pe_epap','EPAP',65)+pef('pe_fr','FR rpm',70)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70);
+    h+=pef('pe_ipap','IPAP',65)+pef('pe_epap','EPAP',65)+pef('pe_fr','FR rpm',70)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   }
   h+='</div>'; b.innerHTML=h;
   // FiO2 estimada para oxigenoterapia convencional
