@@ -1533,6 +1533,9 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <div id="dPVENoRama" class="hidden" style="padding:8px 10px;background:#fff5f5;border:1px solid #fca5a5;border-radius:7px;margin-bottom:6px;">
                   <label style="font-size:.7rem;font-weight:700;color:#b91c1c;display:block;margin-bottom:6px;">Tipo de extubación:</label>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 12px;border-radius:6px;border:1px solid #cbd5e1;background:#f8fafc;">
+                      <input type="radio" name="extTipo" value="sin_condiciones" onchange="hExtTipo()"> 🚫 Sin condiciones de PVE
+                    </label>
                     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 12px;border-radius:6px;border:1px solid #fde68a;background:#fffbeb;">
                       <input type="radio" name="extTipo" value="sin_protocolo" onchange="hExtTipo()"> ⚠️ Sin protocolo
                     </label>
@@ -1543,6 +1546,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                       <input type="radio" name="extTipo" value="accidental" onchange="hExtTipo()"> ⚡ Accidental
                     </label>
                   </div>
+                  <!-- Campos de extubación: solo si NO es sin_condiciones -->
+                  <div id="dExtNoDetalle" class="hidden">
                   <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
                     <label style="font-size:.72rem;font-weight:700;color:#b91c1c;white-space:nowrap;">Hora extubación:</label>
                     <input type="time" id="fExtHoraNo" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;">
@@ -1596,6 +1601,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                       ℹ️ El texto generado tomará TOT, modo y parámetros desde <strong>Terapia Ventilatoria</strong> ↑
                     </div>
                   </div>
+                  </div><!-- /dExtNoDetalle -->
                 </div>
 
                 <!-- hidden para compatibilidad guardar() -->
@@ -4062,7 +4068,9 @@ function genTexto() {
       }
     } else {
       // Rama NO PVE
-      if(_et==='autoextubacion'){
+      if(_et==='sin_condiciones'){
+        L.push('Paciente sin condiciones para realización de PVE en este turno. Continúa con soporte ventilatorio.');
+      } else if(_et==='autoextubacion'){
         let _etxt=`Paciente se autoextuba${_horaTxt}`;
         if(_mot) _etxt+=`. ${_mot}`;
         L.push(_etxt+'.');
@@ -4885,6 +4893,7 @@ function _pveCleanSi(){
 }
 function _pveCleanNo(){
   document.querySelectorAll('input[name="extTipo"]').forEach(r=>r.checked=false);
+  hide('dExtNoDetalle');
   const h=$('fExtHoraNo'); if(h) h.value='';
   const m=$('fExtMotivo'); if(m) m.value='';
   const cr=$('cReintubNo'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDetNo'); }
@@ -4919,7 +4928,11 @@ function hReintubCheck(){
   }
 }
 function hExtProg(){ /* legacy — reemplazado por hPVEtoggle */ }
-function hExtTipo(){ /* rama NO PVE: solo registra el radio, no necesita show/hide adicional */ }
+function hExtTipo(){
+  const t=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+  if(t==='sin_condiciones'){ hide('dExtNoDetalle'); }
+  else { show('dExtNoDetalle'); }
+}
 function hExtQueda(){}
 function hReintubCheckNo(){
   const checked=$('cReintubNo')?.checked;
@@ -5013,7 +5026,10 @@ function peSop(){ return (_PE_META[v('peModo')]||{}).sop||'Ambiente'; }
 function _extOcurrio(){
   const pve=v('fPVEval');
   if(pve==='si') return document.querySelector('input[name="pveRes"]:checked')?.value==='superada';
-  if(pve==='no') return !!document.querySelector('input[name="extTipo"]:checked')?.value;
+  if(pve==='no'){
+    const et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+    return !!et && et!=='sin_condiciones';
+  }
   return false;
 }
 function _extHora(){ return v('fPVEval')==='si'?v('fExtHora'):v('fExtHoraNo'); }
