@@ -3820,9 +3820,10 @@ function genTexto() {
       let _qtxt=_peModo==='Ambiente'?'Paciente queda en vía aérea natural sin soporte'
                :['S/T','AVAPS','CPAP'].includes(_peModo)?`Paciente queda con VNI modo ${_peModo}`
                :_peModo==='CNAF'?'Paciente queda con CNAF'
+               :_peModo==='MMV'?'Paciente queda con mascarilla de Venturi (MMV)'
                :`Paciente queda con oxigenoterapia ${_peModo}`;
-      const _spo2pe=v('pe_spo2'),_frpe=v('pe_fr'),_lit=v('pe_litros'),_fl=v('pe_flujo');
-      if(_lit) _qtxt+=` ${_lit} L/min`; if(_fl) _qtxt+=` flujo ${_fl} L/min`;
+      const _spo2pe=v('pe_spo2'),_frpe=v('pe_fr'),_lit=v('pe_litros'),_fl=v('pe_flujo'),_fio2pe=v('pe_fio2');
+      if(_fio2pe) _qtxt+=` FiO2 ${_fio2pe}%`; if(_lit) _qtxt+=` ${_lit} L/min`; if(_fl) _qtxt+=` flujo ${_fl} L/min`;
       if(_spo2pe) _qtxt+=`, SpO2 ${_spo2pe}%`; if(_frpe) _qtxt+=`, FR ${_frpe} rpm`;
       L.push(_qtxt+'.');
     }
@@ -4425,7 +4426,10 @@ function renderParamsPE(){
   let h='<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:4px;">';
   if(modo==='Ambiente'){
     h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70);
-  } else if(['NRC','MMV','Mascarilla'].includes(modo)){
+  } else if(modo==='MMV'){
+    h+=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">FiO2 prog. %</label><select id="pe_fio2" style="height:30px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;width:80px;"><option value="">--</option><option>24</option><option>26</option><option>28</option><option>30</option><option>35</option><option>40</option><option>60</option></select></div>`;
+    h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70);
+  } else if(['NRC','Mascarilla'].includes(modo)){
     h+=pef('pe_litros','Litros L/m',85)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_fio2calc','FiO2~');
   } else if(modo==='CNAF'){
     h+=pef('pe_flujo','Flujo L/m',80)+peft('pe_temp','T° °C',68)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70);
