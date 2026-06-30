@@ -1499,29 +1499,29 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     </div>
                     <input type="text" id="fExtMotivo" placeholder="Circunstancias..." style="height:28px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;background:#fff;">
                   </div>
-                  <!-- Queda con (dispositivo post-extubación) -->
+                  <!-- Soporte PE (post-extubación) -->
                   <div style="margin-bottom:8px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
-                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:6px;letter-spacing:.04em;">✅ Queda con</div>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
-                      <select id="fExtQueda" onchange="hExtQueda()" style="height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;background:#fff;flex:1;min-width:150px;">
-                        <option value="">— Seleccionar dispositivo —</option>
-                        <option value="Mascarilla de oxígeno">Mascarilla O₂</option>
-                        <option value="Nasal de alto flujo (OAF)">OAF / Optiflow</option>
-                        <option value="Cánula nasal">Cánula nasal</option>
-                        <option value="Tubo en T">Tubo en T</option>
-                        <option value="VNI">VNI (BiPAP/CPAP)</option>
-                        <option value="Ambiente">Ambiente</option>
-                      </select>
-                      <div style="display:flex;align-items:center;gap:4px;">
-                        <label style="font-size:.68rem;color:#15803d;font-weight:700;">Flujo/FiO₂</label>
-                        <input type="text" id="fExtFlujo" placeholder="ej: 4 L/min" style="width:90px;height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 7px;background:#fff;">
+                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:8px;letter-spacing:.04em;">✅ Soporte PE</div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+                      <div style="display:flex;align-items:center;gap:5px;">
+                        <label style="font-size:.68rem;font-weight:700;color:#15803d;">VÍA AÉREA</label>
+                        <select id="peVA" onchange="cascadePEVA()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;background:#fff;">
+                          <option value="Natural">Natural</option>
+                          <option value="Full Face">Full Face</option>
+                          <option value="Oronasal">Oronasal</option>
+                        </select>
                       </div>
-                      <div style="display:flex;align-items:center;gap:4px;">
-                        <label style="font-size:.68rem;color:#15803d;font-weight:700;">SpO₂%</label>
-                        <input type="number" id="fExtSpo2" placeholder="95" style="width:60px;height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 7px;background:#fff;">
+                      <div style="display:flex;align-items:center;gap:5px;">
+                        <label style="font-size:.68rem;font-weight:700;color:#15803d;">SOPORTE</label>
+                        <select id="peSop" onchange="cascadePESop()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;background:#fff;"></select>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:5px;">
+                        <label style="font-size:.68rem;font-weight:700;color:#15803d;">MODO</label>
+                        <select id="peModo" onchange="renderParamsPE()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;background:#fff;"></select>
                       </div>
                     </div>
-                    <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;">
+                    <div id="peParamsBox"></div>
+                    <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;margin-top:6px;">
                       💡 El siguiente turno evolucionará desde este estado
                     </div>
                   </div>
@@ -2146,7 +2146,7 @@ function renderGrid() {
 
 //  TABLA PACIENTES
 function sBadge(s) {
-  const m={'VM':'bs-VM','VNI':'bs-VNI','CNAF':'bs-CNAF','Oxigenoterapia':'bs-Ox'};
+  const m={'VM':'bs-VM','VNI':'bs-VNI','CNAF':'bs-CNAF','Oxigenoterapia/OAF':'bs-Ox'};
   return `<span class="bs ${m[s]||'bs-def'}">${s||'-'}</span>`;
 }
 function kBadge(c) {
@@ -2782,7 +2782,7 @@ function guardar() {
     FECHA_INICIO_VNI:  (()=>{
       const va=v('fVA');
       // Si hubo extubación/decanulación y el paciente quedó con VNI, el siguiente turno inicia VNI
-      const extVNI=['Full Face','Oronasal','VNI'].includes(v('fExtQueda')||'');
+      const extVNI=['Full Face','Oronasal'].includes(v('peVA')||'');
       const decanVNI=['Full Face','Oronasal','VNI'].includes(v('fDecanQueda')||'');
       if((($('cExtOcurrio')?.checked&&!$('cReintub')?.checked&&extVNI)||
           ($('cDecanOcurrio')?.checked&&!$('cRecanul')?.checked&&decanVNI)))
@@ -2856,17 +2856,17 @@ function guardar() {
     EXT_MOTIVO:      v('fExtMotivo'),
     EXT_POST_DET:    v('fPostExtDet'),
     EXT_REINTUB:     $('cReintub')?.checked||false,
-    EXT_QUEDA_DISP:  v('fExtQueda'),
-    EXT_QUEDA_FLUJO: v('fExtFlujo'),
-    EXT_QUEDA_SPO2:  v('fExtSpo2'),
+    EXT_PE_VA:       v('peVA'),
+    EXT_PE_SOP:      v('peSop'),
+    EXT_PE_MODO:     v('peModo'),
     // ★ Estado FINAL de VA: extubación o decanulación sin re-intubación/re-canulación
-    VENT_VIA_AEREA_FINAL: ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('fExtQueda')||'')
+    VENT_VIA_AEREA_FINAL: ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('peVA')||'Natural')
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'Natural')
                         : v('fVA'),
-    VENT_SOPORTE_FINAL:   ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? 'Oxigenoterapia'
-                        : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? 'Oxigenoterapia'
+    VENT_SOPORTE_FINAL:   ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('peSop')||'Oxigenoterapia/OAF')
+                        : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? 'Oxigenoterapia/OAF'
                         : v('fSop'),
-    VENT_MODO_FINAL:      ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('fExtQueda')||'')
+    VENT_MODO_FINAL:      ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('peModo')||'')
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'')
                         : v('fModo'),
     PROC_JSON: (function(){
@@ -3721,7 +3721,7 @@ function genTexto() {
     L.push(`En cánula nasal de alto flujo${_humid?' con humidificación activa':''}.`);
     const _pb=_pjoin([fl?`Flujo ${fl} L/min`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null, _numTxt('l_irox')?`índice ROX ${_numTxt('l_irox')}`:null]);
     if(_pb) L.push(`Terapia ventilatoria CNAF: ${_pb}.`);
-  } else if(sop==='Oxigenoterapia'){
+  } else if(sop==='Oxigenoterapia/OAF'){
     const _lit=_np('r_litros');
     L.push(`En oxigenoterapia${modo&&modo!=='Sin soporte'?(modo==='Tubo T'?' mediante tubo en T':' por '+modo.toLowerCase()):''}.`);
     const _pb=_pjoin([_lit?`${_lit} L/min`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null]);
@@ -3798,7 +3798,8 @@ function genTexto() {
     const _mot=v('fExtMotivo');
     const _post=v('fPostExtDet');
     const _reint=$('cReintub')?.checked;
-    const _queda=v('fExtQueda'), _flujo=v('fExtFlujo'), _spo2ext=v('fExtSpo2');
+    const _peVA=v('peVA'), _peSop=v('peSop'), _peModo=v('peModo');
+    const _peSpo2=v('pe_spo2')||v('pe_fr')?`SpO2 ${v('pe_spo2')||''}%`.trim():'';
     if(_prog==='no_programada'){
       const _tnp=_et==='autoextubacion'?'autoextubación':'extubación accidental';
       let _etxt=`Paciente presenta ${_tnp}`;
@@ -3819,10 +3820,12 @@ function genTexto() {
         L.push('Se realiza extubación programada.');
       }
     }
-    if(_queda&&!_reint){
-      let _qtxt=`Paciente queda con ${_queda}`;
-      if(_flujo) _qtxt+=` (${_flujo})`;
-      if(_spo2ext) _qtxt+=`, SpO2 ${_spo2ext}%`;
+    if(_peVA&&!_reint){
+      let _qtxt=`Paciente queda en ${_peVA==='Natural'?'vía aérea natural':_peVA.toLowerCase()}`;
+      if(_peSop&&_peSop!=='Ambiente') _qtxt+=` con ${_peSop}`;
+      if(_peModo&&_peModo!=='Sin soporte') _qtxt+=` modo ${_peModo}`;
+      const _spo2pe=v('pe_spo2'); if(_spo2pe) _qtxt+=`, SpO2 ${_spo2pe}%`;
+      const _frpe=v('pe_fr'); if(_frpe) _qtxt+=`, FR ${_frpe} rpm`;
       L.push(_qtxt+'.');
     }
     if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
@@ -3980,9 +3983,9 @@ function autoCoopera(){
 //  Antes el orden tenía Oxigenoterapia primero en TOT/TQT, y al ingresar
 //  un paciente nuevo el form ponía "Oxigenoterapia" como soporte default.
 const VMAPS={
-  'Natural':  {sops:['Ambiente','Oxigenoterapia'],  modos:{'Ambiente':['Sin soporte'],'Oxigenoterapia':['NRC','MMV','Mascarilla']}},
-  'TOT':      {sops:['VM','Oxigenoterapia'],         modos:{'VM':['ACVC','ACPC','CPAP/PS'],'Oxigenoterapia':['HME','Tubo T','CNAF']}},
-  'TQT':      {sops:['VM','Oxigenoterapia'],         modos:{'VM':['ACVC','ACPC','CPAP/PS','CPAP','S/T','AVAPS','CFLEX'],'Oxigenoterapia':['HME','Tubo T','OAF/CTAF','CNAF']}},
+  'Natural':  {sops:['Ambiente','Oxigenoterapia/OAF'],  modos:{'Ambiente':['Sin soporte'],'Oxigenoterapia/OAF':['NRC','MMV','Mascarilla','CNAF']}},
+  'TOT':      {sops:['VM','Oxigenoterapia/OAF'],         modos:{'VM':['ACVC','ACPC','CPAP/PS'],'Oxigenoterapia/OAF':['HME','Tubo T','CNAF']}},
+  'TQT':      {sops:['VM','Oxigenoterapia/OAF'],         modos:{'VM':['ACVC','ACPC','CPAP/PS','CPAP','S/T','AVAPS','CFLEX'],'Oxigenoterapia/OAF':['HME','Tubo T','OAF/CTAF','CNAF']}},
   'Full Face':{sops:['VNI'],                          modos:{'VNI':['S/T','AVAPS','CPAP']}},
   'Oronasal': {sops:['VNI'],                          modos:{'VNI':['S/T','AVAPS','CPAP']}},
 };
@@ -4403,6 +4406,37 @@ function hExtTipo(){
   if(t==='sin_protocolo') show('dExtSinProt');
 }
 function hExtQueda(){}
+const PE_VMAPS={
+  'Natural':  {sops:['Ambiente','Oxigenoterapia/OAF'], modos:{'Ambiente':['Sin soporte'],'Oxigenoterapia/OAF':['NRC','MMV','Mascarilla','CNAF']}},
+  'Full Face':{sops:['VNI'],                            modos:{'VNI':['S/T','AVAPS','CPAP']}},
+  'Oronasal': {sops:['VNI'],                            modos:{'VNI':['S/T','AVAPS','CPAP']}},
+};
+function cascadePEVA(){
+  const va=v('peVA'); const r=PE_VMAPS[va]||PE_VMAPS['Natural'];
+  poblar('peSop',r.sops); cascadePESop();
+}
+function cascadePESop(){
+  const va=v('peVA'); const sop=v('peSop');
+  const r=PE_VMAPS[va]||PE_VMAPS['Natural'];
+  poblar('peModo',r.modos[sop]||['Sin soporte']); renderParamsPE();
+}
+function renderParamsPE(){
+  const b=$('peParamsBox'); if(!b) return;
+  const modo=v('peModo'), sop=v('peSop');
+  const pef=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><label style="font-size:.65rem;">${lbl}</label><input type="number" id="${id}" oninput="" style="height:30px;font-size:.82rem;"></div>`;
+  let h='<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:4px;">';
+  if(modo==='CNAF'||modo==='OAF/CTAF'){
+    h+=pef('pe_flujo','Flujo L/m',75)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70);
+  } else if(sop==='VNI'){
+    h+=pef('pe_ipap','IPAP',65)+pef('pe_epap','EPAP',65)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70);
+  } else if(sop==='Oxigenoterapia/OAF'){
+    h+=pef('pe_litros','Litros L/m',80)+pef('pe_spo2','SpO2 %',70);
+  } else {
+    h+=pef('pe_spo2','SpO2 %',70)+pef('pe_fr','FR rpm',70);
+  }
+  h+='</div>'; b.innerHTML=h;
+}
+(function _initPE(){ cascadePEVA(); })();
 function hKTM(q){ setKTMstate(q); }
 function setKTMstate(q){
   const r = q==='r', s = q==='s', n = q==='n';
