@@ -4106,8 +4106,17 @@ const fld=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><la
 const mon=(id,lbl,y=false)=>`<div class="mon${y?' mon-y':''}" style="height:35px;min-width:68px;"><span style="font-size:.58rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.82rem;">--</span></div>`;
 const lbl=txt=>`<div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--resp);margin:8px 0 4px;padding-bottom:2px;border-bottom:1px solid #bae6fd;">${txt}</div>`;
 
-const _UMA_TIP='+ Tiraje subcostal · ++ Tiraje supraesternal · +++ + Espiración forzada';
-const _umaFld=()=>`<div class="col" style="flex-grow:0;"><label>UMA</label><div style="display:flex;align-items:center;gap:4px;"><select id="r_uma" style="height:35px;width:60px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option><option>+</option><option>++</option><option>+++</option></select><span class="interp-tip interp-leve" data-tip="${_UMA_TIP}" style="font-size:.75rem;">ⓘ</span></div></div>`;
+const _UMA_TIPS={'':'Sin uso de musculaturas accesorias','+':'Tiraje subcostal','++':'Tiraje supraesternal','+++':'Tiraje supraesternal + espiración forzada'};
+const _UMA_CLS={'':'interp-ok','+':'interp-leve','++':'interp-mod','+++':'interp-sev'};
+function hUMA(){
+  const sel=$('r_uma'); const tip=$('umatip'); if(!sel||!tip) return;
+  const v=sel.value;
+  tip.setAttribute('data-tip',_UMA_TIPS[v]||'');
+  tip.classList.remove(..._INTERP_CLASSES);
+  tip.classList.add(_UMA_CLS[v]||'interp-ok');
+  tip.textContent=v?'ⓘ':'ⓘ';
+}
+const _umaFld=()=>`<div class="col" style="flex-grow:0;"><label>UMA</label><div style="display:flex;align-items:center;gap:4px;"><select id="r_uma" onchange="hUMA()" style="height:35px;width:60px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option><option>+</option><option>++</option><option>+++</option></select><span id="umatip" class="interp-tip interp-ok" data-tip="${_UMA_TIPS['']}" style="font-size:.75rem;">ⓘ</span></div></div>`;
 const _humChk=(haAdapt)=>{
   const humVal=($('cHAct')&&$('cHAct').checked)||false;
   const adaptVal=($('cAdapt')&&$('cAdapt').checked)||true;
@@ -4164,7 +4173,7 @@ function renderParams() {
   } else {
     h+=`<div class="row">${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
   }
-  b.innerHTML=h; calcResp();
+  b.innerHTML=h; calcResp(); hUMA();
 }
 
 //  HANDLERS UI
