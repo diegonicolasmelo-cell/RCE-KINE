@@ -443,6 +443,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ti-chip:hover{background:#bae6fd;}
 .ti-chip.violet{border-color:#c4b5fd;background:#ede9fe;color:#5b21b6;}
 .ti-chip.violet:hover{background:#c4b5fd;}
+.secr-qty{transition:background .12s,border-color .12s;}
+.secr-qty.active{background:#0ea5e9!important;border-color:#0284c7!important;color:#fff!important;font-weight:700;}
+.secr-qty[data-tip]{position:relative;}
+.secr-qty[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1e293b;color:#f8fafc;font-size:.68rem;white-space:nowrap;padding:3px 8px;border-radius:5px;pointer-events:none;z-index:999;}
 #minTray{position:fixed;bottom:20px;left:20px;z-index:200;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none;}
 .min-pill{background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1px solid #1e5a8f;transition:background .2s;display:flex;align-items:center;gap:8px;pointer-events:all;}
 .min-pill:hover{background:#1e5a8f;}
@@ -1561,50 +1565,95 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             <!-- Manejo respiratorio -->
             <div class="sub-sec">
               <div class="sub-sec-title" style="color:var(--resp);margin-bottom:8px;">🫁 Manejo Respiratorio</div>
-              <!-- Técnicas con número -->
-              <div class="row" style="align-items:flex-end;flex-wrap:wrap;">
-                <div class="col ws"><label title="Kinesiterapia Respiratoria">KTR</label>
-                  <select id="fKTRcnt" style="width:65px;">
+
+              <!-- KTR + Sin requerimientos -->
+              <div class="row" style="align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+                <div class="col ws">
+                  <label title="Kinesiterapia Respiratoria" style="font-size:.72rem;font-weight:700;">KTR Sesiones</label>
+                  <select id="fKTRcnt" style="width:70px;height:30px;font-size:.82rem;">
                     <option value="0">0</option><option>1</option><option>2</option><option>3</option>
                     <option>4</option><option>5</option><option>6</option><option>7</option><option>8</option>
-                  </select></div>
-                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cSOF"><label for="cSOF" title="Succión Orofaríngea">SOF</label></div>
-                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cSNF"><label for="cSNF" title="Succión Nasofaríngea">SNF</label></div>
-                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cSET"><label for="cSET" title="Succión Endotraqueal">SET</label></div>
-                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;"><input type="checkbox" id="cATos"><label for="cATos">A.Tos</label></div>
-                <div class="check wa" style="align-self:flex-end;margin-bottom:6px;">
-                  <input type="checkbox" id="cInhalo"><label for="cInhalo">💊 Inhaloterapia <span style="font-size:.68rem;color:var(--muted);">(SOS)</span></label>
+                    <option>9</option><option>10</option>
+                  </select>
+                </div>
+                <div id="dSinKTR" class="hidden check wa" style="align-self:flex-end;margin-bottom:3px;">
+                  <input type="checkbox" id="cSinKTR"><label for="cSinKTR" style="color:var(--muted);">Sin requerimientos KTR</label>
                 </div>
               </div>
-              <!-- Secreciones -->
-              <div style="margin-top:8px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;">
-                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:var(--resp);margin-bottom:8px;letter-spacing:.04em;">💧 Secreciones</div>
-                <div style="margin-bottom:6px;">
-                  <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;">Características</label>
-                  <div class="ti-presets">
-                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','mucosa escasa')">mucosa +</span>
-                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','mucosa moderada')">mucosa ++</span>
-                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','mucosa abundante')">mucosa +++</span>
-                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','mucopurulenta moderada')">mucopurul ++</span>
-                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','purulenta moderada')">purulenta ++</span>
-                    <span class="ti-chip" onclick="tiAddChip('fSecrTags','fSecrVal','sky','hemática')">hemática</span>
-                  </div>
-                  <div class="ti-wrap sky" onclick="document.getElementById('fSecrInput').focus()">
-                    <div id="fSecrTags" style="display:contents;"></div>
-                    <input id="fSecrInput" class="ti-input" type="text" placeholder="Otro… + Enter">
-                  </div>
-                  <input type="hidden" id="fSecrVal">
+
+              <!-- Permeabilización de vía aérea -->
+              <div style="margin-bottom:8px;padding:7px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;">
+                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#0369a1;margin-bottom:6px;letter-spacing:.04em;">Permeabilización de vía aérea</div>
+                <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center;">
+                  <div class="check wa"><input type="checkbox" id="cSOF"><label for="cSOF" title="Succión Orofaríngea">SOF</label></div>
+                  <div class="check wa"><input type="checkbox" id="cSNF"><label for="cSNF" title="Succión Nasofaríngea">SNF</label></div>
+                  <div class="check wa"><input type="checkbox" id="cSET"><label for="cSET" title="Succión Endotraqueal">SET</label></div>
+                  <div class="check wa"><input type="checkbox" id="cATos"><label for="cATos" title="Asistencia de tos">A. Tos</label></div>
                 </div>
-                <div class="check wa" style="margin-bottom:6px;">
+              </div>
+
+              <!-- Secreciones -->
+              <div style="margin-bottom:8px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;">
+                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:var(--resp);margin-bottom:7px;letter-spacing:.04em;">💧 Secreciones</div>
+                <!-- Reología -->
+                <div style="margin-bottom:6px;">
+                  <label style="font-size:.68rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;">REOLOGÍA</label>
+                  <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                    <select id="fSecrReol" style="height:28px;font-size:.78rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 6px;flex:1;min-width:160px;">
+                      <option value="">-- Reología --</option>
+                      <option>Mucosas</option>
+                      <option>Mucopurulentas</option>
+                      <option>Purulentas</option>
+                      <option>Mucohemáticas</option>
+                      <option>Hemopurulentas</option>
+                      <option>Mucopurulentas con tinte hemático</option>
+                      <option>Mucosas con tinte hemático</option>
+                      <option>Herrumbrosas</option>
+                      <option>Carbonizadas</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Características + Cantidad en fila -->
+                <div class="row" style="gap:8px;align-items:flex-end;margin-bottom:6px;">
+                  <div class="col" style="flex:1;">
+                    <label style="font-size:.68rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px;">CARACTERÍSTICAS</label>
+                    <select id="fSecrCar" style="height:28px;font-size:.78rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 6px;width:100%;">
+                      <option value="">-- Características --</option>
+                      <option>Fluidas</option>
+                      <option>Ligosas</option>
+                      <option>Adherentes</option>
+                    </select>
+                  </div>
+                  <div class="col" style="flex-grow:0;">
+                    <label style="font-size:.68rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px;">CANTIDAD</label>
+                    <div style="display:flex;gap:4px;">
+                      <button type="button" class="secr-qty" id="sqBtn0" onclick="hSecrQty('')"    data-tip="Sin secreciones"  style="width:32px;height:28px;border:1px solid #cbd5e1;border-radius:5px;font-size:.8rem;background:#f8fafc;cursor:pointer;">−</button>
+                      <button type="button" class="secr-qty" id="sqBtn1" onclick="hSecrQty('+')"   data-tip="Escasas"          style="width:32px;height:28px;border:1px solid #cbd5e1;border-radius:5px;font-size:.8rem;background:#f8fafc;cursor:pointer;">+</button>
+                      <button type="button" class="secr-qty" id="sqBtn2" onclick="hSecrQty('++')"  data-tip="Moderadas"        style="width:32px;height:28px;border:1px solid #cbd5e1;border-radius:5px;font-size:.8rem;background:#f8fafc;cursor:pointer;">++</button>
+                      <button type="button" class="secr-qty" id="sqBtn3" onclick="hSecrQty('+++')" data-tip="Abundantes"       style="width:32px;height:28px;border:1px solid #cbd5e1;border-radius:5px;font-size:.8rem;background:#f8fafc;cursor:pointer;">+++</button>
+                    </div>
+                  </div>
+                </div>
+                <input type="hidden" id="fSecrQty" value="">
+                <!-- Cultivo -->
+                <div class="check wa" style="margin-top:4px;margin-bottom:4px;">
                   <input type="checkbox" id="cMue" onchange="hMue()"><label for="cMue">🧪 Cultivo</label>
                 </div>
-                <div id="dMue" class="hidden fade" style="margin-top:7px;padding:7px 9px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;">
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-                    <div class="check wa"><input type="checkbox" name="mtest" value="CCAET"><label title="Cultivo corriente aspirado endotraqueal">CCAET</label></div>
-                    <div class="check wa"><input type="checkbox" name="mtest" value="Mini Lab"><label>Mini Lab</label></div>
-                    <div class="check wa"><input type="checkbox" name="mtest" value="Hisopado COVID-19"><label>COVID-19</label></div>
+                <div id="dMue" class="hidden fade" style="margin-top:6px;padding:7px 9px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;">
+                  <div style="font-size:.68rem;font-weight:700;color:#7c3aed;margin-bottom:6px;">Técnica</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                    <div class="check wa"><input type="checkbox" name="mtest" value="CCAET" onchange="hCultTec(this)"><label title="Cultivo corriente aspirado endotraqueal">CCAET</label></div>
+                    <div class="check wa"><input type="checkbox" name="mtest" value="Mini Lab" onchange="hCultTec(this)"><label>Mini Lab</label></div>
+                    <div class="check wa"><input type="checkbox" name="mtest" value="Hisopado" onchange="hCultTec(this)"><label>Hisopado</label></div>
                   </div>
-                  <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:6px;">Resultado(s)</div>
+                  <!-- Objetivo MiniLab/Hisopado -->
+                  <div id="dCultObj" class="hidden" style="margin-bottom:7px;">
+                    <label style="font-size:.68rem;font-weight:700;color:#7c3aed;display:block;margin-bottom:3px;">Objetivo búsqueda</label>
+                    <input type="text" id="fCultObj" placeholder="PCR jirovecii, TBC, COVID-19…" style="height:28px;font-size:.78rem;border:1px solid #e9d5ff;border-radius:5px;padding:0 8px;width:100%;">
+                  </div>
+                  <!-- Fechas de toma (read-only, se setean automático) -->
+                  <div id="dCultFechas" style="font-size:.7rem;color:#7c3aed;margin-bottom:6px;display:none;"></div>
+                  <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:4px;">Resultado(s)</div>
                   <div class="ti-wrap violet" onclick="document.getElementById('fCultInput').focus()">
                     <div id="fCultTags" style="display:contents;"></div>
                     <input id="fCultInput" class="ti-input" type="text" placeholder="Microorganismo… + Enter"
@@ -1613,6 +1662,46 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <input type="hidden" id="fCultVal">
                 </div>
               </div>
+
+              <!-- Inhaloterapia -->
+              <div class="row" style="margin-bottom:8px;">
+                <div class="check wa"><input type="checkbox" id="cInhalo"><label for="cInhalo">💊 Inhaloterapia <span style="font-size:.68rem;color:var(--muted);">(SOS)</span></label></div>
+              </div>
+
+              <!-- Posicionamiento (colapsable) -->
+              <div style="border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;">
+                <button type="button" id="bPosToggle" onclick="hPosToggle()" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f8fafc;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#475569;">
+                  <span>📐 Posicionamiento</span>
+                  <span id="sPosResumen" style="font-size:.7rem;color:var(--muted);font-weight:400;max-width:65%;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+                  <span id="sPosArrow" style="font-size:.7rem;margin-left:4px;">▼</span>
+                </button>
+                <div id="dPosBody" class="hidden" style="padding:8px 10px;background:#fff;">
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <div class="check wa"><input type="checkbox" id="cPosSed" onchange="hPos()"><label for="cPosSed">Sedente &gt;45°</label></div>
+                    <div class="check wa"><input type="checkbox" id="cPosDCLD" onchange="hPos()"><label for="cPosDCLD">DCL D</label></div>
+                    <div class="check wa"><input type="checkbox" id="cPosDCLI" onchange="hPos()"><label for="cPosDCLI">DCL I</label></div>
+                    <div class="check wa"><input type="checkbox" id="cProno" onchange="hPosEspecial('prono')"><label for="cProno">Prono</label></div>
+                    <div id="dPronoHora" class="hidden" style="display:inline-flex;align-items:center;gap:3px;">
+                      <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
+                      <input type="time" id="fPronoHora" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
+                      <span id="sPronoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
+                    </div>
+                    <div class="check wa"><input type="checkbox" id="cSupino" onchange="hPosEspecial('supino')"><label for="cSupino">Supino</label></div>
+                    <div id="dSupinoHora" class="hidden" style="display:inline-flex;align-items:center;gap:3px;">
+                      <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
+                      <input type="time" id="fSupinoHora" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
+                      <span id="sSupinoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
+                    </div>
+                  </div>
+                  <div style="margin-top:6px;">
+                    <input type="text" id="fPosLibre" placeholder="Otro posicionamiento…" style="height:28px;font-size:.78rem;border:1px solid #e2e8f0;border-radius:5px;padding:0 8px;width:100%;">
+                  </div>
+                </div>
+              </div>
+              <!-- timestamps prono/supino (hidden, persisten) -->
+              <input type="hidden" id="fPronoTs" value="">
+              <input type="hidden" id="fSupinoTs" value="">
+              <input type="hidden" id="fCultFechas" value="">
             </div>
 
           </div>
@@ -2853,11 +2942,27 @@ function guardar() {
     KTM_INTERVENCIONES_JSON: JSON.stringify(Array.from(KTM_INTERV_SEL)),
     // ★ Respiratorio nuevos campos
     RESP_KTR_CANT:  v('fKTRcnt'),
+    RESP_SIN_KTR:   bv('cSinKTR'),
     RESP_SOF:       bv('cSOF'),
     RESP_SNF:       bv('cSNF'),
     RESP_SET:       bv('cSET'),
     RESP_ATOS:      bv('cATos'),
     RESP_INHALO:    bv('cInhalo'),
+    RESP_SECR_REOL: v('fSecrReol'),
+    RESP_SECR_CAR:  v('fSecrCar'),
+    RESP_SECR_QTY:  v('fSecrQty'),
+    RESP_POS_SED:   bv('cPosSed'),
+    RESP_POS_DCLD:  bv('cPosDCLD'),
+    RESP_POS_DCLI:  bv('cPosDCLI'),
+    RESP_POS_PRONO: bv('cProno'),
+    RESP_POS_SUPINO:bv('cSupino'),
+    RESP_POS_LIBRE: v('fPosLibre'),
+    RESP_PRONO_TS:  v('fPronoTs'),
+    RESP_SUPINO_TS: v('fSupinoTs'),
+    RESP_PRONO_HORA:v('fPronoHora'),
+    RESP_SUPINO_HORA:v('fSupinoHora'),
+    RESP_CULT_FECHAS:v('fCultFechas'),
+    RESP_CULT_OBJ:  v('fCultObj'),
     // ★ Evaluaciones funcionales por turno
     EVAL_T_REALIZAR: bv('cEvalT'),
     EVAL_T_MRC:      v('fMRCt'),
@@ -2894,6 +2999,8 @@ function guardar() {
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
+      if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
+      if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
       if($('cExtOcurrio')?.checked){
         const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
         if(_et==='protocolo')          auto.push('EXTUBACIÓN C/PROTOCOLO');
@@ -2910,6 +3017,8 @@ function guardar() {
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
+      if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
+      if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
       if($('cExtOcurrio')?.checked){
         const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
         if(_et==='protocolo') auto.push('EXTUBACIÓN C/PROTOCOLO');
@@ -2925,6 +3034,8 @@ function guardar() {
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
+      if($('cProno')?.checked) auto.push('PRONO');
+      if($('cSupino')?.checked) auto.push('SUPINACIÓN');
       if($('cExtOcurrio')?.checked){
         const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
         if(_et) auto.push('EXT');
@@ -3775,20 +3886,37 @@ function genTexto() {
     L.push(`KTM no realizada. ${gv('fKTMnoRaz')||'Sin especificar'}${gv('fKTMnoCom')?'. '+gv('fKTMnoCom'):''}.`);
   }
   // Manejo respiratorio
-  if($('cInhalo')?.checked) L.push('Se administra inhaloterapia según indicación médica (SOS).');
   (function(){
-    const ktr=parseInt(gv('fKTRcnt'))||0;
-    const procs=[];
-    if(ktr>0) procs.push(`KTR (${ktr})`);
-    if($('cSET')?.checked) procs.push('SET');
-    if($('cSOF')?.checked) procs.push('SOF');
-    if($('cSNF')?.checked) procs.push('SNF');
-    if($('cATos')?.checked) procs.push('asistencia de tos');
-    if(!procs.length) return;
-    let kline=procs.join(' + ');
-    const _secrT=v('fSecrVal');
-    if(_secrT) kline+=`: secreciones ${_secrT}`;
-    L.push(kline+'.');
+    if($('cSinKTR')?.checked){ L.push('Sin requerimientos de KTR en turno.'); return; }
+    const perm=[];
+    if($('cSET')?.checked) perm.push('SET');
+    if($('cSOF')?.checked) perm.push('SOF');
+    if($('cSNF')?.checked) perm.push('SNF');
+    if($('cATos')?.checked) perm.push('asistencia de tos');
+    // Secreciones
+    const reol=v('fSecrReol'), car=v('fSecrCar'), qty=v('fSecrQty');
+    const qtyMap={'':null,'+':'escasas','++':'moderadas','+++':'abundantes'};
+    const secrParts=[];
+    if(qty===''&&!reol) {} // sin secreciones declaradas
+    else if(qty==='') {} // solo reología sin cantidad
+    else { const qs=qty==='-'?'Sin secreciones':qtyMap[qty]; if(qs) secrParts.push(qs); }
+    if(reol) secrParts.push(reol.toLowerCase());
+    if(car) secrParts.push(car.toLowerCase());
+    const secrTxt=secrParts.length?`, secreciones ${secrParts.join(', ')}`:'';
+    // Línea principal permeabilización
+    if(perm.length) L.push(`Permeabilización de vía aérea mediante ${perm.join(' + ')}${secrTxt}.`);
+    else if(secrTxt) L.push(`Secreciones${secrTxt.replace(/^, /,'')}.`);
+    // Inhaloterapia
+    if($('cInhalo')?.checked) L.push('Se administra inhaloterapia según indicación médica (SOS).');
+    // Posicionamiento
+    const posArr=[];
+    if($('cPosSed')?.checked) posArr.push('Sedente >45°');
+    if($('cPosDCLD')?.checked) posArr.push('DCL D');
+    if($('cPosDCLI')?.checked) posArr.push('DCL I');
+    if($('cProno')?.checked){ const h=v('fPronoHora'); posArr.push(h?`Prono desde las ${h} hrs`:'Prono'); }
+    if($('cSupino')?.checked){ const h=v('fSupinoHora'); posArr.push(h?`Se supina a las ${h} hrs`:'Supino'); }
+    const lib=v('fPosLibre'); if(lib) posArr.push(lib);
+    if(posArr.length) L.push(`Posicionamiento: ${posArr.join(', ')}.`);
   })();
   // Cultivo de secreciones
   (function(){
@@ -3796,8 +3924,9 @@ function genTexto() {
     if(_res.length) L.push('Resultado de cultivo: '+_res.join(', ')+'.');
     if($('cMue')?.checked){
       const _tipos=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
+      const _obj=v('fCultObj');
       let _cline='Se toman muestras para cultivo';
-      if(_tipos.length) _cline+=' ('+_tipos.join(', ')+')';
+      if(_tipos.length) _cline+=' ('+_tipos.join(', ')+(_obj?` — ${_obj}`:'')+ ')';
       _cline+=', resultado pendiente.';
       L.push(_cline);
     }
@@ -3921,6 +4050,8 @@ function genTexto() {
     const auto=[];
     const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
     if(mu.length) auto.push('CULTIVO DE SECRECIONES');
+    if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
+    if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
     if($('cExtOcurrio')?.checked){
       const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
       if(_et==='protocolo')           auto.push('EXTUBACIÓN C/PROTOCOLO');
@@ -4172,9 +4303,8 @@ function cascadeSop(preModo) {
   const va=v('fVA'), sop=v('fSop'); const r=VMAPS[va]||VMAPS['Natural'];
   const modos=(r.modos&&r.modos[sop])||['Sin soporte'];
   poblar('fModo', modos, preModo); renderParams();
-  // Humidificación ahora se inyecta dentro de renderParams()
-  // Warning TQT + modo VNI se actualiza al cambiar modo también
   actualizarContadores();
+  _updateSinKTR();
 }
 function _showCol(id){ const el=$(id); if(el){el.classList.remove('hidden');el.style.display='flex';} }
 function _hideCol(id){ const el=$(id); if(el){el.classList.add('hidden');el.style.display='none';} }
@@ -4197,6 +4327,7 @@ function updateVAUI() {
   // VNI contador
   const vniTotal=_diasVNIPrevios+_diasVNIEpisodio;
   if(esVNI||vniTotal>0) _showCol('colDiasVNI'); else _hideCol('colDiasVNI');
+  _updateSinKTR();
 }
 
 //  PARÁMETROS VENTILATORIOS
@@ -4309,8 +4440,114 @@ function loadMP(str){
   if($('fMPVal')) $('fMPVal').value=str||'';
 }
 function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='Sin requerimientos'){show('wMultiDVA');if(m&&m.checked)show('gDVAcnt');else hide('gDVAcnt');}else{hide('wMultiDVA');if(m)m.checked=false;hide('gDVAcnt');}}
-function hSecr(){} // obsoleta — fSecrT ya no depende de fSecrC
+function hSecr(){}
 function hMue(){if($('cMue')?.checked)show('dMue');else hide('dMue');}
+
+// — Secreciones: cantidad con botones toggle —
+let _secrQty='';
+function hSecrQty(val){
+  _secrQty=(_secrQty===val)?'':val;
+  ['','+',' ++','+++'].forEach((_,i)=>{
+    const b=$('sqBtn'+i); if(b) b.classList.toggle('active',['','+','++','+++'][i]===_secrQty);
+  });
+  const h=$('fSecrQty'); if(h) h.value=_secrQty;
+}
+
+// — Posicionamiento colapsable —
+function hPosToggle(){
+  const body=$('dPosBody'), arrow=$('sPosArrow');
+  if(!body) return;
+  body.classList.toggle('hidden');
+  if(arrow) arrow.textContent=body.classList.contains('hidden')?'▼':'▲';
+}
+function hPos(){ _updatePosResumen(); }
+function _updatePosResumen(){
+  const parts=[];
+  if($('cPosSed')?.checked) parts.push('Sedente >45°');
+  if($('cPosDCLD')?.checked) parts.push('DCL D');
+  if($('cPosDCLI')?.checked) parts.push('DCL I');
+  if($('cProno')?.checked) parts.push('Prono');
+  if($('cSupino')?.checked) parts.push('Supino');
+  const lib=v('fPosLibre'); if(lib) parts.push(lib);
+  const el=$('sPosResumen'); if(el) el.textContent=parts.join(', ');
+}
+
+// — Prono/Supino: timestamps y tooltip de horas —
+let _pronoTs=0, _supinoTs=0;
+function hPosEspecial(tipo){
+  const checked=tipo==='prono'?$('cProno')?.checked:$('cSupino')?.checked;
+  if(tipo==='prono'){
+    show('dPronoHora'); hide('dSupinoHora');
+    if(checked){
+      if(!_pronoTs){ _pronoTs=Date.now(); const h=$('fPronoTs'); if(h) h.value=_pronoTs; }
+      if($('cSupino')) $('cSupino').checked=false;
+      _updatePronoTip();
+    } else {
+      _pronoTs=0; const h=$('fPronoTs'); if(h) h.value='';
+      hide('dPronoHora');
+    }
+  } else {
+    show('dSupinoHora'); hide('dPronoHora');
+    if(checked){
+      if(!_supinoTs){ _supinoTs=Date.now(); const h=$('fSupinoTs'); if(h) h.value=_supinoTs; }
+      if($('cProno')) $('cProno').checked=false;
+      _updateSupinoTip();
+    } else {
+      _supinoTs=0; const h=$('fSupinoTs'); if(h) h.value='';
+      hide('dSupinoHora');
+    }
+  }
+  hPos();
+}
+function _hrsStr(ms){ const h=Math.round(ms/3600000); return `${h} hr${h!==1?'s':''}`; }
+function _updatePronoTip(){
+  const tip=$('sPronoTip'); if(!tip||!_pronoTs) return;
+  const hrs=_hrsStr(Date.now()-_pronoTs);
+  tip.setAttribute('data-tip',`${hrs} en prono`);
+  tip.style.display='inline-flex';
+}
+function _updateSupinoTip(){
+  const tip=$('sSupinoTip'); if(!tip) return;
+  if(_pronoTs&&_supinoTs){
+    const hrs=_hrsStr(_supinoTs-_pronoTs);
+    tip.setAttribute('data-tip',`Ciclo prono cerrado: ${hrs}`);
+  } else if(_supinoTs){
+    const hrs=_hrsStr(Date.now()-_supinoTs);
+    tip.setAttribute('data-tip',`${hrs} en supino`);
+  }
+  tip.style.display='inline-flex';
+}
+// Refresca tips cada minuto mientras la página está abierta
+setInterval(()=>{ if(_pronoTs&&$('cProno')?.checked) _updatePronoTip(); },60000);
+
+// — Cultivo: técnica con objetivo condicional —
+function hCultTec(cb){
+  const tecs=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
+  const needObj=tecs.some(t=>['Mini Lab','Hisopado'].includes(t));
+  needObj?show('dCultObj'):hide('dCultObj');
+  // Primera vez que se marca: guardar fecha
+  if(cb?.checked){
+    const hoy=new Date().toLocaleDateString('es-CL');
+    let fechas={}; try{ fechas=JSON.parse(v('fCultFechas')||'{}'); }catch(e){}
+    if(!fechas[cb.value]){ fechas[cb.value]=hoy; const h=$('fCultFechas'); if(h) h.value=JSON.stringify(fechas); }
+    _renderCultFechas(fechas);
+  }
+}
+function _renderCultFechas(fechas){
+  const el=$('dCultFechas'); if(!el) return;
+  const entries=Object.entries(fechas);
+  if(!entries.length){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.innerHTML=entries.map(([t,f])=>`<span style="margin-right:8px;">📅 <strong>${t}</strong>: tomado el ${f}</span>`).join('');
+}
+
+// — Sin requerimientos KTR: visible solo con NRC/MMV/Ambiente —
+function _updateSinKTR(){
+  const modo=v('fModo')||'', sop=v('fSop')||'', va=v('fVA')||'Natural';
+  const sinKTRVisible=(va==='Natural'&&['Ambiente','NRC','MMV'].includes(modo));
+  sinKTRVisible?show('dSinKTR'):hide('dSinKTR');
+  if(!sinKTRVisible){ const c=$('cSinKTR'); if(c) c.checked=false; }
+}
 function addCultRes(){
   const c=document.createElement('div');
   c.className='cult-res-row';
