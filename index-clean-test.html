@@ -557,6 +557,12 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .iv-chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:14px;border:1px solid #e2e8f0;background:#f8fafc;font-size:.74rem;font-weight:600;color:#64748b;cursor:pointer;user-select:none;transition:all .15s;}
 .iv-chip:hover{border-color:#cbd5e1;}
 .iv-chip.on{background:var(--kine);color:#fff;border-color:var(--kine);}
+.ktm-niv-btn{min-width:36px;padding:5px 10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.82rem;font-weight:800;cursor:pointer;transition:all .15s;}
+.ktm-niv-btn:hover{border-color:#f59e0b;color:#b45309;}
+.ktm-niv-btn.on{background:var(--kine);border-color:var(--kine);color:#fff;}
+.ktm-asis-btn{padding:4px 11px;border-radius:14px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.74rem;font-weight:700;cursor:pointer;transition:all .15s;}
+.ktm-asis-btn:hover{border-color:var(--ac,#94a3b8);color:var(--ac,#475569);}
+.ktm-asis-btn.on{background:var(--ac,#64748b);border-color:var(--ac,#64748b);color:#fff;}
 .sub-sec{padding:8px 14px;border-bottom:1px solid var(--border);}
 .sub-sec:last-child{border-bottom:none;}
 .sub-sec-title{font-size:.67rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;color:var(--muted);}
@@ -1776,28 +1782,72 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 
               <!-- REALIZADA -->
               <div id="dKTMr" class="fade">
-                <div class="row">
-                  <div class="col grow"><label>Nivel KTM (protocolo)</label>
-                    <select id="fKTMniv" class="bold" onchange="onKTMnivChange()">
-                      <option value="1">1 — Protección muscular (no cooperador, S5Q≤3)</option>
-                      <option value="2">2 — Mínima asistencia para giro en cama</option>
-                      <option value="3" selected>3 — Mínima asistencia para sedente borde cama</option>
-                      <option value="4">4 — Mínima asistencia para bípedo</option>
-                      <option value="5">5 — Mínima asistencia para marcha</option>
-                    </select></div>
-                  <div class="col ws"><label>Tiempo (min)</label><input type="number" id="fKTMt" placeholder="30"></div>
-                  <div class="check cp wa"><input type="checkbox" id="cUMA" onchange="if(this.checked)show('dUMA');else hide('dUMA');"><label for="cUMA">UMA</label></div>
-                  <div id="dUMA" class="col ws hidden"><label>Resultado</label>
-                    <select id="fUMA"><option value="+">+</option><option value="-">-</option></select></div>
+
+                <!-- Nivel 1–5 como pills -->
+                <div style="margin-bottom:8px;">
+                  <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:5px;">Nivel KTM</label>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                    <button type="button" class="ktm-niv-btn" data-niv="1" onclick="setKTMniv('1')">1</button>
+                    <button type="button" class="ktm-niv-btn" data-niv="2" onclick="setKTMniv('2')">2</button>
+                    <button type="button" class="ktm-niv-btn" data-niv="3" onclick="setKTMniv('3')">3</button>
+                    <button type="button" class="ktm-niv-btn" data-niv="4" onclick="setKTMniv('4')">4</button>
+                    <button type="button" class="ktm-niv-btn" data-niv="5" onclick="setKTMniv('5')">5</button>
+                  </div>
+                  <div id="ktmNivDesc" style="font-size:.7rem;color:var(--muted);margin-top:4px;min-height:1.2em;"></div>
+                  <input type="hidden" id="fKTMniv">
                 </div>
-                <div style="margin-top:8px;">
-                  <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);">Tipo de intervención (según nivel)</label>
-                  <div id="ktmInterv" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;"></div>
+
+                <!-- Nivel de asistencia -->
+                <div id="dKTMasis" class="hidden" style="margin-bottom:8px;">
+                  <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:5px;">Nivel de asistencia</label>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                    <button type="button" class="ktm-asis-btn" data-asis="Independiente"  onclick="setKTMasis('Independiente')" style="--ac:#16a34a;">Independiente</button>
+                    <button type="button" class="ktm-asis-btn" data-asis="Supervisado"    onclick="setKTMasis('Supervisado')"   style="--ac:#65a30d;">Supervisado</button>
+                    <button type="button" class="ktm-asis-btn" data-asis="Mínima"         onclick="setKTMasis('Mínima')"        style="--ac:#ca8a04;">Mínima</button>
+                    <button type="button" class="ktm-asis-btn" data-asis="Moderada"       onclick="setKTMasis('Moderada')"      style="--ac:#ea580c;">Moderada</button>
+                    <button type="button" class="ktm-asis-btn" data-asis="Máxima"         onclick="setKTMasis('Máxima')"        style="--ac:#dc2626;">Máxima</button>
+                    <button type="button" class="ktm-asis-btn" data-asis="Total"          onclick="setKTMasis('Total')"         style="--ac:#7c3aed;">Total</button>
+                  </div>
+                  <input type="hidden" id="fKTMasis">
                 </div>
-                <div style="margin-top:9px;padding:8px 10px;background:#fff8ed;border:1px solid #fde68a;border-radius:6px;">
+
+                <!-- Tiempo -->
+                <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+                  <label style="font-size:.72rem;font-weight:700;white-space:nowrap;">Tiempo (min)</label>
+                  <input type="number" id="fKTMt" placeholder="30" min="1" max="120" style="width:72px;height:30px;border:1px solid #e2e8f0;border-radius:6px;padding:0 8px;font-size:.82rem;">
+                </div>
+
+                <!-- Tipo de intervención (chips según nivel) -->
+                <div style="margin-bottom:8px;">
+                  <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:4px;">Tipo de intervención</label>
+                  <div id="ktmInterv" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+                </div>
+
+                <!-- IMT -->
+                <div style="margin-bottom:8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;">
+                  <div class="check wa" style="border:none;background:transparent;padding:0;margin-bottom:0;">
+                    <input type="checkbox" id="cIMT" onchange="if(this.checked)show('dIMT');else hide('dIMT');">
+                    <label for="cIMT" style="font-weight:700;color:#0369a1;">💨 IMT (Entrenamiento muscular inspiratorio)</label>
+                  </div>
+                  <div id="dIMT" class="hidden fade" style="margin-top:8px;">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Frecuencia (series)</label>
+                        <input type="number" id="fIMTfreq" min="1" max="20" placeholder="3" style="width:72px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Intensidad (% PiMáx)</label>
+                        <input type="number" id="fIMTint" min="1" max="100" placeholder="30" style="width:80px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Tiempo (min)</label>
+                        <input type="number" id="fIMTt" min="1" max="60" placeholder="10" style="width:72px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Descanso entre series (seg)</label>
+                        <input type="number" id="fIMTdes" min="1" max="300" placeholder="60" style="width:80px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Suspendida por alerta -->
+                <div style="padding:8px 10px;background:#fff8ed;border:1px solid #fde68a;border-radius:6px;">
                   <div class="check wa" style="border:none;background:transparent;padding:0;">
                     <input type="checkbox" id="cKTMalert" onchange="if(this.checked)show('dKTMalert');else hide('dKTMalert');">
-                    <label for="cKTMalert">⚠️ Suspendida durante la sesión por señal de alerta (protocolo)</label>
+                    <label for="cKTMalert">⚠️ Suspendida por señal de alerta (protocolo)</label>
                   </div>
                   <div id="dKTMalert" class="hidden fade" style="margin-top:6px;">
                     <div class="row" style="margin-bottom:0;">
@@ -2707,13 +2757,16 @@ function fillForm(s) {
 
   chk('cKTMr',s.KTM_REALIZADA); chk('cKTMs',s.KTM_SUSPENDIDA);
   set('fKTMct',s.KTM_CONTRA_TIPO); set('fKTMraz',s.KTM_CONTRA_RAZON); set('fKTMman',s.KTM_CONTRA_MANUAL);
-  set('fKTMniv',s.KTM_NIVEL_KTR); set('fKTMt',s.KTM_TIEMPO_MIN);
-  chk('cUMA',s.KTM_UMA); set('fUMA',s.KTM_UMA_VAL);
 
   // KTM — ACCIÓN DIARIA: siempre parte sin estado seleccionado (el colega registra lo de hoy)
   setKTMstate(null);
-  set('fKTMniv',''); set('fKTMt','');
-  chk('cUMA',false); hide('dUMA');
+  set('fKTMt',''); hide('dKTMasis');
+  document.querySelectorAll('.ktm-niv-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.ktm-asis-btn').forEach(b=>b.classList.remove('on'));
+  const hfn=$('fKTMniv'); if(hfn) hfn.value='';
+  const hfa=$('fKTMasis'); if(hfa) hfa.value='';
+  const nd=$('ktmNivDesc'); if(nd) nd.textContent='';
+  chk('cIMT',false); hide('dIMT');
 
   // Respiratorio — KTR persiste como referencia; maniobras son acción diaria
   set('fKTRcnt',_ex.RESP_KTR_CANT);
@@ -2866,8 +2919,11 @@ function fillFormReplica(s) {
   else if(_ex && (_ex.KTM_NO_REALIZADA===true||_ex.KTM_NO_RAZON)) setKTMstate('n');
   else setKTMstate('r');
   set('fKTMct',s.KTM_CONTRA_TIPO); set('fKTMraz',s.KTM_CONTRA_RAZON); set('fKTMman',s.KTM_CONTRA_MANUAL);
-  set('fKTMniv',s.KTM_NIVEL_KTR); set('fKTMt',s.KTM_TIEMPO_MIN);
-  chk('cUMA',s.KTM_UMA); set('fUMA',s.KTM_UMA_VAL); if(s.KTM_UMA===true||s.KTM_UMA==='TRUE') show('dUMA');
+  if(s.KTM_NIVEL_KTR) setKTMniv(String(s.KTM_NIVEL_KTR));
+  if(s.KTM_ASISTENCIA) setKTMasis(s.KTM_ASISTENCIA);
+  set('fKTMt',s.KTM_TIEMPO_MIN);
+  chk('cIMT',s.KTM_IMT); if(s.KTM_IMT===true||s.KTM_IMT==='TRUE') show('dIMT');
+  set('fIMTfreq',s.KTM_IMT_FREQ); set('fIMTint',s.KTM_IMT_INT); set('fIMTt',s.KTM_IMT_T); set('fIMTdes',s.KTM_IMT_DES);
   set('fKTMnoRaz',_ex.KTM_NO_RAZON); set('fKTMnoCom',_ex.KTM_NO_COMENTARIO);
   chk('cKTMalert',_ex.KTM_ALERTA); set('fKTMalertCat',_ex.KTM_ALERTA_CAT);
   if(_ex.KTM_ALERTA_CAT){ updateKTMalertRaz(); set('fKTMalertRaz',_ex.KTM_ALERTA_RAZ); }
@@ -2989,8 +3045,8 @@ function guardar() {
     KTM_REALIZADA:bv('cKTMr'), KTM_SUSPENDIDA:bv('cKTMs'),
     KTM_CONTRA_TIPO:v('fKTMct'), KTM_CONTRA_CAT:v('fKTMcat'),
     KTM_CONTRA_RAZON:v('fKTMraz'), KTM_CONTRA_MANUAL:v('fKTMman'),
-    KTM_NIVEL_KTR:v('fKTMniv'), KTM_TIEMPO_MIN:v('fKTMt'),
-    KTM_UMA:bv('cUMA'), KTM_UMA_VAL:v('fUMA'),
+    KTM_NIVEL_KTR:v('fKTMniv'), KTM_ASISTENCIA:v('fKTMasis'), KTM_TIEMPO_MIN:v('fKTMt'),
+    KTM_IMT:bv('cIMT'), KTM_IMT_FREQ:v('fIMTfreq'), KTM_IMT_INT:v('fIMTint'), KTM_IMT_T:v('fIMTt'), KTM_IMT_DES:v('fIMTdes'),
     // ★ KTM 3-way — "no realizada" se infiere si ni realizada ni suspendida
     KTM_NO_REALIZADA: ($('bKTMn')?.classList.contains('on')) || (!bv('cKTMr') && !bv('cKTMs')),
     KTM_NO_RAZON:        v('fKTMnoRaz'),
@@ -3935,13 +3991,23 @@ function genTexto() {
     }
     L.push(e+'.');
   }
-  const kR=$('cKTMr')?.checked, kS=$('cKTMs')?.checked, kN=$('bKTMn')?.classList.contains('on');
+  const kR=$('bKTMr')?.classList.contains('on'), kS=$('bKTMs')?.classList.contains('on'), kN=$('bKTMn')?.classList.contains('on');
   if(kR){
-    let k=`Se realiza kinesiterapia motora (KTM) nivel ${gv('fKTMniv')||'?'}`;
-    const t=gv('fKTMt'); if(t) k+=` (${t} min)`;
+    const _niv=gv('fKTMniv')||'?', _asis=gv('fKTMasis'), _t=gv('fKTMt');
+    let k=`Se realiza kinesiterapia motora (KTM) nivel ${_niv}`;
+    if(_asis) k+=` con asistencia ${_asis.toLowerCase()}`;
+    if(_t) k+=` (${_t} min)`;
     if(KTM_INTERV_SEL && KTM_INTERV_SEL.size>0) k+=`, con ${Array.from(KTM_INTERV_SEL).join(', ').toLowerCase()}`;
-    if($('cUMA')?.checked) k+=`. UMA ${gv('fUMA')||''}`;
     L.push(k+'.');
+    if($('cIMT')?.checked){
+      const _f=v('fIMTfreq'), _i=v('fIMTint'), _it=v('fIMTt'), _d=v('fIMTdes');
+      let imt='Se realiza IMT';
+      if(_f) imt+=` ${_f} series`;
+      if(_i) imt+=` al ${_i}% de PiMáx`;
+      if(_it) imt+=` por ${_it} min`;
+      if(_d) imt+=`, descanso ${_d} seg entre series`;
+      L.push(imt+'.');
+    }
     if($('cKTMalert')?.checked){
       L.push(`KTM suspendida durante la sesión por señal de alerta ${(gv('fKTMalertCat')||'').toLowerCase()}: ${gv('fKTMalertRaz')||'sin especificar'}.`);
     }
@@ -5087,6 +5153,26 @@ function toggleKTMinterv(name){
   renderKTMinterv();
 }
 function onKTMnivChange(){ renderKTMinterv(); }
+
+const KTM_NIV_DESC = {
+  '1':'Protección muscular — paciente no cooperador (S5Q ≤ 3)',
+  '2':'Movilización en cama — giros y ejercicio analítico',
+  '3':'Sedente al borde de cama (SBC) — equilibrio y control de tronco',
+  '4':'Bipedestación y transición sedente-bípedo',
+  '5':'Marcha y reeducación de la marcha',
+};
+function setKTMniv(n){
+  document.querySelectorAll('.ktm-niv-btn').forEach(b=>b.classList.toggle('on', b.dataset.niv===n));
+  const h=$('fKTMniv'); if(h) h.value=n;
+  const d=$('ktmNivDesc'); if(d) d.textContent=KTM_NIV_DESC[n]||'';
+  show('dKTMasis');
+  KTM_INTERV_SEL=new Set();
+  renderKTMinterv();
+}
+function setKTMasis(a){
+  document.querySelectorAll('.ktm-asis-btn').forEach(b=>b.classList.toggle('on', b.dataset.asis===a));
+  const h=$('fKTMasis'); if(h) h.value=a;
+}
 
 // Razones de suspensión KTM por señal de alerta durante sesión (protocolo Tabla 3)
 const KTM_ALERT_MAP = {
