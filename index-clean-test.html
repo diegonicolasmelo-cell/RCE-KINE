@@ -1437,6 +1437,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <!-- EXTUBACIÓN (solo si VA = TOT) -->
               <div id="dExtSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
                 <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:7px;letter-spacing:.04em;">✂️ Extubación</div>
+                <div id="dExtBadge" class="hidden" style="margin-bottom:8px;"></div>
                 <div class="row" style="align-items:center;gap:10px;margin-bottom:8px;">
                   <div class="check wa" style="margin:0;"><input type="checkbox" id="cExtOcurrio" onchange="hExt()"><label for="cExtOcurrio" style="font-weight:700;">Extubación</label></div>
                   <div id="dExtHoraWrap" class="hidden" style="display:flex;align-items:center;gap:4px;">
@@ -2677,6 +2678,7 @@ function fillForm(s) {
   set('fKTRcnt',_ex.RESP_KTR_CANT);
   ['cSOF','cSNF','cSET','cATos','cInhalo'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
   _loadCultFechas(_ex.RESP_CULT_FECHAS||'');
+  _renderExtBadge(_ex.RESP_EXTUB_TS||'');
 
   // KTM extras
   set('fKTMnoRaz', _ex.KTM_NO_RAZON);
@@ -2814,6 +2816,7 @@ function fillFormReplica(s) {
   // Respiratorio
   set('fKTRcnt',_ex.RESP_KTR_CANT);
   _loadCultFechas(_ex.RESP_CULT_FECHAS||'');
+  _renderExtBadge(_ex.RESP_EXTUB_TS||'');
   if(_ex.EX_CULT_RESULTADO) tiSet('fCultTags','fCultVal','violet',_ex.EX_CULT_RESULTADO);
 
   // KTM estado y nivel (replica estado previo como punto de partida)
@@ -2991,6 +2994,15 @@ function guardar() {
     // ★ Extubación
     EXT_OCURRIO:     $('cExtOcurrio')?.checked||false,
     EXT_HORA:        v('fExtHora'),
+    RESP_EXTUB_TS:   (function(){
+      if(!$('cExtOcurrio')?.checked) return '';
+      const reintub=$('cReintub')?.checked;
+      const hora=v('fExtHora');
+      if(!hora) return '';
+      const hoy=new Date(); const [hh,mm]=hora.split(':');
+      hoy.setHours(+hh,+mm,0,0);
+      return JSON.stringify({ts:hoy.toISOString(),reintub:!!reintub,hora});
+    })(),
     EXT_PROG:        (document.querySelector('input[name="extProg"]:checked')?.value)||'',
     EXT_TIPO:        (document.querySelector('input[name="extTipo"]:checked')?.value)||'',
     EXT_MOTIVO:      v('fExtMotivo'),
@@ -4620,6 +4632,35 @@ function _updateSinKTR(){
   if(dset){ dset.style.display=vaInvasiva?'':'none'; }
   if(!vaInvasiva){ const c=$('cSET'); if(c) c.checked=false; }
 }
+// — Badge extubación: muestra en turnos siguientes si < 48h —
+function _renderExtBadge(jsonStr){
+  const el=$('dExtBadge'); if(!el) return;
+  if(!jsonStr){ el.innerHTML=''; hide('dExtBadge'); return; }
+  let data; try{ data=JSON.parse(jsonStr); }catch(e){ hide('dExtBadge'); return; }
+  if(!data||!data.ts){ hide('dExtBadge'); return; }
+  const extDate=new Date(data.ts);
+  const ahora=new Date();
+  const diffMs=ahora-extDate;
+  const diffH=diffMs/3600000;
+  if(diffH>=48||diffH<0){ el.innerHTML=''; hide('dExtBadge'); return; }
+  const hrsLabel=diffH<1?`${Math.round(diffH*60)} min`:
+                 diffH<2?`1 hr ${Math.round((diffH-1)*60)} min`:
+                 `${Math.floor(diffH)} hrs`;
+  const fechaStr=extDate.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit'})+' '+data.hora;
+  // Soporte PE actual (se lee del formulario en el momento de renderizar)
+  let peStr='';
+  const peModo=v('peModo')||v('fModo')||'';
+  const peVAval=v('fVA')||'';
+  const peSopVal=v('fSop')||'';
+  if(peModo) peStr=peModo;
+  else if(peSopVal) peStr=peSopVal;
+  if(peVAval&&peVAval!=='TOT'&&peVAval!=='TQT') peStr=(peStr?peStr+' · ':'')+peVAval;
+  const peLabel=peStr?` · Actualmente: <strong>${peStr}</strong>`:'';
+  const reinLabel=data.reintub?' <span style="color:#dc2626;font-weight:700;">(reintubado)</span>':'';
+  el.innerHTML=`<div style="display:inline-flex;align-items:center;gap:6px;background:#fdf4ff;border:1px solid #d8b4fe;border-radius:20px;padding:3px 12px;font-size:.72rem;color:#6d28d9;font-weight:600;">✂️ Extubado hace <strong>${hrsLabel}</strong> · ${fechaStr}${reinLabel}${peLabel}</div>`;
+  show('dExtBadge');
+}
+
 function addCultRes(){
   const c=document.createElement('div');
   c.className='cult-res-row';
