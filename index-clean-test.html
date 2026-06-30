@@ -4084,7 +4084,7 @@ function updateVAUI() {
   if(va==='TOT'){
     show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');
     _showCol('colDiasTOT'); _hideCol('colDiasTQT'); _showCol('colDiasVAA');
-    show('dPVEsec');
+    show('dPVEsec'); // PVE solo en VMI
   } else if(va==='TQT'){
     show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');
     if(_diasTOTBase>0) _showCol('colDiasTOT'); else _hideCol('colDiasTOT');
@@ -4094,7 +4094,7 @@ function updateVAUI() {
     hide('dVADet');hide('dExtSec');hide('dDecanSec');
     _hideCol('colDiasTOT');_hideCol('colDiasTQT');
     if(_diasVABase>0||esVNI) _showCol('colDiasVAA'); else _hideCol('colDiasVAA');
-    show('dPVEsec');
+    hide('dPVEsec');
   }
   // VNI contador
   const vniTotal=_diasVNIPrevios+_diasVNIEpisodio;
