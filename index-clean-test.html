@@ -4179,7 +4179,7 @@ function renderParams() {
 //  HANDLERS UI
 function hSed(){
   const s=v('fSed');
-  if(s!=='Sin sedación'){show('gSAS');}else{hide('gSAS');}
+  if(s!=='Sin sedación'){show('gSAS');}else{const el=$('fSAS');if(el)el.value='';hide('gSAS');}
   autoCoopera();
 }
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
