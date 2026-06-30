@@ -1817,12 +1817,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <input type="number" id="fKTMt" placeholder="30" min="1" max="120" style="width:72px;height:30px;border:1px solid #e2e8f0;border-radius:6px;padding:0 8px;font-size:.82rem;">
                 </div>
 
-                <!-- Tipo de intervención (chips según nivel) -->
-                <div style="margin-bottom:8px;">
-                  <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:4px;">Tipo de intervención</label>
-                  <div id="ktmInterv" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
-                </div>
-
                 <!-- IMT -->
                 <div style="margin-bottom:8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;">
                   <div class="check wa" style="border:none;background:transparent;padding:0;margin-bottom:0;">
@@ -2553,11 +2547,10 @@ function abrirPanel(id, esIng) {
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   $('kf').reset(); PROCS=[]; renderChips();
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
-  if(typeof KTM_INTERV_SEL!=='undefined') KTM_INTERV_SEL=new Set();
+
   ['lblMRC','lblFSS','lblPIMt'].forEach(id=>{ const e=$(id); if(e){e.textContent='—';e.className='interp-pill interp-empty';} });
   const dl=$('lblDinamo'); if(dl){ dl.innerHTML='— <span style="opacity:.6;font-size:.65rem;">(usa sexo del paciente)</span>'; dl.className='interp-pill interp-empty'; }
   if(typeof setKTMstate==='function') setKTMstate('r');
-  if(typeof renderKTMinterv==='function') renderKTMinterv();
   hAisl(); hAET(); hExt();
   // defaults
   cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS();
@@ -2782,10 +2775,7 @@ function fillForm(s) {
   if(_ex.KTM_ALERTA_CAT){ updateKTMalertRaz(); set('fKTMalertRaz', _ex.KTM_ALERTA_RAZ); }
   if(_ex.KTM_ALERTA===true || _ex.KTM_ALERTA==='TRUE') show('dKTMalert');
   try {
-    const arr = _ex.KTM_INTERVENCIONES_JSON ? JSON.parse(_ex.KTM_INTERVENCIONES_JSON) : [];
-    KTM_INTERV_SEL = new Set(Array.isArray(arr) ? arr : []);
-  } catch(e){ KTM_INTERV_SEL = new Set(); }
-  renderKTMinterv();
+  } catch(e){}
 
   // Evaluaciones por turno
   chk('cEvalT', _ex.EVAL_T_REALIZAR);
@@ -2929,10 +2919,7 @@ function fillFormReplica(s) {
   if(_ex.KTM_ALERTA_CAT){ updateKTMalertRaz(); set('fKTMalertRaz',_ex.KTM_ALERTA_RAZ); }
   if(_ex.KTM_ALERTA===true||_ex.KTM_ALERTA==='TRUE') show('dKTMalert');
   try {
-    const arr=_ex.KTM_INTERVENCIONES_JSON ? JSON.parse(_ex.KTM_INTERVENCIONES_JSON) : [];
-    KTM_INTERV_SEL=new Set(Array.isArray(arr)?arr:[]);
-  } catch(e){ KTM_INTERV_SEL=new Set(); }
-  renderKTMinterv();
+  } catch(e){}
 
   // Movilización
   chk('cMue',s.MUE_REALIZADAS); hMue();
@@ -2955,7 +2942,7 @@ function fillFormReplica(s) {
  */
 function limpiarReplica() {
   const id=v('cBed'), fecha=v('gDate')||hoy();
-  $('kf').reset(); PROCS=[]; KTM_INTERV_SEL=new Set(); renderChips(); renderKTMinterv();
+  $('kf').reset(); PROCS=[]; renderChips();
   _aislTags=[]; renderAislTags();
   ['fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   if($('fMPVal'))     $('fMPVal').value='';
@@ -3054,7 +3041,6 @@ function guardar() {
     KTM_ALERTA:          bv('cKTMalert'),
     KTM_ALERTA_CAT:      v('fKTMalertCat'),
     KTM_ALERTA_RAZ:      v('fKTMalertRaz'),
-    KTM_INTERVENCIONES_JSON: JSON.stringify(Array.from(KTM_INTERV_SEL)),
     // ★ Respiratorio nuevos campos
     RESP_KTR_CANT:  v('fKTRcnt'),
     RESP_SIN_KTR:   bv('cSinKTR'),
@@ -3997,7 +3983,6 @@ function genTexto() {
     let k=`Se realiza kinesiterapia motora (KTM) nivel ${_niv}`;
     if(_asis) k+=` con asistencia ${_asis.toLowerCase()}`;
     if(_t) k+=` (${_t} min)`;
-    if(KTM_INTERV_SEL && KTM_INTERV_SEL.size>0) k+=`, con ${Array.from(KTM_INTERV_SEL).join(', ').toLowerCase()}`;
     L.push(k+'.');
     if($('cIMT')?.checked){
       const _f=v('fIMTfreq'), _i=v('fIMTint'), _it=v('fIMTt'), _d=v('fIMTdes');
@@ -5122,7 +5107,6 @@ function setKTMstate(q){
   else {hide('dKTMr');hide('dKTMs');hide('dKTMn');} // null → sin selección
   if($('cKTMr')) $('cKTMr').checked = r;
   if($('cKTMs')) $('cKTMs').checked = s;
-  if(r) renderKTMinterv();
 }
 
 // (cultivo de secreciones se gestiona desde Muestras: CCAET / FilmArray / Mini Lab / Hisopado COVID-19)
@@ -5136,23 +5120,7 @@ const KTM_INTERV_BY_LVL = {
   '4':['Equilibrio sedente y bípedo','Bipedestación','Marcha estática','Transición sedente a bípedo','Sedente en sillón','Tolerancia al ejercicio'],
   '5':['Coordinación dinámica en bípedo','Reeducación de la marcha','Marcha por habitación','Tolerancia al ejercicio'],
 };
-let KTM_INTERV_SEL = new Set();
-function renderKTMinterv(){
-  const lvl = v('fKTMniv') || '3';
-  const opts = KTM_INTERV_BY_LVL[lvl] || [];
-  const box = $('ktmInterv'); if(!box) return;
-  box.innerHTML = opts.map(o => {
-    const on = KTM_INTERV_SEL.has(o) ? ' on' : '';
-    const safe = o.replace(/'/g, "\\'");
-    return `<span class="iv-chip${on}" onclick="toggleKTMinterv('${safe}')">${o}</span>`;
-  }).join('');
-}
-function toggleKTMinterv(name){
-  if(KTM_INTERV_SEL.has(name)) KTM_INTERV_SEL.delete(name);
-  else KTM_INTERV_SEL.add(name);
-  renderKTMinterv();
-}
-function onKTMnivChange(){ renderKTMinterv(); }
+function onKTMnivChange(){}
 
 const KTM_NIV_DESC = {
   '1':'Protección muscular — paciente no cooperador (S5Q ≤ 3)',
@@ -5166,8 +5134,6 @@ function setKTMniv(n){
   const h=$('fKTMniv'); if(h) h.value=n;
   const d=$('ktmNivDesc'); if(d) d.textContent=KTM_NIV_DESC[n]||'';
   show('dKTMasis');
-  KTM_INTERV_SEL=new Set();
-  renderKTMinterv();
 }
 function setKTMasis(a){
   document.querySelectorAll('.ktm-asis-btn').forEach(b=>b.classList.toggle('on', b.dataset.asis===a));
