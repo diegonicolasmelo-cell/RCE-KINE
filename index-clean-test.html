@@ -3917,7 +3917,22 @@ function genTexto() {
     }
     if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
   })();
-  if(PROCS.length) L.push(`Procedimientos: ${PROCS.join(', ')}.`);
+  (function(){
+    const auto=[];
+    const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
+    if(mu.length) auto.push('CULTIVO DE SECRECIONES');
+    if($('cExtOcurrio')?.checked){
+      const _et=document.querySelector('input[name="extTipo"]:checked')?.value||'';
+      if(_et==='protocolo')           auto.push('EXTUBACIÓN C/PROTOCOLO');
+      else if(_et==='sin_protocolo')  auto.push('EXTUBACIÓN S/PROTOCOLO');
+      else if(_et==='accidental')     auto.push('EXTUBACIÓN ACCIDENTAL');
+      else if(_et==='autoextubacion') auto.push('AUTOEXTUBACIÓN');
+      if(_et==='protocolo'||(document.querySelector('input[name="pveRes"]:checked')?.value)) auto.push('PVE');
+      if($('cReintub')?.checked) auto.push('REINTUBACIÓN');
+    }
+    const all=Array.from(new Set([...(PROCS||[]),...auto]));
+    if(all.length) L.push(`Procedimientos: ${all.join(', ')}.`);
+  })();
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
   if(pl) L.push(`Plan: ${pl}`); if(no) L.push(`Nota: ${no}`); if(fi) L.push(`Kinesiólogo: ${fi}`);
   return L.filter(Boolean).join('\n').replace(/₂/g,'2');
