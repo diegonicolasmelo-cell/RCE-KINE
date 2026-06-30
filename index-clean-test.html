@@ -1598,7 +1598,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <div style="display:flex;flex-direction:column;gap:8px;">
                       <div class="check wa"><input type="checkbox" id="cSOF"><label for="cSOF" title="Succión Orofaríngea">SOF <span style="font-size:.65rem;color:var(--muted);">Succión orofaríngea</span></label></div>
                       <div class="check wa"><input type="checkbox" id="cSNF"><label for="cSNF" title="Succión Nasofaríngea">SNF <span style="font-size:.65rem;color:var(--muted);">Succión nasofaríngea</span></label></div>
-                      <div class="check wa"><input type="checkbox" id="cSET"><label for="cSET" title="Succión Endotraqueal">SET <span style="font-size:.65rem;color:var(--muted);">Succión endotraqueal</span></label></div>
+                      <div id="dSET" class="check wa"><input type="checkbox" id="cSET"><label for="cSET" title="Succión Endotraqueal">SET <span style="font-size:.65rem;color:var(--muted);">Succión endotraqueal</span></label></div>
                       <div class="check wa"><input type="checkbox" id="cATos"><label for="cATos">A. Tos <span style="font-size:.65rem;color:var(--muted);">Asistencia de tos</span></label></div>
                     </div>
                   </div>
@@ -4609,10 +4609,15 @@ function _loadCultFechas(jsonStr){
 
 // — Sin requerimientos KTR: visible solo con NRC/MMV/Ambiente —
 function _updateSinKTR(){
-  const modo=v('fModo')||'', sop=v('fSop')||'', va=v('fVA')||'Natural';
+  const modo=v('fModo')||'', va=v('fVA')||'Natural';
   const sinKTRVisible=(va==='Natural'&&['Ambiente','NRC','MMV'].includes(modo));
   sinKTRVisible?show('dSinKTR'):hide('dSinKTR');
   if(!sinKTRVisible){ const c=$('cSinKTR'); if(c) c.checked=false; }
+  // SET solo aplica a vía aérea artificial (TOT o TQT)
+  const vaInvasiva=va==='TOT'||va==='TQT';
+  const dset=$('dSET');
+  if(dset){ dset.style.display=vaInvasiva?'':'none'; }
+  if(!vaInvasiva){ const c=$('cSET'); if(c) c.checked=false; }
 }
 function addCultRes(){
   const c=document.createElement('div');
