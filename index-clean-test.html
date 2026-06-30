@@ -1502,23 +1502,19 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <!-- Soporte PE (post-extubación) -->
                   <div style="margin-bottom:8px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
                     <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:8px;letter-spacing:.04em;">✅ Soporte PE</div>
-                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-                      <div style="display:flex;align-items:center;gap:5px;">
-                        <label style="font-size:.68rem;font-weight:700;color:#15803d;">VÍA AÉREA</label>
-                        <select id="peVA" onchange="cascadePEVA()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;background:#fff;">
-                          <option value="Natural">Natural</option>
-                          <option value="Full Face">Full Face</option>
-                          <option value="Oronasal">Oronasal</option>
-                        </select>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:5px;">
-                        <label style="font-size:.68rem;font-weight:700;color:#15803d;">SOPORTE</label>
-                        <select id="peSop" onchange="cascadePESop()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;background:#fff;"></select>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:5px;">
-                        <label style="font-size:.68rem;font-weight:700;color:#15803d;">MODO</label>
-                        <select id="peModo" onchange="renderParamsPE()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;background:#fff;"></select>
-                      </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                      <label style="font-size:.68rem;font-weight:700;color:#15803d;">MODO</label>
+                      <select id="peModo" onchange="renderParamsPE()" style="height:30px;font-size:.8rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 8px;background:#fff;">
+                        <option value="">-- seleccionar --</option>
+                        <option value="Ambiente">Ambiente</option>
+                        <option value="NRC">NRC</option>
+                        <option value="MMV">MMV</option>
+                        <option value="Mascarilla">Mascarilla O2</option>
+                        <option value="CNAF">CNAF</option>
+                        <option value="S/T">VNI S/T</option>
+                        <option value="AVAPS">VNI AVAPS</option>
+                        <option value="CPAP">VNI CPAP</option>
+                      </select>
                     </div>
                     <div id="peParamsBox"></div>
                     <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;margin-top:6px;">
@@ -2782,7 +2778,7 @@ function guardar() {
     FECHA_INICIO_VNI:  (()=>{
       const va=v('fVA');
       // Si hubo extubación/decanulación y el paciente quedó con VNI, el siguiente turno inicia VNI
-      const extVNI=['Full Face','Oronasal'].includes(v('peVA')||'');
+      const extVNI=['S/T','AVAPS','CPAP'].includes(v('peModo')||'');
       const decanVNI=['Full Face','Oronasal','VNI'].includes(v('fDecanQueda')||'');
       if((($('cExtOcurrio')?.checked&&!$('cReintub')?.checked&&extVNI)||
           ($('cDecanOcurrio')?.checked&&!$('cRecanul')?.checked&&decanVNI)))
@@ -2856,14 +2852,14 @@ function guardar() {
     EXT_MOTIVO:      v('fExtMotivo'),
     EXT_POST_DET:    v('fPostExtDet'),
     EXT_REINTUB:     $('cReintub')?.checked||false,
-    EXT_PE_VA:       v('peVA'),
-    EXT_PE_SOP:      v('peSop'),
+    EXT_PE_VA:       peVA(),
+    EXT_PE_SOP:      peSop(),
     EXT_PE_MODO:     v('peModo'),
     // ★ Estado FINAL de VA: extubación o decanulación sin re-intubación/re-canulación
-    VENT_VIA_AEREA_FINAL: ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('peVA')||'Natural')
+    VENT_VIA_AEREA_FINAL: ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? peVA()
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'Natural')
                         : v('fVA'),
-    VENT_SOPORTE_FINAL:   ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('peSop')||'Oxigenoterapia/OAF')
+    VENT_SOPORTE_FINAL:   ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? peSop()
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? 'Oxigenoterapia/OAF'
                         : v('fSop'),
     VENT_MODO_FINAL:      ($('cExtOcurrio')?.checked && !$('cReintub')?.checked) ? (v('peModo')||'')
@@ -3798,8 +3794,7 @@ function genTexto() {
     const _mot=v('fExtMotivo');
     const _post=v('fPostExtDet');
     const _reint=$('cReintub')?.checked;
-    const _peVA=v('peVA'), _peSop=v('peSop'), _peModo=v('peModo');
-    const _peSpo2=v('pe_spo2')||v('pe_fr')?`SpO2 ${v('pe_spo2')||''}%`.trim():'';
+    const _peModo=v('peModo');
     if(_prog==='no_programada'){
       const _tnp=_et==='autoextubacion'?'autoextubación':'extubación accidental';
       let _etxt=`Paciente presenta ${_tnp}`;
@@ -3820,12 +3815,15 @@ function genTexto() {
         L.push('Se realiza extubación programada.');
       }
     }
-    if(_peVA&&!_reint){
-      let _qtxt=`Paciente queda en ${_peVA==='Natural'?'vía aérea natural':_peVA.toLowerCase()}`;
-      if(_peSop&&_peSop!=='Ambiente') _qtxt+=` con ${_peSop}`;
-      if(_peModo&&_peModo!=='Sin soporte') _qtxt+=` modo ${_peModo}`;
-      const _spo2pe=v('pe_spo2'); if(_spo2pe) _qtxt+=`, SpO2 ${_spo2pe}%`;
-      const _frpe=v('pe_fr'); if(_frpe) _qtxt+=`, FR ${_frpe} rpm`;
+    if(_peModo&&!_reint){
+      const _sop=peSop();
+      let _qtxt=_peModo==='Ambiente'?'Paciente queda en vía aérea natural sin soporte'
+               :['S/T','AVAPS','CPAP'].includes(_peModo)?`Paciente queda con VNI modo ${_peModo}`
+               :_peModo==='CNAF'?'Paciente queda con CNAF'
+               :`Paciente queda con oxigenoterapia ${_peModo}`;
+      const _spo2pe=v('pe_spo2'),_frpe=v('pe_fr'),_lit=v('pe_litros'),_fl=v('pe_flujo');
+      if(_lit) _qtxt+=` ${_lit} L/min`; if(_fl) _qtxt+=` flujo ${_fl} L/min`;
+      if(_spo2pe) _qtxt+=`, SpO2 ${_spo2pe}%`; if(_frpe) _qtxt+=`, FR ${_frpe} rpm`;
       L.push(_qtxt+'.');
     }
     if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
@@ -4406,37 +4404,43 @@ function hExtTipo(){
   if(t==='sin_protocolo') show('dExtSinProt');
 }
 function hExtQueda(){}
-const PE_VMAPS={
-  'Natural':  {sops:['Ambiente','Oxigenoterapia/OAF'], modos:{'Ambiente':['Sin soporte'],'Oxigenoterapia/OAF':['NRC','MMV','Mascarilla','CNAF']}},
-  'Full Face':{sops:['VNI'],                            modos:{'VNI':['S/T','AVAPS','CPAP']}},
-  'Oronasal': {sops:['VNI'],                            modos:{'VNI':['S/T','AVAPS','CPAP']}},
+// Mapa modo PE → VA y Soporte implícitos (para guardar estado final)
+const _PE_META={
+  'Ambiente':  {va:'Natural',    sop:'Ambiente'},
+  'NRC':       {va:'Natural',    sop:'Oxigenoterapia/OAF'},
+  'MMV':       {va:'Natural',    sop:'Oxigenoterapia/OAF'},
+  'Mascarilla':{va:'Natural',    sop:'Oxigenoterapia/OAF'},
+  'CNAF':      {va:'Natural',    sop:'Oxigenoterapia/OAF'},
+  'S/T':       {va:'Full Face',  sop:'VNI'},
+  'AVAPS':     {va:'Full Face',  sop:'VNI'},
+  'CPAP':      {va:'Full Face',  sop:'VNI'},
 };
-function cascadePEVA(){
-  const va=v('peVA'); const r=PE_VMAPS[va]||PE_VMAPS['Natural'];
-  poblar('peSop',r.sops); cascadePESop();
-}
-function cascadePESop(){
-  const va=v('peVA'); const sop=v('peSop');
-  const r=PE_VMAPS[va]||PE_VMAPS['Natural'];
-  poblar('peModo',r.modos[sop]||['Sin soporte']); renderParamsPE();
-}
 function renderParamsPE(){
   const b=$('peParamsBox'); if(!b) return;
-  const modo=v('peModo'), sop=v('peSop');
-  const pef=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><label style="font-size:.65rem;">${lbl}</label><input type="number" id="${id}" oninput="" style="height:30px;font-size:.82rem;"></div>`;
+  const modo=v('peModo');
+  const pef=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><label style="font-size:.65rem;">${lbl}</label><input type="number" id="${id}" style="height:30px;font-size:.82rem;"></div>`;
+  const peft=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><label style="font-size:.65rem;">${lbl}</label><input type="text" id="${id}" style="height:30px;font-size:.82rem;"></div>`;
+  const mon2=(id,lbl)=>`<div class="mon" style="height:30px;min-width:60px;"><span style="font-size:.55rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.78rem;">--</span></div>`;
+  if(!modo){b.innerHTML='';return;}
   let h='<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:4px;">';
-  if(modo==='CNAF'||modo==='OAF/CTAF'){
-    h+=pef('pe_flujo','Flujo L/m',75)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70);
-  } else if(sop==='VNI'){
-    h+=pef('pe_ipap','IPAP',65)+pef('pe_epap','EPAP',65)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70);
-  } else if(sop==='Oxigenoterapia/OAF'){
-    h+=pef('pe_litros','Litros L/m',80)+pef('pe_spo2','SpO2 %',70);
-  } else {
-    h+=pef('pe_spo2','SpO2 %',70)+pef('pe_fr','FR rpm',70);
+  if(modo==='Ambiente'){
+    h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70);
+  } else if(['NRC','MMV','Mascarilla'].includes(modo)){
+    h+=pef('pe_litros','Litros L/m',85)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_fio2calc','FiO2~');
+  } else if(modo==='CNAF'){
+    h+=pef('pe_flujo','Flujo L/m',80)+peft('pe_temp','T° °C',68)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70);
+  } else if(['S/T','AVAPS','CPAP'].includes(modo)){
+    h+=pef('pe_ipap','IPAP',65)+pef('pe_epap','EPAP',65)+pef('pe_fr','FR rpm',70)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70);
   }
   h+='</div>'; b.innerHTML=h;
+  // FiO2 estimada para oxigenoterapia convencional
+  const litEl=$('pe_litros');
+  if(litEl) litEl.oninput=()=>{
+    const fc=$('pe_fio2calc'); if(fc) fc.textContent=litEl.value?`~${Math.min(100,21+4*parseFloat(litEl.value))}%`:'--';
+  };
 }
-(function _initPE(){ cascadePEVA(); })();
+function peVA(){ return (_PE_META[v('peModo')]||{}).va||'Natural'; }
+function peSop(){ return (_PE_META[v('peModo')]||{}).sop||'Ambiente'; }
 function hKTM(q){ setKTMstate(q); }
 function setKTMstate(q){
   const r = q==='r', s = q==='s', n = q==='n';
