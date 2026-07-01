@@ -3904,27 +3904,27 @@ function genTexto() {
   const va=gv('fVA')||'Natural'; const intub=va==='TOT'||va==='TQT';
   let s;
   if($('cBNM')?.checked) s=`Sedado y con bloqueo neuromuscular para meta SAS ${sas||'1'}.`;
-  else if(sed==='Sin sedación') s='Sin sedoanalgesia.';
+  else if(sed==='Sin sedación') s='Sin sedación.';
   else if(sed==='Fuera de escalón') s=`Sedación fuera de escalón${sas?' (SAS '+sas+')':''}.`;
   else if(sed.startsWith('Escalón')) s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
   else s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
   s+=` GCS ${gcsT}${intub?'':'/15'}(O:${gv('fGCSO')||'?'}, V:${gv('fGCSV')||'?'}, M:${gv('fGCSM')||'?'})`;
-  if(s5q==='lt3') s+=', S5Q <3'; else if(s5q==='gte3') s+=', S5Q ≥3'; if(coop) s+=` (${coop})`;
-  if(camicu==='pos') s+=', CAM-ICU positivo (delirium presente)';
+  if(coop) s+=`, ${coop}`;
+  if(camicu==='pos') s+=', CAM-ICU positivo';
   else if(camicu==='neg') s+=', CAM-ICU negativo';
   else if(camicu==='ne') s+=', CAM-ICU no evaluable';
   s+='.';
   L.push(s);
   const hEst=gv('fHEst')||'Estable', dva=gv('fDVA')||'Sin requerimientos';
-  let h=`Hemodinámicamente ${hEst==='Estable'?'estable':'inestable'}`;
+  let h=`HDN ${hEst==='Estable'?'estable':'inestable'}`;
   h+=dva==='Sin requerimientos'?', sin requerimientos de DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase();
   if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt.toLowerCase()}`; } L.push(h+'.');
   const sop=gv('fSop')||'Ambiente', modo=gv('fModo')||'';
   const vt=parseFloat(gv('r_vt'))||0, fr=parseFloat(gv('r_fr'))||0;
   const peep=parseFloat(gv('r_peep'))||0, fio2=parseFloat(gv('r_fio2'))||0;
   const spo2=parseFloat(gv('r_spo2'))||0, dVM=gv('fDiasVM')||'?', dVA=gv('fDiasVA')||'?';
-  if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`Vía aérea artificial en día ${dVA} mediante tubo orotraqueal N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()}.`); }
-  else if(va==='TQT') L.push(`Vía aérea artificial en día ${dVA} mediante traqueostomía${gv('fTQTt')?' tipo '+gv('fTQTt'):''}.`);
+  if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA en día ${dVA} mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()}.`); }
+  else if(va==='TQT') L.push(`VAA en día ${dVA} mediante TQT${gv('fTQTt')?' tipo '+gv('fTQTt'):''}.`);
   // — Helpers de soporte ventilatorio —
   const _np=id=>{ const x=parseFloat(gv(id)); return isNaN(x)?0:x; };
   const _mon=id=>{ const e=$(id); return e?(e.textContent||'').trim():''; };
@@ -3933,21 +3933,38 @@ function genTexto() {
   const _humid=$('cHAct')?.checked;
   const _interac=$('cAdapt')?($('cAdapt').checked?'adecuada':'inadecuada'):null;
   if(sop==='VM'){
-    const _modalidad = modo==='ACVC'?'modalidad volumen control (ACVC)':modo==='ACPC'?'modalidad presión control (ACPC)':modo==='CPAP/PS'?'modalidad espontánea CPAP/PS (weaning)':`modo ${modo}`;
+    const _modalidad = modo==='ACVC'?'modalidad volumen control (ACVC)':modo==='ACPC'?'modalidad presión control (ACPC)':modo==='CPAP/PS'?'modalidad espontánea CPAP/PS':`modo ${modo}`;
     const _mlkg=_numTxt('l_mlkg');
-    let vs=`En ventilación mecánica invasiva${_humid?' más humidificación activa':''}, ${_modalidad}`;
+    // PVE sin_condiciones integrado en línea VMI
+    const _pveNoCond = v('fPVEval')==='no' && document.querySelector('input[name="extTipo"][value="sin_condiciones"]')?.checked;
+    let vs=`En VMI${_humid?' más humidificación activa':''}, ${_modalidad}`;
     if(_mlkg) vs+=` ventilado a ${_mlkg} ml/kg de peso ideal`;
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
+    if(_pveNoCond) vs+=', sin condiciones para realización de PVE en este turno';
     L.push(vs+'.');
-    const _pb=_pjoin([
-      vt?`Vti ${vt} ml`:null, fr?`FR ${fr} rpm`:null, _numTxt('l_vm')?`VM ${_numTxt('l_vm')} L/min`:null,
-      _np('r_flujo')?`Flujo ${_np('r_flujo')} L/min`:null, _np('r_ti')?`Ti ${_np('r_ti')} s`:null,
-      (_mon('l_ie')&&_mon('l_ie')!=='--'&&_mon('l_ie')!=='!')?`I:E ${_mon('l_ie')}`:null, _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH₂O`:null,
-      _np('r_pmedia')?`Pmedia ${_np('r_pmedia')} cmH₂O`:null, peep?`PEEP ${peep} cmH₂O`:null,
-      _np('r_ppl')?`Ppl ${_np('r_ppl')} cmH₂O`:null, _numTxt('l_dp')?`PD ${_numTxt('l_dp')} cmH₂O`:null,
-      _numTxt('l_cesr')?`Cest ${_numTxt('l_cesr')} ml/cmH₂O`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null
-    ]);
-    if(_pb) L.push(`Terapia ventilatoria ${modo}: ${_pb}.`);
+    const _ps=_np('r_ps'), _tobin=_mon('l_tobin');
+    let _pb;
+    if(modo==='CPAP/PS'||modo==='CFLEX'){
+      _pb=_pjoin([
+        _ps?`PS ${_ps} cmH₂O`:null, peep?`PEEP ${peep} cmH₂O`:null,
+        _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH₂O`:null,
+        vt?`Vti ${vt} ml`:null, fr?`FR ${fr} rpm`:null,
+        _numTxt('l_vm')?`VM ${_numTxt('l_vm')} L/min`:null,
+        (_tobin&&_tobin!=='--'&&_tobin!=='!')?`I.Tobín ${_tobin}`:null,
+        fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null
+      ]);
+    } else {
+      _pb=_pjoin([
+        vt?`Vti ${vt} ml`:null, fr?`FR ${fr} rpm`:null, _numTxt('l_vm')?`VM ${_numTxt('l_vm')} L/min`:null,
+        _np('r_flujo')?`Flujo ${_np('r_flujo')} L/min`:null, _np('r_ti')?`Ti ${_np('r_ti')} s`:null,
+        (_mon('l_ie')&&_mon('l_ie')!=='--'&&_mon('l_ie')!=='!')?`I:E ${_mon('l_ie')}`:null,
+        _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH₂O`:null,
+        _np('r_pmedia')?`Pmedia ${_np('r_pmedia')} cmH₂O`:null, peep?`PEEP ${peep} cmH₂O`:null,
+        _np('r_ppl')?`Ppl ${_np('r_ppl')} cmH₂O`:null, _numTxt('l_dp')?`PD ${_numTxt('l_dp')} cmH₂O`:null,
+        _numTxt('l_cesr')?`Cest ${_numTxt('l_cesr')} ml/cmH₂O`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null
+      ]);
+    }
+    if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
   } else if(sop==='VNI'){
     const ip=_np('r_ipap'), ep=_np('r_epap');
     let vs=`En ventilación mecánica no invasiva${_humid?' más humidificación activa':''}${modo?', modo '+modo:''}`;
@@ -3978,10 +3995,59 @@ function genTexto() {
     }
     L.push(e+'.');
   }
+  // ── KTR (primero) ──
+  (function(){
+    if($('cSinKTR')?.checked){ L.push('Sin requerimientos de KTR en turno.'); return; }
+    const perm=[];
+    if($('cSET')?.checked) perm.push('SET');
+    if($('cSOF')?.checked) perm.push('SOF');
+    if($('cSNF')?.checked) perm.push('SNF');
+    if($('cATos')?.checked) perm.push('asistencia de tos');
+    // Secreciones: consistencia primero, luego cantidad
+    const reol=v('fSecrReol'), car=v('fSecrCar'), qty=v('fSecrQty');
+    const qtyTxt={'':null,'+':'escasa cantidad','++':'moderada cantidad','+++':'abundante cantidad'};
+    const secrParts=[];
+    if(qty==='-'){ secrParts.push('sin secreciones'); }
+    else {
+      if(reol) secrParts.push(reol.toLowerCase());
+      if(car) secrParts.push(car.toLowerCase());
+      if(qtyTxt[qty]) secrParts.push(qtyTxt[qty]);
+    }
+    const secrTxt=secrParts.length?`, secreciones ${secrParts.join(' ')}`:'';
+    // Cultivo nuevo en este turno (se integra al final de la línea KTR)
+    const _res=(_tiState['fCultTags']||[]).filter(Boolean);
+    if(_res.length) L.push('Resultado de cultivo: '+_res.join(', ')+'.');
+    let _cultSuffix='';
+    if($('cMue')?.checked){
+      const _tipos=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
+      const _obj=v('fCultObj');
+      _cultSuffix=': Se toma'+((_tipos.length>1)?'n':'')+' muestras para cultivo'
+        +(_tipos.length?' ('+_tipos.join(', ')+(_obj?` — ${_obj}`:'')+')':'')
+        +', resultado pendiente';
+    }
+    // Línea KTR principal
+    let ktrLine='';
+    if(perm.length) ktrLine=`KTR + ${perm.join(' + ')}${secrTxt}`;
+    else if(secrTxt) ktrLine=`Secreciones${secrTxt.replace(/^, /,'')}`;
+    if(ktrLine){ L.push(ktrLine+(_cultSuffix||'')+'.'); }
+    else if(_cultSuffix){ L.push(_cultSuffix.replace(/^: /,'')+'.'); }
+    // Inhaloterapia
+    if($('cInhalo')?.checked) L.push('Se administra inhaloterapia según indicación médica (SOS).');
+    // Posicionamiento
+    const posArr=[];
+    if($('cPosSed')?.checked) posArr.push('Sedente >45°');
+    if($('cPosDCLD')?.checked) posArr.push('DCL D');
+    if($('cPosDCLI')?.checked) posArr.push('DCL I');
+    if($('cProno')?.checked){ const h=v('fPronoHora'); posArr.push(h?`Prono desde las ${h} hrs`:'Prono'); }
+    if($('cSupino')?.checked){ const h=v('fSupinoHora'); posArr.push(h?`Se supina a las ${h} hrs`:'Supino'); }
+    const lib=v('fPosLibre'); if(lib) posArr.push(lib);
+    if(posArr.length) L.push(`Posicionamiento: ${posArr.join(', ')}.`);
+  })();
+  // ── KTM (después de KTR) ──
   const kR=$('bKTMr')?.classList.contains('on'), kS=$('bKTMs')?.classList.contains('on'), kN=$('bKTMn')?.classList.contains('on');
   if(kR){
     const _niv=gv('fKTMniv')||'?', _asis=gv('fKTMasis'), _t=gv('fKTMt');
-    let k=`Se realiza kinesiterapia motora (KTM) nivel ${_niv}`;
+    let k=`Se realiza KTM nivel ${_niv}`;
     if(_asis) k+=` con asistencia ${_asis.toLowerCase()}`;
     if(_t) k+=` (${_t} min)`;
     L.push(k+'.');
@@ -4002,52 +4068,6 @@ function genTexto() {
   } else if(kN){
     L.push(`KTM no realizada. ${gv('fKTMnoRaz')||'Sin especificar'}${gv('fKTMnoCom')?'. '+gv('fKTMnoCom'):''}.`);
   }
-  // Manejo respiratorio
-  (function(){
-    if($('cSinKTR')?.checked){ L.push('Sin requerimientos de KTR en turno.'); return; }
-    const perm=[];
-    if($('cSET')?.checked) perm.push('SET');
-    if($('cSOF')?.checked) perm.push('SOF');
-    if($('cSNF')?.checked) perm.push('SNF');
-    if($('cATos')?.checked) perm.push('asistencia de tos');
-    // Secreciones
-    const reol=v('fSecrReol'), car=v('fSecrCar'), qty=v('fSecrQty');
-    const qtyMap={'':null,'+':'escasas','++':'moderadas','+++':'abundantes'};
-    const secrParts=[];
-    if(qty===''&&!reol) {} // sin secreciones declaradas
-    else if(qty==='') {} // solo reología sin cantidad
-    else { const qs=qty==='-'?'Sin secreciones':qtyMap[qty]; if(qs) secrParts.push(qs); }
-    if(reol) secrParts.push(reol.toLowerCase());
-    if(car) secrParts.push(car.toLowerCase());
-    const secrTxt=secrParts.length?`, secreciones ${secrParts.join(', ')}`:'';
-    // Línea principal permeabilización
-    if(perm.length) L.push(`Permeabilización de vía aérea mediante ${perm.join(' + ')}${secrTxt}.`);
-    else if(secrTxt) L.push(`Secreciones${secrTxt.replace(/^, /,'')}.`);
-    // Inhaloterapia
-    if($('cInhalo')?.checked) L.push('Se administra inhaloterapia según indicación médica (SOS).');
-    // Posicionamiento
-    const posArr=[];
-    if($('cPosSed')?.checked) posArr.push('Sedente >45°');
-    if($('cPosDCLD')?.checked) posArr.push('DCL D');
-    if($('cPosDCLI')?.checked) posArr.push('DCL I');
-    if($('cProno')?.checked){ const h=v('fPronoHora'); posArr.push(h?`Prono desde las ${h} hrs`:'Prono'); }
-    if($('cSupino')?.checked){ const h=v('fSupinoHora'); posArr.push(h?`Se supina a las ${h} hrs`:'Supino'); }
-    const lib=v('fPosLibre'); if(lib) posArr.push(lib);
-    if(posArr.length) L.push(`Posicionamiento: ${posArr.join(', ')}.`);
-  })();
-  // Cultivo de secreciones
-  (function(){
-    const _res=(_tiState['fCultTags']||[]).filter(Boolean);
-    if(_res.length) L.push('Resultado de cultivo: '+_res.join(', ')+'.');
-    if($('cMue')?.checked){
-      const _tipos=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
-      const _obj=v('fCultObj');
-      let _cline='Se toman muestras para cultivo';
-      if(_tipos.length) _cline+=' ('+_tipos.join(', ')+(_obj?` — ${_obj}`:'')+ ')';
-      _cline+=', resultado pendiente.';
-      L.push(_cline);
-    }
-  })();
   // Evaluaciones funcionales del turno
   if($('cEvalT')?.checked){
     const ev=[];
@@ -4121,7 +4141,7 @@ function genTexto() {
     } else {
       // Rama NO PVE
       if(_et==='sin_condiciones'){
-        L.push('Paciente sin condiciones para realización de PVE en este turno. Continúa con soporte ventilatorio.');
+        // integrado en línea VMI — no generar línea separada
       } else if(_et==='autoextubacion'){
         let _etxt=`Paciente se autoextuba${_horaTxt}`;
         if(_mot) _etxt+=`. ${_mot}`;
@@ -4145,8 +4165,7 @@ function genTexto() {
   })();
   (function(){
     const auto=[];
-    const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
-    if(mu.length) auto.push('CULTIVO DE SECRECIONES');
+    // CULTIVO omitido — ya aparece integrado en la línea KTR
     if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
     if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
     if(v('fPVEval')){
