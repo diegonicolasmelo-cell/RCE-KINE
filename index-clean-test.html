@@ -990,32 +990,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
       <input type="text" id="egOtroVal" placeholder="Ej: Hospital Clínico Universidad de Chile" style="height:38px;">
     </div>
 
-    <!-- MÓDULO TEST DE APNEA — visible solo cuando destino = UPOT -->
-    <div id="egUpotBox" class="hidden" style="margin-bottom:14px;padding:12px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
-      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;color:#7e22ce;letter-spacing:.05em;margin-bottom:10px;">🫀 Test de Apnea — UPOT</div>
-      <div class="row" style="align-items:flex-end;gap:10px;flex-wrap:wrap;">
-        <div class="col wa">
-          <label>Resultado</label>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;">
-              <input type="radio" name="apneaRes" value="positivo" onchange="hApnea()"> Positivo
-            </label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;">
-              <input type="radio" name="apneaRes" value="negativo" onchange="hApnea()"> Negativo
-            </label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;">
-              <input type="radio" name="apneaRes" value="suspendido" onchange="hApnea()"> Suspendido
-            </label>
-          </div>
-        </div>
-        <div id="dApneaMotivo" class="col grow hidden">
-          <label>Motivo suspensión</label>
-          <input type="text" id="fApneaMotivo" placeholder="Ej: hipotensión, hipoxemia severa..." style="height:34px;" oninput="hApnea()">
-        </div>
-      </div>
-      <div id="dApneaTexto" style="margin-top:8px;font-size:.78rem;color:#6b21a8;font-style:italic;min-height:18px;"></div>
-    </div>
-
     <div id="egMotivoInfo" class="hidden" style="padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:.78rem;color:#1e40af;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
       <span style="font-weight:700;">Motivo:</span> <span id="egMotivoLbl"></span>
     </div>
@@ -1353,6 +1327,29 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <select id="fCoop"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select></div>
               <div class="col wa"><label>CAM-ICU</label>
                 <select id="fCAMICU"><option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option></select></div>
+            </div>
+            <!-- UPOT: visible solo cuando VA invasiva + GCS ≤ 6 -->
+            <div id="dUPOTrow" class="hidden" style="margin-top:6px;padding:8px 10px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:6px;">
+              <div class="check wa" style="border:none;background:transparent;padding:0;">
+                <input type="checkbox" id="cUPOT" onchange="hUPOT()" style="accent-color:#7e22ce;">
+                <label for="cUPOT" style="font-size:.82rem;font-weight:700;color:#7e22ce;">🫀 UPOT</label>
+              </div>
+              <!-- Test de Apnea: visible solo si UPOT marcado + GCS = 3 -->
+              <div id="dApneaEvo" class="hidden" style="margin-top:8px;border-top:1px solid #e9d5ff;padding-top:8px;">
+                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#7e22ce;letter-spacing:.07em;margin-bottom:6px;">Test de Apnea</div>
+                <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;">
+                  <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;"><input type="radio" name="apneaEvoRes" value="positivo"   onchange="hApneaEvo()"> Positivo</label>
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;"><input type="radio" name="apneaEvoRes" value="negativo"   onchange="hApneaEvo()"> Negativo</label>
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;"><input type="radio" name="apneaEvoRes" value="suspendido" onchange="hApneaEvo()"> Suspendido</label>
+                  </div>
+                  <div id="dApneaEvoMotivo" class="col grow hidden">
+                    <label>Motivo suspensión</label>
+                    <input type="text" id="fApneaEvoMotivo" placeholder="hipotensión, hipoxemia..." style="height:32px;" oninput="hApneaEvo()">
+                  </div>
+                </div>
+                <div id="dApneaEvoTexto" style="margin-top:6px;font-size:.78rem;color:#6b21a8;font-style:italic;min-height:16px;"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -2789,6 +2786,11 @@ function fillForm(s) {
   set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
   set('fGCSO',s.SED_GCS_O); set('fGCSV',s.SED_GCS_V); set('fGCSM',s.SED_GCS_M);
   chk('cBNM',s.SED_BNM);
+  // UPOT
+  chk('cUPOT', s.EVO_UPOT);
+  if (s.APNEA_RESULTADO) { const r=document.querySelector(`input[name="apneaEvoRes"][value="${s.APNEA_RESULTADO}"]`); if(r) r.checked=true; }
+  if (s.APNEA_MOTIVO) { set('fApneaEvoMotivo', s.APNEA_MOTIVO); }
+  if (s.APNEA_TEXTO)  { const t=$('dApneaEvoTexto'); if(t) t.textContent=s.APNEA_TEXTO; }
   set('fHEst',s.HEMO_ESTADO); set('fDVA',s.HEMO_DVA);
   chk('cMultiDVA',s.HEMO_MULTI_DVA); set('fDVAcnt',s.HEMO_NUM_DVA);
   chk('cHTrend',s.HEMO_TENDENCIA); set('fHTT',s.HEMO_TEND_TIPO);
@@ -2959,6 +2961,10 @@ function fillFormReplica(s) {
   set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
   set('fGCSO',s.SED_GCS_O); set('fGCSV',s.SED_GCS_V); set('fGCSM',s.SED_GCS_M);
   chk('cBNM',s.SED_BNM);
+  chk('cUPOT', s.EVO_UPOT);
+  if (s.APNEA_RESULTADO) { const r=document.querySelector(`input[name="apneaEvoRes"][value="${s.APNEA_RESULTADO}"]`); if(r) r.checked=true; }
+  if (s.APNEA_MOTIVO) { set('fApneaEvoMotivo', s.APNEA_MOTIVO); }
+  if (s.APNEA_TEXTO)  { const t=$('dApneaEvoTexto'); if(t) t.textContent=s.APNEA_TEXTO; }
 
   // Hemodinámica
   set('fHEst',s.HEMO_ESTADO); set('fDVA',s.HEMO_DVA);
@@ -3175,6 +3181,10 @@ function guardar() {
     EVAL_TIMEPOINT:   v('fEvalTimepoint'),
     EVAL_T_GROSOR_QUAD: v('fGrosQuad'),
     EVAL_T_HECKMATT:  v('fHeckmatt'),
+    EVO_UPOT:         bv('cUPOT'),
+    APNEA_RESULTADO:  document.querySelector('input[name="apneaEvoRes"]:checked')?.value || '',
+    APNEA_MOTIVO:     v('fApneaEvoMotivo') || '',
+    APNEA_TEXTO:      $('dApneaEvoTexto')?.textContent || '',
     // ★ PVE diaria
     PVE_RESULTADO:   (document.querySelector('input[name="pveRes"]:checked')?.value)||'',
     PVE_FR_MOTIVOS:  JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
@@ -3338,7 +3348,6 @@ function cerrarEgreso() {
 function egDestinoChange() {
   const d = v('egDestino');
   if (d === 'Otro') show('egOtroBox'); else hide('egOtroBox');
-  if (d === 'UPOT') { show('egUpotBox'); } else { hide('egUpotBox'); _resetApnea(); }
   if (d && d !== 'Otro') {
     $('egMotivoLbl').textContent = DEST_TO_MOTIVO[d] || '—';
     show('egMotivoInfo');
@@ -3346,23 +3355,36 @@ function egDestinoChange() {
     hide('egMotivoInfo');
   }
 }
-function hApnea() {
-  const res = document.querySelector('input[name="apneaRes"]:checked')?.value || '';
-  if (res === 'suspendido') show('dApneaMotivo'); else hide('dApneaMotivo');
-  const txt = $('dApneaTexto');
-  if (!txt) return;
-  if (res === 'positivo')    txt.textContent = 'Se realiza test de apnea con resultado positivo. Paciente en protocolo UPOT.';
-  else if (res === 'negativo') txt.textContent = 'Se realiza test de apnea con resultado negativo.';
-  else if (res === 'suspendido') {
-    const mot = v('fApneaMotivo') || '...';
-    txt.textContent = `Test de apnea suspendido por ${mot}.`;
-  } else { txt.textContent = ''; }
+function _checkUPOT() {
+  const va = v('fVA');
+  const esVMI = va === 'TOT' || va === 'TQT';
+  const gcs = parseInt($('lblGCS')?.textContent) || 0;
+  const mostrar = esVMI && gcs <= 6;
+  if (mostrar) { show('dUPOTrow'); } else { hide('dUPOTrow'); const c=$('cUPOT'); if(c) c.checked=false; hide('dApneaEvo'); }
+  hUPOT();
 }
-function _resetApnea() {
-  document.querySelectorAll('input[name="apneaRes"]').forEach(r => r.checked = false);
-  const m=$('fApneaMotivo'); if(m) m.value='';
-  hide('dApneaMotivo');
-  const t=$('dApneaTexto'); if(t) t.textContent='';
+function hUPOT() {
+  const checked = $('cUPOT')?.checked;
+  const gcs = parseInt($('lblGCS')?.textContent) || 0;
+  if (checked && gcs === 3) show('dApneaEvo'); else hide('dApneaEvo');
+}
+function hApneaEvo() {
+  const res = document.querySelector('input[name="apneaEvoRes"]:checked')?.value || '';
+  if (res === 'suspendido') show('dApneaEvoMotivo'); else hide('dApneaEvoMotivo');
+  const txt = $('dApneaEvoTexto');
+  if (!txt) return;
+  if (res === 'positivo')      txt.textContent = 'Se realiza test de apnea con resultado positivo. Paciente en protocolo UPOT.';
+  else if (res === 'negativo') txt.textContent = 'Se realiza test de apnea con resultado negativo.';
+  else if (res === 'suspendido') { const mot = v('fApneaEvoMotivo') || '...'; txt.textContent = `Test de apnea suspendido por ${mot}.`; }
+  else txt.textContent = '';
+}
+function _resetApneaEvo() {
+  document.querySelectorAll('input[name="apneaEvoRes"]').forEach(r => r.checked = false);
+  const m = $('fApneaEvoMotivo'); if (m) m.value = '';
+  hide('dApneaEvoMotivo');
+  const t = $('dApneaEvoTexto'); if (t) t.textContent = '';
+  const c = $('cUPOT'); if (c) c.checked = false;
+  hide('dUPOTrow'); hide('dApneaEvo');
 }
 function hReintub() {
   if($('cReintub')?.checked) show('dReintubDet'); else hide('dReintubDet');
@@ -3397,9 +3419,6 @@ function confirmarEgreso() {
     firmaKine:        v('egFirma') || '',
     turno:            SHIFT,
     // Test de Apnea (UPOT)
-    apneaResultado:   document.querySelector('input[name="apneaRes"]:checked')?.value || '',
-    apneaMotivo:      v('fApneaMotivo') || '',
-    apneaTexto:       $('dApneaTexto')?.textContent || '',
   }, _ => {
     loading(false); cerrarEgreso(); recargar();
     toast(`✅ Egreso registrado. Destino: ${destino}`);
@@ -4445,6 +4464,11 @@ function genTexto() {
   if(_pveNoCond && _espontaneo){
     L.push('*Actualmente sin condiciones para realizar PVE. Por lo que mantiene soporte.');
   }
+  // UPOT / Test de Apnea
+  if($('cUPOT')?.checked){
+    const apTxt=$('dApneaEvoTexto')?.textContent||'';
+    L.push(apTxt||'Paciente en protocolo UPOT.');
+  }
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
   if(pl) L.push(`Plan: ${pl}`); if(no) L.push(`Nota: ${no}`); if(fi) L.push(`Kinesiólogo: ${fi}`);
   return L.filter(Boolean).join('\n');
@@ -4537,6 +4561,7 @@ function calcGCS() {
   else{if(vSel){if(vSel.value==='1T')vSel.value='5';vSel.disabled=false;}}
   const o=parseInt(v('fGCSO'))||0, m=parseInt(v('fGCSM'))||0, vv=parseInt(v('fGCSV'))||1;
   $('lblGCS').textContent=(va==='TOT'||va==='TQT')?`${o+vv+m}T`:(o+vv+m);
+  _checkUPOT();
 }
 function calcResp() {
   const pi=parseFloat($('lblPI')?.textContent?.replace(/[^0-9.]/g,''))||0;

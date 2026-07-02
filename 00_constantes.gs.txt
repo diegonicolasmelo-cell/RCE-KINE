@@ -180,9 +180,10 @@ const COL_EVO = {
   EVAL_TIMEPOINT:     129,
   EVAL_T_GROSOR_QUAD: 130,
   EVAL_T_HECKMATT:    131,
+  EVO_UPOT:           132,
 };
 
-const EVO_TOTAL_COLS = 131;
+const EVO_TOTAL_COLS = 132;
 
 // ═══════════════════════════════════════════════════════════
 //  MAPA COLUMNAS — CAMAS_ESTADO
