@@ -176,9 +176,13 @@ const COL_EVO = {
   APNEA_RESULTADO:  126,
   APNEA_MOTIVO:     127,
   APNEA_TEXTO:      128,
+  // Evaluación funcional — timepoints y ecografía muscular
+  EVAL_TIMEPOINT:     129,
+  EVAL_T_GROSOR_QUAD: 130,
+  EVAL_T_HECKMATT:    131,
 };
 
-const EVO_TOTAL_COLS = 128;
+const EVO_TOTAL_COLS = 131;
 
 // ═══════════════════════════════════════════════════════════
 //  MAPA COLUMNAS — CAMAS_ESTADO

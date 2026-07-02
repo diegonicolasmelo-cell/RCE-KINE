@@ -1162,6 +1162,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <option>6</option><option>7</option><option>8</option><option>9</option>
                   </select>
                   <span id="lblEcf" class="interp-tip" title=""></span>
+                  <span id="ecfLockBadge" class="hidden" title="ECF registrada al ingreso — no editable" style="font-size:.78rem;opacity:.55;cursor:default;">🔒</span>
                 </div>
               </div>
               <div class="col wa"><label>⚖️ AET</label>
@@ -2062,6 +2063,20 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             </div>
           </div>
           <div id="dEgr" class="fcard-body hidden">
+            <div class="row" style="margin-bottom:4px;align-items:flex-end;">
+              <div class="col wa"><label>⏱️ Timepoint</label>
+                <select id="fEvalTimepoint" style="width:130px;" onchange="_clearTimepointAuto()">
+                  <option value="">— Auto —</option>
+                  <option value="Inicial">Inicial</option>
+                  <option value="Día 7">Día 7</option>
+                  <option value="Seguimiento">Seguimiento</option>
+                  <option value="Egreso">Egreso</option>
+                </select>
+              </div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;">
+                <span id="lblTimepoint" style="font-size:.71rem;color:var(--muted);font-weight:600;font-style:italic;"></span>
+              </div>
+            </div>
             <div class="row">
               <div class="col wa"><label>Prensión / Dinam. (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="kg" oninput="interpDinamo()"></div>
               <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPrension" class="interp-pill interp-empty">—</span></div>
@@ -2080,6 +2095,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             </div>
             <div class="row">
               <div class="col wa"><label>Grosor Diafr. (mm)</label><input type="number" id="fGrosor" step="0.1"></div>
+              <div class="col wa"><label>Grosor Cuádric. D° (mm)</label><input type="number" id="fGrosQuad" step="0.1" min="0"></div>
+              <div class="col wa"><label>Heckmatt (1-4)</label>
+                <select id="fHeckmatt"><option value="">--</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
+              </div>
               <div class="col grow"><label>Hallazgos Ecográficos</label><input type="text" id="fDiaf" placeholder="Descripción..."></div>
             </div>
             <div class="row">
@@ -2607,7 +2626,7 @@ function abrirPanel(id, esIng) {
   const _emoji = SHIFT==='Dia' ? '☀️' : '🌙';
   $('spShift').textContent=`${_emoji} ${fecha}`;
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
-  $('kf').reset(); PROCS=[]; renderChips();
+  $('kf').reset(); PROCS=[]; renderChips(); _lockEcf(false);
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
 
   ['lblMRC','lblFSS','lblPIM'].forEach(id=>{ const e=$(id); if(e){e.textContent='—';e.className='interp-pill interp-empty';} });
@@ -2731,7 +2750,7 @@ function fillCama(c, fecha) {
   s('fNombre',c.NOMBRE); s('fEdad',c.EDAD); if(c.NOMBRE) actualizarTituloPanel(c.NOMBRE);
   if(c.SEXO) { $('fSexo').value=c.SEXO; calcPI(); }
   s('fTalla',c.TALLA_CM); s('fBarthel',c.BARTHEL); s('fEcf',c.ECF);
-  updBarthelLbl('fBarthel','lblBarthel'); updEcfLbl('fEcf','lblEcf');
+  updBarthelLbl('fBarthel','lblBarthel'); updEcfLbl('fEcf','lblEcf'); _lockEcf(!!c.ECF);
   s('fDx',c.DIAGNOSTICO); s('fRem',c.DIAG_REM);
   $('fDias').value = dias(c.FECHA_INGRESO,fecha);
   _fechaInicioVA=c.FECHA_INICIO_VA||'';
@@ -2855,6 +2874,9 @@ function fillForm(s) {
     chk('fBDTp',   _ex.EVAL_T_BDT_POS);
     chk('fBDTn',   _ex.EVAL_T_BDT_NEG);
     set('fPVA',     _ex.EVAL_T_PMANT_VA);
+    set('fEvalTimepoint', _ex.EVAL_TIMEPOINT); _timepointManual = !!_ex.EVAL_TIMEPOINT;
+    set('fGrosQuad',      _ex.EVAL_T_GROSOR_QUAD);
+    set('fHeckmatt',      _ex.EVAL_T_HECKMATT);
   }
   // S1: aislamiento
   chk('cAisl',_ex.PAC_AISLAMIENTO); hAisl();
@@ -3150,6 +3172,9 @@ function guardar() {
     EVAL_T_BDT_POS:   bv('fBDTp'),
     EVAL_T_BDT_NEG:   bv('fBDTn'),
     EVAL_T_PMANT_VA:  v('fPVA'),
+    EVAL_TIMEPOINT:   v('fEvalTimepoint'),
+    EVAL_T_GROSOR_QUAD: v('fGrosQuad'),
+    EVAL_T_HECKMATT:  v('fHeckmatt'),
     // ★ PVE diaria
     PVE_RESULTADO:   (document.querySelector('input[name="pveRes"]:checked')?.value)||'',
     PVE_FR_MOTIVOS:  JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
@@ -3613,9 +3638,11 @@ const REH_VARS = [
   { key: 'EGR_PRENSION',   label: 'Prensión (kg)',      color: '#be123c' },
   { key: 'EGR_PIM',        label: 'PImax (cmH₂O)',     color: '#dc2626' },
   { key: 'EGR_PEM',        label: 'PEmax (cmH₂O)',     color: '#d97706' },
-  { key: 'PAC_BARTHEL',    label: 'Barthel (0-100)',    color: '#1d4ed8', max:100 },
-  { key: 'SED_S5Q',        label: 'S5Q (0-5)',          color: '#a16207', step:1, max:5 },
-  { key: 'SED_GCS_TOT',    label: 'GCS total',          color: '#4f46e5', max:15 },
+  { key: 'PAC_BARTHEL',        label: 'Barthel (0-100)',       color: '#1d4ed8', max:100 },
+  { key: 'SED_S5Q',            label: 'S5Q (0-5)',             color: '#a16207', step:1, max:5 },
+  { key: 'SED_GCS_TOT',        label: 'GCS total',             color: '#4f46e5', max:15 },
+  { key: 'EVAL_T_GROSOR_QUAD', label: 'Grosor Cuádric. D° (mm)', color: '#7c2d12' },
+  { key: 'EVAL_T_HECKMATT',    label: 'Heckmatt (1-4)',        color: '#a16207', step:1, max:4 },
 ];
 
 function abrirTL(id) {
@@ -3725,8 +3752,104 @@ function toggleTLVar(key) {
 
 function renderTL() {
   if (!$('tlBody')) return;
-  if (TL_TAB === 'ev')   _renderTLEventos();
-  else                   _renderTLChart(TL_TAB === 'vent' ? VENT_VARS : REH_VARS);
+  if (TL_TAB === 'ev')        _renderTLEventos();
+  else if (TL_TAB === 'reh')  _renderTLReh();
+  else                        _renderTLChart(VENT_VARS);
+}
+
+function _renderTLReh() {
+  _renderTLChart(REH_VARS);              // sets innerHTML first
+  const tbl = _buildTPTable();
+  if (tbl) $('tlBody').insertAdjacentHTML('afterbegin', tbl);
+}
+
+function _buildTPTable() {
+  const evals = TL_EVOS
+    .filter(e => e.EVAL_T_REALIZAR === true || e.EVAL_T_REALIZAR === 'TRUE')
+    .slice().sort((a,b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
+  if (evals.length < 1) return '';
+
+  // Manual timepoints take priority; then auto-detect
+  const byTP = {};
+  evals.forEach(e => { const tp = e.EVAL_TIMEPOINT; if (tp && !byTP[tp]) byTP[tp] = e; });
+  // Auto-detect missing
+  if (!byTP['Inicial']) byTP['Inicial'] = evals[0];
+  const rest = evals.filter(e => e !== byTP['Inicial']);
+  if (!byTP['Egreso'] && rest.length) byTP['Egreso'] = rest[rest.length - 1];
+  if (!byTP['Día 7'] && rest.length > 1) {
+    const fechaInic = byTP['Inicial'].TURNO_KEY?.slice(0,10);
+    if (fechaInic) {
+      const target = new Date(fechaInic); target.setDate(target.getDate() + 7);
+      const mid = rest.filter(e => e !== byTP['Egreso']);
+      if (mid.length) byTP['Día 7'] = mid.reduce((b, e) => {
+        const d = Math.abs(new Date(e.TURNO_KEY.slice(0,10)) - target);
+        return !b || d < Math.abs(new Date(b.TURNO_KEY.slice(0,10)) - target) ? e : b;
+      }, null);
+    }
+  }
+
+  const tps = ['Inicial','Día 7','Egreso'];
+  const ROWS = [
+    { label:'MRC-ss (0-60)',        key:'EVAL_T_MRC' },
+    { label:'FSS-ICU (0-35)',       key:'EVAL_T_FSS' },
+    { label:'PIM (cmH₂O)',          key:'EVAL_T_PIM' },
+    { label:'PEM (cmH₂O)',          key:'EVAL_T_PEM' },
+    { label:'Prensión (kg)',         key:'EGR_PRENSION' },
+    { label:'Grosor Diafr. (mm)',   key:'EVAL_T_GROSOR' },
+    { label:'Grosor Cuádric. D° (mm)', key:'EVAL_T_GROSOR_QUAD' },
+    { label:'Heckmatt (1-4)',        key:'EVAL_T_HECKMATT' },
+  ];
+
+  const _val = (tp, key) => {
+    const e = byTP[tp]; if (!e) return null;
+    const v = e[key]; return (v !== undefined && v !== null && v !== '') ? v : null;
+  };
+  const _trend = (v1, v2) => {
+    if (v1 === null || v2 === null) return '';
+    const n1 = parseFloat(v1), n2 = parseFloat(v2);
+    if (isNaN(n1)||isNaN(n2)) return '';
+    if (n2 > n1) return '<span style="color:#059669;margin-left:3px;">↑</span>';
+    if (n2 < n1) return '<span style="color:#dc2626;margin-left:3px;">↓</span>';
+    return '<span style="color:#94a3b8;margin-left:3px;">→</span>';
+  };
+  const isAuto = tp => !!byTP[tp] && !byTP[tp].EVAL_TIMEPOINT;
+  const tpDate = tp => byTP[tp]?.TURNO_KEY?.slice(0,10) || '';
+
+  const dataRows = ROWS.map(r => {
+    const vals = tps.map(tp => _val(tp, r.key));
+    if (vals.every(v => v === null)) return '';
+    const cells = tps.map((tp, i) => {
+      const val = vals[i];
+      const trend = i > 0 ? _trend(vals[i-1], val) : '';
+      return `<td style="text-align:center;padding:7px 14px;font-weight:700;font-size:12.5px;color:${val===null?'#cbd5e1':'#0f172a'};font-variant-numeric:tabular-nums;">${val !== null ? val : '—'}${trend}</td>`;
+    }).join('');
+    return `<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:7px 10px;font-size:12px;font-weight:600;color:#475569;white-space:nowrap;">${r.label}</td>${cells}</tr>`;
+  }).filter(Boolean).join('');
+
+  if (!dataRows) return '';
+
+  const thStyle = 'text-align:center;padding:7px 14px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid #e2e8f0;color:';
+  const heads = tps.map(tp => {
+    const has = !!byTP[tp];
+    const auto = isAuto(tp) ? '<sup style="color:#94a3b8;font-size:8px;margin-left:1px;" title="Auto-detectado">~</sup>' : '';
+    const date = tpDate(tp) ? `<br><span style="font-size:9.5px;font-weight:400;color:#94a3b8;">${tpDate(tp)}</span>` : '';
+    return `<th style="${thStyle}${has?'#0f172a':'#cbd5e1'};">${tp}${auto}${date}</th>`;
+  }).join('');
+
+  return `<div style="padding:14px 16px 0;border-bottom:1px solid #e2e8f0;margin-bottom:0;">
+    <div style="font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#94a3b8;margin-bottom:10px;">
+      Comparativa Timepoints — <span style="font-weight:400;text-transform:none;font-size:10.5px;">~ = auto-detectado</span>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="border-collapse:collapse;font-size:.8rem;width:100%;min-width:360px;">
+      <thead><tr>
+        <th style="text-align:left;padding:7px 10px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid #e2e8f0;color:#94a3b8;">Variable</th>
+        ${heads}
+      </tr></thead>
+      <tbody>${dataRows}</tbody>
+    </table>
+    </div>
+  </div>`;
 }
 
 // ── Tab Eventos — tabla horizontal: columnas = fechas, filas = eventos ──
@@ -4918,7 +5041,30 @@ function hEgr(){
   const esNoche = SHIFT === 'Noche';
   const card = $('fcEgrCard');
   if (card) card.classList.toggle('hidden', esNoche);
-  if (!esNoche && $('cEgr')?.checked) show('dEgr'); else hide('dEgr');
+  if (!esNoche && $('cEgr')?.checked) { show('dEgr'); _autoTimepoint(); } else hide('dEgr');
+}
+let _timepointManual = false;
+function _clearTimepointAuto() { _timepointManual = !!v('fEvalTimepoint'); const l=$('lblTimepoint'); if(l) l.textContent=''; }
+function _autoTimepoint() {
+  const sel = $('fEvalTimepoint');
+  if (!sel || _timepointManual) return;
+  const d = parseInt($('fDias')?.value) || 0;
+  let sugerido = '';
+  if (d <= 2)              sugerido = 'Inicial';
+  else if (d >= 5 && d <= 10) sugerido = 'Día 7';
+  const lbl = $('lblTimepoint');
+  if (sugerido && !sel.value) {
+    sel.value = sugerido;
+    if (lbl) lbl.textContent = `⚡ Auto: ${sugerido}`;
+  } else if (lbl && !sel.value) {
+    lbl.textContent = 'Sin clasificar (puedes elegir manualmente)';
+  }
+}
+function _lockEcf(lock) {
+  const sel = $('fEcf');
+  if (sel) sel.disabled = !!lock;
+  const badge = $('ecfLockBadge');
+  if (badge) badge.classList.toggle('hidden', !lock);
 }
 let _nombreTimer=null;
 function _debouncedChkNombre(val){clearTimeout(_nombreTimer);_nombreTimer=setTimeout(()=>chkNombreDB(val),300);}
