@@ -1989,6 +1989,63 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           </div>
         </div>
 
+        <!-- EVALUACIONES FUNCIONALES (unificadas) -->
+        <div class="fcard fc-f" id="fcEgrCard">
+          <div class="fcard-hdr">
+            <span class="fcard-title" style="color:var(--fisico);">📏 Evaluaciones Funcionales</span>
+            <div class="check wa" style="border:none;background:transparent;padding:0;">
+              <input type="checkbox" id="cEgr" onchange="hEgr()">
+              <label for="cEgr" style="font-size:.78rem;">Registrar evaluación este turno</label>
+            </div>
+          </div>
+          <div id="dEgr" class="fcard-body hidden">
+            <div class="row" style="margin-bottom:4px;align-items:flex-end;">
+              <div class="col wa"><label>⏱️ Timepoint</label>
+                <select id="fEvalTimepoint" style="width:130px;" onchange="_clearTimepointAuto()">
+                  <option value="">— Auto —</option>
+                  <option value="Inicial">Inicial</option>
+                  <option value="Día 7">Día 7</option>
+                  <option value="Seguimiento">Seguimiento</option>
+                  <option value="Egreso">Egreso</option>
+                </select>
+              </div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;">
+                <span id="lblTimepoint" style="font-size:.71rem;color:var(--muted);font-weight:600;font-style:italic;"></span>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col wa"><label>Prensión / Dinam. (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="kg" oninput="interpDinamo()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPrension" class="interp-pill interp-empty">—</span></div>
+              <div class="col wa"><label>MRC-SS (0-60)</label><input type="number" id="fMRC" min="0" max="60" oninput="interpMRC()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblMRC" class="interp-pill interp-empty">—</span></div>
+            </div>
+            <div class="row">
+              <div class="col wa"><label>FSS-ICU (0-35)</label><input type="number" id="fFSS" min="0" max="35" oninput="interpFSS()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblFSS" class="interp-pill interp-empty">—</span></div>
+            </div>
+            <div class="row">
+              <div class="col wa"><label>PIM (cmH₂O)</label><input type="number" id="fPIM" oninput="interpPIM()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPIM" class="interp-pill interp-empty">—</span></div>
+              <div class="col wa"><label>PEM (cmH₂O)</label><input type="number" id="fPEM"></div>
+              <div class="col wa"><label>FEM L/s</label><input type="number" id="fFEM" step="0.1"></div>
+            </div>
+            <div class="row">
+              <div class="col wa"><label>Grosor Diafr. (mm)</label><input type="number" id="fGrosor" step="0.1"></div>
+              <div class="col wa"><label>Grosor Cuádric. D° (mm)</label><input type="number" id="fGrosQuad" step="0.1" min="0"></div>
+              <div class="col wa"><label>Heckmatt (1-4)</label>
+                <select id="fHeckmatt"><option value="">--</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
+              </div>
+              <div class="col grow"><label>Hallazgos Ecográficos</label><input type="text" id="fDiaf" placeholder="Descripción..."></div>
+            </div>
+            <div class="row">
+              <div class="check wa"><input type="checkbox" id="fBDTp"><label for="fBDTp">BDT +</label></div>
+              <div class="check wa"><input type="checkbox" id="fBDTn"><label for="fBDTn">BDT -</label></div>
+              <!-- Pmant VA: solo si TQT -->
+              <div class="col wa" id="dPmantVA" style="display:none;"><label>Pmant VA (cmH₂O)</label><input type="number" id="fPVA"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- PROCEDIMIENTOS -->
         <div class="fcard" style="border-color:#e0e7ff;">
           <div class="fcard-hdr"><span class="fcard-title" style="color:#4338ca;">🔧 Procedimientos del Turno</span></div>
@@ -2049,63 +2106,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <option>Educación al usuario / cuidador o familia</option>
               </datalist>
               <button type="button" class="btn btn-p" style="width:auto;padding:0 15px;height:35px;" onclick="addProc()">+ Agregar</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- EVALUACIONES FUNCIONALES (unificadas) -->
-        <div class="fcard fc-f" id="fcEgrCard">
-          <div class="fcard-hdr">
-            <span class="fcard-title" style="color:var(--fisico);">📏 Evaluaciones Funcionales</span>
-            <div class="check wa" style="border:none;background:transparent;padding:0;">
-              <input type="checkbox" id="cEgr" onchange="hEgr()">
-              <label for="cEgr" style="font-size:.78rem;">Registrar evaluación este turno</label>
-            </div>
-          </div>
-          <div id="dEgr" class="fcard-body hidden">
-            <div class="row" style="margin-bottom:4px;align-items:flex-end;">
-              <div class="col wa"><label>⏱️ Timepoint</label>
-                <select id="fEvalTimepoint" style="width:130px;" onchange="_clearTimepointAuto()">
-                  <option value="">— Auto —</option>
-                  <option value="Inicial">Inicial</option>
-                  <option value="Día 7">Día 7</option>
-                  <option value="Seguimiento">Seguimiento</option>
-                  <option value="Egreso">Egreso</option>
-                </select>
-              </div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;">
-                <span id="lblTimepoint" style="font-size:.71rem;color:var(--muted);font-weight:600;font-style:italic;"></span>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>Prensión / Dinam. (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="kg" oninput="interpDinamo()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPrension" class="interp-pill interp-empty">—</span></div>
-              <div class="col wa"><label>MRC-SS (0-60)</label><input type="number" id="fMRC" min="0" max="60" oninput="interpMRC()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblMRC" class="interp-pill interp-empty">—</span></div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>FSS-ICU (0-35)</label><input type="number" id="fFSS" min="0" max="35" oninput="interpFSS()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblFSS" class="interp-pill interp-empty">—</span></div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>PIM (cmH₂O)</label><input type="number" id="fPIM" oninput="interpPIM()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPIM" class="interp-pill interp-empty">—</span></div>
-              <div class="col wa"><label>PEM (cmH₂O)</label><input type="number" id="fPEM"></div>
-              <div class="col wa"><label>FEM L/s</label><input type="number" id="fFEM" step="0.1"></div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>Grosor Diafr. (mm)</label><input type="number" id="fGrosor" step="0.1"></div>
-              <div class="col wa"><label>Grosor Cuádric. D° (mm)</label><input type="number" id="fGrosQuad" step="0.1" min="0"></div>
-              <div class="col wa"><label>Heckmatt (1-4)</label>
-                <select id="fHeckmatt"><option value="">--</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
-              </div>
-              <div class="col grow"><label>Hallazgos Ecográficos</label><input type="text" id="fDiaf" placeholder="Descripción..."></div>
-            </div>
-            <div class="row">
-              <div class="check wa"><input type="checkbox" id="fBDTp"><label for="fBDTp">BDT +</label></div>
-              <div class="check wa"><input type="checkbox" id="fBDTn"><label for="fBDTn">BDT -</label></div>
-              <!-- Pmant VA: solo si TQT -->
-              <div class="col wa" id="dPmantVA" style="display:none;"><label>Pmant VA (cmH₂O)</label><input type="number" id="fPVA"></div>
             </div>
           </div>
         </div>
