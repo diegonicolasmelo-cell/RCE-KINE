@@ -166,9 +166,19 @@ const COL_EVO = {
   // RHB — evaluación funcional periódica (col nueva al final)
   EGR_PRENSION:     119,   // dinamometría / prensión palmar (kg)
   PATIENT_ID:       120,   // UUID único por episodio de hospitalización
+  // Reintubación desde bloque VAA
+  REINTUB_BLOQUE:   121,
+  REINTUB_HORA:     122,
+  REINTUB_MOTIVO:   123,
+  REINTUB_SOP_PREV: 124,
+  REINTUB_TIEMPO:   125,
+  // Test de Apnea (UPOT)
+  APNEA_RESULTADO:  126,
+  APNEA_MOTIVO:     127,
+  APNEA_TEXTO:      128,
 };
 
-const EVO_TOTAL_COLS = 120;
+const EVO_TOTAL_COLS = 128;
 
 // ═══════════════════════════════════════════════════════════
 //  MAPA COLUMNAS — CAMAS_ESTADO
@@ -277,6 +287,10 @@ const COL_ARCH = {
   JSON_BACKUP:       27,
   TIMELINE_JSON:     28,
   PATIENT_ID:        29,   // UUID único del episodio archivado
+  // Test de Apnea (UPOT)
+  APNEA_RESULTADO:   30,
+  APNEA_MOTIVO:      31,
+  APNEA_TEXTO:       32,
 };
 
 

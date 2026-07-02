@@ -227,7 +227,7 @@ function darAltaPaciente(datos) {
  
       // Guardar en ARCHIVO
       const hArch = obtenerHoja(SH.ARCHIVO);
-      const filaArch = new Array(28).fill('');
+      const filaArch = new Array(32).fill('');
       filaArch[COL_ARCH.ID_ARCHIVO        - 1] = generarIdArchivo();
       filaArch[COL_ARCH.CAMA_ORIGEN       - 1] = datos.idCama;
       filaArch[COL_ARCH.FECHA_INGRESO     - 1] = cama.FECHA_INGRESO;
@@ -257,6 +257,9 @@ function darAltaPaciente(datos) {
       filaArch[COL_ARCH.JSON_BACKUP       - 1] = JSON.stringify(cama);
       filaArch[COL_ARCH.TIMELINE_JSON     - 1] = cama.TIMELINE_JSON  || '[]';
       filaArch[COL_ARCH.PATIENT_ID        - 1] = cama.PATIENT_ID   || '';
+      filaArch[COL_ARCH.APNEA_RESULTADO   - 1] = datos.apneaResultado || '';
+      filaArch[COL_ARCH.APNEA_MOTIVO      - 1] = datos.apneaMotivo    || '';
+      filaArch[COL_ARCH.APNEA_TEXTO       - 1] = datos.apneaTexto     || '';
       hArch.appendRow(filaArch);
  
       // Hito de egreso (★ SIN lock anidado ★)
