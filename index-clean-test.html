@@ -976,6 +976,9 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <optgroup label="⚰️ Fallecimiento">
           <option>Anatomía patológica</option>
         </optgroup>
+        <optgroup label="🫀 UPOT">
+          <option>UPOT</option>
+        </optgroup>
         <optgroup label="Otro">
           <option>Otro</option>
         </optgroup>
@@ -985,6 +988,32 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
     <div id="egOtroBox" class="col hidden" style="margin-bottom:14px;">
       <label>Especificar destino</label>
       <input type="text" id="egOtroVal" placeholder="Ej: Hospital Clínico Universidad de Chile" style="height:38px;">
+    </div>
+
+    <!-- MÓDULO TEST DE APNEA — visible solo cuando destino = UPOT -->
+    <div id="egUpotBox" class="hidden" style="margin-bottom:14px;padding:12px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
+      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;color:#7e22ce;letter-spacing:.05em;margin-bottom:10px;">🫀 Test de Apnea — UPOT</div>
+      <div class="row" style="align-items:flex-end;gap:10px;flex-wrap:wrap;">
+        <div class="col wa">
+          <label>Resultado</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;">
+              <input type="radio" name="apneaRes" value="positivo" onchange="hApnea()"> Positivo
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;">
+              <input type="radio" name="apneaRes" value="negativo" onchange="hApnea()"> Negativo
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.82rem;">
+              <input type="radio" name="apneaRes" value="suspendido" onchange="hApnea()"> Suspendido
+            </label>
+          </div>
+        </div>
+        <div id="dApneaMotivo" class="col grow hidden">
+          <label>Motivo suspensión</label>
+          <input type="text" id="fApneaMotivo" placeholder="Ej: hipotensión, hipoxemia severa..." style="height:34px;" oninput="hApnea()">
+        </div>
+      </div>
+      <div id="dApneaTexto" style="margin-top:8px;font-size:.78rem;color:#6b21a8;font-style:italic;min-height:18px;"></div>
     </div>
 
     <div id="egMotivoInfo" class="hidden" style="padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:.78rem;color:#1e40af;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
@@ -1235,6 +1264,54 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <option>XL proximal</option>
                     <option>Ajustable</option>
                   </select></div>
+              </div>
+              <!-- REINTUBACIÓN explícita — bloque manual -->
+              <div id="dReintubBloque" class="hidden" style="margin-top:6px;padding:8px;background:#fff1f2;border:1px solid #fecaca;border-radius:6px;">
+                <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--danger);margin-bottom:6px;">🔴 Reintubación</div>
+                <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                  <div class="check wa" style="border:none;background:transparent;padding:0;align-self:flex-end;margin-bottom:4px;">
+                    <input type="checkbox" id="cReintub" onchange="hReintub()">
+                    <label for="cReintub" style="font-size:.8rem;color:var(--danger);font-weight:700;">Registrar reintubación en este turno</label>
+                  </div>
+                </div>
+                <div id="dReintubDet" class="hidden" style="margin-top:6px;">
+                  <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                    <div class="col wa">
+                      <label>Hora reintubación</label>
+                      <input type="time" id="fReintubHora" style="height:34px;">
+                    </div>
+                    <div class="col grow">
+                      <label>Motivo</label>
+                      <select id="fReintubMotivo" style="height:34px;">
+                        <option value="">-- seleccionar --</option>
+                        <option>No protege VA</option>
+                        <option>Falla respiratoria post extubación</option>
+                        <option>Edema laríngeo post extubación</option>
+                        <option>Debilidad muscular respiratoria</option>
+                        <option>Agitación psicomotora</option>
+                        <option>Indicación médica</option>
+                        <option>Extubación accidental</option>
+                      </select>
+                    </div>
+                    <div class="col grow">
+                      <label>Soporte previo a reintubación</label>
+                      <select id="fReintubSop" style="height:34px;">
+                        <option value="">-- seleccionar --</option>
+                        <option>VNI</option>
+                        <option>CNAF</option>
+                        <option>MMV</option>
+                        <option>NRC</option>
+                        <option>Mascarilla</option>
+                        <option>Bolsa de reanimación</option>
+                        <option>Sin soporte</option>
+                      </select>
+                    </div>
+                    <div class="col wa">
+                      <label>Tiempo hasta reintub.</label>
+                      <input type="text" id="fReintubTiempo" placeholder="Ej: 45 min" style="height:34px;width:110px;">
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1920,7 +1997,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <input type="text" id="inProc" placeholder="Escribir o seleccionar procedimiento..." list="dlProc"
                 style="flex-grow:1;height:35px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;font-size:.84rem;">
               <datalist id="dlProc">
-                <!-- Vía aérea -->
+                <!-- Vía aérea — nombres congelados para estadística -->
                 <option>INTUBACIÓN</option>
                 <option>PVE</option>
                 <option>EXTUBACIÓN C/PROTOCOLO</option>
@@ -1941,11 +2018,11 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <option>ASISTENCIA EN PROCEDIMIENTO MÉDICO</option>
                 <!-- Estudios -->
                 <option>IMAGENOLOGÍA</option>
-                <option>CULTIVO DE SECRECIONES</option>
+                <option>CULTIVO DE SECRECIÓN</option>
                 <option>PCR COVID</option>
                 <option>ECOGRAFÍA</option>
                 <option>EVALUACIÓN INTERMEDIA</option>
-                <option>TEST APNEA</option>
+                <option>TEST DE APNEA</option>
                 <!-- Posicionamiento -->
                 <option>SUPINO</option>
                 <option>PRONO</option>
@@ -3109,7 +3186,7 @@ function guardar() {
     PROC_JSON: (function(){
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
-      if(mu.length) auto.push('CULTIVO DE SECRECIONES');
+      if(mu.length) auto.push('CULTIVO DE SECRECIÓN');
       if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
       if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
       if(_extOcurrio()||v('fPVEval')){
@@ -3121,13 +3198,15 @@ function guardar() {
         if(v('fPVEval')==='si') auto.push('PVE');
         if(_extReintub())              auto.push('REINTUBACIÓN');
       }
+      // Reintubación desde bloque VAA explícito
+      if($('cReintub')?.checked) auto.push('REINTUBACIÓN');
       const merged=Array.from(new Set([...(PROCS||[]), ...auto]));
       return JSON.stringify(merged);
     })(),
     PROC_RESUMEN: (function(){
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
-      if(mu.length) auto.push('CULTIVO DE SECRECIONES');
+      if(mu.length) auto.push('CULTIVO DE SECRECIÓN');
       if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
       if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
       if(_extOcurrio()||v('fPVEval')){
@@ -3139,12 +3218,13 @@ function guardar() {
         if(v('fPVEval')==='si') auto.push('PVE');
         if(_extReintub()) auto.push('REINTUBACIÓN');
       }
+      if($('cReintub')?.checked) auto.push('REINTUBACIÓN');
       return Array.from(new Set([...(PROCS||[]), ...auto])).join(', ');
     })(),
     PROC_CANTIDAD: (function(){
       const auto=[];
       const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
-      if(mu.length) auto.push('CULTIVO DE SECRECIONES');
+      if(mu.length) auto.push('CULTIVO DE SECRECIÓN');
       if($('cProno')?.checked) auto.push('PRONO');
       if($('cSupino')?.checked) auto.push('SUPINACIÓN');
       if(_extOcurrio()||v('fPVEval')){
@@ -3153,6 +3233,12 @@ function guardar() {
       }
       return new Set([...(PROCS||[]), ...auto]).size;
     })(),
+    // Reintubación desde bloque VAA
+    REINTUB_BLOQUE:     bv('cReintub'),
+    REINTUB_HORA:       v('fReintubHora'),
+    REINTUB_MOTIVO:     v('fReintubMotivo'),
+    REINTUB_SOP_PREVIO: v('fReintubSop'),
+    REINTUB_TIEMPO:     v('fReintubTiempo'),
     MUE_REALIZADAS:bv('cMue'),
     MUE_TIPOS_JSON:JSON.stringify(Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value)),
     MUE_RESULTADOS_JSON:JSON.stringify((_tiState['fCultTags']||[]).filter(Boolean)),
@@ -3215,6 +3301,7 @@ const DEST_TO_MOTIVO = {
   'ELEAM':                   'Traslado a otro establecimiento',
   'Otro hospital':           'Traslado a otro establecimiento',
   'Anatomía patológica':      'Fallecimiento',
+  'UPOT':                    'Fallecimiento',
 };
 
 function cerrarEgreso() {
@@ -3226,12 +3313,34 @@ function cerrarEgreso() {
 function egDestinoChange() {
   const d = v('egDestino');
   if (d === 'Otro') show('egOtroBox'); else hide('egOtroBox');
+  if (d === 'UPOT') { show('egUpotBox'); } else { hide('egUpotBox'); _resetApnea(); }
   if (d && d !== 'Otro') {
     $('egMotivoLbl').textContent = DEST_TO_MOTIVO[d] || '—';
     show('egMotivoInfo');
   } else {
     hide('egMotivoInfo');
   }
+}
+function hApnea() {
+  const res = document.querySelector('input[name="apneaRes"]:checked')?.value || '';
+  if (res === 'suspendido') show('dApneaMotivo'); else hide('dApneaMotivo');
+  const txt = $('dApneaTexto');
+  if (!txt) return;
+  if (res === 'positivo')    txt.textContent = 'Se realiza test de apnea con resultado positivo. Paciente en protocolo UPOT.';
+  else if (res === 'negativo') txt.textContent = 'Se realiza test de apnea con resultado negativo.';
+  else if (res === 'suspendido') {
+    const mot = v('fApneaMotivo') || '...';
+    txt.textContent = `Test de apnea suspendido por ${mot}.`;
+  } else { txt.textContent = ''; }
+}
+function _resetApnea() {
+  document.querySelectorAll('input[name="apneaRes"]').forEach(r => r.checked = false);
+  const m=$('fApneaMotivo'); if(m) m.value='';
+  hide('dApneaMotivo');
+  const t=$('dApneaTexto'); if(t) t.textContent='';
+}
+function hReintub() {
+  if($('cReintub')?.checked) show('dReintubDet'); else hide('dReintubDet');
 }
 
 function confirmarEgreso() {
@@ -3255,13 +3364,17 @@ function confirmarEgreso() {
   const btn = $('egConfBtn'); btn.disabled = true; btn.innerHTML = '⏳ Procesando...';
   loading(true, 'Procesando egreso...');
   gs('DAR_ALTA', {
-    idCama:         EG_IDCAMA,
-    motivoEgreso:   motivo,
-    destinoEgreso:  destino,
-    barthelEgreso:  v('egBarthel') || '',
-    observaciones:  v('egObs') || '',
-    firmaKine:      v('egFirma') || '',
-    turno:          SHIFT,
+    idCama:           EG_IDCAMA,
+    motivoEgreso:     motivo,
+    destinoEgreso:    destino,
+    barthelEgreso:    v('egBarthel') || '',
+    observaciones:    v('egObs') || '',
+    firmaKine:        v('egFirma') || '',
+    turno:            SHIFT,
+    // Test de Apnea (UPOT)
+    apneaResultado:   document.querySelector('input[name="apneaRes"]:checked')?.value || '',
+    apneaMotivo:      v('fApneaMotivo') || '',
+    apneaTexto:       $('dApneaTexto')?.textContent || '',
   }, _ => {
     loading(false); cerrarEgreso(); recargar();
     toast(`✅ Egreso registrado. Destino: ${destino}`);
@@ -4462,12 +4575,16 @@ function updateVAUI() {
   if(va==='TOT'){
     show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');
     _showCol('colDiasTOT'); _hideCol('colDiasTQT'); _showCol('colDiasVAA');
+    // Mostrar bloque reintubación si hay historial previo de VM
+    const hayReintub=_diasVMPrevios>0||_nReintub>0;
+    if(hayReintub) show('dReintubBloque'); else hide('dReintubBloque');
   } else if(va==='TQT'){
     show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');
     if(_diasTOTBase>0) _showCol('colDiasTOT'); else _hideCol('colDiasTOT');
     _showCol('colDiasTQT'); _showCol('colDiasVAA');
+    hide('dReintubBloque');
   } else {
-    hide('dVADet');hide('dExtSec');hide('dDecanSec');
+    hide('dVADet');hide('dExtSec');hide('dDecanSec');hide('dReintubBloque');
     _hideCol('colDiasTOT');_hideCol('colDiasTQT');
     if(_diasVABase>0||esVNI) _showCol('colDiasVAA'); else _hideCol('colDiasVAA');
   }
