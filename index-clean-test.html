@@ -3521,7 +3521,8 @@ function abrirTL(id) {
   $('ovl').classList.add('on');
 
   // Carga combinada hitos + evoluciones en una sola llamada
-  gs('GET_HISTORIAL_PACIENTE', { idCama: id }, data => {
+  const _patientId = c?.PATIENT_ID || '';
+  gs('GET_HISTORIAL_PACIENTE', { idCama: id, patientId: _patientId }, data => {
     TL_HITOS = data.hitos || [];
     TL_EVOS  = data.evoluciones || [];
     renderTL();

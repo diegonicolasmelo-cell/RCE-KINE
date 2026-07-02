@@ -100,15 +100,24 @@ function _clasificarProcedimiento(nombre) {
  */
 function _agregarHitoInternoSinSync(hito) {
   const h    = obtenerHoja(SH.TIMELINE);
-  const fila = new Array(8).fill('');
-  fila[COL_TL.ID_HITO   - 1] = generarIdHito();
-  fila[COL_TL.ID_CAMA   - 1] = String(hito.idCama || '');
-  fila[COL_TL.FECHA     - 1] = hito.fecha || fechaHoyISO();
-  fila[COL_TL.TURNO     - 1] = hito.turno || 'Dia';
-  fila[COL_TL.TIPO      - 1] = hito.tipo  || 'general';
-  fila[COL_TL.TEXTO     - 1] = hito.texto || '';
-  fila[COL_TL.TIMESTAMP - 1] = timestampAhora();
-  fila[COL_TL.AUTOR     - 1] = hito.autor || '';
+  const fila = new Array(9).fill('');
+  fila[COL_TL.ID_HITO    - 1] = generarIdHito();
+  fila[COL_TL.ID_CAMA    - 1] = String(hito.idCama || '');
+  fila[COL_TL.FECHA      - 1] = hito.fecha || fechaHoyISO();
+  fila[COL_TL.TURNO      - 1] = hito.turno || 'Dia';
+  fila[COL_TL.TIPO       - 1] = hito.tipo  || 'general';
+  fila[COL_TL.TEXTO      - 1] = hito.texto || '';
+  fila[COL_TL.TIMESTAMP  - 1] = timestampAhora();
+  fila[COL_TL.AUTOR      - 1] = hito.autor || '';
+  // Resolución de PATIENT_ID: desde el hito o desde CAMAS_ESTADO
+  let patId = hito.patientId || '';
+  if (!patId) {
+    try {
+      const rc = obtenerCama(hito.idCama);
+      if (rc.ok && rc.data.PATIENT_ID) patId = rc.data.PATIENT_ID;
+    } catch(e) {}
+  }
+  fila[COL_TL.PATIENT_ID - 1] = patId;
   h.appendRow(fila);
 }
  

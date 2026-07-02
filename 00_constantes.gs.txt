@@ -165,9 +165,10 @@ const COL_EVO = {
   JSON_SNAPSHOT:    118,
   // RHB — evaluación funcional periódica (col nueva al final)
   EGR_PRENSION:     119,   // dinamometría / prensión palmar (kg)
+  PATIENT_ID:       120,   // UUID único por episodio de hospitalización
 };
 
-const EVO_TOTAL_COLS = 119;
+const EVO_TOTAL_COLS = 120;
 
 // ═══════════════════════════════════════════════════════════
 //  MAPA COLUMNAS — CAMAS_ESTADO
@@ -214,9 +215,10 @@ const COL_CAM = {
   PROC_NOCHE:          38,
   FIRMA_NOCHE:         39,
   KEY_NOCHE:           40,
+  PATIENT_ID:          41,   // UUID único por episodio de hospitalización
 };
 
-const CAM_TOTAL_COLS = 40;
+const CAM_TOTAL_COLS = 41;
 
 // ── MAPA COLUMNAS — PROCEDIMIENTOS ───────────────────────
 const COL_PROC = {
@@ -241,6 +243,7 @@ const COL_TL = {
   TEXTO:      6,
   TIMESTAMP:  7,
   AUTOR:      8,
+  PATIENT_ID: 9,   // UUID único del episodio
 };
 
 // ── MAPA COLUMNAS — ARCHIVO PACIENTES ─────────────────────
@@ -273,6 +276,7 @@ const COL_ARCH = {
   OBSERVACIONES:     26,
   JSON_BACKUP:       27,
   TIMELINE_JSON:     28,
+  PATIENT_ID:        29,   // UUID único del episodio archivado
 };
 
 

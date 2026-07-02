@@ -75,7 +75,7 @@ function procesarRequest(accion, datos) {
         return obtenerTimeline(datos.idCama);
 
       case 'GET_HISTORIAL_PACIENTE':
-        return obtenerHistorialPaciente(datos.idCama);
+        return obtenerHistorialPaciente(datos.idCama, datos.patientId || '');
 
       case 'GET_ARCHIVOS':
         return obtenerArchivos(datos || {});

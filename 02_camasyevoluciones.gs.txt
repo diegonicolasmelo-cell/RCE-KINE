@@ -180,6 +180,10 @@ function ingresarPaciente(datos) {
         TEXTO_EVO_NOCHE:      '',
       };
  
+      // Generar UUID único para este episodio de hospitalización
+      const patientId = Utilities.getUuid();
+      campos.PATIENT_ID = patientId;
+
       // Batch write (en _actualizarCamaInterno hay 1 sola I/O)
       _actualizarCamaInterno(datos.idCama, campos);
  
@@ -194,7 +198,7 @@ function ingresarPaciente(datos) {
       });
  
       SpreadsheetApp.flush();
-      return ok({ idCama: datos.idCama, accion: 'ingreso', fecha });
+      return ok({ idCama: datos.idCama, accion: 'ingreso', fecha, patientId });
     } catch (e) {
       return err('ingresarPaciente: ' + e.message, e);
     }
@@ -252,6 +256,7 @@ function darAltaPaciente(datos) {
       filaArch[COL_ARCH.OBSERVACIONES     - 1] = datos.observaciones || '';
       filaArch[COL_ARCH.JSON_BACKUP       - 1] = JSON.stringify(cama);
       filaArch[COL_ARCH.TIMELINE_JSON     - 1] = cama.TIMELINE_JSON  || '[]';
+      filaArch[COL_ARCH.PATIENT_ID        - 1] = cama.PATIENT_ID   || '';
       hArch.appendRow(filaArch);
  
       // Hito de egreso (★ SIN lock anidado ★)
@@ -375,6 +380,17 @@ function guardarEvolucion(datos) {
           ? calcularDias(cama.FECHA_INICIO_VA, fecha) : 0;
       }
  
+      // PATIENT_ID: generar UUID si es ingreso nuevo; propagar desde cama en turnos normales
+      const _esIngreso = parseBool(datos.ES_INGRESO || datos.esIngreso);
+      if (_esIngreso) {
+        // Nuevo episodio → generar UUID fresco y guardarlo en CAMAS_ESTADO
+        datos.PATIENT_ID = Utilities.getUuid();
+        _actualizarCamaInterno(idCama, { PATIENT_ID: datos.PATIENT_ID });
+      } else if (!datos.PATIENT_ID) {
+        // Turno normal → propagar desde CAMAS_ESTADO
+        if (resC.ok && resC.data.PATIENT_ID) datos.PATIENT_ID = resC.data.PATIENT_ID;
+      }
+
       // Texto generado
       datos.TEXTO_GENERADO = generarTextoEvolucion(datos);
       datos.JSON_SNAPSHOT  = JSON.stringify(datos);
@@ -621,14 +637,24 @@ function obtenerEvolucionesHoy(fecha) {
  *   - Calculadas: DIA_ESTADIA, DIAS_VM, DIAS_VA, CALC_ML_KG, CALC_DP, CALC_IROX, CALC_TOBIN
  *   - Firma: PLAN_FIRMA_KINE
  */
-function obtenerHistorialPaciente(idCama) {
+function obtenerHistorialPaciente(idCama, patientId) {
   try {
-    // Hitos
+    // Resolver PATIENT_ID actual si no viene del frontend
+    if (!patientId) {
+      const resCama = obtenerCama(idCama);
+      if (resCama.ok && resCama.data.PATIENT_ID) patientId = resCama.data.PATIENT_ID;
+    }
+
+    // Hitos — filtrar por PATIENT_ID si disponible, sino por idCama (legado)
     const hT = obtenerHoja(SH.TIMELINE);
-    const hitos = leerHojaObjetos(hT, COL_TL, 8, TL_FILA_DATOS, 'ID_CAMA', idCama);
-    // Ordenar por TIMESTAMP desc para el listado, pero el frontend lo re-ordenará si necesita
+    let hitos;
+    if (patientId) {
+      hitos = leerHojaObjetos(hT, COL_TL, 9, TL_FILA_DATOS, 'PATIENT_ID', patientId);
+    } else {
+      hitos = leerHojaObjetos(hT, COL_TL, 8, TL_FILA_DATOS, 'ID_CAMA', idCama);
+    }
     hitos.sort((a, b) => String(b.TIMESTAMP).localeCompare(String(a.TIMESTAMP)));
- 
+
     // Evoluciones (subset de columnas para no enviar todo el snapshot)
     const COLS_GRAFICOS = [
       'ID_EVOLUCION', 'FECHA', 'TURNO', 'TURNO_KEY',
@@ -643,7 +669,11 @@ function obtenerHistorialPaciente(idCama) {
       'CALC_ML_KG', 'CALC_DP', 'CALC_IROX', 'CALC_TOBIN', 'CALC_VOL_MIN',
       'PLAN_FIRMA_KINE',
     ];
-    const evolucionesFull = _obtenerEvolucionesIdCama(idCama);
+    let evolucionesFull = _obtenerEvolucionesIdCama(idCama);
+    // Filtrar por PATIENT_ID para no mezclar con pacientes anteriores en la misma cama
+    if (patientId) {
+      evolucionesFull = evolucionesFull.filter(e => e.PATIENT_ID === patientId);
+    }
     const evoluciones = evolucionesFull.map(e => {
       const slim = {};
       COLS_GRAFICOS.forEach(k => { slim[k] = e[k] !== undefined ? e[k] : ''; });
