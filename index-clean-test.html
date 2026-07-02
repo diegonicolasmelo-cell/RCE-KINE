@@ -1786,13 +1786,29 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 
                 <!-- Nivel 1–5 como pills -->
                 <div style="margin-bottom:8px;">
-                  <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:5px;">Nivel KTM</label>
-                  <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                    <button type="button" class="ktm-niv-btn" data-niv="1" onclick="setKTMniv('1')">1</button>
-                    <button type="button" class="ktm-niv-btn" data-niv="2" onclick="setKTMniv('2')">2</button>
-                    <button type="button" class="ktm-niv-btn" data-niv="3" onclick="setKTMniv('3')">3</button>
-                    <button type="button" class="ktm-niv-btn" data-niv="4" onclick="setKTMniv('4')">4</button>
-                    <button type="button" class="ktm-niv-btn" data-niv="5" onclick="setKTMniv('5')">5</button>
+                  <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;">
+                    <div>
+                      <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:5px;">Nivel KTM</label>
+                      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                        <button type="button" class="ktm-niv-btn" data-niv="1" onclick="setKTMniv('1')">1</button>
+                        <button type="button" class="ktm-niv-btn" data-niv="2" onclick="setKTMniv('2')">2</button>
+                        <button type="button" class="ktm-niv-btn" data-niv="3" onclick="setKTMniv('3')">3</button>
+                        <button type="button" class="ktm-niv-btn" data-niv="4" onclick="setKTMniv('4')">4</button>
+                        <button type="button" class="ktm-niv-btn" data-niv="5" onclick="setKTMniv('5')">5</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:5px;">🦵 Hito Motor Más Alto</label>
+                      <select id="fNivelMotor" style="height:30px;font-size:.78rem;border:1px solid #e2e8f0;border-radius:6px;padding:0 6px;">
+                        <option value="">—</option>
+                        <option value="1">1 · Reposo en cama</option>
+                        <option value="2">2 · Sedente en cama</option>
+                        <option value="3">3 · Sedente borde / silla</option>
+                        <option value="4">4 · Bipedestación</option>
+                        <option value="5">5 · Marcha asistida</option>
+                        <option value="6">6 · Marcha autónoma</option>
+                      </select>
+                    </div>
                   </div>
                   <div id="ktmNivDesc" style="font-size:.7rem;color:var(--muted);margin-top:4px;min-height:1.2em;"></div>
                   <input type="hidden" id="fKTMniv">
@@ -1892,35 +1908,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               </div>
             </div>
 
-            <!-- Evaluaciones funcionales -->
-            <div class="sub-sec">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <div class="sub-sec-title" style="color:var(--kine);margin:0;">Evaluaciones funcionales</div>
-                <div class="check wa" style="border:none;background:transparent;padding:0;">
-                  <input type="checkbox" id="cEvalT" onchange="if(this.checked)show('dEvalT');else hide('dEvalT');">
-                  <label for="cEvalT" style="font-size:.78rem;">Realizar este turno</label>
-                </div>
-              </div>
-              <div id="dEvalT" class="hidden fade">
-                <div class="row">
-                  <div class="col wa"><label>MRC-ss (0-60)</label><input type="number" id="fMRCt" min="0" max="60" oninput="interpMRC()"></div>
-                  <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblMRC" class="interp-pill interp-empty">—</span></div>
-                </div>
-                <div class="row">
-                  <div class="col wa"><label>Dinamometría (kg)</label><input type="number" id="fDinamo" step="0.1" min="0" oninput="interpDinamo()"></div>
-                  <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblDinamo" class="interp-pill interp-empty">— <span style="opacity:.6;font-size:.65rem;">(usa sexo del paciente)</span></span></div>
-                </div>
-                <div class="row">
-                  <div class="col wa"><label>FSS-ICU (0-35)</label><input type="number" id="fFSSt" min="0" max="35" oninput="interpFSS()"></div>
-                  <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblFSS" class="interp-pill interp-empty">—</span></div>
-                </div>
-                <div class="row">
-                  <div class="col wa"><label>PIM (cmH₂O)</label><input type="number" id="fPIMt" oninput="interpPIM()"></div>
-                  <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPIMt" class="interp-pill interp-empty">—</span></div>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
 
@@ -1988,12 +1975,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           </div>
         </div>
 
-        <!-- MUESTRAS integradas en RESPIRATORIO — sección separada removida -->
-
-        <!-- EVALUACIÓN FUNCIONAL (RHB) -->
+        <!-- EVALUACIONES FUNCIONALES (unificadas) -->
         <div class="fcard fc-f" id="fcEgrCard">
           <div class="fcard-hdr">
-            <span class="fcard-title" style="color:var(--fisico);">📏 Evaluación funcional (RHB)</span>
+            <span class="fcard-title" style="color:var(--fisico);">📏 Evaluaciones Funcionales</span>
             <div class="check wa" style="border:none;background:transparent;padding:0;">
               <input type="checkbox" id="cEgr" onchange="hEgr()">
               <label for="cEgr" style="font-size:.78rem;">Registrar evaluación este turno</label>
@@ -2001,54 +1986,53 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           </div>
           <div id="dEgr" class="fcard-body hidden">
             <div class="row">
-              <div class="col wm"><label title="Hito motor más alto alcanzado este turno">🦵 Hito motor más alto</label>
-                <select id="fNivelMotor">
-                  <option value="">—</option>
-                  <option value="1 · Reposo en cama">1 · Reposo en cama</option>
-                  <option value="2 · Sedente en cama">2 · Sedente en cama</option>
-                  <option value="3 · Sedente borde / silla">3 · Sedente borde cama / silla</option>
-                  <option value="4 · Bipedestación">4 · Bipedestación</option>
-                  <option value="5 · Marcha asistida">5 · Marcha asistida</option>
-                  <option value="6 · Marcha autónoma">6 · Marcha autónoma</option>
-                </select>
-              </div>
-              <div class="col wa"><label>Prensión (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="dinam."></div>
+              <div class="col wa"><label>Prensión / Dinam. (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="kg" oninput="interpDinamo()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPrension" class="interp-pill interp-empty">—</span></div>
+              <div class="col wa"><label>MRC-SS (0-60)</label><input type="number" id="fMRC" min="0" max="60" oninput="interpMRC()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblMRC" class="interp-pill interp-empty">—</span></div>
             </div>
             <div class="row">
-              <div class="col wa"><label>MRC-SS (0-60)</label><input type="number" id="fMRC" min="0" max="60"></div>
-              <div class="col wa"><label>FSS-ICU</label><input type="number" id="fFSS"></div>
-              <div class="col wa"><label>PIM cmH₂O</label><input type="number" id="fPIM"></div>
-              <div class="col wa"><label>PEM cmH₂O</label><input type="number" id="fPEM"></div>
+              <div class="col wa"><label>FSS-ICU (0-35)</label><input type="number" id="fFSS" min="0" max="35" oninput="interpFSS()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblFSS" class="interp-pill interp-empty">—</span></div>
+            </div>
+            <div class="row">
+              <div class="col wa"><label>PIM (cmH₂O)</label><input type="number" id="fPIM" oninput="interpPIM()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPIM" class="interp-pill interp-empty">—</span></div>
+              <div class="col wa"><label>PEM (cmH₂O)</label><input type="number" id="fPEM"></div>
               <div class="col wa"><label>FEM L/s</label><input type="number" id="fFEM" step="0.1"></div>
             </div>
             <div class="row">
-              <div class="col wa"><label>Grosor Diafr. mm</label><input type="number" id="fGrosor" step="0.1"></div>
+              <div class="col wa"><label>Grosor Diafr. (mm)</label><input type="number" id="fGrosor" step="0.1"></div>
               <div class="col grow"><label>Hallazgos Ecográficos</label><input type="text" id="fDiaf" placeholder="Descripción..."></div>
+            </div>
+            <div class="row">
               <div class="check wa"><input type="checkbox" id="fBDTp"><label for="fBDTp">BDT +</label></div>
               <div class="check wa"><input type="checkbox" id="fBDTn"><label for="fBDTn">BDT -</label></div>
-              <div class="col wa"><label>Presión VA</label><input type="number" id="fPVA"></div>
+              <!-- Pmant VA: solo si TQT -->
+              <div class="col wa" id="dPmantVA" style="display:none;"><label>Pmant VA (cmH₂O)</label><input type="number" id="fPVA"></div>
             </div>
           </div>
         </div>
 
-        <!-- PLANES -->
-        <div class="fcard fc-g">
-          <div class="fcard-hdr"><span class="fcard-title" style="color:#334155;">📋 Planes y Firma</span></div>
-          <div class="fcard-body">
-            <div class="row">
-              <div class="col grow"><label>Plan Kinésico (próximo turno)</label>
-                <textarea id="fPlanes" rows="2" placeholder="Plan para el próximo turno..."></textarea></div>
-            </div>
-            <div class="row">
-              <div class="col grow"><label>Nota del Turno</label>
-                <textarea id="fNota" rows="2" placeholder="Observaciones adicionales..."></textarea></div>
-              <div class="col wm"><label>Firma Kinesiólogo</label>
-                <select id="fFirma" class="bold tc"></select></div>
-            </div>
-          </div>
-        </div>
         </div><!-- /sp-col derecha -->
       </div><!-- /sp-2col -->
+
+      <!-- PLANES Y PENDIENTES — ancho completo -->
+      <div class="fcard fc-g" style="margin:0;border-radius:0;border-left:none;border-right:none;">
+        <div class="fcard-hdr"><span class="fcard-title" style="color:#334155;">📋 Planes y Pendientes</span></div>
+        <div class="fcard-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div><label>Plan Kinésico (próximo turno)</label>
+              <textarea id="fPlanes" rows="3" placeholder="Plan para el próximo turno..." style="width:100%;box-sizing:border-box;"></textarea></div>
+            <div><label>Nota del Turno</label>
+              <textarea id="fNota" rows="3" placeholder="Observaciones adicionales..." style="width:100%;box-sizing:border-box;"></textarea></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+            <div style="min-width:180px;"><label>Firma Kinesiólogo</label>
+              <select id="fFirma" class="bold tc" style="width:100%;"></select></div>
+          </div>
+        </div>
+      </div>
 
       <!-- ACCIONES -->
       <div style="display:flex;gap:9px;padding:10px 14px;border-top:1px solid var(--border);position:sticky;bottom:0;background:#fff;z-index:5;">
@@ -2549,8 +2533,8 @@ function abrirPanel(id, esIng) {
   $('kf').reset(); PROCS=[]; renderChips();
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
 
-  ['lblMRC','lblFSS','lblPIMt'].forEach(id=>{ const e=$(id); if(e){e.textContent='—';e.className='interp-pill interp-empty';} });
-  const dl=$('lblDinamo'); if(dl){ dl.innerHTML='— <span style="opacity:.6;font-size:.65rem;">(usa sexo del paciente)</span>'; dl.className='interp-pill interp-empty'; }
+  ['lblMRC','lblFSS','lblPIM'].forEach(id=>{ const e=$(id); if(e){e.textContent='—';e.className='interp-pill interp-empty';} });
+  const dl=$('lblPrension'); if(dl){ dl.innerHTML='— <span style="opacity:.6;font-size:.65rem;">(usa sexo del paciente)</span>'; dl.className='interp-pill interp-empty'; }
   if(typeof setKTMstate==='function') setKTMstate('r');
   hAisl(); hAET(); hExt();
   // defaults
@@ -2778,13 +2762,23 @@ function fillForm(s) {
   try {
   } catch(e){}
 
-  // Evaluaciones por turno
-  chk('cEvalT', _ex.EVAL_T_REALIZAR);
-  if(_ex.EVAL_T_REALIZAR===true || _ex.EVAL_T_REALIZAR==='TRUE') show('dEvalT');
-  set('fMRCt',  _ex.EVAL_T_MRC);    interpMRC();
-  set('fDinamo',_ex.EVAL_T_DINAMO); interpDinamo();
-  set('fFSSt',  _ex.EVAL_T_FSS);    interpFSS();
-  set('fPIMt',  _ex.EVAL_T_PIM);    interpPIM();
+  // Evaluaciones funcionales — solo cargar si la fecha de registro es hoy
+  const _evalHoy = _ex.EVAL_FECHA === new Date().toISOString().slice(0,10);
+  chk('cEgr', _evalHoy && (_ex.EVAL_T_REALIZAR===true||_ex.EVAL_T_REALIZAR==='TRUE'));
+  if(_evalHoy && (_ex.EVAL_T_REALIZAR===true||_ex.EVAL_T_REALIZAR==='TRUE')) show('dEgr');
+  if(_evalHoy){
+    set('fMRC',     _ex.EVAL_T_MRC);     interpMRC();
+    set('fPrension',_ex.EVAL_T_DINAMO);  interpDinamo();
+    set('fFSS',     _ex.EVAL_T_FSS);     interpFSS();
+    set('fPIM',     _ex.EVAL_T_PIM);     interpPIM();
+    set('fPEM',     _ex.EVAL_T_PEM);
+    set('fFEM',     _ex.EVAL_T_FEM);
+    set('fGrosor',  _ex.EVAL_T_GROSOR);
+    set('fDiaf',    _ex.EVAL_T_HALLAZGOS);
+    chk('fBDTp',   _ex.EVAL_T_BDT_POS);
+    chk('fBDTn',   _ex.EVAL_T_BDT_NEG);
+    set('fPVA',     _ex.EVAL_T_PMANT_VA);
+  }
   // S1: aislamiento
   chk('cAisl',_ex.PAC_AISLAMIENTO); hAisl();
   setAislTags(_ex.PAC_AISL_MICRO||_ex.PAC_AISL_LISTA||'');
@@ -3066,11 +3060,19 @@ function guardar() {
     RESP_CULT_FECHAS:v('fCultFechas'),
     RESP_CULT_OBJ:  v('fCultObj'),
     // ★ Evaluaciones funcionales por turno
-    EVAL_T_REALIZAR: bv('cEvalT'),
-    EVAL_T_MRC:      v('fMRCt'),
-    EVAL_T_DINAMO:   v('fDinamo'),
-    EVAL_T_FSS:      v('fFSSt'),
-    EVAL_T_PIM:      v('fPIMt'),
+    EVAL_FECHA:       new Date().toISOString().slice(0,10),
+    EVAL_T_REALIZAR:  bv('cEgr'),
+    EVAL_T_MRC:       v('fMRC'),
+    EVAL_T_DINAMO:    v('fPrension'),
+    EVAL_T_FSS:       v('fFSS'),
+    EVAL_T_PIM:       v('fPIM'),
+    EVAL_T_PEM:       v('fPEM'),
+    EVAL_T_FEM:       v('fFEM'),
+    EVAL_T_GROSOR:    v('fGrosor'),
+    EVAL_T_HALLAZGOS: v('fDiaf'),
+    EVAL_T_BDT_POS:   bv('fBDTp'),
+    EVAL_T_BDT_NEG:   bv('fBDTn'),
+    EVAL_T_PMANT_VA:  v('fPVA'),
     // ★ PVE diaria
     PVE_RESULTADO:   (document.querySelector('input[name="pveRes"]:checked')?.value)||'',
     PVE_FR_MOTIVOS:  JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
@@ -4084,12 +4086,19 @@ function genTexto() {
     L.push(_ktmn+'.');
   }
   // Evaluaciones funcionales del turno
-  if($('cEvalT')?.checked){
+  if($('cEgr')?.checked){
     const ev=[];
-    if(gv('fMRCt'))   ev.push(`MRC-ss ${gv('fMRCt')}/60 (${$('lblMRC')?.textContent||''})`);
-    if(gv('fDinamo'))ev.push(`Dinamometría ${gv('fDinamo')} kg (${$('lblDinamo')?.textContent||''})`);
-    if(gv('fFSSt'))  ev.push(`FSS-ICU ${gv('fFSSt')}/35 (${$('lblFSS')?.textContent||''})`);
-    if(gv('fPIMt'))  ev.push(`PIM ${gv('fPIMt')} cmH₂O (${$('lblPIMt')?.textContent||''})`);
+    if(gv('fMRC'))      ev.push(`MRC-ss ${gv('fMRC')}/60 (${$('lblMRC')?.textContent||''})`);
+    if(gv('fPrension')) ev.push(`Dinamometría ${gv('fPrension')} kg (${$('lblPrension')?.textContent||''})`);
+    if(gv('fFSS'))      ev.push(`FSS-ICU ${gv('fFSS')}/35 (${$('lblFSS')?.textContent||''})`);
+    if(gv('fPIM'))      ev.push(`PIM ${gv('fPIM')} cmH2O (${$('lblPIM')?.textContent||''})`);
+    if(gv('fPEM'))      ev.push(`PEM ${gv('fPEM')} cmH2O`);
+    if(gv('fFEM'))      ev.push(`FEM ${gv('fFEM')} L/min`);
+    if(gv('fGrosor'))   ev.push(`Grosor diafragmático ${gv('fGrosor')} mm`);
+    if(gv('fDiaf'))     ev.push(`Ecografía: ${gv('fDiaf')}`);
+    if($('fBDTp')?.checked) ev.push('BDT positivo');
+    if($('fBDTn')?.checked) ev.push('BDT negativo');
+    if(gv('fPVA'))      ev.push(`Pmant VA ${gv('fPVA')} cmH2O`);
     if(ev.length) L.push('Evaluaciones funcionales: ' + ev.join('; ') + '.');
   }
   // Extubación + PVE — texto clínico unificado
@@ -4433,6 +4442,8 @@ function cascadeVA(preSop) {
   }
   _vaAnterior=va;
   updateVAUI(); calcGCS();
+  // Pmant VA: solo visible si TQT
+  const _pm=$('dPmantVA'); if(_pm) _pm.style.display=(va==='TQT'?'':'none');
 }
 function cascadeSop(preModo) {
   const va=v('fVA'), sop=v('fSop'); const r=VMAPS[va]||VMAPS['Natural'];
@@ -5223,23 +5234,23 @@ function _setInterp(id, text, cls){
   e.className = 'interp-pill ' + cls;
 }
 function interpMRC(){
-  const x = parseInt(v('fMRCt'));
+  const x = parseInt(v('fMRC'));
   if(isNaN(x)) return _setInterp('lblMRC','—','interp-empty');
   if(x < 36)  _setInterp('lblMRC','DAUCI SEVERA','interp-danger');
   else if(x < 48) _setInterp('lblMRC','DAUCI','interp-warn');
   else _setInterp('lblMRC','Sin DAUCI','interp-normal');
 }
 function interpDinamo(){
-  const x = parseFloat(v('fDinamo')), sx = v('fSexo');
-  if(isNaN(x)) return _setInterp('lblDinamo','—','interp-empty');
-  if(!sx) return _setInterp('lblDinamo','Falta sexo del paciente','interp-empty');
+  const x = parseFloat(v('fPrension')), sx = v('fSexo');
+  if(isNaN(x)) return _setInterp('lblPrension','—','interp-empty');
+  if(!sx) return _setInterp('lblPrension','Falta sexo del paciente','interp-empty');
   const cut = sx === 'M' ? 11 : 7;
-  if(x < cut * 0.5) _setInterp('lblDinamo',`DAUCI SEVERA (corte ${cut} kg)`,'interp-danger');
-  else if(x < cut)  _setInterp('lblDinamo',`DAUCI (corte ${cut} kg)`,'interp-warn');
-  else _setInterp('lblDinamo',`Normal (≥ ${cut} kg)`,'interp-normal');
+  if(x < cut * 0.5) _setInterp('lblPrension',`DAUCI SEVERA (corte ${cut} kg)`,'interp-danger');
+  else if(x < cut)  _setInterp('lblPrension',`DAUCI (corte ${cut} kg)`,'interp-warn');
+  else _setInterp('lblPrension',`Normal (≥ ${cut} kg)`,'interp-normal');
 }
 function interpFSS(){
-  const x = parseInt(v('fFSSt'));
+  const x = parseInt(v('fFSS'));
   if(isNaN(x)) return _setInterp('lblFSS','—','interp-empty');
   if(x <= 10)      _setInterp('lblFSS','Dependencia severa','interp-danger');
   else if(x <= 20) _setInterp('lblFSS','Dependencia moderada','interp-warn');
@@ -5247,11 +5258,11 @@ function interpFSS(){
   else _setInterp('lblFSS','Independencia funcional','interp-normal');
 }
 function interpPIM(){
-  const x = Math.abs(parseFloat(v('fPIMt')));
-  if(isNaN(x)) return _setInterp('lblPIMt','—','interp-empty');
-  if(x < 30) _setInterp('lblPIMt','Debilidad musc. respiratoria','interp-danger');
-  else if(x < 80) _setInterp('lblPIMt','Disminuida vs normal','interp-warn');
-  else _setInterp('lblPIMt','Normal','interp-normal');
+  const x = Math.abs(parseFloat(v('fPIM')));
+  if(isNaN(x)) return _setInterp('lblPIM','—','interp-empty');
+  if(x < 30) _setInterp('lblPIM','Debilidad musc. respiratoria','interp-danger');
+  else if(x < 80) _setInterp('lblPIM','Disminuida vs normal','interp-warn');
+  else _setInterp('lblPIM','Normal','interp-normal');
 }
 const KTMmap={
   'Absoluta':{
