@@ -3918,13 +3918,13 @@ function genTexto() {
   const hEst=gv('fHEst')||'Estable', dva=gv('fDVA')||'Sin requerimientos';
   let h=`HDN ${hEst==='Estable'?'estable':'inestable'}`;
   h+=dva==='Sin requerimientos'?', sin requerimientos de DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase();
-  if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt.toLowerCase()}`; } L.push(h+'.');
+  if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt}`; } L.push(h+'.');
   const sop=gv('fSop')||'Ambiente', modo=gv('fModo')||'';
   const vt=parseFloat(gv('r_vt'))||0, fr=parseFloat(gv('r_fr'))||0;
   const peep=parseFloat(gv('r_peep'))||0, fio2=parseFloat(gv('r_fio2'))||0;
   const spo2=parseFloat(gv('r_spo2'))||0, dVM=gv('fDiasVM')||'?', dVA=gv('fDiasVA')||'?';
   if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA en día ${dVA} mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()}.`); }
-  else if(va==='TQT') L.push(`VAA en día ${dVA} mediante TQT${gv('fTQTt')?' tipo '+gv('fTQTt'):''}.`);
+  else if(va==='TQT') L.push(`VAA en día ${dVA} mediante TQT${gv('fTQTt')?' '+gv('fTQTt'):''}.`);
   // — Helpers de soporte ventilatorio —
   const _np=id=>{ const x=parseFloat(gv(id)); return isNaN(x)?0:x; };
   const _mon=id=>{ const e=$(id); return e?(e.textContent||'').trim():''; };
@@ -3932,70 +3932,75 @@ function genTexto() {
   const _pjoin=arr=>arr.filter(Boolean).join(', ');
   const _humid=$('cHAct')?.checked;
   const _interac=$('cAdapt')?($('cAdapt').checked?'adecuada':'inadecuada'):null;
+  const _CTRL=['ACVC','ACPC'];
+  const _espontaneo = !_CTRL.includes(modo);
+  const _ps=_np('r_ps'), _tobin=_mon('l_tobin');
   if(sop==='VM'){
-    const _modalidad = modo==='ACVC'?'modalidad volumen control (ACVC)':modo==='ACPC'?'modalidad presión control (ACPC)':modo==='CPAP/PS'?'modalidad espontánea CPAP/PS':`modo ${modo}`;
     const _mlkg=_numTxt('l_mlkg');
-    // PVE sin_condiciones integrado en línea VMI
-    const _pveNoCond = v('fPVEval')==='no' && document.querySelector('input[name="extTipo"][value="sin_condiciones"]')?.checked;
-    let vs=`En VMI${_humid?' más humidificación activa':''}, ${_modalidad}`;
+    let vs;
+    if(_espontaneo){
+      vs=`Ventila espontáneo en modo ${modo}`;
+    } else {
+      const _modalidad=modo==='ACVC'?'modalidad volumen control (ACVC)':'modalidad presión control (ACPC)';
+      vs=`En VMI${_humid?' más humidificación activa':''}, ${_modalidad}`;
+    }
     if(_mlkg) vs+=` ventilado a ${_mlkg} ml/kg de peso ideal`;
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
-    if(_pveNoCond) vs+=', sin condiciones para realización de PVE en este turno';
     L.push(vs+'.');
-    const _ps=_np('r_ps'), _tobin=_mon('l_tobin');
     let _pb;
     if(modo==='CPAP/PS'||modo==='CFLEX'){
       _pb=_pjoin([
-        _ps?`PS ${_ps} cmH₂O`:null, peep?`PEEP ${peep} cmH₂O`:null,
-        _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH₂O`:null,
+        _ps?`PS ${_ps} cmH2O`:null, peep?`PEEP ${peep} cmH2O`:null,
+        _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH2O`:null,
         vt?`Vti ${vt} ml`:null, fr?`FR ${fr} rpm`:null,
         _numTxt('l_vm')?`VM ${_numTxt('l_vm')} L/min`:null,
         (_tobin&&_tobin!=='--'&&_tobin!=='!')?`I.Tobín ${_tobin}`:null,
-        fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null
+        fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null
       ]);
     } else {
       _pb=_pjoin([
         vt?`Vti ${vt} ml`:null, fr?`FR ${fr} rpm`:null, _numTxt('l_vm')?`VM ${_numTxt('l_vm')} L/min`:null,
         _np('r_flujo')?`Flujo ${_np('r_flujo')} L/min`:null, _np('r_ti')?`Ti ${_np('r_ti')} s`:null,
         (_mon('l_ie')&&_mon('l_ie')!=='--'&&_mon('l_ie')!=='!')?`I:E ${_mon('l_ie')}`:null,
-        _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH₂O`:null,
-        _np('r_pmedia')?`Pmedia ${_np('r_pmedia')} cmH₂O`:null, peep?`PEEP ${peep} cmH₂O`:null,
-        _np('r_ppl')?`Ppl ${_np('r_ppl')} cmH₂O`:null, _numTxt('l_dp')?`PD ${_numTxt('l_dp')} cmH₂O`:null,
-        _numTxt('l_cesr')?`Cest ${_numTxt('l_cesr')} ml/cmH₂O`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null
+        _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH2O`:null,
+        _np('r_pmedia')?`Pmedia ${_np('r_pmedia')} cmH2O`:null, peep?`PEEP ${peep} cmH2O`:null,
+        _np('r_ppl')?`Ppl ${_np('r_ppl')} cmH2O`:null, _numTxt('l_dp')?`PD ${_numTxt('l_dp')} cmH2O`:null,
+        _numTxt('l_cesr')?`Cest ${_numTxt('l_cesr')} ml/cmH2O`:null, fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null
       ]);
     }
     if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
   } else if(sop==='VNI'){
     const ip=_np('r_ipap'), ep=_np('r_epap');
-    let vs=`En ventilación mecánica no invasiva${_humid?' más humidificación activa':''}${modo?', modo '+modo:''}`;
+    let vs=`Ventila espontáneo en modo ${modo||'VNI'}${_humid?' más humidificación activa':''}`;
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
     L.push(vs+'.');
-    const _ps=(ip>0&&ep>0)?Math.round((ip-ep)*10)/10:0;
-    const _pb=_pjoin([ip?`IPAP ${ip} cmH₂O`:null, ep?`EPAP ${ep} cmH₂O`:null, _ps?`PS ${_ps} cmH₂O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null]);
-    if(_pb) L.push(`Terapia ventilatoria VNI${modo?' modo '+modo:''}: ${_pb}.`);
+    const _psVni=(ip>0&&ep>0)?Math.round((ip-ep)*10)/10:0;
+    const _pb=_pjoin([ip?`IPAP ${ip} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null]);
+    if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
   } else if(sop==='CNAF'){
     const fl=_np('r_flujo');
-    L.push(`En cánula nasal de alto flujo${_humid?' con humidificación activa':''}.`);
-    const _pb=_pjoin([fl?`Flujo ${fl} L/min`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null, _numTxt('l_irox')?`índice ROX ${_numTxt('l_irox')}`:null]);
-    if(_pb) L.push(`Terapia ventilatoria CNAF: ${_pb}.`);
+    L.push(`Ventila espontáneo con apoyo de CNAF${_humid?' con humidificación activa':''}.`);
+    const _pb=_pjoin([fl?`Flujo ${fl} L/min`:null, fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null, _numTxt('l_irox')?`índice ROX ${_numTxt('l_irox')}`:null]);
+    if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
   } else if(sop==='Oxigenoterapia/OAF'){
-    const _lit=_np('r_litros');
-    L.push(`En oxigenoterapia${modo&&modo!=='Sin soporte'?(modo==='Tubo T'?' mediante tubo en T':' por '+modo.toLowerCase()):''}.`);
-    const _pb=_pjoin([_lit?`${_lit} L/min`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null]);
-    if(_pb) L.push(`Terapia ventilatoria oxigenoterapia: ${_pb}.`);
+    const _lit=_np('r_litros'), _dev=modo&&modo!=='Sin soporte'?modo:'';
+    L.push(`Ventila espontáneo con FiO2 adicional${_dev?` por ${_dev}`:''}.`);
+    const _umaOaf=_numTxt('l_uma')||_mon('l_uma');
+    const _pb=_pjoin([_lit?`${_lit} Lpm`:null, fio2?`FiO2 ${fio2}%`:null, fr?`FR ${fr} rpm`:null, _umaOaf?`UMA ${_umaOaf}`:null, spo2?`SpO2 ${spo2}%`:null]);
+    if(_pb) L.push(`oxigenoterapia: ${_pb}.`);
   } else {
-    const _frAmb=parseFloat(gv('r_fr'))||0, _umaAmb=_numTxt('l_uma')||_mon('l_uma');
-    const _parts=[_frAmb?`FR ${_frAmb} rpm`:null, _umaAmb?`UMA ${_umaAmb}`:null, spo2?`SpO₂ ${spo2}%`:null].filter(Boolean);
-    L.push(`En ventilación espontánea sin O2 adicional${_parts.length?', '+_parts.join(', '):''}.`);
+    const _umaAmb=_numTxt('l_uma')||_mon('l_uma');
+    const _parts=[fr?`FR ${fr} rpm`:null, _umaAmb?`UMA ${_umaAmb}`:null, spo2?`SpO2 ${spo2}%`:null].filter(Boolean);
+    L.push(`Ventila espontáneo sin O2 adicional${_parts.length?', '+_parts.join(', '):''}.`);
   }
-  const mp=v('fMPVal'), ru=v('fRuidosVal'), secrT=v('fSecrVal');
+  const mp=v('fMPVal'), ru=v('fRuidosVal'), ruLoc=v('fRuidosLoc');
   if(mp||ru){
-    let e='Al examen físico respiratorio';
+    let e='Auscultación';
     if(mp) e+=`: murmullo pulmonar ${mp}`;
     if(ru){
       const _ruTags=(_tiState['fRuidosTags']||[]);
       if(_ruTags.includes('sin ruidos agregados')) e+=', sin ruidos agregados';
-      else e+=(mp?', con ':': ')+ru;
+      else { e+=(mp?', con ':': ')+ru; if(ruLoc) e+=` ${ruLoc}`; }
     }
     L.push(e+'.');
   }
@@ -4025,7 +4030,7 @@ function genTexto() {
     if($('cMue')?.checked){
       const _tipos=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       const _obj=v('fCultObj');
-      _cultSuffix=': Se toma'+((_tipos.length>1)?'n':'')+' muestras para cultivo'
+      _cultSuffix=(_tipos.length>1?': Se toman muestras':': Se toma muestra')+' para cultivo'
         +(_tipos.length?' ('+_tipos.join(', ')+(_obj?` — ${_obj}`:'')+')':'')
         +', resultado pendiente';
     }
@@ -4070,7 +4075,11 @@ function genTexto() {
   } else if(kS){
     L.push(`KTM contraindicada (${(gv('fKTMct')||'').toLowerCase()}${gv('fKTMcat')?', '+gv('fKTMcat').toLowerCase():''}): ${gv('fKTMraz')||gv('fKTMman')||'sin especificar'}.`);
   } else if(kN){
-    L.push(`KTM no realizada. ${gv('fKTMnoRaz')||'Sin especificar'}${gv('fKTMnoCom')?'. '+gv('fKTMnoCom'):''}.`);
+    const _nr=gv('fKTMnoRaz')||'', _nc=gv('fKTMnoCom')||'';
+    let _ktmn='KTM no realizada';
+    if(_nr) _ktmn+=` por ${_nr}`;
+    if(_nc) _ktmn+=`. ${_nc}`;
+    L.push(_ktmn+'.');
   }
   // Evaluaciones funcionales del turno
   if($('cEvalT')?.checked){
@@ -4184,9 +4193,13 @@ function genTexto() {
     const all=Array.from(new Set([...(PROCS||[]),...auto]));
     if(all.length) L.push(`Procedimientos: ${all.join(', ')}.`);
   })();
+  // PVE sin_condiciones → justo antes del Plan
+  if(v('fPVEval')==='no' && document.querySelector('input[name="extTipo"][value="sin_condiciones"]')?.checked){
+    L.push('*Actualmente sin condiciones para realizar PVE. Por lo que mantiene soporte.');
+  }
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
   if(pl) L.push(`Plan: ${pl}`); if(no) L.push(`Nota: ${no}`); if(fi) L.push(`Kinesiólogo: ${fi}`);
-  return L.filter(Boolean).join('\n').replace(/₂/g,'2');
+  return L.filter(Boolean).join('\n');
 }
 
 //  REM
