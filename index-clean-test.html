@@ -3935,14 +3935,16 @@ function genTexto() {
   const _CTRL=['ACVC','ACPC'];
   const _espontaneo = !_CTRL.includes(modo);
   const _ps=_np('r_ps'), _tobin=_mon('l_tobin');
+  const _pveNoCond = v('fPVEval')==='no' && document.querySelector('input[name="extTipo"][value="sin_condiciones"]')?.checked;
   if(sop==='VM'){
     const _mlkg=_numTxt('l_mlkg');
     let vs;
     if(_espontaneo){
       vs=`Ventila espontáneo en modo ${modo}`;
     } else {
-      const _modalidad=modo==='ACVC'?'modalidad volumen control (ACVC)':'modalidad presión control (ACPC)';
-      vs=`En VMI${_humid?' más humidificación activa':''}, ${_modalidad}`;
+      vs=`En VMI${_humid?' más humidificación activa':''}, modo ${modo}`;
+      // PVE sin_condiciones integrado solo en modo controlado
+      if(_pveNoCond) vs+=', sin condiciones para realización de PVE en este turno';
     }
     if(_mlkg) vs+=` ventilado a ${_mlkg} ml/kg de peso ideal`;
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
@@ -4030,9 +4032,8 @@ function genTexto() {
     if($('cMue')?.checked){
       const _tipos=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
       const _obj=v('fCultObj');
-      _cultSuffix=(_tipos.length>1?': Se toman muestras':': Se toma muestra')+' para cultivo'
-        +(_tipos.length?' ('+_tipos.join(', ')+(_obj?` — ${_obj}`:'')+')':'')
-        +', resultado pendiente';
+      const _cultLabel=_tipos.length?_tipos.join(', '):(_obj||'cultivo');
+    _cultSuffix=(_tipos.length>1?': Se toman muestras para ':': Se toma muestra para ')+_cultLabel+', resultado pendiente';
     }
     // Línea KTR principal
     let ktrLine='';
@@ -4073,7 +4074,8 @@ function genTexto() {
       L.push(`KTM suspendida durante la sesión por señal de alerta ${(gv('fKTMalertCat')||'').toLowerCase()}: ${gv('fKTMalertRaz')||'sin especificar'}.`);
     }
   } else if(kS){
-    L.push(`KTM contraindicada (${(gv('fKTMct')||'').toLowerCase()}${gv('fKTMcat')?', '+gv('fKTMcat').toLowerCase():''}): ${gv('fKTMraz')||gv('fKTMman')||'sin especificar'}.`);
+    const _kraz=gv('fKTMraz')||gv('fKTMman')||'';
+    L.push(`KTM contraindicada${_kraz?' por '+_kraz:'.'}.`.replace('..','.'));
   } else if(kN){
     const _nr=gv('fKTMnoRaz')||'', _nc=gv('fKTMnoCom')||'';
     let _ktmn='KTM no realizada';
@@ -4193,8 +4195,8 @@ function genTexto() {
     const all=Array.from(new Set([...(PROCS||[]),...auto]));
     if(all.length) L.push(`Procedimientos: ${all.join(', ')}.`);
   })();
-  // PVE sin_condiciones → justo antes del Plan
-  if(v('fPVEval')==='no' && document.querySelector('input[name="extTipo"][value="sin_condiciones"]')?.checked){
+  // PVE sin_condiciones espontáneo → justo antes del Plan
+  if(_pveNoCond && _espontaneo){
     L.push('*Actualmente sin condiciones para realizar PVE. Por lo que mantiene soporte.');
   }
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
