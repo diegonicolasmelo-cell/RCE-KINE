@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Informe Estadístico — UCI Kinesiología</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;}
+:root{--bg:#f5f5f7;--card:#fff;--hdr:#1c1c1e;--blue:#0071e3;--ok:#28cd41;--okbg:#f0fdf4;--warn:#ff9f0a;--warnbg:#fff8e1;--danger:#ff3b30;--dangerbg:#fff1f0;--purple:#5856d6;--teal:#32ade6;--muted:#6e6e73;}
+body{background:var(--bg);color:#1d1d1f;min-height:100vh;}
+
+/* ─── HEADER ─── */
+.hdr{background:var(--hdr);color:#fff;padding:11px 22px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 1px 0 rgba(255,255,255,.07);}
+.hdr-title{font-size:.96rem;font-weight:700;letter-spacing:-.01em;flex:1;min-width:160px;}
+.hdr-title small{display:block;font-size:.68rem;font-weight:400;color:#8e8e93;}
+.yr-seg{display:flex;background:rgba(255,255,255,.1);border-radius:9px;padding:3px;gap:2px;}
+.yr-btn{background:transparent;color:rgba(255,255,255,.45);border:none;padding:5px 13px;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.yr-btn.on{background:var(--blue);color:#fff;}
+.yr-btn.cmp{background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);}
+.yr-btn.cmp.on{background:#5856d6;color:#fff;}
+.hbtn{background:rgba(255,255,255,.1);color:#f2f2f7;border:1px solid rgba(255,255,255,.14);padding:6px 13px;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .15s;}
+.hbtn:hover{background:rgba(255,255,255,.2);}
+.edit-pill{background:var(--warn);color:#000;font-size:.66rem;font-weight:800;padding:2px 8px;border-radius:6px;display:none;}
+.edit-pill.on{display:inline-block;}
+
+/* ─── SEMÁFOROS ─── */
+.lights-strip{background:#fff;border-bottom:1px solid rgba(0,0,0,.06);padding:10px 22px;display:flex;gap:10px;overflow-x:auto;position:sticky;top:53px;z-index:90;}
+.light{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:10px;flex-shrink:0;min-width:170px;border:1px solid transparent;cursor:default;}
+.light.green{background:var(--okbg);border-color:rgba(40,205,65,.2);}
+.light.yellow{background:var(--warnbg);border-color:rgba(255,159,10,.2);}
+.light.red{background:var(--dangerbg);border-color:rgba(255,59,48,.2);}
+.light.gray{background:#f5f5f7;border-color:rgba(0,0,0,.06);}
+.light-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.light.green .light-dot{background:var(--ok);}
+.light.yellow .light-dot{background:var(--warn);}
+.light.red .light-dot{background:var(--danger);}
+.light.gray .light-dot{background:#c7c7cc;}
+.light-body{}
+.light-lbl{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+.light-val{font-size:1.2rem;font-weight:800;line-height:1.1;color:#1d1d1f;}
+.light-ref{font-size:.65rem;color:var(--muted);font-weight:500;}
+
+/* ─── ALERTS ─── */
+#alertBanner{display:none;background:#fff1f0;border-bottom:1px solid rgba(255,59,48,.2);padding:9px 22px;}
+#alertBanner.warn{background:var(--warnbg);border-bottom-color:rgba(255,159,10,.3);}
+.alert-inner{max-width:1120px;margin:0 auto;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;}
+.alert-badge{background:var(--danger);color:#fff;font-size:.68rem;font-weight:800;padding:3px 9px;border-radius:6px;flex-shrink:0;}
+#alertBanner.warn .alert-badge{background:var(--warn);}
+#alertList{font-size:.78rem;color:#1d1d1f;display:flex;flex-wrap:wrap;gap:6px;}
+.alert-item{padding:3px 10px;background:rgba(255,59,48,.1);border-radius:6px;font-weight:600;}
+#alertBanner.warn .alert-item{background:rgba(255,159,10,.15);}
+
+/* ─── MAIN ─── */
+main{max-width:1120px;margin:0 auto;padding:22px 18px;}
+
+/* ─── META BAR ─── */
+.meta-bar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:20px;align-items:center;}
+.meta-chip{background:var(--card);border-radius:8px;padding:6px 12px;font-size:.76rem;font-weight:500;color:var(--muted);box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.meta-chip b{color:#1d1d1f;}
+.ei-text-meta{background:transparent;border:none;outline:none;font-size:.76rem;font-weight:600;color:#1d1d1f;font-family:inherit;width:230px;}
+
+/* ─── COMPARISON TABLE ─── */
+#cmpSection{display:none;}
+.cmp-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.cmp-table th{background:#1c1c1e;color:#fff;padding:9px 14px;text-align:left;font-weight:600;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;}
+.cmp-table th:not(:first-child){text-align:center;}
+.cmp-table td{padding:9px 14px;border-bottom:1px solid rgba(0,0,0,.05);}
+.cmp-table td:not(:first-child){text-align:center;font-weight:700;}
+.cmp-table tr:hover td{background:rgba(0,113,227,.04);}
+.cmp-table .lbl{font-weight:500;color:#1d1d1f;}
+.cmp-table .sub{font-size:.72rem;color:var(--muted);font-weight:400;}
+.trend-up{color:var(--ok);}
+.trend-down{color:var(--danger);}
+.trend-neutral{color:var(--muted);}
+.trend-warn{color:var(--warn);}
+
+/* ─── CARDS ─── */
+.sec-lbl{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 10px;display:flex;align-items:center;gap:8px;}
+.sec-lbl::after{content:'';flex:1;height:1px;background:rgba(0,0,0,.07);}
+.card{background:var(--card);border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.06),0 0 0 .5px rgba(0,0,0,.06);overflow:hidden;margin-bottom:14px;}
+.card-hdr{padding:13px 18px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.card-hdr h3{font-size:.88rem;font-weight:700;}
+.card-meta{font-size:.72rem;color:var(--muted);font-weight:500;}
+.card-body{padding:15px 18px 17px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr 1fr;} .g4{grid-template-columns:1fr 1fr;}}
+@media(max-width:420px){.g2,.g3,.g4{grid-template-columns:1fr;}}
+
+/* ─── STAT FIELDS ─── */
+.sf{display:flex;flex-direction:column;gap:2px;}
+.sf-lbl{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+.sf-row{display:flex;align-items:baseline;gap:6px;}
+.ei{border:none;background:transparent;font-size:1.55rem;font-weight:800;color:#1d1d1f;width:88px;outline:none;border-bottom:1.5px dashed transparent;transition:all .15s;border-radius:5px 5px 0 0;padding:1px 3px;font-family:inherit;-moz-appearance:textfield;}
+.ei::-webkit-outer-spin-button,.ei::-webkit-inner-spin-button{-webkit-appearance:none;}
+.edit-mode .ei{border-bottom-color:rgba(0,113,227,.28);}
+.ei:focus{border-bottom-color:var(--blue);background:rgba(0,113,227,.04);}
+.ei-sm{font-size:1.15rem;width:72px;}
+.pct-badge{font-size:.78rem;font-weight:700;padding:2px 7px;border-radius:5px;background:#f0f0f5;color:var(--muted);}
+.pct-ok{background:rgba(40,205,65,.12);color:#166534;}
+.pct-warn{background:rgba(255,159,10,.14);color:#7a4800;}
+.pct-danger{background:rgba(255,59,48,.12);color:#991b1b;}
+.sf-sub{font-size:.72rem;color:var(--muted);margin-top:1px;}
+.ei-text{border:none;background:transparent;font-size:.8rem;font-weight:600;color:#1d1d1f;outline:none;border-bottom:1.5px dashed transparent;font-family:inherit;padding:1px 2px;width:80px;}
+.edit-mode .ei-text{border-bottom-color:rgba(0,113,227,.28);}
+.ei-text:focus{border-bottom-color:var(--blue);}
+.divr{border:none;border-top:1px solid rgba(0,0,0,.05);margin:13px 0;}
+.sub-h{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:9px;}
+
+/* ─── KPI ROW ─── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:11px;margin-bottom:16px;}
+.kpi-c{background:linear-gradient(135deg,#fafafa,#fff);border:1px solid rgba(0,0,0,.06);border-radius:11px;padding:13px 15px;}
+.kpi-lbl{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px;}
+.kpi-val{font-size:2rem;font-weight:800;line-height:1;color:#1d1d1f;}
+.kpi-val .ei{font-size:2rem;width:105px;}
+.kpi-sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
+
+/* ─── CHARTS ─── */
+.chart-row{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;}
+.donut-block{display:flex;gap:14px;align-items:center;flex-shrink:0;}
+.dleg{display:flex;align-items:center;gap:7px;font-size:.75rem;margin-bottom:5px;}
+.dleg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.dleg-lbl{font-weight:500;color:#1d1d1f;}
+.dleg-pct{margin-left:auto;color:var(--muted);font-weight:700;font-size:.7rem;min-width:42px;text-align:right;}
+.bars{flex:1;min-width:190px;}
+.bar-row{margin-bottom:8px;}
+.bar-top{display:flex;justify-content:space-between;font-size:.74rem;margin-bottom:3px;}
+.bar-lbl{font-weight:500;color:#1d1d1f;}
+.bar-val{font-weight:700;color:var(--muted);}
+.bar-track{height:6px;background:#f0f0f5;border-radius:3px;overflow:hidden;position:relative;}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s cubic-bezier(.4,0,.2,1);}
+.bar-bench{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,59,48,.6);}
+
+/* ─── CONFIGURADOR ─── */
+#cfgPanel{position:fixed;top:0;right:0;bottom:0;width:290px;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:200;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+#cfgPanel.open{transform:translateX(0);}
+.cfg-hdr{background:var(--hdr);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;}
+.cfg-hdr h3{font-size:.9rem;font-weight:700;}
+.cfg-close{background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:1rem;}
+.cfg-body{flex:1;overflow-y:auto;padding:14px;}
+.cfg-section{margin-bottom:16px;}
+.cfg-section-hdr{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid rgba(0,0,0,.07);}
+.cfg-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:.82rem;font-weight:500;}
+.cfg-row.indent{padding-left:12px;font-size:.78rem;color:var(--muted);}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-sl{position:absolute;inset:0;background:#c7c7cc;border-radius:10px;cursor:pointer;transition:background .2s;}
+.toggle-sl::before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle input:checked + .toggle-sl{background:var(--blue);}
+.toggle input:checked + .toggle-sl::before{transform:translateX(16px);}
+.cfg-overlay{display:none;position:fixed;inset:0;z-index:199;background:transparent;}
+.cfg-overlay.on{display:block;}
+
+/* ─── NOTES ─── */
+.note-field{width:100%;border:1px dashed rgba(0,0,0,.12);border-radius:8px;padding:8px 11px;font-size:.78rem;font-family:inherit;resize:vertical;min-height:52px;background:#fafafa;color:#1d1d1f;outline:none;margin-top:10px;}
+.note-field:focus{border-color:var(--blue);background:#fff;}
+
+/* ─── INFO BOXES ─── */
+.warn-box{background:var(--warnbg);border:1px solid rgba(255,159,10,.3);border-radius:11px;padding:13px 16px;}
+.warn-box h4{font-size:.8rem;font-weight:700;color:#7a4800;margin-bottom:7px;}
+.warn-box li{font-size:.76rem;color:#5a3600;margin-bottom:5px;list-style:none;display:flex;gap:7px;}
+.warn-box li::before{content:'⚠️';flex-shrink:0;}
+.ok-box{background:var(--okbg);border:1px solid rgba(40,205,65,.3);border-radius:11px;padding:13px 16px;margin-top:11px;}
+.ok-box h4{font-size:.8rem;font-weight:700;color:#166534;margin-bottom:7px;}
+.ok-box li{font-size:.76rem;color:#14532d;margin-bottom:5px;list-style:none;display:flex;gap:7px;}
+.ok-box li::before{content:'✅';flex-shrink:0;}
+
+footer{text-align:center;padding:22px;font-size:.7rem;color:var(--muted);}
+
+@media print{
+  .hdr-actions,.yr-seg,.lights-strip,#alertBanner,#cfgPanel,.cfg-overlay{display:none!important;}
+  #cmpSection{display:block!important;}
+  .hdr{position:static;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .ei,.ei-text,.ei-text-meta{border-bottom:none!important;background:transparent!important;}
+  body{background:#fff;}
+  .card{box-shadow:none;border:1px solid #e5e5ea;}
+  .note-field{border:1px solid #e5e5ea;background:#fff;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-title">🫁 Informe Estadístico UCI Kinesiología
+    <small>Hospital San Pablo de Coquimbo · UCIA</small>
+  </div>
+  <div class="yr-seg">
+    <button class="yr-btn on" id="btn2024" onclick="setYear('2024')">2024</button>
+    <button class="yr-btn" id="btn2025" onclick="setYear('2025')">2025</button>
+    <button class="yr-btn cmp" id="btnCmp" onclick="toggleCompare()">⇄ Comparar</button>
+  </div>
+  <div style="display:flex;gap:7px;align-items:center;">
+    <span class="edit-pill" id="editPill">EDITANDO</span>
+    <button class="hbtn" onclick="toggleEdit()">✏️ Editar</button>
+    <button class="hbtn" onclick="openCfg()">⚙️ Configurar</button>
+    <button class="hbtn" onclick="resetYear()">↺</button>
+    <button class="hbtn" onclick="window.print()">🖨️</button>
+  </div>
+</header>
+
+<!-- SEMÁFOROS -->
+<div class="lights-strip" id="lightsStrip"></div>
+
+<!-- ALERTS -->
+<div id="alertBanner">
+  <div class="alert-inner">
+    <span class="alert-badge" id="alertLabel">ATENCIÓN</span>
+    <div id="alertList"></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <!-- META -->
+  <div class="meta-bar">
+    <div class="meta-chip">Período: <b id="m-periodo">—</b></div>
+    <div class="meta-chip">Elaborado por: <input class="ei-text-meta" id="m-resp" type="text" placeholder="Nombre..."></div>
+    <div class="meta-chip">Generado: <b id="m-fecha">—</b></div>
+  </div>
+
+  <!-- COMPARACIÓN 2024 vs 2025 -->
+  <div id="cmpSection">
+    <div class="sec-lbl">Comparación 2024 vs 2025</div>
+    <div class="card">
+      <div class="card-body" style="padding-top:16px;">
+        <table class="cmp-table" id="cmpTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEC 1: CARGA LABORAL -->
+  <div id="sec-1">
+    <div class="sec-lbl">1 · Carga Laboral</div>
+    <div class="g2">
+      <div class="card" id="sec-1-ktr">
+        <div class="card-hdr"><h3>🫁 KTR — Kinesiterapia Respiratoria</h3><span class="card-meta">procedimientos</span></div>
+        <div class="card-body">
+          <div class="g3">
+            <div class="sf"><div class="sf-lbl">Promedio mensual</div><div class="sf-row"><input class="ei" data-key="ktr_prom" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Máximo</div><div class="sf-row"><input class="ei" data-key="ktr_max" type="number" min="0"></div><div class="sf-sub">Mes: <input class="ei-text" data-key="ktr_maxMes" type="text" placeholder="—" style="width:65px;"></div></div>
+            <div class="sf"><div class="sf-lbl">Mínimo</div><div class="sf-row"><input class="ei" data-key="ktr_min" type="number" min="0"></div><div class="sf-sub">Mes: <input class="ei-text" data-key="ktr_minMes" type="text" placeholder="—" style="width:65px;"></div></div>
+          </div>
+          <div id="ktr-bars" style="margin-top:13px;"></div>
+          <textarea class="note-field" data-note="ktr" placeholder="Observaciones KTR…"></textarea>
+        </div>
+      </div>
+      <div class="card" id="sec-1-ktm">
+        <div class="card-hdr"><h3>🏃 KTM — Kinesiterapia Motora</h3><span class="card-meta">atenciones</span></div>
+        <div class="card-body">
+          <div class="g3">
+            <div class="sf"><div class="sf-lbl">Promedio mensual</div><div class="sf-row"><input class="ei" data-key="ktm_prom" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Máximo</div><div class="sf-row"><input class="ei" data-key="ktm_max" type="number" min="0"></div><div class="sf-sub">Mes: <input class="ei-text" data-key="ktm_maxMes" type="text" placeholder="—" style="width:65px;"></div></div>
+            <div class="sf"><div class="sf-lbl">Mínimo</div><div class="sf-row"><input class="ei" data-key="ktm_min" type="number" min="0"></div><div class="sf-sub">Mes: <input class="ei-text" data-key="ktm_minMes" type="text" placeholder="—" style="width:65px;"></div></div>
+          </div>
+          <div id="ktm-bars" style="margin-top:13px;"></div>
+          <textarea class="note-field" data-note="ktm" placeholder="Observaciones KTM…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEC 2: DESVINCULACIÓN VM -->
+  <div id="sec-2">
+    <div class="sec-lbl">2 · Desvinculación de Ventilación Mecánica</div>
+    <div class="card">
+      <div class="card-hdr"><h3>Total desvinculaciones VA artificial</h3></div>
+      <div class="card-body">
+        <div class="kpi-row">
+          <div class="kpi-c"><div class="kpi-lbl">Total</div><div class="kpi-val"><input class="ei" data-key="vm_total" type="number" min="0" style="font-size:2.2rem;width:110px;"></div></div>
+          <div class="kpi-c"><div class="kpi-lbl">Con Protocolo</div><div class="kpi-val"><input class="ei" data-key="vm_cprot" type="number" min="0"></div><div class="kpi-sub"><span class="pct-badge" id="pvm_cp">—</span></div></div>
+          <div class="kpi-c"><div class="kpi-lbl">Sin Protocolo</div><div class="kpi-val"><input class="ei" data-key="vm_sprot" type="number" min="0"></div><div class="kpi-sub"><span class="pct-badge" id="pvm_sp">—</span></div></div>
+          <div class="kpi-c"><div class="kpi-lbl">Autoextubaciones</div><div class="kpi-val"><input class="ei" data-key="vm_auto" type="number" min="0"></div><div class="kpi-sub"><span class="pct-badge" id="pvm_au">—</span></div></div>
+          <div class="kpi-c"><div class="kpi-lbl">Accidentales</div><div class="kpi-val"><input class="ei" data-key="vm_accidental" type="number" min="0"></div><div class="kpi-sub"><span class="pct-badge" id="pvm_ac">—</span></div></div>
+        </div>
+        <div class="chart-row">
+          <div class="donut-block"><svg id="donut-vm" width="120" height="120" viewBox="0 0 140 140"></svg><div id="dleg-vm"></div></div>
+        </div>
+        <div class="divr"></div>
+        <div id="sec-2-auto">
+          <div class="sub-h">Resultado de autoextubaciones</div>
+          <div class="g3">
+            <div class="sf"><div class="sf-lbl">Total</div><div class="sf-row"><input class="ei ei-sm" data-key="vm_auto" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Exitosas</div><div class="sf-row"><input class="ei ei-sm" data-key="auto_exitosas" type="number" min="0"><span class="pct-badge pct-ok" id="pau_ex">—</span></div></div>
+            <div class="sf"><div class="sf-lbl">Requirieron reintubación</div><div class="sf-row"><input class="ei ei-sm" data-key="auto_reintub" type="number" min="0"><span class="pct-badge pct-danger" id="pau_ri">—</span></div></div>
+          </div>
+        </div>
+        <textarea class="note-field" data-note="vm" placeholder="Observaciones desvinculación VM…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEC 3: EXTUBACIONES PROGRAMADAS -->
+  <div id="sec-3">
+    <div class="sec-lbl">3 · Extubaciones Programadas</div>
+    <div class="g2">
+      <div class="card" id="sec-3-dn">
+        <div class="card-hdr"><h3>Distribución horaria</h3><span class="card-meta" id="ep-tot-lbl"></span></div>
+        <div class="card-body">
+          <div class="g3" style="margin-bottom:13px;">
+            <div class="sf"><div class="sf-lbl">Total programadas</div><div class="sf-row"><input class="ei" data-key="ep_total" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Diurnas</div><div class="sf-row"><input class="ei" data-key="ep_diurnas" type="number" min="0"><span class="pct-badge" id="pep_d">—</span></div></div>
+            <div class="sf"><div class="sf-lbl">Nocturnas</div><div class="sf-row"><input class="ei" data-key="ep_nocturnas" type="number" min="0"><span class="pct-badge" id="pep_n">—</span></div></div>
+          </div>
+          <div id="ep-dn-bars"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><h3>Éxito y fracaso · Sin protocolo</h3></div>
+        <div class="card-body">
+          <div id="sec-3-exito">
+            <div class="sub-h">Resultado extubaciones programadas</div>
+            <div class="g2" style="margin-bottom:13px;">
+              <div class="sf"><div class="sf-lbl">Exitosas</div><div class="sf-row"><input class="ei" data-key="ep_exitosas" type="number" min="0"><span class="pct-badge pct-ok" id="pep_ex">—</span></div></div>
+              <div class="sf"><div class="sf-lbl">Reintubaciones</div><div class="sf-row"><input class="ei" data-key="ep_reintub" type="number" min="0"><span class="pct-badge pct-danger" id="pep_ri">—</span></div></div>
+            </div>
+          </div>
+          <div id="sec-3-sprot">
+            <div class="divr"></div>
+            <div class="sub-h">Sin protocolo — tiempo en VM</div>
+            <div class="g2">
+              <div class="sf"><div class="sf-lbl">≤ 24 h VM</div><div class="sf-row"><input class="ei" data-key="ep_sprot_24h" type="number" min="0"><span class="pct-badge" id="pep_s24">—</span></div></div>
+              <div class="sf"><div class="sf-lbl">&gt; 24 h VM</div><div class="sf-row"><input class="ei" data-key="ep_sprot_mas24h" type="number" min="0"><span class="pct-badge" id="pep_sm24">—</span></div></div>
+            </div>
+          </div>
+          <textarea class="note-field" data-note="ep" placeholder="Observaciones extubaciones programadas…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEC 4: MOTIVOS SIN PROTOCOLO -->
+  <div id="sec-4">
+    <div class="sec-lbl">4 · Motivos de Extubación sin Protocolo</div>
+    <div class="card">
+      <div class="card-hdr"><h3>Distribución por causa</h3></div>
+      <div class="card-body">
+        <div class="chart-row">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;flex:1;min-width:240px;">
+            <div class="sf"><div class="sf-lbl">Agitación psicomotora</div><div class="sf-row"><input class="ei ei-sm" data-key="mspr_agitacion" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Dependencia P. Positiva</div><div class="sf-row"><input class="ei ei-sm" data-key="mspr_presion" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Post Babillón</div><div class="sf-row"><input class="ei ei-sm" data-key="mspr_babillon" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Indicación médica</div><div class="sf-row"><input class="ei ei-sm" data-key="mspr_med" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">No protege vía aérea</div><div class="sf-row"><input class="ei ei-sm" data-key="mspr_noVA" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Sin especificar / otro</div><div class="sf-row"><input class="ei ei-sm" data-key="mspr_otro" type="number" min="0"></div></div>
+          </div>
+          <div class="bars" id="mspr-bars"></div>
+        </div>
+        <textarea class="note-field" data-note="mspr" placeholder="Observaciones motivos extubación sin protocolo…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEC 5: REINTUBACIONES -->
+  <div id="sec-5">
+    <div class="sec-lbl">5 · Reintubaciones</div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-hdr"><h3>Distribución y dispositivos previos</h3></div>
+        <div class="card-body">
+          <div class="g3" style="margin-bottom:13px;">
+            <div class="sf"><div class="sf-lbl">Total</div><div class="sf-row"><input class="ei" data-key="ri_total" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Diurnas</div><div class="sf-row"><input class="ei" data-key="ri_diurnas" type="number" min="0"><span class="pct-badge" id="pri_d">—</span></div></div>
+            <div class="sf"><div class="sf-lbl">Nocturnas</div><div class="sf-row"><input class="ei" data-key="ri_nocturnas" type="number" min="0"><span class="pct-badge" id="pri_n">—</span></div></div>
+          </div>
+          <div class="donut-block" style="margin-bottom:13px;">
+            <svg id="donut-ri" width="100" height="100" viewBox="0 0 140 140"></svg>
+            <div id="dleg-ri"></div>
+          </div>
+          <div id="sec-5-disp">
+            <div class="divr"></div>
+            <div class="sub-h">Dispositivos previos a reintubación</div>
+            <div class="g3">
+              <div class="sf"><div class="sf-lbl">CNAF</div><div class="sf-row"><input class="ei ei-sm" data-key="dis_cnaf" type="number" min="0"><span class="pct-badge" id="pdis_c">—</span></div></div>
+              <div class="sf"><div class="sf-lbl">VMI</div><div class="sf-row"><input class="ei ei-sm" data-key="dis_vmi" type="number" min="0"><span class="pct-badge" id="pdis_v">—</span></div></div>
+              <div class="sf"><div class="sf-lbl">Otro</div><div class="sf-row"><input class="ei ei-sm" data-key="dis_otro" type="number" min="0"><span class="pct-badge" id="pdis_o">—</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="sec-5-mot">
+        <div class="card-hdr"><h3>Motivos de reintubación</h3></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px;">
+            <div class="sf"><div class="sf-lbl">Falla resp. post-ext.</div><div class="sf-row"><input class="ei ei-sm" data-key="rim_falla" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Mal manejo secreciones</div><div class="sf-row"><input class="ei ei-sm" data-key="rim_secreciones" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Compromiso conciencia</div><div class="sf-row"><input class="ei ei-sm" data-key="rim_conciencia" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Edema laríngeo</div><div class="sf-row"><input class="ei ei-sm" data-key="rim_edema" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">No protege vía aérea</div><div class="sf-row"><input class="ei ei-sm" data-key="rim_noVA" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Debilidad muscular</div><div class="sf-row"><input class="ei ei-sm" data-key="rim_debilidad" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Broncosepasmo</div><div class="sf-row"><input class="ei ei-sm" data-key="rim_bronco" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Extubación accidental</div><div class="sf-row"><input class="ei ei-sm" data-key="rim_accidental" type="number" min="0"></div></div>
+          </div>
+          <div id="rim-bars"></div>
+          <textarea class="note-field" data-note="ri" placeholder="Observaciones reintubaciones…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEC 6: TQT -->
+  <div id="sec-6">
+    <div class="sec-lbl">6 · Traqueostomías (TQT)</div>
+    <div class="g2">
+      <div class="card" id="sec-6-dias">
+        <div class="card-hdr"><h3>Frecuencia por día de estadía</h3><span class="card-meta">consenso día 14</span></div>
+        <div class="card-body">
+          <div class="g2" style="margin-bottom:13px;">
+            <div class="sf"><div class="sf-lbl">Total TQT</div><div class="sf-row"><input class="ei" data-key="tqt_total" type="number" min="0" style="font-size:2rem;width:100px;"></div></div>
+            <div></div>
+            <div class="sf"><div class="sf-lbl">Días 1 – 5</div><div class="sf-row"><input class="ei" data-key="tqt_d1a5" type="number" min="0"><span class="pct-badge pct-warn" id="ptqt_a">—</span></div></div>
+            <div class="sf"><div class="sf-lbl">Días 6 – 10</div><div class="sf-row"><input class="ei" data-key="tqt_d6a10" type="number" min="0"><span class="pct-badge" id="ptqt_b">—</span></div></div>
+          </div>
+          <div class="sf" style="margin-bottom:13px;"><div class="sf-lbl">Días 11 en adelante</div><div class="sf-row"><input class="ei" data-key="tqt_d11plus" type="number" min="0"><span class="pct-badge" id="ptqt_c">—</span></div></div>
+          <div id="tqt-bars"></div>
+          <textarea class="note-field" data-note="tqt" placeholder="Observaciones TQT…"></textarea>
+        </div>
+      </div>
+      <div class="card" id="sec-6-diag">
+        <div class="card-hdr"><h3>TQT por grupo diagnóstico</h3></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px;">
+            <div class="sf"><div class="sf-lbl">Neurológico / ACV</div><div class="sf-row"><input class="ei ei-sm" data-key="tqt_neuro" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Neuroquirúrgico</div><div class="sf-row"><input class="ei ei-sm" data-key="tqt_neuroquir" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Respiratorio</div><div class="sf-row"><input class="ei ei-sm" data-key="tqt_resp" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Politrauma</div><div class="sf-row"><input class="ei ei-sm" data-key="tqt_trauma" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">PCR Recuperado</div><div class="sf-row"><input class="ei ei-sm" data-key="tqt_pcr" type="number" min="0"></div></div>
+            <div class="sf"><div class="sf-lbl">Otro</div><div class="sf-row"><input class="ei ei-sm" data-key="tqt_otro" type="number" min="0"></div></div>
+          </div>
+          <div id="tqt-diag-bars"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEC 7: OBSERVACIONES -->
+  <div id="sec-7">
+    <div class="sec-lbl">7 · Observaciones del Registro de Datos</div>
+    <div class="card">
+      <div class="card-body">
+        <div class="warn-box">
+          <h4>⚠️ Variables NO capturadas actualmente por la planilla</h4>
+          <ul>
+            <li>Variables funcionales al ingreso/egreso: Barthel, MRC-SS. Impide evaluar ganancia funcional.</li>
+            <li>Diagnóstico de ingreso por categorías (lista desplegable, no texto libre).</li>
+            <li>Dispositivos de soporte previos a reintubación (CNAF, VNI, VMI). En 2024 se extrajo desde ficha clínica.</li>
+            <li>Motivos de extubación fuera de protocolo: registro incompleto en porcentaje significativo de casos.</li>
+            <li>Datos demográficos: edad específica y sexo no siempre registrados.</li>
+            <li>Cumplimiento detallado protocolo de sedación/analgesia por turno y kinesiólogo.</li>
+            <li>Tiempos de atención KTM (minutos/sesión) y nivel funcional previo al ingreso.</li>
+          </ul>
+        </div>
+        <div class="ok-box">
+          <h4>✅ Recomendaciones para mejorar el registro</h4>
+          <ul>
+            <li>Agregar Barthel y MRC como campos obligatorios al ingreso y egreso.</li>
+            <li>Diagnóstico de ingreso con lista desplegable categorizada.</li>
+            <li>Formulario reintubación: obligar campo de dispositivo previo y motivo.</li>
+            <li>Al extubación sin protocolo: registrar motivo en evolución del turno.</li>
+            <li>Alerta en la app si faltan campos clave al cerrar turno.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+<footer>Informe Estadístico UCI Kinesiología · Hospital San Pablo de Coquimbo · RCE KINE v4</footer>
+
+<!-- CONFIGURADOR -->
+<div class="cfg-overlay" id="cfgOverlay" onclick="closeCfg()"></div>
+<div id="cfgPanel">
+  <div class="cfg-hdr"><h3>⚙️ Configurar vista</h3><button class="cfg-close" onclick="closeCfg()">✕</button></div>
+  <div class="cfg-body" id="cfgBody"></div>
+</div>
+
+<script>
+// ═══════════════ DATA ═══════════════
+const DEFAULTS = {
+  '2024':{
+    periodo:'Enero – Diciembre 2024', responsable:'Álvaro Wilson Espinoza',
+    ktr_prom:2922,ktr_max:3244,ktr_maxMes:'Julio',ktr_min:2361,ktr_minMes:'Abril',
+    ktm_prom:105,ktm_max:159,ktm_maxMes:'Agosto',ktm_min:56,ktm_minMes:'Abril',
+    vm_total:320,vm_cprot:182,vm_sprot:115,vm_auto:23,vm_accidental:0,
+    auto_exitosas:18,auto_reintub:5,
+    ep_total:182,ep_diurnas:0,ep_nocturnas:0,ep_exitosas:0,ep_reintub:0,
+    ep_sprot_24h:0,ep_sprot_mas24h:0,
+    mspr_agitacion:15,mspr_presion:6,mspr_babillon:0,mspr_med:0,mspr_noVA:0,mspr_otro:47,
+    ri_total:27,ri_diurnas:11,ri_nocturnas:12,
+    rim_falla:7,rim_secreciones:6,rim_conciencia:0,rim_edema:0,
+    rim_noVA:0,rim_debilidad:0,rim_bronco:0,rim_accidental:0,
+    dis_cnaf:10,dis_vmi:6,dis_otro:7,
+    tqt_total:0,tqt_d1a5:0,tqt_d6a10:0,tqt_d11plus:0,
+    tqt_neuro:0,tqt_neuroquir:0,tqt_resp:0,tqt_trauma:0,tqt_pcr:0,tqt_otro:0
+  },
+  '2025':{
+    periodo:'Enero – Diciembre 2025', responsable:'Magdalena Contardo C. / Álvaro Wilson E.',
+    ktr_prom:0,ktr_max:0,ktr_maxMes:'',ktr_min:0,ktr_minMes:'',
+    ktm_prom:0,ktm_max:0,ktm_maxMes:'',ktm_min:0,ktm_minMes:'',
+    vm_total:443,vm_cprot:344,vm_sprot:99,vm_auto:0,vm_accidental:1,
+    auto_exitosas:0,auto_reintub:0,
+    ep_total:344,ep_diurnas:266,ep_nocturnas:78,ep_exitosas:314,ep_reintub:30,
+    ep_sprot_24h:63,ep_sprot_mas24h:36,
+    mspr_agitacion:21,mspr_presion:0,mspr_babillon:1,mspr_med:7,mspr_noVA:5,mspr_otro:0,
+    ri_total:49,ri_diurnas:30,ri_nocturnas:19,
+    rim_falla:13,rim_secreciones:13,rim_conciencia:7,rim_edema:7,
+    rim_noVA:5,rim_debilidad:2,rim_bronco:1,rim_accidental:1,
+    dis_cnaf:0,dis_vmi:0,dis_otro:0,
+    tqt_total:100,tqt_d1a5:19,tqt_d6a10:40,tqt_d11plus:41,
+    tqt_neuro:42,tqt_neuroquir:10,tqt_resp:17,tqt_trauma:5,tqt_pcr:3,tqt_otro:23
+  }
+};
+
+// Visibilidad por defecto
+const VIS_DEFAULTS = {
+  sec1:true,sec1_ktr:true,sec1_ktm:true,
+  sec2:true,sec2_auto:true,
+  sec3:true,sec3_dn:true,sec3_exito:true,sec3_sprot:true,
+  sec4:true,sec5:true,sec5_mot:true,sec5_disp:true,
+  sec6:true,sec6_dias:true,sec6_diag:true,
+  sec7:true,showBench:true,showNotes:true
+};
+
+let YR='2024', DATA={}, VIS={}, COMPARE=false, EDIT=false;
+
+// ═══════════════ UTILS ═══════════════
+const $=id=>document.getElementById(id);
+const n=k=>parseInt(DATA[k])||0;
+const pct=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
+const pctN=(a,b)=>b>0?Math.round(a/b*100):0;
+
+function setTxt(id,val){const e=$(id);if(e)e.textContent=val;}
+function setPct(id,val,cls){
+  const e=$(id); if(!e) return;
+  e.textContent=val;
+  e.className='pct-badge';
+  if(cls) e.classList.add(cls);
+}
+
+// ═══════════════ CHARTS ═══════════════
+function drawDonut(svgId,legId,items){
+  const svg=$(svgId),leg=$(legId);
+  if(!svg||!leg) return;
+  const R=48,C=2*Math.PI*R,total=items.reduce((a,b)=>a+(b.v||0),0);
+  const fil=items.filter(i=>i.v>0);
+  let off=0,segs='';
+  fil.forEach(i=>{
+    const len=(i.v/total)*C;
+    segs+=`<circle r="${R}" cx="70" cy="70" fill="none" stroke="${i.c}" stroke-width="18"
+      stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`;
+    off+=len;
+  });
+  svg.innerHTML=segs+`<text x="70" y="66" text-anchor="middle" font-size="22" font-weight="800" fill="#1d1d1f">${total}</text>
+    <text x="70" y="81" text-anchor="middle" font-size="9" fill="#8e8e93" font-weight="600">TOTAL</text>`;
+  leg.innerHTML=fil.map(i=>`<div class="dleg">
+    <span class="dleg-dot" style="background:${i.c}"></span>
+    <span class="dleg-lbl">${i.lbl}</span>
+    <span class="dleg-pct">${i.v} · ${pct(i.v,total)}</span></div>`).join('');
+}
+
+function drawBars(id,items,bench){
+  const el=$(id); if(!el) return;
+  const fil=items.filter(i=>i.v>0);
+  if(!fil.length){el.innerHTML='<div style="color:#c7c7cc;font-size:.76rem;font-style:italic;padding:6px 0;">Sin datos registrados</div>';return;}
+  const max=Math.max(...fil.map(i=>i.v),1);
+  el.innerHTML=fil.map(i=>{
+    const w=Math.round(i.v/max*100);
+    const benchPct=bench?Math.round(bench/max*100):null;
+    return `<div class="bar-row">
+      <div class="bar-top"><span class="bar-lbl">${i.lbl}</span><span class="bar-val">${i.v}${i.pct?' · '+i.pct:''}</span></div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${w}%;background:${i.c||'var(--blue)'}"></div>
+        ${benchPct?`<div class="bar-bench" style="left:${benchPct}%"></div>`:''}
+      </div></div>`;
+  }).join('');
+}
+
+// ═══════════════ TRAFFIC LIGHTS ═══════════════
+function getLight(val,thresholds){
+  // thresholds: {greenLow:x,yellowLow:x,higher_is_better:bool}
+  const {lo,hi,better}=thresholds;
+  if(better==='high') return val>=hi?'green':val>=lo?'yellow':'red';
+  if(better==='low')  return val<=lo?'green':val<=hi?'yellow':'red';
+  return 'gray';
+}
+
+function renderLights(){
+  const riRate=pctN(n('ri_total'),n('ep_total'));
+  const protRate=pctN(n('vm_cprot'),n('vm_total'));
+  const autoRate=pctN(n('vm_auto'),n('vm_total'));
+  const exRate=pctN(n('ep_exitosas'),n('ep_total'));
+  const tqtEarly=n('tqt_total')>0?pctN(n('tqt_d1a5')+n('tqt_d6a10'),n('tqt_total')):null;
+
+  const metrics=[
+    {lbl:'Tasa de reintubación',val:riRate+'%',cls:getLight(riRate,{lo:10,hi:15,better:'low'}),ref:'Ref: <10% óptimo · >15% alerta'},
+    {lbl:'Cumplimiento protocolo',val:protRate+'%',cls:getLight(protRate,{lo:70,hi:50,better:'high'}),ref:'Ref: >70% objetivo'},
+    {lbl:'Autoextubaciones',val:autoRate+'%',cls:getLight(autoRate,{lo:5,hi:8,better:'low'}),ref:'Ref: <5% objetivo'},
+    {lbl:'Éxito extubación prog.',val:n('ep_total')>0?exRate+'%':'—',cls:n('ep_total')>0?getLight(exRate,{lo:90,hi:80,better:'high'}):'gray',ref:'Ref: >90% objetivo'},
+    {lbl:'TQT primeros 10 días',val:tqtEarly!==null?tqtEarly+'%':'—',cls:tqtEarly!==null?getLight(tqtEarly,{lo:60,hi:40,better:'high'}):'gray',ref:'Ref: >60% proactividad'}
+  ];
+
+  $('lightsStrip').innerHTML=metrics.map(m=>`
+    <div class="light ${m.cls}">
+      <div class="light-dot"></div>
+      <div class="light-body">
+        <div class="light-lbl">${m.lbl}</div>
+        <div class="light-val">${m.val}</div>
+        <div class="light-ref">${m.ref}</div>
+      </div>
+    </div>`).join('');
+
+  // Alerts
+  const reds=metrics.filter(m=>m.cls==='red');
+  const warns=metrics.filter(m=>m.cls==='yellow');
+  const banner=$('alertBanner');
+  if(reds.length){
+    banner.style.display='block'; banner.className=''; 
+    $('alertLabel').textContent='ALERTA';
+    $('alertList').innerHTML=reds.map(m=>`<span class="alert-item">⚠️ ${m.lbl}: ${m.val}</span>`).join('');
+  } else if(warns.length){
+    banner.style.display='block'; banner.className='warn';
+    $('alertLabel').textContent='ATENCIÓN';
+    $('alertList').innerHTML=warns.map(m=>`<span class="alert-item">⚡ ${m.lbl}: ${m.val}</span>`).join('');
+  } else { banner.style.display='none'; }
+}
+
+// ═══════════════ COMPARISON ═══════════════
+function renderComparison(){
+  const d24=loadData('2024'), d25=loadData('2025');
+  const rows=[
+    {lbl:'Total desvinculaciones VM',sub:'VA artificial total',k24:d24.vm_total,k25:d25.vm_total,better:'neutral'},
+    {lbl:'Con protocolo',sub:'% del total',k24:pct(d24.vm_cprot,d24.vm_total),k25:pct(d25.vm_cprot,d25.vm_total),better:'high',raw24:pctN(d24.vm_cprot,d24.vm_total),raw25:pctN(d25.vm_cprot,d25.vm_total)},
+    {lbl:'Sin protocolo',sub:'% del total',k24:pct(d24.vm_sprot,d24.vm_total),k25:pct(d25.vm_sprot,d25.vm_total),better:'low',raw24:pctN(d24.vm_sprot,d24.vm_total),raw25:pctN(d25.vm_sprot,d25.vm_total)},
+    {lbl:'Autoextubaciones',sub:'n casos',k24:d24.vm_auto,k25:d25.vm_auto,better:'low',raw24:d24.vm_auto,raw25:d25.vm_auto},
+    {lbl:'Extubaciones programadas',sub:'total',k24:d24.ep_total,k25:d25.ep_total,better:'neutral'},
+    {lbl:'Éxito extubación progr.',sub:'tasa',k24:pct(d24.ep_exitosas,d24.ep_total),k25:pct(d25.ep_exitosas,d25.ep_total),better:'high',raw24:pctN(d24.ep_exitosas,d24.ep_total),raw25:pctN(d25.ep_exitosas,d25.ep_total)},
+    {lbl:'Reintubaciones',sub:'n casos',k24:d24.ri_total,k25:d25.ri_total,better:'low',raw24:d24.ri_total,raw25:d25.ri_total},
+    {lbl:'Tasa de reintubación',sub:'% de extubaciones',k24:pct(d24.ri_total,d24.ep_total),k25:pct(d25.ri_total,d25.ep_total),better:'low',raw24:pctN(d24.ri_total,d24.ep_total),raw25:pctN(d25.ri_total,d25.ep_total)},
+    {lbl:'Causa 1ª sin protocolo',sub:'motivo',k24:'Agitación psicomotora',k25:'Agitación psicomotora',better:'neutral'},
+    {lbl:'Causa 1ª reintubación',sub:'motivo',k24:'Falla resp. post-ext.',k25:'Falla resp. / Mal manejo secrec.',better:'neutral'},
+    {lbl:'TQT total',sub:'traqueostomías año',k24:d24.tqt_total||'—',k25:d25.tqt_total,better:'neutral'},
+    {lbl:'TQT primeros 10 días',sub:'% del total',k24:d24.tqt_total?pct((d24.tqt_d1a5||0)+(d24.tqt_d6a10||0),d24.tqt_total):'—',k25:pct(d25.tqt_d1a5+d25.tqt_d6a10,d25.tqt_total),better:'high',raw24:d24.tqt_total?pctN((d24.tqt_d1a5||0)+(d24.tqt_d6a10||0),d24.tqt_total):null,raw25:pctN(d25.tqt_d1a5+d25.tqt_d6a10,d25.tqt_total)}
+  ];
+
+  function trend(r){
+    if(r.better==='neutral'||r.raw24==null||r.raw25==null) return '<span class="trend-neutral">—</span>';
+    const diff=r.raw25-r.raw24;
+    if(Math.abs(diff)<1) return '<span class="trend-neutral">→ Sin cambio</span>';
+    const improved=(r.better==='high'&&diff>0)||(r.better==='low'&&diff<0);
+    const arrow=diff>0?'↑':'↓';
+    const cls=improved?'trend-up':'trend-down';
+    return `<span class="${cls}">${arrow} ${improved?'Mejora':'Empeora'}</span>`;
+  }
+
+  $('cmpTable').innerHTML=`<thead><tr>
+    <th>Indicador</th><th>2024</th><th>2025</th><th>Tendencia</th>
+  </tr></thead><tbody>`+rows.map(r=>`<tr>
+    <td><span class="lbl">${r.lbl}</span><br><span class="sub">${r.sub}</span></td>
+    <td>${r.k24}</td><td>${r.k25}</td><td>${trend(r)}</td>
+  </tr>`).join('')+'</tbody>';
+}
+
+// ═══════════════ MAIN RENDER ═══════════════
+function renderAll(){
+  const D=DATA;
+  setTxt('m-periodo',D.periodo||'—');
+  setTxt('m-fecha',new Date().toLocaleDateString('es-CL'));
+  const resp=$('m-resp'); if(resp) resp.value=D.responsable||'';
+
+  const vmT=n('vm_total');
+  setPct('pvm_cp',pct(n('vm_cprot'),vmT), n('vm_cprot')/vmT>.7?'pct-ok':'pct-warn');
+  setPct('pvm_sp',pct(n('vm_sprot'),vmT),'pct-warn');
+  setPct('pvm_au',pct(n('vm_auto'),vmT), n('vm_auto')/vmT>.05?'pct-danger':'pct-ok');
+  setPct('pvm_ac',pct(n('vm_accidental'),vmT),'pct-danger');
+  const aT=n('vm_auto');
+  setPct('pau_ex',pct(n('auto_exitosas'),aT),'pct-ok');
+  setPct('pau_ri',pct(n('auto_reintub'),aT),'pct-danger');
+
+  const epT=n('ep_total');
+  setTxt('ep-tot-lbl',epT?epT+' total':'');
+  setPct('pep_d',pct(n('ep_diurnas'),epT));
+  setPct('pep_n',pct(n('ep_nocturnas'),epT));
+  const exR=pctN(n('ep_exitosas'),epT);
+  setPct('pep_ex',pct(n('ep_exitosas'),epT),exR>=90?'pct-ok':exR>=80?'pct-warn':'pct-danger');
+  setPct('pep_ri',pct(n('ep_reintub'),epT),'pct-danger');
+  const spT=n('ep_sprot_24h')+n('ep_sprot_mas24h');
+  setPct('pep_s24',pct(n('ep_sprot_24h'),spT));
+  setPct('pep_sm24',pct(n('ep_sprot_mas24h'),spT));
+
+  const riT=n('ri_total');
+  setPct('pri_d',pct(n('ri_diurnas'),riT));
+  setPct('pri_n',pct(n('ri_nocturnas'),riT));
+  const disT=n('dis_cnaf')+n('dis_vmi')+n('dis_otro');
+  setPct('pdis_c',pct(n('dis_cnaf'),disT));
+  setPct('pdis_v',pct(n('dis_vmi'),disT));
+  setPct('pdis_o',pct(n('dis_otro'),disT));
+
+  const tqtT=n('tqt_total');
+  setPct('ptqt_a',pct(n('tqt_d1a5'),tqtT),'pct-warn');
+  setPct('ptqt_b',pct(n('tqt_d6a10'),tqtT));
+  setPct('ptqt_c',pct(n('tqt_d11plus'),tqtT));
+
+  // Charts
+  drawDonut('donut-vm','dleg-vm',[
+    {lbl:'Con protocolo',v:n('vm_cprot'),c:'#28cd41'},
+    {lbl:'Sin protocolo',v:n('vm_sprot'),c:'#ff9f0a'},
+    {lbl:'Autoextubación',v:n('vm_auto'),c:'#ff3b30'},
+    {lbl:'Accidental',v:n('vm_accidental'),c:'#5856d6'}
+  ]);
+  drawDonut('donut-ri','dleg-ri',[
+    {lbl:'Diurnas',v:n('ri_diurnas'),c:'#ff9f0a'},
+    {lbl:'Nocturnas',v:n('ri_nocturnas'),c:'#5856d6'}
+  ]);
+  drawBars('ktr-bars',[
+    {lbl:`Máximo (${D.ktr_maxMes||'—'})`,v:n('ktr_max'),c:'#0071e3'},
+    {lbl:'Promedio mensual',v:n('ktr_prom'),c:'#32ade6'},
+    {lbl:`Mínimo (${D.ktr_minMes||'—'})`,v:n('ktr_min'),c:'#bde3ff'}
+  ]);
+  drawBars('ktm-bars',[
+    {lbl:`Máximo (${D.ktm_maxMes||'—'})`,v:n('ktm_max'),c:'#ff9500'},
+    {lbl:'Promedio mensual',v:n('ktm_prom'),c:'#ffb74d'},
+    {lbl:`Mínimo (${D.ktm_minMes||'—'})`,v:n('ktm_min'),c:'#ffe0b2'}
+  ]);
+  drawBars('ep-dn-bars',[
+    {lbl:'Diurnas',v:n('ep_diurnas'),c:'#ff9f0a',pct:pct(n('ep_diurnas'),epT)},
+    {lbl:'Nocturnas',v:n('ep_nocturnas'),c:'#5856d6',pct:pct(n('ep_nocturnas'),epT)}
+  ]);
+  const msT=['mspr_agitacion','mspr_presion','mspr_babillon','mspr_med','mspr_noVA','mspr_otro'].reduce((a,k)=>a+n(k),0);
+  drawBars('mspr-bars',[
+    {lbl:'Agitación psicomotora',v:n('mspr_agitacion'),c:'#ff3b30',pct:pct(n('mspr_agitacion'),msT)},
+    {lbl:'Dep. Presión Positiva',v:n('mspr_presion'),c:'#ff9f0a',pct:pct(n('mspr_presion'),msT)},
+    {lbl:'Indicación médica',v:n('mspr_med'),c:'#5856d6',pct:pct(n('mspr_med'),msT)},
+    {lbl:'No protege vía aérea',v:n('mspr_noVA'),c:'#ff2d55',pct:pct(n('mspr_noVA'),msT)},
+    {lbl:'Post Babillón',v:n('mspr_babillon'),c:'#32ade6',pct:pct(n('mspr_babillon'),msT)},
+    {lbl:'Sin especificar / otro',v:n('mspr_otro'),c:'#8e8e93',pct:pct(n('mspr_otro'),msT)}
+  ]);
+  const rmT=['rim_falla','rim_secreciones','rim_conciencia','rim_edema','rim_noVA','rim_debilidad','rim_bronco','rim_accidental'].reduce((a,k)=>a+n(k),0);
+  drawBars('rim-bars',[
+    {lbl:'Falla resp. post-ext.',v:n('rim_falla'),c:'#ff3b30',pct:pct(n('rim_falla'),rmT)},
+    {lbl:'Mal manejo secreciones',v:n('rim_secreciones'),c:'#ff9f0a',pct:pct(n('rim_secreciones'),rmT)},
+    {lbl:'Compromiso conciencia',v:n('rim_conciencia'),c:'#5856d6',pct:pct(n('rim_conciencia'),rmT)},
+    {lbl:'Edema laríngeo',v:n('rim_edema'),c:'#32ade6',pct:pct(n('rim_edema'),rmT)},
+    {lbl:'No protege VA',v:n('rim_noVA'),c:'#ff2d55',pct:pct(n('rim_noVA'),rmT)},
+    {lbl:'Debilidad muscular',v:n('rim_debilidad'),c:'#0071e3',pct:pct(n('rim_debilidad'),rmT)},
+    {lbl:'Broncosepasmo',v:n('rim_bronco'),c:'#28cd41',pct:pct(n('rim_bronco'),rmT)},
+    {lbl:'Accidental',v:n('rim_accidental'),c:'#8e8e93',pct:pct(n('rim_accidental'),rmT)}
+  ]);
+  drawBars('tqt-bars',[
+    {lbl:'Días 1 – 5',v:n('tqt_d1a5'),c:'#28cd41',pct:pct(n('tqt_d1a5'),tqtT)},
+    {lbl:'Días 6 – 10',v:n('tqt_d6a10'),c:'#ff9f0a',pct:pct(n('tqt_d6a10'),tqtT)},
+    {lbl:'Día 11+',v:n('tqt_d11plus'),c:'#ff3b30',pct:pct(n('tqt_d11plus'),tqtT)}
+  ]);
+  const tdT=['tqt_neuro','tqt_neuroquir','tqt_resp','tqt_trauma','tqt_pcr','tqt_otro'].reduce((a,k)=>a+n(k),0);
+  drawBars('tqt-diag-bars',[
+    {lbl:'Neurológico / ACV',v:n('tqt_neuro'),c:'#5856d6',pct:pct(n('tqt_neuro'),tdT)},
+    {lbl:'Neuroquirúrgico',v:n('tqt_neuroquir'),c:'#32ade6',pct:pct(n('tqt_neuroquir'),tdT)},
+    {lbl:'Respiratorio',v:n('tqt_resp'),c:'#0071e3',pct:pct(n('tqt_resp'),tdT)},
+    {lbl:'Politrauma',v:n('tqt_trauma'),c:'#ff9f0a',pct:pct(n('tqt_trauma'),tdT)},
+    {lbl:'PCR Recuperado',v:n('tqt_pcr'),c:'#ff3b30',pct:pct(n('tqt_pcr'),tdT)},
+    {lbl:'Otro',v:n('tqt_otro'),c:'#8e8e93',pct:pct(n('tqt_otro'),tdT)}
+  ]);
+
+  renderLights();
+  if(COMPARE) renderComparison();
+  applyVisibility();
+}
+
+// ═══════════════ INPUTS ═══════════════
+function bindInputs(){
+  document.querySelectorAll('.ei[data-key]').forEach(inp=>{
+    const k=inp.dataset.key;
+    inp.value=DATA[k]!==undefined?DATA[k]:'';
+    inp.oninput=()=>{
+      DATA[k]=parseInt(inp.value)||0;
+      document.querySelectorAll(`.ei[data-key="${k}"]`).forEach(el=>{if(el!==inp)el.value=DATA[k];});
+      renderAll(); saveData();
+    };
+  });
+  document.querySelectorAll('.ei-text[data-key]').forEach(inp=>{
+    const k=inp.dataset.key;
+    inp.value=DATA[k]||'';
+    inp.oninput=()=>{ DATA[k]=inp.value; renderAll(); saveData(); };
+  });
+  document.querySelectorAll('[data-note]').forEach(ta=>{
+    const k='note_'+ta.dataset.note;
+    ta.value=DATA[k]||'';
+    ta.oninput=()=>{ DATA[k]=ta.value; saveData(); };
+  });
+  const resp=$('m-resp');
+  if(resp){ resp.value=DATA.responsable||''; resp.oninput=()=>{ DATA.responsable=resp.value; saveData(); }; }
+}
+
+// ═══════════════ YEAR / STORAGE ═══════════════
+function loadData(yr){
+  try{ const s=localStorage.getItem('kine_est_'+yr); return s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULTS[yr])); }
+  catch(e){ return JSON.parse(JSON.stringify(DEFAULTS[yr])); }
+}
+function saveData(){ try{ localStorage.setItem('kine_est_'+YR,JSON.stringify(DATA)); }catch(e){} }
+
+function setYear(yr){
+  if(COMPARE) return;
+  YR=yr;
+  ['2024','2025'].forEach(y=>$(('btn'+y))?.classList.toggle('on',y===yr));
+  DATA=loadData(yr);
+  bindInputs(); renderAll();
+}
+
+function toggleCompare(){
+  COMPARE=!COMPARE;
+  $('btnCmp').classList.toggle('on',COMPARE);
+  $('cmpSection').style.display=COMPARE?'block':'none';
+  if(COMPARE){ renderComparison(); }
+}
+
+function resetYear(){
+  if(!confirm(`¿Restaurar datos de ${YR} al informe original?`)) return;
+  localStorage.removeItem('kine_est_'+YR);
+  DATA=JSON.parse(JSON.stringify(DEFAULTS[YR]));
+  bindInputs(); renderAll();
+}
+
+function toggleEdit(){
+  EDIT=!EDIT;
+  document.body.classList.toggle('edit-mode',EDIT);
+  $('editPill').classList.toggle('on',EDIT);
+}
+
+// ═══════════════ VISIBILITY ═══════════════
+function loadVis(){
+  try{ const s=localStorage.getItem('kine_vis'); return s?{...VIS_DEFAULTS,...JSON.parse(s)}:{...VIS_DEFAULTS}; }
+  catch(e){ return {...VIS_DEFAULTS}; }
+}
+function saveVis(){ try{ localStorage.setItem('kine_vis',JSON.stringify(VIS)); }catch(e){} }
+
+function applyVisibility(){
+  const map={
+    'sec-1':VIS.sec1,'sec-1-ktr':VIS.sec1&&VIS.sec1_ktr,'sec-1-ktm':VIS.sec1&&VIS.sec1_ktm,
+    'sec-2':VIS.sec2,'sec-2-auto':VIS.sec2&&VIS.sec2_auto,
+    'sec-3':VIS.sec3,'sec-3-dn':VIS.sec3&&VIS.sec3_dn,'sec-3-exito':VIS.sec3&&VIS.sec3_exito,'sec-3-sprot':VIS.sec3&&VIS.sec3_sprot,
+    'sec-4':VIS.sec4,'sec-5':VIS.sec5,'sec-5-mot':VIS.sec5&&VIS.sec5_mot,'sec-5-disp':VIS.sec5&&VIS.sec5_disp,
+    'sec-6':VIS.sec6,'sec-6-dias':VIS.sec6&&VIS.sec6_dias,'sec-6-diag':VIS.sec6&&VIS.sec6_diag,
+    'sec-7':VIS.sec7
+  };
+  Object.entries(map).forEach(([id,show])=>{
+    const el=$(id); if(el) el.style.display=show?'':((id.startsWith('sec-')&&id.split('-').length===2)?'':'none');
+  });
+  // Notes
+  document.querySelectorAll('.note-field').forEach(el=>{ el.style.display=VIS.showNotes?'':'none'; });
+}
+
+// ═══════════════ CONFIGURADOR ═══════════════
+const CFG_ITEMS=[
+  {key:'sec1',lbl:'Sección 1: Carga Laboral',children:[
+    {key:'sec1_ktr',lbl:'KTR — Kinesiterapia Respiratoria'},
+    {key:'sec1_ktm',lbl:'KTM — Kinesiterapia Motora'}
+  ]},
+  {key:'sec2',lbl:'Sección 2: Desvinculación VM',children:[
+    {key:'sec2_auto',lbl:'Resultado de autoextubaciones'}
+  ]},
+  {key:'sec3',lbl:'Sección 3: Extubaciones Programadas',children:[
+    {key:'sec3_dn',lbl:'Distribución diurna/nocturna'},
+    {key:'sec3_exito',lbl:'Éxito y fracaso'},
+    {key:'sec3_sprot',lbl:'Sin protocolo por tiempo VM'}
+  ]},
+  {key:'sec4',lbl:'Sección 4: Motivos sin Protocolo'},
+  {key:'sec5',lbl:'Sección 5: Reintubaciones',children:[
+    {key:'sec5_mot',lbl:'Motivos de reintubación'},
+    {key:'sec5_disp',lbl:'Dispositivos previos'}
+  ]},
+  {key:'sec6',lbl:'Sección 6: Traqueostomías',children:[
+    {key:'sec6_dias',lbl:'Frecuencia por día estadía'},
+    {key:'sec6_diag',lbl:'Por grupo diagnóstico'}
+  ]},
+  {key:'sec7',lbl:'Sección 7: Observaciones'},
+  {key:'showNotes',lbl:'Mostrar campo de notas'}
+];
+
+function buildCfgPanel(){
+  let h='';
+  CFG_ITEMS.forEach(item=>{
+    h+=`<div class="cfg-section">
+      <div class="cfg-section-hdr">&nbsp;</div>
+      <div class="cfg-row">
+        <span>${item.lbl}</span>
+        <label class="toggle"><input type="checkbox" id="cfg_${item.key}" ${VIS[item.key]?'checked':''}
+          onchange="VIS['${item.key}']=this.checked;saveVis();applyVisibility();">
+          <span class="toggle-sl"></span></label>
+      </div>`;
+    if(item.children) item.children.forEach(c=>{
+      h+=`<div class="cfg-row indent">
+        <span>${c.lbl}</span>
+        <label class="toggle"><input type="checkbox" id="cfg_${c.key}" ${VIS[c.key]?'checked':''}
+          onchange="VIS['${c.key}']=this.checked;saveVis();applyVisibility();">
+          <span class="toggle-sl"></span></label>
+      </div>`;
+    });
+    h+='</div>';
+  });
+  $('cfgBody').innerHTML=h;
+}
+
+function openCfg(){ buildCfgPanel(); $('cfgPanel').classList.add('open'); $('cfgOverlay').classList.add('on'); }
+function closeCfg(){ $('cfgPanel').classList.remove('open'); $('cfgOverlay').classList.remove('on'); }
+
+// ═══════════════ INIT ═══════════════
+VIS=loadVis();
+DATA=loadData('2024');
+bindInputs();
+renderAll();
+</script>
+</body>
+</html>
