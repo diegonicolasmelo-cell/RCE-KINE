@@ -3983,7 +3983,11 @@ function genTexto() {
     L.push(`En oxigenoterapia${modo&&modo!=='Sin soporte'?(modo==='Tubo T'?' mediante tubo en T':' por '+modo.toLowerCase()):''}.`);
     const _pb=_pjoin([_lit?`${_lit} L/min`:null, fio2?`FiO₂ ${fio2}%`:null, spo2?`SpO₂ ${spo2}%`:null]);
     if(_pb) L.push(`Terapia ventilatoria oxigenoterapia: ${_pb}.`);
-  } else if(spo2) L.push(`En ventilación espontánea en ambiente, SpO₂ ${spo2}%.`);
+  } else {
+    const _frAmb=parseFloat(gv('r_fr'))||0, _umaAmb=_numTxt('l_uma')||_mon('l_uma');
+    const _parts=[_frAmb?`FR ${_frAmb} rpm`:null, _umaAmb?`UMA ${_umaAmb}`:null, spo2?`SpO₂ ${spo2}%`:null].filter(Boolean);
+    L.push(`En ventilación espontánea sin O2 adicional${_parts.length?', '+_parts.join(', '):''}.`);
+  }
   const mp=v('fMPVal'), ru=v('fRuidosVal'), secrT=v('fSecrVal');
   if(mp||ru){
     let e='Al examen físico respiratorio';
@@ -4007,12 +4011,12 @@ function genTexto() {
     const reol=v('fSecrReol'), car=v('fSecrCar'), qty=v('fSecrQty');
     const qtyTxt={'':null,'+':'escasa cantidad','++':'moderada cantidad','+++':'abundante cantidad'};
     const secrParts=[];
-    if(qty==='-'){ secrParts.push('sin secreciones'); }
-    else {
+    if(qty!=='-'){
       if(reol) secrParts.push(reol.toLowerCase());
       if(car) secrParts.push(car.toLowerCase());
       if(qtyTxt[qty]) secrParts.push(qtyTxt[qty]);
     }
+    // qty==='-' (sin secreciones) o sin datos → omite secreciones de la línea
     const secrTxt=secrParts.length?`, secreciones ${secrParts.join(' ')}`:'';
     // Cultivo nuevo en este turno (se integra al final de la línea KTR)
     const _res=(_tiState['fCultTags']||[]).filter(Boolean);
