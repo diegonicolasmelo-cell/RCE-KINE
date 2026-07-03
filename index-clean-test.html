@@ -2132,17 +2132,15 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 
       <!-- PLANES Y PENDIENTES — ancho completo -->
       <div class="fcard fc-g" style="margin:0 18px 16px;border-radius:14px;">
-        <div class="fcard-hdr"><span class="fcard-title" style="color:#1E293B;">Planes y Pendientes</span></div>
-        <div class="fcard-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div><label>Plan Kinésico (próximo turno)</label>
-              <textarea id="fPlanes" rows="3" placeholder="Plan para el próximo turno..." style="width:100%;box-sizing:border-box;"></textarea></div>
-            <div><label>Nota del Turno</label>
-              <textarea id="fNota" rows="3" placeholder="Observaciones adicionales..." style="width:100%;box-sizing:border-box;"></textarea></div>
-          </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px;">
-            <div style="min-width:180px;"><label>Firma Kinesiólogo</label>
-              <select id="fFirma" class="bold tc" style="width:100%;"></select></div>
+        <div class="fcard-hdr" style="justify-content:center;">
+          <span class="fcard-title" style="color:#1E293B;">Planes y Pendientes</span>
+        </div>
+        <div class="fcard-body" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+          <textarea id="fPlanes" rows="4" placeholder="Plan kinésico · Notas del turno · Objetivos próximo turno..." style="width:100%;box-sizing:border-box;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;font-size:.88rem;resize:vertical;outline:none;font-family:inherit;" oninput=""></textarea>
+          <input type="hidden" id="fNota">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <label style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7280;">Firma Kinesiólogo</label>
+            <select id="fFirma" class="bold tc" style="min-width:220px;text-align:center;"></select>
           </div>
         </div>
       </div>
