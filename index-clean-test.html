@@ -34,6 +34,9 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .cg label{color:#15803d;}.cr label{color:#b91c1c;}.cp label{color:#7c3aed;}
 .mon{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;padding:4px 10px;min-width:66px;flex-shrink:0;background:#f1f5f9;border:1px solid #e2e8f0;}
 .mon-y{background:#fefce8;border-color:#fde047;color:#854d0e;}
+#fS5Q:hover ~ #coopTooltip, #coopTooltip:hover{display:block!important;}
+.cam-pill-active-pos{background:#fee2e2!important;border-color:#ef4444!important;}
+.cam-pill-active-neg{background:#dcfce7!important;border-color:#22c55e!important;}
 .fade{animation:fi .2s ease-out;}
 @keyframes fi{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 
@@ -1340,33 +1343,38 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <select id="fGCSM" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></div>
               <div class="mon" style="height:36px;"><span style="font-size:.58rem;color:var(--muted);">GCS</span><span id="lblGCS" class="bold">15</span></div>
             </div>
-            <!-- Fila 3: S5Q + Cooperación (checkbox) + CAM-ICU (checkbox) -->
-            <div class="row" style="align-items:flex-end;gap:10px;margin-bottom:0;">
-              <div class="col wa"><label>S5Q</label>
-                <select id="fS5Q" onchange="autoCoopera()">
-                  <option value="">-</option>
-                  <option value="lt3">&lt;3</option>
-                  <option value="gte3">≥3</option>
-                </select></div>
-              <!-- Cooperación como checkbox+select -->
-              <div style="display:flex;align-items:center;gap:6px;align-self:flex-end;margin-bottom:4px;">
-                <div class="check wa" style="border:none;background:transparent;padding:0;margin:0;">
-                  <input type="checkbox" id="cCoop" onchange="hCoopChk()">
-                  <label for="cCoop" style="font-size:.75rem;font-weight:700;">Cooperación</label>
+            <!-- Toggle fila neurológica -->
+            <div style="margin-top:6px;">
+              <button type="button" id="btnNeuroToggle" onclick="hNeuroToggle()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;padding:2px 0;font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">
+                <span id="neuroToggleIcon" style="font-size:.7rem;">▶</span> S5Q · CAM-ICU
+              </button>
+              <div id="dNeuroExtra" class="hidden" style="margin-top:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <!-- S5Q con tooltip cooperación -->
+                <div style="position:relative;display:inline-block;">
+                  <div class="col wa">
+                    <label>S5Q</label>
+                    <select id="fS5Q" onchange="autoCoopera()" style="height:34px;">
+                      <option value="">-</option>
+                      <option value="lt3">&lt;3</option>
+                      <option value="gte3">≥3</option>
+                    </select>
+                  </div>
+                  <div id="coopTooltip" style="display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 6px);background:#1e293b;color:#fff;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:6px;white-space:nowrap;pointer-events:none;z-index:50;">
+                    <span id="coopTooltipTxt"></span>
+                    <div style="position:absolute;left:50%;transform:translateX(-50%);top:100%;border:5px solid transparent;border-top-color:#1e293b;"></div>
+                  </div>
                 </div>
-                <select id="fCoop" class="hidden" style="height:34px;" onchange="autoCoopera()">
-                  <option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option>
-                </select>
-              </div>
-              <!-- CAM-ICU como checkbox+select -->
-              <div style="display:flex;align-items:center;gap:6px;align-self:flex-end;margin-bottom:4px;">
-                <div class="check wa" style="border:none;background:transparent;padding:0;margin:0;">
-                  <input type="checkbox" id="cCAMICU" onchange="hCAMICUChk()">
-                  <label for="cCAMICU" style="font-size:.75rem;font-weight:700;">CAM-ICU</label>
+                <!-- hidden para guardar() -->
+                <select id="fCoop" class="hidden"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select>
+                <!-- CAM-ICU pills -->
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <label style="font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">CAM-ICU</label>
+                  <div style="display:flex;gap:5px;">
+                    <button type="button" id="camPos" onclick="hCAMpill('pos')" style="height:32px;padding:0 12px;border-radius:6px;border:1px solid #fca5a5;background:#fff;color:#b91c1c;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;">+ Positivo</button>
+                    <button type="button" id="camNeg" onclick="hCAMpill('neg')" style="height:32px;padding:0 12px;border-radius:6px;border:1px solid #bbf7d0;background:#fff;color:#15803d;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;">− Negativo</button>
+                  </div>
                 </div>
-                <select id="fCAMICU" class="hidden" style="height:34px;">
-                  <option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option>
-                </select>
+                <select id="fCAMICU" class="hidden"><option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option></select>
               </div>
             </div>
             <!-- UPOT: visible solo cuando VA invasiva + GCS ≤ 6 -->
@@ -4645,6 +4653,7 @@ function autoCoopera(){
     if(s5v==='lt3') _setCoopVal('No cooperador');
     else if(s5v==='gte3') _setCoopVal('Cooperador');
   }
+  _updateCoopTooltip();
 }
 
 //  CASCADAS VENTILATORIAS
@@ -4864,25 +4873,57 @@ function hSed(){
   if(s!=='Sin sedación'){show('gSAS');}else{const el=$('fSAS');if(el)el.value='';hide('gSAS');}
   autoCoopera();
 }
-function hCoopChk(){
-  const chk=$('cCoop'), sel=$('fCoop');
-  if(!chk||!sel) return;
-  if(chk.checked){ sel.classList.remove('hidden'); } else { sel.classList.add('hidden'); sel.value=''; }
+function hNeuroToggle(){
+  const d=$('dNeuroExtra'), icon=$('neuroToggleIcon');
+  if(!d) return;
+  const open=d.classList.contains('hidden');
+  if(open){ d.classList.remove('hidden'); if(icon) icon.textContent='▼'; }
+  else { d.classList.add('hidden'); if(icon) icon.textContent='▶'; }
 }
-function hCAMICUChk(){
-  const chk=$('cCAMICU'), sel=$('fCAMICU');
-  if(!chk||!sel) return;
-  if(chk.checked){ sel.classList.remove('hidden'); } else { sel.classList.add('hidden'); sel.value=''; }
+function hCoopChk(){}  // legacy no-op
+function hCAMICUChk(){} // legacy no-op
+function hCAMpill(val){
+  const sel=$('fCAMICU');
+  const posBtn=$('camPos'), negBtn=$('camNeg');
+  if(!sel||!posBtn||!negBtn) return;
+  // toggle off if same
+  if(sel.value===val){ sel.value=''; posBtn.className=posBtn.className.replace(/cam-pill-active-\w+/g,''); negBtn.className=negBtn.className.replace(/cam-pill-active-\w+/g,''); return; }
+  sel.value=val;
+  posBtn.classList.remove('cam-pill-active-pos','cam-pill-active-neg');
+  negBtn.classList.remove('cam-pill-active-pos','cam-pill-active-neg');
+  if(val==='pos') posBtn.classList.add('cam-pill-active-pos');
+  else negBtn.classList.add('cam-pill-active-neg');
+}
+function _updateCoopTooltip(){
+  const s5=v('fS5Q'), tt=$('coopTooltip'), ttTxt=$('coopTooltipTxt');
+  if(!tt||!ttTxt) return;
+  const sel=$('fS5Q');
+  if(!s5){ sel&&sel.addEventListener('mouseenter',()=>tt.style.display='none'); return; }
+  const label=s5==='lt3'?'No cooperador':s5==='gte3'?'Cooperador':'';
+  if(!label){ tt.style.display='none'; return; }
+  ttTxt.textContent=label;
+  tt.style.background=s5==='gte3'?'#166534':'#991b1b';
+  // hover via JS since CSS sibling won't work inside wrapper
+  if(sel){
+    sel.onmouseenter=()=>{ tt.style.display='block'; };
+    sel.onmouseleave=()=>{ tt.style.display='none'; };
+  }
 }
 function _setCoopVal(val){
   if(!val) return;
-  const chk=$('cCoop'), sel=$('fCoop');
-  if(chk){ chk.checked=true; } if(sel){ sel.classList.remove('hidden'); sel.value=val; }
+  const sel=$('fCoop'); if(sel) sel.value=val;
 }
 function _setCAMICUVal(val){
   if(!val) return;
-  const chk=$('cCAMICU'), sel=$('fCAMICU');
-  if(chk){ chk.checked=true; } if(sel){ sel.classList.remove('hidden'); sel.value=val; }
+  const sel=$('fCAMICU'); if(sel) sel.value=val;
+  // sync pills
+  const posBtn=$('camPos'), negBtn=$('camNeg');
+  if(posBtn&&negBtn){
+    posBtn.classList.remove('cam-pill-active-pos','cam-pill-active-neg');
+    negBtn.classList.remove('cam-pill-active-pos','cam-pill-active-neg');
+    if(val==='pos') posBtn.classList.add('cam-pill-active-pos');
+    else if(val==='neg') negBtn.classList.add('cam-pill-active-neg');
+  }
 }
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function addRuido(){
