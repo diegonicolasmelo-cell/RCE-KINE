@@ -1259,16 +1259,16 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <option>Ajustable</option>
                   </select></div>
               </div>
-              <!-- REINTUBACIÓN explícita — bloque manual -->
-              <div id="dReintubBloque" class="hidden" style="margin-top:6px;padding:8px;background:#fff1f2;border:1px solid #fecaca;border-radius:6px;">
-                <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--danger);margin-bottom:6px;">🔴 Reintubación</div>
-                <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;">
-                  <div class="check wa" style="border:none;background:transparent;padding:0;align-self:flex-end;margin-bottom:4px;">
-                    <input type="checkbox" id="cReintub" onchange="hReintub()">
-                    <label for="cReintub" style="font-size:.8rem;color:var(--danger);font-weight:700;">Registrar reintubación en este turno</label>
-                  </div>
+              <!-- REINTUBACIÓN — bloque unificado -->
+              <div id="dReintubBloque" class="hidden" style="margin-top:8px;padding:10px 12px;background:#fff1f2;border:1px solid #fecaca;border-radius:8px;">
+                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:var(--danger);letter-spacing:.05em;margin-bottom:8px;">🔴 Reintubación</div>
+                <div class="check wa" style="border:none;background:transparent;padding:0;margin-bottom:0;">
+                  <input type="checkbox" id="cReintub" onchange="hReintub()">
+                  <label for="cReintub" style="font-size:.8rem;color:var(--danger);font-weight:700;">Registrar reintubación este turno</label>
                 </div>
-                <div id="dReintubDet" class="hidden" style="margin-top:6px;">
+                <div id="dReintubDet" class="hidden" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+                  <!-- Badge extubación vinculada -->
+                  <div id="dReintubBadge" style="font-size:.72rem;background:#fee2e2;border:1px solid #fca5a5;border-radius:6px;padding:5px 10px;color:#b91c1c;display:none;"></div>
                   <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end;">
                     <div class="col wa">
                       <label>Hora reintubación</label>
@@ -1276,34 +1276,35 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     </div>
                     <div class="col grow">
                       <label>Motivo</label>
-                      <select id="fReintubMotivo" style="height:34px;">
+                      <select id="fReintubMotivo" onchange="hReintubMotivo()" style="height:34px;">
                         <option value="">-- seleccionar --</option>
-                        <option>No protege VA</option>
-                        <option>Falla respiratoria post extubación</option>
                         <option>Edema laríngeo post extubación</option>
+                        <option>Falla respiratoria post extubación</option>
+                        <option>Compromiso de conciencia</option>
                         <option>Debilidad muscular respiratoria</option>
-                        <option>Agitación psicomotora</option>
-                        <option>Indicación médica</option>
-                        <option>Extubación accidental</option>
+                        <option>Mal manejo de secreciones</option>
+                        <option>No protege VA</option>
+                        <option value="Otro">Otro</option>
                       </select>
                     </div>
                     <div class="col grow">
-                      <label>Soporte previo a reintubación</label>
+                      <label>Soporte previo</label>
                       <select id="fReintubSop" style="height:34px;">
                         <option value="">-- seleccionar --</option>
                         <option>VNI</option>
                         <option>CNAF</option>
-                        <option>MMV</option>
                         <option>NRC</option>
-                        <option>Mascarilla</option>
-                        <option>Bolsa de reanimación</option>
-                        <option>Sin soporte</option>
+                        <option>MMV</option>
+                        <option>Ambiental</option>
                       </select>
                     </div>
                     <div class="col wa">
-                      <label>Tiempo hasta reintub.</label>
-                      <input type="text" id="fReintubTiempo" placeholder="Ej: 45 min" style="height:34px;width:110px;">
+                      <label>Tiempo extubado</label>
+                      <input type="text" id="fReintubTiempo" placeholder="Ej: 4h 30min" style="height:34px;width:110px;">
                     </div>
+                  </div>
+                  <div id="dReintubOtro" class="hidden">
+                    <input type="text" id="fReintubOtroText" placeholder="Especificar motivo..." style="height:34px;width:100%;border:1px solid #fca5a5;border-radius:6px;padding:0 10px;font-size:.82rem;">
                   </div>
                 </div>
               </div>
@@ -1589,31 +1590,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                         💡 El siguiente turno evolucionará desde este estado
                       </div>
                     </div>
-                    <!-- Eval post + reintubación -->
-                    <div class="row" style="margin-bottom:6px;gap:8px;">
-                      <div class="col grow">
-                        <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
-                        <input type="text" id="fPostExtDet" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
-                      </div>
-                      <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
-                        <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintub" onchange="hReintubCheck()"><label for="cReintub" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
-                      </div>
-                    </div>
-                    <div id="dReintubDet" class="hidden" style="background:#fff5f5;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;margin-top:2px;">
-                      <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;">
-                        <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Razón:</label>
-                        <select id="fReintubRaz" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;">
-                          <option value="">-- Seleccionar --</option>
-                          <option>Falla respiratoria aguda</option>
-                          <option>Obstrucción de vía aérea</option>
-                          <option>Secreciones / desaturación</option>
-                          <option>Hemodinámicamente inestable</option>
-                          <option>Otras</option>
-                        </select>
-                      </div>
-                      <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
-                        ℹ️ El texto generado tomará TOT, modo y parámetros desde <strong>Terapia Ventilatoria</strong> ↑
-                      </div>
+                    <!-- Eval post-extubación -->
+                    <div style="margin-bottom:6px;">
+                      <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
+                      <input type="text" id="fPostExtDet" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
                     </div>
                   </div>
 
@@ -1675,31 +1655,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                       💡 El siguiente turno evolucionará desde este estado
                     </div>
                   </div>
-                  <!-- Eval post + reintubación rama NO -->
-                  <div class="row" style="margin-top:8px;margin-bottom:6px;gap:8px;">
-                    <div class="col grow">
-                      <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
-                      <input type="text" id="fPostExtDetNo" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
-                    </div>
-                    <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
-                      <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintubNo" onchange="hReintubCheckNo()"><label for="cReintubNo" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
-                    </div>
-                  </div>
-                  <div id="dReintubDetNo" class="hidden" style="background:#fff5f5;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;">
-                    <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;">
-                      <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Razón:</label>
-                      <select id="fReintubRazNo" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;">
-                        <option value="">-- Seleccionar --</option>
-                        <option>Falla respiratoria aguda</option>
-                        <option>Obstrucción de vía aérea</option>
-                        <option>Secreciones / desaturación</option>
-                        <option>Hemodinámicamente inestable</option>
-                        <option>Otras</option>
-                      </select>
-                    </div>
-                    <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
-                      ℹ️ El texto generado tomará TOT, modo y parámetros desde <strong>Terapia Ventilatoria</strong> ↑
-                    </div>
+                  <!-- Eval post-extubación rama NO -->
+                  <div style="margin-top:8px;margin-bottom:6px;">
+                    <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
+                    <input type="text" id="fPostExtDetNo" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
                   </div>
                   </div><!-- /dExtNoDetalle -->
                 </div>
@@ -3287,10 +3246,10 @@ function guardar() {
       }
       return new Set([...(PROCS||[]), ...auto]).size;
     })(),
-    // Reintubación desde bloque VAA
+    // Reintubación — bloque unificado
     REINTUB_BLOQUE:     bv('cReintub'),
     REINTUB_HORA:       v('fReintubHora'),
-    REINTUB_MOTIVO:     v('fReintubMotivo'),
+    REINTUB_MOTIVO:     _extReintubRaz(),
     REINTUB_SOP_PREVIO: v('fReintubSop'),
     REINTUB_TIEMPO:     v('fReintubTiempo'),
     MUE_REALIZADAS:bv('cMue'),
@@ -3405,7 +3364,28 @@ function _resetApneaEvo() {
   hide('dUPOTrow'); hide('dApneaEvo');
 }
 function hReintub() {
-  if($('cReintub')?.checked) show('dReintubDet'); else hide('dReintubDet');
+  const checked = $('cReintub')?.checked;
+  if (checked) {
+    show('dReintubDet');
+    // Auto-detect linked extubation from PROCS this shift
+    const extProcs = PROCS.filter(p => ['EXTUBACION C/PROTOCOLO','EXTUBACION S/PROTOCOLO','AUTOEXTUBACION','EXTUBACION ACCIDENTAL'].includes(p));
+    const badge = $('dReintubBadge');
+    if (badge) {
+      if (extProcs.length) {
+        badge.style.display = '';
+        badge.innerHTML = '🔗 Extubación registrada este turno: <strong>' + extProcs.join(', ') + '</strong>';
+      } else {
+        badge.style.display = '';
+        badge.innerHTML = '⚠️ Sin extubación registrada este turno (reintubación por deterioro desde VA natural)';
+      }
+    }
+  } else {
+    hide('dReintubDet');
+  }
+}
+function hReintubMotivo() {
+  const v_mot = v('fReintubMotivo');
+  if (v_mot === 'Otro') show('dReintubOtro'); else hide('dReintubOtro');
 }
 
 function confirmarEgreso() {
@@ -4375,6 +4355,18 @@ function genTexto() {
     if(gv('fPVA'))      ev.push(`Pmant VA ${gv('fPVA')} cmH2O`);
     if(ev.length) L.push('Evaluaciones funcionales: ' + ev.join('; ') + '.');
   }
+  // Reintubación desde VA=TOT (sin PVE/extubación en este turno)
+  if(!v('fPVEval') && $('cReintub')?.checked){
+    const _mot=_extReintubRaz(), _sop=v('fReintubSop'), _tiempo=v('fReintubTiempo'), _hora=v('fReintubHora');
+    let _rt='Paciente requiere reintubación';
+    if(_hora) _rt+=` a las ${_hora} hrs`;
+    if(_mot) _rt+=` por ${_mot.toLowerCase()}`;
+    if(_sop) _rt+=`. Soporte previo: ${_sop}`;
+    if(_tiempo) _rt+=`. Tiempo extubado: ${_tiempo}`;
+    L.push(_rt+'.');
+    const _totn=v('fTOTn'),_totcm=v('fTOTcm'),_totfij=v('fTOTfij')||'comisura labial';
+    if(_totn) L.push(`Se reintuba con TOT N° ${_totn} fijado a ${_totcm||'?'} cm a nivel de ${_totfij.toLowerCase()}.`);
+  }
   // Extubación + PVE — texto clínico unificado
   (function(){
     const _pve=v('fPVEval');
@@ -4741,8 +4733,9 @@ function updateVAUI() {
   if(va==='TOT'){
     show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');
     _showCol('colDiasTOT'); _hideCol('colDiasTQT'); _showCol('colDiasVAA');
-    // Mostrar bloque reintubación si hay historial previo de VM
-    const hayReintub=_diasVMPrevios>0||_nReintub>0;
+    // Mostrar bloque reintubación si hay historial previo de VM o extubación registrada este turno
+    const extEnProcs=(PROCS||[]).some(p=>['EXTUBACION C/PROTOCOLO','EXTUBACION S/PROTOCOLO','AUTOEXTUBACION','EXTUBACION ACCIDENTAL'].includes(p));
+    const hayReintub=_diasVMPrevios>0||_nReintub>0||extEnProcs;
     if(hayReintub) show('dReintubBloque'); else hide('dReintubBloque');
   } else if(va==='TQT'){
     show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');
@@ -5346,18 +5339,7 @@ function tiAddChip(tagsId, hiddenId, colorClass, val) {
 function hExt(){
   // legacy — ya no se usa directamente; PVE toggle maneja todo
 }
-function hReintubCheck(){
-  const checked=$('cReintub')?.checked;
-  if(checked){
-    confirmarReintubacion(_nReintub+1).then(ok=>{
-      if(ok){ _nReintub++; const el=$('fReintub'); if(el) el.value=_nReintub; show('dReintubDet'); }
-      else { const cr=$('cReintub'); if(cr) cr.checked=false; hide('dReintubDet'); }
-    });
-  } else {
-    hide('dReintubDet');
-    const raz=$('fReintubRaz'); if(raz) raz.value='';
-  }
-}
+function hReintubCheck(){ hReintub(); } /* legacy alias */
 function hExtProg(){ /* legacy — reemplazado por hPVEtoggle */ }
 function hExtTipo(){
   const t=document.querySelector('input[name="extTipo"]:checked')?.value||'';
@@ -5365,18 +5347,7 @@ function hExtTipo(){
   else { show('dExtNoDetalle'); }
 }
 function hExtQueda(){}
-function hReintubCheckNo(){
-  const checked=$('cReintubNo')?.checked;
-  if(checked){
-    confirmarReintubacion(_nReintub+1).then(ok=>{
-      if(ok){ _nReintub++; const el=$('fReintub'); if(el) el.value=_nReintub; show('dReintubDetNo'); }
-      else { const cr=$('cReintubNo'); if(cr) cr.checked=false; hide('dReintubDetNo'); }
-    });
-  } else {
-    hide('dReintubDetNo');
-    const raz=$('fReintubRazNo'); if(raz) raz.value='';
-  }
-}
+function hReintubCheckNo(){ /* legacy no-op — unified block handles reintubation */ }
 function renderParamsPEno(){
   const modo=v('peModoNo')||'';
   const box=$('peParamsBoxNo'); if(!box) return;
@@ -5464,8 +5435,8 @@ function _extOcurrio(){
   return false;
 }
 function _extHora(){ return v('fPVEval')==='si'?v('fExtHora'):v('fExtHoraNo'); }
-function _extReintub(){ return v('fPVEval')==='si'?!!$('cReintub')?.checked:!!$('cReintubNo')?.checked; }
-function _extReintubRaz(){ return v('fPVEval')==='si'?v('fReintubRaz'):v('fReintubRazNo'); }
+function _extReintub(){ return !!$('cReintub')?.checked; }
+function _extReintubRaz(){ const m=v('fReintubMotivo'); return m==='Otro'?(v('fReintubOtroText')||'Otro'):m; }
 function _extPeModo(){ return v('fPVEval')==='si'?v('peModo'):v('peModoNo'); }
 function _extPostDet(){ return v('fPVEval')==='si'?v('fPostExtDet'):v('fPostExtDetNo'); }
 function _extTipo(){
