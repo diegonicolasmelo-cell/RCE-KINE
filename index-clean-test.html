@@ -1316,7 +1316,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard fc-n">
           <div class="fcard-hdr"><span class="fcard-title">🧠 Sedación y Conciencia</span></div>
           <div class="fcard-body">
-            <div class="row" style="align-items:flex-end;">
+            <!-- Fila 1: Sedación + BNM + SAS -->
+            <div class="row" style="align-items:flex-end;margin-bottom:8px;">
               <div class="col wa"><label>Sedación</label>
                 <select id="fSed" onchange="hSed()">
                   <option>Sin sedación</option>
@@ -1327,6 +1328,9 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="check cr wa" style="margin-bottom:6px;"><input type="checkbox" id="cBNM" onchange="autoCoopera()"><label for="cBNM" style="font-size:.75rem;">+BNM</label></div>
               <div id="gSAS" class="col wa hidden"><label>SAS</label>
                 <select id="fSAS" onchange="autoCoopera()"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+            </div>
+            <!-- Fila 2: GCS debajo de Sedación -->
+            <div class="row" style="align-items:flex-end;margin-bottom:8px;">
               <span style="font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;align-self:flex-end;padding-bottom:8px;">GCS:</span>
               <div class="col ws"><label>Ocular</label>
                 <select id="fGCSO" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option selected>4</option></select></div>
@@ -1336,17 +1340,34 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <select id="fGCSM" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></div>
               <div class="mon" style="height:36px;"><span style="font-size:.58rem;color:var(--muted);">GCS</span><span id="lblGCS" class="bold">15</span></div>
             </div>
-            <div class="row" style="margin-top:4px;">
+            <!-- Fila 3: S5Q + Cooperación (checkbox) + CAM-ICU (checkbox) -->
+            <div class="row" style="align-items:flex-end;gap:10px;margin-bottom:0;">
               <div class="col wa"><label>S5Q</label>
                 <select id="fS5Q" onchange="autoCoopera()">
                   <option value="">-</option>
                   <option value="lt3">&lt;3</option>
                   <option value="gte3">≥3</option>
                 </select></div>
-              <div class="col wa"><label>Cooperación</label>
-                <select id="fCoop"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select></div>
-              <div class="col wa"><label>CAM-ICU</label>
-                <select id="fCAMICU"><option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option></select></div>
+              <!-- Cooperación como checkbox+select -->
+              <div style="display:flex;align-items:center;gap:6px;align-self:flex-end;margin-bottom:4px;">
+                <div class="check wa" style="border:none;background:transparent;padding:0;margin:0;">
+                  <input type="checkbox" id="cCoop" onchange="hCoopChk()">
+                  <label for="cCoop" style="font-size:.75rem;font-weight:700;">Cooperación</label>
+                </div>
+                <select id="fCoop" class="hidden" style="height:34px;" onchange="autoCoopera()">
+                  <option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option>
+                </select>
+              </div>
+              <!-- CAM-ICU como checkbox+select -->
+              <div style="display:flex;align-items:center;gap:6px;align-self:flex-end;margin-bottom:4px;">
+                <div class="check wa" style="border:none;background:transparent;padding:0;margin:0;">
+                  <input type="checkbox" id="cCAMICU" onchange="hCAMICUChk()">
+                  <label for="cCAMICU" style="font-size:.75rem;font-weight:700;">CAM-ICU</label>
+                </div>
+                <select id="fCAMICU" class="hidden" style="height:34px;">
+                  <option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option>
+                </select>
+              </div>
             </div>
             <!-- UPOT: visible solo cuando VA invasiva + GCS ≤ 6 -->
             <div id="dUPOTrow" class="hidden" style="margin-top:6px;padding:8px 10px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:6px;">
@@ -2762,7 +2783,8 @@ function fillForm(s) {
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
   set('fDias',s.DIA_ESTADIA); set('fDiasVM',s.DIAS_VM);
   if(s.VA_EXTERNO_DIAS!==undefined){ set('fVAExtDias',s.VA_EXTERNO_DIAS||0); actualizarDiasVA(); }
-  set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
+  set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q);
+  _setCoopVal(s.SED_COOPERACION); _setCAMICUVal(s.SED_CAM_ICU);
   set('fGCSO',s.SED_GCS_O); set('fGCSV',s.SED_GCS_V); set('fGCSM',s.SED_GCS_M);
   chk('cBNM',s.SED_BNM);
   // UPOT
@@ -2891,7 +2913,7 @@ function fillForm(s) {
   chk('cAET',_ex.AET_ACTIVA); hAET();
   if(_ex.AET_NIVEL && $('fAETnivel')){ $('fAETnivel').value=_ex.AET_NIVEL; hAETtip(); }
   // S3: CAM-ICU
-  set('fCAMICU',_ex.SED_CAM_ICU);
+  _setCAMICUVal(_ex.SED_CAM_ICU);
   // Cultivo resultado previo → tags
   (function(){
     if(!_ex.EX_CULT_RESULTADO) return;
@@ -2937,7 +2959,8 @@ function fillFormReplica(s) {
   const chk=(id,val)=>{ const e=$(id); if(e) e.checked=(val===true||val==='TRUE'); };
 
   // Sedación / neurológico
-  set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
+  set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q);
+  _setCoopVal(s.SED_COOPERACION); _setCAMICUVal(s.SED_CAM_ICU);
   set('fGCSO',s.SED_GCS_O); set('fGCSV',s.SED_GCS_V); set('fGCSM',s.SED_GCS_M);
   chk('cBNM',s.SED_BNM);
   chk('cUPOT', s.EVO_UPOT);
@@ -4616,11 +4639,11 @@ function autoCoopera(){
   const noCooper=bnm||(sas===1)||(gcsNum<8);
   if(noCooper){
     const s5=$('fS5Q'); if(s5) s5.value='lt3';
-    const coop=$('fCoop'); if(coop) coop.value='No cooperador';
+    _setCoopVal('No cooperador');
   } else {
     const s5v=v('fS5Q');
-    if(s5v==='lt3'){const e=$('fCoop');if(e)e.value='No cooperador';}
-    else if(s5v==='gte3'){const e=$('fCoop');if(e)e.value='Cooperador';}
+    if(s5v==='lt3') _setCoopVal('No cooperador');
+    else if(s5v==='gte3') _setCoopVal('Cooperador');
   }
 }
 
@@ -4840,6 +4863,26 @@ function hSed(){
   const s=v('fSed');
   if(s!=='Sin sedación'){show('gSAS');}else{const el=$('fSAS');if(el)el.value='';hide('gSAS');}
   autoCoopera();
+}
+function hCoopChk(){
+  const chk=$('cCoop'), sel=$('fCoop');
+  if(!chk||!sel) return;
+  if(chk.checked){ sel.classList.remove('hidden'); } else { sel.classList.add('hidden'); sel.value=''; }
+}
+function hCAMICUChk(){
+  const chk=$('cCAMICU'), sel=$('fCAMICU');
+  if(!chk||!sel) return;
+  if(chk.checked){ sel.classList.remove('hidden'); } else { sel.classList.add('hidden'); sel.value=''; }
+}
+function _setCoopVal(val){
+  if(!val) return;
+  const chk=$('cCoop'), sel=$('fCoop');
+  if(chk){ chk.checked=true; } if(sel){ sel.classList.remove('hidden'); sel.value=val; }
+}
+function _setCAMICUVal(val){
+  if(!val) return;
+  const chk=$('cCAMICU'), sel=$('fCAMICU');
+  if(chk){ chk.checked=true; } if(sel){ sel.classList.remove('hidden'); sel.value=val; }
 }
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function addRuido(){
