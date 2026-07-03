@@ -4762,7 +4762,7 @@ function updateVAUI() {
 
 //  PARÁMETROS VENTILATORIOS
 const fld=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><label>${lbl}</label><input type="number" id="${id}" oninput="calcResp()" style="height:35px;"></div>`;
-const mon=(id,lbl,y=false)=>`<div class="mon${y?' mon-y':''}" style="height:35px;min-width:68px;"><span style="font-size:.58rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.82rem;">--</span></div>`;
+const mon=(id,lbl,y=false)=>`<div class="col" style="flex-grow:0;min-width:68px;"><label>${lbl}</label><div class="mon${y?' mon-y':''}" style="height:35px;display:flex;align-items:center;justify-content:center;"><span id="${id}" class="bold" style="font-size:.82rem;">--</span></div></div>`;
 const lbl=txt=>`<div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--resp);margin:8px 0 4px;padding-bottom:2px;border-bottom:1px solid #bae6fd;">${txt}</div>`;
 
 const _UMA_TIPS={'':'Sin uso de musculaturas accesorias','+':'Tiraje subcostal','++':'Tiraje supraesternal','+++':'Tiraje supraesternal + espiración forzada'};
