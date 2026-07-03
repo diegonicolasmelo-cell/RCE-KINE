@@ -1972,7 +1972,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <label for="cEgr" style="font-size:.78rem;font-weight:600;">Registrar evaluación este turno</label>
                 </div>
               </div>
-              <div id="dEgr" class="hidden">
+              <div id="dEgr" class="hidden" style="padding:0 4px;">
                 <div class="row" style="margin-bottom:4px;align-items:flex-end;">
                   <div class="col wa"><label>⏱️ Timepoint</label>
                     <select id="fEvalTimepoint" style="width:130px;" onchange="_clearTimepointAuto()">
@@ -2090,26 +2090,27 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         </div><!-- /sp-col derecha -->
       </div><!-- /sp-2col -->
 
-      <!-- PLANES Y PENDIENTES — ancho completo -->
-      <div class="fcard fc-g" style="margin:0 18px 16px;border-radius:14px;">
-        <div class="fcard-hdr" style="justify-content:center;">
-          <span class="fcard-title" style="color:#1E293B;">Planes y Pendientes</span>
-        </div>
-        <div class="fcard-body" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-          <textarea id="fPlanes" rows="4" placeholder="Plan kinésico · Notas del turno · Objetivos próximo turno..." style="width:100%;box-sizing:border-box;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;font-size:.88rem;resize:vertical;outline:none;font-family:inherit;" oninput=""></textarea>
-          <input type="hidden" id="fNota">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-            <label style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7280;">Firma Kinesiólogo</label>
-            <select id="fFirma" class="bold tc" style="min-width:220px;text-align:center;"></select>
+      <!-- PLANES Y PENDIENTES + ACCIONES — centradas al ancho del grid -->
+      <div style="max-width:1400px;margin:0 auto;width:100%;padding:0 16px 0;">
+        <div class="fcard fc-g" style="margin-bottom:10px;border-radius:14px;">
+          <div class="fcard-hdr" style="justify-content:center;">
+            <span class="fcard-title" style="color:#1E293B;">Planes y Pendientes</span>
+          </div>
+          <div class="fcard-body" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+            <textarea id="fPlanes" rows="4" placeholder="Plan kinésico · Notas del turno · Objetivos próximo turno..." style="width:100%;box-sizing:border-box;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;font-size:.88rem;resize:vertical;outline:none;font-family:inherit;" oninput=""></textarea>
+            <input type="hidden" id="fNota">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <label style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7280;">Firma Kinesiólogo</label>
+              <select id="fFirma" class="bold tc" style="min-width:220px;text-align:center;"></select>
+            </div>
           </div>
         </div>
-      </div>
-
-      <!-- ACCIONES -->
-      <div style="display:flex;gap:9px;padding:12px 18px 14px;border-top:1px solid #e5e7eb;position:sticky;bottom:0;background:#F1F4F9;z-index:5;">
-        <button type="button" id="btnGuardar" class="btn btn-p" onclick="guardar()">✨ Guardar Evolución</button>
-        <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;flex-shrink:0;border-radius:10px;" onclick="previewTexto()">👁️ Preview</button>
-        <button type="button" id="btnCerrarPost" class="btn" style="width:auto;padding:0 18px;flex-shrink:0;border-radius:10px;background:#334155;color:#fff;display:none;" onclick="cerrarPanel()">✖ Cerrar</button>
+        <!-- ACCIONES -->
+        <div style="display:flex;gap:9px;padding:10px 0 14px;border-top:1px solid #e5e7eb;position:sticky;bottom:0;background:#F1F4F9;z-index:5;">
+          <button type="button" id="btnGuardar" class="btn btn-p" onclick="guardar()">✨ Guardar Evolución</button>
+          <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;flex-shrink:0;border-radius:10px;" onclick="previewTexto()">👁️ Preview</button>
+          <button type="button" id="btnCerrarPost" class="btn" style="width:auto;padding:0 18px;flex-shrink:0;border-radius:10px;background:#334155;color:#fff;display:none;" onclick="cerrarPanel()">✖ Cerrar</button>
+        </div>
       </div>
 
       <!-- TEXTO GENERADO -->
