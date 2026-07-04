@@ -1900,7 +1900,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         </div>
 
         <!-- ▌ TERAPIA FÍSICA (KTM + Evaluaciones) -->
-        <div class="fcard fc-k mega-card">
+        <div id="fcTerapiaFisica" class="fcard fc-k mega-card">
           <div class="fcard-hdr"><span class="fcard-title">🏃 TERAPIA FÍSICA</span></div>
           <div class="fcard-body">
 
@@ -2675,6 +2675,7 @@ function abrirPanel(id, esIng) {
   const _st = $('spTitle'); if(_st){ _st.dataset.tipo=_tipo; _st.textContent=_tipo; }
   esIng ? show('fcId') : hide('fcId');
   esIng ? hide('spHeaderBar') : show('spHeaderBar');
+  SHIFT==='Noche' ? hide('fcTerapiaFisica') : show('fcTerapiaFisica');
   _aislTags=[]; renderAislTags();
   ['fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   if($('fMPVal'))     $('fMPVal').value='';
