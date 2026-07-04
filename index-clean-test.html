@@ -4703,33 +4703,21 @@ function cascadeVA(preSop) {
     if(prevInv&&!nowInv&&!nowVNI){
       _diasVMPrevios+=_diasVMEpisodio; _diasVMEpisodio=0;
     }
-    // No-invasivo → Invasivo: primera intubación o reintubación (con confirmación)
+    // No-invasivo → Invasivo: primera intubación o reintubación
     if(prevNoInv&&nowInv){
       const hayHistorialVM=_diasVMPrevios>0||_diasTOTBase>0||_diasTQTBase>0;
       if(hayHistorialVM){
-        // Mostrar modal de confirmación (async)
-        const vaOrigen=_vaAnterior;
-        confirmarReintubacion(_nReintub+1).then(ok=>{
-          if(!ok){
-            $('fVA').value=vaOrigen;
-            const rOrig=VMAPS[vaOrigen]||VMAPS['Natural'];
-            poblar('fSop', rOrig.sops); cascadeSop();
-            _vaAnterior=vaOrigen;
-            updateVAUI(); calcGCS();
-            return;
-          }
-          if(prevVNI){
-            _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
-          }
-          _nReintub++;
-          _diasVMEpisodio=0;
-          if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
-          if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;_diasTOTBase=0;}
-          actualizarContadores();
-        });
-        _vaAnterior=va;
-        updateVAUI(); calcGCS();
-        return; // esperar resolución del modal
+        // Reintubación: resetear contadores del episodio (sin modal)
+        // _nReintub NO se incrementa aquí — lo hace guardar() via cReintub checkbox
+        if(prevVNI){
+          _diasVNIPrevios+=_diasVNIEpisodio; _diasVNIEpisodio=0; _fechaInicioVNI='';
+        }
+        _diasVMEpisodio=0;
+        if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
+        if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;_diasTOTBase=0;}
+        actualizarContadores();
+        // Activar bloque reintubación para que el clínico complete los detalles
+        setTimeout(()=>hReintubPVE(),80);
       } else {
         // Primera intubación: arrancar en 0 sin confirmación
         if(prevVNI){
