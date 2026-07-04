@@ -1053,8 +1053,11 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 <!-- SIDE PANEL EVOLUCIÓN -->
 <div class="spanel" id="sp">
   <div class="phdr">
-    <div class="ptitle">
-      <span id="spBed" style="background:#1e293b;padding:4px 10px;border-radius:5px;border:1px solid #334155;font-size:.83rem;">Cama X</span>
+    <div class="ptitle" style="display:flex;flex-direction:column;gap:2px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="spBed" style="background:#1e293b;padding:4px 10px;border-radius:5px;border:1px solid #334155;font-size:.83rem;">Cama X</span>
+        <span id="spPanelSubtitle" class="hidden" style="font-size:.85rem;font-weight:700;color:#e2e8f0;letter-spacing:-.01em;"></span>
+      </div>
     </div>
     <span id="spRepInfo" style="flex:1;text-align:right;font-size:.7rem;color:#94a3b8;padding:0 10px;display:none;"></span>
     <div class="phdr-btns">
@@ -1078,9 +1081,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
       <!-- IDENTIFICACIÓN — solo visible en ingreso -->
       <div style="max-width:1400px;margin:0 auto;width:100%;padding:0 16px;">
       <div class="fcard fc-id" id="fcId">
-        <div class="fcard-hdr" style="flex-direction:column;align-items:flex-start;gap:2px;">
-          <div id="fcIdHeader" style="font-size:1.35rem;font-weight:900;color:var(--primary);letter-spacing:-.02em;line-height:1.2;">Ingreso</div>
-          <span class="fcard-title" style="font-size:.7rem;font-weight:600;opacity:.7;">👤 Identificación del Paciente</span>
+        <div class="fcard-hdr">
+          <span class="fcard-title">👤 Identificación del Paciente</span>
         </div>
         <div class="fcard-body">
           <!-- Fila 1: Nombre + Edad + Sexo -->
@@ -2637,8 +2639,11 @@ function abrirPanel(id, esIng) {
   if($('fRuidosLoc')) $('fRuidosLoc').value='';
   const _emoji = SHIFT==='Dia' ? '☀️' : '🌙';
   $('spShift').textContent=`${_emoji} ${fecha}`;
-  const _fcHdr=$('fcIdHeader');
-  if(_fcHdr) _fcHdr.textContent=`Ingreso · Turno ${SHIFT==='Dia'?'Día':'Noche'} ${_emoji} · ${fecha}`;
+  const _sub=$('spPanelSubtitle');
+  if(_sub){
+    if(esIng){ _sub.textContent=`Ingreso · Turno ${SHIFT==='Dia'?'Día':'Noche'} ${_emoji} · ${fecha}`; show('spPanelSubtitle'); }
+    else { _sub.textContent=''; hide('spPanelSubtitle'); }
+  }
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   $('kf').reset(); PROCS=[]; renderChips(); _lockEcf(false);
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
