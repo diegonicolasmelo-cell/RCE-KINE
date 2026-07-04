@@ -494,6 +494,7 @@ function guardarEvolucion(datos) {
           idCama, fecha, turno, tipo: 'ingreso',
           texto: `Ingreso UCI. Dx: ${datos.PAC_DIAGNOSTICO || datos.PAC_NOMBRE || 'Sin especificar'}`,
           autor: datos.PLAN_FIRMA_KINE || '',
+          patientId: datos.PATIENT_ID || '',
         });
       }
  
