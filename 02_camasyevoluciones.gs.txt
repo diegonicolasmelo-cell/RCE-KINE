@@ -515,6 +515,12 @@ function guardarEvolucion(datos) {
       // Pasa array vacío si el usuario quitó procedimientos en una re-edición.
       _crearHitosDesdeProcedimientos(idCama, fecha, turno, procsArray, datos.PLAN_FIRMA_KINE);
  
+      // Registrar evento de reintubación en hoja dedicada
+      if (parseBool(datos.REINTUB_BLOQUE)) {
+        try { _registrarReintubacion(datos, idCama, idEvolucion, fecha, turno); }
+        catch(e) { console.warn('_registrarReintubacion:', e.message); }
+      }
+
       SpreadsheetApp.flush();
       return ok({ idEvolucion, idCama, turnoKey, accion: filaExist === -1 ? 'crear' : 'actualizar' });
     } catch (e) {
@@ -523,6 +529,74 @@ function guardarEvolucion(datos) {
   });
 }
  
+// ═══════════════════════════════════════════════════════════
+//  REINTUBACIONES — registro dedicado
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Escribe una fila en la hoja REINTUBACIONES cada vez que se guarda
+ * una evolución con REINTUB_BLOQUE = true.
+ * Idempotente por ID_EVOLUCION: si ya existe la fila la actualiza.
+ */
+function _registrarReintubacion(datos, idCama, idEvolucion, fecha, turno) {
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  let h = ss.getSheetByName('REINTUBACIONES');
+
+  // Crear hoja si no existe (setup tardío)
+  if (!h) {
+    h = ss.insertSheet('REINTUBACIONES');
+    const cols = ['ID_REINTUB','TIMESTAMP','FECHA','TURNO','ID_CAMA','ID_EVOLUCION',
+                  'NOMBRE','RUT','DIAGNOSTICO','TIPO_DESVINCULACION',
+                  'MOTIVO','SOPORTE_PREVIO','TIEMPO_EXTUBADO','HORA_REINTUBACION','KINESIOLOGO'];
+    h.getRange(1, 1, 1, cols.length).setValues([cols]);
+    h.setFrozenRows(1);
+  }
+
+  // Tipo de desvinculación: buscar en PROC_JSON del mismo turno
+  let tipoDesvinc = '';
+  if (datos.PROC_JSON) {
+    try {
+      const procs = JSON.parse(datos.PROC_JSON) || [];
+      const extTypes = ['EXTUBACION C/PROTOCOLO','EXTUBACION S/PROTOCOLO',
+                        'AUTOEXTUBACION','EXTUBACION ACCIDENTAL'];
+      const found = procs.find(p => extTypes.includes(p));
+      tipoDesvinc = found || '';
+    } catch(e) {}
+  }
+
+  const idReintub = idEvolucion + '_REINTUB';
+  const fila = [
+    idReintub,
+    timestampAhora(),
+    fecha,
+    turno,
+    idCama,
+    idEvolucion,
+    datos.PAC_NOMBRE      || '',
+    datos.PAC_RUT         || '',
+    datos.PAC_DIAGNOSTICO || '',
+    tipoDesvinc,
+    datos.REINTUB_MOTIVO  || '',
+    datos.REINTUB_SOP_PREV || '',
+    datos.REINTUB_TIEMPO  || '',
+    datos.REINTUB_HORA    || '',
+    datos.PLAN_FIRMA_KINE || '',
+  ];
+
+  // Buscar fila existente (re-guardado del mismo turno)
+  const ultima = h.getLastRow();
+  let filaExist = -1;
+  if (ultima >= 2) {
+    const ids = h.getRange(2, 1, ultima - 1, 1).getValues();
+    for (let i = 0; i < ids.length; i++) {
+      if (ids[i][0] === idReintub) { filaExist = i + 2; break; }
+    }
+  }
+
+  if (filaExist === -1) h.appendRow(fila);
+  else h.getRange(filaExist, 1, 1, fila.length).setValues([fila]);
+}
+
 // ═══════════════════════════════════════════════════════════
 //  EVOLUCIONES — LECTURA
 // ═══════════════════════════════════════════════════════════

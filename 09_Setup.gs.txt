@@ -181,6 +181,13 @@ function _RCE_ESTRUCTURA() {
       headerRows: 1,
       headers: [['KEY','DATA','TIMESTAMP']],
     },
+    REINTUBACIONES: {
+      nombre: 'REINTUBACIONES',
+      headerRows: 1,
+      cols: ['ID_REINTUB','TIMESTAMP','FECHA','TURNO','ID_CAMA','ID_EVOLUCION',
+             'NOMBRE','RUT','DIAGNOSTICO','TIPO_DESVINCULACION',
+             'MOTIVO','SOPORTE_PREVIO','TIEMPO_EXTUBADO','HORA_REINTUBACION','KINESIOLOGO'],
+    },
   };
 }
 
@@ -284,7 +291,7 @@ function reiniciarBaseDeDatos() {
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   ['CAMAS_ESTADO','EVOLUCIONES','PROCEDIMIENTOS','TIMELINE',
-   'ARCHIVO_PACIENTES','ESTADISTICAS_REM','TURNOS'].forEach(nombre => {
+   'ARCHIVO_PACIENTES','ESTADISTICAS_REM','TURNOS','REINTUBACIONES'].forEach(nombre => {
     const h = ss.getSheetByName(nombre);
     if (h) ss.deleteSheet(h);
   });

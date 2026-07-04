@@ -19,6 +19,7 @@ const SH = {
   KINES:         'KINESIOTERAPEUTAS',
   REM:           'ESTADISTICAS_REM',
   TURNOS:        'TURNOS',          // Tablero de asignación de turno
+  REINTUBACIONES: 'REINTUBACIONES', // Registro de eventos de reintubación
 };
 
 // ── Fila de datos en EVOLUCIONES (las primeras 3 son encabezados) ──
