@@ -2105,6 +2105,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard" style="border-color:#e0e7ff;">
           <div class="fcard-hdr"><span class="fcard-title" style="color:#4338ca;">🔧 Procedimientos del Turno</span></div>
           <div class="fcard-body">
+            <div id="dProcAntecedente" class="hidden" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:.76rem;color:#92400e;"></div>
             <div id="chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:26px;margin-bottom:8px;"></div>
             <div style="display:flex;gap:8px;">
               <input type="text" id="inProc" placeholder="Escribir o seleccionar procedimiento..." list="dlProc"
@@ -2685,6 +2686,7 @@ function abrirPanel(id, esIng) {
     else { _sub.textContent=''; hide('spPanelSubtitle'); }
   }
   hide('rarea'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
+  hide('dProcAntecedente'); const _dpa=$('dProcAntecedente'); if(_dpa) _dpa.innerHTML='';
   $('kf').reset(); PROCS=[]; renderChips(); _lockEcf(false);
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
 
@@ -2716,6 +2718,7 @@ function abrirPanel(id, esIng) {
             const fl= py ? new Date(+py,+pm-1,+pd).toLocaleDateString('es-CL',{day:'numeric',month:'long'}) : '–';
             const _turnoLabel = (pTurno||'').toLowerCase()==='dia' ? 'Dia' : 'Noche';
             const _ri=$('spRepInfo'); if(_ri){_ri.textContent=`Datos replicados del turno ${_turnoLabel} del ${fl}`;_ri.style.display='';}
+            renderAntecedenteProc(prev, _turnoLabel==='Dia'?'Día':'Noche', fl);
           } else {
             // Sin turno previo: arranca en blanco con datos del paciente
             const c=DB.find(x=>String(x.ID_CAMA)===String(id));
@@ -3091,8 +3094,10 @@ function fillFormReplica(s) {
   // Movilización
   chk('cMue',s.MUE_REALIZADAS); hMue();
 
-  // Procedimientos
-  if(s.PROC_JSON){ try{ PROCS=JSON.parse(s.PROC_JSON)||[]; }catch(e){} renderChips(); }
+  // Procedimientos — NO se replican: son eventos puntuales del turno anterior,
+  // no un estado clínico continuo. El turno nuevo arranca sin procedimientos
+  // marcados; lo que pasó queda como antecedente de solo lectura (ver
+  // renderAntecedenteProc), nunca como algo ya "hecho" en este turno.
 
   // Plan (copia planes estructurales, NO copia nota libre de turno ni firma)
   set('fPlanes',s.PLAN_PLANES);
@@ -3101,6 +3106,51 @@ function fillFormReplica(s) {
   // Egreso: NO se replica (es específico del turno de egreso)
 
   hSed(); hHTrend(); hMultiDVA(); hSecr(); calcGCS(); calcPI();
+}
+
+// ── PROPUESTA A: Antecedente detallado por ítem ─────────────────────────────
+// Lista, en la tarjeta "Procedimientos del Turno", cada procedimiento del
+// turno inmediatamente anterior (solo lectura, no seleccionable) con la hora
+// real cuando está disponible (extubación/reintubación) y el motivo cuando
+// corresponde. Usa datos que YA vienen en `prev` (PROC_JSON + JSON_SNAPSHOT),
+// sin llamadas adicionales al servidor.
+const _PROC_ANTEC_EXCLUIR = /^(KTM|INGRESO|EGRESO|FALLECE)/i;
+
+function renderAntecedenteProc(prev, turnoLabel, fechaLabel) {
+  const el = $('dProcAntecedente');
+  if (!el) return;
+  let procs = [];
+  try { procs = prev.PROC_JSON ? JSON.parse(prev.PROC_JSON) : []; } catch(e) {}
+  procs = (procs || []).filter(p => p && !_PROC_ANTEC_EXCLUIR.test(String(p).trim()));
+  if (!procs.length) { el.innerHTML = ''; hide('dProcAntecedente'); return; }
+
+  let _ex = {};
+  try { _ex = prev.JSON_SNAPSHOT ? JSON.parse(prev.JSON_SNAPSHOT) : {}; } catch(e) {}
+  let _extTs = {};
+  try { _extTs = _ex.RESP_EXTUB_TS ? JSON.parse(_ex.RESP_EXTUB_TS) : {}; } catch(e) {}
+
+  const EXT_TIPOS = ['EXTUBACIÓN C/PROTOCOLO','EXTUBACIÓN S/PROTOCOLO','AUTOEXTUBACIÓN','EXTUBACIÓN ACCIDENTAL'];
+
+  const lineas = procs.map(nombre => {
+    const n = String(nombre).trim();
+    if (n === 'REINTUBACIÓN') {
+      const hora  = _ex.REINTUB_HORA || _extTs.hora || '';
+      const razon = _ex.REINTUB_MOTIVO || _ex.EXT_REINTUB_RAZ || '';
+      let linea = `↩️ Reintubación${hora ? ' — ' + hora + ' hrs' : ''}`;
+      if (razon) linea += ` (${razon})`;
+      return `• ${linea}`;
+    }
+    if (EXT_TIPOS.includes(n)) {
+      const hora = _ex.EXT_HORA || _extTs.hora || '';
+      let linea = `✂️ ${n.charAt(0) + n.slice(1).toLowerCase()}${hora ? ' — ' + hora + ' hrs' : ''}`;
+      if ((n === 'AUTOEXTUBACIÓN' || n === 'EXTUBACIÓN ACCIDENTAL') && _ex.EXT_MOTIVO) linea += ` (${_ex.EXT_MOTIVO})`;
+      return `• ${linea}`;
+    }
+    return `• ${n}`;
+  });
+
+  el.innerHTML = `<strong>🕘 Antecedente turno ${turnoLabel} ${fechaLabel}:</strong><br>` + lineas.join('<br>');
+  show('dProcAntecedente');
 }
 
 /**
