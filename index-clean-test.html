@@ -3298,6 +3298,7 @@ function guardar() {
       }
       // Reintubación desde bloque VAA explícito
       if($('cReintub')?.checked) auto.push('REINTUBACIÓN');
+      if(v('cIng')==='true') auto.push('INGRESO UCI');
       const merged=Array.from(new Set([...(PROCS||[]), ...auto]));
       return JSON.stringify(merged);
     })(),

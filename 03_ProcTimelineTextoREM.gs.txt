@@ -142,6 +142,8 @@ function _agregarHitoInterno(hito) {
  *  INGRESO/EGRESO tampoco — los maneja ingresarPaciente/darAltaPaciente.)
  */
 const PROC_TO_HITO = {
+  // Ingreso
+  'INGRESO UCI':             { tipo: 'ingreso', label: 'Ingreso UCI' },
   // Vía aérea
   'INTUBACIÓN':              { tipo: 'via_aerea', label: 'Intubación orotraqueal' },
   'PVE':                     { tipo: 'via_aerea', label: 'PVE (Prueba de Ventilación Espontánea)' },
