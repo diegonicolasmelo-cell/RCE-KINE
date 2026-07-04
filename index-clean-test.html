@@ -1673,6 +1673,49 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 </div>
               </div>
 
+              <!-- DESVINCULACIÓN TQT (solo si VA=TQT y Soporte=Oxigenoterapia/OAF) -->
+              <div id="dDesvincTQT" class="hidden" style="margin-top:10px;padding:10px 11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#1d4ed8;margin-bottom:8px;letter-spacing:.04em;">🔌 Desvinculación de VM</div>
+                <!-- Hora de desvinculación -->
+                <div class="row" style="align-items:flex-end;margin-bottom:8px;">
+                  <div class="col wa">
+                    <label style="font-size:.72rem;font-weight:700;color:#1d4ed8;">Hora desvinculación</label>
+                    <input type="time" id="fHoraDesvinc" style="height:32px;width:100px;border:1px solid #bfdbfe;border-radius:6px;padding:0 8px;font-size:.82rem;font-weight:700;">
+                  </div>
+                  <div class="col grow">
+                    <label style="font-size:.72rem;font-weight:700;color:#64748b;">Observación</label>
+                    <input type="text" id="fDesvincObs" placeholder="Tolerancia, motivo, condición…" style="height:32px;border:1px solid #bfdbfe;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
+                  </div>
+                </div>
+                <!-- Reconexión a VM este turno -->
+                <div class="check" style="margin-bottom:6px;">
+                  <input type="checkbox" id="cReconexVM" onchange="hReconexVM()">
+                  <label for="cReconexVM" style="font-weight:700;color:#dc2626;">↩️ Reconexión a VM este turno</label>
+                </div>
+                <div id="dReconexDet" class="hidden" style="padding:8px 10px;background:#fff5f5;border:1px solid #fca5a5;border-radius:7px;">
+                  <div class="row" style="align-items:flex-end;margin-bottom:0;gap:10px;">
+                    <div class="col wa">
+                      <label style="font-size:.72rem;font-weight:700;color:#dc2626;">Hora reconexión</label>
+                      <input type="time" id="fHoraReconex" style="height:32px;width:100px;border:1px solid #fca5a5;border-radius:6px;padding:0 8px;font-size:.82rem;font-weight:700;">
+                    </div>
+                    <div class="col wa">
+                      <label style="font-size:.72rem;font-weight:700;color:#dc2626;">Tipo VM</label>
+                      <select id="fReconexTipo" style="height:32px;border:1px solid #fca5a5;border-radius:6px;padding:0 8px;font-size:.78rem;">
+                        <option value="">— Seleccionar —</option>
+                        <option value="Controlado">Controlado (ACVC/ACPC)</option>
+                        <option value="Espontaneo">Espontáneo (CPAP/PS)</option>
+                        <option value="AVAPS">AVAPS</option>
+                        <option value="S/T">S/T (BiPAP)</option>
+                      </select>
+                    </div>
+                    <div class="col grow">
+                      <label style="font-size:.72rem;font-weight:700;color:#dc2626;">Motivo reconexión</label>
+                      <input type="text" id="fReconexMotivo" placeholder="Fatiga, desaturación, aumento WOB…" style="height:32px;border:1px solid #fca5a5;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- EXTUBACIÓN / PVE (solo si VA = TOT) -->
               <div id="dExtSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
                 <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:8px;letter-spacing:.04em;">✂️ Extubación / PVE</div>
@@ -2945,6 +2988,13 @@ function fillForm(s) {
   (function(){
     const fpve=$('fPVEval'); if(fpve) fpve.value=''; _pveBtnReset?.(); hide('dPVESiRama'); hide('dPVENoRama'); _pveCleanSi?.(); _pveCleanNo?.();
     const dec=$('cDecanOcurrio'); if(dec) dec.checked=false; hDecan();
+    // Desvinculación TQT — acción diaria, siempre reset
+    const fhd=$('fHoraDesvinc'); if(fhd) fhd.value='';
+    const fdo=$('fDesvincObs'); if(fdo) fdo.value='';
+    const crx=$('cReconexVM'); if(crx){ crx.checked=false; hide('dReconexDet'); }
+    if($('fHoraReconex')) $('fHoraReconex').value='';
+    if($('fReconexTipo')) $('fReconexTipo').value='';
+    if($('fReconexMotivo')) $('fReconexMotivo').value='';
   })();
 
   if(s.PROC_JSON){try{PROCS=JSON.parse(s.PROC_JSON)||[];}catch(e){} renderChips();}
@@ -3130,6 +3180,13 @@ function guardar() {
     DECAN_QUEDA_SPO2:  v('fDecanSpo2'),
     DECAN_DET:         v('fDecanDet'),
     DECAN_RECANUL:     $('cRecanul')?.checked||false,
+    // TQT desvinculación
+    TQT_DESVINC_HORA:  v('fHoraDesvinc')||'',
+    TQT_DESVINC_OBS:   v('fDesvincObs')||'',
+    TQT_RECONEX:       $('cReconexVM')?.checked||false,
+    TQT_RECONEX_HORA:  v('fHoraReconex')||'',
+    TQT_RECONEX_TIPO:  v('fReconexTipo')||'',
+    TQT_RECONEX_MOTIVO:v('fReconexMotivo')||'',
     // S2 extras
     ES_REINGRESO:      $('cReing')?.checked||false,
     AET_ACTIVA:        $('cAET')?.checked||false,
@@ -4758,6 +4815,13 @@ function cascadeSop(preModo) {
   poblar('fModo', modos, preModo); renderParams();
   actualizarContadores();
   _updateSinKTR();
+  // Mostrar bloque desvinculación TQT solo cuando TQT + Oxigenoterapia
+  if(va==='TQT' && sop==='Oxigenoterapia/OAF') show('dDesvincTQT');
+  else hide('dDesvincTQT');
+}
+function hReconexVM() {
+  const chk=$('cReconexVM');
+  if(chk&&chk.checked) show('dReconexDet'); else hide('dReconexDet');
 }
 function _showCol(id){ const el=$(id); if(el){el.classList.remove('hidden');el.style.display='flex';} }
 function _hideCol(id){ const el=$(id); if(el){el.classList.add('hidden');el.style.display='none';} }
