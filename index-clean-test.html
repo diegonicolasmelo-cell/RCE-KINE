@@ -1075,8 +1075,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div id="spShift" style="font-size:1.25rem;font-weight:800;color:var(--txt);letter-spacing:-.01em;margin-top:1px;">--</div>
       </div>
 
-      <!-- repBanner oculto permanentemente en esta versión -->
-      <div id="repBanner" class="hidden"><span id="repBannerTxt"></span></div>
 
       <!-- IDENTIFICACIÓN — solo visible en ingreso -->
       <div style="max-width:1400px;margin:0 auto;width:100%;padding:0 16px;">
@@ -1237,7 +1235,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               </div>
             </div>
             <!-- compat oculto -->
-            <input type="hidden" id="fDiasVA"><input type="hidden" id="cVAExterno"><div id="dVAExtDias" style="display:none;"></div>
+            <input type="hidden" id="fDiasVA">
             <div id="dVADet" class="hidden fade" style="background:#eff6ff;padding:8px;border-radius:6px;border:1px solid #bfdbfe;margin-top:4px;">
               <!-- TOT -->
               <div id="dTOT" class="row hidden" style="margin-bottom:6px;align-items:flex-end;">
@@ -2688,7 +2686,7 @@ function abrirPanel(id, esIng) {
     if(esIng){ _sub.textContent=`Ingreso · Turno ${SHIFT==='Dia'?'Día':'Noche'} ${_emoji} · ${fecha}`; show('spPanelSubtitle'); }
     else { _sub.textContent=''; hide('spPanelSubtitle'); }
   }
-  hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
+  hide('rarea'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   $('kf').reset(); PROCS=[]; renderChips(); _lockEcf(false);
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
 
@@ -2720,7 +2718,6 @@ function abrirPanel(id, esIng) {
             const fl= py ? new Date(+py,+pm-1,+pd).toLocaleDateString('es-CL',{day:'numeric',month:'long'}) : '–';
             const _turnoLabel = (pTurno||'').toLowerCase()==='dia' ? 'Dia' : 'Noche';
             const _ri=$('spRepInfo'); if(_ri){_ri.textContent=`Datos replicados del turno ${_turnoLabel} del ${fl}`;_ri.style.display='';}
-            $('repBannerTxt').innerHTML='';hide('repBanner');
           } else {
             // Sin turno previo: arranca en blanco con datos del paciente
             const c=DB.find(x=>String(x.ID_CAMA)===String(id));
@@ -3093,9 +3090,6 @@ function fillFormReplica(s) {
   chk('cKTMalert',_ex.KTM_ALERTA); set('fKTMalertCat',_ex.KTM_ALERTA_CAT);
   if(_ex.KTM_ALERTA_CAT){ updateKTMalertRaz(); set('fKTMalertRaz',_ex.KTM_ALERTA_RAZ); }
   if(_ex.KTM_ALERTA===true||_ex.KTM_ALERTA==='TRUE') show('dKTMalert');
-  try {
-  } catch(e){}
-
   // Movilización
   chk('cMue',s.MUE_REALIZADAS); hMue();
 
@@ -3115,19 +3109,6 @@ function fillFormReplica(s) {
  * Botón "Empezar en blanco" del banner de réplica:
  * limpia el formulario y lo rellena solo con los datos del paciente.
  */
-function limpiarReplica() {
-  const id=v('cBed'), fecha=v('gDate')||hoy();
-  $('kf').reset(); PROCS=[]; renderChips();
-  _aislTags=[]; renderAislTags();
-  ['fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
-  if($('fMPVal'))     $('fMPVal').value='';
-  if($('fRuidosVal')) $('fRuidosVal').value='';
-  if($('fRuidosLoc')) $('fRuidosLoc').value='';
-  cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS(); hAisl(); hAET(); hExt();
-  const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha);
-  hide('repBanner'); const _riClr2=$('spRepInfo');if(_riClr2){_riClr2.textContent='';_riClr2.style.display='none';}
-  toast('📝 Formulario en blanco — listo para comenzar');
-}
 
 //  GUARDAR → SERVIDOR
 function guardar() {
@@ -4958,8 +4939,6 @@ function hNeuroToggle(){
   if(open){ d.classList.remove('hidden'); if(icon) icon.textContent='▼'; }
   else { d.classList.add('hidden'); if(icon) icon.textContent='▶'; }
 }
-function hCoopChk(){}  // legacy no-op
-function hCAMICUChk(){} // legacy no-op
 function hCAMpill(val){
   const sel=$('fCAMICU');
   const posBtn=$('camPos'), negBtn=$('camNeg');
@@ -5337,7 +5316,6 @@ function renderAislTags(){
 }
 function removeAislTag(i){ _aislTags.splice(i,1); renderAislTags(); }
 function setAislTags(str){ _aislTags=str?str.split(',').map(s=>s.trim()).filter(Boolean):[]; renderAislTags(); }
-function hVAExterno(){} // legacy compat
 function hVAExtPrev(){
   const on=$('cVAExtPrev')?.checked;
   const inp=$('fVAExtDias');
@@ -5440,7 +5418,6 @@ function hRuidos(el){
   const otro=document.querySelector('input[name="ruidos"][value="otro"]');
   if(otro&&otro.checked) show('dRuidosM'); else hide('dRuidosM');
 }
-function hPVE(){} // integrada en flujo de extubación
 // ── Toggle PVE Sí/No ──
 function hPVEtoggle(val){
   const prev=v('fPVEval');
@@ -5495,13 +5472,7 @@ function hPVEres(){
     const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); } }
   else { hide('dPVESuperada'); hide('dPVEFracasada'); }
 }
-function tiAddChip(tagsId, hiddenId, colorClass, val) {
-  if(!_tiState[tagsId]) _tiState[tagsId]=[];
-  if(!_tiState[tagsId].includes(val)) { _tiState[tagsId].push(val); tiRender(tagsId,hiddenId,colorClass); }
-}
-function hExt(){
-  // legacy — ya no se usa directamente; PVE toggle maneja todo
-}
+function hExt(){}
 function hReintubPVE(){
   const rb=$('dReintubBloque');
   if(rb) rb.classList.remove('hidden');
@@ -5509,15 +5480,12 @@ function hReintubPVE(){
   if(cb&&!cb.checked){ cb.checked=true; hReintub(); }
   rb?.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-function hReintubCheck(){ hReintub(); } /* legacy alias */
-function hExtProg(){ /* legacy — reemplazado por hPVEtoggle */ }
+
 function hExtTipo(){
   const t=document.querySelector('input[name="extTipo"]:checked')?.value||'';
   if(t==='sin_condiciones'){ hide('dExtNoDetalle'); }
   else { show('dExtNoDetalle'); }
 }
-function hExtQueda(){}
-function hReintubCheckNo(){ /* legacy no-op — unified block handles reintubation */ }
 function renderParamsPEno(){
   const modo=v('peModoNo')||'';
   const box=$('peParamsBoxNo'); if(!box) return;
@@ -5631,7 +5599,6 @@ function setKTMstate(q){
 }
 
 // (cultivo de secreciones se gestiona desde Muestras: CCAET / FilmArray / Mini Lab / Hisopado COVID-19)
-function onCultivoCheck(){ /* no-op, mantiene compat */ }
 
 // Tipo de intervención KTM (chips) según nivel del protocolo
 const KTM_INTERV_BY_LVL = {
@@ -5641,7 +5608,6 @@ const KTM_INTERV_BY_LVL = {
   '4':['Equilibrio sedente y bípedo','Bipedestación','Marcha estática','Transición sedente a bípedo','Sedente en sillón','Tolerancia al ejercicio'],
   '5':['Coordinación dinámica en bípedo','Reeducación de la marcha','Marcha por habitación','Tolerancia al ejercicio'],
 };
-function onKTMnivChange(){}
 
 const KTM_NIV_DESC = {
   '1':'Protección muscular — paciente no cooperador (S5Q ≤ 3)',
@@ -6078,7 +6044,6 @@ const DASH_COLORS = {
 };
 
 function _primerDiaMes(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-01`; }
-function _hoyISO(){ return hoy(); }
 
 function dashPreset(p){
   const h=new Date(); let desde, hasta=hoy();
@@ -6934,15 +6899,9 @@ function entGuardar() {
   );
 }
 
-// MOCK para preview
 const ENT_MOCK = {
-  fecha:'2026-06-14', turno:'Dia', turnoKey:'2026-06-14-Dia', generado:new Date().toISOString(),
-  resumen:{ocupadas:14,enVM:6,totalCamas:18,entregadas:3},
-  fichas:[
-    {idCama:'3',ocupada:true,tieneEvo:true,nombre:'Juan Pérez Soto',rut:'12.345.678-9',edad:64,sexo:'M',diagnostico:'Neumonía grave / SDRA',diasEstadia:8,diasVM:6,diasVA:7,soporte:'VM',viaAerea:'TOT',modo:'VC-AC',params:'FiO₂ 45 · PEEP 8 · FR 18 · VT 420 · SpO₂ 96',sedTipo:'Superficial',sas:3,bnm:false,dva:'NA 0.08',hemoEstado:'Estable',ktmNivel:'2',ktmMin:30,ktmRealizada:true,ktmSuspendida:false,ktmContra:'',secrCant:'Moderada',secrTipo:'Mucopurulenta',plan:'Continuar weaning. Bajar PEEP a 6 si tolera. KTR c/6h.',nota:'',firma:'FGE',hitos:[{fecha:'12/06',tipo:'via_aerea',texto:'Intubación OT'},{fecha:'14/06',tipo:'kine',texto:'KTM nivel 2'}]},
-    {idCama:'7',ocupada:true,tieneEvo:true,nombre:'María González Lara',rut:'9.876.543-2',edad:72,sexo:'F',diagnostico:'EPOC reagudizado',diasEstadia:4,diasVM:'',diasVA:2,soporte:'VNI',viaAerea:'Naso-bucal',modo:'BiPAP',params:'IPAP 14 · EPAP 6 · FiO₂ 35 · SpO₂ 93',sedTipo:'Sin sedación',sas:4,cooperador:true,mrc:'',fss:'',pendientesFuncionales:['MRC-SS','FSS-ICU'],ultimoCultivo:'10/06',bnm:false,dva:'',hemoEstado:'Estable',ktmNivel:'3',ktmMin:40,ktmRealizada:true,ktmSuspendida:false,ktmContra:'',secrCant:'Escasa',secrTipo:'Mucosa',plan:'Progresar a CNAF si SpO₂ estable. Sedente al borde de cama. Evaluar marcha asistida.',nota:'',firma:'MOW',hitos:[{fecha:'14/06',tipo:'kine',texto:'Sedestación borde cama'}]},
-    {idCama:'11',ocupada:true,tieneEvo:true,nombre:'Pedro Ramírez Díaz',rut:'15.111.222-3',edad:55,sexo:'M',diagnostico:'TEC grave',diasEstadia:12,diasVM:10,diasVA:11,soporte:'VM',viaAerea:'TQT Shiley #8',modo:'PSV',params:'PS 12 · PEEP 5 · FiO₂ 30 · SpO₂ 98',sedTipo:'Sin sedación',sas:5,cooperador:true,mrc:48,fss:28,pendientesFuncionales:[],ultimoCultivo:'13/06',bnm:false,dva:'',hemoEstado:'Estable',ktmNivel:'4',ktmMin:45,ktmRealizada:true,ktmSuspendida:false,ktmContra:'',secrCant:'Moderada',secrTipo:'Mucosa',plan:'Bipedestación con 2 asistentes. Válvula de fonación. Protocolo de decanulación pendiente.',nota:'',firma:'FGE',hitos:[{fecha:'10/06',tipo:'via_aerea',texto:'TQT percutánea'},{fecha:'13/06',tipo:'kine',texto:'Bipedestación'}]}
-  ]
+  fecha: hoy(), turno: SHIFT, turnoKey: `${hoy()}-${SHIFT}`, generado: new Date().toISOString(),
+  resumen: {ocupadas:0,enVM:0,totalCamas:0,entregadas:0}, fichas: []
 };
 
 window.onload = function() {
@@ -6971,69 +6930,8 @@ window.onload = function() {
 .interp-mod {background:#ffedd5;color:#9a3412;}
 .interp-sev {background:#fee2e2;color:#991b1b;}
 .interp-tot {background:#fca5a5;color:#7f1d1d;}
-/* ── Modal confirmación reintubación ── */
-#modalReintubOverlay{position:fixed;inset:0;background:rgba(17,24,39,.45);backdrop-filter:blur(3px);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;}
-#modalReintubOverlay.visible{opacity:1;pointer-events:all;}
-#modalReintub{background:#fff;border-radius:14px;padding:0;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.22);transform:translateY(12px) scale(.97);transition:transform .2s cubic-bezier(.4,0,.2,1);}
-#modalReintubOverlay.visible #modalReintub{transform:translateY(0) scale(1);}
-#modalReintub .mr-head{background:linear-gradient(135deg,#dc2626,#b91c1c);border-radius:14px 14px 0 0;padding:16px 20px 14px;display:flex;align-items:center;gap:10px;}
-#modalReintub .mr-head svg{flex-shrink:0;opacity:.95;}
-#modalReintub .mr-head-txt{color:#fff;}
-#modalReintub .mr-head-txt h3{font-size:.95rem;font-weight:700;letter-spacing:.01em;margin-bottom:2px;}
-#modalReintub .mr-head-txt p{font-size:.73rem;opacity:.82;font-weight:500;}
-#modalReintub .mr-body{padding:18px 20px 14px;}
-#modalReintub .mr-badge{display:inline-flex;align-items:center;gap:6px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;margin-bottom:12px;width:100%;}
-#modalReintub .mr-badge-n{font-size:1.4rem;font-weight:800;color:#dc2626;line-height:1;}
-#modalReintub .mr-badge-lbl{font-size:.75rem;color:#7f1d1d;font-weight:600;line-height:1.3;}
-#modalReintub .mr-info{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:16px;}
-#modalReintub .mr-info b{color:#374151;}
-#modalReintub .mr-warn{font-size:.73rem;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:7px 10px;color:#92400e;margin-bottom:16px;}
-#modalReintub .mr-actions{display:flex;gap:8px;}
-#modalReintub .mr-btn{flex:1;height:38px;border:none;border-radius:9px;font-size:.84rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;}
-#modalReintub .mr-btn-confirm{background:var(--danger);color:#fff;}
-#modalReintub .mr-btn-confirm:hover{background:#b91c1c;box-shadow:0 4px 12px rgba(220,38,38,.35);}
-#modalReintub .mr-btn-cancel{background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;}
-#modalReintub .mr-btn-cancel:hover{background:#e2e8f0;}
 </style>
 
 <!-- Modal confirmación reintubación -->
-<div id="modalReintubOverlay">
-  <div id="modalReintub">
-    <div class="mr-head">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <div class="mr-head-txt">
-        <h3>Confirmar reintubación</h3>
-        <p>Acción sobre contadores ventilatorios</p>
-      </div>
-    </div>
-    <div class="mr-body">
-      <div class="mr-badge">
-        <span class="mr-badge-n" id="mrBadgeN">1</span>
-        <span class="mr-badge-lbl">Reintubación<br>a registrar</span>
-      </div>
-      <p class="mr-info">Se reiniciarán los contadores del <b>episodio actual</b> (Días TOT/TQT y Días VM episodio). Los días previos acumulados se conservan.</p>
-      <p class="mr-warn">⚠️ Si fue un cambio accidental de selección, presione <b>Cancelar</b> para revertir sin afectar los contadores.</p>
-      <div class="mr-actions">
-        <button class="mr-btn mr-btn-cancel" onclick="_mrResolver(false)">Cancelar</button>
-        <button class="mr-btn mr-btn-confirm" onclick="_mrResolver(true)">Confirmar reintubación</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-let _mrResolver=null;
-function confirmarReintubacion(nNuevo){
-  return new Promise(res=>{
-    $('mrBadgeN').textContent=nNuevo;
-    $('modalReintubOverlay').classList.add('visible');
-    _mrResolver=ok=>{
-      $('modalReintubOverlay').classList.remove('visible');
-      _mrResolver=null;
-      res(ok);
-    };
-  });
-}
-</script>
 </body>
 </html>
