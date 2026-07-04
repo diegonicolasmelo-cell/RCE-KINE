@@ -163,6 +163,7 @@ const PROC_TO_HITO = {
   // Estudios / asistencias
   'IMAGENOLOGÍA':            { tipo: 'procedimiento', label: 'Imagenología' },
   'CULTIVO DE SECRECIONES':  { tipo: 'procedimiento', label: 'Cultivo de secreciones' },
+  'CULTIVO DE SECRECIÓN':    { tipo: 'procedimiento', label: 'Cultivo de secreciones' },
   'PCR COVID':               { tipo: 'procedimiento', label: 'PCR COVID' },
   'ECOGRAFÍA':               { tipo: 'procedimiento', label: 'Ecografía' },
   'EVALUACIÓN INTERMEDIA':   { tipo: 'procedimiento', label: 'Evaluación intermedia' },

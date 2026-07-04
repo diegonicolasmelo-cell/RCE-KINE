@@ -2105,6 +2105,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard" style="border-color:#e0e7ff;">
           <div class="fcard-hdr"><span class="fcard-title" style="color:#4338ca;">🔧 Procedimientos del Turno</span></div>
           <div class="fcard-body">
+            <div id="dProcAntecedente" class="hidden" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:.76rem;color:#92400e;"></div>
             <div id="chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:26px;margin-bottom:8px;"></div>
             <div style="display:flex;gap:8px;">
               <input type="text" id="inProc" placeholder="Escribir o seleccionar procedimiento..." list="dlProc"
@@ -2685,6 +2686,7 @@ function abrirPanel(id, esIng) {
     else { _sub.textContent=''; hide('spPanelSubtitle'); }
   }
   hide('rarea'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
+  hide('dProcAntecedente'); const _dpa=$('dProcAntecedente'); if(_dpa) _dpa.innerHTML='';
   $('kf').reset(); PROCS=[]; renderChips(); _lockEcf(false);
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
 
@@ -2716,6 +2718,7 @@ function abrirPanel(id, esIng) {
             const fl= py ? new Date(+py,+pm-1,+pd).toLocaleDateString('es-CL',{day:'numeric',month:'long'}) : '–';
             const _turnoLabel = (pTurno||'').toLowerCase()==='dia' ? 'Dia' : 'Noche';
             const _ri=$('spRepInfo'); if(_ri){_ri.textContent=`Datos replicados del turno ${_turnoLabel} del ${fl}`;_ri.style.display='';}
+            renderAntecedenteProcDesdeHistorial(id, py, pm, pd, pTurno, _turnoLabel==='Dia'?'Día':'Noche', fl);
           } else {
             // Sin turno previo: arranca en blanco con datos del paciente
             const c=DB.find(x=>String(x.ID_CAMA)===String(id));
@@ -3091,8 +3094,10 @@ function fillFormReplica(s) {
   // Movilización
   chk('cMue',s.MUE_REALIZADAS); hMue();
 
-  // Procedimientos
-  if(s.PROC_JSON){ try{ PROCS=JSON.parse(s.PROC_JSON)||[]; }catch(e){} renderChips(); }
+  // Procedimientos — NO se replican: son eventos puntuales del turno anterior,
+  // no un estado clínico continuo. El antecedente se muestra por separado
+  // (ver renderAntecedenteProcDesdeHistorial), reutilizando el Historial
+  // clínico / Timeline que ya existe, en vez de duplicar la fuente de datos.
 
   // Plan (copia planes estructurales, NO copia nota libre de turno ni firma)
   set('fPlanes',s.PLAN_PLANES);
@@ -3101,6 +3106,33 @@ function fillFormReplica(s) {
   // Egreso: NO se replica (es específico del turno de egreso)
 
   hSed(); hHTrend(); hMultiDVA(); hSecr(); calcGCS(); calcPI();
+}
+
+// ── PROPUESTA B: Antecedente vía Historial clínico (hitos) ──────────────────
+// En vez de duplicar la lectura de PROC_JSON, reutiliza el mismo endpoint
+// GET_HISTORIAL_PACIENTE que alimenta el modal "Historial clínico", y filtra
+// los hitos del turno inmediatamente anterior. Solo lectura, no seleccionable.
+function renderAntecedenteProcDesdeHistorial(idCama, py, pm, pd, pTurno, turnoLabel, fechaLabel) {
+  const el = $('dProcAntecedente');
+  if (!el || !py) { if(el){ el.innerHTML=''; hide('dProcAntecedente'); } return; }
+  const fechaPrev = `${py}-${String(pm).padStart(2,'0')}-${String(pd).padStart(2,'0')}`;
+  const turnoPrev = (String(pTurno).toLowerCase()==='dia') ? 'Dia' : 'Noche';
+  const c = DB.find(x => String(x.ID_CAMA) === String(idCama));
+  const patientId = c?.PATIENT_ID || '';
+  gs('GET_HISTORIAL_PACIENTE', { idCama, patientId }, data => {
+    const hitos = (data?.hitos || []).filter(h =>
+      String(h.FECHA) === fechaPrev && h.TURNO === turnoPrev &&
+      h.TIPO !== 'ingreso' && h.TIPO !== 'egreso'
+    );
+    if (!hitos.length) { el.innerHTML = ''; hide('dProcAntecedente'); return; }
+    hitos.sort((a,b) => String(a.TIMESTAMP).localeCompare(String(b.TIMESTAMP)));
+    const lineas = hitos.map(h => {
+      const hora = h.TIMESTAMP ? new Date(h.TIMESTAMP).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}) : '';
+      return `• ${h.TEXTO}${hora ? ' — ' + hora + ' hrs' : ''}`;
+    });
+    el.innerHTML = `<strong>🕘 Antecedente turno ${turnoLabel} ${fechaLabel} (Historial clínico):</strong><br>` + lineas.join('<br>');
+    show('dProcAntecedente');
+  }, () => { el.innerHTML=''; hide('dProcAntecedente'); });
 }
 
 /**
