@@ -459,7 +459,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .min-pill{background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1px solid #1e5a8f;transition:background .2s;display:flex;align-items:center;gap:8px;pointer-events:all;}
 .min-pill:hover{background:#1e5a8f;}
 .min-pill::before{content:'📋';font-size:.9rem;}
-.pcontent{flex-grow:1;overflow-y:auto;padding:0;background:#F1F4F9;}
+.pcontent{flex-grow:1;overflow-y:auto;padding:0;background:#F1F4F9;zoom:1.07;}
 
 /* FORM CARDS */
 /* ── FCARD — healthtech card design ─────────────────────────── */
@@ -1076,8 +1076,12 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
       <div id="repBanner" class="hidden"><span id="repBannerTxt"></span></div>
 
       <!-- IDENTIFICACIÓN — solo visible en ingreso -->
+      <div style="max-width:1400px;margin:0 auto;width:100%;padding:0 16px;">
       <div class="fcard fc-id" id="fcId">
-        <div class="fcard-hdr"><span class="fcard-title">👤 Identificación</span></div>
+        <div class="fcard-hdr" style="flex-direction:column;align-items:flex-start;gap:2px;">
+          <div id="fcIdHeader" style="font-size:1.35rem;font-weight:900;color:var(--primary);letter-spacing:-.02em;line-height:1.2;">Ingreso</div>
+          <span class="fcard-title" style="font-size:.7rem;font-weight:600;opacity:.7;">👤 Identificación del Paciente</span>
+        </div>
         <div class="fcard-body">
           <!-- Fila 1: Nombre + Edad + Sexo -->
           <div class="row">
@@ -1128,6 +1132,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           </div>
         </div>
       </div>
+      </div><!-- /fcId wrapper -->
 
       <div class="sp-2col"><div class="sp-col">
         <!-- DIAGNÓSTICO -->
@@ -2631,6 +2636,8 @@ function abrirPanel(id, esIng) {
   if($('fRuidosLoc')) $('fRuidosLoc').value='';
   const _emoji = SHIFT==='Dia' ? '☀️' : '🌙';
   $('spShift').textContent=`${_emoji} ${fecha}`;
+  const _fcHdr=$('fcIdHeader');
+  if(_fcHdr) _fcHdr.textContent=`Ingreso · Turno ${SHIFT==='Dia'?'Día':'Noche'} ${_emoji} · ${fecha}`;
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   $('kf').reset(); PROCS=[]; renderChips(); _lockEcf(false);
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
@@ -4859,6 +4866,8 @@ function renderParams() {
     h+=`<div class="row">${fld('r_flujo','Flujo L/m',80)}${fld('r_temp','T° °C',70)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${mon('l_irox','IROX',true)}${_umaFld()}</div>`;
   } else if(modo==='NRC'){
     h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${mon('l_fio2nrc','FiO₂~')}${_umaFld()}</div>`;
+  } else if(['HME','Tubo T'].includes(modo)){
+    h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${fld('r_fio2','FiO₂ %',80)}${_umaFld()}</div>`;
   } else {
     h+=`<div class="row">${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
   }
