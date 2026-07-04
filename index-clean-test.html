@@ -1066,8 +1066,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
     <form id="kf" onsubmit="return false;" autocomplete="off">
       <input type="hidden" id="cBed">
       <input type="hidden" id="cIng" value="false">
-      <!-- Fecha y turno — encabezado visible -->
-      <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);">
+      <!-- Fecha y turno — encabezado visible solo en evolución -->
+      <div id="spHeaderBar" style="padding:10px 14px 8px;border-bottom:1px solid var(--border);">
         <div id="spTitle" style="font-size:1.25rem;font-weight:800;color:var(--primary);letter-spacing:-.01em;">Registro Evolución</div>
         <div id="spShift" style="font-size:1.25rem;font-weight:800;color:var(--txt);letter-spacing:-.01em;margin-top:1px;">--</div>
       </div>
@@ -2629,6 +2629,7 @@ function abrirPanel(id, esIng) {
   const _tipo = esIng ? 'Ingreso' : 'Evolución';
   const _st = $('spTitle'); if(_st){ _st.dataset.tipo=_tipo; _st.textContent=_tipo; }
   esIng ? show('fcId') : hide('fcId');
+  esIng ? hide('spHeaderBar') : show('spHeaderBar');
   _aislTags=[]; renderAislTags();
   ['fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   if($('fMPVal'))     $('fMPVal').value='';
