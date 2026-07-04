@@ -488,11 +488,11 @@ function guardarEvolucion(datos) {
         camposActualizar.KEY_NOCHE   = turnoKey;
       }
  
-      // Hito de ingreso si corresponde
-      if (esIngreso && datos.PAC_NOMBRE) {
+      // Hito de ingreso — solo en primera escritura (filaExist===-1) para evitar duplicados
+      if (esIngreso && filaExist === -1) {
         _agregarHitoInterno({
           idCama, fecha, turno, tipo: 'ingreso',
-          texto: `Ingreso UCI. Dx: ${datos.PAC_DIAGNOSTICO || 'Sin especificar'}`,
+          texto: `Ingreso UCI. Dx: ${datos.PAC_DIAGNOSTICO || datos.PAC_NOMBRE || 'Sin especificar'}`,
           autor: datos.PLAN_FIRMA_KINE || '',
         });
       }
