@@ -112,9 +112,8 @@ Estado **actual** de cada cama (censo). Una fila por cama. Se sincroniza en cada
 39. `FIRMA_NOCHE` `texto`
 40. `KEY_NOCHE` `texto`
 
-> 🔶 **Cambio vs v1:** se eliminó `JSON_BACKUP` de esta hoja (se guardaba el snapshot completo por
-> cama y no se exponía; en v2 el snapshot del episodio se congela en `ARCHIVO_PACIENTES` al egresar).
-> Confirmar que no lo necesitas en la cama activa.
+> **Cambio vs v1 (decisión):** se elimina `JSON_BACKUP` de esta hoja. El estado activo se reconstruye
+> desde las columnas; el snapshot del episodio se congela en `ARCHIVO_PACIENTES` al egresar.
 
 ---
 
@@ -204,16 +203,33 @@ episodio se mueven a `EVOLUCIONES_ARCHIVO` (mismo esquema, D5).
 122. `REINTUB_BLOQUE` `bool` · 123. `REINTUB_HORA` `texto` · 124. `REINTUB_MOTIVO` `texto`
 · 125. `REINTUB_SOP_PREV` `texto` · 126. `REINTUB_TIEMPO` `texto`
 
-### 3.15 Test de apnea (UPOT)
-127. `APNEA_RESULTADO` `texto` · 128. `APNEA_MOTIVO` `texto` · 129. `APNEA_TEXTO` `texto`
+### 3.15 Test de apnea (UPOT) — **repetible** (Punto 6)
+127. `APNEA_JSON` `json` — arreglo `[{n, hora, resultado(positivo|negativo|no concluyente), motivo, texto}]`
+· 128. `APNEA_ULTIMO` `texto` — resultado del último test (derivado, para filtros rápidos)
 
-### 3.16 Planes, firma y generados
-130. `PLAN_PLANES` `texto` · 131. `PLAN_NOTA_TURNO` `texto` · 132. `PLAN_FIRMA_KINE` `texto`
-· 133. `TEXTO_GENERADO` `texto` — narrativa clínica autogenerada
-· 134. `JSON_SNAPSHOT` `json` — 🔶 *candidato a eliminar (duplica la fila; ver §16)*
+### 3.15b Test de azul / BDT — **repetible** (Punto 6)
+129. `BDT_JSON` `json` — arreglo `[{n, fecha, resultado(positivo|negativo)}]`
+· 130. `BDT_ULTIMO` `texto` — resultado del último test (derivado)
 
-> **Total: 134 columnas** (v1 tenía 132 desalineadas). Diferencias: +`PATIENT_ID`, +`COD_PACIENTE`,
-> +`AUTOR_EMAIL`, −`PAC_RUT` (→`PAC_COD`). Todas nombradas y en un solo lugar.
+### 3.15c Fase clínica (Punto 6) — **estructurada + al texto**
+131. `FASE_JSON` `json` — arreglo de fases (multi‑selección) del catálogo
+> Catálogo inicial: *Reanimación inicial · Protección pulmonar · Neuroprotección · Postoperatorio
+> inmediato · Espera de second look · Weaning · Rehabilitación* (ampliable en `CONFIG`/`CATALOGOS`).
+> Se incluye además en el texto clínico generado.
+
+### 3.16 Planes, firma y generado
+`PLAN_PLANES` `texto` · `PLAN_NOTA_TURNO` `texto` · `PLAN_FIRMA_KINE` `texto`
+· `TEXTO_GENERADO` `texto` — narrativa clínica autogenerada
+
+> **`JSON_SNAPSHOT` se ELIMINA** (decisión), **pero solo tras promover los campos huérfanos a
+> columnas** (ver `CONTRASTE.md`). Hoy ese blob es el único lugar donde sobreviven ~90 campos del
+> formulario; si se borra antes de promoverlos, se pierden. Secuencia: promover → blob redundante → borrar.
+
+> **⚠️ Esta lista de EVOLUCIONES está INCOMPLETA a propósito.** El contraste con el formulario
+> (`CONTRASTE.md`) reveló ~90 campos que hoy no son columna (aislamiento, decanulación, IMT,
+> terapia respiratoria, PVE, extubación, evaluación por turno, estado final de VA…). Al aprobar su
+> promoción (§5 de `CONTRASTE.md`), se agregan aquí y el total sube a **~190–200 columnas**.
+> Las secciones 3.1–3.16 de arriba son la **base heredada ya limpia**; falta incorporar los huérfanos.
 
 ### 3.17 EVOLUCIONES_ARCHIVO
 **Mismo esquema exacto** que EVOLUCIONES. Recibe las filas del episodio al egresar (D5). Los repos
@@ -256,13 +272,14 @@ Snapshot congelado de cada episodio egresado.
 · 33. `APNEA_TEXTO` `texto`
 
 > Cambios vs v1: `PATIENT_ID` y `COD_PACIENTE` arriba; +`DESTINO_EGRESO`, +`AUTOR_EMAIL`; −`RUT`.
-> 🔶 Se quitó `JSON_BACKUP` (el snapshot completo): con `EVOLUCIONES_ARCHIVO` + `TIMELINE_JSON` se
-> reconstruye el detalle. Confirmar (§16). Las columnas de outcome (FSS/MRC/apnea) ahora **sí** las
-> llena el modal de egreso (fix del informe).
+> **`JSON_BACKUP` eliminado (decisión):** con `EVOLUCIONES_ARCHIVO` + `TIMELINE_JSON` se reconstruye
+> el detalle. Las columnas de outcome (FSS/MRC/apnea) ahora **sí** las llena el modal de egreso (fix del informe).
 
 ---
 
-## 7. KINESIOTERAPEUTAS  · `headerRows: 1`
+## 7. KINESIOLOGOS  · `headerRows: 1`
+
+> Renombrada desde `KINESIOTERAPEUTAS` → `KINESIOLOGOS` (término correcto en Chile).
 
 Catálogo de firmas ↔ identidad (clave de la auditoría, D2/D1b).
 
@@ -270,7 +287,8 @@ Catálogo de firmas ↔ identidad (clave de la auditoría, D2/D1b).
 · 4. `APOYO` `bool` · 5. `ACTIVO` `bool`
 
 > Cambio vs v1: +`EMAIL` (liga firma a identidad verificada), +`ACTIVO`.
-> 🔶 Un email podría mapear a más de una firma o viceversa — definir cardinalidad (§16).
+> **Cardinalidad 1:1** (decisión): un email ↔ una firma. Al guardar, si el email verificado no
+> coincide con el dueño de la firma seleccionada, **se rechaza** la escritura (nadie firma por otro).
 
 ---
 
@@ -315,7 +333,10 @@ Bitácora de toda acción de escritura. Base de la trazabilidad real.
 
 1. `ID` `texto` · 2. `TIMESTAMP` `ts` · 3. `USUARIO_EMAIL` `email` — identidad verificada (GIS)
 · 4. `FIRMA` `texto` — firma declarada · 5. `ACCION` `texto` (ej. `GUARDAR_EVOLUCION`) · 6. `ENTIDAD` `texto` (hoja/entidad)
-· 7. `ID_ENTIDAD` `texto` · 8. `PATIENT_ID` `uuid` · 9. `RESUMEN` `texto` · 10. `IP_UA` `texto` — 🔶 si es obtenible (§16)
+· 7. `ID_ENTIDAD` `texto` · 8. `PATIENT_ID` `uuid` · 9. `RESUMEN` `texto`
+
+> Decisión: **se elimina `IP_UA`** — en Apps Script la IP del cliente no es obtenible de forma
+> fiable. La traza real es `USUARIO_EMAIL` (verificado) + `TIMESTAMP`, que basta para auditoría.
 
 ---
 
@@ -339,7 +360,7 @@ Reglas a fijar:
 - Normalizar acentos/`ñ` (Villagrán→v; Muñoz→m). Sin espacios ni signos.
 - Sin segundo apellido → se omite esa inicial.
 - Apellido compuesto → primer token.
-- 🔶 Longitud del primer apellido: ¿completo o tope de N caracteres? (§16)
+- **Primer apellido con tope de 8 caracteres** (decisión): Villagrán → `villagra`. Es solo un código.
 - Colisión (mismo `COD` activo) → sufijo `-2`, `-3`… El **UUID sigue siendo la clave**; el `COD` es etiqueta.
 - Edad: congelada al ingreso (no se recalcula si cumple años hospitalizado).
 
@@ -356,7 +377,7 @@ Reglas a fijar:
 | PROCEDIMIENTOS | 1 | 11 |
 | TIMELINE | 1 | 10 |
 | ARCHIVO_PACIENTES | 1 | 33 |
-| KINESIOTERAPEUTAS | 1 | 5 |
+| KINESIOLOGOS | 1 | 5 |
 | ESTADISTICAS_REM | 1 | 12 |
 | TURNOS | 1 | 3 |
 | REINTUBACIONES | 1 | 17 |
@@ -366,20 +387,24 @@ Reglas a fijar:
 
 ---
 
-## 16. Puntos a confirmar (🔶) antes de congelar el esquema
+## 16. Estado de decisiones del esquema
 
-1. **`JSON_SNAPSHOT` en EVOLUCIONES** (col 134) y **`JSON_BACKUP` en CAMAS/ARCHIVO**: ¿los
-   eliminamos? Duplican datos y con `EVOLUCIONES_ARCHIVO` + `TIMELINE_JSON` el detalle se
-   reconstruye. Recomiendo eliminarlos (menos peso, menos exposición). ¿De acuerdo?
-2. **`COD_PACIENTE` — longitud del apellido:** ¿apellido completo o tope (ej. 8 caracteres)?
-3. **`KINESIOTERAPEUTAS` — cardinalidad email↔firma:** ¿un email = una firma (1:1, más simple y
-   seguro para auditoría) o un email puede usar varias firmas?
-4. **`AUDIT_LOG.IP_UA`:** en Apps Script la IP del cliente **no** es accesible de forma fiable;
-   probablemente quede vacío o con user‑agent parcial. ¿Lo dejamos como campo best‑effort o lo quito?
-5. **Campos derivados** (`PROC_RESUMEN`, `PROC_CANTIDAD`): ¿los mantenemos materializados para el
-   render rápido, o los calculamos al vuelo desde `PROC_JSON`? Recomiendo mantenerlos (barato, evita
-   recomputar en cada lectura).
-6. **¿Falta algún campo clínico** que uses hoy y no esté aquí, o alguno que ya no uses y quieras
-   quitar? Este es el momento de podar.
+### Cerradas ✅
+- **Renombre** `KINESIOTERAPEUTAS` → `KINESIOLOGOS`.
+- **`JSON_SNAPSHOT` / `JSON_BACKUP`:** se eliminan (tras promover huérfanos — ver `CONTRASTE.md`).
+- **`COD_PACIENTE`:** primer apellido con tope de **8 caracteres**.
+- **email ↔ firma:** **1:1**, con rechazo si no coincide (nadie firma por otro).
+- **`AUDIT_LOG.IP_UA`:** eliminado (no fiable en Apps Script).
+- **`PROC_RESUMEN` / `PROC_CANTIDAD`:** se mantienen materializados (reflejan la carga diaria).
+- **Punto 6 clínico:** apnea y BDT repetibles (`APNEA_JSON` / `BDT_JSON`); `FASE_JSON` estructurada + al texto.
 
-> Al cerrar §16, el esquema queda congelado y se traduce a `esquema.gs`. Recién ahí empieza F1.
+### Pendientes (en `CONTRASTE.md` §5, para completar EVOLUCIONES)
+1. Aprobar la **promoción de los ~90 campos huérfanos** a columnas (¿todos o podas?).
+2. Resolver la **redundancia `EVAL_T_*` vs `EGR_*`** (recomendado: quedarse con `EVAL_T_*`).
+3. **Podar o reactivar** el ventilatorio avanzado en desuso (P0.1, ΔPocc, Pmusc, auto‑PEEP, rise time).
+4. Confirmar **nombres unificados** (§3 de `CONTRASTE.md`).
+5. Confirmar **catálogo de fases** y dónde se amplía (CONFIG vs hoja `CATALOGOS`).
+6. **Reconectar `REINTUBACIONES`** al nuevo bloque `EXT_*`.
+
+> Al cerrar estos 6 puntos, EVOLUCIONES queda completo (~190–200 columnas), el esquema se congela
+> y se traduce a `esquema.gs`. Recién ahí empieza F1.
