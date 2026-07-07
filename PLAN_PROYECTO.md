@@ -134,7 +134,7 @@ los encabezados y la migración de ancho. **Se prohíbe** hardcodear índices o 
 | `PROCEDIMIENTOS` | Procedimientos por evolución | ID_PROC → ID_EVOLUCION |
 | `TIMELINE` | Hitos del episodio | ID_HITO → PATIENT_ID |
 | `ARCHIVO_PACIENTES` | Episodios egresados (snapshot) | ID_ARCHIVO + PATIENT_ID |
-| `KINESIOTERAPEUTAS` | Catálogo de firmas/usuarios | FIRMA |
+| `KINESIOTERAPEUTAS` | Catálogo de firmas/usuarios + `EMAIL` (mapeo firma↔identidad GIS) | FIRMA |
 | `ESTADISTICAS_REM` | REM mensual consolidado | MES |
 | `TURNOS` | Asignación cama↔kine por turno | KEY |
 | `REINTUBACIONES` | Eventos de reintubación | ID_REINTUB |
@@ -193,9 +193,11 @@ Repo(hoja) → {
 
 ## 7. Contrato del dispatcher (API interna)
 
-Punto único `api(accion, datos)` con:
+Punto único `api(accion, datos, token)` con:
+- **Verificación de identidad** (valida el ID token de GIS vía `infra_auth.gs`; sin token válido
+  se rechazan las escrituras).
 - **Validación por acción** (un validador declarativo por cada acción).
-- **Autorización** (¿el usuario puede ejecutar esta acción?).
+- **Autorización** (¿el usuario/firma puede ejecutar esta acción?).
 - **Registro en `AUDIT_LOG`** de toda acción de escritura.
 - **Respuesta uniforme** `{ok, data}` / `{ok:false, error, codigo}`.
 
@@ -233,14 +235,18 @@ Escritura: `INGRESAR_PACIENTE`, `GUARDAR_EVOLUCION`, `DAR_ALTA`, `LIMPIAR_CAMA`,
 | `svc_estadisticas.gs` | Dashboard + actividad + días ventilatorios |
 | `svc_backup.gs` | Respaldo Drive + rotación |
 | `svc_setup.gs` | Crear/reparar estructura desde `esquema.gs`, importar, normalizar |
-| `api.gs` | `doGet`, router `api`, autorización, auditoría |
+| `infra_auth.gs` | Verifica el ID token de GIS (JWT: firma, `aud`, `exp`), resuelve email→firma vía `KINESIOTERAPEUTAS` |
+| `api.gs` | `doGet`, router `api`, **verificación de token por request**, autorización, auditoría |
 
 ---
 
 ## 9. Frontend: sistema de UI y modales
 
 ### 9.1 Infraestructura común (nueva)
-- `core/bridge.js` — `gs(accion, datos)` que devuelve Promise (adiós callbacks anidados).
+- `core/auth.js` — Google Identity Services: renderiza el Sign‑In, guarda el ID token y lo adjunta
+  a cada llamada; gestiona expiración/re‑login. Bloquea la app hasta que haya sesión válida.
+- `core/bridge.js` — `gs(accion, datos)` que devuelve Promise (adiós callbacks anidados) y adjunta
+  el ID token de `core/auth.js` en cada request.
 - `core/escape.js` — `escapeHtml()` / `h\`\`` (template tag que escapa) usado en **toda** inserción.
 - `core/modal.js` — `abrirModal(id)`, `cerrarModal(id)`: backdrop único, cierre por Escape,
   `aria-modal`, *focus trap*, retorno de foco. **Todos** los modales lo usan (incluido reintubación).
@@ -270,10 +276,13 @@ no cifras ficticias).
 Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha clínica).
 - **Cuentas personales (D1):** el acceso es con Gmail personal, por lo que
   `Session.getActiveUser().getEmail()` **no es fiable** y NO se usa como fuente de identidad.
-- **Identidad real (D1b, pendiente):** se obtiene vía Google Sign‑In (email verificado) o vía
-  firma+PIN propio. La identidad resultante se escribe en cada acción → `AUDIT_LOG`.
-- **Autoría (D2):** la firma clínica queda **ligada** a la identidad de D1b (no firma libre); se
-  valida contra el catálogo `KINESIOTERAPEUTAS`.
+- **Identidad real (D1b → Google Sign‑In):** login GIS en el frontend → ID token (JWT) con email
+  verificado. **Todo request de escritura viaja con el token**; el backend lo verifica (firma del
+  JWT + `aud` = OAuth Client ID propio + `exp` vigente) antes de actuar. El email verificado se
+  escribe en cada acción → `AUDIT_LOG`.
+- **Autoría (D2):** la firma clínica queda **ligada** al email verificado vía la columna `EMAIL` de
+  `KINESIOTERAPEUTAS`. Un usuario solo puede firmar con la(s) firma(s) asociadas a su email; se
+  rechaza firmar como otro.
 - **XSS:** `escapeHtml` obligatorio en toda la UI.
 - **Clickjacking:** `XFrameOptionsMode` restringido salvo requisito explícito de embebido.
 - **Minimización:** el cliente recibe solo los campos que necesita (no `JSON_BACKUP` completo).
@@ -305,10 +314,10 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
 | Fase | Nombre | Entregable | Criterio de "listo" |
 |------|--------|-----------|---------------------|
 | **F0** | Cierre del plan | Este documento aprobado + decisiones §14 resueltas | Acuerdo explícito |
-| **F1** | Fundaciones | `esquema.gs`, repos, infra (lock/fechas/respuesta/log), `clasp` | Crear estructura desde esquema; tests de repos verdes |
+| **F1** | Fundaciones + spike auth | `esquema.gs`, repos, infra (lock/fechas/respuesta/log), `clasp`, **GCP+OAuth Client**, **spike GIS dentro del iframe** | Estructura creada desde esquema; tests de repos verdes; **GIS confirmado funcionando en el iframe (o decidido el fallback popup)** |
 | **F2** | Dominio puro | Cálculos, texto, REM, validación con tests | Cobertura de casos clínicos clave |
-| **F3** | Servicios + API | Ingreso/evolución/alta/traslado + router + auditoría | Flujo completo por API sin UI (scripts de prueba) |
-| **F4** | Frontend base | `core/*` (bridge, escape, modal), grid, tabla | Navegación y censo funcionando |
+| **F3** | Servicios + API + auth | Ingreso/evolución/alta/traslado + router + **verificación de token** + auditoría | Flujo completo por API rechazando requests sin token válido |
+| **F4** | Frontend base + login | `core/*` (auth, bridge, escape, modal), grid, tabla | Login GIS obligatorio; navegación y censo funcionando con identidad real |
 | **F5** | Modal Evolución | SmartEvo modular + autosave | Registrar un turno completo con replicación |
 | **F6** | Egreso + Historial + Archivados | 3 modales | Outcome completo en ARCHIVO; historial por episodio |
 | **F7** | Entrega + Estadísticas + REM | Vistas + pivot + REM | REM sin doble conteo; handoff imprimible |
@@ -347,19 +356,20 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
 - **D8 · Reúso del generador de texto.** El generador de texto clínico y su estética se
   **mantienen sin grandes cambios**: se porta `dominio_texto.gs` casi tal cual (solo se aísla
   como función pura y testeable) y la salida/estilo de la evolución conserva el look actual.
+- **D1b · Identidad → Google Sign‑In (GIS).** Login real en el frontend con **Google Identity
+  Services**; Google entrega un **ID token (JWT)** con el email verificado, válido incluso con
+  Gmail personal. El backend **verifica el token** antes de aceptar cualquier escritura y liga el
+  email verificado a la firma clínica vía `KINESIOTERAPEUTAS` (columna `EMAIL`).
+  - **Dependencia de setup:** requiere un **proyecto de Google Cloud propio** con un **OAuth
+    Client ID (tipo Web)**; el `appsscript.json` se asocia a ese GCP.
+  - **⚠️ Riesgo a validar en un spike temprano (F1):** la Web App de Apps Script se sirve dentro
+    de un **iframe sandbox** (`googleusercontent.com`). GIS/FedCM y las cookies de terceros pueden
+    comportarse distinto dentro de ese iframe. **Antes de comprometer la arquitectura de auth hay
+    que probar** que el botón de Sign‑In renderiza y devuelve el token dentro del iframe; si no,
+    el plan B técnico es abrir el login en una ventana emergente (popup) que pase el token al
+    padre. Esto se prueba en F1, no en F9.
 
 ### 14.2 Pendientes (cerrar antes de F1)
-- **D1b · Mecanismo de identidad (NUEVO, crítico).** Como las cuentas son personales, hay que
-  elegir cómo se obtiene la identidad que se liga a la firma (D2):
-  - **A · Google Sign‑In (GIS):** login real en el frontend; email **verificado** incluso con
-    Gmail personal; el backend valida el token. Máxima seriedad de auditoría; agrega un paso de
-    inicio de sesión.
-  - **B · Firma + PIN propio:** cada kine registra un PIN una vez en `KINESIOTERAPEUTAS`; al
-    entrar elige firma e ingresa PIN. Sin OAuth, baja fricción; la seguridad depende del PIN.
-  - **C · Firma libre (statu quo):** sin garantía de autoría — descartado salvo que se acepte no
-    tener trazabilidad real.
-  > Recomendación: **A** si la auditoría debe ser defendible; **B** si prima la simplicidad y el
-  > equipo es cerrado y de confianza. **No existe** una vía automática y verificada sin login.
 - **D3 · Traslado e historial.** ¿Reescribir `ID_CAMA` histórico a la cama nueva, o consultar
   siempre por `PATIENT_ID` y dejar el `ID_CAMA` histórico como estaba? (Recomendado: por
   `PATIENT_ID`, más barato y suficiente.)
@@ -379,7 +389,7 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
 | REM | Doble conteo de ingresos | Conteo por episodio único |
 | Egreso | Outcome incompleto en ARCHIVO | Captura completa (FSS/MRC/apnea/extubación) |
 | Traslado | Rompe el historial | Historial por episodio, íntegro |
-| Seguridad | Sin identidad ni auditoría; XSS | Identidad de D1b (Sign‑In o firma+PIN) + `AUDIT_LOG` + `escapeHtml` |
+| Seguridad | Sin identidad ni auditoría; XSS | Google Sign‑In (token verificado) + firma ligada a email + `AUDIT_LOG` + `escapeHtml` |
 | Arranque | Histórico mezclado en producción | v2 limpio; histórico antiguo solo de consulta (D6) |
 | Texto clínico | Bueno pero acoplado a I/O | Se conserva (D8), aislado como función pura |
 | Modales | 5 patrones distintos, sin escape ni foco | `core/modal.js` unificado, accesible |
@@ -394,6 +404,6 @@ panel de calidad comparativo, SSO institucional.
 
 ---
 
-> **Siguiente paso:** cerrar §14.2. El bloqueante es **D1b** (mecanismo de identidad); D3/D4/D5/D7
-> tienen recomendación y se pueden aceptar tal cual. Al cerrarlas, propongo el detalle de la Fase 1
-> (esquema + repos + infra). No se escribe código hasta cerrar el plan.
+> **Siguiente paso:** D1b cerrado (Google Sign‑In). Solo restan D3/D4/D5/D7, que tienen
+> recomendación y se pueden aceptar tal cual. Al confirmarlas, propongo el detalle de la Fase 1
+> (esquema + repos + infra + spike GIS). No se escribe código hasta cerrar el plan.
