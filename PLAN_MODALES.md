@@ -43,6 +43,10 @@
 **Prioridad de refactor:** #1 (partir en módulos por sub‑bloque).
 
 **Diseño del formulario — divulgación progresiva (decisión):**
+- **Un solo botón de guardar** para todo el turno (atómico: una escritura, un registro de
+  auditoría, sin turnos guardados a medias). Se descarta el segundo botón por riesgo de pérdida de
+  datos. El "no contar como acción del día" se resuelve en las **reglas de conteo** (ver
+  `PLAN_PROYECTO.md §11.0`), no con un botón aparte.
 - Los bloques ocasionales o avanzados van como **secciones colapsables (toggle desplegable)**,
   cerradas por defecto: **Evaluación funcional por turno** y **Monitorización avanzada (ventilatorio
   avanzado:** P0.1, ΔPocc, Pmusc, auto‑PEEP, rise time, IPAP min/max, etc.**)**.

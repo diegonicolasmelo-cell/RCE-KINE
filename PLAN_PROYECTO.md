@@ -319,6 +319,23 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
 
 ## 11. Estadística, REM y calidad de datos
 
+### 11.0 Modelo de conteo de actividad (carga de trabajo)
+Toda **acción con tiempo** es una unidad contable, **atribuible a la firma/email + turno**, y se
+cuenta **individualmente en su propia categoría** (no se mezclan). Categorías:
+- **KTM** (kinesiología motora) — sesión.
+- **KTR** (kinesiología respiratoria) — sesión/conteo.
+- **Evaluación funcional** — cada una cuenta 1, por separado: MRC‑SS, FSS‑ICU, dinamometría,
+  ecografía muscular. **No** se suman dentro de KTM/KTR (no inflan las sesiones de terapia).
+- **Procedimientos con tiempo** — cada uno cuenta 1: traslado a imagenología, EMS, cultivos,
+  prono/supino, PVE, vía aérea (extubación/TQT/decanulación), etc.
+
+Reglas:
+- El agregador de actividad (tabla dinámica + REM) suma **por categoría y por kine**, leyendo
+  `PROCEDIMIENTOS` (una fila por procedimiento) **y** las columnas de evaluación de `EVOLUCIONES`
+  (presencia de valor = 1 acción ese turno).
+- Esto **solo es posible en v2** porque las evaluaciones (MRC/FSS/dinamometría/ecografía) se
+  promovieron a columnas; en v1 viven en `JSON_SNAPSHOT` y no son contables.
+
 ### 11.1 REM
 - Contar **episodios únicos** por `PATIENT_ID` (fin del doble conteo activos+archivo).
 - Fórmulas puras y testeadas en `dominio_rem.gs`.
