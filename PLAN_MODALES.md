@@ -42,6 +42,16 @@
 
 **Prioridad de refactor:** #1 (partir en módulos por sub‑bloque).
 
+**Diseño del formulario — divulgación progresiva (decisión):**
+- Los bloques ocasionales o avanzados van como **secciones colapsables (toggle desplegable)**,
+  cerradas por defecto: **Evaluación funcional por turno** y **Monitorización avanzada (ventilatorio
+  avanzado:** P0.1, ΔPocc, Pmusc, auto‑PEEP, rise time, IPAP min/max, etc.**)**.
+- Solo se despliegan si el kine las necesita ese turno → menos ruido, evolución más rápida.
+- **No afecta el esquema:** las columnas existen igual; esto es solo presentación.
+- Mismo criterio aplicable (a revisar) a otros bloques condicionales: IMT, decanulación, PVE,
+  extubación, apnea/BDT. Los campos núcleo (sedación, hemodinamia, ventilatorio básico, KTM,
+  plan/firma) quedan siempre visibles.
+
 ---
 
 ## 2. Modal Egreso / Alta (`egMod`)
