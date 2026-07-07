@@ -145,10 +145,11 @@ los encabezados y la migración de ancho. **Se prohíbe** hardcodear índices o 
 
 ### 4.3 Cambios de esquema respecto al actual
 - **`PATIENT_ID` presente y poblado en todas las hojas clínicas desde el ingreso** (no como columna añadida al final que puede faltar).
+- **`COD_PACIENTE` reemplaza a `RUT`** (D9): identificador humano legible; **se elimina la columna RUT** de todas las hojas.
 - **Encabezados nombrados para el 100% de las columnas** (se elimina el rango 120–132 sin nombre).
 - **`AUDIT_LOG`**: `id, timestamp, usuarioEmail, firma, accion, entidad, idEntidad, resumen`.
 - **`EVOLUCIONES_ARCHIVO`**: destino de evoluciones de episodios ya egresados (ver §11.3).
-- `CONFIG.NUM_CAMAS` para no hardcodear "18".
+- `CONFIG.NUM_CAMAS` para no hardcodear "18" (en pandemia la unidad llegó a 20 y podría reusarse en otra unidad — D4).
 
 ---
 
@@ -157,18 +158,44 @@ los encabezados y la migración de ancho. **Se prohíbe** hardcodear índices o 
 **Problema que resuelve:** en el sistema actual los datos se contaminan entre pacientes que
 ocupan la misma cama, y hay dos rutas de ingreso que generan `PATIENT_ID` distintos.
 
+**Dos identificadores con roles distintos (importante):**
+- **`PATIENT_ID` (UUID) — clave interna.** Se genera una sola vez en el ingreso. Es el que garantiza
+  integridad: único, estable, nunca cambia aunque se corrija el nombre. **No se muestra al usuario.**
+- **`COD_PACIENTE` — identificador humano legible (reemplaza al RUT, D9).** Se genera al ingreso a
+  partir de: `ddmmyy` (fecha de ingreso) + inicial del nombre (mayús.) + primer apellido (minús.) +
+  inicial del segundo apellido (minús.) + edad. Ej.: *Diego Melo Villagrán, 34a, ingreso 07/07/26* →
+  `070726Dmelov34`. Es el que se muestra en tarjetas, entrega y exportes. **Se elimina la columna RUT.**
+
 **Reglas v2:**
 1. `PATIENT_ID` (UUID) se genera **una sola vez**, en el servicio de ingreso, sin importar si el
    ingreso viene del botón "Ingresar" o de la primera evolución. Ruta única.
 2. La cama guarda el `PATIENT_ID` activo; toda evolución/hito/procedimiento hereda ese valor.
 3. **Todas** las lecturas y agregaciones (historial, evaluación funcional, días ventilatorios,
    estadísticas de egreso, REM) filtran por `PATIENT_ID`, nunca por `ID_CAMA` a secas.
-4. **Traslado de cama** = evento del mismo episodio: se registra un hito y el `PATIENT_ID` se
-   mueve con el paciente; las filas históricas se consultan por `PATIENT_ID`, por lo que el
-   traslado ya no rompe el historial. (Ver decisión §14‑D3 sobre reasignar `ID_CAMA` histórico.)
-5. **Importación masiva** asigna `PATIENT_ID` a cada paciente cargado.
+4. **Traslado (D3)** = evento del mismo episodio. Dos operaciones:
+   - **Intercambio** entre dos camas ocupadas (se cruzan los punteros de `PATIENT_ID`).
+   - **Mover a cama vacía** (NUEVO — caso de aislamiento sobrevenido): el `PATIENT_ID` pasa a la cama
+     destino libre y la de origen queda disponible.
+   En ambos casos las filas históricas **conservan el `ID_CAMA` donde realmente ocurrió cada turno**
+   y el historial se consulta por `PATIENT_ID` (no se reescribe nada). Se registra un hito de traslado.
+5. **Importación masiva** genera `PATIENT_ID` + `COD_PACIENTE` para cada paciente cargado.
 6. **Autoría por acción:** cada evolución/hito/egreso guarda la identidad del autor (según D1b)
    además de la firma clínica, y queda espejada en `AUDIT_LOG`.
+
+**Generación de `COD_PACIENTE` — reglas a fijar:**
+- Normalizar acentos y `ñ` (Villagrán→v, Muñoz→m); todo sin espacios.
+- Sin segundo apellido → se omite esa inicial. Apellidos compuestos → primer token.
+- **Colisión** (mismo día, mismas iniciales/apellido/edad — frecuente con apellidos comunes en Chile
+  como González/Muñoz): se agrega sufijo `-2`, `-3`… Por eso `COD_PACIENTE` **no** es la clave interna;
+  la clave sigue siendo el UUID.
+- Si se corrige el nombre tras el ingreso, `COD_PACIENTE` puede regenerarse; el `PATIENT_ID` no cambia.
+
+> **Nota honesta de cumplimiento (D9):** quitar el RUT es una buena práctica de **minimización de
+> datos** y baja la exposición, pero esto es **seudonimización, no anonimización**: fecha de ingreso
+> + iniciales + apellido + edad sigue siendo reidentificable, sobre todo en una unidad pequeña, y el
+> **nombre completo se mantiene** por necesidad clínica (identificar al paciente en la cama). Reduce
+> el peso legal, **no lo elimina**: los datos siguen siendo personales sensibles y aplican los
+> deberes de resguardo (Ley 19.628 y la nueva Ley 21.719).
 
 ---
 
@@ -207,8 +234,8 @@ Lectura: `GET_DASHBOARD_INIT`, `GET_CAMA`, `GET_EVOLUCION`, `GET_EVOLUCION_PREVI
 `GET_ARCHIVOS`, `GET_ARCHIVO_DETALLE`, `GET_ESTADISTICAS`, `GET_ACTIVIDAD`, `GET_DIAS_VENT`,
 `GET_ASIGNACION_TURNO`, `GET_ENTREGA_TURNO`, `GET_ENTREGAS_TURNO`, `GET_FECHA_HOY`.
 Escritura: `INGRESAR_PACIENTE`, `GUARDAR_EVOLUCION`, `DAR_ALTA`, `LIMPIAR_CAMA`,
-`TRASLADAR_PACIENTE`, `AGREGAR_HITO`, `SET_ASIGNACION_TURNO`, `GUARDAR_ENTREGA_TURNO`,
-`GENERAR_REM`.
+`INTERCAMBIAR_CAMAS` (dos ocupadas), `MOVER_A_CAMA_VACIA` (destino libre — caso aislamiento),
+`AGREGAR_HITO`, `SET_ASIGNACION_TURNO`, `GUARDAR_ENTREGA_TURNO`, `GENERAR_REM`.
 > Se congela el catálogo en el plan; cada acción tendrá su ficha (entrada/salida/validación/permiso).
 
 ---
@@ -233,7 +260,7 @@ Escritura: `INGRESAR_PACIENTE`, `GUARDAR_EVOLUCION`, `DAR_ALTA`, `LIMPIAR_CAMA`,
 | `svc_timeline.gs` | Hitos, sincronización cache |
 | `svc_entrega.gs` | Handoff |
 | `svc_estadisticas.gs` | Dashboard + actividad + días ventilatorios |
-| `svc_backup.gs` | Respaldo Drive + rotación |
+| `svc_backup.gs` | Respaldo Drive: 30 diarias rotativas + 1 snapshot mensual permanente |
 | `svc_setup.gs` | Crear/reparar estructura desde `esquema.gs`, importar, normalizar |
 | `infra_auth.gs` | Verifica el ID token de GIS (JWT: firma, `aud`, `exp`), resuelve email→firma vía `KINESIOTERAPEUTAS` |
 | `api.gs` | `doGet`, router `api`, **verificación de token por request**, autorización, auditoría |
@@ -335,7 +362,8 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
   separados).
 - **Sin migración (D6):** v2 arranca limpio. El spreadsheet actual se conserva **solo como
   consulta/prueba** (de solo lectura); no se reescribe ni se importa su histórico.
-- **Operación:** trigger diario de backup; trigger opcional de archivado de episodios cerrados;
+- **Operación:** trigger diario de backup (30 rotativas + snapshot mensual permanente); trigger de
+  archivado de episodios cerrados;
   monitoreo de `AUDIT_LOG`.
 
 ---
@@ -369,14 +397,24 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
     el plan B técnico es abrir el login en una ventana emergente (popup) que pase el token al
     padre. Esto se prueba en F1, no en F9.
 
-### 14.2 Pendientes (cerrar antes de F1)
-- **D3 · Traslado e historial.** ¿Reescribir `ID_CAMA` histórico a la cama nueva, o consultar
-  siempre por `PATIENT_ID` y dejar el `ID_CAMA` histórico como estaba? (Recomendado: por
-  `PATIENT_ID`, más barato y suficiente.)
-- **D4 · Nº de camas.** ¿18 fijo o configurable en `CONFIG.NUM_CAMAS`? (Recomendado: configurable.)
-- **D5 · Archivado de evoluciones.** ¿Mover al egresar (partición estricta) o mantener todo junto
-  e indexar? (Recomendado: partición al egresar, por rendimiento a largo plazo.)
-- **D7 · Retención de backups.** ¿30 copias basta o hay requisito legal de retención mayor?
+- **D3 · Traslado e historial → por `PATIENT_ID`.** No se reescribe `ID_CAMA`; el historial se
+  consulta por episodio. Se agrega la operación **mover a cama vacía** (caso aislamiento
+  sobrevenido), además del intercambio entre camas ocupadas. Beneficio extra: como cada fila
+  conserva la cama real del turno, habilita un **reporte por cama** (p. ej. cruzar mortalidad por
+  cama para pesquisar un desperfecto de sala, tipo falla en la red de O₂) — capacidad futura §15.
+- **D4 · Nº de camas → configurable** en `CONFIG.NUM_CAMAS`. Justificado: en pandemia se llegó a 20
+  camas y se prevé reúso en otra unidad.
+- **D5 · Evoluciones → partición al egresar.** Uso previsto de años como complemento estadístico;
+  la partición mantiene el panel acotado.
+- **D7 · Backups → herramienta de apoyo (no ficha legal).** La app es complemento del clínico y del
+  **Coordinador de Kinesiólogos**, no el registro legal. Se mantienen **30 respaldos diarios**
+  operativos + **1 snapshot mensual permanente** (barato, protege la serie estadística). Sin
+  obligación de retención legal por no ser ficha clínica oficial.
+- **D9 · Identificador sin RUT.** Se elimina el RUT; se usa `COD_PACIENTE` legible (ver §5).
+  Seudonimización, no exención legal (ver nota honesta en §5).
+
+### 14.2 Pendientes
+- *(ninguna — todas las decisiones estructurales están cerradas; listo para detallar la Fase 1).*
 
 ---
 
@@ -388,8 +426,11 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
 | Identidad | Mezcla por `ID_CAMA`; doble `PATIENT_ID` | Episodio único por `PATIENT_ID`, ruta de ingreso única |
 | REM | Doble conteo de ingresos | Conteo por episodio único |
 | Egreso | Outcome incompleto en ARCHIVO | Captura completa (FSS/MRC/apnea/extubación) |
-| Traslado | Rompe el historial | Historial por episodio, íntegro |
+| Traslado | Rompe el historial; solo intercambio | Historial por episodio íntegro; intercambio + mover a cama vacía (D3) |
+| Identificador paciente | RUT | `COD_PACIENTE` legible sin RUT (D9); UUID interno para integridad |
+| Nº de camas | 18 hardcodeado | `CONFIG.NUM_CAMAS` configurable (D4) |
 | Seguridad | Sin identidad ni auditoría; XSS | Google Sign‑In (token verificado) + firma ligada a email + `AUDIT_LOG` + `escapeHtml` |
+| Backups | 30 diarias rotativas | 30 diarias + snapshot mensual permanente (D7) |
 | Arranque | Histórico mezclado en producción | v2 limpio; histórico antiguo solo de consulta (D6) |
 | Texto clínico | Bueno pero acoplado a I/O | Se conserva (D8), aislado como función pura |
 | Modales | 5 patrones distintos, sin escape ni foco | `core/modal.js` unificado, accesible |
@@ -400,10 +441,14 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
 
 ### Capacidades futuras (post‑v2)
 Alertas clínicas por reglas (VT/kg, Tobin, ROX), exportación FHIR/CSV a la ficha institucional,
-panel de calidad comparativo, SSO institucional.
+panel de calidad comparativo, SSO institucional, y **reporte epidemiológico por cama** (mortalidad
+y eventos cruzados por sala, para pesquisar desperfectos de infraestructura como fallas en la red
+de O₂) — habilitado por conservar la cama real de cada turno (D3).
 
 ---
 
-> **Siguiente paso:** D1b cerrado (Google Sign‑In). Solo restan D3/D4/D5/D7, que tienen
-> recomendación y se pueden aceptar tal cual. Al confirmarlas, propongo el detalle de la Fase 1
-> (esquema + repos + infra + spike GIS). No se escribe código hasta cerrar el plan.
+> **Siguiente paso:** todas las decisiones estructurales (D1, D1b, D2, D3, D4, D5, D6, D7, D8, D9)
+> están cerradas. El plan queda listo para el **detalle de la Fase 1**: esquema único (`esquema.gs`
+> con todas las hojas/columnas nombradas, `COD_PACIENTE` en vez de RUT, `NUM_CAMAS` en CONFIG),
+> capa de repositorios, infraestructura (lock/fechas/respuesta/log/auth) y el spike de GIS. No se
+> escribe código hasta validar este detalle contigo.
