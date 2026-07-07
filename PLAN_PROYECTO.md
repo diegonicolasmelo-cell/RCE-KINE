@@ -167,6 +167,8 @@ ocupan la misma cama, y hay dos rutas de ingreso que generan `PATIENT_ID` distin
    mueve con el paciente; las filas históricas se consultan por `PATIENT_ID`, por lo que el
    traslado ya no rompe el historial. (Ver decisión §14‑D3 sobre reasignar `ID_CAMA` histórico.)
 5. **Importación masiva** asigna `PATIENT_ID` a cada paciente cargado.
+6. **Autoría por acción:** cada evolución/hito/egreso guarda la identidad del autor (según D1b)
+   además de la firma clínica, y queda espejada en `AUDIT_LOG`.
 
 ---
 
@@ -220,7 +222,7 @@ Escritura: `INGRESAR_PACIENTE`, `GUARDAR_EVOLUCION`, `DAR_ALTA`, `LIMPIAR_CAMA`,
 | `infra_log.gs` | `AUDIT_LOG` |
 | `repos/*.gs` | Un repositorio por hoja |
 | `dominio_calculos.gs` | Peso ideal, respiratorios (ml/kg, VM, I:E, DP, Cdyn, Tobin, ROX) — **puro** |
-| `dominio_texto.gs` | `generarTextoEvolucion` — **puro** |
+| `dominio_texto.gs` | `generarTextoEvolucion` — **puro**. Se **porta el generador actual sin grandes cambios** (D8); solo se aísla como función testeable. La estética/salida de la evolución se conserva. |
 | `dominio_rem.gs` | Cálculo REM (conteo de episodios único, sin doble conteo) — **puro** |
 | `dominio_validacion.gs` | Validadores de payload — **puro** |
 | `svc_camas.gs` | Ingreso/alta/traslado/limpieza |
@@ -266,9 +268,12 @@ no cifras ficticias).
 ## 10. Seguridad, privacidad y auditoría
 
 Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha clínica).
-- **Autorización de despliegue:** acceso restringido a usuarios de la organización.
-- **Identidad real:** `Session.getActiveUser().getEmail()` en cada escritura → `AUDIT_LOG`.
-- **Autoría:** la firma clínica se mantiene, pero validada contra el catálogo y acompañada del email.
+- **Cuentas personales (D1):** el acceso es con Gmail personal, por lo que
+  `Session.getActiveUser().getEmail()` **no es fiable** y NO se usa como fuente de identidad.
+- **Identidad real (D1b, pendiente):** se obtiene vía Google Sign‑In (email verificado) o vía
+  firma+PIN propio. La identidad resultante se escribe en cada acción → `AUDIT_LOG`.
+- **Autoría (D2):** la firma clínica queda **ligada** a la identidad de D1b (no firma libre); se
+  valida contra el catálogo `KINESIOTERAPEUTAS`.
 - **XSS:** `escapeHtml` obligatorio en toda la UI.
 - **Clickjacking:** `XFrameOptionsMode` restringido salvo requisito explícito de embebido.
 - **Minimización:** el cliente recibe solo los campos que necesita (no `JSON_BACKUP` completo).
@@ -307,7 +312,7 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
 | **F5** | Modal Evolución | SmartEvo modular + autosave | Registrar un turno completo con replicación |
 | **F6** | Egreso + Historial + Archivados | 3 modales | Outcome completo en ARCHIVO; historial por episodio |
 | **F7** | Entrega + Estadísticas + REM | Vistas + pivot + REM | REM sin doble conteo; handoff imprimible |
-| **F8** | Backup + Importar + Migración | Respaldo, carga masiva, migración de datos actuales | Datos existentes migrados con `PATIENT_ID` |
+| **F8** | Backup + Importar | Respaldo Drive + carga masiva (arranque limpio, sin migración — D6) | Importar asigna `PATIENT_ID`; backup diario operativo |
 | **F9** | Endurecimiento | Seguridad, accesibilidad, auditoría, pruebas de carga | Checklist §10 cumplido |
 
 ---
@@ -319,34 +324,49 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
 - **Pruebas de integración** por acción del dispatcher (payload → efecto en hojas de prueba).
 - **Despliegue** con `clasp` + `appsscript.json` versionado; entornos "dev" y "prod" (spreadsheets
   separados).
-- **Migración de datos actuales:** script que lee las hojas vigentes, asigna `PATIENT_ID` por
-  episodio (agrupando por cama + rango de fechas de estadía) y reescribe al esquema v2. Con backup
-  previo y modo "dry‑run".
+- **Sin migración (D6):** v2 arranca limpio. El spreadsheet actual se conserva **solo como
+  consulta/prueba** (de solo lectura); no se reescribe ni se importa su histórico.
 - **Operación:** trigger diario de backup; trigger opcional de archivado de episodios cerrados;
   monitoreo de `AUDIT_LOG`.
 
 ---
 
-## 14. Decisiones abiertas (requieren tu feedback)
+## 14. Decisiones
 
-> Estas definiciones cambian el diseño; conviene cerrarlas antes de F1.
+> Estado al cierre de esta iteración. Las resueltas se congelan; las pendientes se cierran antes de F1.
 
-- **D1 · Autenticación/acceso.** ¿La Web App queda restringida a cuentas del dominio del hospital
-  (Google Workspace) o hay usuarios con Gmail personal? Esto define si `getActiveUser()` es fiable
-  para auditoría.
-- **D2 · Firma vs usuario.** ¿La firma clínica (MOW, DMV…) debe quedar **ligada** al email del
-  usuario (tabla de mapeo) para impedir firmar como otro, o se mantiene libre?
-- **D3 · Traslado e historial.** Al trasladar, ¿reescribimos el `ID_CAMA` de las filas históricas
-  a la cama nueva, o basta con consultar siempre por `PATIENT_ID` y dejar el `ID_CAMA` histórico
-  como estaba? (La opción por `PATIENT_ID` es más barata y suficiente.)
-- **D4 · Nº de camas.** ¿18 fijo o configurable en `CONFIG`? ¿Puede variar por unidad?
+### 14.1 Resueltas
+- **D1 · Acceso → cuentas personales (Gmail).** La app no se restringe a un dominio Workspace.
+  Implicancia técnica: `Session.getActiveUser().getEmail()` **no es fiable** con cuentas de
+  consumidor (devuelve vacío fuera del dominio del dueño). Por tanto la auditoría por email
+  **no** puede basarse en `getActiveUser()`; se resuelve con D1b.
+- **D2 · Firma ligada al email.** La firma clínica queda **atada a la identidad** del usuario
+  (no firma libre). El mecanismo concreto para obtener esa identidad depende de D1b.
+- **D6 · Arranque limpio.** v2 arranca sin datos. El histórico actual queda **solo como prueba/
+  consulta** en el spreadsheet antiguo; **no se migra**. Se elimina la fase de migración.
+- **D8 · Reúso del generador de texto.** El generador de texto clínico y su estética se
+  **mantienen sin grandes cambios**: se porta `dominio_texto.gs` casi tal cual (solo se aísla
+  como función pura y testeable) y la salida/estilo de la evolución conserva el look actual.
+
+### 14.2 Pendientes (cerrar antes de F1)
+- **D1b · Mecanismo de identidad (NUEVO, crítico).** Como las cuentas son personales, hay que
+  elegir cómo se obtiene la identidad que se liga a la firma (D2):
+  - **A · Google Sign‑In (GIS):** login real en el frontend; email **verificado** incluso con
+    Gmail personal; el backend valida el token. Máxima seriedad de auditoría; agrega un paso de
+    inicio de sesión.
+  - **B · Firma + PIN propio:** cada kine registra un PIN una vez en `KINESIOTERAPEUTAS`; al
+    entrar elige firma e ingresa PIN. Sin OAuth, baja fricción; la seguridad depende del PIN.
+  - **C · Firma libre (statu quo):** sin garantía de autoría — descartado salvo que se acepte no
+    tener trazabilidad real.
+  > Recomendación: **A** si la auditoría debe ser defendible; **B** si prima la simplicidad y el
+  > equipo es cerrado y de confianza. **No existe** una vía automática y verificada sin login.
+- **D3 · Traslado e historial.** ¿Reescribir `ID_CAMA` histórico a la cama nueva, o consultar
+  siempre por `PATIENT_ID` y dejar el `ID_CAMA` histórico como estaba? (Recomendado: por
+  `PATIENT_ID`, más barato y suficiente.)
+- **D4 · Nº de camas.** ¿18 fijo o configurable en `CONFIG.NUM_CAMAS`? (Recomendado: configurable.)
 - **D5 · Archivado de evoluciones.** ¿Mover al egresar (partición estricta) o mantener todo junto
-  y solo indexar? Afecta rendimiento a largo plazo.
-- **D6 · Migración.** ¿Migramos el histórico actual al esquema v2, o v2 arranca limpio y el
-  histórico queda solo de consulta en el sheet viejo?
-- **D7 · Retención de backups.** ¿30 copias está bien? ¿Requisito legal de retención mayor?
-- **D8 · Alcance de v2.** ¿Reconstrucción total, o v2 reusa tal cual algún módulo actual que ya
-  consideras sólido (p. ej. el generador de texto)?
+  e indexar? (Recomendado: partición al egresar, por rendimiento a largo plazo.)
+- **D7 · Retención de backups.** ¿30 copias basta o hay requisito legal de retención mayor?
 
 ---
 
@@ -359,7 +379,9 @@ Datos personales sensibles de salud (Ley 19.628 / 21.096, normativa de ficha cl�
 | REM | Doble conteo de ingresos | Conteo por episodio único |
 | Egreso | Outcome incompleto en ARCHIVO | Captura completa (FSS/MRC/apnea/extubación) |
 | Traslado | Rompe el historial | Historial por episodio, íntegro |
-| Seguridad | Sin identidad ni auditoría; XSS | `getActiveUser` + `AUDIT_LOG` + `escapeHtml` |
+| Seguridad | Sin identidad ni auditoría; XSS | Identidad de D1b (Sign‑In o firma+PIN) + `AUDIT_LOG` + `escapeHtml` |
+| Arranque | Histórico mezclado en producción | v2 limpio; histórico antiguo solo de consulta (D6) |
+| Texto clínico | Bueno pero acoplado a I/O | Se conserva (D8), aislado como función pura |
 | Modales | 5 patrones distintos, sin escape ni foco | `core/modal.js` unificado, accesible |
 | SmartEvo | ~120 funciones, sin autosave | Modular + autosave/borrador |
 | Persistencia | Lectura del histórico completo por request | Partición + repos con lectura en bloque |
@@ -372,5 +394,6 @@ panel de calidad comparativo, SSO institucional.
 
 ---
 
-> **Siguiente paso:** revisar §14 (decisiones abiertas). Respóndelas o coméntalas y ajusto el plan
-> antes de proponer el detalle de la Fase 1. No se escribe código hasta cerrar el plan.
+> **Siguiente paso:** cerrar §14.2. El bloqueante es **D1b** (mecanismo de identidad); D3/D4/D5/D7
+> tienen recomendación y se pueden aceptar tal cual. Al cerrarlas, propongo el detalle de la Fase 1
+> (esquema + repos + infra). No se escribe código hasta cerrar el plan.
