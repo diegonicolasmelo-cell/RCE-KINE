@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body{font-family:system-ui,Arial,sans-serif;max-width:640px;margin:24px auto;padding:0 16px;color:#0f172a;}
+    h1{font-size:1.15rem;} .muted{color:#64748b;font-size:.85rem;}
+    pre{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:12px;white-space:pre-wrap;word-break:break-word;font-size:.8rem;}
+    .ok{color:#16a34a;font-weight:700;} .bad{color:#dc2626;font-weight:700;}
+    .card{border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-top:12px;}
+  </style>
+</head>
+<body>
+  <h1>Spike · Google Sign-In dentro del iframe</h1>
+  <p class="muted">Objetivo: confirmar que el botón renderiza y el ID token llega verificado al backend.</p>
+
+  <div class="card">
+    <? if (clientId) { ?>
+      <div id="g_id_onload"
+           data-client_id="<?= clientId ?>"
+           data-callback="onCredential"
+           data-auto_prompt="false"></div>
+      <div class="g_id_signin" data-type="standard" data-size="large" data-text="signin_with"></div>
+    <? } else { ?>
+      <p class="bad">Falta OAUTH_CLIENT_ID en la hoja CONFIG. Pégalo y recarga.</p>
+    <? } ?>
+  </div>
+
+  <div class="card">
+    <div id="estado" class="muted">Esperando inicio de sesión…</div>
+    <pre id="out"></pre>
+  </div>
+
+  <script>
+    function onCredential(resp) {
+      var token = (resp && resp.credential) || '';
+      document.getElementById('estado').textContent = 'Token recibido en el frontend ✓ — verificando en el backend…';
+      google.script.run
+        .withSuccessHandler(function (r) {
+          var est = document.getElementById('estado');
+          if (r && r.ok) {
+            est.innerHTML = '<span class="ok">✅ GIS funciona en el iframe.</span> Identidad verificada en backend.';
+          } else {
+            est.innerHTML = '<span class="bad">⚠️ El token llegó pero el backend lo rechazó.</span> Revisa OAUTH_CLIENT_ID.';
+          }
+          document.getElementById('out').textContent = JSON.stringify(r, null, 2);
+        })
+        .withFailureHandler(function (e) {
+          document.getElementById('estado').innerHTML = '<span class="bad">❌ Error llamando al backend.</span>';
+          document.getElementById('out').textContent = (e && e.message) || String(e);
+        })
+        .spikeVerificarToken(token);
+    }
+    // Si el botón no aparece, el problema es el origen autorizado (ver GIS_SPIKE.md).
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        if (!document.querySelector('.g_id_signin iframe') && !document.querySelector('div[role="button"]')) {
+          document.getElementById('estado').innerHTML =
+            '<span class="bad">El botón no renderizó.</span> Probable bloqueo de origen/cookies — ver plan B (popup) en GIS_SPIKE.md.';
+        }
+      }, 3500);
+    });
+  </script>
+</body>
+</html>
