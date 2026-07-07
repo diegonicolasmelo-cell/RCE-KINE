@@ -145,18 +145,15 @@ Postoperatorio inmediato · Espera de second look · Weaning (destete) · Rehabi
 
 ---
 
-## 5. Decisiones que necesito para congelar el esquema
+## 5. Decisiones — RESUELTAS ✅
 
-1. **Promoción de huérfanos (§1):** ¿promovemos **todos** a columnas, o hay bloques que quieres
-   dejar fuera? (Recomiendo promover todos salvo que identifiques desuso real.)
-2. **Redundancia `EVAL_T_*` vs `EGR_*` (§1.9):** ¿nos quedamos con `EVAL_T_*` (por turno) y
-   derivamos el egreso? (Recomendado.)
-3. **Poda de ventilatorio avanzado (§2):** ¿eliminar P0.1/ΔPocc/Pmusc/auto‑PEEP/rise‑time, o
-   reactivarlos en el formulario?
-4. **Nombres a unificar (§3):** ¿ok con los nombres propuestos?
-5. **Fase clínica (§4.3):** ¿columna estructurada multi‑selección + texto? ¿Confirmas la lista de
-   fases inicial y dónde ampliarla (CONFIG vs hoja CATALOGOS)?
-6. **Reconexión de `REINTUBACIONES`** al nuevo bloque `EXT_*` (§2): ok proceder.
+1. **Promoción de huérfanos (§1):** promover **todos** a columnas. ✅
+2. **Redundancia `EVAL_T_*` vs `EGR_*` (§1.9):** quedarse con `EVAL_T_*` (por turno), derivar egreso. ✅
+3. **Ventilatorio avanzado (§2):** **reactivar en el formulario** (no eliminar). ✅
+4. **Nombres a unificar (§3):** aprobados — ver tabla en `ESQUEMA.md §17`. ✅
+5. **Fase clínica (§4.3):** columna estructurada multi‑selección (`FASE_JSON`) + texto; catálogo en
+   hoja **`CATALOGOS`** (ampliable sin código). ✅
+6. **Reconexión de `REINTUBACIONES`** al bloque `EXT_*`: sí — ver `ESQUEMA.md §11`. ✅
 
-> Al cerrar estas 6, el esquema v2 de EVOLUCIONES queda completo (estimado ~190–200 columnas
-> nombradas, todas consultables y replicables) y se congela.
+> Esquema definitivo en `ESQUEMA.md` (EVOLUCIONES = **195 columnas**). Único punto abierto:
+> confirmar si el flujo "Evaluaciones" usa Heckmatt / grosor cuádriceps por timepoint.
