@@ -4,7 +4,7 @@
 > funciona **dentro del iframe** de la Web App de Apps Script y entrega un ID token que el backend
 > verifica. Se hace ahora (F1), no al final. Requiere PC + ~20–30 min tranquilos.
 >
-> Archivos: `v2/infra_auth.gs`, `v2/infra_util.gs`, `v2/spike_gis.gs`, `v2/spike_gis.html`.
+> Archivos: `v2/infra_auth.gs`, `v2/infra_util.gs`, `v2/spike.gs`, `v2/spike_gis.html`.
 
 ## Paso 1 — Proyecto de Google Cloud
 1. Editor de Apps Script → ⚙️ **Configuración del proyecto** → anota/crea el **proyecto de GCP**
@@ -58,5 +58,5 @@ Dime el resultado (✅, o qué error saliste) y con eso:
 - Si ✅: conectamos `autorizar()` al dispatcher y toda escritura queda protegida por identidad real.
 - Si plan B: ajusto el frontend a popup antes de seguir.
 
-> Recordá: `spike_gis.gs` trae un `doGet` **temporal**. Cuando construyamos el frontend real, ese
+> Recordá: `spike.gs` trae un `doGet` **temporal**. Cuando construyamos el frontend real, ese
 > `doGet` se reemplaza por el que sirve la app.
