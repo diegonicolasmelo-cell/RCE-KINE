@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root{
+      --bg:#f1f5f9; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+      --brand:#0d9488; --brand-d:#0f766e; --danger:#dc2626; --ok:#16a34a; --warn:#d97706;
+      --vm:#7c3aed; --vni:#2563eb;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    header{background:#0f172a;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;}
+    header h1{font-size:1rem;margin:0;font-weight:700;letter-spacing:.2px;}
+    header .sp{flex:1}
+    .chip{background:#1e293b;border:1px solid #334155;border-radius:20px;padding:4px 12px;font-size:.78rem;display:inline-flex;gap:6px;align-items:center;}
+    .btn{border:none;border-radius:8px;padding:8px 14px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;background:var(--brand);color:#fff;}
+    .btn:hover{background:var(--brand-d)}
+    .btn.g{background:#334155}.btn.g:hover{background:#475569}
+    .btn.d{background:var(--danger)}.btn.d:hover{background:#b91c1c}
+    .btn.o{background:#e2e8f0;color:#334155}.btn.o:hover{background:#cbd5e1}
+    .wrap{max-width:1200px;margin:16px auto;padding:0 14px;}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+    .bed{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);display:flex;flex-direction:column;gap:8px;min-height:150px;}
+    .bhdr{display:flex;align-items:center;gap:7px;font-weight:700;font-size:.9rem;}
+    .dot{width:9px;height:9px;border-radius:50%;background:#cbd5e1;}
+    .dot.on{background:var(--ok)} .dot.aisl{background:var(--warn)}
+    .pname{font-weight:700;font-size:.95rem;line-height:1.15;}
+    .meta{font-size:.75rem;color:var(--muted);}
+    .pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px;}
+    .pill{font-size:.7rem;padding:2px 8px;border-radius:20px;background:#f1f5f9;border:1px solid var(--line);color:#334155;}
+    .pill.vm{background:#f5f3ff;border-color:#ddd6fe;color:var(--vm)}
+    .pill.vni{background:#eff6ff;border-color:#bfdbfe;color:var(--vni)}
+    .bfoot{margin-top:auto;display:flex;gap:6px;}
+    .bfoot .btn{flex:1;padding:7px 6px;font-size:.76rem;}
+    .empty{flex:1;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.85rem;font-style:italic;}
+    /* overlay + modal */
+    #ov{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-start;justify-content:center;padding:24px 12px;z-index:50;overflow:auto;}
+    #ov.on{display:flex}
+    .modal{background:#fff;border-radius:14px;max-width:520px;width:100%;padding:0;box-shadow:0 20px 50px rgba(0,0,0,.3);}
+    .mhdr{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+    .mhdr h2{margin:0;font-size:1rem;}
+    .mhdr .x{margin-left:auto;background:#f1f5f9;border:none;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:1.1rem;color:#475569;}
+    .mbody{padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .mbody .full{grid-column:1/-1}
+    label{font-size:.72rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px;}
+    input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;font-family:inherit;background:#fff;}
+    input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);border-color:transparent;}
+    .mfoot{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;}
+    /* loading + toast */
+    #lo{position:fixed;inset:0;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;z-index:100;font-weight:600;color:#334155;}
+    #lo.on{display:flex}
+    #tc{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;}
+    .toast{background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font-size:.85rem;box-shadow:0 6px 20px rgba(0,0,0,.25);}
+    .devbar{background:#fef3c7;color:#92400e;font-size:.75rem;text-align:center;padding:4px;border-bottom:1px solid #fde68a;}
+  </style>
+</head>
+<body>
+  <div id="devbar" class="devbar" style="display:none">⚙️ Modo desarrollo — identidad simulada, sin login</div>
+  <header>
+    <h1>🫁 RCE-KINE · UCI</h1>
+    <span class="chip" id="firmaChip">…</span>
+    <div class="sp"></div>
+    <span class="chip" id="censo">—</span>
+    <button class="btn g" onclick="cargar()">↻ Actualizar</button>
+  </header>
+
+  <div class="wrap"><div class="grid" id="grid"></div></div>
+
+  <!-- Overlay único para modales -->
+  <div id="ov" onclick="if(event.target===this)cerrarModal()">
+    <!-- INGRESO -->
+    <div class="modal" id="mIngreso" style="display:none">
+      <div class="mhdr"><h2>Ingresar paciente · Cama <span id="inCama"></span></h2><button class="x" onclick="cerrarModal()">×</button></div>
+      <div class="mbody">
+        <div class="full"><label>Nombre completo</label><input id="inNombre" placeholder="Nombre Apellido1 Apellido2"></div>
+        <div><label>Edad</label><input id="inEdad" type="number" min="15" max="110"></div>
+        <div><label>Sexo</label><select id="inSexo"><option value="">—</option><option value="M">M</option><option value="F">F</option></select></div>
+        <div><label>Talla (cm)</label><input id="inTalla" type="number" min="100" max="230"></div>
+        <div><label>Barthel</label><input id="inBarthel" type="number" min="0" max="100"></div>
+        <div class="full"><label>Diagnóstico</label><input id="inDx"></div>
+        <div><label>Vía aérea</label><select id="inVia"><option>Natural</option><option>TOT</option><option>TQT</option><option>Full Face</option><option>Oronasal</option></select></div>
+        <div><label>Soporte</label><select id="inSop"><option>Ambiente</option><option>VM</option><option>VNI</option><option>CNAF</option><option>Oxigenoterapia</option></select></div>
+        <div class="full"><label>Modo</label><input id="inModo" placeholder="ACVC, CPAP/PS, …"></div>
+      </div>
+      <div class="mfoot"><button class="btn o" onclick="cerrarModal()">Cancelar</button><button class="btn" onclick="confirmarIngreso()">Ingresar</button></div>
+    </div>
+    <!-- EGRESO -->
+    <div class="modal" id="mEgreso" style="display:none">
+      <div class="mhdr"><h2>Egreso · <span id="egNombre"></span></h2><button class="x" onclick="cerrarModal()">×</button></div>
+      <div class="mbody">
+        <div class="full"><label>Destino</label><select id="egDestino">
+          <option value="">—</option><option>Medicina</option><option>Cirugía</option><option>Domicilio</option>
+          <option>Otro hospital</option><option>Fallecimiento</option></select></div>
+        <div><label>Barthel egreso</label><input id="egBarthel" type="number" min="0" max="100"></div>
+        <div><label>MRC-SS egreso</label><input id="egMrc" type="number" min="0" max="60"></div>
+        <div class="full"><label>Observaciones</label><textarea id="egObs" rows="2"></textarea></div>
+      </div>
+      <div class="mfoot"><button class="btn o" onclick="cerrarModal()">Cancelar</button><button class="btn d" onclick="confirmarEgreso()">Confirmar egreso</button></div>
+    </div>
+  </div>
+
+  <div id="lo">Cargando…</div>
+  <div id="tc"></div>
+
+  <script>
+    const TOKEN = ''; // en modo desarrollo el backend ignora el token
+    let CAMAS = [], YO = { firma: '', dev: false }, MCAMA = null;
+
+    // ── Bridge a la API (Promise) ──
+    function api(accion, datos){
+      return new Promise((res, rej)=>{
+        google.script.run
+          .withSuccessHandler(r=>{ if(r && r.ok) res(r.data); else rej(new Error((r&&r.error)||'Error')); })
+          .withFailureHandler(e=>rej(e))
+          .api(accion, datos||{}, TOKEN);
+      });
+    }
+    // ── Utilidades ──
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    function loading(on){ $('lo').classList.toggle('on', on); }
+    function toast(msg){ const t=$('tc'), el=document.createElement('div'); el.className='toast'; el.textContent=msg; t.appendChild(el);
+      setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 3000); }
+
+    // ── Modales ──
+    function abrirModal(id){ document.querySelectorAll('#ov .modal').forEach(m=>m.style.display='none'); $(id).style.display='block'; $('ov').classList.add('on'); }
+    function cerrarModal(){ $('ov').classList.remove('on'); MCAMA=null; }
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrarModal(); });
+
+    // ── Carga inicial ──
+    async function init(){
+      try{
+        YO = await api('WHOAMI', {});
+        $('firmaChip').textContent = '👤 ' + (YO.firma || '—');
+        if(YO.dev) $('devbar').style.display='block';
+      }catch(e){ $('firmaChip').textContent = '⚠️ sin sesión'; }
+      cargar();
+    }
+    async function cargar(){
+      loading(true);
+      try{
+        CAMAS = await api('GET_TODAS_CAMAS', {});
+        render();
+      }catch(e){ toast('❌ ' + (e.message||e)); }
+      loading(false);
+    }
+
+    function render(){
+      const oc = CAMAS.filter(c=>c.OCUPADA===true).length;
+      const vm = CAMAS.filter(c=>c.OCUPADA===true && c.SOPORTE==='VM').length;
+      $('censo').textContent = `🛏️ ${oc}/${CAMAS.length} · VM ${vm}`;
+      const g = $('grid'); g.innerHTML='';
+      CAMAS.slice().sort((a,b)=>(+a.ID_CAMA)-(+b.ID_CAMA)).forEach(c=>{
+        const el = document.createElement('div'); el.className='bed';
+        if(c.OCUPADA===true){
+          const sopPill = c.SOPORTE==='VM' ? 'vm' : (c.SOPORTE==='VNI'?'vni':'');
+          const aisl = String(c.AISLAMIENTO)==='true';
+          el.innerHTML =
+            `<div class="bhdr"><span class="dot ${aisl?'aisl':'on'}"></span>Cama ${esc(c.ID_CAMA)}${aisl?' · 🛡️':''}</div>
+             <div class="pname">${esc(c.NOMBRE)||'—'}</div>
+             <div class="meta">${esc(c.COD_PACIENTE)} · ${esc(c.EDAD)||'?'}a · ${esc(c.SEXO)}</div>
+             <div class="meta">Día ${esc(c.DIA_ESTADIA)} · ${esc(c.DIAGNOSTICO)||'—'}</div>
+             <div class="pills">
+               <span class="pill">${esc(c.VIA_AEREA)||'-'}</span>
+               <span class="pill ${sopPill}">${esc(c.SOPORTE)||'-'}</span>
+               ${c.MODO&&c.MODO!=='Sin soporte'?`<span class="pill">${esc(c.MODO)}</span>`:''}
+             </div>
+             <div class="bfoot">
+               <button class="btn" onclick="evolucionar('${esc(c.ID_CAMA)}')">📝 Evolución</button>
+               <button class="btn d" onclick="abrirEgreso('${esc(c.ID_CAMA)}')">🏠</button>
+             </div>`;
+        } else {
+          el.innerHTML =
+            `<div class="bhdr"><span class="dot"></span>Cama ${esc(c.ID_CAMA)}</div>
+             <div class="empty">Disponible</div>
+             <div class="bfoot"><button class="btn o" onclick="abrirIngreso('${esc(c.ID_CAMA)}')">+ Ingresar</button></div>`;
+        }
+        g.appendChild(el);
+      });
+    }
+
+    // ── Ingreso ──
+    function abrirIngreso(id){
+      MCAMA=id; $('inCama').textContent=id;
+      ['inNombre','inEdad','inSexo','inTalla','inBarthel','inDx','inModo'].forEach(k=>$(k).value='');
+      $('inVia').value='Natural'; $('inSop').value='Ambiente';
+      abrirModal('mIngreso');
+    }
+    async function confirmarIngreso(){
+      const nombre=$('inNombre').value.trim();
+      if(!nombre){ toast('⚠️ Falta el nombre'); return; }
+      loading(true);
+      try{
+        await api('INGRESAR_PACIENTE', {
+          idCama:MCAMA, nombre, edad:$('inEdad').value, sexo:$('inSexo').value, talla:$('inTalla').value,
+          barthel:$('inBarthel').value, diagnostico:$('inDx').value, viaAerea:$('inVia').value,
+          soporte:$('inSop').value, modo:$('inModo').value, firmaKine:YO.firma
+        });
+        cerrarModal(); toast('✅ Paciente ingresado'); cargar();
+      }catch(e){ toast('❌ ' + (e.message||e)); }
+      loading(false);
+    }
+
+    // ── Egreso ──
+    function abrirEgreso(id){
+      const c = CAMAS.find(x=>String(x.ID_CAMA)===String(id)); if(!c) return;
+      MCAMA=id; $('egNombre').textContent = c.NOMBRE || ('Cama '+id);
+      $('egDestino').value=''; $('egBarthel').value=c.BARTHEL||''; $('egMrc').value=''; $('egObs').value='';
+      abrirModal('mEgreso');
+    }
+    async function confirmarEgreso(){
+      const destino=$('egDestino').value;
+      if(!destino){ toast('⚠️ Selecciona destino'); return; }
+      if(!confirm('¿Confirmar egreso y liberar la cama '+MCAMA+'?')) return;
+      loading(true);
+      try{
+        await api('DAR_ALTA', {
+          idCama:MCAMA, motivoEgreso:destino, destinoEgreso:destino,
+          barthelEgreso:$('egBarthel').value, mrcSsEgreso:$('egMrc').value,
+          observaciones:$('egObs').value, firmaKine:YO.firma
+        });
+        cerrarModal(); toast('✅ Egreso registrado'); cargar();
+      }catch(e){ toast('❌ ' + (e.message||e)); }
+      loading(false);
+    }
+
+    // ── Evolución (próxima etapa) ──
+    function evolucionar(id){ toast('📝 Panel de evolución — próxima etapa'); }
+
+    init();
+  </script>
+</body>
+</html>

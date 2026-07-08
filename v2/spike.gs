@@ -6,7 +6,9 @@
  * Requisito: pegar el OAuth Client ID (Web) en CONFIG.OAUTH_CLIENT_ID.
  */
 
-function doGet() {
+// Página del spike. La sirve webapp.gs cuando la URL trae ?page=spike
+// (el doGet único vive en webapp.gs para no chocar con este).
+function _paginaSpike() {
   const t = HtmlService.createTemplateFromFile('spike_gis');
   t.clientId = configVal('OAUTH_CLIENT_ID');
   return t.evaluate()
