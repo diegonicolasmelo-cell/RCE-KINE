@@ -13,7 +13,7 @@ function calcularPI(sexo, tallaCm) {
 
 /**
  * Cálculos respiratorios derivados de una evolución.
- * @param {Object} evo  objeto con campos VENT_*/PAC_PESO_IDEAL/VENT_MODO
+ * @param {Object} evo  objeto con campos ventilatorios, PAC_PESO_IDEAL y VENT_MODO
  * @return {Object} { CALC_ML_KG, CALC_VOL_MIN, CALC_IE, CALC_DP, CALC_CESR, CALC_TOBIN, CALC_IROX }
  */
 function calcularRespiratorio(evo) {
