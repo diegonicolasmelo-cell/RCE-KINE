@@ -57,9 +57,17 @@ function repoBuscarPorId(hoja, colKey, id) {
   return esquemaFilaAObjeto(hoja, h.getRange(f, 1, 1, TOTAL_COLS[hoja]).getValues()[0]);
 }
 
-/** Inserta una fila desde un objeto (append). Devuelve el objeto. */
+/**
+ * Inserta una fila desde un objeto. Escribe en la primera fila de datos real
+ * (max(lastRow+1, FILA_DATOS)) — NO usa appendRow, que en hojas con filas de
+ * encabezado vacías (p.ej. EVOLUCIONES, 3 encabezados) escribiría dentro de la
+ * zona de encabezado y el registro quedaría invisible para las lecturas.
+ */
 function repoInsertar(hoja, obj) {
-  _hoja(hoja).appendRow(esquemaObjetoAFila(hoja, obj));
+  const h = _hoja(hoja);
+  const fila = esquemaObjetoAFila(hoja, obj);
+  const row = Math.max(h.getLastRow() + 1, FILA_DATOS[hoja]);
+  h.getRange(row, 1, 1, TOTAL_COLS[hoja]).setValues([fila]);
   return obj;
 }
 
