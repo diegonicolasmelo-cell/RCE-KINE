@@ -24,6 +24,11 @@ function api(accion, datos, token) {
       case 'GET_TODAS_CAMAS':  return obtenerTodasLasCamas();
       case 'GET_CAMA':         return obtenerCama(datos.idCama);
       case 'GET_TIMELINE':     return obtenerTimeline(datos.idCama);
+      case 'GET_EVOLUCION':          return obtenerEvolucion(datos.idCama, datos.turnoKey);
+      case 'GET_EVOLUCION_PREVIA':   return obtenerEvolucionPrevia(datos.idCama, datos.turnoKey);
+      case 'GET_EVOLUCIONES_RECIENTES': return obtenerEvolucionesRecientes(datos.idCama, datos.limite || 14);
+      case 'GET_HISTORIAL_PACIENTE': return obtenerHistorialPaciente(datos.idCama, datos.patientId || '');
+      case 'GET_PROCEDIMIENTOS':     return obtenerProcedimientos(datos.idEvolucion);
       case 'GET_FECHA_HOY':    return ok({ fecha: hoyISO(), timestamp: ahoraTS() });
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
@@ -38,6 +43,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => moverACamaVacia(datos.idOrigen, datos.idDestino, ctx));
       case 'LIMPIAR_CAMA':
         return _auditar(ctx, accion, () => limpiarCama(datos.idCama));
+      case 'GUARDAR_EVOLUCION':
+        return _auditar(ctx, accion, () => guardarEvolucion(datos, ctx));
       case 'AGREGAR_HITO':
         return _auditar(ctx, accion, () => agregarHito(Object.assign({ autor: ctx.firma, autorEmail: ctx.email }, datos)));
 
@@ -78,4 +85,27 @@ function testFlujoCamas() {
   const libre = api('GET_CAMA', { idCama: '1' }, T);
   console.log('CAMA tras alta:', libre.ok ? ('OCUPADA=' + libre.data.OCUPADA) : libre.error);
   return { ing, alta };
+}
+
+// Smoke test de evoluciones + replicación (AUTH_DEV_MODE=TRUE).
+function testFlujoEvolucion() {
+  const T = null;
+  api('INGRESAR_PACIENTE', { idCama: '2', nombre: 'Juan Pérez Soto', edad: 60, sexo: 'M', talla: 170,
+    diagnostico: 'Neumonía', viaAerea: 'TOT', soporte: 'VM', modo: 'ACVC', firmaKine: 'DMV' }, T);
+
+  const e1 = api('GUARDAR_EVOLUCION', {
+    idCama: '2', turnoKey: '2026-07-08-Dia', PLAN_FIRMA_KINE: 'DMV',
+    VENT_SOPORTE: 'VM', VENT_MODO: 'ACVC', VENT_VT: 420, VENT_FR: 16, VENT_PEEP: 8, VENT_FIO2: 40, VENT_SPO2: 96,
+    KTM_REALIZADA: true, KTM_NIVEL_KTR: '2', RESP_KTR_CANT: 1, PROC_JSON: JSON.stringify(['ECOGRAFÍA']),
+  }, T);
+  console.log('EVO 1:', JSON.stringify(e1));
+
+  const prev = api('GET_EVOLUCION_PREVIA', { idCama: '2', turnoKey: '2026-07-08-Noche' }, T);
+  console.log('PREVIA (para replicar):', prev.ok && prev.data ? (prev.data.TURNO_KEY + ' · VT=' + prev.data.VENT_VT + ' · ml/kg=' + prev.data.CALC_ML_KG) : 'sin previa');
+
+  const evo = api('GET_EVOLUCION', { idCama: '2', turnoKey: '2026-07-08-Dia' }, T);
+  console.log('TEXTO GENERADO:\n' + (evo.ok && evo.data ? evo.data.TEXTO_GENERADO : evo.error));
+
+  api('DAR_ALTA', { idCama: '2', motivoEgreso: 'Traslado a sala', destinoEgreso: 'Medicina', firmaKine: 'DMV' }, T);
+  return e1;
 }
