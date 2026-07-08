@@ -56,6 +56,15 @@ function firmaDeEmail(email) {
  * @return {{ok:true,email,firma,nombre} | {ok:false,error,codigo}}
  */
 function autorizar(idToken, firmaDeclarada) {
+  // ── MODO DESARROLLO ──────────────────────────────────────────────
+  // Permite construir/probar la app SIN que GIS funcione todavía.
+  // Se activa con CONFIG.AUTH_DEV_MODE = TRUE. ⚠️ Poner FALSE en producción.
+  if (esVerdadero(configVal('AUTH_DEV_MODE'))) {
+    const firmaDev = configVal('AUTH_DEV_FIRMA') || (firmaDeclarada || 'DEV');
+    console.warn('AUTH_DEV_MODE activo — identidad simulada: ' + firmaDev);
+    return { ok: true, email: 'dev@local', firma: String(firmaDev), nombre: 'Modo desarrollo', dev: true };
+  }
+  // ── PRODUCCIÓN (GIS real) ────────────────────────────────────────
   const claims = verificarToken(idToken);
   if (!claims) return { ok: false, error: 'Sesión no válida. Inicia sesión con Google.', codigo: ERR.NO_AUTORIZADO };
 

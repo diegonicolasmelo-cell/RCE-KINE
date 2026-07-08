@@ -288,6 +288,10 @@ function _sembrar(ss) {
     ['OAUTH_CLIENT_ID', ''],
     ['BACKUP_MAX_DIARIOS', '30'],
     ['VERSION_ESQUEMA', '2.0'],
+    // Modo desarrollo: TRUE = omite la verificación GIS y usa AUTH_DEV_FIRMA.
+    // DEBE quedar en FALSE en producción.
+    ['AUTH_DEV_MODE', 'FALSE'],
+    ['AUTH_DEV_FIRMA', 'DMV'],
   ];
   const cfgExist = _valoresCol(hCfg, 1, 2);
   cfgDefaults.forEach(kv => { if (cfgExist.indexOf(kv[0]) === -1) hCfg.appendRow(kv); });
