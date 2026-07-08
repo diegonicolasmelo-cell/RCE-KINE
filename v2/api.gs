@@ -29,6 +29,7 @@ function api(accion, datos, token) {
       case 'GET_EVOLUCIONES_RECIENTES': return obtenerEvolucionesRecientes(datos.idCama, datos.limite || 14);
       case 'GET_HISTORIAL_PACIENTE': return obtenerHistorialPaciente(datos.idCama, datos.patientId || '');
       case 'GET_PROCEDIMIENTOS':     return obtenerProcedimientos(datos.idEvolucion);
+      case 'GET_CATALOGO':     return ok(catalogo(datos.tipo || ''));
       case 'GET_FECHA_HOY':    return ok({ fecha: hoyISO(), timestamp: ahoraTS() });
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 

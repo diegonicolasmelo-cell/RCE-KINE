@@ -11,10 +11,11 @@
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);}
-    header{background:#0f172a;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;}
+    header{background:#0f172a;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;flex-wrap:wrap;}
     header h1{font-size:1rem;margin:0;font-weight:700;letter-spacing:.2px;}
     header .sp{flex:1}
     .chip{background:#1e293b;border:1px solid #334155;border-radius:20px;padding:4px 12px;font-size:.78rem;display:inline-flex;gap:6px;align-items:center;}
+    .chip.turno{cursor:pointer;user-select:none}
     .btn{border:none;border-radius:8px;padding:8px 14px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;background:var(--brand);color:#fff;}
     .btn:hover{background:var(--brand-d)}
     .btn.g{background:#334155}.btn.g:hover{background:#475569}
@@ -25,7 +26,7 @@
     .bed{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);display:flex;flex-direction:column;gap:8px;min-height:150px;}
     .bhdr{display:flex;align-items:center;gap:7px;font-weight:700;font-size:.9rem;}
     .dot{width:9px;height:9px;border-radius:50%;background:#cbd5e1;}
-    .dot.on{background:var(--ok)} .dot.aisl{background:var(--warn)}
+    .dot.on{background:var(--ok)} .dot.aisl{background:var(--warn)} .dot.evo{background:#2563eb}
     .pname{font-weight:700;font-size:.95rem;line-height:1.15;}
     .meta{font-size:.75rem;color:var(--muted);}
     .pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px;}
@@ -35,25 +36,56 @@
     .bfoot{margin-top:auto;display:flex;gap:6px;}
     .bfoot .btn{flex:1;padding:7px 6px;font-size:.76rem;}
     .empty{flex:1;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:.85rem;font-style:italic;}
-    /* overlay + modal */
+    /* overlay + modales chicos */
     #ov{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:flex-start;justify-content:center;padding:24px 12px;z-index:50;overflow:auto;}
     #ov.on{display:flex}
-    .modal{background:#fff;border-radius:14px;max-width:520px;width:100%;padding:0;box-shadow:0 20px 50px rgba(0,0,0,.3);}
+    .modal{background:#fff;border-radius:14px;max-width:520px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.3);}
     .mhdr{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
     .mhdr h2{margin:0;font-size:1rem;}
     .mhdr .x{margin-left:auto;background:#f1f5f9;border:none;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:1.1rem;color:#475569;}
     .mbody{padding:16px 18px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
     .mbody .full{grid-column:1/-1}
-    label{font-size:.72rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px;}
+    label{font-size:.7rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px;}
     input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;font-family:inherit;background:#fff;}
     input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);border-color:transparent;}
     .mfoot{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;}
+    /* panel de evolución (slide-over) */
+    #evPanel{position:fixed;top:0;right:-880px;width:min(860px,100vw);height:100vh;background:#f8fafc;z-index:60;box-shadow:-12px 0 40px rgba(0,0,0,.25);display:flex;flex-direction:column;transition:right .25s ease;}
+    #evPanel.on{right:0}
+    .ephdr{background:#0f172a;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;}
+    .ephdr h2{margin:0;font-size:.98rem;} .ephdr .sub{font-size:.75rem;color:#94a3b8;}
+    .ephdr .x{margin-left:auto;background:#1e293b;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1.15rem;color:#e2e8f0;}
+    #repBar{background:#ecfeff;border-bottom:1px solid #a5f3fc;color:#155e75;font-size:.76rem;padding:6px 18px;display:none;}
+    #repBar.on{display:block}
+    .epbody{flex:1;overflow-y:auto;padding:14px 18px 90px;}
+    .sec{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+    .sec>.shdr{padding:10px 14px;font-weight:700;font-size:.85rem;background:#fff;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);}
+    .sec .sgrid{padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 12px;}
+    .sec .sgrid .full{grid-column:1/-1}
+    details.sec>summary{padding:10px 14px;font-weight:700;font-size:.85rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;user-select:none;}
+    details.sec>summary::after{content:'▸';margin-left:auto;color:var(--muted);transition:transform .15s;}
+    details.sec[open]>summary::after{transform:rotate(90deg)}
+    details.sec[open]>summary{border-bottom:1px solid var(--line)}
+    .chips{display:flex;gap:6px;flex-wrap:wrap;}
+    .fchip{font-size:.75rem;padding:5px 12px;border-radius:20px;border:1px solid var(--line);background:#f8fafc;cursor:pointer;user-select:none;color:#334155;}
+    .fchip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+    .bool{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:#334155;cursor:pointer;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;user-select:none;}
+    .bool input{width:auto}
+    .bool.on{background:#f0fdfa;border-color:#99f6e4;}
+    .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+    .seg button{border:none;background:#fff;padding:7px 14px;font-size:.8rem;cursor:pointer;font-family:inherit;color:#475569;}
+    .seg button.on{background:var(--brand);color:#fff;font-weight:600;}
+    .pchip{display:inline-flex;align-items:center;gap:6px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:20px;padding:4px 10px;font-size:.76rem;}
+    .pchip button{border:none;background:none;cursor:pointer;color:#1d4ed8;font-size:.9rem;padding:0;}
+    .epfoot{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:12px 18px;display:flex;gap:10px;align-items:center;}
+    #txtOut{width:100%;font-family:ui-monospace,Consolas,monospace;font-size:.78rem;min-height:130px;background:#f8fafc;}
     /* loading + toast */
     #lo{position:fixed;inset:0;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;z-index:100;font-weight:600;color:#334155;}
     #lo.on{display:flex}
     #tc{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;}
     .toast{background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font-size:.85rem;box-shadow:0 6px 20px rgba(0,0,0,.25);}
     .devbar{background:#fef3c7;color:#92400e;font-size:.75rem;text-align:center;padding:4px;border-bottom:1px solid #fde68a;}
+    .hidden{display:none !important}
   </style>
 </head>
 <body>
@@ -61,6 +93,7 @@
   <header>
     <h1>🫁 RCE-KINE · UCI</h1>
     <span class="chip" id="firmaChip">…</span>
+    <span class="chip turno" id="turnoChip" onclick="toggleTurno()">☀️ Día</span>
     <div class="sp"></div>
     <span class="chip" id="censo">—</span>
     <button class="btn g" onclick="cargar()">↻ Actualizar</button>
@@ -68,9 +101,8 @@
 
   <div class="wrap"><div class="grid" id="grid"></div></div>
 
-  <!-- Overlay único para modales -->
+  <!-- Overlay modales chicos (ingreso / egreso) -->
   <div id="ov" onclick="if(event.target===this)cerrarModal()">
-    <!-- INGRESO -->
     <div class="modal" id="mIngreso" style="display:none">
       <div class="mhdr"><h2>Ingresar paciente · Cama <span id="inCama"></span></h2><button class="x" onclick="cerrarModal()">×</button></div>
       <div class="mbody">
@@ -86,7 +118,6 @@
       </div>
       <div class="mfoot"><button class="btn o" onclick="cerrarModal()">Cancelar</button><button class="btn" onclick="confirmarIngreso()">Ingresar</button></div>
     </div>
-    <!-- EGRESO -->
     <div class="modal" id="mEgreso" style="display:none">
       <div class="mhdr"><h2>Egreso · <span id="egNombre"></span></h2><button class="x" onclick="cerrarModal()">×</button></div>
       <div class="mbody">
@@ -101,78 +132,250 @@
     </div>
   </div>
 
+  <!-- ═══ PANEL DE EVOLUCIÓN ═══ -->
+  <div id="evPanel">
+    <div class="ephdr">
+      <div>
+        <h2 id="evTitulo">Evolución</h2>
+        <div class="sub" id="evSub">—</div>
+      </div>
+      <button class="x" onclick="cerrarEvo()">×</button>
+    </div>
+    <div id="repBar">↪️ <span id="repTxt"></span> — modifica solo lo que cambió y guarda.</div>
+    <div class="epbody">
+
+      <div class="sec"><div class="shdr">🧑 Paciente</div>
+        <div class="sgrid">
+          <div class="full"><label>Nombre</label><input id="fNombre"></div>
+          <div><label>Edad</label><input id="fEdad" type="number"></div>
+          <div><label>Sexo</label><select id="fSexo" onchange="calcPI()"><option value="">—</option><option value="M">M</option><option value="F">F</option></select></div>
+          <div><label>Talla cm</label><input id="fTalla" type="number" oninput="calcPI()"></div>
+          <div><label>Peso ideal</label><input id="fPI" readonly style="background:#f8fafc"></div>
+          <div><label>Barthel</label><input id="fBarthel" type="number" min="0" max="100"></div>
+          <div class="full"><label>Diagnóstico</label><input id="fDx"></div>
+          <div class="full" style="display:flex;gap:10px;align-items:center;">
+            <label class="bool" id="bAisl"><input type="checkbox" id="fAisl" onchange="this.parentElement.classList.toggle('on',this.checked);document.getElementById('fAislMicro').classList.toggle('hidden',!this.checked)"> 🛡️ Aislamiento</label>
+            <input id="fAislMicro" class="hidden" placeholder="Microorganismo" style="flex:1">
+          </div>
+        </div>
+      </div>
+
+      <div class="sec"><div class="shdr">🎯 Fase clínica</div>
+        <div class="sgrid"><div class="full chips" id="faseChips"></div></div>
+      </div>
+
+      <div class="sec"><div class="shdr">😴 Sedación y conciencia</div>
+        <div class="sgrid">
+          <div><label>Sedación</label><select id="fSed"><option>Sin sedación</option><option>Sedación superficial</option><option>Sedación moderada</option><option>Sedación profunda</option><option>Fuera de escalón</option></select></div>
+          <div><label>SAS</label><select id="fSAS"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+          <div><label>GCS O</label><input id="fGO" type="number" min="1" max="4" oninput="calcGCS()"></div>
+          <div><label>GCS V</label><input id="fGV" type="number" min="1" max="5" oninput="calcGCS()"></div>
+          <div><label>GCS M</label><input id="fGM" type="number" min="1" max="6" oninput="calcGCS()"></div>
+          <div><label>GCS total</label><input id="fGT" readonly style="background:#f8fafc;font-weight:700"></div>
+          <div><label>S5Q</label><select id="fS5Q"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+          <div><label>Cooperación</label><select id="fCoop"><option value="">—</option><option>Cooperador</option><option>Parcialmente cooperador</option><option>No cooperador</option></select></div>
+          <div><label>CAM-ICU</label><select id="fCAM"><option value="">—</option><option>Positivo</option><option>Negativo</option><option>No evaluable</option></select></div>
+          <div><label class="bool" id="bBNM" style="margin-top:18px"><input type="checkbox" id="fBNM" onchange="this.parentElement.classList.toggle('on',this.checked)"> BNM</label></div>
+        </div>
+      </div>
+
+      <div class="sec"><div class="shdr">❤️ Hemodinamia</div>
+        <div class="sgrid">
+          <div><label>Estado</label><select id="fHemo"><option>Estable</option><option>Inestable</option></select></div>
+          <div><label>DVA</label><select id="fDVA"><option>sin DVA</option><option>DVA dosis baja</option><option>DVA dosis media</option><option>DVA dosis alta</option></select></div>
+          <div><label>N° DVA</label><input id="fNDVA" type="number" min="0" max="5"></div>
+        </div>
+      </div>
+
+      <div class="sec"><div class="shdr">🫁 Vía aérea y ventilación</div>
+        <div class="sgrid">
+          <div><label>Vía aérea</label><select id="fVA" onchange="cascadeVA()"><option>Natural</option><option>TOT</option><option>TQT</option><option>Full Face</option><option>Oronasal</option></select></div>
+          <div class="vaTOT hidden"><label>N° TOT</label><input id="fTOTn"></div>
+          <div class="vaTOT hidden"><label>Fijación cm</label><input id="fTOTcm"></div>
+          <div class="vaTQT hidden"><label>Tipo TQT</label><input id="fTQTt" placeholder="Shiley #7…"></div>
+          <div><label>Soporte</label><select id="fSop" onchange="cascadeSop()"><option>Ambiente</option><option>VM</option><option>VNI</option><option>CNAF</option><option>Oxigenoterapia</option></select></div>
+          <div><label>Modo</label><select id="fModo"></select></div>
+          <div><label class="bool" id="bHAct" style="margin-top:18px"><input type="checkbox" id="fHAct" onchange="this.parentElement.classList.toggle('on',this.checked)"> Humid. activa</label></div>
+        </div>
+        <div class="sgrid" id="paramsGrid">
+          <div class="pVM pVNI"><label>VT ml</label><input id="p_vt" type="number"></div>
+          <div class="pVM pVNI pCNAF"><label>FR</label><input id="p_fr" type="number"></div>
+          <div class="pVM"><label>PEEP</label><input id="p_peep" type="number"></div>
+          <div class="pVM"><label>PS</label><input id="p_ps" type="number"></div>
+          <div class="pVM"><label>Pinsp</label><input id="p_pinsp" type="number"></div>
+          <div class="pVNI"><label>IPAP</label><input id="p_ipap" type="number"></div>
+          <div class="pVNI"><label>EPAP</label><input id="p_epap" type="number"></div>
+          <div class="pCNAF"><label>Flujo L/min</label><input id="p_flujo" type="number"></div>
+          <div class="pO2"><label>Litros O₂</label><input id="p_litros" type="number"></div>
+          <div class="pVM pVNI pCNAF pO2"><label>FiO₂ %</label><input id="p_fio2" type="number"></div>
+          <div class="pVM pVNI pCNAF pO2 pAmb"><label>SpO₂ %</label><input id="p_spo2" type="number"></div>
+        </div>
+        <details class="sec" style="margin:0 14px 12px;border-radius:10px;">
+          <summary>📈 Monitorización avanzada</summary>
+          <div class="sgrid">
+            <div><label>Pmax</label><input id="p_pmax" type="number"></div>
+            <div><label>Pmedia</label><input id="p_pmedia" type="number"></div>
+            <div><label>P. plateau</label><input id="p_ppl" type="number"></div>
+            <div><label>AutoPEEP</label><input id="p_autopeep" type="number"></div>
+            <div><label>Ti</label><input id="p_ti" type="number" step="0.1"></div>
+            <div><label>P0.1</label><input id="p_p01" type="number" step="0.1"></div>
+            <div><label>ΔPocc</label><input id="p_dpocc" type="number" step="0.1"></div>
+            <div><label>Pmusc</label><input id="p_pmusc" type="number" step="0.1"></div>
+            <div><label>Rise time</label><input id="p_rise" type="number" step="0.1"></div>
+          </div>
+        </details>
+      </div>
+
+      <div class="sec"><div class="shdr">💪 KTM · rehabilitación</div>
+        <div class="sgrid">
+          <div class="full">
+            <div class="seg" id="segKTM">
+              <button type="button" data-k="r" onclick="setKTM('r')">Realizada</button>
+              <button type="button" data-k="n" class="on" onclick="setKTM('n')">No realizada</button>
+              <button type="button" data-k="s" onclick="setKTM('s')">Contraindicada</button>
+            </div>
+          </div>
+          <div class="ktmR hidden"><label>Nivel KTM</label><select id="fKTMniv"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+          <div class="ktmR hidden"><label>Tiempo min</label><input id="fKTMt" type="number"></div>
+          <div class="ktmS hidden full"><label>Razón contraindicación</label><input id="fKTMraz"></div>
+          <div class="ktmN hidden full"><label>Razón no realizada</label><input id="fKTMnoRaz" placeholder="opcional"></div>
+        </div>
+      </div>
+
+      <div class="sec"><div class="shdr">🌬️ Terapia respiratoria</div>
+        <div class="sgrid">
+          <div><label>N° KTR</label><input id="fKTR" type="number" min="0"></div>
+          <div class="full chips">
+            <span class="fchip" data-r="SOF" onclick="this.classList.toggle('on')">SOF</span>
+            <span class="fchip" data-r="SNF" onclick="this.classList.toggle('on')">SNF</span>
+            <span class="fchip" data-r="SET" onclick="this.classList.toggle('on')">SET</span>
+            <span class="fchip" data-r="ATOS" onclick="this.classList.toggle('on')">A. Tos</span>
+            <span class="fchip" data-r="INHALO" onclick="this.classList.toggle('on')">Inhaloterapia</span>
+          </div>
+          <div><label>Secreciones cant.</label><select id="fSecrQ"><option value="">—</option><option>escasas</option><option>moderadas</option><option>abundantes</option></select></div>
+          <div><label>Característica</label><select id="fSecrC"><option value="">—</option><option>mucosas</option><option>mucopurulentas</option><option>purulentas</option><option>hemáticas</option></select></div>
+        </div>
+      </div>
+
+      <div class="sec"><div class="shdr">🩺 Procedimientos del turno</div>
+        <div class="sgrid">
+          <div class="full" style="display:flex;gap:8px;">
+            <select id="procSel" style="flex:1">
+              <option value="">— agregar procedimiento —</option>
+              <option>INTUBACIÓN</option><option>PVE</option><option>EXTUBACIÓN C/PROTOCOLO</option><option>EXTUBACIÓN S/PROTOCOLO</option>
+              <option>AUTOEXTUBACIÓN</option><option>REINTUBACIÓN</option><option>TQT</option><option>CAMBIO TQT</option><option>DECANULACIÓN</option>
+              <option>PRONO</option><option>SUPINO</option><option>CULTIVO DE SECRECIONES</option><option>IMAGENOLOGÍA</option><option>ECOGRAFÍA</option>
+              <option>TEST APNEA</option><option>PABELLÓN</option><option>EMS</option><option>IMT</option><option>RCP</option>
+              <option>Hito Motor 1</option><option>Hito Motor 2</option><option>Hito Motor 3</option><option>Hito Motor 4</option><option>Hito Motor 5</option>
+            </select>
+            <button class="btn o" type="button" onclick="addProc()">＋</button>
+          </div>
+          <div class="full chips" id="procChips"></div>
+        </div>
+      </div>
+
+      <details class="sec" id="secEval">
+        <summary>📋 Evaluación funcional por turno</summary>
+        <div class="sgrid">
+          <div><label>MRC-SS (0-60)</label><input id="fMRC" type="number" min="0" max="60"></div>
+          <div><label>FSS-ICU (0-35)</label><input id="fFSS" type="number" min="0" max="35"></div>
+          <div><label>Dinamometría kg</label><input id="fDinamo" type="number" step="0.1"></div>
+          <div><label>PIM</label><input id="fPIM" type="number"></div>
+          <div><label>PEM</label><input id="fPEM" type="number"></div>
+          <div><label>Grosor diafr. mm</label><input id="fGrosor" type="number" step="0.1"></div>
+          <div class="full"><label>Hallazgos</label><input id="fHallazgos"></div>
+        </div>
+      </details>
+
+      <div class="sec"><div class="shdr">📝 Plan y firma</div>
+        <div class="sgrid">
+          <div class="full"><label>Plan</label><textarea id="fPlan" rows="2"></textarea></div>
+          <div class="full"><label>Nota del turno</label><textarea id="fNota" rows="2"></textarea></div>
+        </div>
+      </div>
+
+      <div class="sec" id="secTxt" style="display:none"><div class="shdr">📄 Texto clínico generado</div>
+        <div class="sgrid">
+          <div class="full"><textarea id="txtOut" readonly></textarea></div>
+          <div class="full" style="display:flex;justify-content:flex-end;"><button class="btn g" type="button" onclick="copiarTxt()">📋 Copiar</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="epfoot">
+      <span class="meta" id="evEstado"></span>
+      <div class="sp" style="flex:1"></div>
+      <button class="btn o" onclick="cerrarEvo()">Cerrar</button>
+      <button class="btn" id="btnGuardar" onclick="guardarEvo()">💾 Guardar evolución</button>
+    </div>
+  </div>
+
   <div id="lo">Cargando…</div>
   <div id="tc"></div>
 
   <script>
-    const TOKEN = ''; // en modo desarrollo el backend ignora el token
-    let CAMAS = [], YO = { firma: '', dev: false }, MCAMA = null;
+    const TOKEN = '';
+    let CAMAS=[], YO={firma:'',dev:false}, MCAMA=null, FASES=[], FASES_SEL=new Set(), PROCS=[], EVO_CAMA=null, TURNO='Dia';
 
-    // ── Bridge a la API (Promise) ──
-    function api(accion, datos){
-      return new Promise((res, rej)=>{
-        google.script.run
-          .withSuccessHandler(r=>{ if(r && r.ok) res(r.data); else rej(new Error((r&&r.error)||'Error')); })
-          .withFailureHandler(e=>rej(e))
-          .api(accion, datos||{}, TOKEN);
-      });
-    }
-    // ── Utilidades ──
-    const $ = id => document.getElementById(id);
-    const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    function loading(on){ $('lo').classList.toggle('on', on); }
-    function toast(msg){ const t=$('tc'), el=document.createElement('div'); el.className='toast'; el.textContent=msg; t.appendChild(el);
-      setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 3000); }
+    function api(accion,datos){return new Promise((res,rej)=>{google.script.run
+      .withSuccessHandler(r=>{ if(r&&r.ok)res(r.data); else rej(new Error((r&&r.error)||'Error')); })
+      .withFailureHandler(e=>rej(e)).api(accion,datos||{},TOKEN);});}
+    const $=id=>document.getElementById(id);
+    const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const num=id=>{const v=$(id).value;return v===''?'':parseFloat(v);};
+    function loading(on){$('lo').classList.toggle('on',on);}
+    function toast(m){const t=$('tc'),el=document.createElement('div');el.className='toast';el.textContent=m;t.appendChild(el);
+      setTimeout(()=>{el.style.transition='opacity .3s';el.style.opacity='0';setTimeout(()=>el.remove(),300);},3000);}
+    function hoy(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+    function turnoAuto(){const h=new Date().getHours();return (h>=8&&h<20)?'Dia':'Noche';}
+    function toggleTurno(){TURNO=TURNO==='Dia'?'Noche':'Dia';pintaTurno();}
+    function pintaTurno(){$('turnoChip').textContent=TURNO==='Dia'?'☀️ Día':'🌙 Noche';}
 
-    // ── Modales ──
-    function abrirModal(id){ document.querySelectorAll('#ov .modal').forEach(m=>m.style.display='none'); $(id).style.display='block'; $('ov').classList.add('on'); }
-    function cerrarModal(){ $('ov').classList.remove('on'); MCAMA=null; }
-    document.addEventListener('keydown', e=>{ if(e.key==='Escape') cerrarModal(); });
+    // ── Modales chicos ──
+    function abrirModal(id){document.querySelectorAll('#ov .modal').forEach(m=>m.style.display='none');$(id).style.display='block';$('ov').classList.add('on');}
+    function cerrarModal(){$('ov').classList.remove('on');MCAMA=null;}
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){cerrarModal();}});
 
-    // ── Carga inicial ──
+    // ── Init ──
     async function init(){
+      TURNO=turnoAuto();pintaTurno();
       try{
-        YO = await api('WHOAMI', {});
-        $('firmaChip').textContent = '👤 ' + (YO.firma || '—');
-        if(YO.dev) $('devbar').style.display='block';
-      }catch(e){ $('firmaChip').textContent = '⚠️ sin sesión'; }
+        YO=await api('WHOAMI',{});
+        $('firmaChip').textContent='👤 '+(YO.firma||'—');
+        if(YO.dev)$('devbar').style.display='block';
+      }catch(e){$('firmaChip').textContent='⚠️ sin sesión';}
+      try{FASES=await api('GET_CATALOGO',{tipo:'FASE_CLINICA'});}catch(e){FASES=[];}
       cargar();
     }
     async function cargar(){
       loading(true);
-      try{
-        CAMAS = await api('GET_TODAS_CAMAS', {});
-        render();
-      }catch(e){ toast('❌ ' + (e.message||e)); }
+      try{CAMAS=await api('GET_TODAS_CAMAS',{});render();}
+      catch(e){toast('❌ '+(e.message||e));}
       loading(false);
     }
-
     function render(){
-      const oc = CAMAS.filter(c=>c.OCUPADA===true).length;
-      const vm = CAMAS.filter(c=>c.OCUPADA===true && c.SOPORTE==='VM').length;
-      $('censo').textContent = `🛏️ ${oc}/${CAMAS.length} · VM ${vm}`;
-      const g = $('grid'); g.innerHTML='';
+      const oc=CAMAS.filter(c=>c.OCUPADA===true).length;
+      const vm=CAMAS.filter(c=>c.OCUPADA===true&&c.SOPORTE==='VM').length;
+      $('censo').textContent=`🛏️ ${oc}/${CAMAS.length} · VM ${vm}`;
+      const g=$('grid');g.innerHTML='';
       CAMAS.slice().sort((a,b)=>(+a.ID_CAMA)-(+b.ID_CAMA)).forEach(c=>{
-        const el = document.createElement('div'); el.className='bed';
+        const el=document.createElement('div');el.className='bed';
         if(c.OCUPADA===true){
-          const sopPill = c.SOPORTE==='VM' ? 'vm' : (c.SOPORTE==='VNI'?'vni':'');
-          const aisl = String(c.AISLAMIENTO)==='true';
-          el.innerHTML =
-            `<div class="bhdr"><span class="dot ${aisl?'aisl':'on'}"></span>Cama ${esc(c.ID_CAMA)}${aisl?' · 🛡️':''}</div>
+          const sp=c.SOPORTE==='VM'?'vm':(c.SOPORTE==='VNI'?'vni':'');
+          const ai=String(c.AISLAMIENTO)==='true';
+          el.innerHTML=
+            `<div class="bhdr"><span class="dot ${ai?'aisl':'on'}"></span>Cama ${esc(c.ID_CAMA)}${ai?' · 🛡️':''}</div>
              <div class="pname">${esc(c.NOMBRE)||'—'}</div>
              <div class="meta">${esc(c.COD_PACIENTE)} · ${esc(c.EDAD)||'?'}a · ${esc(c.SEXO)}</div>
              <div class="meta">Día ${esc(c.DIA_ESTADIA)} · ${esc(c.DIAGNOSTICO)||'—'}</div>
-             <div class="pills">
-               <span class="pill">${esc(c.VIA_AEREA)||'-'}</span>
-               <span class="pill ${sopPill}">${esc(c.SOPORTE)||'-'}</span>
-               ${c.MODO&&c.MODO!=='Sin soporte'?`<span class="pill">${esc(c.MODO)}</span>`:''}
-             </div>
+             <div class="pills"><span class="pill">${esc(c.VIA_AEREA)||'-'}</span><span class="pill ${sp}">${esc(c.SOPORTE)||'-'}</span>
+               ${c.MODO&&c.MODO!=='Sin soporte'?`<span class="pill">${esc(c.MODO)}</span>`:''}</div>
              <div class="bfoot">
-               <button class="btn" onclick="evolucionar('${esc(c.ID_CAMA)}')">📝 Evolución</button>
+               <button class="btn" onclick="abrirEvo('${esc(c.ID_CAMA)}')">📝 Evolución</button>
                <button class="btn d" onclick="abrirEgreso('${esc(c.ID_CAMA)}')">🏠</button>
              </div>`;
-        } else {
-          el.innerHTML =
+        }else{
+          el.innerHTML=
             `<div class="bhdr"><span class="dot"></span>Cama ${esc(c.ID_CAMA)}</div>
              <div class="empty">Disponible</div>
              <div class="bfoot"><button class="btn o" onclick="abrirIngreso('${esc(c.ID_CAMA)}')">+ Ingresar</button></div>`;
@@ -181,53 +384,217 @@
       });
     }
 
-    // ── Ingreso ──
-    function abrirIngreso(id){
-      MCAMA=id; $('inCama').textContent=id;
+    // ── Ingreso / Egreso (etapa 1) ──
+    function abrirIngreso(id){MCAMA=id;$('inCama').textContent=id;
       ['inNombre','inEdad','inSexo','inTalla','inBarthel','inDx','inModo'].forEach(k=>$(k).value='');
-      $('inVia').value='Natural'; $('inSop').value='Ambiente';
-      abrirModal('mIngreso');
-    }
+      $('inVia').value='Natural';$('inSop').value='Ambiente';abrirModal('mIngreso');}
     async function confirmarIngreso(){
       const nombre=$('inNombre').value.trim();
-      if(!nombre){ toast('⚠️ Falta el nombre'); return; }
+      if(!nombre){toast('⚠️ Falta el nombre');return;}
       loading(true);
       try{
-        await api('INGRESAR_PACIENTE', {
-          idCama:MCAMA, nombre, edad:$('inEdad').value, sexo:$('inSexo').value, talla:$('inTalla').value,
-          barthel:$('inBarthel').value, diagnostico:$('inDx').value, viaAerea:$('inVia').value,
-          soporte:$('inSop').value, modo:$('inModo').value, firmaKine:YO.firma
-        });
-        cerrarModal(); toast('✅ Paciente ingresado'); cargar();
-      }catch(e){ toast('❌ ' + (e.message||e)); }
+        await api('INGRESAR_PACIENTE',{idCama:MCAMA,nombre,edad:$('inEdad').value,sexo:$('inSexo').value,
+          talla:$('inTalla').value,barthel:$('inBarthel').value,diagnostico:$('inDx').value,
+          viaAerea:$('inVia').value,soporte:$('inSop').value,modo:$('inModo').value,firmaKine:YO.firma});
+        cerrarModal();toast('✅ Paciente ingresado');cargar();
+      }catch(e){toast('❌ '+(e.message||e));}
       loading(false);
     }
-
-    // ── Egreso ──
-    function abrirEgreso(id){
-      const c = CAMAS.find(x=>String(x.ID_CAMA)===String(id)); if(!c) return;
-      MCAMA=id; $('egNombre').textContent = c.NOMBRE || ('Cama '+id);
-      $('egDestino').value=''; $('egBarthel').value=c.BARTHEL||''; $('egMrc').value=''; $('egObs').value='';
-      abrirModal('mEgreso');
-    }
+    function abrirEgreso(id){const c=CAMAS.find(x=>String(x.ID_CAMA)===String(id));if(!c)return;
+      MCAMA=id;$('egNombre').textContent=c.NOMBRE||('Cama '+id);
+      $('egDestino').value='';$('egBarthel').value=c.BARTHEL||'';$('egMrc').value='';$('egObs').value='';abrirModal('mEgreso');}
     async function confirmarEgreso(){
       const destino=$('egDestino').value;
-      if(!destino){ toast('⚠️ Selecciona destino'); return; }
-      if(!confirm('¿Confirmar egreso y liberar la cama '+MCAMA+'?')) return;
+      if(!destino){toast('⚠️ Selecciona destino');return;}
+      if(!confirm('¿Confirmar egreso y liberar la cama '+MCAMA+'?'))return;
       loading(true);
       try{
-        await api('DAR_ALTA', {
-          idCama:MCAMA, motivoEgreso:destino, destinoEgreso:destino,
-          barthelEgreso:$('egBarthel').value, mrcSsEgreso:$('egMrc').value,
-          observaciones:$('egObs').value, firmaKine:YO.firma
-        });
-        cerrarModal(); toast('✅ Egreso registrado'); cargar();
-      }catch(e){ toast('❌ ' + (e.message||e)); }
+        await api('DAR_ALTA',{idCama:MCAMA,motivoEgreso:destino,destinoEgreso:destino,
+          barthelEgreso:$('egBarthel').value,mrcSsEgreso:$('egMrc').value,observaciones:$('egObs').value,firmaKine:YO.firma});
+        cerrarModal();toast('✅ Egreso registrado');cargar();
+      }catch(e){toast('❌ '+(e.message||e));}
       loading(false);
     }
 
-    // ── Evolución (próxima etapa) ──
-    function evolucionar(id){ toast('📝 Panel de evolución — próxima etapa'); }
+    // ═══ PANEL DE EVOLUCIÓN ═══
+    const MODOS={VM:['ACVC','ACPC','CPAP/PS','SIMV','PAV','Otro'],VNI:['CPAP','S/T','AVAPS'],
+      CNAF:['CNAF'],Oxigenoterapia:['Mascarilla','Naricera','Tubo T','HME','Otro'],Ambiente:['Sin soporte']};
+
+    async function abrirEvo(id){
+      EVO_CAMA=id;PROCS=[];FASES_SEL=new Set();
+      limpiarForm();
+      const c=CAMAS.find(x=>String(x.ID_CAMA)===String(id))||{};
+      $('evTitulo').textContent=(c.NOMBRE||('Cama '+id));
+      const tk=hoy()+'-'+TURNO;
+      $('evSub').textContent=`Cama ${id} · ${TURNO==='Dia'?'☀️':'🌙'} ${hoy()} · ${c.COD_PACIENTE||''}`;
+      $('repBar').classList.remove('on');$('secTxt').style.display='none';$('evEstado').textContent='';
+      renderFases();renderProcs();
+      $('evPanel').classList.add('on');document.body.style.overflow='hidden';
+      loading(true);
+      try{
+        const evo=await api('GET_EVOLUCION',{idCama:id,turnoKey:tk});
+        if(evo){fillForm(evo);$('evEstado').textContent='✏️ Editando turno ya guardado';}
+        else{
+          const prev=await api('GET_EVOLUCION_PREVIA',{idCama:id,turnoKey:tk});
+          fillDesdeCama(c);
+          if(prev){fillReplica(prev);
+            $('repTxt').textContent='Datos replicados del turno '+String(prev.TURNO_KEY||'').replace(/-/g,' ');
+            $('repBar').classList.add('on');}
+        }
+      }catch(e){toast('❌ '+(e.message||e));}
+      loading(false);
+      document.querySelector('.epbody').scrollTop=0;
+    }
+    function cerrarEvo(){$('evPanel').classList.remove('on');document.body.style.overflow='';EVO_CAMA=null;}
+
+    function limpiarForm(){
+      document.querySelectorAll('#evPanel input:not([readonly])').forEach(i=>{if(i.type==='checkbox')i.checked=false;else i.value='';});
+      document.querySelectorAll('#evPanel select').forEach(s=>s.selectedIndex=0);
+      document.querySelectorAll('#evPanel .bool').forEach(b=>b.classList.remove('on'));
+      document.querySelectorAll('#evPanel .fchip[data-r]').forEach(c=>c.classList.remove('on'));
+      $('fPI').value='';$('fGT').value='';setKTM('n');cascadeVA();cascadeSop();
+      document.querySelectorAll('#evPanel details').forEach(d=>d.open=false);
+    }
+    // ── Cascadas y cálculos ──
+    function cascadeVA(){
+      const va=$('fVA').value;
+      document.querySelectorAll('.vaTOT').forEach(e=>e.classList.toggle('hidden',va!=='TOT'));
+      document.querySelectorAll('.vaTQT').forEach(e=>e.classList.toggle('hidden',va!=='TQT'));
+    }
+    function cascadeSop(keepModo){
+      const sop=$('fSop').value, sel=$('fModo'), antes=sel.value;
+      sel.innerHTML='';(MODOS[sop]||['Sin soporte']).forEach(m=>{const o=document.createElement('option');o.textContent=m;sel.appendChild(o);});
+      if(keepModo&&antes){for(const o of sel.options){if(o.value===antes){sel.value=antes;break;}}}
+      const cls={'VM':'pVM','VNI':'pVNI','CNAF':'pCNAF','Oxigenoterapia':'pO2','Ambiente':'pAmb'}[sop]||'pAmb';
+      document.querySelectorAll('#paramsGrid > div').forEach(d=>d.classList.toggle('hidden',!d.classList.contains(cls)));
+    }
+    function calcPI(){
+      const s=$('fSexo').value,t=parseFloat($('fTalla').value);
+      if(!s||!t){$('fPI').value='';return;}
+      const base=s==='M'?50:45.5;$('fPI').value=Math.round((base+0.91*(t-152.4))*10)/10;
+    }
+    function calcGCS(){
+      const o=+$('fGO').value||0,v=+$('fGV').value||0,m=+$('fGM').value||0;
+      $('fGT').value=(o&&v&&m)?(o+v+m):'';
+    }
+    // ── Fases ──
+    function renderFases(){
+      const w=$('faseChips');w.innerHTML='';
+      FASES.forEach(f=>{const c=document.createElement('span');c.className='fchip'+(FASES_SEL.has(f)?' on':'');c.textContent=f;
+        c.onclick=()=>{FASES_SEL.has(f)?FASES_SEL.delete(f):FASES_SEL.add(f);renderFases();};w.appendChild(c);});
+    }
+    // ── KTM 3 estados ──
+    let KTM='n';
+    function setKTM(k){KTM=k;
+      document.querySelectorAll('#segKTM button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
+      document.querySelectorAll('.ktmR').forEach(e=>e.classList.toggle('hidden',k!=='r'));
+      document.querySelectorAll('.ktmS').forEach(e=>e.classList.toggle('hidden',k!=='s'));
+      document.querySelectorAll('.ktmN').forEach(e=>e.classList.toggle('hidden',k!=='n'));
+    }
+    // ── Procedimientos ──
+    function addProc(){const v=$('procSel').value;if(!v)return;if(!PROCS.includes(v))PROCS.push(v);$('procSel').value='';renderProcs();}
+    function delProc(i){PROCS.splice(i,1);renderProcs();}
+    function renderProcs(){const w=$('procChips');w.innerHTML='';
+      PROCS.forEach((p,i)=>{const s=document.createElement('span');s.className='pchip';
+        s.innerHTML=esc(p)+' <button type="button" onclick="delProc('+i+')">×</button>';w.appendChild(s);});}
+
+    // ── Llenado ──
+    function setv(id,val){const e=$(id);if(e&&val!==undefined&&val!==null&&val!=='')e.value=String(val);}
+    function setb(id,bid,val){const on=String(val)==='true'||val===true;$(id).checked=on;$(bid)&&$(bid).classList.toggle('on',on);}
+    function fillDesdeCama(c){
+      setv('fNombre',c.NOMBRE);setv('fEdad',c.EDAD);setv('fSexo',c.SEXO);setv('fTalla',c.TALLA_CM);
+      setv('fBarthel',c.BARTHEL);setv('fDx',c.DIAGNOSTICO);calcPI();
+      setb('fAisl','bAisl',c.AISLAMIENTO);$('fAislMicro').classList.toggle('hidden',!$('fAisl').checked);setv('fAislMicro',c.AISL_MICRO);
+      setv('fVA',c.VIA_AEREA);cascadeVA();setv('fTOTn',c.TOT_NUMERO);setv('fTOTcm',c.TOT_CM_LABIO);setv('fTQTt',c.TQT_TIPO);
+      setv('fSop',c.SOPORTE);cascadeSop();setv('fModo',c.MODO);
+      try{FASES_SEL=new Set(JSON.parse(c.FASE_JSON||'[]'));}catch(e){FASES_SEL=new Set();}
+      renderFases();
+    }
+    // Replica del turno previo: estado clínico SÍ; acciones del turno NO (KTM, KTR, procs, eval).
+    function fillReplica(p){
+      setv('fSed',p.SED_TIPO);setv('fSAS',p.SED_SAS);setv('fGO',p.SED_GCS_O);setv('fGV',p.SED_GCS_V);setv('fGM',p.SED_GCS_M);calcGCS();
+      setv('fS5Q',p.SED_S5Q);setv('fCoop',p.SED_COOPERACION);setv('fCAM',p.SED_CAM_ICU);setb('fBNM','bBNM',p.SED_BNM);
+      setv('fHemo',p.HEMO_ESTADO);setv('fDVA',p.HEMO_DVA);setv('fNDVA',p.HEMO_NUM_DVA);
+      setv('fVA',p.VENT_VIA_AEREA);cascadeVA();setv('fTOTn',p.VENT_TOT_NUM);setv('fTOTcm',p.VENT_TOT_CM);setv('fTQTt',p.VENT_TQT_TIPO);
+      setv('fSop',p.VENT_SOPORTE);cascadeSop();setv('fModo',p.VENT_MODO);setb('fHAct','bHAct',p.VENT_H_ACTIVA);
+      setv('p_vt',p.VENT_VT);setv('p_fr',p.VENT_FR);setv('p_peep',p.VENT_PEEP);setv('p_ps',p.VENT_PS);setv('p_pinsp',p.VENT_PINSP);
+      setv('p_ipap',p.VENT_IPAP);setv('p_epap',p.VENT_EPAP);setv('p_flujo',p.VENT_FLUJO);setv('p_litros',p.VENT_LITROS);
+      setv('p_fio2',p.VENT_FIO2);setv('p_spo2',p.VENT_SPO2);
+      setv('p_pmax',p.VENT_PMAX);setv('p_pmedia',p.VENT_PMEDIA);setv('p_ppl',p.VENT_PPL);setv('p_autopeep',p.VENT_AUTOPEEP);
+      setv('p_ti',p.VENT_TI);setv('p_p01',p.VENT_P01);setv('p_dpocc',p.VENT_DPOCC);setv('p_pmusc',p.VENT_PMUSC);setv('p_rise',p.VENT_RISETIME);
+      setv('fSecrQ',p.RESP_SECR_QTY);setv('fSecrC',p.RESP_SECR_CAR);
+      try{FASES_SEL=new Set(JSON.parse(p.FASE_JSON||'[]'));}catch(e){}
+      renderFases();
+    }
+    // Turno ya guardado: todo, incluidas las acciones.
+    function fillForm(e){
+      fillReplica(e);
+      setv('fNombre',e.PAC_NOMBRE);setv('fEdad',e.PAC_EDAD);setv('fSexo',e.PAC_SEXO);setv('fTalla',e.PAC_TALLA);calcPI();
+      setv('fBarthel',e.PAC_BARTHEL);setv('fDx',e.PAC_DIAGNOSTICO);
+      setb('fAisl','bAisl',e.PAC_AISLAMIENTO);$('fAislMicro').classList.toggle('hidden',!$('fAisl').checked);setv('fAislMicro',e.PAC_AISL_MICRO);
+      if(String(e.KTM_REALIZADA)==='true')setKTM('r');else if(String(e.KTM_SUSPENDIDA)==='true')setKTM('s');else setKTM('n');
+      setv('fKTMniv',e.KTM_NIVEL_KTR);setv('fKTMt',e.KTM_TIEMPO_MIN);setv('fKTMraz',e.KTM_CONTRA_RAZON);setv('fKTMnoRaz',e.KTM_NO_RAZON);
+      setv('fKTR',e.RESP_KTR_CANT);
+      [['SOF',e.RESP_SOF],['SNF',e.RESP_SNF],['SET',e.RESP_SET],['ATOS',e.RESP_ATOS],['INHALO',e.RESP_INHALO]].forEach(([k,v])=>{
+        const c=document.querySelector('.fchip[data-r="'+k+'"]');if(c)c.classList.toggle('on',String(v)==='true');});
+      try{PROCS=JSON.parse(e.PROC_JSON||'[]')||[];}catch(x){PROCS=[];}
+      renderProcs();
+      setv('fMRC',e.EVAL_T_MRC);setv('fFSS',e.EVAL_T_FSS);setv('fDinamo',e.EVAL_T_DINAMO);setv('fPIM',e.EVAL_T_PIM);
+      setv('fPEM',e.EVAL_T_PEM);setv('fGrosor',e.EVAL_T_GROSOR);setv('fHallazgos',e.EVAL_T_HALLAZGOS);
+      if(e.EVAL_T_MRC||e.EVAL_T_FSS||e.EVAL_T_DINAMO)$('secEval').open=true;
+      setv('fPlan',e.PLAN_PLANES);setv('fNota',e.PLAN_NOTA_TURNO);
+      if(e.TEXTO_GENERADO){$('txtOut').value=e.TEXTO_GENERADO;$('secTxt').style.display='block';}
+    }
+
+    // ── Guardar ──
+    async function guardarEvo(){
+      const tk=hoy()+'-'+TURNO;
+      const chipOn=k=>{const c=document.querySelector('.fchip[data-r="'+k+'"]');return !!(c&&c.classList.contains('on'));};
+      const evalOn=$('secEval').open&&($('fMRC').value||$('fFSS').value||$('fDinamo').value||$('fPIM').value||$('fPEM').value||$('fGrosor').value);
+      const payload={
+        idCama:EVO_CAMA, turnoKey:tk, PLAN_FIRMA_KINE:YO.firma,
+        PAC_NOMBRE:$('fNombre').value, PAC_EDAD:$('fEdad').value, PAC_SEXO:$('fSexo').value,
+        PAC_TALLA:$('fTalla').value, PAC_PESO_IDEAL:$('fPI').value, PAC_BARTHEL:$('fBarthel').value,
+        PAC_DIAGNOSTICO:$('fDx').value, PAC_AISLAMIENTO:$('fAisl').checked, PAC_AISL_MICRO:$('fAislMicro').value,
+        FASE_JSON:JSON.stringify([...FASES_SEL]),
+        SED_TIPO:$('fSed').value, SED_SAS:$('fSAS').value, SED_GCS_O:num('fGO'), SED_GCS_V:num('fGV'),
+        SED_GCS_M:num('fGM'), SED_GCS_TOT:num('fGT'), SED_S5Q:$('fS5Q').value, SED_COOPERACION:$('fCoop').value,
+        SED_CAM_ICU:$('fCAM').value, SED_BNM:$('fBNM').checked,
+        HEMO_ESTADO:$('fHemo').value, HEMO_DVA:$('fDVA').value, HEMO_NUM_DVA:num('fNDVA'),
+        VENT_VIA_AEREA:$('fVA').value, VENT_TOT_NUM:$('fTOTn').value, VENT_TOT_CM:$('fTOTcm').value,
+        VENT_TQT_TIPO:$('fTQTt').value, VENT_SOPORTE:$('fSop').value, VENT_MODO:$('fModo').value, VENT_H_ACTIVA:$('fHAct').checked,
+        VENT_VT:num('p_vt'), VENT_FR:num('p_fr'), VENT_PEEP:num('p_peep'), VENT_PS:num('p_ps'), VENT_PINSP:num('p_pinsp'),
+        VENT_IPAP:num('p_ipap'), VENT_EPAP:num('p_epap'), VENT_FLUJO:num('p_flujo'), VENT_LITROS:num('p_litros'),
+        VENT_FIO2:num('p_fio2'), VENT_SPO2:num('p_spo2'),
+        VENT_PMAX:num('p_pmax'), VENT_PMEDIA:num('p_pmedia'), VENT_PPL:num('p_ppl'), VENT_AUTOPEEP:num('p_autopeep'),
+        VENT_TI:num('p_ti'), VENT_P01:num('p_p01'), VENT_DPOCC:num('p_dpocc'), VENT_PMUSC:num('p_pmusc'), VENT_RISETIME:num('p_rise'),
+        KTM_REALIZADA:KTM==='r', KTM_SUSPENDIDA:KTM==='s', KTM_NO_REALIZADA:KTM==='n',
+        KTM_NIVEL_KTR:KTM==='r'?$('fKTMniv').value:'', KTM_TIEMPO_MIN:KTM==='r'?num('fKTMt'):'',
+        KTM_CONTRA_RAZON:KTM==='s'?$('fKTMraz').value:'', KTM_NO_RAZON:KTM==='n'?$('fKTMnoRaz').value:'',
+        RESP_KTR_CANT:num('fKTR'), RESP_SOF:chipOn('SOF'), RESP_SNF:chipOn('SNF'), RESP_SET:chipOn('SET'),
+        RESP_ATOS:chipOn('ATOS'), RESP_INHALO:chipOn('INHALO'),
+        RESP_SECR_QTY:$('fSecrQ').value, RESP_SECR_CAR:$('fSecrC').value,
+        PROC_JSON:JSON.stringify(PROCS),
+        EVAL_T_REALIZAR:!!evalOn, EVAL_FECHA:evalOn?hoy():'',
+        EVAL_T_MRC:evalOn?num('fMRC'):'', EVAL_T_FSS:evalOn?num('fFSS'):'', EVAL_T_DINAMO:evalOn?num('fDinamo'):'',
+        EVAL_T_PIM:evalOn?num('fPIM'):'', EVAL_T_PEM:evalOn?num('fPEM'):'', EVAL_T_GROSOR:evalOn?num('fGrosor'):'',
+        EVAL_T_HALLAZGOS:evalOn?$('fHallazgos').value:'',
+        PLAN_PLANES:$('fPlan').value, PLAN_NOTA_TURNO:$('fNota').value,
+      };
+      const b=$('btnGuardar');b.disabled=true;b.textContent='⏳ Guardando…';
+      try{
+        await api('GUARDAR_EVOLUCION',payload);
+        const evo=await api('GET_EVOLUCION',{idCama:EVO_CAMA,turnoKey:tk});
+        if(evo&&evo.TEXTO_GENERADO){$('txtOut').value=evo.TEXTO_GENERADO;$('secTxt').style.display='block';
+          $('secTxt').scrollIntoView({behavior:'smooth'});}
+        $('evEstado').textContent='✅ Guardado '+new Date().toLocaleTimeString();
+        toast('✅ Evolución guardada');cargar();
+      }catch(e){toast('❌ '+(e.message||e));}
+      b.disabled=false;b.textContent='💾 Guardar evolución';
+    }
+    function copiarTxt(){
+      $('txtOut').select();document.execCommand('copy');toast('📋 Texto copiado');
+    }
 
     init();
   </script>
