@@ -190,45 +190,14 @@
         </div>
       </div>
 
-      <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🫁 Vía aérea y ventilación</div>
+      <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">📊 General — Vía aérea y dispositivos</div>
         <div class="sgrid">
+          <div class="full"><label>Fase clínica</label><div class="chips" id="faseChips"></div></div>
           <div><label>Vía aérea</label><select id="fVA" onchange="cascadeVA()"><option>Natural</option><option>TOT</option><option>TQT</option><option>Full Face</option><option>Oronasal</option></select></div>
           <div class="vaTOT hidden"><label>N° TOT</label><input id="fTOTn"></div>
           <div class="vaTOT hidden"><label>Fijación cm</label><input id="fTOTcm"></div>
           <div class="vaTQT hidden"><label>Tipo TQT</label><input id="fTQTt" placeholder="Shiley #7…"></div>
-          <div><label>Soporte</label><select id="fSop" onchange="cascadeSop()"></select></div>
-          <div><label>Modo</label><select id="fModo"></select></div>
-          <div><label class="bool" id="bHAct" style="margin-top:18px"><input type="checkbox" id="fHAct" onchange="this.parentElement.classList.toggle('on',this.checked)"> Humid. activa</label></div>
-          <div class="vaInvasiva hidden"><label>UMA (asistencia manual)</label><select id="r_uma" onchange="hUMA()"><option value="">—</option><option>Rutinaria</option><option>Ocasional</option><option>Frecuente</option><option>Contraindicada</option></select></div>
-          <div class="vaInvasiva hidden" style="display:flex;align-items:flex-end;gap:6px;"><span class="tip" id="umaTip" title="">ⓘ</span></div>
         </div>
-        <div class="sgrid" id="paramsGrid">
-          <div class="pVM pVNI"><label>VT ml</label><input id="p_vt" type="number"></div>
-          <div class="pVM pVNI pCNAF"><label>FR</label><input id="p_fr" type="number"></div>
-          <div class="pVM"><label>PEEP</label><input id="p_peep" type="number"></div>
-          <div class="pVM"><label>PS</label><input id="p_ps" type="number"></div>
-          <div class="pVM"><label>Pinsp</label><input id="p_pinsp" type="number"></div>
-          <div class="pVNI"><label>IPAP</label><input id="p_ipap" type="number"></div>
-          <div class="pVNI"><label>EPAP</label><input id="p_epap" type="number"></div>
-          <div class="pCNAF"><label>Flujo L/min</label><input id="p_flujo" type="number"></div>
-          <div class="pO2"><label>Litros O₂</label><input id="p_litros" type="number"></div>
-          <div class="pVM pVNI pCNAF pO2"><label>FiO₂ %</label><input id="p_fio2" type="number"></div>
-          <div class="pVM pVNI pCNAF pO2 pAmb"><label>SpO₂ %</label><input id="p_spo2" type="number"></div>
-        </div>
-        <details class="sec" style="--ac:var(--ac-resp);margin:0 14px 12px;border-radius:10px;">
-          <summary>📈 Monitorización avanzada</summary>
-          <div class="sgrid">
-            <div><label>Pmax</label><input id="p_pmax" type="number"></div>
-            <div><label>Pmedia</label><input id="p_pmedia" type="number"></div>
-            <div><label>P. plateau</label><input id="p_ppl" type="number"></div>
-            <div><label>AutoPEEP</label><input id="p_autopeep" type="number"></div>
-            <div><label>Ti</label><input id="p_ti" type="number" step="0.1"></div>
-            <div><label>P0.1</label><input id="p_p01" type="number" step="0.1"></div>
-            <div><label>ΔPocc</label><input id="p_dpocc" type="number" step="0.1"></div>
-            <div><label>Pmusc</label><input id="p_pmusc" type="number" step="0.1"></div>
-            <div><label>Rise time</label><input id="p_rise" type="number" step="0.1"></div>
-          </div>
-        </details>
 
         <div class="sgrid">
           <div class="full" style="display:flex;gap:10px;align-items:center;">
@@ -308,19 +277,6 @@
           </div>
         </details>
       </div>
-
-      <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🩺 Auscultación</div>
-        <div class="sgrid">
-          <div><label>Murmullo pulmonar</label><select id="fMP"><option value="">—</option><option>conservado bilateral</option><option>disminuido bilateral</option><option>disminuido derecho</option><option>disminuido izquierdo</option><option>abolido</option></select></div>
-          <div><label>Ruidos agregados</label><select id="fRuidos" onchange="cascadeRuidos()"><option value="">—</option><option>sin ruidos agregados</option><option>crepitantes</option><option>sibilancias</option><option>roncus</option><option>Otro</option></select></div>
-          <div class="full ruidosOtro hidden"><label>Localización / detalle</label><input id="fRuidosLoc"></div>
-        </div>
-      </div>
-
-      <div class="sec" style="--ac:var(--ac-id)"><div class="shdr">🎯 Fase clínica</div>
-        <div class="sgrid"><div class="full chips" id="faseChips"></div></div>
-      </div>
-
       <div class="sec" style="--ac:var(--ac-neuro)"><div class="shdr">🧠 Sedación y Conciencia</div>
         <div class="sgrid">
           <div><label>Sedación</label><select id="fSed" onchange="hSed()"><option>Sin sedación</option><option>Sedación superficial</option><option>Sedación moderada</option><option>Sedación profunda</option><option>Fuera de escalón</option></select></div>
@@ -335,7 +291,6 @@
           <div><label class="bool" id="bBNM" style="margin-top:18px"><input type="checkbox" id="fBNM" onchange="this.parentElement.classList.toggle('on',this.checked);autoCoopera()"> BNM</label></div>
         </div>
       </div>
-
       <div class="sec" style="--ac:var(--ac-hemo)"><div class="shdr">❤️ Hemodinamia</div>
         <div class="sgrid">
           <div><label>Estado</label><select id="fHemo"><option>Estable</option><option>Inestable</option></select></div>
@@ -346,48 +301,49 @@
           <div id="gHTT" class="hidden"><label>Tipo de tendencia</label><select id="fHTT"><option value="">—</option><option>mejoría</option><option>empeoramiento</option></select></div>
         </div>
       </div>
-
-      <div class="sec" style="--ac:var(--ac-kine)"><div class="shdr">🏃 Terapia Física — KTM</div>
+      <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🫁 Respiratorio — 🩺 Auscultación</div>
         <div class="sgrid">
-          <div class="full">
-            <div class="seg" id="segKTM">
-              <button type="button" data-k="r" onclick="setKTM('r')">Realizada</button>
-              <button type="button" data-k="n" class="on" onclick="setKTM('n')">No realizada</button>
-              <button type="button" data-k="s" onclick="setKTM('s')">Contraindicada</button>
-            </div>
-          </div>
-          <div class="warnmsg hidden" id="dKTMaetMsg">⚠️ KTM suspendida por AET Grupo III</div>
-
-          <div class="ktmR hidden"><label>Nivel KTM</label><select id="fKTMniv"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-          <div class="ktmR hidden"><label>Tiempo min</label><input id="fKTMt" type="number"></div>
-          <div class="ktmR hidden full">
-            <label class="bool" id="bKTMalert"><input type="checkbox" id="cKTMalert" onchange="this.parentElement.classList.toggle('on',this.checked);document.getElementById('dKTMalert').classList.toggle('hidden',!this.checked)"> ⚠️ Sesión suspendida por señal de alerta</label>
-          </div>
-          <div class="subbox hidden" id="dKTMalert">
-            <div><label>Categoría de alerta</label><select id="fKTMalertCat" onchange="updateKTMalertRaz()"><option value="">—</option><option>Respiratorio</option><option>Hemodinámico</option><option>Clínico</option></select></div>
-            <div class="full"><label>Criterio</label><select id="fKTMalertRaz"><option value="">-- Criterio --</option></select></div>
-          </div>
-
-          <div class="ktmS hidden full">
-            <div class="sgrid" style="padding:0">
-              <div><label>Tipo</label><select id="fKTMct" onchange="updateKTMcat()"><option value="">—</option><option>Absoluta</option><option>Relativa</option></select></div>
-              <div><label>Categoría</label><select id="fKTMcat" onchange="updateKTMraz()"><option value="">-- Cat. --</option></select></div>
-              <div class="full"><label>Razón</label><select id="fKTMraz"><option value="">-- Razón --</option></select></div>
-              <div class="full"><label>Razón manual (opcional)</label><input id="fKTMman" placeholder="si no calza con el listado"></div>
-            </div>
-          </div>
-          <div class="ktmN hidden full"><label>Razón no realizada</label><input id="fKTMnoRaz" placeholder="opcional"></div>
-
-          <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:10px;">
-            <label class="bool" id="bAET"><input type="checkbox" id="cAET" onchange="hAET()"> Adecuación de Esfuerzo Terapéutico (AET) activa</label>
-          </div>
-          <div class="hidden" id="dAETnivel" style="display:flex;gap:8px;align-items:flex-end;">
-            <div style="flex:1"><label>Nivel AET</label><select id="fAETnivel" onchange="hAETtip()"><option value="">—</option><option>I</option><option>II</option><option>IIIA</option><option>IIIB</option><option>IIIC</option></select></div>
-            <span class="tip" id="aetTip" title="">ⓘ</span>
-          </div>
+          <div><label>Murmullo pulmonar</label><select id="fMP"><option value="">—</option><option>conservado bilateral</option><option>disminuido bilateral</option><option>disminuido derecho</option><option>disminuido izquierdo</option><option>abolido</option></select></div>
+          <div><label>Ruidos agregados</label><select id="fRuidos" onchange="cascadeRuidos()"><option value="">—</option><option>sin ruidos agregados</option><option>crepitantes</option><option>sibilancias</option><option>roncus</option><option>Otro</option></select></div>
+          <div class="full ruidosOtro hidden"><label>Localización / detalle</label><input id="fRuidosLoc"></div>
         </div>
       </div>
-
+      <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🫁 Respiratorio — 💨 Terapia Ventilatoria</div>
+        <div class="sgrid">
+          <div><label>Soporte</label><select id="fSop" onchange="cascadeSop()"></select></div>
+          <div><label>Modo</label><select id="fModo"></select></div>
+          <div><label class="bool" id="bHAct" style="margin-top:18px"><input type="checkbox" id="fHAct" onchange="this.parentElement.classList.toggle('on',this.checked)"> Humid. activa</label></div>
+          <div class="vaInvasiva hidden"><label>UMA (asistencia manual)</label><select id="r_uma" onchange="hUMA()"><option value="">—</option><option>Rutinaria</option><option>Ocasional</option><option>Frecuente</option><option>Contraindicada</option></select></div>
+          <div class="vaInvasiva hidden" style="display:flex;align-items:flex-end;gap:6px;"><span class="tip" id="umaTip" title="">ⓘ</span></div>
+        </div>
+        <div class="sgrid" id="paramsGrid">
+          <div class="pVM pVNI"><label>VT ml</label><input id="p_vt" type="number"></div>
+          <div class="pVM pVNI pCNAF"><label>FR</label><input id="p_fr" type="number"></div>
+          <div class="pVM"><label>PEEP</label><input id="p_peep" type="number"></div>
+          <div class="pVM"><label>PS</label><input id="p_ps" type="number"></div>
+          <div class="pVM"><label>Pinsp</label><input id="p_pinsp" type="number"></div>
+          <div class="pVNI"><label>IPAP</label><input id="p_ipap" type="number"></div>
+          <div class="pVNI"><label>EPAP</label><input id="p_epap" type="number"></div>
+          <div class="pCNAF"><label>Flujo L/min</label><input id="p_flujo" type="number"></div>
+          <div class="pO2"><label>Litros O₂</label><input id="p_litros" type="number"></div>
+          <div class="pVM pVNI pCNAF pO2"><label>FiO₂ %</label><input id="p_fio2" type="number"></div>
+          <div class="pVM pVNI pCNAF pO2 pAmb"><label>SpO₂ %</label><input id="p_spo2" type="number"></div>
+        </div>
+        <details class="sec" style="--ac:var(--ac-resp);margin:0 14px 12px;border-radius:10px;">
+          <summary>📈 Monitorización avanzada</summary>
+          <div class="sgrid">
+            <div><label>Pmax</label><input id="p_pmax" type="number"></div>
+            <div><label>Pmedia</label><input id="p_pmedia" type="number"></div>
+            <div><label>P. plateau</label><input id="p_ppl" type="number"></div>
+            <div><label>AutoPEEP</label><input id="p_autopeep" type="number"></div>
+            <div><label>Ti</label><input id="p_ti" type="number" step="0.1"></div>
+            <div><label>P0.1</label><input id="p_p01" type="number" step="0.1"></div>
+            <div><label>ΔPocc</label><input id="p_dpocc" type="number" step="0.1"></div>
+            <div><label>Pmusc</label><input id="p_pmusc" type="number" step="0.1"></div>
+            <div><label>Rise time</label><input id="p_rise" type="number" step="0.1"></div>
+          </div>
+        </details>
+      </div>
       <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🌬️ Terapia Respiratoria</div>
         <div class="sgrid">
           <div><label>N° KTR</label><input id="fKTR" type="number" min="0"></div>
@@ -437,7 +393,46 @@
           </details>
         </div>
       </div>
+      <div class="sec" style="--ac:var(--ac-kine)"><div class="shdr">🏃 Terapia Física — KTM</div>
+        <div class="sgrid">
+          <div class="full">
+            <div class="seg" id="segKTM">
+              <button type="button" data-k="r" onclick="setKTM('r')">Realizada</button>
+              <button type="button" data-k="n" class="on" onclick="setKTM('n')">No realizada</button>
+              <button type="button" data-k="s" onclick="setKTM('s')">Contraindicada</button>
+            </div>
+          </div>
+          <div class="warnmsg hidden" id="dKTMaetMsg">⚠️ KTM suspendida por AET Grupo III</div>
 
+          <div class="ktmR hidden"><label>Nivel KTM</label><select id="fKTMniv"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+          <div class="ktmR hidden"><label>Tiempo min</label><input id="fKTMt" type="number"></div>
+          <div class="ktmR hidden full">
+            <label class="bool" id="bKTMalert"><input type="checkbox" id="cKTMalert" onchange="this.parentElement.classList.toggle('on',this.checked);document.getElementById('dKTMalert').classList.toggle('hidden',!this.checked)"> ⚠️ Sesión suspendida por señal de alerta</label>
+          </div>
+          <div class="subbox hidden" id="dKTMalert">
+            <div><label>Categoría de alerta</label><select id="fKTMalertCat" onchange="updateKTMalertRaz()"><option value="">—</option><option>Respiratorio</option><option>Hemodinámico</option><option>Clínico</option></select></div>
+            <div class="full"><label>Criterio</label><select id="fKTMalertRaz"><option value="">-- Criterio --</option></select></div>
+          </div>
+
+          <div class="ktmS hidden full">
+            <div class="sgrid" style="padding:0">
+              <div><label>Tipo</label><select id="fKTMct" onchange="updateKTMcat()"><option value="">—</option><option>Absoluta</option><option>Relativa</option></select></div>
+              <div><label>Categoría</label><select id="fKTMcat" onchange="updateKTMraz()"><option value="">-- Cat. --</option></select></div>
+              <div class="full"><label>Razón</label><select id="fKTMraz"><option value="">-- Razón --</option></select></div>
+              <div class="full"><label>Razón manual (opcional)</label><input id="fKTMman" placeholder="si no calza con el listado"></div>
+            </div>
+          </div>
+          <div class="ktmN hidden full"><label>Razón no realizada</label><input id="fKTMnoRaz" placeholder="opcional"></div>
+
+          <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:10px;">
+            <label class="bool" id="bAET"><input type="checkbox" id="cAET" onchange="hAET()"> Adecuación de Esfuerzo Terapéutico (AET) activa</label>
+          </div>
+          <div class="hidden" id="dAETnivel" style="display:flex;gap:8px;align-items:flex-end;">
+            <div style="flex:1"><label>Nivel AET</label><select id="fAETnivel" onchange="hAETtip()"><option value="">—</option><option>I</option><option>II</option><option>IIIA</option><option>IIIB</option><option>IIIC</option></select></div>
+            <span class="tip" id="aetTip" title="">ⓘ</span>
+          </div>
+        </div>
+      </div>
       <div class="sec" style="--ac:var(--ac-fisico)"><div class="shdr">🔧 Procedimientos del Turno</div>
         <div class="sgrid">
           <div class="full" style="display:flex;gap:8px;">
@@ -454,7 +449,6 @@
           <div class="full chips" id="procChips"></div>
         </div>
       </div>
-
       <details class="sec" id="secEval" style="--ac:var(--ac-fisico)">
         <summary>📋 Evaluación funcional por turno</summary>
         <div class="sgrid">
@@ -467,20 +461,19 @@
           <div class="full"><label>Hallazgos</label><input id="fHallazgos"></div>
         </div>
       </details>
-
       <div class="sec" style="--ac:var(--ac-plan)"><div class="shdr">📋 Planes y Pendientes</div>
         <div class="sgrid">
           <div class="full"><label>Plan</label><textarea id="fPlan" rows="2"></textarea></div>
           <div class="full"><label>Nota del turno</label><textarea id="fNota" rows="2"></textarea></div>
         </div>
       </div>
-
       <div class="sec" id="secTxt" style="display:none"><div class="shdr">📄 Texto clínico generado</div>
         <div class="sgrid">
           <div class="full"><textarea id="txtOut" readonly></textarea></div>
           <div class="full" style="display:flex;justify-content:flex-end;"><button class="btn g" type="button" onclick="copiarTxt()">📋 Copiar</button></div>
         </div>
       </div>
+
     </div>
 
     <div class="epfoot">
