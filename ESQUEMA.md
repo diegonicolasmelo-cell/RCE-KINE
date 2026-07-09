@@ -174,6 +174,11 @@ como columna → consultable, estadístico y **replicable turno a turno** (Punto
 ### W. Planes, firma y generado
 192.`PLAN_PLANES` · 193.`PLAN_NOTA_TURNO` · 194.`PLAN_FIRMA_KINE` · 195.`TEXTO_GENERADO`
 
+### X. Extensiones post-congelamiento (append-only)
+196.`REINTUB_HORA` `texto` — hora de la reintubación (independiente de `EXT_HORA`, que es la de
+extubación). *Regla de extensión: toda columna nueva va SIEMPRE al final, nunca al medio, para no
+desplazar los índices de datos ya escritos.*
+
 > **Total: 195 columnas**, todas nombradas, consultables y replicables. Eliminadas de v1 por
 > duplicidad/desuso: bloque `EGR_*` (→`EVAL_T_*`), `REINTUB_*` viejo (→`EXT_*`), `VENT_POST_EXT*`
 > (→`EXT_POST_DET`), `EX_RUIDOS_MAN`/`EX_SECR_*` (→ unificados), `KTM_UMA_VAL`, `EGR_FED`,
@@ -283,8 +288,8 @@ Ej.: *Diego Melo Villagrán, 34, 07/07/26* → **`070726Dmelov34`**.
 | CONFIG | 1 | 2 |
 | CATALOGOS | 1 | 4 |
 | CAMAS_ESTADO | 2 | 43 |
-| EVOLUCIONES | 3 | 195 |
-| EVOLUCIONES_ARCHIVO | 3 | 195 |
+| EVOLUCIONES | 3 | 196 |
+| EVOLUCIONES_ARCHIVO | 3 | 196 |
 | PROCEDIMIENTOS | 1 | 11 |
 | TIMELINE | 1 | 10 |
 | ARCHIVO_PACIENTES | 1 | 33 |

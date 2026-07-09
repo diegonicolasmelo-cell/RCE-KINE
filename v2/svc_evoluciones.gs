@@ -174,7 +174,7 @@ function _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx) {
     ID_REINTUB: idReintub, PATIENT_ID: evo.PATIENT_ID || '', TIMESTAMP: ahoraTS(), FECHA: fecha, TURNO: turno,
     ID_CAMA: String(idCama), ID_EVOLUCION: idEvolucion, NOMBRE: evo.PAC_NOMBRE || '', COD_PACIENTE: evo.PAC_COD || '',
     DIAGNOSTICO: evo.PAC_DIAGNOSTICO || '', TIPO_DESVINCULACION: evo.EXT_TIPO || '', MOTIVO: evo.EXT_REINTUB_RAZ || '',
-    SOPORTE_PREVIO: evo.EXT_PE_SOP || '', TIEMPO_EXTUBADO: '', HORA_REINTUBACION: evo.EXT_HORA || '',
+    SOPORTE_PREVIO: evo.EXT_PE_SOP || '', TIEMPO_EXTUBADO: '', HORA_REINTUBACION: evo.REINTUB_HORA || evo.EXT_HORA || '',
     KINESIOLOGO: evo.PLAN_FIRMA_KINE || '', AUTOR_EMAIL: (ctx && ctx.email) || '',
   };
   repoUpsert('REINTUBACIONES', 'ID_REINTUB', idReintub, fila);

@@ -101,6 +101,9 @@ const _COLS_EVOLUCIONES = [
   ['PROC_JSON','json'],['PROC_RESUMEN','texto'],['PROC_CANTIDAD','entero'],
   // W. Planes, firma y generado
   ['PLAN_PLANES','texto'],['PLAN_NOTA_TURNO','texto'],['PLAN_FIRMA_KINE','texto'],['TEXTO_GENERADO','texto'],
+  // X. Extensiones post-congelamiento (SIEMPRE al final — nunca insertar al medio,
+  // para no desplazar los índices de datos ya escritos).
+  ['REINTUB_HORA','texto'],   // hora de la reintubación (independiente de EXT_HORA, que es la de extubación)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -362,7 +365,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 195) errs.push('EVOLUCIONES != 195 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 196) errs.push('EVOLUCIONES != 196 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

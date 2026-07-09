@@ -274,7 +274,7 @@
           </div>
         </div>
 
-        <!-- Extubación / Reintubación -->
+        <!-- Extubación (mismo turno) -->
         <div class="sgrid vaInvasiva hidden">
           <div class="full"><label class="bool" id="bExtOcurrio"><input type="checkbox" id="cExtOcurrio" onchange="hExt()"> Ocurrió extubación / autoextubación</label></div>
           <div class="subbox hidden" id="dExtDet">
@@ -289,14 +289,24 @@
             </div>
             <div class="full hidden" id="dExtMotivo"><label>Motivo / detalle</label><input id="fExtMotivo"></div>
             <div class="full"><label>Hora</label><input id="fExtHora" type="time"></div>
-            <div class="full"><label class="bool" id="bReintub"><input type="checkbox" id="cReintub" onchange="hReintubCheck()"> Requirió reintubación</label></div>
+          </div>
+        </div>
+
+        <!-- Reintubación: SIEMPRE manual, en su propia línea colapsable, después de
+             PVE y Extubación. Cubre ambos casos: mismo turno (extubación arriba +
+             reintubación aquí) o turno siguiente (se abre este toggle directo,
+             sin necesidad de marcar extubación hoy). -->
+        <details class="sec" id="secReintub" style="--ac:var(--ac-resp);margin:0 14px 12px;border-radius:10px;">
+          <summary>🔁 Reintubación</summary>
+          <div class="sgrid">
+            <div class="full"><label class="bool" id="bReintub"><input type="checkbox" id="cReintub" onchange="hReintubCheck()"> Ocurrió reintubación</label></div>
             <div class="subbox hidden" id="dReintubDet">
               <div><label>Hora reintubación</label><input id="fReintubHora" type="time"></div>
               <div><label>Soporte previo</label><input id="fReintubSopPrev" placeholder="ej. VM ACVC"></div>
               <div class="full"><label>Motivo reintubación</label><input id="fReintubRaz"></div>
             </div>
           </div>
-        </div>
+        </details>
       </div>
 
       <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🩺 Auscultación</div>
@@ -684,7 +694,7 @@
       $('fPI').value='';$('fGT').value='';setKTM('n');
       _nReintub=0;
       cascadeVA();
-      hSed();hMultiDVA();hHTrend();hVAExtPrev();hDecan();hExt();hMue();hAET();
+      hSed();hMultiDVA();hHTrend();hVAExtPrev();hDecan();hExt();hReintubUI(false);hMue();hAET();
       setSecrQ('');
       hPVEtoggleReset();
       _updatePosResumen();
@@ -790,8 +800,9 @@
     // Extubación / Reintubación (condicionantes hExt/hExtTipo/hReintubCheck)
     let _extTipoVal='protocolo';
     function hExt(){
+      // La reintubación es INDEPENDIENTE (toggle propio): la extubación no la toca.
       if($('cExtOcurrio').checked)$('dExtDet').classList.remove('hidden');
-      else{$('dExtDet').classList.add('hidden');$('cReintub').checked=false;hReintubUI(false);}
+      else $('dExtDet').classList.add('hidden');
     }
     function setExtTipo(t){
       _extTipoVal=t;
@@ -969,8 +980,8 @@
       setb('cExtOcurrio','bExtOcurrio',e.EXT_OCURRIO);hExt();
       if(e.EXT_TIPO)setExtTipo(e.EXT_TIPO);
       setv('fExtMotivo',e.EXT_MOTIVO);setv('fExtHora',e.EXT_HORA);
-      if(String(e.EXT_REINTUB)==='true'){$('cReintub').checked=true;hReintubUI(true);}
-      setv('fReintubHora',e.EXT_HORA);setv('fReintubSopPrev',e.EXT_PE_SOP);setv('fReintubRaz',e.EXT_REINTUB_RAZ);
+      if(String(e.EXT_REINTUB)==='true'){$('cReintub').checked=true;hReintubUI(true);$('secReintub').open=true;}
+      setv('fReintubHora',e.REINTUB_HORA);setv('fReintubSopPrev',e.EXT_PE_SOP);setv('fReintubRaz',e.EXT_REINTUB_RAZ);
 
       if(String(e.KTM_REALIZADA)==='true')setKTM('r');else if(String(e.KTM_SUSPENDIDA)==='true')setKTM('s');else setKTM('n');
       setv('fKTMniv',e.KTM_NIVEL_KTR);setv('fKTMt',e.KTM_TIEMPO_MIN);
@@ -1024,8 +1035,9 @@
       if($('cExtOcurrio').checked){
         const map={protocolo:'EXTUBACIÓN C/PROTOCOLO',sin_protocolo:'EXTUBACIÓN S/PROTOCOLO',accidental:'EXTUBACIÓN ACCIDENTAL',autoextubacion:'AUTOEXTUBACIÓN'};
         auto.push(map[_extTipoVal]||'EXTUBACIÓN C/PROTOCOLO');
-        if($('cReintub').checked)auto.push('REINTUBACIÓN');
       }
+      // Reintubación es independiente de la extubación (puede ser del turno siguiente)
+      if($('cReintub').checked)auto.push('REINTUBACIÓN');
       return Array.from(new Set([...(PROCS||[]),...auto]));
     }
 
@@ -1066,6 +1078,7 @@
         EXT_OCURRIO:$('cExtOcurrio').checked, EXT_TIPO:$('cExtOcurrio').checked?_extTipoVal:'', EXT_MOTIVO:$('fExtMotivo').value,
         EXT_HORA:$('fExtHora').value, EXT_REINTUB:$('cReintub').checked,
         EXT_REINTUB_RAZ:$('fReintubRaz').value, EXT_PE_SOP:$('fReintubSopPrev').value,
+        REINTUB_HORA:$('cReintub').checked?$('fReintubHora').value:'',
         N_REINTUB:_nReintub,
 
         KTM_REALIZADA:KTM==='r', KTM_SUSPENDIDA:KTM==='s', KTM_NO_REALIZADA:KTM==='n',
