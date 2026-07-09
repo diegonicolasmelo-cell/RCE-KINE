@@ -723,6 +723,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 <body>
 
 <div id="devbar" class="devbar" style="display:none">⚙️ Modo desarrollo — identidad simulada, sin login (AUTH_DEV_MODE)</div>
+<div id="clkWarn" style="display:none;background:#fee2e2;color:#991b1b;font-size:.78rem;text-align:center;padding:6px 10px;border-bottom:1px solid #fecaca;font-weight:600;"></div>
 
 <!-- LOADING --><!-- LOADING -->
 <div id="lov">
@@ -5262,9 +5263,31 @@ function hMonAvToggle(){
 function cerrarArcDet(){}
 
 //  INICIO
+//  CHEQUEO DE RELOJ — la fecha y el turno se calculan con el reloj del
+//  dispositivo; si difiere del servidor (hora o zona horaria mal
+//  configuradas), las evoluciones caerían en el turno equivocado.
+function chequearReloj(){
+  api('GET_FECHA_HOY',{}).then(r=>{
+    if(!r||!r.timestamp) return;
+    const sv=new Date(String(r.timestamp).replace(' ','T'));
+    if(isNaN(sv.getTime())) return;
+    const diffMin=Math.abs(Date.now()-sv.getTime())/60000;
+    if(diffMin<=5) return;
+    const b=$('clkWarn');
+    if(b){
+      b.textContent=`⚠️ El reloj de este equipo difiere del servidor en ~${Math.round(diffMin)} min `+
+        `(equipo: ${new Date().toLocaleString('es-CL')} · servidor Chile: ${r.timestamp}). `+
+        `Corrige la fecha/hora o la zona horaria del dispositivo — las evoluciones podrían quedar en el turno equivocado.`;
+      b.style.display='block';
+    }
+    toast('⚠️ Reloj del equipo desajustado respecto del servidor', 6000);
+  }).catch(()=>{});
+}
+
 window.onload = function() {
   initControls();
   initClock();
+  chequearReloj();
   loading(true,'Cargando datos del servidor...');
   api('WHOAMI',{}).then(w=>{
     YO=w||{};
