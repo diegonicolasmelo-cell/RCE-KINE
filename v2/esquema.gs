@@ -120,6 +120,18 @@ const _COLS_EVOLUCIONES = [
   ['KTM_BORG','texto'],                                       // S12: percepción de esfuerzo (Borg 0-10)
   ['MUE_HORA_TOMA','texto'],['MUE_CON_ATB','bool'],           // S13: orden CCAET (hora de toma, con antibiótico)
   ['VENT_FECHA_FILTRO','texto'],['VENT_FECHA_SONDA','texto'], // S11: mantención circuito cerrado (persisten turno a turno)
+  // — FSS-ICU por ítem, MRC por movimiento y CPAx (opcionales, jul-2026) —
+  ['EVAL_FSS_IT1','entero'],['EVAL_FSS_IT2','entero'],['EVAL_FSS_IT3','entero'],['EVAL_FSS_IT4','entero'],['EVAL_FSS_IT5','entero'],
+  //   FSS ítems 0-7: girar en cama / supino→sedente / sedente borde / sedente→bípedo / marcha
+  ['EVAL_MRC_D1','entero'],['EVAL_MRC_D2','entero'],['EVAL_MRC_D3','entero'],['EVAL_MRC_D4','entero'],['EVAL_MRC_D5','entero'],['EVAL_MRC_D6','entero'],
+  ['EVAL_MRC_I1','entero'],['EVAL_MRC_I2','entero'],['EVAL_MRC_I3','entero'],['EVAL_MRC_I4','entero'],['EVAL_MRC_I5','entero'],['EVAL_MRC_I6','entero'],
+  //   MRC 0-5 por movimiento (D=derecho, I=izquierdo): 1 abducción hombro, 2 flexión codo,
+  //   3 extensión muñeca, 4 flexión cadera, 5 extensión rodilla, 6 dorsiflexión tobillo
+  ['CPAX_IT1','entero'],['CPAX_IT2','entero'],['CPAX_IT3','entero'],['CPAX_IT4','entero'],['CPAX_IT5','entero'],
+  ['CPAX_IT6','entero'],['CPAX_IT7','entero'],['CPAX_IT8','entero'],['CPAX_IT9','entero'],['CPAX_IT10','entero'],
+  //   CPAx 0-5: 1 respiratorio, 2 tos, 3 movilidad en cama, 4 supino→sedente, 5 equilibrio sedente,
+  //   6 equilibrio bípedo, 7 sedente→bípedo, 8 transferencia cama→sillón, 9 marcha en el lugar, 10 prensión
+  ['CPAX_TOTAL','entero'],    // 0-50; solo se guarda con los 10 ítems completos
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -163,6 +175,9 @@ const ESQUEMA = {
     ['REINTUBACION','bool'],['BARTHEL_INGRESO','entero'],['BARTHEL_EGRESO','entero'],['FSS_EGRESO','entero'],
     ['MRC_SS_EGRESO','entero'],['FIRMA_RESPONSABLE','texto'],['AUTOR_EMAIL','email'],['OBSERVACIONES','texto'],
     ['TIMELINE_JSON','json'],['APNEA_JSON','json'],['BDT_JSON','json'],['FASE_FINAL','texto'],
+    // Interpretación de egreso (cortes configurables en CONFIG)
+    ['DAUCI','bool'],['MRC_INTERP','texto'],['FSS_INTERP','texto'],['DINAMO_INTERP','texto'],
+    ['DINAMO_EGRESO','decimal'],['CPAX_EGRESO','entero'],
   ]},
   KINESIOLOGOS: { headerRows: 1, cols: [
     ['FIRMA','texto'],['NOMBRE','texto'],['EMAIL','email'],['APOYO','bool'],['ACTIVO','bool'],
@@ -230,6 +245,20 @@ function esquemaObjetoAFila(hoja, obj) {
     if (v !== undefined && v !== null) fila[i] = v;
   }
   return fila;
+}
+
+/** Lee una clave de CONFIG (columna A=clave, B=valor). Devuelve porDefecto si no existe. */
+function leerConfig(clave, porDefecto) {
+  try {
+    const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
+    if (h && h.getLastRow() >= 2) {
+      const vals = h.getRange(2, 1, h.getLastRow() - 1, 2).getValues();
+      for (let i = 0; i < vals.length; i++) {
+        if (String(vals[i][0]).trim() === clave && String(vals[i][1]).trim() !== '') return String(vals[i][1]).trim();
+      }
+    }
+  } catch (e) {}
+  return porDefecto;
 }
 
 function _tz() {
@@ -312,6 +341,13 @@ function _sembrar(ss) {
     // DEBE quedar en FALSE en producción.
     ['AUTH_DEV_MODE', 'FALSE'],
     ['AUTH_DEV_FIRMA', 'DMV'],
+    // Interpretación clínica (cortes ajustables por el equipo sin tocar código)
+    ['CPAX_ACTIVO', 'TRUE'],        // FALSE oculta la sección CPAx del panel
+    ['CORTE_MRC_DAUCI', '48'],      // MRC-SS < corte = DAUCI
+    ['CORTE_MRC_SEVERA', '36'],     // MRC-SS < corte = DAUCI severa
+    ['CORTE_DINAMO_H', '11'],       // kg, hombres (Ali 2008)
+    ['CORTE_DINAMO_M', '7'],        // kg, mujeres
+    ['CORTE_FSS_INDEP', '27'],      // FSS-ICU >= corte = independencia funcional
   ];
   const cfgExist = _valoresCol(hCfg, 1, 2);
   cfgDefaults.forEach(kv => { if (cfgExist.indexOf(kv[0]) === -1) hCfg.appendRow(kv); });
@@ -382,7 +418,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 227) errs.push('EVOLUCIONES != 227 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 255) errs.push('EVOLUCIONES != 255 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

@@ -2036,6 +2036,83 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="col wa"><label>Excursión D (cm)</label><input type="number" id="fExcD" step="0.1"></div>
               <div class="col wa"><label>Excursión I (cm)</label><input type="number" id="fExcI" step="0.1"></div>
             </div>
+
+            <!-- FSS-ICU por ítem (opcional, colapsable) — misma pauta que la hoja física -->
+            <div style="border:1px solid #cffafe;border-radius:7px;overflow:hidden;margin-top:8px;">
+              <button type="button" onclick="hColToggle('dFssIt','sFssItArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#ecfeff;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#0e7490;">
+                <span>📝 FSS-ICU por ítem (opcional)</span><span id="sFssItArrow" style="font-size:.7rem;">▼</span>
+              </button>
+              <div id="dFssIt" class="hidden" style="padding:8px 10px;background:#fff;">
+                <div class="row" style="flex-wrap:wrap;margin-bottom:6px;">
+                  <div class="col wa"><label>1. Girar en cama</label><select id="fFssIt1" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                  <div class="col wa"><label>2. Supino → sedente</label><select id="fFssIt2" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                  <div class="col wa"><label>3. Sedente borde cama</label><select id="fFssIt3" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                  <div class="col wa"><label>4. Sedente → bípedo</label><select id="fFssIt4" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                  <div class="col wa"><label>5. Marcha</label><select id="fFssIt5" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                </div>
+                <div class="resumen" id="fssItSum" style="font-size:.75rem;color:var(--muted);"></div>
+              </div>
+            </div>
+
+            <!-- MRC-SS por movimiento (opcional, colapsable) — 6 movimientos × 2 hemicuerpos -->
+            <div style="border:1px solid #d9f99d;border-radius:7px;overflow:hidden;margin-top:6px;">
+              <button type="button" onclick="hColToggle('dMrcIt','sMrcItArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f7fee7;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#4d7c0f;">
+                <span>📝 MRC-SS por movimiento (opcional)</span><span id="sMrcItArrow" style="font-size:.7rem;">▼</span>
+              </button>
+              <div id="dMrcIt" class="hidden" style="padding:8px 10px;background:#fff;">
+                <table style="border-collapse:collapse;">
+                  <tr><th style="font-size:.68rem;color:var(--muted);text-align:left;padding:2px 6px;">Movimiento (0-5)</th>
+                      <th style="font-size:.68rem;color:var(--muted);padding:2px 6px;">Derecho</th>
+                      <th style="font-size:.68rem;color:var(--muted);padding:2px 6px;">Izquierdo</th></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">1. Abducción de hombro</td>
+                    <td><select id="fMrcD1" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI1" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">2. Flexión de codo</td>
+                    <td><select id="fMrcD2" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI2" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">3. Extensión de muñeca</td>
+                    <td><select id="fMrcD3" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI3" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">4. Flexión de cadera</td>
+                    <td><select id="fMrcD4" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI4" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">5. Extensión de rodilla</td>
+                    <td><select id="fMrcD5" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI5" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">6. Dorsiflexión de tobillo</td>
+                    <td><select id="fMrcD6" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI6" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                </table>
+                <div class="resumen" id="mrcItSum" style="font-size:.75rem;color:var(--muted);margin-top:6px;"></div>
+              </div>
+            </div>
+
+            <!-- CPAx (opcional, colapsable) — Chelsea Critical Care Physical Assessment tool.
+                 Se desactiva con CONFIG.CPAX_ACTIVO = FALSE. -->
+            <div id="secCpax" style="border:1px solid #ede9fe;border-radius:7px;overflow:hidden;margin-top:6px;">
+              <button type="button" onclick="hColToggle('dCpax','sCpaxArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f5f3ff;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#6d28d9;">
+                <span>🕸️ CPAx (0-50)</span><span id="sCpaxArrow" style="font-size:.7rem;">▼</span>
+              </button>
+              <div id="dCpax" class="hidden" style="padding:8px 10px;background:#fff;">
+                <div class="row" style="flex-wrap:wrap;margin-bottom:6px;">
+                  <div class="col wa" title="0 ventilación total → 5 espontánea sin O2"><label>1. Función respiratoria</label><select id="fCpax1" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 ausente → 5 tos efectiva independiente"><label>2. Tos</label><select id="fCpax2" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 independiente"><label>3. Movilidad en cama (girar)</label><select id="fCpax3" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 independiente"><label>4. Supino → sedente</label><select id="fCpax4" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 alcanza fuera de base sin apoyo"><label>5. Equilibrio sedente (dinámico)</label><select id="fCpax5" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 sin ayudas técnicas"><label>6. Equilibrio bípedo</label><select id="fCpax6" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 sin apoyo de brazos"><label>7. Sedente → bípedo</label><select id="fCpax7" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 independiente"><label>8. Transferencia cama → sillón</label><select id="fCpax8" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 sin asistencia ni ayudas"><label>9. Marcha en el lugar</label><select id="fCpax9" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 sin contracción → 5 ≈normal para edad/sexo (ajustar al % predicho)"><label>10. Prensión (% del predicho)</label><select id="fCpax10" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <button type="button" class="hbtn" style="background:#ede9fe;color:#6d28d9;border-color:#ddd6fe;" onclick="cpaxSugerir()">✨ Sugerir desde datos del turno</button>
+                  <div class="resumen" id="cpaxSum" style="flex:1;font-size:.75rem;color:var(--muted);"></div>
+                </div>
+                <div style="font-size:.68rem;color:var(--muted);margin-top:4px;">La sugerencia es una propuesta desde los datos ya registrados — el puntaje válido es el que confirma el kinesiólogo.</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2420,6 +2497,11 @@ function abrirPanel(id, esIng) {
   _vmHistFlag=false; _transIntubEsteTurno=false;
   hide('dMonAv'); const _ma=$('sMonAvArrow'); if(_ma) _ma.textContent='▼';
   hide('dLab'); const _la=$('sLabArrow'); if(_la) _la.textContent='▼';
+  ['dFssIt','sFssItArrow','dMrcIt','sMrcItArrow','dCpax','sCpaxArrow'].forEach((x,i)=>{
+    if(i%2===0) hide(x); else { const a=$(x); if(a) a.textContent='▼'; }
+  });
+  sumFSS(); sumMRC(); sumCPAX();
+  if(window.CFG && CFG.CPAX_ACTIVO===false) hide('secCpax'); else show('secCpax');
   if(SHIFT==='Noche') hide('fcEgrCard'); else show('fcEgrCard');
   // defaults
   cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS();
@@ -2666,6 +2748,10 @@ function fillForm(s) {
     chk('fBDTn',   _ex.EVAL_T_BDT_NEG);
     set('fPVA',     _ex.EVAL_T_PMANT_VA);
     set('fCuadD',   _ex.EVAL_T_CUAD_D);  set('fCuadI', _ex.EVAL_T_CUAD_I);
+    set('fFssIt1',_ex.EVAL_FSS_IT1); set('fFssIt2',_ex.EVAL_FSS_IT2); set('fFssIt3',_ex.EVAL_FSS_IT3); set('fFssIt4',_ex.EVAL_FSS_IT4); set('fFssIt5',_ex.EVAL_FSS_IT5);
+    set('fMrcD1',_ex.EVAL_MRC_D1); set('fMrcI1',_ex.EVAL_MRC_I1); set('fMrcD2',_ex.EVAL_MRC_D2); set('fMrcI2',_ex.EVAL_MRC_I2); set('fMrcD3',_ex.EVAL_MRC_D3); set('fMrcI3',_ex.EVAL_MRC_I3); set('fMrcD4',_ex.EVAL_MRC_D4); set('fMrcI4',_ex.EVAL_MRC_I4); set('fMrcD5',_ex.EVAL_MRC_D5); set('fMrcI5',_ex.EVAL_MRC_I5); set('fMrcD6',_ex.EVAL_MRC_D6); set('fMrcI6',_ex.EVAL_MRC_I6);
+    set('fCpax1',_ex.CPAX_IT1); set('fCpax2',_ex.CPAX_IT2); set('fCpax3',_ex.CPAX_IT3); set('fCpax4',_ex.CPAX_IT4); set('fCpax5',_ex.CPAX_IT5); set('fCpax6',_ex.CPAX_IT6); set('fCpax7',_ex.CPAX_IT7); set('fCpax8',_ex.CPAX_IT8); set('fCpax9',_ex.CPAX_IT9); set('fCpax10',_ex.CPAX_IT10);
+    sumFSS(); sumMRC(); sumCPAX();
     set('fHeckmatt',_ex.EVAL_T_HECKMATT);
     set('fFedD',    _ex.EVAL_T_FED_D);   set('fFedI',  _ex.EVAL_T_FED_I);
     set('fExcD',    _ex.EVAL_T_EXC_D);   set('fExcI',  _ex.EVAL_T_EXC_I);
@@ -2999,6 +3085,11 @@ function guardar() {
     EVAL_T_PMANT_VA:  v('fPVA'),
     EVAL_T_CUAD_D:n(v('fCuadD')), EVAL_T_CUAD_I:n(v('fCuadI')), EVAL_T_HECKMATT:v('fHeckmatt'),
     EVAL_T_FED_D:n(v('fFedD')), EVAL_T_FED_I:n(v('fFedI')), EVAL_T_EXC_D:n(v('fExcD')), EVAL_T_EXC_I:n(v('fExcI')),
+    EVAL_FSS_IT1:v('fFssIt1'), EVAL_FSS_IT2:v('fFssIt2'), EVAL_FSS_IT3:v('fFssIt3'), EVAL_FSS_IT4:v('fFssIt4'), EVAL_FSS_IT5:v('fFssIt5'),
+    EVAL_MRC_D1:v('fMrcD1'), EVAL_MRC_D2:v('fMrcD2'), EVAL_MRC_D3:v('fMrcD3'), EVAL_MRC_D4:v('fMrcD4'), EVAL_MRC_D5:v('fMrcD5'), EVAL_MRC_D6:v('fMrcD6'),
+    EVAL_MRC_I1:v('fMrcI1'), EVAL_MRC_I2:v('fMrcI2'), EVAL_MRC_I3:v('fMrcI3'), EVAL_MRC_I4:v('fMrcI4'), EVAL_MRC_I5:v('fMrcI5'), EVAL_MRC_I6:v('fMrcI6'),
+    CPAX_IT1:v('fCpax1'), CPAX_IT2:v('fCpax2'), CPAX_IT3:v('fCpax3'), CPAX_IT4:v('fCpax4'), CPAX_IT5:v('fCpax5'), CPAX_IT6:v('fCpax6'), CPAX_IT7:v('fCpax7'), CPAX_IT8:v('fCpax8'), CPAX_IT9:v('fCpax9'), CPAX_IT10:v('fCpax10'),
+    CPAX_TOTAL: (function(){ let s=0,nn=0; for(let i=1;i<=10;i++){ const x=v('fCpax'+i); if(x!==''){ s+=parseInt(x); nn++; } } return nn===10?s:''; })(),
     // ★ PVE diaria
     PVE_RESULTADO:   (document.querySelector('input[name="pveRes"]:checked')?.value)||'',
     PVE_FR_MOTIVOS:  JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
@@ -3260,6 +3351,7 @@ const REH_VARS = [
   { key: 'PAC_BARTHEL',    label: 'Barthel (0-100)',    color: '#1d4ed8', max:100 },
   { key: 'SED_S5Q',        label: 'S5Q (0-5)',          color: '#a16207', step:1, max:5 },
   { key: 'SED_GCS_TOT',    label: 'GCS total',          color: '#4f46e5', max:15 },
+  { key: 'CPAX_TOTAL',     label: 'CPAx (0-50)',        color: '#7c3aed', max:50 },
 ];
 
 function abrirTL(id) {
@@ -3326,7 +3418,8 @@ function imprimirHojaRHB(){
   const evals=[['MRC-ss','EVAL_T_MRC'],['FSS-ICU','EVAL_T_FSS'],['PIM','EVAL_T_PIM'],['PEM','EVAL_T_PEM'],
     ['Grosor cuádriceps D (mm)','EVAL_T_CUAD_D'],['Grosor cuádriceps I (mm)','EVAL_T_CUAD_I'],
     ['Índice de Heckmatt','EVAL_T_HECKMATT'],['FED D (%)','EVAL_T_FED_D'],['FED I (%)','EVAL_T_FED_I'],
-    ['Excursión D (cm)','EVAL_T_EXC_D'],['Excursión I (cm)','EVAL_T_EXC_I'],['Dinamometría (kg)','EVAL_T_DINAMO']];
+    ['Excursión D (cm)','EVAL_T_EXC_D'],['Excursión I (cm)','EVAL_T_EXC_I'],['Dinamometría (kg)','EVAL_T_DINAMO'],
+    ['CPAx (0-50)','CPAX_TOTAL']];
   let hEv='';
   evals.forEach(ed=>{
     const con=evos.filter(e=>e[ed[1]]!==''&&e[ed[1]]!==undefined&&e[ed[1]]!==null);
@@ -5467,6 +5560,88 @@ function setFasesDesde(jsonStr){
   renderFases();
 }
 
+//  Colapsable genérico (v2)
+function hColToggle(bodyId, arrowId){
+  const b=$(bodyId), a=$(arrowId); if(!b) return;
+  if(b.classList.contains('hidden')){ show(bodyId); if(a) a.textContent='▲'; }
+  else { hide(bodyId); if(a) a.textContent='▼'; }
+}
+
+//  FSS-ICU por ítem → total automático (válido solo con los 5 ítems)
+function sumFSS(){
+  const vals=[1,2,3,4,5].map(i=>v('fFssIt'+i));
+  const con=vals.filter(x=>x!=='');
+  const el=$('fssItSum'); if(!el) return;
+  if(!con.length){ el.textContent=''; return; }
+  const suma=con.reduce((a,x)=>a+parseInt(x),0);
+  if(con.length===5){
+    const t=$('fFSS'); if(t){ t.value=suma; interpFSS(); }
+    el.textContent=`Total FSS-ICU: ${suma}/35 (copiado al campo FSS)`;
+  } else {
+    el.textContent=`Parcial: ${suma} — faltan ${5-con.length} ítem(s) para el total`;
+  }
+}
+
+//  MRC-SS por movimiento → subtotales por hemicuerpo + total automático
+function sumMRC(){
+  const d=[1,2,3,4,5,6].map(i=>v('fMrcD'+i)), iz=[1,2,3,4,5,6].map(i=>v('fMrcI'+i));
+  const el=$('mrcItSum'); if(!el) return;
+  const sum=a=>a.filter(x=>x!=='').reduce((s,x)=>s+parseInt(x),0);
+  const nd=d.filter(x=>x!=='').length, ni=iz.filter(x=>x!=='').length;
+  if(!nd&&!ni){ el.textContent=''; return; }
+  let txt=`Derecho: ${sum(d)}/30 (${nd}/6) · Izquierdo: ${sum(iz)}/30 (${ni}/6)`;
+  if(nd===6&&ni===6){
+    const total=sum(d)+sum(iz);
+    const t=$('fMRC'); if(t){ t.value=total; interpMRC(); }
+    txt+=` · TOTAL: ${total}/60 (copiado al campo MRC)`;
+    const dif=Math.abs(sum(d)-sum(iz));
+    if(dif>=6) txt+=` · ⚠️ asimetría ${dif} pts`;
+  }
+  el.textContent=txt;
+}
+
+//  CPAx → total (0-50, válido solo con los 10 ítems)
+function sumCPAX(){
+  const vals=[]; for(let i=1;i<=10;i++) vals.push(v('fCpax'+i));
+  const con=vals.filter(x=>x!=='');
+  const el=$('cpaxSum'); if(!el) return;
+  if(!con.length){ el.textContent=''; return; }
+  const suma=con.reduce((a,x)=>a+parseInt(x),0);
+  el.textContent = con.length===10 ? `Total CPAx: ${suma}/50` : `Parcial: ${suma} (${con.length}/10 ítems)`;
+}
+
+//  Pre-llenado conservador del CPAx desde los datos ya registrados del turno.
+//  Solo rellena ítems VACÍOS; el kinesiólogo confirma o corrige.
+function cpaxSugerir(){
+  const sug={};
+  // 1. Función respiratoria (mapa sólido desde soporte/modo)
+  const sop=v('fSop'), modo=v('fModo');
+  if(sop==='VM') sug[1]=['ACVC','ACPC'].includes(modo)?1:2;
+  else if(sop==='VNI') sug[1]=2;
+  else if(sop==='CNAF') sug[1]=3;
+  else if(sop==='Oxigenoterapia') sug[1]=3;
+  else if(sop==='Ambiente') sug[1]=5;
+  // 2. Tos (grueso: asistencia de tos registrada / FEM si existe)
+  if($('cATos')?.checked) sug[2]=2;
+  else { const fem=parseFloat(v('fFEM')); if(!isNaN(fem)) sug[2]= fem>=4.5?4 : fem>=2.7?3 : fem>=1?2 : 1; }
+  // 3-9. Motores desde FSS por ítem (0-7 → 0-5) e hito motor
+  const f2c=x=>{ const n=parseInt(x); if(isNaN(n)) return null; return n===0?0:n===1?1:n<=3?2:n===4?3:n<=6?4:5; };
+  const map={3:'fFssIt1',4:'fFssIt2',5:'fFssIt3',7:'fFssIt4',9:'fFssIt5'};
+  Object.keys(map).forEach(k=>{ const c=f2c(v(map[k])); if(c!==null) sug[k]=c; });
+  const hito=parseInt(v('fNivelMotor'));
+  if(!isNaN(hito)){
+    if(sug[6]===undefined) sug[6]= hito>=6?4 : hito>=5?3 : hito>=4?2 : 0;
+    if(sug[8]===undefined) sug[8]= hito>=4?3 : hito>=3?2 : 0;
+  }
+  // 10. Prensión (grueso desde cortes DAUCI; el % predicho lo ajusta el kine)
+  const din=parseFloat(v('fPrension')), sx=v('fSexo');
+  if(!isNaN(din)&&sx){ const corte=sx==='M'?11:7; sug[10]= din<corte*0.5?1 : din<corte?2 : 3; }
+  let aplicadas=0;
+  Object.keys(sug).forEach(k=>{ const e=$('fCpax'+k); if(e&&e.value===''){ e.value=String(sug[k]); aplicadas++; } });
+  sumCPAX();
+  toast(aplicadas?`✨ ${aplicadas} sugerencia(s) aplicada(s) — revisa y corrige antes de guardar`:'Sin datos suficientes para sugerir (o ya estaba lleno)', 4200);
+}
+
 //  GSA / Laboratorio (v2) — colapsable + PaFi automática
 function hLabToggle(){
   const b=$('dLab'), a=$('sLabArrow'); if(!b) return;
@@ -5521,6 +5696,7 @@ window.onload = function() {
     if(YO.dev){ const d=$('devbar'); if(d) d.style.display='block'; }
   }).catch(()=>{});
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); }).catch(()=>{ FASES=[]; });
+  api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; }).catch(()=>{ window.CFG={}; });
   gs('GET_TODAS_CAMAS', {}, camas => {
     DB = camas || [];
     loadEvoSet(() => { if(window.Turnos) Turnos.init(); renderGrid(); loading(false); });

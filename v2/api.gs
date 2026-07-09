@@ -33,6 +33,10 @@ function api(accion, datos, token) {
       case 'GET_CATALOGO':     return ok(catalogo(datos.tipo || ''));
       case 'GET_FECHA_HOY':    return ok({ fecha: hoyISO(), timestamp: ahoraTS() });
       case 'GET_EVOS_DEL_DIA': return obtenerEvosDelDia(datos.fecha);
+      case 'GET_CONFIG_UI':    return ok({
+        CPAX_ACTIVO: leerConfig('CPAX_ACTIVO', 'TRUE') !== 'FALSE',
+        NUM_CAMAS: parseInt(leerConfig('NUM_CAMAS', '18')) || 18,
+      });
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 

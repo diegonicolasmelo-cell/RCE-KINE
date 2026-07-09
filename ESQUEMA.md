@@ -204,6 +204,24 @@ extubación). *Regla de extensión: toda columna nueva va SIEMPRE al final, nunc
      (se replican turno a turno).
 
 CAMAS_ESTADO suma 2 columnas al final: `CHARLSON` (44) e `INGRESO_TIPO` (45).
+
+**Extensión "evaluaciones por ítem + CPAx" (jul-2026)**:
+
+228–232. `EVAL_FSS_IT1..IT5` `entero` — FSS-ICU por ítem 0-7 (girar / supino→sedente /
+     sedente borde / sedente→bípedo / marcha). El total se auto-suma al campo FSS.
+233–244. `EVAL_MRC_D1..D6`, `EVAL_MRC_I1..I6` `entero` — MRC 0-5 por movimiento y
+     hemicuerpo (hombro, codo, muñeca, cadera, rodilla, tobillo); subtotales /30 y
+     total /60 auto-sumado, con alerta de asimetría.
+245–254. `CPAX_IT1..IT10` `entero` — CPAx 0-5 por dominio (respiratorio, tos, movilidad
+     en cama, supino→sedente, equilibrio sedente, equilibrio bípedo, sedente→bípedo,
+     transferencia, marcha en el lugar, prensión).
+255. `CPAX_TOTAL` `entero` — 0-50, solo con los 10 ítems completos. La sección CPAx se
+     activa/desactiva con `CONFIG.CPAX_ACTIVO`.
+
+ARCHIVO_PACIENTES suma 6 columnas: `DAUCI`, `MRC_INTERP`, `FSS_INTERP`, `DINAMO_INTERP`,
+`DINAMO_EGRESO`, `CPAX_EGRESO` — el egreso toma la última evaluación registrada del
+episodio y la interpreta con cortes configurables en CONFIG (`CORTE_MRC_DAUCI=48`,
+`CORTE_MRC_SEVERA=36`, `CORTE_DINAMO_H=11`, `CORTE_DINAMO_M=7`, `CORTE_FSS_INDEP=27`).
 desplazar los índices de datos ya escritos.*
 
 > **Total: 195 columnas**, todas nombradas, consultables y replicables. Eliminadas de v1 por
@@ -315,8 +333,8 @@ Ej.: *Diego Melo Villagrán, 34, 07/07/26* → **`070726Dmelov34`**.
 | CONFIG | 1 | 2 |
 | CATALOGOS | 1 | 4 |
 | CAMAS_ESTADO | 2 | 43 |
-| EVOLUCIONES | 3 | 227 |
-| EVOLUCIONES_ARCHIVO | 3 | 227 |
+| EVOLUCIONES | 3 | 255 |
+| EVOLUCIONES_ARCHIVO | 3 | 255 |
 | PROCEDIMIENTOS | 1 | 11 |
 | TIMELINE | 1 | 10 |
 | ARCHIVO_PACIENTES | 1 | 33 |

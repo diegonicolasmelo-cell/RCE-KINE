@@ -97,6 +97,37 @@ function ingresarPaciente(datos, ctx) {
 }
 
 // ── EGRESO / ALTA ──────────────────────────────────────────
+/**
+ * Interpretación de egreso con cortes configurables desde CONFIG
+ * (CORTE_MRC_DAUCI, CORTE_MRC_SEVERA, CORTE_DINAMO_H/M, CORTE_FSS_INDEP).
+ */
+function _interpEgreso(mrc, fss, dinamo, sexo) {
+  const out = { DAUCI: '', MRC_INTERP: '', FSS_INTERP: '', DINAMO_INTERP: '' };
+  const m = parseFloat(mrc);
+  if (!isNaN(m)) {
+    const cDauci = parseFloat(leerConfig('CORTE_MRC_DAUCI', '48'));
+    const cSev = parseFloat(leerConfig('CORTE_MRC_SEVERA', '36'));
+    out.DAUCI = m < cDauci;
+    out.MRC_INTERP = m < cSev ? ('DAUCI severa (<' + cSev + ')')
+                  : m < cDauci ? ('DAUCI (<' + cDauci + ')')
+                  : ('Sin DAUCI (\u2265' + cDauci + ')');
+  }
+  const f = parseFloat(fss);
+  if (!isNaN(f)) {
+    const cInd = parseFloat(leerConfig('CORTE_FSS_INDEP', '27'));
+    out.FSS_INTERP = f <= 10 ? 'Dependencia severa'
+                   : f <= 20 ? 'Dependencia moderada'
+                   : f < cInd ? 'Asistencia mínima'
+                   : ('Independencia funcional (\u2265' + cInd + ')');
+  }
+  const d = parseFloat(dinamo);
+  if (!isNaN(d) && (sexo === 'M' || sexo === 'F')) {
+    const corte = parseFloat(leerConfig(sexo === 'M' ? 'CORTE_DINAMO_H' : 'CORTE_DINAMO_M', sexo === 'M' ? '11' : '7'));
+    out.DINAMO_INTERP = d < corte ? ('DAUCI por dinamometría (<' + corte + ' kg)') : ('Normal (\u2265' + corte + ' kg)');
+  }
+  return out;
+}
+
 function darAltaPaciente(datos, ctx) {
   ctx = ctx || {};
   return conLock(() => {
@@ -120,6 +151,19 @@ function darAltaPaciente(datos, ctx) {
         if (esVerdadero(e.KTM_SUSPENDIDA)) turnosKTMC++;
       });
 
+      // Últimas evaluaciones registradas del episodio (si el egreso no las trae)
+      const ult = {};
+      evos.slice().sort((a, b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY))).forEach(e => {
+        ['EVAL_T_FSS', 'EVAL_T_MRC', 'EVAL_T_DINAMO', 'CPAX_TOTAL'].forEach(k => {
+          if (e[k] !== '' && e[k] !== undefined && e[k] !== null) ult[k] = e[k];
+        });
+      });
+      const fssEgr  = datos.fssEgreso   || ult.EVAL_T_FSS    || '';
+      const mrcEgr  = datos.mrcSsEgreso || ult.EVAL_T_MRC    || '';
+      const dinEgr  = datos.dinamoEgreso|| ult.EVAL_T_DINAMO || '';
+      const cpaxEgr = ult.CPAX_TOTAL || '';
+      const interp  = _interpEgreso(mrcEgr, fssEgr, dinEgr, cama.SEXO);
+
       repoInsertar('ARCHIVO_PACIENTES', {
         ID_ARCHIVO: uid('ARCH'), PATIENT_ID: pid, CAMA_ORIGEN: idCama, COD_PACIENTE: cama.COD_PACIENTE,
         FECHA_INGRESO: cama.FECHA_INGRESO, FECHA_EGRESO: fechaEgreso,
@@ -130,7 +174,10 @@ function darAltaPaciente(datos, ctx) {
         KTR_TOTAL: ktrTotal, TURNOS_VM: turnosVM, TURNOS_KTM: turnosKTM, TURNOS_KTMC: turnosKTMC,
         EXTUBACION_OK: esVerdadero(datos.extubacionOk), REINTUBACION: esVerdadero(datos.reintubacion),
         BARTHEL_INGRESO: cama.BARTHEL, BARTHEL_EGRESO: datos.barthelEgreso || '',
-        FSS_EGRESO: datos.fssEgreso || '', MRC_SS_EGRESO: datos.mrcSsEgreso || '',
+        FSS_EGRESO: fssEgr, MRC_SS_EGRESO: mrcEgr,
+        DINAMO_EGRESO: dinEgr, CPAX_EGRESO: cpaxEgr,
+        DAUCI: interp.DAUCI, MRC_INTERP: interp.MRC_INTERP,
+        FSS_INTERP: interp.FSS_INTERP, DINAMO_INTERP: interp.DINAMO_INTERP,
         FIRMA_RESPONSABLE: ctx.firma || datos.firmaKine || '', AUTOR_EMAIL: ctx.email || '',
         OBSERVACIONES: datos.observaciones || '', TIMELINE_JSON: cama.TIMELINE_JSON || '[]',
         APNEA_JSON: datos.apneaJson || '', BDT_JSON: datos.bdtJson || '', FASE_FINAL: datos.faseFinal || '',
