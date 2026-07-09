@@ -21,6 +21,11 @@ function guardarEvolucion(datos, ctx) {
       const p = turnoKey.split('-');
       const fecha = p[0] + '-' + p[1] + '-' + p[2];
       const turno = p[3] || 'Dia';
+      // El generador de texto y los cálculos leen FECHA/TURNO del payload:
+      // fijarlos ANTES (el cliente solo envía TURNO_KEY). Sin esto, las
+      // evoluciones de noche salían tituladas "TURNO DÍA".
+      datos.FECHA = fecha;
+      datos.TURNO = turno;
 
       const rc = obtenerCama(idCama);
       const cama = rc.ok ? rc.data : {};
