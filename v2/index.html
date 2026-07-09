@@ -249,8 +249,8 @@
           </div>
         </div>
 
-        <!-- PVE -->
-        <div class="sgrid">
+        <!-- PVE: solo aplica con vía aérea invasiva (TOT/TQT). En Natural no aparece. -->
+        <div class="sgrid vaInvasiva hidden">
           <div class="full"><label>PVE (prueba de ventilación espontánea) realizada hoy</label>
             <div class="seg sm" id="segPVE">
               <button type="button" data-v="si" onclick="hPVEtoggle('si')">Sí</button>
@@ -703,9 +703,18 @@
     // ── Cascadas y cálculos ──
     function cascadeVA(){
       const va=$('fVA').value, r=VIA_MAPS[va]||VIA_MAPS['Natural'];
+      const invasiva = (va==='TOT'||va==='TQT');
       document.querySelectorAll('.vaTOT').forEach(e=>e.classList.toggle('hidden',va!=='TOT'));
       document.querySelectorAll('.vaTQT').forEach(e=>e.classList.toggle('hidden',va!=='TQT'));
-      document.querySelectorAll('.vaInvasiva').forEach(e=>e.classList.toggle('hidden',va!=='TOT'&&va!=='TQT'));
+      document.querySelectorAll('.vaInvasiva').forEach(e=>e.classList.toggle('hidden',!invasiva));
+      // Si deja de ser invasiva, PVE y Extubación no aplican: se limpian para no
+      // guardar un valor "fantasma" que el usuario ya no ve en pantalla.
+      // Reintubación NUNCA se limpia acá: es independiente y debe seguir disponible
+      // aunque la vía aérea actual sea Natural (es justo el turno donde se reintuba).
+      if(!invasiva){
+        hPVEtoggleReset();
+        $('cExtOcurrio').checked=false;$('dExtDet').classList.add('hidden');
+      }
       // repoblar soporte según vía aérea
       const selSop=$('fSop'), antesSop=selSop.value;
       selSop.innerHTML='';r.sops.forEach(s=>{const o=document.createElement('option');o.textContent=s;selSop.appendChild(o);});
