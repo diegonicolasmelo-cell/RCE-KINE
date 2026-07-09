@@ -115,6 +115,23 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   else if (sopNew !== sopAnt || !cama.FECHA_INICIO_SOPORTE) fechaSoporte = fecha;
   else fechaSoporte = cama.FECHA_INICIO_SOPORTE;
 
+  // Fecha de inicio de vía aérea: se reinicia si cambia el TIPO de vía aérea
+  // (condicionante v1 #2 — "cambio de vía aérea recalcula días"). "Vía externa
+  // previa" (condicionante #3) pliega los días previos hacia atrás en el ancla,
+  // para que el contador arranque contando esos días ya transcurridos.
+  const vaNew = evo.VENT_VIA_AEREA || cama.VIA_AEREA || 'Natural';
+  const vaAnt = cama.VIA_AEREA || '';
+  const esVA = (vaNew !== 'Natural');
+  let fechaVA;
+  if (!esVA) {
+    fechaVA = '';
+  } else if (vaNew !== vaAnt || !cama.FECHA_INICIO_VA) {
+    const diasPrev = parseInt(evo.VA_EXTERNO_DIAS) || 0;
+    fechaVA = (esVerdadero(evo.VA_EXTERNO) && diasPrev > 0) ? _restarDias(fecha, diasPrev) : fecha;
+  } else {
+    fechaVA = cama.FECHA_INICIO_VA;
+  }
+
   const campos = {
     OCUPADA: true, STATUS_CAMA: 'Ocupada', PATIENT_ID: patientId, COD_PACIENTE: val(evo.COD_PACIENTE, cama.COD_PACIENTE),
     NOMBRE: val(evo.PAC_NOMBRE, cama.NOMBRE), EDAD: val(evo.PAC_EDAD, cama.EDAD), SEXO: val(evo.PAC_SEXO, cama.SEXO),
@@ -131,7 +148,7 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     FIRMA_KINE: val(evo.PLAN_FIRMA_KINE, cama.FIRMA_KINE), AUTOR_EMAIL: evo.AUTOR_EMAIL || '',
     ULTIMO_TURNO_KEY: turnoKey,
     FECHA_INGRESO: cama.FECHA_INGRESO || (esIngreso ? fecha : ''),
-    FECHA_INICIO_VA: cama.FECHA_INICIO_VA || ((evo.VENT_VIA_AEREA && evo.VENT_VIA_AEREA !== 'Natural') ? fecha : ''),
+    FECHA_INICIO_VA: fechaVA,
     FECHA_INICIO_SOPORTE: fechaSoporte,
   };
 

@@ -25,6 +25,7 @@
     .btn.g{background:#334155}.btn.g:hover{background:#475569}
     .btn.d{background:var(--danger)}.btn.d:hover{background:#b91c1c}
     .btn.o{background:#e2e8f0;color:#334155}.btn.o:hover{background:#cbd5e1}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
     .wrap{max-width:1200px;margin:16px auto;padding:0 14px;}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
     .bed{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);display:flex;flex-direction:column;gap:8px;min-height:150px;}
@@ -52,6 +53,7 @@
     label{font-size:.7rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px;}
     input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;font-family:inherit;background:#fff;}
     input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);border-color:transparent;}
+    input:disabled,select:disabled{background:#f1f5f9;color:#94a3b8;}
     .mfoot{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;}
     /* panel de evolución (slide-over) */
     #evPanel{position:fixed;top:0;right:-880px;width:min(860px,100vw);height:100vh;background:#f8fafc;z-index:60;box-shadow:-12px 0 40px rgba(0,0,0,.25);display:flex;flex-direction:column;transition:right .25s ease;}
@@ -66,6 +68,7 @@
     .sec>.shdr{padding:10px 14px;font-weight:700;font-size:.85rem;background:#fff;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);}
     .sec .sgrid{padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 12px;}
     .sec .sgrid .full{grid-column:1/-1}
+    .sec .subbox{grid-column:1/-1;border:1px dashed var(--line);border-radius:8px;padding:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px 10px;background:#fbfcfe;}
     details.sec>summary{padding:10px 14px;font-weight:700;font-size:.85rem;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;user-select:none;}
     details.sec>summary::after{content:'▸';margin-left:auto;color:var(--muted);transition:transform .15s;}
     details.sec[open]>summary::after{transform:rotate(90deg)}
@@ -79,10 +82,16 @@
     .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
     .seg button{border:none;background:#fff;padding:7px 14px;font-size:.8rem;cursor:pointer;font-family:inherit;color:#475569;}
     .seg button.on{background:var(--brand);color:#fff;font-weight:600;}
+    .seg button:disabled{opacity:.45;cursor:not-allowed}
+    .seg.sm button{padding:6px 10px;font-size:.75rem;}
     .pchip{display:inline-flex;align-items:center;gap:6px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:20px;padding:4px 10px;font-size:.76rem;}
     .pchip button{border:none;background:none;cursor:pointer;color:#1d4ed8;font-size:.9rem;padding:0;}
     .epfoot{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:12px 18px;display:flex;gap:10px;align-items:center;}
     #txtOut{width:100%;font-family:ui-monospace,Consolas,monospace;font-size:.78rem;min-height:130px;background:#f8fafc;}
+    .tip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:.7rem;font-weight:700;color:#fff;background:#94a3b8;cursor:help;flex-shrink:0;}
+    .tip.ok{background:var(--ok)} .tip.leve{background:#eab308} .tip.mod{background:var(--warn)} .tip.sev{background:#ea580c} .tip.tot{background:var(--danger)}
+    .warnmsg{grid-column:1/-1;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:8px 12px;font-size:.78rem;font-weight:600;}
+    .resumen{grid-column:1/-1;font-size:.78rem;color:#334155;background:#f8fafc;border-radius:8px;padding:8px 10px;min-height:20px;}
     /* loading + toast */
     #lo{position:fixed;inset:0;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;z-index:100;font-weight:600;color:#334155;}
     #lo.on{display:flex}
@@ -105,7 +114,7 @@
 
   <div class="wrap"><div class="grid" id="grid"></div></div>
 
-  <!-- Overlay modales chicos (ingreso / egreso) -->
+  <!-- Overlay modales chicos (ingreso / egreso / reintubación) -->
   <div id="ov" onclick="if(event.target===this)cerrarModal()">
     <div class="modal" id="mIngreso" style="display:none">
       <div class="mhdr"><h2>Ingresar paciente · Cama <span id="inCama"></span></h2><button class="x" onclick="cerrarModal()">×</button></div>
@@ -133,6 +142,23 @@
         <div class="full"><label>Observaciones</label><textarea id="egObs" rows="2"></textarea></div>
       </div>
       <div class="mfoot"><button class="btn o" onclick="cerrarModal()">Cancelar</button><button class="btn d" onclick="confirmarEgreso()">Confirmar egreso</button></div>
+    </div>
+    <div class="modal" id="mReintub" style="display:none">
+      <div class="mhdr"><h2>⚠️ Confirmar reintubación</h2></div>
+      <div class="mbody">
+        <div class="full" style="text-align:center;padding:6px 0;">
+          <div style="font-size:2rem;font-weight:800;color:var(--danger);" id="mrBadge">1</div>
+          <div class="meta">Reintubación a registrar</div>
+        </div>
+        <div class="full" style="font-size:.8rem;color:#475569;">
+          Se reiniciarán los contadores de vía aérea del episodio actual. Los días previos acumulados
+          se conservan.
+        </div>
+        <div class="full" style="font-size:.76rem;background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:8px 10px;">
+          Si fue un cambio accidental, presiona <b>Cancelar</b> para revertir sin afectar los contadores.
+        </div>
+      </div>
+      <div class="mfoot"><button class="btn o" onclick="_mrResolver(false)">Cancelar</button><button class="btn d" onclick="_mrResolver(true)">Confirmar reintubación</button></div>
     </div>
   </div>
 
@@ -170,9 +196,11 @@
           <div class="vaTOT hidden"><label>N° TOT</label><input id="fTOTn"></div>
           <div class="vaTOT hidden"><label>Fijación cm</label><input id="fTOTcm"></div>
           <div class="vaTQT hidden"><label>Tipo TQT</label><input id="fTQTt" placeholder="Shiley #7…"></div>
-          <div><label>Soporte</label><select id="fSop" onchange="cascadeSop()"><option>Ambiente</option><option>VM</option><option>VNI</option><option>CNAF</option><option>Oxigenoterapia</option></select></div>
+          <div><label>Soporte</label><select id="fSop" onchange="cascadeSop()"></select></div>
           <div><label>Modo</label><select id="fModo"></select></div>
           <div><label class="bool" id="bHAct" style="margin-top:18px"><input type="checkbox" id="fHAct" onchange="this.parentElement.classList.toggle('on',this.checked)"> Humid. activa</label></div>
+          <div class="vaInvasiva hidden"><label>UMA (asistencia manual)</label><select id="r_uma" onchange="hUMA()"><option value="">—</option><option>Rutinaria</option><option>Ocasional</option><option>Frecuente</option><option>Contraindicada</option></select></div>
+          <div class="vaInvasiva hidden" style="display:flex;align-items:flex-end;gap:6px;"><span class="tip" id="umaTip" title="">ⓘ</span></div>
         </div>
         <div class="sgrid" id="paramsGrid">
           <div class="pVM pVNI"><label>VT ml</label><input id="p_vt" type="number"></div>
@@ -201,11 +229,79 @@
             <div><label>Rise time</label><input id="p_rise" type="number" step="0.1"></div>
           </div>
         </details>
+
+        <div class="sgrid">
+          <div class="full" style="display:flex;gap:10px;align-items:center;">
+            <label class="bool" id="bVAExtPrev"><input type="checkbox" id="cVAExtPrev" onchange="hVAExtPrev()"> Llegó con vía aérea externa (otro centro)</label>
+            <input id="fVAExtDias" type="number" min="0" class="hidden" placeholder="días previos" style="width:140px">
+          </div>
+        </div>
+
+        <!-- Decanulación (solo TQT) -->
+        <div class="sgrid vaTQT hidden">
+          <div class="full"><label class="bool" id="bDecan"><input type="checkbox" id="cDecanOcurrio" onchange="hDecan()"> Ocurrió decanulación</label></div>
+          <div class="subbox hidden" id="dDecanDet">
+            <div><label>Queda con</label><select id="fDecanQueda"><option>Natural</option><option>Full Face</option><option>Oronasal</option><option>Oxigenoterapia</option></select></div>
+            <div><label>Flujo L/min</label><input id="fDecanFlujo" type="number"></div>
+            <div><label>SpO₂ %</label><input id="fDecanSpo2" type="number"></div>
+            <div class="full"><label>Detalle</label><input id="fDecanDetTxt"></div>
+            <div class="full"><label class="bool"><input type="checkbox" id="cRecanul"> Requirió recanulación</label></div>
+          </div>
+        </div>
+
+        <!-- PVE -->
+        <div class="sgrid">
+          <div class="full"><label>PVE (prueba de ventilación espontánea) realizada hoy</label>
+            <div class="seg sm" id="segPVE">
+              <button type="button" data-v="si" onclick="hPVEtoggle('si')">Sí</button>
+              <button type="button" data-v="no" class="on" onclick="hPVEtoggle('no')">No</button>
+            </div>
+          </div>
+          <div class="subbox hidden" id="dPVESi">
+            <div class="full"><label>Resultado</label>
+              <div class="seg sm" id="segPVEres">
+                <button type="button" data-v="superada" onclick="hPVEres('superada')">Superada</button>
+                <button type="button" data-v="frustra" onclick="hPVEres('frustra')">Fracasada</button>
+              </div>
+            </div>
+            <div class="full chips hidden" id="dPVEMotivos">
+              <span class="fchip" data-m="Hemodinámico" onclick="this.classList.toggle('on')">Hemodinámico</span>
+              <span class="fchip" data-m="Ventilatorio" onclick="this.classList.toggle('on')">Ventilatorio</span>
+              <span class="fchip" data-m="Neurológico" onclick="this.classList.toggle('on')">Neurológico</span>
+              <span class="fchip" data-m="Fatiga muscular" onclick="this.classList.toggle('on')">Fatiga muscular</span>
+            </div>
+            <div class="full hidden" id="dPVESC"><label>Razón (sin cambios)</label><input id="fPveSCraz"></div>
+          </div>
+        </div>
+
+        <!-- Extubación / Reintubación -->
+        <div class="sgrid vaInvasiva hidden">
+          <div class="full"><label class="bool" id="bExtOcurrio"><input type="checkbox" id="cExtOcurrio" onchange="hExt()"> Ocurrió extubación / autoextubación</label></div>
+          <div class="subbox hidden" id="dExtDet">
+            <div class="full">
+              <label>Tipo</label>
+              <div class="seg sm" id="segExtTipo">
+                <button type="button" data-v="protocolo" class="on" onclick="setExtTipo('protocolo')">C/protocolo</button>
+                <button type="button" data-v="sin_protocolo" onclick="setExtTipo('sin_protocolo')">S/protocolo</button>
+                <button type="button" data-v="accidental" onclick="setExtTipo('accidental')">Accidental</button>
+                <button type="button" data-v="autoextubacion" onclick="setExtTipo('autoextubacion')">Autoextubación</button>
+              </div>
+            </div>
+            <div class="full hidden" id="dExtMotivo"><label>Motivo / detalle</label><input id="fExtMotivo"></div>
+            <div class="full"><label>Hora</label><input id="fExtHora" type="time"></div>
+            <div class="full"><label class="bool" id="bReintub"><input type="checkbox" id="cReintub" onchange="hReintubCheck()"> Requirió reintubación</label></div>
+            <div class="subbox hidden" id="dReintubDet">
+              <div><label>Hora reintubación</label><input id="fReintubHora" type="time"></div>
+              <div><label>Soporte previo</label><input id="fReintubSopPrev" placeholder="ej. VM ACVC"></div>
+              <div class="full"><label>Motivo reintubación</label><input id="fReintubRaz"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🩺 Auscultación</div>
         <div class="sgrid">
-          <div><label>Murmullo pulmonar</label><select id="fMP" onchange="cascadeRuidos()"><option value="">—</option><option>conservado bilateral</option><option>disminuido bilateral</option><option>disminuido derecho</option><option>disminuido izquierdo</option><option>abolido</option></select></div>
+          <div><label>Murmullo pulmonar</label><select id="fMP"><option value="">—</option><option>conservado bilateral</option><option>disminuido bilateral</option><option>disminuido derecho</option><option>disminuido izquierdo</option><option>abolido</option></select></div>
           <div><label>Ruidos agregados</label><select id="fRuidos" onchange="cascadeRuidos()"><option value="">—</option><option>sin ruidos agregados</option><option>crepitantes</option><option>sibilancias</option><option>roncus</option><option>Otro</option></select></div>
           <div class="full ruidosOtro hidden"><label>Localización / detalle</label><input id="fRuidosLoc"></div>
         </div>
@@ -217,8 +313,8 @@
 
       <div class="sec" style="--ac:var(--ac-neuro)"><div class="shdr">🧠 Sedación y Conciencia</div>
         <div class="sgrid">
-          <div><label>Sedación</label><select id="fSed"><option>Sin sedación</option><option>Sedación superficial</option><option>Sedación moderada</option><option>Sedación profunda</option><option>Fuera de escalón</option></select></div>
-          <div><label>SAS</label><select id="fSAS"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+          <div><label>Sedación</label><select id="fSed" onchange="hSed()"><option>Sin sedación</option><option>Sedación superficial</option><option>Sedación moderada</option><option>Sedación profunda</option><option>Fuera de escalón</option></select></div>
+          <div id="gSAS" class="hidden"><label>SAS</label><select id="fSAS" onchange="autoCoopera()"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
           <div><label>GCS O</label><input id="fGO" type="number" min="1" max="4" oninput="calcGCS()"></div>
           <div><label>GCS V</label><input id="fGV" type="number" min="1" max="5" oninput="calcGCS()"></div>
           <div><label>GCS M</label><input id="fGM" type="number" min="1" max="6" oninput="calcGCS()"></div>
@@ -226,17 +322,21 @@
           <div><label>S5Q</label><select id="fS5Q"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
           <div><label>Cooperación</label><select id="fCoop"><option value="">—</option><option>Cooperador</option><option>Parcialmente cooperador</option><option>No cooperador</option></select></div>
           <div><label>CAM-ICU</label><select id="fCAM"><option value="">—</option><option>Positivo</option><option>Negativo</option><option>No evaluable</option></select></div>
-          <div><label class="bool" id="bBNM" style="margin-top:18px"><input type="checkbox" id="fBNM" onchange="this.parentElement.classList.toggle('on',this.checked)"> BNM</label></div>
+          <div><label class="bool" id="bBNM" style="margin-top:18px"><input type="checkbox" id="fBNM" onchange="this.parentElement.classList.toggle('on',this.checked);autoCoopera()"> BNM</label></div>
         </div>
       </div>
 
       <div class="sec" style="--ac:var(--ac-hemo)"><div class="shdr">❤️ Hemodinamia</div>
         <div class="sgrid">
           <div><label>Estado</label><select id="fHemo"><option>Estable</option><option>Inestable</option></select></div>
-          <div><label>DVA</label><select id="fDVA"><option>sin DVA</option><option>DVA dosis baja</option><option>DVA dosis media</option><option>DVA dosis alta</option></select></div>
-          <div><label>N° DVA</label><input id="fNDVA" type="number" min="0" max="5"></div>
+          <div><label>DVA</label><select id="fDVA" onchange="hMultiDVA()"><option>sin DVA</option><option>DVA dosis baja</option><option>DVA dosis media</option><option>DVA dosis alta</option></select></div>
+          <div id="wMultiDVA" class="hidden"><label class="bool" id="bMultiDVA" style="margin-top:18px"><input type="checkbox" id="cMultiDVA" onchange="hMultiDVA()"> Múltiples DVA</label></div>
+          <div id="gDVAcnt" class="hidden"><label>N° DVA</label><input id="fNDVA" type="number" min="0" max="5"></div>
+          <div class="full"><label class="bool" id="bHTrend"><input type="checkbox" id="cHTrend" onchange="hHTrend()"> Con tendencia</label></div>
+          <div id="gHTT" class="hidden"><label>Tipo de tendencia</label><select id="fHTT"><option value="">—</option><option>mejoría</option><option>empeoramiento</option></select></div>
         </div>
       </div>
+
       <div class="sec" style="--ac:var(--ac-kine)"><div class="shdr">🏃 Terapia Física — KTM</div>
         <div class="sgrid">
           <div class="full">
@@ -246,10 +346,35 @@
               <button type="button" data-k="s" onclick="setKTM('s')">Contraindicada</button>
             </div>
           </div>
+          <div class="warnmsg hidden" id="dKTMaetMsg">⚠️ KTM suspendida por AET Grupo III</div>
+
           <div class="ktmR hidden"><label>Nivel KTM</label><select id="fKTMniv"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
           <div class="ktmR hidden"><label>Tiempo min</label><input id="fKTMt" type="number"></div>
-          <div class="ktmS hidden full"><label>Razón contraindicación</label><input id="fKTMraz"></div>
+          <div class="ktmR hidden full">
+            <label class="bool" id="bKTMalert"><input type="checkbox" id="cKTMalert" onchange="this.parentElement.classList.toggle('on',this.checked);document.getElementById('dKTMalert').classList.toggle('hidden',!this.checked)"> ⚠️ Sesión suspendida por señal de alerta</label>
+          </div>
+          <div class="subbox hidden" id="dKTMalert">
+            <div><label>Categoría de alerta</label><select id="fKTMalertCat" onchange="updateKTMalertRaz()"><option value="">—</option><option>Respiratorio</option><option>Hemodinámico</option><option>Clínico</option></select></div>
+            <div class="full"><label>Criterio</label><select id="fKTMalertRaz"><option value="">-- Criterio --</option></select></div>
+          </div>
+
+          <div class="ktmS hidden full">
+            <div class="sgrid" style="padding:0">
+              <div><label>Tipo</label><select id="fKTMct" onchange="updateKTMcat()"><option value="">—</option><option>Absoluta</option><option>Relativa</option></select></div>
+              <div><label>Categoría</label><select id="fKTMcat" onchange="updateKTMraz()"><option value="">-- Cat. --</option></select></div>
+              <div class="full"><label>Razón</label><select id="fKTMraz"><option value="">-- Razón --</option></select></div>
+              <div class="full"><label>Razón manual (opcional)</label><input id="fKTMman" placeholder="si no calza con el listado"></div>
+            </div>
+          </div>
           <div class="ktmN hidden full"><label>Razón no realizada</label><input id="fKTMnoRaz" placeholder="opcional"></div>
+
+          <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:10px;">
+            <label class="bool" id="bAET"><input type="checkbox" id="cAET" onchange="hAET()"> Adecuación de Esfuerzo Terapéutico (AET) activa</label>
+          </div>
+          <div class="hidden" id="dAETnivel" style="display:flex;gap:8px;align-items:flex-end;">
+            <div style="flex:1"><label>Nivel AET</label><select id="fAETnivel" onchange="hAETtip()"><option value="">—</option><option>I</option><option>II</option><option>IIIA</option><option>IIIB</option><option>IIIC</option></select></div>
+            <span class="tip" id="aetTip" title="">ⓘ</span>
+          </div>
         </div>
       </div>
 
@@ -263,8 +388,43 @@
             <span class="fchip" data-r="ATOS" onclick="this.classList.toggle('on')">A. Tos</span>
             <span class="fchip" data-r="INHALO" onclick="this.classList.toggle('on')">Inhaloterapia</span>
           </div>
-          <div><label>Secreciones cant.</label><select id="fSecrQ"><option value="">—</option><option>escasas</option><option>moderadas</option><option>abundantes</option></select></div>
+          <div class="full">
+            <label>Secreciones cant.</label>
+            <div class="seg sm" id="segSecrQ">
+              <button type="button" data-v="" class="on" onclick="setSecrQ('')">—</button>
+              <button type="button" data-v="escasas" onclick="setSecrQ('escasas')">+</button>
+              <button type="button" data-v="moderadas" onclick="setSecrQ('moderadas')">++</button>
+              <button type="button" data-v="abundantes" onclick="setSecrQ('abundantes')">+++</button>
+            </div>
+          </div>
           <div><label>Característica</label><select id="fSecrC"><option value="">—</option><option>mucosas</option><option>mucopurulentas</option><option>purulentas</option><option>hemáticas</option></select></div>
+
+          <div class="full" style="border-top:1px solid var(--line);margin-top:4px;padding-top:10px;">
+            <label class="bool" id="bMue"><input type="checkbox" id="cMue" onchange="hMue()"> Muestras microbiológicas</label>
+          </div>
+          <div class="subbox hidden" id="dMue">
+            <div class="full chips">
+              <span class="fchip" data-t="CCAET" onclick="this.classList.toggle('on');hCultTec()">CCAET</span>
+              <span class="fchip" data-t="Mini Lab" onclick="this.classList.toggle('on');hCultTec()">Mini Lab</span>
+              <span class="fchip" data-t="Hisopado" onclick="this.classList.toggle('on');hCultTec()">Hisopado</span>
+            </div>
+            <div class="full hidden" id="dCultObj"><label>Objetivo del cultivo</label><input id="fCultObj"></div>
+            <div class="full"><label>Resultado (si ya está disponible)</label><input id="fCultVal"></div>
+          </div>
+
+          <details class="sec" style="--ac:var(--ac-resp);margin:8px 0 0;border-radius:10px;">
+            <summary>🧍 Posicionamiento</summary>
+            <div class="sgrid">
+              <label class="bool"><input type="checkbox" id="cPosSed" onchange="hPos()"> Sedente &gt;45°</label>
+              <label class="bool"><input type="checkbox" id="cPosDCLD" onchange="hPos()"> DCL derecho</label>
+              <label class="bool"><input type="checkbox" id="cPosDCLI" onchange="hPos()"> DCL izquierdo</label>
+              <label class="bool"><input type="checkbox" id="cProno" onchange="hPosEspecial('prono')"> Prono</label>
+              <label class="bool"><input type="checkbox" id="cSupino" onchange="hPosEspecial('supino')"> Supinación</label>
+              <div class="hidden" id="dPronoHora"><label>Hora inicio prono</label><input id="fPronoHora" type="time"></div>
+              <div class="hidden" id="dSupinoHora"><label>Hora inicio supinación</label><input id="fSupinoHora" type="time"></div>
+              <div class="resumen" id="posResumen">Sin posicionamiento especial registrado.</div>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -273,14 +433,14 @@
           <div class="full" style="display:flex;gap:8px;">
             <select id="procSel" style="flex:1">
               <option value="">— agregar procedimiento —</option>
-              <option>INTUBACIÓN</option><option>PVE</option><option>EXTUBACIÓN C/PROTOCOLO</option><option>EXTUBACIÓN S/PROTOCOLO</option>
-              <option>AUTOEXTUBACIÓN</option><option>REINTUBACIÓN</option><option>TQT</option><option>CAMBIO TQT</option><option>DECANULACIÓN</option>
-              <option>PRONO</option><option>SUPINO</option><option>CULTIVO DE SECRECIONES</option><option>IMAGENOLOGÍA</option><option>ECOGRAFÍA</option>
+              <option>INTUBACIÓN</option><option>TQT</option><option>CAMBIO TQT</option>
+              <option>PRONO</option><option>SUPINO</option><option>IMAGENOLOGÍA</option><option>ECOGRAFÍA</option>
               <option>TEST APNEA</option><option>PABELLÓN</option><option>EMS</option><option>IMT</option><option>RCP</option>
               <option>Hito Motor 1</option><option>Hito Motor 2</option><option>Hito Motor 3</option><option>Hito Motor 4</option><option>Hito Motor 5</option>
             </select>
             <button class="btn o" type="button" onclick="addProc()">＋</button>
           </div>
+          <div class="full meta">Extubación/PVE/reintubación/decanulación/cultivos se agregan solos según lo que marques arriba.</div>
           <div class="full chips" id="procChips"></div>
         </div>
       </div>
@@ -339,8 +499,13 @@
       setTimeout(()=>{el.style.transition='opacity .3s';el.style.opacity='0';setTimeout(()=>el.remove(),300);},3000);}
     function hoy(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
     function turnoAuto(){const h=new Date().getHours();return (h>=8&&h<20)?'Dia':'Noche';}
-    function toggleTurno(){TURNO=TURNO==='Dia'?'Noche':'Dia';pintaTurno();}
+    function toggleTurno(){TURNO=TURNO==='Dia'?'Noche':'Dia';pintaTurno();aplicarVisibilidadTurno();}
     function pintaTurno(){$('turnoChip').textContent=TURNO==='Dia'?'☀️ Día':'🌙 Noche';}
+    // Evaluación funcional (RHB) solo se registra de día (condicionante v1: hEgr)
+    function aplicarVisibilidadTurno(){
+      const el=$('secEval'); if(!el) return;
+      el.classList.toggle('hidden', TURNO==='Noche');
+    }
 
     // ── Modales chicos ──
     function abrirModal(id){document.querySelectorAll('#ov .modal').forEach(m=>m.style.display='none');$(id).style.display='block';$('ov').classList.add('on');}
@@ -427,9 +592,60 @@
       loading(false);
     }
 
+    // ── Modal de confirmación de reintubación (Promise) ──
+    let _mrResolver=null, _nReintub=0;
+    function confirmarReintubacion(nNuevo){
+      return new Promise(res=>{
+        $('mrBadge').textContent=nNuevo;
+        abrirModal('mReintub');
+        _mrResolver=ok=>{ cerrarModal(); _mrResolver=null; res(ok); };
+      });
+    }
+    // exponer como función global usada por los botones del modal
+    window._mrResolver=(ok)=>{ if(typeof _mrResolver==='function') _mrResolver(ok); };
+
     // ═══ PANEL DE EVOLUCIÓN ═══
-    const MODOS={VM:['ACVC','ACPC','CPAP/PS','SIMV','PAV','Otro'],VNI:['CPAP','S/T','AVAPS'],
-      CNAF:['CNAF'],Oxigenoterapia:['Mascarilla','Naricera','Tubo T','HME','Otro'],Ambiente:['Sin soporte']};
+
+    // Vía aérea → soporte válido → modo válido (mapa real de v1: VMAPS)
+    const VIA_MAPS={
+      'Natural':  {sops:['Ambiente','CNAF','Oxigenoterapia'], modos:{'Ambiente':['Sin soporte'],'CNAF':['CNAF'],'Oxigenoterapia':['Mascarilla','Naricera','NRC','MMV']}},
+      'TOT':      {sops:['VM','Oxigenoterapia'],              modos:{'VM':['ACVC','ACPC','CPAP/PS'],'Oxigenoterapia':['HME','Tubo T','CNAF']}},
+      'TQT':      {sops:['VM','VNI','Oxigenoterapia'],        modos:{'VM':['ACVC','ACPC','CPAP/PS'],'VNI':['CPAP','S/T','AVAPS'],'Oxigenoterapia':['HME','Tubo T','CNAF']}},
+      'Full Face':{sops:['VNI'],                              modos:{'VNI':['CPAP','S/T','AVAPS']}},
+      'Oronasal': {sops:['VNI'],                              modos:{'VNI':['CPAP','S/T','AVAPS']}},
+    };
+    // Catálogos clínicos reales (portados de v1) para las cascadas de KTM/AET
+    const KTMmap={
+      'Absoluta':{
+        'Hemodinámica':['Isquemia miocárdica <24h','FC <40 o >130 lpm','PAM <60 mmHg','Hb <7 g/dl','Plaquetas <20.000','Dopamina >10 mcg/kg/min','Noradrenalina >0.3 mcg/kg/min'],
+        'Ventilatoria':['SpO₂ <90% con FiO₂ >0.6','PEEP >14 cmH₂O','FR >40 resp/min'],
+        'Metabólica':['Temperatura ≥38.5°C','Glicemia <70 o >200 mg/dl'],
+        'Neurológica':['Agitación psicomotora peligrosa (SAS >5)','Inestabilidad neuroquirúrgica','PIC >20 mmHg','Glasgow <8 sin control'],
+        'Otra':['CVC/línea arterial insegura','ELP alterado','KTMC manual'],
+      },
+      'Relativa':{
+        'Hemodinámica':['PAM >110 mmHg','Arritmia activa','DVA dosis alta'],
+        'Musculoesquelética':['Fracturas inestables'],
+        'Clínica':['Alteración nivel de consciencia','Diaforesis','Cambios coloración de piel','Dolor de difícil control'],
+        'Otra':['Decisión médica','Fatiga muscular severa','Secreciones abundantes no controladas'],
+      },
+    };
+    const KTM_ALERT_MAP={
+      'Respiratorio':['Mala sincronía paciente-ventilador','SpO₂ <90% con FiO₂ ≥60%','FR >40 resp/min'],
+      'Hemodinámico':['PAM <65 mmHg','FC <40 o >130 lpm','Dolor precordial','ECG alterado','SvO₂ <65%','Noradrenalina ≥0.3 mcg/kg/min','Prueba tolerancia ortostática (+)'],
+      'Clínico':['Diaforesis','Cambios coloración piel','Náuseas / vómitos','Mareo','Dolor de difícil control','Decisión médica'],
+    };
+    const _AET_TIPS={
+      'I':    ['Soporte Total','ok'],
+      'II':   ['Soporte Total con orden de no RCP','leve'],
+      'IIIA': ['No instauración de medidas invasivas','mod'],
+      'IIIB': ['No instauración de medidas adicionales de ninguna clase','sev'],
+      'IIIC': ['Retiro de todas las medidas','tot'],
+    };
+    const _UMA_TIPS={
+      'Rutinaria':'Uso habitual, sin restricción','Ocasional':'Solo si es necesario','Frecuente':'Requiere vigilancia estrecha','Contraindicada':'No usar asistencia manual',
+    };
+    const _UMA_CLS={'Rutinaria':'ok','Ocasional':'leve','Frecuente':'mod','Contraindicada':'tot'};
 
     async function abrirEvo(id){
       EVO_CAMA=id;PROCS=[];FASES_SEL=new Set();
@@ -440,7 +656,7 @@
       $('evSub').textContent=`Cama ${id} · ${TURNO==='Dia'?'☀️':'🌙'} ${hoy()} · ${c.COD_PACIENTE||''}`;
       $('repBar').classList.remove('on');$('secTxt').style.display='none';
       $('evEstado').textContent='Cargando…';
-      renderFases();renderProcs();
+      renderFases();renderProcs();aplicarVisibilidadTurno();
       // Precarga instantánea con lo que ya tenemos en memoria (sin esperar al servidor).
       fillDesdeCama(c);
       // Abrir el panel YA — no bloquear la apertura con la llamada de red.
@@ -461,22 +677,38 @@
 
     function limpiarForm(){
       document.querySelectorAll('#evPanel input:not([readonly])').forEach(i=>{if(i.type==='checkbox')i.checked=false;else i.value='';});
-      document.querySelectorAll('#evPanel select').forEach(s=>s.selectedIndex=0);
+      document.querySelectorAll('#evPanel select').forEach(s=>{if(s.id!=='fSop'&&s.id!=='fModo')s.selectedIndex=0;});
       document.querySelectorAll('#evPanel .bool').forEach(b=>b.classList.remove('on'));
-      document.querySelectorAll('#evPanel .fchip[data-r]').forEach(c=>c.classList.remove('on'));
-      $('fPI').value='';$('fGT').value='';setKTM('n');cascadeVA();cascadeSop();
+      document.querySelectorAll('#evPanel .fchip[data-r],#evPanel .fchip[data-m],#evPanel .fchip[data-t]').forEach(c=>c.classList.remove('on'));
+      document.querySelectorAll('#evPanel input[type=checkbox]').forEach(c=>{c.disabled=false;});
+      $('fPI').value='';$('fGT').value='';setKTM('n');
+      _nReintub=0;
+      cascadeVA();
+      hSed();hMultiDVA();hHTrend();hVAExtPrev();hDecan();hExt();hMue();hAET();
+      setSecrQ('');
+      hPVEtoggleReset();
+      _updatePosResumen();
       document.querySelectorAll('#evPanel details').forEach(d=>d.open=false);
     }
     // ── Cascadas y cálculos ──
     function cascadeVA(){
-      const va=$('fVA').value;
+      const va=$('fVA').value, r=VIA_MAPS[va]||VIA_MAPS['Natural'];
       document.querySelectorAll('.vaTOT').forEach(e=>e.classList.toggle('hidden',va!=='TOT'));
       document.querySelectorAll('.vaTQT').forEach(e=>e.classList.toggle('hidden',va!=='TQT'));
+      document.querySelectorAll('.vaInvasiva').forEach(e=>e.classList.toggle('hidden',va!=='TOT'&&va!=='TQT'));
+      // repoblar soporte según vía aérea
+      const selSop=$('fSop'), antesSop=selSop.value;
+      selSop.innerHTML='';r.sops.forEach(s=>{const o=document.createElement('option');o.textContent=s;selSop.appendChild(o);});
+      if(antesSop&&r.sops.includes(antesSop))selSop.value=antesSop;
+      cascadeSop();
+      hVAExtPrev();
     }
-    function cascadeSop(keepModo){
-      const sop=$('fSop').value, sel=$('fModo'), antes=sel.value;
-      sel.innerHTML='';(MODOS[sop]||['Sin soporte']).forEach(m=>{const o=document.createElement('option');o.textContent=m;sel.appendChild(o);});
-      if(keepModo&&antes){for(const o of sel.options){if(o.value===antes){sel.value=antes;break;}}}
+    function cascadeSop(){
+      const va=$('fVA').value, sop=$('fSop').value, sel=$('fModo'), antes=sel.value;
+      const r=VIA_MAPS[va]||VIA_MAPS['Natural'];
+      const modos=(r.modos&&r.modos[sop])||['Sin soporte'];
+      sel.innerHTML='';modos.forEach(m=>{const o=document.createElement('option');o.textContent=m;sel.appendChild(o);});
+      if(antes&&modos.includes(antes))sel.value=antes;
       const cls={'VM':'pVM','VNI':'pVNI','CNAF':'pCNAF','Oxigenoterapia':'pO2','Ambiente':'pAmb'}[sop]||'pAmb';
       document.querySelectorAll('#paramsGrid > div').forEach(d=>d.classList.toggle('hidden',!d.classList.contains(cls)));
     }
@@ -493,6 +725,171 @@
       const o=+$('fGO').value||0,v=+$('fGV').value||0,m=+$('fGM').value||0;
       $('fGT').value=(o&&v&&m)?(o+v+m):'';
     }
+    // Sedación: SAS solo visible si hay sedación activa (condicionante hSed)
+    function hSed(){
+      const s=$('fSed').value;
+      if(s!=='Sin sedación'){$('gSAS').classList.remove('hidden');}
+      else{$('fSAS').value='';$('gSAS').classList.add('hidden');}
+      autoCoopera();
+    }
+    // BNM o SAS=1 → auto-GCS 1/1/1 bloqueado (condicionante autoCoopera)
+    function autoCoopera(){
+      const bnm=$('fBNM').checked, sas=parseInt($('fSAS').value)||0;
+      const forzar=bnm||sas===1;
+      ['fGO','fGV','fGM'].forEach(id=>{
+        const e=$(id);
+        if(forzar){e.value='1';e.disabled=true;}
+        else{e.disabled=false;}
+      });
+      calcGCS();
+    }
+    // Hemodinamia: multi-DVA y tendencia (condicionantes hMultiDVA/hHTrend)
+    function hMultiDVA(){
+      const d=$('fDVA').value, m=$('cMultiDVA');
+      if(d!=='sin DVA'){
+        $('wMultiDVA').classList.remove('hidden');
+        if(m&&m.checked)$('gDVAcnt').classList.remove('hidden');else $('gDVAcnt').classList.add('hidden');
+      }else{
+        $('wMultiDVA').classList.add('hidden');
+        if(m)m.checked=false;
+        $('gDVAcnt').classList.add('hidden');
+      }
+    }
+    function hHTrend(){
+      if($('cHTrend').checked)$('gHTT').classList.remove('hidden');else{$('fHTT').value='';$('gHTT').classList.add('hidden');}
+    }
+    // Vía externa previa (condicionante hVAExterno/hVAExtPrev)
+    function hVAExtPrev(){
+      const va=$('fVA').value, box=$('bVAExtPrev');
+      box.classList.toggle('hidden', va==='Natural');
+      const on=$('cVAExtPrev').checked && va!=='Natural';
+      $('fVAExtDias').classList.toggle('hidden', !on);
+      if(!on)$('fVAExtDias').value='';
+    }
+    // Decanulación (condicionante hDecan) — solo aplica con TQT
+    function hDecan(){
+      if($('cDecanOcurrio').checked)$('dDecanDet').classList.remove('hidden');
+      else $('dDecanDet').classList.add('hidden');
+    }
+    // PVE (condicionantes hPVEtoggle/hPVEres)
+    let _pveVal='no', _pveRes='';
+    function hPVEtoggleReset(){_pveVal='no';_pveRes='';setPVEButtons();$('dPVESi').classList.add('hidden');}
+    function hPVEtoggle(v){
+      _pveVal=(_pveVal===v)?'no':v;
+      setPVEButtons();
+      if(_pveVal==='si'){$('dPVESi').classList.remove('hidden');}
+      else{$('dPVESi').classList.add('hidden');_pveRes='';setPVEResButtons();$('dPVEMotivos').classList.add('hidden');$('dPVESC').classList.add('hidden');}
+    }
+    function setPVEButtons(){document.querySelectorAll('#segPVE button').forEach(b=>b.classList.toggle('on',b.dataset.v===_pveVal));}
+    function hPVEres(v){
+      _pveRes=v;setPVEResButtons();
+      if(v==='frustra'){$('dPVEMotivos').classList.remove('hidden');$('dPVESC').classList.add('hidden');}
+      else{$('dPVEMotivos').classList.add('hidden');$('dPVESC').classList.remove('hidden');}
+    }
+    function setPVEResButtons(){document.querySelectorAll('#segPVEres button').forEach(b=>b.classList.toggle('on',b.dataset.v===_pveRes));}
+    // Extubación / Reintubación (condicionantes hExt/hExtTipo/hReintubCheck)
+    let _extTipoVal='protocolo';
+    function hExt(){
+      if($('cExtOcurrio').checked)$('dExtDet').classList.remove('hidden');
+      else{$('dExtDet').classList.add('hidden');$('cReintub').checked=false;hReintubUI(false);}
+    }
+    function setExtTipo(t){
+      _extTipoVal=t;
+      document.querySelectorAll('#segExtTipo button').forEach(b=>b.classList.toggle('on',b.dataset.v===t));
+      $('dExtMotivo').classList.toggle('hidden', t==='protocolo');
+    }
+    async function hReintubCheck(){
+      const checked=$('cReintub').checked;
+      if(checked){
+        const ok=await confirmarReintubacion(_nReintub+1);
+        if(ok){_nReintub++;hReintubUI(true);}
+        else{$('cReintub').checked=false;}
+      }else{
+        hReintubUI(false);
+      }
+    }
+    function hReintubUI(on){$('dReintubDet').classList.toggle('hidden',!on);}
+    // KTM contraindicación en cascada (condicionantes updateKTMcat/updateKTMraz)
+    function updateKTMcat(){
+      const t=$('fKTMct').value, s=$('fKTMcat');
+      s.innerHTML='<option value="">-- Cat. --</option>';
+      if(KTMmap[t])Object.keys(KTMmap[t]).forEach(k=>{const o=document.createElement('option');o.textContent=k;s.appendChild(o);});
+      $('fKTMraz').innerHTML='<option value="">-- Razón --</option>';
+    }
+    function updateKTMraz(){
+      const t=$('fKTMct').value, c=$('fKTMcat').value, s=$('fKTMraz');
+      s.innerHTML='<option value="">-- Razón --</option>';
+      ((KTMmap[t]||{})[c]||[]).forEach(r=>{const o=document.createElement('option');o.textContent=r;s.appendChild(o);});
+    }
+    // Alerta de suspensión durante sesión (condicionante updateKTMalertRaz)
+    function updateKTMalertRaz(){
+      const cat=$('fKTMalertCat').value, s=$('fKTMalertRaz');
+      s.innerHTML='<option value="">-- Criterio --</option>';
+      (KTM_ALERT_MAP[cat]||[]).forEach(r=>{const o=document.createElement('option');o.textContent=r;s.appendChild(o);});
+    }
+    // AET (condicionantes hAET/hAETtip/_aetKTMsuspend)
+    function hAET(){
+      if($('cAET').checked){$('dAETnivel').classList.remove('hidden');hAETtip();}
+      else{$('dAETnivel').classList.add('hidden');$('fAETnivel').value='';_aetKTMsuspend(false);}
+    }
+    function hAETtip(){
+      const el=$('aetTip'), niv=$('fAETnivel').value, r=_AET_TIPS[niv];
+      el.className='tip'+(r?(' '+r[1]):'');
+      el.title=r?r[0]:'';
+      _aetKTMsuspend(niv==='IIIA'||niv==='IIIB'||niv==='IIIC');
+    }
+    function _aetKTMsuspend(on){
+      const br=document.querySelector('#segKTM button[data-k="r"]'), bn=document.querySelector('#segKTM button[data-k="n"]');
+      if(on){
+        setKTM('s');
+        if(br)br.disabled=true; if(bn)bn.disabled=true;
+        $('dKTMaetMsg').classList.remove('hidden');
+      }else{
+        if(br)br.disabled=false; if(bn)bn.disabled=false;
+        $('dKTMaetMsg').classList.add('hidden');
+      }
+    }
+    // UMA tooltip (condicionante hUMA)
+    function hUMA(){
+      const v=$('r_uma').value, el=$('umaTip');
+      el.className='tip'+(_UMA_CLS[v]?(' '+_UMA_CLS[v]):'');
+      el.title=_UMA_TIPS[v]||'';
+    }
+    // Muestras microbiológicas (condicionante hMue) + técnica especial → objetivo (hCultTec)
+    function hMue(){
+      if($('cMue').checked)$('dMue').classList.remove('hidden');else $('dMue').classList.add('hidden');
+    }
+    function hCultTec(){
+      const tecs=Array.from(document.querySelectorAll('#dMue .fchip[data-t].on')).map(c=>c.dataset.t);
+      const needObj=tecs.some(t=>['Mini Lab','Hisopado'].includes(t));
+      $('dCultObj').classList.toggle('hidden', !needObj);
+    }
+    // Posicionamiento (condicionantes hPos/hPosEspecial/_updatePosResumen)
+    function hPos(){_updatePosResumen();}
+    function hPosEspecial(tipo){
+      const checked=tipo==='prono'?$('cProno').checked:$('cSupino').checked;
+      if(tipo==='prono'){
+        $('dPronoHora').classList.toggle('hidden', !checked);
+        if(checked&&!$('fPronoHora').value){const d=new Date();$('fPronoHora').value=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+      }else{
+        $('dSupinoHora').classList.toggle('hidden', !checked);
+        if(checked&&!$('fSupinoHora').value){const d=new Date();$('fSupinoHora').value=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+      }
+      _updatePosResumen();
+    }
+    function _updatePosResumen(){
+      const parts=[];
+      if($('cPosSed').checked)parts.push('Sedente >45°');
+      if($('cPosDCLD').checked)parts.push('DCL derecho');
+      if($('cPosDCLI').checked)parts.push('DCL izquierdo');
+      if($('cProno').checked)parts.push('Prono'+($('fPronoHora').value?' desde '+$('fPronoHora').value:''));
+      if($('cSupino').checked)parts.push('Supinación'+($('fSupinoHora').value?' desde '+$('fSupinoHora').value:''));
+      $('posResumen').textContent=parts.length?parts.join(' · '):'Sin posicionamiento especial registrado.';
+    }
+    // Secreciones cantidad — semáforo (condicionante hSecrQty)
+    let _secrQty='';
+    function setSecrQ(v){_secrQty=v;document.querySelectorAll('#segSecrQ button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));}
+
     // ── Fases ──
     function renderFases(){
       const w=$('faseChips');w.innerHTML='';
@@ -528,9 +925,13 @@
     }
     // Replica del turno previo: estado clínico SÍ; acciones del turno NO (KTM, KTR, procs, eval).
     function fillReplica(p){
-      setv('fSed',p.SED_TIPO);setv('fSAS',p.SED_SAS);setv('fGO',p.SED_GCS_O);setv('fGV',p.SED_GCS_V);setv('fGM',p.SED_GCS_M);calcGCS();
-      setv('fS5Q',p.SED_S5Q);setv('fCoop',p.SED_COOPERACION);setv('fCAM',p.SED_CAM_ICU);setb('fBNM','bBNM',p.SED_BNM);
+      setv('fSed',p.SED_TIPO);hSed();setv('fSAS',p.SED_SAS);setv('fGO',p.SED_GCS_O);setv('fGV',p.SED_GCS_V);setv('fGM',p.SED_GCS_M);calcGCS();
+      setv('fS5Q',p.SED_S5Q);setv('fCoop',p.SED_COOPERACION);setv('fCAM',p.SED_CAM_ICU);setb('fBNM','bBNM',p.SED_BNM);autoCoopera();
       setv('fHemo',p.HEMO_ESTADO);setv('fDVA',p.HEMO_DVA);setv('fNDVA',p.HEMO_NUM_DVA);
+      if($('fDVA').value!=='sin DVA'&&parseInt(p.HEMO_NUM_DVA)>0)$('cMultiDVA').checked=true;
+      hMultiDVA();
+      if(p.HEMO_TENDENCIA===true||String(p.HEMO_TENDENCIA)==='true'){$('cHTrend').checked=true;setv('fHTT',p.HEMO_TEND_TIPO);}
+      hHTrend();
       setv('fVA',p.VENT_VIA_AEREA);cascadeVA();setv('fTOTn',p.VENT_TOT_NUM);setv('fTOTcm',p.VENT_TOT_CM);setv('fTQTt',p.VENT_TQT_TIPO);
       setv('fSop',p.VENT_SOPORTE);cascadeSop();setv('fModo',p.VENT_MODO);setb('fHAct','bHAct',p.VENT_H_ACTIVA);
       setv('p_vt',p.VENT_VT);setv('p_fr',p.VENT_FR);setv('p_peep',p.VENT_PEEP);setv('p_ps',p.VENT_PS);setv('p_pinsp',p.VENT_PINSP);
@@ -538,7 +939,8 @@
       setv('p_fio2',p.VENT_FIO2);setv('p_spo2',p.VENT_SPO2);
       setv('p_pmax',p.VENT_PMAX);setv('p_pmedia',p.VENT_PMEDIA);setv('p_ppl',p.VENT_PPL);setv('p_autopeep',p.VENT_AUTOPEEP);
       setv('p_ti',p.VENT_TI);setv('p_p01',p.VENT_P01);setv('p_dpocc',p.VENT_DPOCC);setv('p_pmusc',p.VENT_PMUSC);setv('p_rise',p.VENT_RISETIME);
-      setv('fSecrQ',p.RESP_SECR_QTY);setv('fSecrC',p.RESP_SECR_CAR);
+      setv('r_uma',p.KTM_UMA);hUMA();
+      setv('fSecrC',p.RESP_SECR_CAR);setSecrQ(p.RESP_SECR_QTY||'');
       setv('fMP',p.EX_MP);setv('fRuidos',p.EX_RUIDOS);setv('fRuidosLoc',p.EX_RUIDOS_LOC);cascadeRuidos();
       try{FASES_SEL=new Set(JSON.parse(p.FASE_JSON||'[]'));}catch(e){}
       renderFases();
@@ -549,11 +951,56 @@
       setv('fNombre',e.PAC_NOMBRE);setv('fEdad',e.PAC_EDAD);setv('fSexo',e.PAC_SEXO);setv('fTalla',e.PAC_TALLA);calcPI();
       setv('fBarthel',e.PAC_BARTHEL);setv('fDx',e.PAC_DIAGNOSTICO);
       setb('fAisl','bAisl',e.PAC_AISLAMIENTO);$('fAislMicro').classList.toggle('hidden',!$('fAisl').checked);setv('fAislMicro',e.PAC_AISL_MICRO);
+
+      setb('cVAExtPrev','bVAExtPrev',e.VA_EXTERNO);setv('fVAExtDias',e.VA_EXTERNO_DIAS);hVAExtPrev();
+
+      setb('cDecanOcurrio','bDecan',e.DECAN_OCURRIO);hDecan();
+      setv('fDecanQueda',e.DECAN_QUEDA_DISP);setv('fDecanFlujo',e.DECAN_QUEDA_FLUJO);setv('fDecanSpo2',e.DECAN_QUEDA_SPO2);
+      setv('fDecanDetTxt',e.DECAN_DET);if($('cRecanul'))$('cRecanul').checked=(String(e.DECAN_RECANUL)==='true');
+
+      if(e.PVE_VAL==='si'){hPVEtoggle('si');}else{hPVEtoggleReset();}
+      if(e.PVE_RESULTADO)hPVEres(e.PVE_RESULTADO);
+      setv('fPveSCraz',e.PVE_SC_RAZON);
+      try{
+        const motivos=JSON.parse(e.PVE_FR_MOTIVOS||'[]')||[];
+        document.querySelectorAll('#dPVEMotivos .fchip').forEach(c=>c.classList.toggle('on',motivos.includes(c.dataset.m)));
+      }catch(x){}
+
+      setb('cExtOcurrio','bExtOcurrio',e.EXT_OCURRIO);hExt();
+      if(e.EXT_TIPO)setExtTipo(e.EXT_TIPO);
+      setv('fExtMotivo',e.EXT_MOTIVO);setv('fExtHora',e.EXT_HORA);
+      if(String(e.EXT_REINTUB)==='true'){$('cReintub').checked=true;hReintubUI(true);}
+      setv('fReintubHora',e.EXT_HORA);setv('fReintubSopPrev',e.EXT_PE_SOP);setv('fReintubRaz',e.EXT_REINTUB_RAZ);
+
       if(String(e.KTM_REALIZADA)==='true')setKTM('r');else if(String(e.KTM_SUSPENDIDA)==='true')setKTM('s');else setKTM('n');
-      setv('fKTMniv',e.KTM_NIVEL_KTR);setv('fKTMt',e.KTM_TIEMPO_MIN);setv('fKTMraz',e.KTM_CONTRA_RAZON);setv('fKTMnoRaz',e.KTM_NO_RAZON);
+      setv('fKTMniv',e.KTM_NIVEL_KTR);setv('fKTMt',e.KTM_TIEMPO_MIN);
+      setv('fKTMct',e.KTM_CONTRA_TIPO);updateKTMcat();setv('fKTMcat',e.KTM_CONTRA_CAT);updateKTMraz();setv('fKTMraz',e.KTM_CONTRA_RAZON);
+      setv('fKTMman',e.KTM_CONTRA_MANUAL);setv('fKTMnoRaz',e.KTM_NO_RAZON);
+      if(String(e.KTM_ALERTA)==='true'){$('cKTMalert').checked=true;$('bKTMalert').classList.add('on');$('dKTMalert').classList.remove('hidden');}
+      setv('fKTMalertCat',e.KTM_ALERTA_CAT);updateKTMalertRaz();setv('fKTMalertRaz',e.KTM_ALERTA_RAZ);
+      setb('cAET','bAET',e.AET_ACTIVA);hAET();setv('fAETnivel',e.AET_NIVEL);if(e.AET_NIVEL)hAETtip();
+
       setv('fKTR',e.RESP_KTR_CANT);
       [['SOF',e.RESP_SOF],['SNF',e.RESP_SNF],['SET',e.RESP_SET],['ATOS',e.RESP_ATOS],['INHALO',e.RESP_INHALO]].forEach(([k,v])=>{
         const c=document.querySelector('.fchip[data-r="'+k+'"]');if(c)c.classList.toggle('on',String(v)==='true');});
+
+      setb('cMue','bMue',e.MUE_REALIZADAS);hMue();
+      try{
+        const tipos=JSON.parse(e.MUE_TIPOS_JSON||'[]')||[];
+        document.querySelectorAll('#dMue .fchip[data-t]').forEach(c=>c.classList.toggle('on',tipos.includes(c.dataset.t)));
+      }catch(x){}
+      hCultTec();setv('fCultObj',e.RESP_CULT_OBJ);setv('fCultVal',e.EX_CULT_RESULTADO);
+
+      if($('cPosSed'))$('cPosSed').checked=(String(e.RESP_POS_SED)==='true');
+      if($('cPosDCLD'))$('cPosDCLD').checked=(String(e.RESP_POS_DCLD)==='true');
+      if($('cPosDCLI'))$('cPosDCLI').checked=(String(e.RESP_POS_DCLI)==='true');
+      if($('cProno'))$('cProno').checked=(String(e.RESP_POS_PRONO)==='true');
+      if($('cSupino'))$('cSupino').checked=(String(e.RESP_POS_SUPINO)==='true');
+      setv('fPronoHora',e.RESP_PRONO_HORA);setv('fSupinoHora',e.RESP_SUPINO_HORA);
+      $('dPronoHora').classList.toggle('hidden', !$('cProno').checked);
+      $('dSupinoHora').classList.toggle('hidden', !$('cSupino').checked);
+      _updatePosResumen();
+
       try{PROCS=JSON.parse(e.PROC_JSON||'[]')||[];}catch(x){PROCS=[];}
       renderProcs();
       setv('fMRC',e.EVAL_T_MRC);setv('fFSS',e.EVAL_T_FSS);setv('fDinamo',e.EVAL_T_DINAMO);setv('fPIM',e.EVAL_T_PIM);
@@ -563,11 +1010,33 @@
       if(e.TEXTO_GENERADO){$('txtOut').value=e.TEXTO_GENERADO;$('secTxt').style.display='block';}
     }
 
+    // Arma el PROC_JSON automático a partir de los bloques estructurados (extubación/PVE/decan/reintub)
+    function procsAuto(){
+      const auto=[];
+      if($('cMue').checked){
+        const tipos=Array.from(document.querySelectorAll('#dMue .fchip[data-t].on')).map(c=>c.dataset.t);
+        auto.push(tipos.length?'CULTIVO DE SECRECIONES ('+tipos.join(', ')+')':'CULTIVO DE SECRECIONES');
+      }
+      if($('cProno').checked)auto.push($('fPronoHora').value?`PRONO ${$('fPronoHora').value} HRS`:'PRONO');
+      if($('cSupino').checked)auto.push($('fSupinoHora').value?`SUPINACIÓN ${$('fSupinoHora').value} HRS`:'SUPINACIÓN');
+      if(_pveVal==='si')auto.push('PVE');
+      if($('cDecanOcurrio').checked)auto.push('DECANULACIÓN');
+      if($('cExtOcurrio').checked){
+        const map={protocolo:'EXTUBACIÓN C/PROTOCOLO',sin_protocolo:'EXTUBACIÓN S/PROTOCOLO',accidental:'EXTUBACIÓN ACCIDENTAL',autoextubacion:'AUTOEXTUBACIÓN'};
+        auto.push(map[_extTipoVal]||'EXTUBACIÓN C/PROTOCOLO');
+        if($('cReintub').checked)auto.push('REINTUBACIÓN');
+      }
+      return Array.from(new Set([...(PROCS||[]),...auto]));
+    }
+
     // ── Guardar ──
     async function guardarEvo(){
       const tk=hoy()+'-'+TURNO;
       const chipOn=k=>{const c=document.querySelector('.fchip[data-r="'+k+'"]');return !!(c&&c.classList.contains('on'));};
-      const evalOn=$('secEval').open&&($('fMRC').value||$('fFSS').value||$('fDinamo').value||$('fPIM').value||$('fPEM').value||$('fGrosor').value);
+      const evalOn=$('secEval').open&&!$('secEval').classList.contains('hidden')&&($('fMRC').value||$('fFSS').value||$('fDinamo').value||$('fPIM').value||$('fPEM').value||$('fGrosor').value);
+      const motivosPVE=Array.from(document.querySelectorAll('#dPVEMotivos .fchip.on')).map(c=>c.dataset.m);
+      const tiposMue=Array.from(document.querySelectorAll('#dMue .fchip[data-t].on')).map(c=>c.dataset.t);
+      const procsFull=procsAuto();
       const payload={
         idCama:EVO_CAMA, turnoKey:tk, PLAN_FIRMA_KINE:YO.firma,
         PAC_NOMBRE:$('fNombre').value, PAC_EDAD:$('fEdad').value, PAC_SEXO:$('fSexo').value,
@@ -577,22 +1046,48 @@
         SED_TIPO:$('fSed').value, SED_SAS:$('fSAS').value, SED_GCS_O:num('fGO'), SED_GCS_V:num('fGV'),
         SED_GCS_M:num('fGM'), SED_GCS_TOT:num('fGT'), SED_S5Q:$('fS5Q').value, SED_COOPERACION:$('fCoop').value,
         SED_CAM_ICU:$('fCAM').value, SED_BNM:$('fBNM').checked,
-        HEMO_ESTADO:$('fHemo').value, HEMO_DVA:$('fDVA').value, HEMO_NUM_DVA:num('fNDVA'),
+        HEMO_ESTADO:$('fHemo').value, HEMO_DVA:$('fDVA').value, HEMO_MULTI_DVA:$('cMultiDVA').checked, HEMO_NUM_DVA:num('fNDVA'),
+        HEMO_TENDENCIA:$('cHTrend').checked, HEMO_TEND_TIPO:$('fHTT').value,
         VENT_VIA_AEREA:$('fVA').value, VENT_TOT_NUM:$('fTOTn').value, VENT_TOT_CM:$('fTOTcm').value,
         VENT_TQT_TIPO:$('fTQTt').value, VENT_SOPORTE:$('fSop').value, VENT_MODO:$('fModo').value, VENT_H_ACTIVA:$('fHAct').checked,
+        VA_EXTERNO:$('cVAExtPrev').checked, VA_EXTERNO_DIAS:$('cVAExtPrev').checked?num('fVAExtDias'):'',
+        KTM_UMA:$('r_uma').value,
         VENT_VT:num('p_vt'), VENT_FR:num('p_fr'), VENT_PEEP:num('p_peep'), VENT_PS:num('p_ps'), VENT_PINSP:num('p_pinsp'),
         VENT_IPAP:num('p_ipap'), VENT_EPAP:num('p_epap'), VENT_FLUJO:num('p_flujo'), VENT_LITROS:num('p_litros'),
         VENT_FIO2:num('p_fio2'), VENT_SPO2:num('p_spo2'),
         VENT_PMAX:num('p_pmax'), VENT_PMEDIA:num('p_pmedia'), VENT_PPL:num('p_ppl'), VENT_AUTOPEEP:num('p_autopeep'),
         VENT_TI:num('p_ti'), VENT_P01:num('p_p01'), VENT_DPOCC:num('p_dpocc'), VENT_PMUSC:num('p_pmusc'), VENT_RISETIME:num('p_rise'),
+
+        DECAN_OCURRIO:$('cDecanOcurrio').checked, DECAN_QUEDA_DISP:$('fDecanQueda').value, DECAN_QUEDA_FLUJO:$('fDecanFlujo').value,
+        DECAN_QUEDA_SPO2:$('fDecanSpo2').value, DECAN_DET:$('fDecanDetTxt').value, DECAN_RECANUL:$('cRecanul')?$('cRecanul').checked:false,
+
+        PVE_VAL:_pveVal, PVE_RESULTADO:_pveRes, PVE_FR_MOTIVOS:JSON.stringify(motivosPVE), PVE_SC_RAZON:$('fPveSCraz').value,
+
+        EXT_OCURRIO:$('cExtOcurrio').checked, EXT_TIPO:$('cExtOcurrio').checked?_extTipoVal:'', EXT_MOTIVO:$('fExtMotivo').value,
+        EXT_HORA:$('fExtHora').value, EXT_REINTUB:$('cReintub').checked,
+        EXT_REINTUB_RAZ:$('fReintubRaz').value, EXT_PE_SOP:$('fReintubSopPrev').value,
+        N_REINTUB:_nReintub,
+
         KTM_REALIZADA:KTM==='r', KTM_SUSPENDIDA:KTM==='s', KTM_NO_REALIZADA:KTM==='n',
         KTM_NIVEL_KTR:KTM==='r'?$('fKTMniv').value:'', KTM_TIEMPO_MIN:KTM==='r'?num('fKTMt'):'',
-        KTM_CONTRA_RAZON:KTM==='s'?$('fKTMraz').value:'', KTM_NO_RAZON:KTM==='n'?$('fKTMnoRaz').value:'',
+        KTM_ALERTA:$('cKTMalert').checked, KTM_ALERTA_CAT:$('fKTMalertCat').value, KTM_ALERTA_RAZ:$('fKTMalertRaz').value,
+        KTM_CONTRA_TIPO:KTM==='s'?$('fKTMct').value:'', KTM_CONTRA_CAT:KTM==='s'?$('fKTMcat').value:'',
+        KTM_CONTRA_RAZON:KTM==='s'?$('fKTMraz').value:'', KTM_CONTRA_MANUAL:KTM==='s'?$('fKTMman').value:'',
+        KTM_NO_RAZON:KTM==='n'?$('fKTMnoRaz').value:'',
+        AET_ACTIVA:$('cAET').checked, AET_NIVEL:$('cAET').checked?$('fAETnivel').value:'',
+
         RESP_KTR_CANT:num('fKTR'), RESP_SOF:chipOn('SOF'), RESP_SNF:chipOn('SNF'), RESP_SET:chipOn('SET'),
         RESP_ATOS:chipOn('ATOS'), RESP_INHALO:chipOn('INHALO'),
-        RESP_SECR_QTY:$('fSecrQ').value, RESP_SECR_CAR:$('fSecrC').value,
+        RESP_SECR_QTY:_secrQty, RESP_SECR_CAR:$('fSecrC').value,
+        RESP_POS_SED:$('cPosSed').checked, RESP_POS_DCLD:$('cPosDCLD').checked, RESP_POS_DCLI:$('cPosDCLI').checked,
+        RESP_POS_PRONO:$('cProno').checked, RESP_POS_SUPINO:$('cSupino').checked,
+        RESP_PRONO_HORA:$('fPronoHora').value, RESP_SUPINO_HORA:$('fSupinoHora').value,
+
+        MUE_REALIZADAS:$('cMue').checked, MUE_TIPOS_JSON:JSON.stringify(tiposMue),
+        RESP_CULT_OBJ:$('fCultObj').value, EX_CULT_RESULTADO:$('fCultVal').value,
+
         EX_MP:$('fMP').value, EX_RUIDOS:$('fRuidos').value, EX_RUIDOS_LOC:$('fRuidos').value==='Otro'?$('fRuidosLoc').value:'',
-        PROC_JSON:JSON.stringify(PROCS),
+        PROC_JSON:JSON.stringify(procsFull),
         EVAL_T_REALIZAR:!!evalOn, EVAL_FECHA:evalOn?hoy():'',
         EVAL_T_MRC:evalOn?num('fMRC'):'', EVAL_T_FSS:evalOn?num('fFSS'):'', EVAL_T_DINAMO:evalOn?num('fDinamo'):'',
         EVAL_T_PIM:evalOn?num('fPIM'):'', EVAL_T_PEM:evalOn?num('fPEM'):'', EVAL_T_GROSOR:evalOn?num('fGrosor'):'',
