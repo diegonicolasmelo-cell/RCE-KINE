@@ -114,23 +114,10 @@
 
   <div class="wrap"><div class="grid" id="grid"></div></div>
 
-  <!-- Overlay modales chicos (ingreso / egreso / reintubación) -->
+  <!-- Overlay modales chicos (egreso / reintubación).
+       El INGRESO ya no usa modal: se hace por el panel de evolución con la
+       tarjeta Identificación visible (condicionante v1: esIng → show fcId). -->
   <div id="ov" onclick="if(event.target===this)cerrarModal()">
-    <div class="modal" id="mIngreso" style="display:none">
-      <div class="mhdr"><h2>Ingresar paciente · Cama <span id="inCama"></span></h2><button class="x" onclick="cerrarModal()">×</button></div>
-      <div class="mbody">
-        <div class="full"><label>Nombre completo</label><input id="inNombre" placeholder="Nombre Apellido1 Apellido2"></div>
-        <div><label>Edad</label><input id="inEdad" type="number" min="15" max="110"></div>
-        <div><label>Sexo</label><select id="inSexo"><option value="">—</option><option value="M">M</option><option value="F">F</option></select></div>
-        <div><label>Talla (cm)</label><input id="inTalla" type="number" min="100" max="230"></div>
-        <div><label>Barthel</label><input id="inBarthel" type="number" min="0" max="100"></div>
-        <div class="full"><label>Diagnóstico</label><input id="inDx"></div>
-        <div><label>Vía aérea</label><select id="inVia"><option>Natural</option><option>TOT</option><option>TQT</option><option>Full Face</option><option>Oronasal</option></select></div>
-        <div><label>Soporte</label><select id="inSop"><option>Ambiente</option><option>VM</option><option>VNI</option><option>CNAF</option><option>Oxigenoterapia</option></select></div>
-        <div class="full"><label>Modo</label><input id="inModo" placeholder="ACVC, CPAP/PS, …"></div>
-      </div>
-      <div class="mfoot"><button class="btn o" onclick="cerrarModal()">Cancelar</button><button class="btn" onclick="confirmarIngreso()">Ingresar</button></div>
-    </div>
     <div class="modal" id="mEgreso" style="display:none">
       <div class="mhdr"><h2>Egreso · <span id="egNombre"></span></h2><button class="x" onclick="cerrarModal()">×</button></div>
       <div class="mbody">
@@ -174,7 +161,9 @@
     <div id="repBar">↪️ <span id="repTxt"></span> — modifica solo lo que cambió y guarda.</div>
     <div class="epbody">
 
-      <div class="sec" style="--ac:var(--ac-id)"><div class="shdr">👤 Identificación</div>
+      <!-- Solo visible en INGRESO (v1: fcId). En evolución normal el paciente ya está
+           identificado y su nombre va en el encabezado del panel. -->
+      <div class="sec hidden" id="secIdent" style="--ac:var(--ac-id)"><div class="shdr">👤 Identificación — Ingreso</div>
         <div class="sgrid">
           <div class="full"><label>Nombre</label><input id="fNombre"></div>
           <div><label>Edad</label><input id="fEdad" type="number"></div>
@@ -557,28 +546,13 @@
           el.innerHTML=
             `<div class="bhdr"><span class="dot"></span>Cama ${esc(c.ID_CAMA)}</div>
              <div class="empty">Disponible</div>
-             <div class="bfoot"><button class="btn o" onclick="abrirIngreso('${esc(c.ID_CAMA)}')">+ Ingresar</button></div>`;
+             <div class="bfoot"><button class="btn o" onclick="abrirEvo('${esc(c.ID_CAMA)}',true)">+ Ingresar</button></div>`;
         }
         g.appendChild(el);
       });
     }
 
-    // ── Ingreso / Egreso (etapa 1) ──
-    function abrirIngreso(id){MCAMA=id;$('inCama').textContent=id;
-      ['inNombre','inEdad','inSexo','inTalla','inBarthel','inDx','inModo'].forEach(k=>$(k).value='');
-      $('inVia').value='Natural';$('inSop').value='Ambiente';abrirModal('mIngreso');}
-    async function confirmarIngreso(){
-      const nombre=$('inNombre').value.trim();
-      if(!nombre){toast('⚠️ Falta el nombre');return;}
-      loading(true);
-      try{
-        await api('INGRESAR_PACIENTE',{idCama:MCAMA,nombre,edad:$('inEdad').value,sexo:$('inSexo').value,
-          talla:$('inTalla').value,barthel:$('inBarthel').value,diagnostico:$('inDx').value,
-          viaAerea:$('inVia').value,soporte:$('inSop').value,modo:$('inModo').value,firmaKine:YO.firma});
-        cerrarModal();toast('✅ Paciente ingresado');cargar();
-      }catch(e){toast('❌ '+(e.message||e));}
-      loading(false);
-    }
+    // ── Egreso (el ingreso ahora se hace por el panel de evolución) ──
     function abrirEgreso(id){const c=CAMAS.find(x=>String(x.ID_CAMA)===String(id));if(!c)return;
       MCAMA=id;$('egNombre').textContent=c.NOMBRE||('Cama '+id);
       $('egDestino').value='';$('egBarthel').value=c.BARTHEL||'';$('egMrc').value='';$('egObs').value='';abrirModal('mEgreso');}
@@ -650,21 +624,30 @@
     };
     const _UMA_CLS={'Rutinaria':'ok','Ocasional':'leve','Frecuente':'mod','Contraindicada':'tot'};
 
-    async function abrirEvo(id){
-      EVO_CAMA=id;PROCS=[];FASES_SEL=new Set();
+    let ES_ING=false; // modo ingreso: la tarjeta Identificación visible y el guardado crea el episodio
+    async function abrirEvo(id, esIng){
+      EVO_CAMA=id;ES_ING=!!esIng;PROCS=[];FASES_SEL=new Set();
       limpiarForm();
       const c=CAMAS.find(x=>String(x.ID_CAMA)===String(id))||{};
-      $('evTitulo').textContent=(c.NOMBRE||('Cama '+id));
+      // Condicionante v1 (fcId): Identificación SOLO en ingreso.
+      $('secIdent').classList.toggle('hidden', !ES_ING);
+      $('evTitulo').textContent=ES_ING ? ('🆕 Ingreso · Cama '+id) : (c.NOMBRE||('Cama '+id));
       const tk=hoy()+'-'+TURNO;
       $('evSub').textContent=`Cama ${id} · ${TURNO==='Dia'?'☀️':'🌙'} ${hoy()} · ${c.COD_PACIENTE||''}`;
       $('repBar').classList.remove('on');$('secTxt').style.display='none';
-      $('evEstado').textContent='Cargando…';
+      $('btnGuardar').textContent=ES_ING ? '💾 Guardar ingreso y evolución' : '💾 Guardar evolución';
       renderFases();renderProcs();aplicarVisibilidadTurno();
-      // Precarga instantánea con lo que ya tenemos en memoria (sin esperar al servidor).
-      fillDesdeCama(c);
       // Abrir el panel YA — no bloquear la apertura con la llamada de red.
       $('evPanel').classList.add('on');document.body.style.overflow='hidden';
       document.querySelector('.epbody').scrollTop=0;
+      if(ES_ING){
+        // Cama libre: formulario en blanco, nada que replicar ni cargar del servidor.
+        $('evEstado').textContent='🆕 Ingreso nuevo';
+        return;
+      }
+      // Precarga instantánea con lo que ya tenemos en memoria (sin esperar al servidor).
+      fillDesdeCama(c);
+      $('evEstado').textContent='Cargando…';
       try{
         // Una sola llamada combinada (turno actual + previa) en vez de dos seriales.
         const r=await api('GET_EVO_TURNO',{idCama:id,turnoKey:tk});
@@ -676,7 +659,7 @@
         else{$('evEstado').textContent='';}
       }catch(e){toast('❌ '+(e.message||e));$('evEstado').textContent='';}
     }
-    function cerrarEvo(){$('evPanel').classList.remove('on');document.body.style.overflow='';EVO_CAMA=null;}
+    function cerrarEvo(){$('evPanel').classList.remove('on');document.body.style.overflow='';EVO_CAMA=null;ES_ING=false;}
 
     function limpiarForm(){
       document.querySelectorAll('#evPanel input:not([readonly])').forEach(i=>{if(i.type==='checkbox')i.checked=false;else i.value='';});
@@ -1051,6 +1034,12 @@
 
     // ── Guardar ──
     async function guardarEvo(){
+      // En ingreso el nombre es obligatorio (crea el episodio)
+      if(ES_ING && !$('fNombre').value.trim()){
+        toast('⚠️ Falta el nombre del paciente');
+        $('fNombre').focus();
+        return;
+      }
       const tk=hoy()+'-'+TURNO;
       const chipOn=k=>{const c=document.querySelector('.fchip[data-r="'+k+'"]');return !!(c&&c.classList.contains('on'));};
       const evalOn=$('secEval').open&&!$('secEval').classList.contains('hidden')&&($('fMRC').value||$('fFSS').value||$('fDinamo').value||$('fPIM').value||$('fPEM').value||$('fGrosor').value);
@@ -1058,7 +1047,7 @@
       const tiposMue=Array.from(document.querySelectorAll('#dMue .fchip[data-t].on')).map(c=>c.dataset.t);
       const procsFull=procsAuto();
       const payload={
-        idCama:EVO_CAMA, turnoKey:tk, PLAN_FIRMA_KINE:YO.firma,
+        idCama:EVO_CAMA, turnoKey:tk, PLAN_FIRMA_KINE:YO.firma, ES_INGRESO:ES_ING,
         PAC_NOMBRE:$('fNombre').value, PAC_EDAD:$('fEdad').value, PAC_SEXO:$('fSexo').value,
         PAC_TALLA:$('fTalla').value, PAC_PESO_IDEAL:$('fPI').value, PAC_BARTHEL:$('fBarthel').value,
         PAC_DIAGNOSTICO:$('fDx').value, PAC_AISLAMIENTO:$('fAisl').checked, PAC_AISL_MICRO:$('fAislMicro').value,
@@ -1122,7 +1111,14 @@
         if(evo&&evo.TEXTO_GENERADO){$('txtOut').value=evo.TEXTO_GENERADO;$('secTxt').style.display='block';
           $('secTxt').scrollIntoView({behavior:'smooth'});}
         $('evEstado').textContent='✅ Guardado '+new Date().toLocaleTimeString();
-        toast('✅ Evolución guardada');cargar();
+        toast(ES_ING ? '✅ Paciente ingresado y evolución guardada' : '✅ Evolución guardada');
+        if(ES_ING){
+          // El episodio ya existe: pasar a modo edición normal (Identificación se oculta)
+          ES_ING=false;
+          $('secIdent').classList.add('hidden');
+          $('evTitulo').textContent=$('fNombre').value.trim()||('Cama '+EVO_CAMA);
+        }
+        cargar();
       }catch(e){toast('❌ '+(e.message||e));}
       b.disabled=false;b.textContent='💾 Guardar evolución';
     }

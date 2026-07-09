@@ -12,6 +12,12 @@ function validarPayloadEvolucion(d) {
   if (!d.TURNO_KEY && !d.turnoKey) errs.push('Falta TURNO_KEY');
   if (!d.PLAN_FIRMA_KINE || String(d.PLAN_FIRMA_KINE).trim() === '') errs.push('Falta firma del kinesiólogo');
 
+  // En INGRESO (crea el episodio) el nombre es obligatorio
+  const esIngreso = d.ES_INGRESO === true || String(d.ES_INGRESO) === 'true';
+  if (esIngreso && (!d.PAC_NOMBRE || String(d.PAC_NOMBRE).trim() === '')) {
+    errs.push('Falta nombre del paciente (ingreso)');
+  }
+
   _rango(errs, d.PAC_EDAD, 'Edad', 15, 110, true);
   _rango(errs, d.PAC_TALLA, 'Talla (cm)', 100, 230, false);
   _rango(errs, d.VENT_FIO2, 'FiO₂ (%)', 21, 100, false);
