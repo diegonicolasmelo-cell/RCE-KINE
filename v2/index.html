@@ -249,8 +249,8 @@
           </div>
         </div>
 
-        <!-- PVE: solo aplica con vía aérea invasiva (TOT/TQT). En Natural no aparece. -->
-        <div class="sgrid vaInvasiva hidden">
+        <!-- PVE: solo aplica a TOT (flujo de extubación). TQT usa Decanulación en su lugar. -->
+        <div class="sgrid vaTOT hidden">
           <div class="full"><label>PVE (prueba de ventilación espontánea) realizada hoy</label>
             <div class="seg sm" id="segPVE">
               <button type="button" data-v="si" onclick="hPVEtoggle('si')">Sí</button>
@@ -274,8 +274,8 @@
           </div>
         </div>
 
-        <!-- Extubación (mismo turno) -->
-        <div class="sgrid vaInvasiva hidden">
+        <!-- Extubación: solo TOT. TQT decanula, no se "extuba" (bloque más abajo, .vaTQT). -->
+        <div class="sgrid vaTOT hidden">
           <div class="full"><label class="bool" id="bExtOcurrio"><input type="checkbox" id="cExtOcurrio" onchange="hExt()"> Ocurrió extubación / autoextubación</label></div>
           <div class="subbox hidden" id="dExtDet">
             <div class="full">
@@ -707,14 +707,20 @@
       document.querySelectorAll('.vaTOT').forEach(e=>e.classList.toggle('hidden',va!=='TOT'));
       document.querySelectorAll('.vaTQT').forEach(e=>e.classList.toggle('hidden',va!=='TQT'));
       document.querySelectorAll('.vaInvasiva').forEach(e=>e.classList.toggle('hidden',!invasiva));
-      // Si deja de ser invasiva, PVE y Extubación no aplican: se limpian para no
-      // guardar un valor "fantasma" que el usuario ya no ve en pantalla.
-      // Reintubación NUNCA se limpia acá: es independiente y debe seguir disponible
-      // aunque la vía aérea actual sea Natural (es justo el turno donde se reintuba).
-      if(!invasiva){
+      // PVE y Extubación son EXCLUSIVOS de TOT (así era en v1: PVE está integrada al
+      // flujo de extubación, no a decanulación). Si la vía deja de ser TOT (pasó a
+      // TQT, Natural, Full Face u Oronasal) se limpian para no guardar un valor
+      // "fantasma" que el usuario ya no ve en pantalla.
+      if(va!=='TOT'){
         hPVEtoggleReset();
         $('cExtOcurrio').checked=false;$('dExtDet').classList.add('hidden');
       }
+      // Decanulación es EXCLUSIVA de TQT: mismo cuidado si deja de serlo.
+      if(va!=='TQT'){
+        $('cDecanOcurrio').checked=false;$('dDecanDet').classList.add('hidden');
+      }
+      // Reintubación NUNCA se limpia acá: es independiente y debe seguir disponible
+      // en cualquier vía aérea (es justo el turno donde se reintuba).
       // repoblar soporte según vía aérea
       const selSop=$('fSop'), antesSop=selSop.value;
       selSop.innerHTML='';r.sops.forEach(s=>{const o=document.createElement('option');o.textContent=s;selSop.appendChild(o);});
