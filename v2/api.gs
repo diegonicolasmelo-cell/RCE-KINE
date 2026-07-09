@@ -32,6 +32,8 @@ function api(accion, datos, token) {
       case 'GET_PROCEDIMIENTOS':     return obtenerProcedimientos(datos.idEvolucion);
       case 'GET_CATALOGO':     return ok(catalogo(datos.tipo || ''));
       case 'GET_FECHA_HOY':    return ok({ fecha: hoyISO(), timestamp: ahoraTS() });
+      case 'GET_EVOS_DEL_DIA': return obtenerEvosDelDia(datos.fecha);
+      case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
       // ── Escrituras (auditadas) ──
@@ -49,6 +51,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => guardarEvolucion(datos, ctx));
       case 'AGREGAR_HITO':
         return _auditar(ctx, accion, () => agregarHito(Object.assign({ autor: ctx.firma, autorEmail: ctx.email }, datos)));
+      case 'SET_ASIGNACION_TURNO':
+        return _auditar(ctx, accion, () => guardarAsignacionTurno(datos));
 
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);

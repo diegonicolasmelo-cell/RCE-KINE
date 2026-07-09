@@ -53,6 +53,25 @@ function guardarEvolucion(datos, ctx) {
         datos.DIAS_VA = (datos.VENT_VIA_AEREA && datos.VENT_VIA_AEREA !== 'Natural') ? diasEntre(cama.FECHA_INICIO_VA, fecha) : 0;
       }
 
+      // BDT (test de azul) — repetible: cada resultado marcado en el turno se
+      // acumula en BDT_JSON del episodio y BDT_ULTIMO refleja el más reciente.
+      const bdtRes = esVerdadero(datos.EVAL_T_BDT_POS) ? '+' : (esVerdadero(datos.EVAL_T_BDT_NEG) ? '-' : '');
+      if (bdtRes) {
+        // Continuidad del histórico: fila de este turno (si se edita) o turno previo.
+        let base = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
+        if (!base || !base.BDT_JSON) {
+          const rp = obtenerEvolucionPrevia(idCama, turnoKey);
+          if (rp.ok && rp.data) base = rp.data;
+        }
+        let hist = [];
+        try { hist = JSON.parse((base && base.BDT_JSON) || '[]') || []; } catch (e) {}
+        // idempotente por turno: reemplaza el registro de este mismo turnoKey
+        hist = hist.filter(function (h) { return h && h.turnoKey !== turnoKey; });
+        hist.push({ turnoKey: turnoKey, fecha: fecha, resultado: bdtRes });
+        datos.BDT_JSON = JSON.stringify(hist);
+        datos.BDT_ULTIMO = bdtRes + ' (' + fecha + ')';
+      }
+
       // Texto clínico
       datos.TEXTO_GENERADO = generarTextoEvolucion(datos);
 
@@ -227,6 +246,21 @@ function obtenerEvolucionesRecientes(idCama, limite) {
     evos.sort((a, b) => String(b.TURNO_KEY).localeCompare(String(a.TURNO_KEY)));
     return ok(limite ? evos.slice(0, limite) : evos);
   } catch (e) { return err('obtenerEvolucionesRecientes: ' + e.message, ERR.INTERNO, e); }
+}
+
+/**
+ * Evoluciones registradas en una fecha (ambos turnos), versión mínima.
+ * Alimenta los dots verdes del grid (EVO_SET) y la vista retrospectiva.
+ * @param {string} fecha  'yyyy-MM-dd'
+ */
+function obtenerEvosDelDia(fecha) {
+  try {
+    const f = String(fecha || hoyISO()).slice(0, 10);
+    const evos = repoLeerTodos('EVOLUCIONES')
+      .filter(function (e) { return String(e.TURNO_KEY).indexOf(f) === 0; })
+      .map(function (e) { return { ID_CAMA: String(e.ID_CAMA), TURNO_KEY: String(e.TURNO_KEY) }; });
+    return ok(evos);
+  } catch (e) { return err('obtenerEvosDelDia: ' + e.message, ERR.INTERNO, e); }
 }
 
 /**
