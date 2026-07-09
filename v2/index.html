@@ -1354,6 +1354,25 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                         <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
                         <input type="text" id="fPostExtDet" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #e9d5ff;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
                       </div>
+                      <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
+                        <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintub" onchange="hReintubCheck()"><label for="cReintub" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
+                      </div>
+                    </div>
+                    <div id="dReintubDet" class="hidden" style="background:#fff5f5;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;margin-top:2px;">
+                      <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;">
+                        <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Razón:</label>
+                        <select id="fReintubRaz" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;">
+                          <option value="">-- Seleccionar --</option>
+                          <option>Falla respiratoria aguda</option>
+                          <option>Obstrucción de vía aérea</option>
+                          <option>Secreciones / desaturación</option>
+                          <option>Hemodinámicamente inestable</option>
+                          <option>Otras</option>
+                        </select>
+                      </div>
+                      <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
+                        ℹ️ El texto generado tomará TOT, modo y parámetros desde <strong>Terapia Ventilatoria</strong> ↑
+                      </div>
                     </div>
                   </div>
 
@@ -1421,35 +1440,14 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                       <label style="font-size:.72rem;font-weight:700;">Evaluación post-extubación</label>
                       <input type="text" id="fPostExtDetNo" placeholder="Tolerancia, estridor, Stokes, trabajo respiratorio..." style="height:30px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;margin-top:3px;">
                     </div>
+                    <div class="col wa" style="align-self:flex-end;margin-bottom:3px;">
+                      <div class="check cr wa" style="margin:0;"><input type="checkbox" id="cReintubNo" onchange="hReintubCheckNo()"><label for="cReintubNo" style="font-weight:700;color:var(--danger);">↩️ Reintubación</label></div>
+                    </div>
                   </div>
-                  </div><!-- /dExtNoDetalle -->
-                </div>
-
-                <!-- hidden para compatibilidad guardar() -->
-                <input type="hidden" id="cExtOcurrio" value="">
-              </div>
-
-              <!-- REINTUBACIÓN — SIEMPRE visible, registro MANUAL (acordado v2).
-                   Cubre mismo turno (tras la extubación de arriba) o turno
-                   siguiente (se abre este toggle directo). El cambio de Vía
-                   Aérea NUNCA marca reintubación por sí solo. -->
-              <div style="margin-top:10px;border:1px solid #fecaca;border-radius:8px;overflow:hidden;">
-                <button type="button" id="bReintubToggle" onclick="hReintubToggle()" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 11px;background:#fff5f5;border:none;cursor:pointer;font-size:.78rem;font-weight:800;color:#b91c1c;">
-                  <span>🔁 Reintubación</span>
-                  <span id="sReintubResumen" style="font-size:.7rem;color:var(--muted);font-weight:400;"></span>
-                  <span id="sReintubArrow" style="font-size:.7rem;margin-left:4px;">▼</span>
-                </button>
-                <div id="dReintubBody" class="hidden" style="padding:9px 11px;background:#fff;">
-                  <div class="check wa" style="margin-bottom:6px;">
-                    <input type="checkbox" id="cReintubT" onchange="hReintubCheck()">
-                    <label for="cReintubT" style="font-weight:700;color:var(--danger);">↩️ Ocurrió reintubación</label>
-                  </div>
-                  <div id="dReintubDetT" class="hidden" style="background:#fff5f5;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;">
-                    <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-                      <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Hora:</label>
-                      <input type="time" id="fReintubHoraT" onchange="_updateReintubResumen()" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;">
+                  <div id="dReintubDetNo" class="hidden" style="background:#fff5f5;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;">
+                    <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;">
                       <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Razón:</label>
-                      <select id="fReintubRazT" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;min-width:170px;">
+                      <select id="fReintubRazNo" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;">
                         <option value="">-- Seleccionar --</option>
                         <option>Falla respiratoria aguda</option>
                         <option>Obstrucción de vía aérea</option>
@@ -1459,8 +1457,63 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                       </select>
                     </div>
                     <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
-                      ℹ️ Registra en <strong>Terapia Ventilatoria</strong> ↑ el TOT, modo y parámetros con que queda el paciente.
+                      ℹ️ El texto generado tomará TOT, modo y parámetros desde <strong>Terapia Ventilatoria</strong> ↑
                     </div>
+                  </div>
+                  </div><!-- /dExtNoDetalle -->
+                </div>
+
+                <!-- hidden para compatibilidad guardar() -->
+                <input type="hidden" id="cExtOcurrio" value="">
+              </div>
+
+              <!-- REINTUBACIÓN — aparece si VA es NO invasiva y el paciente TIENE
+                   historial de VM (estuvo ventilado o se extubó hace poco).
+                   Registro SIEMPRE manual; el caso "mismo turno tras extubación"
+                   vive ANIDADO dentro del bloque PVE/Extubación de arriba. -->
+              <div id="dReintubSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;">
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#b91c1c;margin-bottom:7px;letter-spacing:.04em;">🔁 Reintubación</div>
+                <div class="check wa" style="margin-bottom:6px;">
+                  <input type="checkbox" id="cReintubT" onchange="hReintubCheckT()">
+                  <label for="cReintubT" style="font-weight:700;color:var(--danger);">↩️ Ocurrió reintubación este turno</label>
+                </div>
+                <div id="dReintubDetT" class="hidden" style="background:#fff;border:1px solid #fecaca;border-radius:7px;padding:8px 10px;">
+                  <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                    <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Hora:</label>
+                    <input type="time" id="fReintubHoraT" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;">
+                    <label style="font-size:.72rem;font-weight:700;color:var(--danger);white-space:nowrap;">Razón:</label>
+                    <select id="fReintubRazT" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;min-width:170px;">
+                      <option value="">-- Seleccionar --</option>
+                      <option>Falla respiratoria aguda</option>
+                      <option>Obstrucción de vía aérea</option>
+                      <option>Secreciones / desaturación</option>
+                      <option>Hemodinámicamente inestable</option>
+                      <option>Otras</option>
+                    </select>
+                  </div>
+                  <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
+                    ℹ️ Cambia la <strong>Vía Aérea a TOT</strong> ↑ y registra modo y parámetros con que queda el paciente.
+                  </div>
+                </div>
+              </div>
+
+              <!-- INTUBACIÓN — aparece si VA es NO invasiva y el paciente NUNCA ha
+                   estado en VM (historial = 0): primera intubación del episodio. -->
+              <div id="dIntubSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#1d4ed8;margin-bottom:7px;letter-spacing:.04em;">🫁 Intubación</div>
+                <div class="check wa" style="margin-bottom:6px;">
+                  <input type="checkbox" id="cIntubO" onchange="hIntub()">
+                  <label for="cIntubO" style="font-weight:700;color:var(--primary);">Ocurrió intubación este turno</label>
+                </div>
+                <div id="dIntubDet" class="hidden" style="background:#fff;border:1px solid #bfdbfe;border-radius:7px;padding:8px 10px;">
+                  <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                    <label style="font-size:.72rem;font-weight:700;color:#1d4ed8;white-space:nowrap;">Hora:</label>
+                    <input type="time" id="fIntubHora" style="height:28px;font-size:.78rem;border:1px solid #bfdbfe;border-radius:5px;padding:0 6px;">
+                    <label style="font-size:.72rem;font-weight:700;color:#1d4ed8;white-space:nowrap;">Contexto:</label>
+                    <input type="text" id="fIntubDet" placeholder="Motivo / circunstancias..." style="height:28px;font-size:.78rem;border:1px solid #bfdbfe;border-radius:5px;padding:0 8px;flex:1;min-width:170px;">
+                  </div>
+                  <div style="font-size:.72rem;color:#1e40af;background:#dbeafe;border-radius:5px;padding:5px 8px;line-height:1.4;">
+                    ℹ️ Cambia la <strong>Vía Aérea a TOT</strong> ↑ y registra modo y parámetros del ventilador.
                   </div>
                 </div>
               </div>
@@ -2238,9 +2291,8 @@ function abrirPanel(id, esIng) {
   // v2: fases clínicas + reintubación standalone + COD + evaluaciones nocturnas
   FASES_SEL=new Set(); renderFases();
   const _spCod=$('spCod'); if(_spCod) _spCod.textContent='';
-  hide('dReintubDetT'); hide('dReintubBody');
-  const _ra=$('sReintubArrow'); if(_ra) _ra.textContent='▼';
-  _updateReintubResumen();
+  hide('dReintubDetT'); hide('dIntubDet');
+  _vmHistFlag=false; _transIntubEsteTurno=false;
   hide('dMonAv'); const _ma=$('sMonAvArrow'); if(_ma) _ma.textContent='▼';
   if(SHIFT==='Noche') hide('fcEgrCard'); else show('fcEgrCard');
   // defaults
@@ -2374,6 +2426,7 @@ function fillCama(c, fecha) {
   _diasVMEpisodio=_esInvDb?(parseInt(dias(c.FECHA_INICIO_SOPORTE||c.FECHA_INICIO_VA,fecha))||0):0;
   _diasVNIEpisodio=_esVNIDb?(parseInt(dias(c.FECHA_INICIO_SOPORTE||c.FECHA_INICIO_VA,fecha))||0):0;
   _vaAnterior=_vaDb;
+  _vmHistFlag = (c.SOPORTE==='VM') || parseFloat(c.DIAS_VM)>0;
   actualizarContadores();
   if(c.VIA_AEREA) { $('fVA').value=c.VIA_AEREA; cascadeVA(c.SOPORTE); }
   if(c.SOPORTE) cascadeSop(c.MODO);
@@ -2522,6 +2575,8 @@ function fillForm(s) {
   (function(){
     const fpve=$('fPVEval'); if(fpve) fpve.value=''; _pveBtnReset?.(); hide('dPVESiRama'); hide('dPVENoRama'); _pveCleanSi?.(); _pveCleanNo?.();
     const dec=$('cDecanOcurrio'); if(dec) dec.checked=false; hDecan();
+    const rin=$('cReintubT'); if(rin) rin.checked=false; hide('dReintubDetT');
+    const inb=$('cIntubO'); if(inb) inb.checked=false; hide('dIntubDet');
   })();
 
   if(s.PROC_JSON){try{PROCS=JSON.parse(s.PROC_JSON)||[];}catch(e){} renderChips();}
@@ -2540,6 +2595,14 @@ function fillForm(s) {
   const _ad=$('cAdapt'); if(_ad&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!=='') _ad.checked=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE');
   hSed(); hHTrend(); hMultiDVA(); hSecr(); calcGCS(); calcPI();
   if(s.KTM_UMA===true||s.KTM_UMA==='TRUE') show('dUMA');
+  _vmHistFlag = _vmHistFlag || !!s.EXT_TS ||
+    s.EXT_OCURRIO===true || s.EXT_OCURRIO==='TRUE' ||
+    s.EXT_REINTUB===true || s.EXT_REINTUB==='TRUE' ||
+    s.DECAN_OCURRIO===true || s.DECAN_OCURRIO==='TRUE' ||
+    s.INTUB_OCURRIO===true || s.INTUB_OCURRIO==='TRUE' ||
+    parseFloat(s.DIAS_VM)>0 || parseInt(s.DIAS_VM_PREVIOS)>0 || parseInt(s.N_REINTUB)>0 ||
+    s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
+  updateVAUI();
 }
 
 //  RÉPLICA DEL TURNO ANTERIOR
@@ -2632,6 +2695,14 @@ function fillFormReplica(s) {
   // Egreso: NO se replica (es específico del turno de egreso)
 
   hSed(); hHTrend(); hMultiDVA(); hSecr(); calcGCS(); calcPI();
+  _vmHistFlag = _vmHistFlag || !!s.EXT_TS ||
+    s.EXT_OCURRIO===true || s.EXT_OCURRIO==='TRUE' ||
+    s.EXT_REINTUB===true || s.EXT_REINTUB==='TRUE' ||
+    s.DECAN_OCURRIO===true || s.DECAN_OCURRIO==='TRUE' ||
+    s.INTUB_OCURRIO===true || s.INTUB_OCURRIO==='TRUE' ||
+    parseFloat(s.DIAS_VM)>0 || parseInt(s.DIAS_VM_PREVIOS)>0 || parseInt(s.N_REINTUB)>0 ||
+    s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
+  updateVAUI();
 }
 
 /**
@@ -2678,7 +2749,11 @@ function guardar() {
     TOT_FIJACION:      v('fTOTfij'),
     FECHA_INICIO_TQT:  _fechaInicioTQT||'',
     // Contadores VM
-    DIAS_VM_PREVIOS:   _diasVMPrevios,
+    // Si el paciente queda extubado/decanulado (sin re-), los días del episodio
+    // se pliegan a "previos": el historial de VM persiste turno a turno y es lo
+    // que decide Intubación vs Reintubación en el flujo de vía aérea.
+    DIAS_VM_PREVIOS:   ((_extOcurrio() && !_extReintub()) || ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked))
+                         ? (_diasVMPrevios + _diasVMEpisodio) : _diasVMPrevios,
     FECHA_INICIO_VM:   (()=>{
       // Si hay reintubación en este turno, el siguiente episodio arranca hoy
       if(_extReintub()) return v('gDate')||hoy();
@@ -2798,6 +2873,9 @@ function guardar() {
     EXT_POST_DET:    _extPostDet(),
     EXT_REINTUB:     _extReintub(),
     REINTUB_HORA:    v('fReintubHoraT'),
+    INTUB_OCURRIO:   bv('cIntubO'),
+    INTUB_HORA:      v('fIntubHora'),
+    INTUB_DET:       v('fIntubDet'),
     EXT_REINTUB_RAZ: _extReintubRaz(),
     EXT_PE_VA:       peVAext(),
     EXT_PE_SOP:      peSopext(),
@@ -2818,6 +2896,8 @@ function guardar() {
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
       if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
+      if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
+      if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
       if(_extOcurrio()||v('fPVEval')){
         const _et=_extTipo();
         if(_et==='protocolo')          auto.push('EXTUBACIÓN C/PROTOCOLO');
@@ -2836,6 +2916,8 @@ function guardar() {
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
       if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
+      if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
+      if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
       if(_extOcurrio()||v('fPVEval')){
         const _et=_extTipo();
         if(_et==='protocolo') auto.push('EXTUBACIÓN C/PROTOCOLO');
@@ -2853,6 +2935,8 @@ function guardar() {
       if(mu.length) auto.push('CULTIVO DE SECRECIONES');
       if($('cProno')?.checked) auto.push('PRONO');
       if($('cSupino')?.checked) auto.push('SUPINACIÓN');
+      if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
+      if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
       if(_extOcurrio()||v('fPVEval')){
         if(_extTipo()) auto.push('EXT');
         if(_extReintub()) auto.push('REINTUBACIÓN');
@@ -3447,10 +3531,15 @@ function genTexto() {
   const vt=parseFloat(gv('r_vt'))||0, fr=parseFloat(gv('r_fr'))||0;
   const peep=parseFloat(gv('r_peep'))||0, fio2=parseFloat(gv('r_fio2'))||0;
   const spo2=parseFloat(gv('r_spo2'))||0, dVM=gv('fDiasVM')||'?', dVA=gv('fDiasVA')||'?';
-  // Reintubación registrada SIN extubación este turno (caso turno siguiente)
+  // Reintubación registrada SIN extubación este turno (VA venía no invasiva)
   if(_extReintub() && !_extOcurrio()){
     const _rh=v('fReintubHoraT'), _rz=_extReintubRaz();
     L.push(`Paciente requirió reintubación${_rh?' a las '+_rh+' hrs':''}${_rz?' por '+_rz.toLowerCase():''}.`);
+  }
+  // Intubación NUEVA este turno (paciente sin historial de VM)
+  if($('cIntubO')?.checked){
+    const _ih=v('fIntubHora'), _idt=v('fIntubDet');
+    L.push(`Paciente requiere intubación orotraqueal${_ih?' a las '+_ih+' hrs':''}${_idt?' en contexto de '+_idt:''}.`);
   }
   if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA en día ${dVA} mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()}.`); }
   else if(va==='TQT') L.push(`VAA en día ${dVA} mediante TQT${gv('fTQTt')?' '+gv('fTQTt'):''}.`);
@@ -3898,7 +3987,9 @@ function cascadeVA(preSop) {
       _diasVMEpisodio=0;
       if(va==='TOT'){_diasTOTBase=0;_diasTQTBase=0;_fechaInicioTQT='';}
       if(va==='TQT'){_fechaInicioTQT=hoyFecha;_diasTQTBase=0;_diasTOTBase=0;}
+      _transIntubEsteTurno=true;
       if(hayHistorialVM) toast('ℹ️ Si esto corresponde a una reintubación, márcala en 🔁 Reintubación (Terapia Ventilatoria).', 4500);
+      else toast('ℹ️ Si es una intubación nueva, márcala en 🫁 Intubación (Terapia Ventilatoria).', 4500);
     }
     // VNI → Natural: congelar VNI
     if(prevVNI&&!nowVNI&&!nowInv){
@@ -3939,7 +4030,22 @@ function updateVAUI() {
   // VNI contador
   const vniTotal=_diasVNIPrevios+_diasVNIEpisodio;
   if(esVNI||vniTotal>0) _showCol('colDiasVNI'); else _hideCol('colDiasVNI');
+  // ── Matriz de eventos de vía aérea (flujo acordado) ──
+  //   VA no invasiva + sin historial VM → 🫁 Intubación
+  //   VA no invasiva + con historial VM → 🔁 Reintubación
+  //   TOT → PVE/Extubación (reintubación anidada, mismo turno)
+  //   TQT → Decanulación (con recanulación)
+  const histVM=_hayHistorialVM();
+  const noInv=!esInv;
+  if((noInv && !histVM) || $('cIntubO')?.checked || (_transIntubEsteTurno && !histVM)) show('dIntubSec'); else hide('dIntubSec');
+  if((noInv && histVM) || $('cReintubT')?.checked || (_transIntubEsteTurno && histVM)) show('dReintubSec'); else hide('dReintubSec');
   _updateSinKTR();
+}
+
+/** ¿El paciente ha estado en VM en este episodio? (contadores + señales de los datos cargados) */
+function _hayHistorialVM(){
+  return _diasVMPrevios>0 || _diasVMEpisodio>0 || _nReintub>0 ||
+         _diasTOTBase>0 || _diasTQTBase>0 || _vmHistFlag;
 }
 
 //  PARÁMETROS VENTILATORIOS
@@ -4359,6 +4465,8 @@ let _diasVNIEpisodio=0;  // días del episodio actual de VNI
 let _diasVNIPrevios=0;   // días VNI acumulados
 let _fechaInicioVNI='';  // fecha inicio VNI actual
 let _vaAnterior='';      // VA previa para detectar transiciones
+let _vmHistFlag=false;   // historial de VM detectado en los datos cargados (evo previa / cama)
+let _transIntubEsteTurno=false; // hubo transición no-invasiva → invasiva en esta sesión de panel
 function actualizarDiasVA(){ actualizarContadores(); } // alias legacy
 function actualizarContadores(){
   const prev=parseInt($('fVAExtDias')?.value)||0;
@@ -4476,6 +4584,7 @@ function _pveCleanSi(){
   document.querySelectorAll('input[name="pveRes"]').forEach(r=>r.checked=false);
   hide('dPVESuperada'); hide('dPVEFracasada');
   document.querySelectorAll('input[name="pveFrMot"]').forEach(c=>c.checked=false);
+  const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); }
   const pe=$('peModo'); if(pe) pe.value=''; renderParamsPE();
   const h=$('fExtHora'); if(h) h.value='';
   const p=$('fPostExtDet'); if(p) p.value='';
@@ -4485,6 +4594,7 @@ function _pveCleanNo(){
   hide('dExtNoDetalle');
   const h=$('fExtHoraNo'); if(h) h.value='';
   const m=$('fExtMotivo'); if(m) m.value='';
+  const cr=$('cReintubNo'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDetNo'); }
   const pe=$('peModoNo'); if(pe) pe.value=''; renderParamsPEno();
   const p=$('fPostExtDetNo'); if(p) p.value='';
 }
@@ -4492,7 +4602,8 @@ function hPVEres(){
   const res=document.querySelector('input[name="pveRes"]:checked')?.value;
   if(res==='superada'){ show('dPVESuperada'); hide('dPVEFracasada');
     document.querySelectorAll('input[name="pveFrMot"]').forEach(c=>c.checked=false); }
-  else if(res==='frustra'){ hide('dPVESuperada'); show('dPVEFracasada'); }
+  else if(res==='frustra'){ hide('dPVESuperada'); show('dPVEFracasada');
+    const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); } }
   else { hide('dPVESuperada'); hide('dPVEFracasada'); }
 }
 function tiAddChip(tagsId, hiddenId, colorClass, val) {
@@ -4502,31 +4613,47 @@ function tiAddChip(tagsId, hiddenId, colorClass, val) {
 function hExt(){
   // legacy — ya no se usa directamente; PVE toggle maneja todo
 }
-function hReintubToggle(){
-  const b=$('dReintubBody'), a=$('sReintubArrow');
-  if(!b) return;
-  if(b.classList.contains('hidden')){ show('dReintubBody'); if(a) a.textContent='▲'; }
-  else { hide('dReintubBody'); if(a) a.textContent='▼'; }
-}
-function _updateReintubResumen(){
-  const r=$('sReintubResumen'); if(!r) return;
-  r.textContent = $('cReintubT')?.checked
-    ? `↩️ Reintubación${v('fReintubHoraT')?' '+v('fReintubHoraT')+' hrs':''}` : '';
-}
-function hReintubCheck(){
+// ── Reintubación STANDALONE (VA no invasiva + historial VM) ──
+function hReintubCheckT(){
   const checked=$('cReintubT')?.checked;
   if(checked){
     confirmarReintubacion(_nReintub+1).then(ok=>{
       if(ok){ const el=$('fReintub'); if(el) el.value=_nReintub+1; show('dReintubDetT'); _showCol('colReintub'); }
       else { const cr=$('cReintubT'); if(cr) cr.checked=false; hide('dReintubDetT'); }
-      _updateReintubResumen();
+      updateVAUI();
     });
   } else {
     hide('dReintubDetT');
     const raz=$('fReintubRazT'); if(raz) raz.value='';
     const h=$('fReintubHoraT'); if(h) h.value='';
     const el=$('fReintub'); if(el) el.value=_nReintub||0;
-    _updateReintubResumen();
+    updateVAUI();
+  }
+}
+// ── Intubación NUEVA (VA no invasiva + sin historial VM) ──
+function hIntub(){
+  if($('cIntubO')?.checked){
+    show('dIntubDet');
+    toast('💡 Cambia la Vía Aérea a TOT y registra modo y parámetros en Terapia Ventilatoria.', 4500);
+  } else {
+    hide('dIntubDet');
+    const h=$('fIntubHora'); if(h) h.value='';
+    const d=$('fIntubDet'); if(d) d.value='';
+  }
+  updateVAUI();
+}
+// ── Reintubación ANIDADA en el flujo PVE/Extubación (mismo turno, VA=TOT) ──
+function hReintubCheck(){
+  const checked=$('cReintub')?.checked;
+  if(checked){
+    confirmarReintubacion(_nReintub+1).then(ok=>{
+      if(ok){ const el=$('fReintub'); if(el) el.value=_nReintub+1; show('dReintubDet'); _showCol('colReintub'); }
+      else { const cr=$('cReintub'); if(cr) cr.checked=false; hide('dReintubDet'); }
+    });
+  } else {
+    hide('dReintubDet');
+    const raz=$('fReintubRaz'); if(raz) raz.value='';
+    const el=$('fReintub'); if(el) el.value=_nReintub||0;
   }
 }
 function hExtProg(){ /* legacy — reemplazado por hPVEtoggle */ }
@@ -4536,7 +4663,19 @@ function hExtTipo(){
   else { show('dExtNoDetalle'); }
 }
 function hExtQueda(){}
-// hReintubCheckNo eliminado — la reintubación vive en su toggle standalone (v2)
+function hReintubCheckNo(){
+  const checked=$('cReintubNo')?.checked;
+  if(checked){
+    confirmarReintubacion(_nReintub+1).then(ok=>{
+      if(ok){ const el=$('fReintub'); if(el) el.value=_nReintub+1; show('dReintubDetNo'); _showCol('colReintub'); }
+      else { const cr=$('cReintubNo'); if(cr) cr.checked=false; hide('dReintubDetNo'); }
+    });
+  } else {
+    hide('dReintubDetNo');
+    const raz=$('fReintubRazNo'); if(raz) raz.value='';
+    const el=$('fReintub'); if(el) el.value=_nReintub||0;
+  }
+}
 function renderParamsPEno(){
   const modo=v('peModoNo')||'';
   const box=$('peParamsBoxNo'); if(!box) return;
@@ -4624,8 +4763,15 @@ function _extOcurrio(){
   return false;
 }
 function _extHora(){ return v('fPVEval')==='si'?v('fExtHora'):v('fExtHoraNo'); }
-function _extReintub(){ return !!$('cReintubT')?.checked; } // v2: toggle standalone, manual
-function _extReintubRaz(){ return v('fReintubRazT'); }
+function _extReintub(){
+  const nested = _extOcurrio() && (v('fPVEval')==='si' ? !!$('cReintub')?.checked : !!$('cReintubNo')?.checked);
+  return nested || !!$('cReintubT')?.checked;
+}
+function _extReintubRaz(){
+  if(_extOcurrio() && (v('fPVEval')==='si' ? !!$('cReintub')?.checked : !!$('cReintubNo')?.checked))
+    return v('fPVEval')==='si' ? v('fReintubRaz') : v('fReintubRazNo');
+  return v('fReintubRazT');
+}
 function _extPeModo(){ return v('fPVEval')==='si'?v('peModo'):v('peModoNo'); }
 function _extPostDet(){ return v('fPVEval')==='si'?v('fPostExtDet'):v('fPostExtDetNo'); }
 function _extTipo(){

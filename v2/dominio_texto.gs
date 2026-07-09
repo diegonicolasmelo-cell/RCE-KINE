@@ -147,6 +147,17 @@ function generarTextoEvolucion(d) {
     txt.push(`Post-extubación/decanulación${det ? ': ' + det : ''}.`);
   }
 
+  // Reintubación sin extubación este turno (VA venía no invasiva)
+  if (esVerdadero(d.EXT_REINTUB) && !esVerdadero(d.EXT_OCURRIO)) {
+    const rh = v('REINTUB_HORA'), rz = v('EXT_REINTUB_RAZ');
+    txt.push(`Paciente requirió reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}.`);
+  }
+  // Intubación nueva este turno (sin historial de VM)
+  if (esVerdadero(d.INTUB_OCURRIO)) {
+    const ih = v('INTUB_HORA'), idt = v('INTUB_DET');
+    txt.push(`Paciente requiere intubación orotraqueal${ih ? ' a las ' + ih + ' hrs' : ''}${idt ? ' en contexto de ' + idt : ''}.`);
+  }
+
   // 7. Examen físico
   const mp = v('EX_MP'), ruidos = v('EX_RUIDOS'), ruidosLoc = v('EX_RUIDOS_LOC');
   const secrC = v('RESP_SECR_QTY'), secrT = v('RESP_SECR_CAR');

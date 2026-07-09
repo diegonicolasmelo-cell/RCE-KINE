@@ -104,6 +104,9 @@ const _COLS_EVOLUCIONES = [
   // X. Extensiones post-congelamiento (SIEMPRE al final — nunca insertar al medio,
   // para no desplazar los índices de datos ya escritos).
   ['REINTUB_HORA','texto'],   // hora de la reintubación (independiente de EXT_HORA, que es la de extubación)
+  ['INTUB_OCURRIO','bool'],   // intubación NUEVA este turno (paciente sin historial de VM)
+  ['INTUB_HORA','texto'],     // hora de la intubación
+  ['INTUB_DET','texto'],      // contexto / motivo de la intubación
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -365,7 +368,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 196) errs.push('EVOLUCIONES != 196 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 199) errs.push('EVOLUCIONES != 199 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

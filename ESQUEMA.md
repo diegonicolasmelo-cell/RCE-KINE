@@ -177,6 +177,10 @@ como columna → consultable, estadístico y **replicable turno a turno** (Punto
 ### X. Extensiones post-congelamiento (append-only)
 196.`REINTUB_HORA` `texto` — hora de la reintubación (independiente de `EXT_HORA`, que es la de
 extubación). *Regla de extensión: toda columna nueva va SIEMPRE al final, nunca al medio, para no
+197. `INTUB_OCURRIO` `bool` — intubación NUEVA este turno (paciente sin historial de VM; flujo
+     de vía aérea: no invasiva + historial 0 → bloque Intubación).
+198. `INTUB_HORA` `texto` — hora de la intubación.
+199. `INTUB_DET` `texto` — contexto / motivo de la intubación.
 desplazar los índices de datos ya escritos.*
 
 > **Total: 195 columnas**, todas nombradas, consultables y replicables. Eliminadas de v1 por
@@ -288,8 +292,8 @@ Ej.: *Diego Melo Villagrán, 34, 07/07/26* → **`070726Dmelov34`**.
 | CONFIG | 1 | 2 |
 | CATALOGOS | 1 | 4 |
 | CAMAS_ESTADO | 2 | 43 |
-| EVOLUCIONES | 3 | 196 |
-| EVOLUCIONES_ARCHIVO | 3 | 196 |
+| EVOLUCIONES | 3 | 199 |
+| EVOLUCIONES_ARCHIVO | 3 | 199 |
 | PROCEDIMIENTOS | 1 | 11 |
 | TIMELINE | 1 | 10 |
 | ARCHIVO_PACIENTES | 1 | 33 |
