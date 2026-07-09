@@ -107,6 +107,19 @@ const _COLS_EVOLUCIONES = [
   ['INTUB_OCURRIO','bool'],   // intubación NUEVA este turno (paciente sin historial de VM)
   ['INTUB_HORA','texto'],     // hora de la intubación
   ['INTUB_DET','texto'],      // contexto / motivo de la intubación
+  // — Contraste documentos unidad (S1–S13, jul-2026) —
+  ['REINTUB_SOP_PREV','texto'],   // S3: soporte previo a la reintubación (informe: dispositivos previos)
+  ['EVAL_T_CUAD_D','decimal'],['EVAL_T_CUAD_I','decimal'],   // S4: grosor cuádriceps mm der/izq (ecografía)
+  ['EVAL_T_HECKMATT','texto'],                                // S4: índice de Heckmatt I-IV
+  ['EVAL_T_FED_D','decimal'],['EVAL_T_FED_I','decimal'],      // S4: fracción de engrosamiento diafragmático % (>30% predice éxito weaning)
+  ['EVAL_T_EXC_D','decimal'],['EVAL_T_EXC_I','decimal'],      // S4: excursión diafragmática cm (>1.1 predice éxito)
+  ['PAC_CHARLSON','entero'],['PAC_INGRESO_TIPO','texto'],     // S5: índice de Charlson; Electivo/Urgencia (hoja RHB)
+  ['EXT_VISAGE','entero'],['EXT_SCORE_VA','entero'],          // S7: VISAGE (≥3 éxito) y Score cuidados de VA (<6 adecuado) — neuro
+  ['LAB_PH','decimal'],['LAB_PACO2','decimal'],['LAB_PAO2','decimal'],['LAB_HCO3','decimal'],['LAB_LACTATO','decimal'],['LAB_PAFI','decimal'], // S8: GSA
+  ['HEMO_FC','entero'],['HEMO_PA','texto'],['HEMO_PAM','entero'],['HEMO_PIC','entero'],['HEMO_PPC','entero'], // S9: signos vitales (hoja diaria)
+  ['KTM_BORG','texto'],                                       // S12: percepción de esfuerzo (Borg 0-10)
+  ['MUE_HORA_TOMA','texto'],['MUE_CON_ATB','bool'],           // S13: orden CCAET (hora de toma, con antibiótico)
+  ['VENT_FECHA_FILTRO','texto'],['VENT_FECHA_SONDA','texto'], // S11: mantención circuito cerrado (persisten turno a turno)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -128,6 +141,7 @@ const ESQUEMA = {
     ['ULTIMO_TURNO_KEY','texto'],['TIMELINE_JSON','json'],['KTR_DIA','entero'],['KTM_DIA','texto'],
     ['PROC_DIA','texto'],['FIRMA_DIA','texto'],['KEY_DIA','texto'],['KTR_NOCHE','entero'],['PROC_NOCHE','texto'],
     ['FIRMA_NOCHE','texto'],['KEY_NOCHE','texto'],
+    ['CHARLSON','entero'],['INGRESO_TIPO','texto'],  // S5 (persisten con el episodio, se cargan al abrir)
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -368,7 +382,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 199) errs.push('EVOLUCIONES != 199 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 227) errs.push('EVOLUCIONES != 227 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

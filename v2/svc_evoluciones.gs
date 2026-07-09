@@ -162,6 +162,7 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     TALLA_CM: val(evo.PAC_TALLA, cama.TALLA_CM), PESO_IDEAL_KG: val(evo.PAC_PESO_IDEAL, cama.PESO_IDEAL_KG),
     BARTHEL: val(evo.PAC_BARTHEL, cama.BARTHEL), ECF: val(evo.PAC_ECF, cama.ECF),
     DIAGNOSTICO: val(evo.PAC_DIAGNOSTICO, cama.DIAGNOSTICO), DIAG_REM: val(evo.PAC_DIAG_REM, cama.DIAG_REM),
+    CHARLSON: val(evo.PAC_CHARLSON, cama.CHARLSON), INGRESO_TIPO: val(evo.PAC_INGRESO_TIPO, cama.INGRESO_TIPO),
     AISLAMIENTO: esVerdadero(evo.PAC_AISLAMIENTO), AISL_MICRO: val(evo.PAC_AISL_MICRO, cama.AISL_MICRO),
     VIA_AEREA: val(evo.VENT_VIA_AEREA, cama.VIA_AEREA) || 'Natural',
     TOT_NUMERO: val(evo.VENT_TOT_NUM, cama.TOT_NUMERO), TOT_CM_LABIO: val(evo.VENT_TOT_CM, cama.TOT_CM_LABIO),
@@ -198,10 +199,40 @@ function _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx) {
     ID_REINTUB: idReintub, PATIENT_ID: evo.PATIENT_ID || '', TIMESTAMP: ahoraTS(), FECHA: fecha, TURNO: turno,
     ID_CAMA: String(idCama), ID_EVOLUCION: idEvolucion, NOMBRE: evo.PAC_NOMBRE || '', COD_PACIENTE: evo.PAC_COD || '',
     DIAGNOSTICO: evo.PAC_DIAGNOSTICO || '', TIPO_DESVINCULACION: evo.EXT_TIPO || '', MOTIVO: evo.EXT_REINTUB_RAZ || '',
-    SOPORTE_PREVIO: evo.EXT_PE_SOP || '', TIEMPO_EXTUBADO: '', HORA_REINTUBACION: evo.REINTUB_HORA || evo.EXT_HORA || '',
+    SOPORTE_PREVIO: evo.REINTUB_SOP_PREV || evo.EXT_PE_SOP || '',
+    TIEMPO_EXTUBADO: _tiempoExtubado(evo, idCama, fecha),
+    HORA_REINTUBACION: evo.REINTUB_HORA || evo.EXT_HORA || '',
     KINESIOLOGO: evo.PLAN_FIRMA_KINE || '', AUTOR_EMAIL: (ctx && ctx.email) || '',
   };
   repoUpsert('REINTUBACIONES', 'ID_REINTUB', idReintub, fila);
+}
+
+/**
+ * Horas entre la extubación previa del episodio (EXT_TS) y la reintubación.
+ * Mismo turno: EXT_TS viene en el propio payload; turno siguiente: se busca
+ * el EXT_TS más reciente del episodio. Devuelve '' si no es computable.
+ */
+function _tiempoExtubado(evo, idCama, fecha) {
+  try {
+    const horaRe = evo.REINTUB_HORA || evo.EXT_HORA || '';
+    if (!horaRe) return '';
+    let extTs = evo.EXT_TS || '';
+    if (!extTs) {
+      const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama))
+        .filter(function (e) { return e.EXT_TS && String(e.PATIENT_ID) === String(evo.PATIENT_ID || ''); });
+      evos.sort(function (a, b) { return String(b.TURNO_KEY).localeCompare(String(a.TURNO_KEY)); });
+      if (evos.length) extTs = evos[0].EXT_TS;
+    }
+    if (!extTs) return '';
+    let t0;
+    try { t0 = new Date(JSON.parse(extTs).ts); } catch (e) { return ''; }
+    const p = String(horaRe).split(':');
+    const t1 = new Date(fecha + 'T' + ('0' + p[0]).slice(-2) + ':' + ('0' + (p[1] || '0')).slice(-2) + ':00');
+    let horas = (t1 - t0) / 3600000;
+    if (isNaN(horas)) return '';
+    if (horas < 0) horas += 24; // reintubación cruzando medianoche
+    return (Math.round(horas * 10) / 10) + ' h';
+  } catch (e) { return ''; }
 }
 
 // ═══ LECTURA ══════════════════════════════════════════════

@@ -181,6 +181,29 @@ extubación). *Regla de extensión: toda columna nueva va SIEMPRE al final, nunc
      de vía aérea: no invasiva + historial 0 → bloque Intubación).
 198. `INTUB_HORA` `texto` — hora de la intubación.
 199. `INTUB_DET` `texto` — contexto / motivo de la intubación.
+
+**Extensión "contraste documentos de la unidad" (S1–S13, jul-2026)** — ver
+`CONTRASTE_DOCUMENTOS.md`:
+
+200. `REINTUB_SOP_PREV` `texto` — soporte previo a la reintubación (indicador del informe anual).
+201–202. `EVAL_T_CUAD_D/I` `decimal` — grosor de cuádriceps mm (ecografía; ingreso/5-7d/egreso).
+203. `EVAL_T_HECKMATT` `texto` — índice de Heckmatt (I–IV).
+204–205. `EVAL_T_FED_D/I` `decimal` — fracción de engrosamiento diafragmático % (>30% predice éxito).
+206–207. `EVAL_T_EXC_D/I` `decimal` — excursión diafragmática cm (>1,1 predice éxito).
+208. `PAC_CHARLSON` `entero` — índice de comorbilidad de Charlson (hoja RHB).
+209. `PAC_INGRESO_TIPO` `texto` — Electivo / Urgencia.
+210. `EXT_VISAGE` `entero` — escala VISAGE pre-extubación (≥3 predice éxito, neuro).
+211. `EXT_SCORE_VA` `entero` — score de cuidados de vía aérea (<6 = manejo adecuado).
+212–217. `LAB_PH, LAB_PACO2, LAB_PAO2, LAB_HCO3, LAB_LACTATO, LAB_PAFI` `decimal` — GSA del turno
+     (PaFi auto-calculada de PaO₂/FiO₂; criterio weaning >150, decanulación >200).
+218–222. `HEMO_FC, HEMO_PA, HEMO_PAM, HEMO_PIC, HEMO_PPC` — signos vitales de la hoja diaria
+     (PA texto "120/80"; PIC/PPC para neurocríticos).
+223. `KTM_BORG` `texto` — percepción de esfuerzo (Borg 0-10) post sesión KTM.
+224–225. `MUE_HORA_TOMA` `texto`, `MUE_CON_ATB` `bool` — datos de la orden CCAET.
+226–227. `VENT_FECHA_FILTRO`, `VENT_FECHA_SONDA` `texto` — mantención del circuito cerrado
+     (se replican turno a turno).
+
+CAMAS_ESTADO suma 2 columnas al final: `CHARLSON` (44) e `INGRESO_TIPO` (45).
 desplazar los índices de datos ya escritos.*
 
 > **Total: 195 columnas**, todas nombradas, consultables y replicables. Eliminadas de v1 por
@@ -292,8 +315,8 @@ Ej.: *Diego Melo Villagrán, 34, 07/07/26* → **`070726Dmelov34`**.
 | CONFIG | 1 | 2 |
 | CATALOGOS | 1 | 4 |
 | CAMAS_ESTADO | 2 | 43 |
-| EVOLUCIONES | 3 | 199 |
-| EVOLUCIONES_ARCHIVO | 3 | 199 |
+| EVOLUCIONES | 3 | 227 |
+| EVOLUCIONES_ARCHIVO | 3 | 227 |
 | PROCEDIMIENTOS | 1 | 11 |
 | TIMELINE | 1 | 10 |
 | ARCHIVO_PACIENTES | 1 | 33 |
