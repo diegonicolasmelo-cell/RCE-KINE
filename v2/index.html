@@ -5,9 +5,13 @@
   <meta charset="utf-8">
   <style>
     :root{
-      --bg:#f1f5f9; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
-      --brand:#0d9488; --brand-d:#0f766e; --danger:#dc2626; --ok:#16a34a; --warn:#d97706;
+      /* Paleta alineada al sistema anterior (v1) para que se sienta familiar */
+      --bg:#f4f6f8; --card:#fff; --ink:#111827; --muted:#6b7280; --line:#e5e7eb;
+      --brand:#1d6fc4; --brand-d:#0c4f96; --danger:#dc2626; --ok:#1a9e52; --warn:#d97706;
       --vm:#7c3aed; --vni:#2563eb;
+      /* Acentos por dominio clínico (igual que v1: cada bloque con su color) */
+      --ac-id:#1d6fc4; --ac-neuro:#5856d6; --ac-hemo:#e11d48; --ac-resp:#0284c7;
+      --ac-kine:#d97706; --ac-fisico:#0891b2; --ac-plan:#334155;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);}
@@ -58,7 +62,7 @@
     #repBar{background:#ecfeff;border-bottom:1px solid #a5f3fc;color:#155e75;font-size:.76rem;padding:6px 18px;display:none;}
     #repBar.on{display:block}
     .epbody{flex:1;overflow-y:auto;padding:14px 18px 90px;}
-    .sec{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+    .sec{background:#fff;border:1px solid var(--line);border-left:4px solid var(--ac,var(--line));border-radius:10px;margin-bottom:12px;overflow:hidden;}
     .sec>.shdr{padding:10px 14px;font-weight:700;font-size:.85rem;background:#fff;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);}
     .sec .sgrid{padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 12px;}
     .sec .sgrid .full{grid-column:1/-1}
@@ -144,7 +148,7 @@
     <div id="repBar">↪️ <span id="repTxt"></span> — modifica solo lo que cambió y guarda.</div>
     <div class="epbody">
 
-      <div class="sec"><div class="shdr">🧑 Paciente</div>
+      <div class="sec" style="--ac:var(--ac-id)"><div class="shdr">👤 Identificación</div>
         <div class="sgrid">
           <div class="full"><label>Nombre</label><input id="fNombre"></div>
           <div><label>Edad</label><input id="fEdad" type="number"></div>
@@ -160,34 +164,7 @@
         </div>
       </div>
 
-      <div class="sec"><div class="shdr">🎯 Fase clínica</div>
-        <div class="sgrid"><div class="full chips" id="faseChips"></div></div>
-      </div>
-
-      <div class="sec"><div class="shdr">😴 Sedación y conciencia</div>
-        <div class="sgrid">
-          <div><label>Sedación</label><select id="fSed"><option>Sin sedación</option><option>Sedación superficial</option><option>Sedación moderada</option><option>Sedación profunda</option><option>Fuera de escalón</option></select></div>
-          <div><label>SAS</label><select id="fSAS"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-          <div><label>GCS O</label><input id="fGO" type="number" min="1" max="4" oninput="calcGCS()"></div>
-          <div><label>GCS V</label><input id="fGV" type="number" min="1" max="5" oninput="calcGCS()"></div>
-          <div><label>GCS M</label><input id="fGM" type="number" min="1" max="6" oninput="calcGCS()"></div>
-          <div><label>GCS total</label><input id="fGT" readonly style="background:#f8fafc;font-weight:700"></div>
-          <div><label>S5Q</label><select id="fS5Q"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-          <div><label>Cooperación</label><select id="fCoop"><option value="">—</option><option>Cooperador</option><option>Parcialmente cooperador</option><option>No cooperador</option></select></div>
-          <div><label>CAM-ICU</label><select id="fCAM"><option value="">—</option><option>Positivo</option><option>Negativo</option><option>No evaluable</option></select></div>
-          <div><label class="bool" id="bBNM" style="margin-top:18px"><input type="checkbox" id="fBNM" onchange="this.parentElement.classList.toggle('on',this.checked)"> BNM</label></div>
-        </div>
-      </div>
-
-      <div class="sec"><div class="shdr">❤️ Hemodinamia</div>
-        <div class="sgrid">
-          <div><label>Estado</label><select id="fHemo"><option>Estable</option><option>Inestable</option></select></div>
-          <div><label>DVA</label><select id="fDVA"><option>sin DVA</option><option>DVA dosis baja</option><option>DVA dosis media</option><option>DVA dosis alta</option></select></div>
-          <div><label>N° DVA</label><input id="fNDVA" type="number" min="0" max="5"></div>
-        </div>
-      </div>
-
-      <div class="sec"><div class="shdr">🫁 Vía aérea y ventilación</div>
+      <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🫁 Vía aérea y ventilación</div>
         <div class="sgrid">
           <div><label>Vía aérea</label><select id="fVA" onchange="cascadeVA()"><option>Natural</option><option>TOT</option><option>TQT</option><option>Full Face</option><option>Oronasal</option></select></div>
           <div class="vaTOT hidden"><label>N° TOT</label><input id="fTOTn"></div>
@@ -210,7 +187,7 @@
           <div class="pVM pVNI pCNAF pO2"><label>FiO₂ %</label><input id="p_fio2" type="number"></div>
           <div class="pVM pVNI pCNAF pO2 pAmb"><label>SpO₂ %</label><input id="p_spo2" type="number"></div>
         </div>
-        <details class="sec" style="margin:0 14px 12px;border-radius:10px;">
+        <details class="sec" style="--ac:var(--ac-resp);margin:0 14px 12px;border-radius:10px;">
           <summary>📈 Monitorización avanzada</summary>
           <div class="sgrid">
             <div><label>Pmax</label><input id="p_pmax" type="number"></div>
@@ -226,7 +203,41 @@
         </details>
       </div>
 
-      <div class="sec"><div class="shdr">💪 KTM · rehabilitación</div>
+      <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🩺 Auscultación</div>
+        <div class="sgrid">
+          <div><label>Murmullo pulmonar</label><select id="fMP" onchange="cascadeRuidos()"><option value="">—</option><option>conservado bilateral</option><option>disminuido bilateral</option><option>disminuido derecho</option><option>disminuido izquierdo</option><option>abolido</option></select></div>
+          <div><label>Ruidos agregados</label><select id="fRuidos" onchange="cascadeRuidos()"><option value="">—</option><option>sin ruidos agregados</option><option>crepitantes</option><option>sibilancias</option><option>roncus</option><option>Otro</option></select></div>
+          <div class="full ruidosOtro hidden"><label>Localización / detalle</label><input id="fRuidosLoc"></div>
+        </div>
+      </div>
+
+      <div class="sec" style="--ac:var(--ac-id)"><div class="shdr">🎯 Fase clínica</div>
+        <div class="sgrid"><div class="full chips" id="faseChips"></div></div>
+      </div>
+
+      <div class="sec" style="--ac:var(--ac-neuro)"><div class="shdr">🧠 Sedación y Conciencia</div>
+        <div class="sgrid">
+          <div><label>Sedación</label><select id="fSed"><option>Sin sedación</option><option>Sedación superficial</option><option>Sedación moderada</option><option>Sedación profunda</option><option>Fuera de escalón</option></select></div>
+          <div><label>SAS</label><select id="fSAS"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+          <div><label>GCS O</label><input id="fGO" type="number" min="1" max="4" oninput="calcGCS()"></div>
+          <div><label>GCS V</label><input id="fGV" type="number" min="1" max="5" oninput="calcGCS()"></div>
+          <div><label>GCS M</label><input id="fGM" type="number" min="1" max="6" oninput="calcGCS()"></div>
+          <div><label>GCS total</label><input id="fGT" readonly style="background:#f8fafc;font-weight:700"></div>
+          <div><label>S5Q</label><select id="fS5Q"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+          <div><label>Cooperación</label><select id="fCoop"><option value="">—</option><option>Cooperador</option><option>Parcialmente cooperador</option><option>No cooperador</option></select></div>
+          <div><label>CAM-ICU</label><select id="fCAM"><option value="">—</option><option>Positivo</option><option>Negativo</option><option>No evaluable</option></select></div>
+          <div><label class="bool" id="bBNM" style="margin-top:18px"><input type="checkbox" id="fBNM" onchange="this.parentElement.classList.toggle('on',this.checked)"> BNM</label></div>
+        </div>
+      </div>
+
+      <div class="sec" style="--ac:var(--ac-hemo)"><div class="shdr">❤️ Hemodinamia</div>
+        <div class="sgrid">
+          <div><label>Estado</label><select id="fHemo"><option>Estable</option><option>Inestable</option></select></div>
+          <div><label>DVA</label><select id="fDVA"><option>sin DVA</option><option>DVA dosis baja</option><option>DVA dosis media</option><option>DVA dosis alta</option></select></div>
+          <div><label>N° DVA</label><input id="fNDVA" type="number" min="0" max="5"></div>
+        </div>
+      </div>
+      <div class="sec" style="--ac:var(--ac-kine)"><div class="shdr">🏃 Terapia Física — KTM</div>
         <div class="sgrid">
           <div class="full">
             <div class="seg" id="segKTM">
@@ -242,7 +253,7 @@
         </div>
       </div>
 
-      <div class="sec"><div class="shdr">🌬️ Terapia respiratoria</div>
+      <div class="sec" style="--ac:var(--ac-resp)"><div class="shdr">🌬️ Terapia Respiratoria</div>
         <div class="sgrid">
           <div><label>N° KTR</label><input id="fKTR" type="number" min="0"></div>
           <div class="full chips">
@@ -257,7 +268,7 @@
         </div>
       </div>
 
-      <div class="sec"><div class="shdr">🩺 Procedimientos del turno</div>
+      <div class="sec" style="--ac:var(--ac-fisico)"><div class="shdr">🔧 Procedimientos del Turno</div>
         <div class="sgrid">
           <div class="full" style="display:flex;gap:8px;">
             <select id="procSel" style="flex:1">
@@ -274,7 +285,7 @@
         </div>
       </div>
 
-      <details class="sec" id="secEval">
+      <details class="sec" id="secEval" style="--ac:var(--ac-fisico)">
         <summary>📋 Evaluación funcional por turno</summary>
         <div class="sgrid">
           <div><label>MRC-SS (0-60)</label><input id="fMRC" type="number" min="0" max="60"></div>
@@ -287,7 +298,7 @@
         </div>
       </details>
 
-      <div class="sec"><div class="shdr">📝 Plan y firma</div>
+      <div class="sec" style="--ac:var(--ac-plan)"><div class="shdr">📋 Planes y Pendientes</div>
         <div class="sgrid">
           <div class="full"><label>Plan</label><textarea id="fPlan" rows="2"></textarea></div>
           <div class="full"><label>Nota del turno</label><textarea id="fNota" rows="2"></textarea></div>
@@ -427,23 +438,24 @@
       $('evTitulo').textContent=(c.NOMBRE||('Cama '+id));
       const tk=hoy()+'-'+TURNO;
       $('evSub').textContent=`Cama ${id} · ${TURNO==='Dia'?'☀️':'🌙'} ${hoy()} · ${c.COD_PACIENTE||''}`;
-      $('repBar').classList.remove('on');$('secTxt').style.display='none';$('evEstado').textContent='';
+      $('repBar').classList.remove('on');$('secTxt').style.display='none';
+      $('evEstado').textContent='Cargando…';
       renderFases();renderProcs();
+      // Precarga instantánea con lo que ya tenemos en memoria (sin esperar al servidor).
+      fillDesdeCama(c);
+      // Abrir el panel YA — no bloquear la apertura con la llamada de red.
       $('evPanel').classList.add('on');document.body.style.overflow='hidden';
-      loading(true);
-      try{
-        const evo=await api('GET_EVOLUCION',{idCama:id,turnoKey:tk});
-        if(evo){fillForm(evo);$('evEstado').textContent='✏️ Editando turno ya guardado';}
-        else{
-          const prev=await api('GET_EVOLUCION_PREVIA',{idCama:id,turnoKey:tk});
-          fillDesdeCama(c);
-          if(prev){fillReplica(prev);
-            $('repTxt').textContent='Datos replicados del turno '+String(prev.TURNO_KEY||'').replace(/-/g,' ');
-            $('repBar').classList.add('on');}
-        }
-      }catch(e){toast('❌ '+(e.message||e));}
-      loading(false);
       document.querySelector('.epbody').scrollTop=0;
+      try{
+        // Una sola llamada combinada (turno actual + previa) en vez de dos seriales.
+        const r=await api('GET_EVO_TURNO',{idCama:id,turnoKey:tk});
+        if(id!==EVO_CAMA)return; // el usuario ya cambió de cama mientras llegaba la respuesta
+        if(r.actual){fillForm(r.actual);$('evEstado').textContent='✏️ Editando turno ya guardado';}
+        else if(r.previa){fillReplica(r.previa);
+          $('repTxt').textContent='Datos replicados del turno '+String(r.previa.TURNO_KEY||'').replace(/-/g,' ');
+          $('repBar').classList.add('on');$('evEstado').textContent='';}
+        else{$('evEstado').textContent='';}
+      }catch(e){toast('❌ '+(e.message||e));$('evEstado').textContent='';}
     }
     function cerrarEvo(){$('evPanel').classList.remove('on');document.body.style.overflow='';EVO_CAMA=null;}
 
@@ -467,6 +479,10 @@
       if(keepModo&&antes){for(const o of sel.options){if(o.value===antes){sel.value=antes;break;}}}
       const cls={'VM':'pVM','VNI':'pVNI','CNAF':'pCNAF','Oxigenoterapia':'pO2','Ambiente':'pAmb'}[sop]||'pAmb';
       document.querySelectorAll('#paramsGrid > div').forEach(d=>d.classList.toggle('hidden',!d.classList.contains(cls)));
+    }
+    // "Ruidos agregados = Otro" → mostrar campo de detalle (condicionante de v1)
+    function cascadeRuidos(){
+      $('fRuidosLoc').closest('.ruidosOtro').classList.toggle('hidden', $('fRuidos').value!=='Otro');
     }
     function calcPI(){
       const s=$('fSexo').value,t=parseFloat($('fTalla').value);
@@ -523,6 +539,7 @@
       setv('p_pmax',p.VENT_PMAX);setv('p_pmedia',p.VENT_PMEDIA);setv('p_ppl',p.VENT_PPL);setv('p_autopeep',p.VENT_AUTOPEEP);
       setv('p_ti',p.VENT_TI);setv('p_p01',p.VENT_P01);setv('p_dpocc',p.VENT_DPOCC);setv('p_pmusc',p.VENT_PMUSC);setv('p_rise',p.VENT_RISETIME);
       setv('fSecrQ',p.RESP_SECR_QTY);setv('fSecrC',p.RESP_SECR_CAR);
+      setv('fMP',p.EX_MP);setv('fRuidos',p.EX_RUIDOS);setv('fRuidosLoc',p.EX_RUIDOS_LOC);cascadeRuidos();
       try{FASES_SEL=new Set(JSON.parse(p.FASE_JSON||'[]'));}catch(e){}
       renderFases();
     }
@@ -574,6 +591,7 @@
         RESP_KTR_CANT:num('fKTR'), RESP_SOF:chipOn('SOF'), RESP_SNF:chipOn('SNF'), RESP_SET:chipOn('SET'),
         RESP_ATOS:chipOn('ATOS'), RESP_INHALO:chipOn('INHALO'),
         RESP_SECR_QTY:$('fSecrQ').value, RESP_SECR_CAR:$('fSecrC').value,
+        EX_MP:$('fMP').value, EX_RUIDOS:$('fRuidos').value, EX_RUIDOS_LOC:$('fRuidos').value==='Otro'?$('fRuidosLoc').value:'',
         PROC_JSON:JSON.stringify(PROCS),
         EVAL_T_REALIZAR:!!evalOn, EVAL_FECHA:evalOn?hoy():'',
         EVAL_T_MRC:evalOn?num('fMRC'):'', EVAL_T_FSS:evalOn?num('fFSS'):'', EVAL_T_DINAMO:evalOn?num('fDinamo'):'',

@@ -189,6 +189,21 @@ function obtenerEvolucionPrevia(idCama, turnoKey) {
   } catch (e) { return err('obtenerEvolucionPrevia: ' + e.message, ERR.INTERNO, e); }
 }
 
+/**
+ * Turno actual + previa en UNA llamada (evita 2 round-trips seriales al abrir el panel).
+ */
+function obtenerEvoTurno(idCama, turnoKey) {
+  try {
+    const actual = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', 'CAMA_' + idCama + '_' + turnoKey);
+    let previa = null;
+    if (!actual) {
+      const r = obtenerEvolucionPrevia(idCama, turnoKey);
+      previa = (r.ok && r.data) ? r.data : null;
+    }
+    return ok({ actual: actual, previa: previa });
+  } catch (e) { return err('obtenerEvoTurno: ' + e.message, ERR.INTERNO, e); }
+}
+
 function obtenerEvolucionesRecientes(idCama, limite) {
   try {
     const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));

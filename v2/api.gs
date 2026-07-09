@@ -25,6 +25,7 @@ function api(accion, datos, token) {
       case 'GET_CAMA':         return obtenerCama(datos.idCama);
       case 'GET_TIMELINE':     return obtenerTimeline(datos.idCama);
       case 'GET_EVOLUCION':          return obtenerEvolucion(datos.idCama, datos.turnoKey);
+      case 'GET_EVO_TURNO':          return obtenerEvoTurno(datos.idCama, datos.turnoKey);
       case 'GET_EVOLUCION_PREVIA':   return obtenerEvolucionPrevia(datos.idCama, datos.turnoKey);
       case 'GET_EVOLUCIONES_RECIENTES': return obtenerEvolucionesRecientes(datos.idCama, datos.limite || 14);
       case 'GET_HISTORIAL_PACIENTE': return obtenerHistorialPaciente(datos.idCama, datos.patientId || '');
