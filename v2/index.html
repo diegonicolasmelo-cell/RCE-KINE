@@ -1109,6 +1109,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard fc-n">
           <div class="fcard-hdr"><span class="fcard-title">🧠 Sedación y Conciencia</span></div>
           <div class="fcard-body">
+            <!-- Fila 1: Sedación + BNM (+ SAS si hay sedación) -->
             <div class="row" style="align-items:flex-end;">
               <div class="col wa"><label>Sedación</label>
                 <select id="fSed" onchange="hSed()">
@@ -1117,26 +1118,31 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <option>Escalón 4</option><option>Escalón 5</option><option>Escalón 6</option>
                   <option>Fuera de escalón</option>
                 </select></div>
-              <div class="check cr wa" style="margin-bottom:6px;"><input type="checkbox" id="cBNM" onchange="autoCoopera()"><label for="cBNM" style="font-size:.75rem;">🔒 Más bloqueo neuromuscular</label></div>
+              <div class="check cr wa"><input type="checkbox" id="cBNM" onchange="autoCoopera()"><label for="cBNM">🔒 BNM</label></div>
               <div id="gSAS" class="col wa hidden"><label>SAS</label>
                 <select id="fSAS" onchange="autoCoopera()"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-              <span style="font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;align-self:flex-end;padding-bottom:8px;">GCS:</span>
-              <div class="col ws"><label>Ocular</label>
-                <select id="fGCSO" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option selected>4</option></select></div>
-              <div class="col ws"><label>Verbal</label>
-                <select id="fGCSV" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option value="1T">1T</option></select></div>
-              <div class="col ws"><label>Motor</label>
-                <select id="fGCSM" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></div>
-              <div class="mon" style="height:36px;"><span style="font-size:.58rem;color:var(--muted);">GCS</span><span id="lblGCS" class="bold">15</span></div>
             </div>
-            <div class="row" style="margin-top:4px;">
+            <!-- Fila 2: GCS -->
+            <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--neuro);margin:4px 0 6px;">GCS</div>
+            <div class="row" style="align-items:flex-end;">
+              <div class="col ws"><label>O</label>
+                <select id="fGCSO" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option selected>4</option></select></div>
+              <div class="col ws"><label>V</label>
+                <select id="fGCSV" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option value="1T">1T</option></select></div>
+              <div class="col ws"><label>M</label>
+                <select id="fGCSM" onchange="calcGCS();autoCoopera()"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></div>
+              <div class="mon" style="height:38px;"><span style="font-size:.58rem;color:var(--muted);">GCS</span><span id="lblGCS" class="bold">15</span></div>
+            </div>
+            <!-- Fila 3: Nivel de cooperación y delirium -->
+            <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--neuro);margin:4px 0 6px;">Nivel de cooperación y delirium</div>
+            <div class="row" style="margin-bottom:0;">
               <div class="col wa" id="gS5Qw"><label>S5Q</label>
                 <select id="fS5Q" onchange="autoCoopera()">
                   <option value="">-</option>
                   <option value="lt3">&lt;3</option>
                   <option value="gte3">≥3</option>
                 </select></div>
-              <div class="col wa"><label>Cooperación</label>
+              <div class="col wa"><label>Interpretación</label>
                 <select id="fCoop" onchange="aplicarGatesEval()"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select></div>
               <div class="col wa" id="gCAMw"><label>CAM-ICU</label>
                 <select id="fCAMICU"><option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option></select></div>
