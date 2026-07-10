@@ -1133,7 +1133,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <option value="gte3">≥3</option>
                 </select></div>
               <div class="col wa"><label>Cooperación</label>
-                <select id="fCoop"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select></div>
+                <select id="fCoop" onchange="aplicarGatesEval()"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select></div>
               <div class="col wa"><label>CAM-ICU</label>
                 <select id="fCAMICU"><option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option></select></div>
             </div>
@@ -1776,7 +1776,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         </div>
 
         <!-- ▌ TERAPIA FÍSICA (KTM + Evaluaciones) -->
-        <div class="fcard fc-k mega-card">
+        <div class="fcard fc-k mega-card" id="fcKtmCard">
           <div class="fcard-hdr"><span class="fcard-title">🏃 TERAPIA FÍSICA</span></div>
           <div class="fcard-body">
 
@@ -1997,6 +1997,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             </div>
           </div>
           <div id="dEgr" class="fcard-body hidden">
+            <div id="coopGateNota" class="hidden" style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:7px;padding:7px 10px;font-size:.76rem;font-weight:600;margin-bottom:8px;">
+              🔒 Paciente no cooperador — MRC-SS, FSS-ICU y dinamometría requieren cooperación (SAS 3-4 · S5Q ≥3).
+              Disponibles: PIM/PEM con válvula, ecografía diafragmática/cuádriceps y CPAx (observacional).
+            </div>
             <div class="row">
               <div class="col wa"><label>Prensión / Dinam. (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="kg" oninput="interpDinamo()"></div>
               <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPrension" class="interp-pill interp-empty">—</span></div>
@@ -2038,7 +2042,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             </div>
 
             <!-- FSS-ICU por ítem (opcional, colapsable) — misma pauta que la hoja física -->
-            <div style="border:1px solid #cffafe;border-radius:7px;overflow:hidden;margin-top:8px;">
+            <div id="secFssIt" style="border:1px solid #cffafe;border-radius:7px;overflow:hidden;margin-top:8px;">
               <button type="button" onclick="hColToggle('dFssIt','sFssItArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#ecfeff;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#0e7490;">
                 <span>📝 FSS-ICU por ítem (opcional)</span><span id="sFssItArrow" style="font-size:.7rem;">▼</span>
               </button>
@@ -2055,7 +2059,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             </div>
 
             <!-- MRC-SS por movimiento (opcional, colapsable) — 6 movimientos × 2 hemicuerpos -->
-            <div style="border:1px solid #d9f99d;border-radius:7px;overflow:hidden;margin-top:6px;">
+            <div id="secMrcIt" style="border:1px solid #d9f99d;border-radius:7px;overflow:hidden;margin-top:6px;">
               <button type="button" onclick="hColToggle('dMrcIt','sMrcItArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f7fee7;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#4d7c0f;">
                 <span>📝 MRC-SS por movimiento (opcional)</span><span id="sMrcItArrow" style="font-size:.7rem;">▼</span>
               </button>
@@ -2502,7 +2506,7 @@ function abrirPanel(id, esIng) {
   });
   sumFSS(); sumMRC(); sumCPAX();
   if(window.CFG && CFG.CPAX_ACTIVO===false) hide('secCpax'); else show('secCpax');
-  if(SHIFT==='Noche') hide('fcEgrCard'); else show('fcEgrCard');
+  aplicarGatesEval();
   // defaults
   cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS();
 
@@ -2826,6 +2830,7 @@ function fillForm(s) {
     parseFloat(s.DIAS_VM)>0 || parseInt(s.DIAS_VM_PREVIOS)>0 || parseInt(s.N_REINTUB)>0 ||
     s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
   updateVAUI();
+  aplicarGatesEval();
 }
 
 //  RÉPLICA DEL TURNO ANTERIOR
@@ -2927,6 +2932,7 @@ function fillFormReplica(s) {
     parseFloat(s.DIAS_VM)>0 || parseInt(s.DIAS_VM_PREVIOS)>0 || parseInt(s.N_REINTUB)>0 ||
     s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
   updateVAUI();
+  aplicarGatesEval();
 }
 
 /**
@@ -4231,6 +4237,7 @@ function autoCoopera(){
     if(s5v==='lt3'){const e=$('fCoop');if(e)e.value='No cooperador';}
     else if(s5v==='gte3'){const e=$('fCoop');if(e)e.value='Cooperador';}
   }
+  aplicarGatesEval();
 }
 
 //  CASCADAS VENTILATORIAS
@@ -5558,6 +5565,34 @@ function setFasesDesde(jsonStr){
   FASES_SEL=new Set();
   try{ (JSON.parse(jsonStr||'[]')||[]).forEach(f=>FASES_SEL.add(f)); }catch(e){}
   renderFases();
+}
+
+//  GATES DE EVALUACIÓN (acordado):
+//  · Noche: Evaluaciones Funcionales y Terapia Física OCULTAS (KTM queda "no realizada").
+//  · Paciente no cooperador / no evaluable / BNM: se bloquean los tests VOLITIVOS
+//    (MRC-SS, FSS-ICU y dinamometría, totales e ítems). PIM/PEM (válvula),
+//    ecografía y CPAx (observacional) siguen disponibles.
+function aplicarGatesEval(){
+  // — Noche —
+  const esNoche = SHIFT==='Noche';
+  const k=$('fcKtmCard'); if(k) k.classList.toggle('hidden', esNoche);
+  if(esNoche && typeof setKTMstate==='function') setKTMstate('n');
+  hEgr(); // oculta/muestra la tarjeta de Evaluaciones según turno
+  if(esNoche) return; // de noche no hay nada más que decidir
+  // — Cooperación —
+  const coop=v('fCoop');
+  const bloqueado = coop==='No cooperador' || coop==='No evaluable' || !!$('cBNM')?.checked;
+  ['fMRC','fFSS','fPrension'].forEach(id=>{
+    const e=$(id); if(!e) return;
+    e.disabled=bloqueado; if(bloqueado) e.value='';
+  });
+  ['secFssIt','secMrcIt'].forEach(id=>{ const e=$(id); if(e) e.classList.toggle('hidden', bloqueado); });
+  if(bloqueado){
+    for(let i=1;i<=5;i++){ const e=$('fFssIt'+i); if(e) e.value=''; }
+    for(let i=1;i<=6;i++){ const d=$('fMrcD'+i); if(d) d.value=''; const iz=$('fMrcI'+i); if(iz) iz.value=''; }
+    sumFSS(); sumMRC(); interpMRC(); interpFSS(); interpDinamo();
+  }
+  const nota=$('coopGateNota'); if(nota) nota.classList.toggle('hidden', !bloqueado);
 }
 
 //  Colapsable genérico (v2)
