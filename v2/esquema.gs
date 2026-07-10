@@ -143,6 +143,9 @@ const _COLS_EVOLUCIONES = [
   // — Ingreso/cooperación, intubación secuencial y cambio de tubo reversible (jul-2026) —
   ['INTUB_SOP_PREVIO','texto'],  // soporte respiratorio previo a la intubación (Ambiente/Naricera-NRC/CNAF/VNI)
   ['TOT_CAMBIO','bool'],         // cambio de tubo este turno (checkbox reversible; cuenta como procedimiento)
+  ['DISP_HME_FECHA','texto'],    // dispositivos circuito VM: HME instalado (se cambia en su día 2, por fecha)
+  ['DISP_HEPA_FECHA','texto'],   // HEPA instalado (se cambia en su día 3)
+  ['DISP_HUMID_FECHA','texto'],  // humidificación activa: fecha de inicio (no vence)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -429,7 +432,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 267) errs.push('EVOLUCIONES != 267 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 270) errs.push('EVOLUCIONES != 270 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

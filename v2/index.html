@@ -31,6 +31,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .check input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--primary);flex-shrink:0;}
 .check:has(input:checked){border-color:#93c5fd;background:#eff6ff;}
 .row>.check{align-self:flex-end;margin-bottom:2px;}
+.row>.mon{align-self:flex-end;}
 /* variantes semánticas (verde / rojo / violeta) */
 .cg label{color:#15803d;}.cr label{color:#b91c1c;}.cp label{color:#7c3aed;}
 .cg input[type=checkbox]{accent-color:#16a34a;}.cr input[type=checkbox]{accent-color:#dc2626;}.cp input[type=checkbox]{accent-color:#7c3aed;}
@@ -610,6 +611,12 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ti-wrap.violet{background:#fff!important;border-color:#cbd5e1!important;}
 .ti-wrap.sky:focus-within,.ti-wrap.violet:focus-within{border-color:var(--primary)!important;}
 .interp-pill{font-size:.7rem;font-weight:600;padding:3px 9px;border-radius:99px;display:inline-block;}
+/* chips de vencimiento de dispositivos de circuito VM */
+.disp-chip{font-size:.72rem;padding:4px 9px;border-radius:6px;font-weight:700;white-space:nowrap;display:inline-block;}
+.disp-ok{background:#e0f2fe;color:#0369a1;}
+.disp-warn{background:#fef3c7;color:#92400e;}
+.disp-bad{background:#fee2e2;color:#b91c1c;}
+.disp-none{background:#f1f5f9;color:#94a3b8;}
 .interp-normal{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
 .interp-warn{background:#fffbeb;color:#92400e;border:1px solid #fde68a;}
 .interp-danger{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
@@ -1268,6 +1275,26 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           </div>
         </div>
 
+        <!-- DISPOSITIVOS — circuito VM (solo visible con soporte VM) -->
+        <div class="fcard fc-r hidden" id="fcDisp">
+          <div class="fcard-hdr"><span class="fcard-title">🧰 Dispositivos</span></div>
+          <div class="fcard-body">
+            <div class="row" style="align-items:flex-end;">
+              <div class="col wa"><label>HME</label><input type="date" id="fFecHME" onchange="calcInsumosDias()"></div>
+              <span id="sHMEDias" class="disp-chip disp-none" style="align-self:flex-end;margin-bottom:8px;">—</span>
+              <div class="col wa"><label>HEPA</label><input type="date" id="fFecHEPA" onchange="calcInsumosDias()"></div>
+              <span id="sHEPADias" class="disp-chip disp-none" style="align-self:flex-end;margin-bottom:8px;">—</span>
+            </div>
+            <div class="row" style="align-items:flex-end;">
+              <div class="col wa"><label>Trach Care</label><input type="date" id="fFecSonda" onchange="calcInsumosDias()"></div>
+              <span id="sSondaDias" class="disp-chip disp-none" style="align-self:flex-end;margin-bottom:8px;">—</span>
+              <div class="col wa"><label>Humidificación activa</label><input type="date" id="fFecHumid" onchange="calcInsumosDias()"></div>
+              <span id="sHumidDias" class="disp-chip disp-none" style="align-self:flex-end;margin-bottom:8px;">—</span>
+            </div>
+            <div style="font-size:.68rem;color:var(--muted);">Se fechan solos al conectar a VM (ingreso, intubación o reintubación). HME se cambia en su día 2; HEPA y Trach Care en su día 3 (por fecha, no horas). La humidificación activa no vence.</div>
+          </div>
+        </div>
+
         </div><!-- /sp-col izquierda -->
         <div class="sp-col"><!-- columna derecha -->
 
@@ -1293,18 +1320,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               </div>
               <div id="paramsBox"></div>
 
-              <!-- Insumos respiratorios (v2): filtro y sonda de aspiración cerrada -->
-              <div style="margin-top:8px;border:1px solid #bae6fd;border-radius:7px;padding:8px 10px;background:#f0f9ff;">
-                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#0369a1;margin-bottom:6px;letter-spacing:.04em;">🧰 Insumos respiratorios</div>
-                <div class="row" style="margin-bottom:0;flex-wrap:wrap;align-items:flex-end;">
-                  <div class="col wa"><label>Filtro</label>
-                    <select id="fFiltroTipo" style="height:30px;"><option value="">--</option><option>HME</option><option>HEPA</option></select></div>
-                  <div class="col wa"><label>Instalado</label><input type="date" id="fFecFiltro" onchange="calcInsumosDias()" style="height:30px;"></div>
-                  <div class="col wa" style="align-self:flex-end;"><span id="sFiltroDias" class="interp-tip interp-ok" data-tip="" style="font-size:.72rem;padding:3px 8px;border-radius:5px;background:#e0f2fe;color:#0369a1;font-weight:700;white-space:nowrap;"></span></div>
-                  <div class="col wa"><label>Sonda asp. cerrada</label><input type="date" id="fFecSonda" onchange="calcInsumosDias()" style="height:30px;"></div>
-                  <div class="col wa" style="align-self:flex-end;"><span id="sSondaDias" style="font-size:.72rem;padding:3px 8px;border-radius:5px;background:#e0f2fe;color:#0369a1;font-weight:700;white-space:nowrap;"></span></div>
-                </div>
-              </div>
 
               <!-- DECANULACIÓN (solo si VA = TQT) -->
               <div id="dDecanSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
@@ -1364,14 +1379,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div id="dExtSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
                 <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:8px;letter-spacing:.04em;">✂️ Extubación / PVE</div>
                 <div id="dExtBadge" class="hidden" style="margin-bottom:8px;"></div>
-
-                <!-- Predictores neuro (v2 — protocolo weaning 7.1.3) -->
-                <div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-                  <div class="col ws" style="flex-grow:0;"><label style="font-size:.66rem;">VISAGE (0-4)</label><input type="number" id="fVisage" min="0" max="4" style="height:28px;width:66px;"></div>
-                  <span class="interp-tip interp-ok" data-tip="≥ 3 puntos predice éxito de extubación (neuro)" style="font-size:.72rem;margin-bottom:6px;">ⓘ</span>
-                  <div class="col ws" style="flex-grow:0;"><label style="font-size:.66rem;">Score VA</label><input type="number" id="fScoreVA" min="0" max="12" style="height:28px;width:66px;"></div>
-                  <span class="interp-tip interp-ok" data-tip="< 6 puntos = manejo adecuado de vía aérea" style="font-size:.72rem;margin-bottom:6px;">ⓘ</span>
-                </div>
 
                 <!-- Toggle PVE Sí / No -->
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
@@ -2753,13 +2760,14 @@ function fillForm(s) {
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
   set('fCharlson',s.PAC_CHARLSON); set('fIngTipo',s.PAC_INGRESO_TIPO);
   set('fFC',s.HEMO_FC); set('fPA',s.HEMO_PA); set('fPAM',s.HEMO_PAM); set('fPIC',s.HEMO_PIC); set('fPPC',s.HEMO_PPC);
-  set('fFecFiltro',_isoDia(s.VENT_FECHA_FILTRO)); set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA));
-  set('fFiltroTipo',s.FILTRO_TIPO); calcInsumosDias();
+  set('fFecHME',_isoDia(s.DISP_HME_FECHA || (s.FILTRO_TIPO==='HME'?s.VENT_FECHA_FILTRO:'')));
+  set('fFecHEPA',_isoDia(s.DISP_HEPA_FECHA || (s.FILTRO_TIPO==='HEPA'?s.VENT_FECHA_FILTRO:'')));
+  set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)); set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA));
+  calcInsumosDias();
   setRuidosExtra(s.EX_RUIDOS_JSON||'');
   set('fDeglucion',s.EVAL_DEGLUCION);
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
   chk('cUPOTmed',s.UPOT_MEDIDAS);
-  set('fVisage',s.EXT_VISAGE); set('fScoreVA',s.EXT_SCORE_VA);
   set('fDias',s.DIA_ESTADIA); set('fDiasVM',s.DIAS_VM);
   if(s.VA_EXTERNO_DIAS!==undefined){ set('fVAExtDias',s.VA_EXTERNO_DIAS||0); actualizarDiasVA(); }
   set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
@@ -3023,8 +3031,10 @@ function fillFormReplica(s) {
   set('fPlanes',s.PLAN_PLANES);
   aplicarFirmaTurno(s.PLAN_FIRMA_KINE);
   setFasesDesde(s.FASE_JSON||'');
-  set('fFecFiltro',_isoDia(s.VENT_FECHA_FILTRO)); set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA));
-  set('fFiltroTipo',s.FILTRO_TIPO); calcInsumosDias();
+  set('fFecHME',_isoDia(s.DISP_HME_FECHA || (s.FILTRO_TIPO==='HME'?s.VENT_FECHA_FILTRO:'')));
+  set('fFecHEPA',_isoDia(s.DISP_HEPA_FECHA || (s.FILTRO_TIPO==='HEPA'?s.VENT_FECHA_FILTRO:'')));
+  set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)); set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA));
+  calcInsumosDias();
   setRuidosExtra(s.EX_RUIDOS_JSON||'');
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
   chk('cUPOTmed',s.UPOT_MEDIDAS);
@@ -3147,8 +3157,8 @@ function guardar() {
     VENT_LITROS:n(v('r_litros')),
     VENT_AUTOPEEP:n(v('r_autopeep')), VENT_P01:n(v('r_p01')), VENT_DPOCC:n(v('r_dpocc')),
     VENT_PMUSC:n(v('r_pmusc')),
-    VENT_FECHA_FILTRO:v('fFecFiltro'), VENT_FECHA_SONDA:v('fFecSonda'),
-    FILTRO_TIPO:v('fFiltroTipo'),
+    VENT_FECHA_SONDA:v('fFecSonda'),
+    DISP_HME_FECHA:v('fFecHME'), DISP_HEPA_FECHA:v('fFecHEPA'), DISP_HUMID_FECHA:v('fFecHumid'),
     EX_RUIDOS_JSON: ruidosExtraJSON(),
     EVAL_DEGLUCION:v('fDeglucion'),
     APNEA_TEST:v('fApneaTest'),
@@ -3231,8 +3241,6 @@ function guardar() {
     })(),
     EXT_TIPO:        _extTipo(),
     EXT_MOTIVO:      (v('fExtMotivoCat') ? v('fExtMotivoCat') + (v('fExtMotivo') ? ' — ' + v('fExtMotivo') : '') : v('fExtMotivo')),
-    EXT_VISAGE:      n(v('fVisage')),
-    EXT_SCORE_VA:    n(v('fScoreVA')),
     EXT_POST_DET:    _extPostDet(),
     EXT_REINTUB:     _extReintub(),
     REINTUB_HORA:    (v('fPVEval')==='si' && $('cReintub')?.checked) ? v('fReintubHoraN1')
@@ -4509,7 +4517,7 @@ const _humChk=(haAdapt)=>{
       <option${adaptVal==='Sincrónico'?' selected':''}>Sincrónico</option>
       <option${adaptVal==='Asincrónico'?' selected':''}>Asincrónico</option>
     </select></span>`;
-  row+=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:600;"><input type="checkbox" id="cHAct" ${humVal?'checked':''} style="width:15px;height:15px;accent-color:var(--primary);">🌡️ Humidificación Activa</label>`;
+  row+=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:600;"><input type="checkbox" id="cHAct" ${humVal?'checked':''} onchange="syncHumidFecha(this.checked)" style="width:15px;height:15px;accent-color:var(--primary);">🌡️ Humidificación Activa</label>`;
   row+=`</div>`;
   return row;
 };
@@ -4550,10 +4558,15 @@ function renderParams() {
     h+=`<div class="row">${fld('r_flujo','Flujo L/m',80)}${fld('r_temp','T° °C',70)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${mon('l_irox','IROX',true)}${_umaFld()}</div>`;
   } else if(modo==='NRC'){
     h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${mon('l_fio2nrc','FiO₂~')}${_umaFld()}</div>`;
+  } else if(['HME','Tubo T'].includes(modo)){
+    h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
   } else {
     h+=`<div class="row">${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
   }
   b.innerHTML=h; calcResp(); hUMA();
+  // Dispositivos de circuito: visibles solo en VM; al quedar en VM se fechan solos
+  const _dc=$('fcDisp'); if(_dc) _dc.classList.toggle('hidden', sop!=='VM');
+  if(sop==='VM') autoFechasDispositivos(false);
 }
 
 //  HANDLERS UI
@@ -5046,7 +5059,7 @@ function hReintubCheckT(){
   const checked=$('cReintubT')?.checked;
   if(checked){
     confirmarReintubacion(_nReintub+1).then(ok=>{
-      if(ok){ const el=$('fReintub'); if(el) el.value=_nReintub+1; show('dReintubDetT'); _showCol('colReintub'); }
+      if(ok){ const el=$('fReintub'); if(el) el.value=_nReintub+1; show('dReintubDetT'); _showCol('colReintub'); autoFechasDispositivos(true,true); }
       else { const cr=$('cReintubT'); if(cr) cr.checked=false; hide('dReintubDetT'); }
       updateVAUI();
     });
@@ -5060,18 +5073,26 @@ function hReintubCheckT(){
 }
 // ── Intubación NUEVA (VA no invasiva + sin historial VM) ──
 let _vaAntesIntub='';
+let _dispSnapshot=null;
 function hIntub(){
   if($('cIntubO')?.checked){
     if(v('fVA')!=='TOT') _vaAntesIntub=v('fVA');
     show('dIntubDet');
     $('fVA').value='TOT';
     cascadeVA();
-    toast('🫁 Intubación marcada — Vía Aérea cambiada a TOT. Completa TOT arriba ↑ y modo en Terapia Ventilatoria ↑.', 5000);
+    _dispSnapshot={hme:v('fFecHME'),hepa:v('fFecHEPA'),tc:v('fFecSonda')};
+    autoFechasDispositivos(true,true);
+    toast('🫁 Intubación marcada — VA a TOT y dispositivos (HME/HEPA/Trach Care) fechados hoy. Completa TOT arriba ↑ y modo en Terapia Ventilatoria ↑.', 5500);
   } else {
     hide('dIntubDet');
     const h=$('fIntubHora'); if(h) h.value='';
     const d=$('fIntubDet'); if(d) d.value='';
     if(_vaAntesIntub){ $('fVA').value=_vaAntesIntub; cascadeVA(); _vaAntesIntub=''; }
+    if(_dispSnapshot){
+      const _ds=_dispSnapshot; _dispSnapshot=null;
+      [['fFecHME',_ds.hme],['fFecHEPA',_ds.hepa],['fFecSonda',_ds.tc]].forEach(([id,val])=>{ const e=$(id); if(e) e.value=val; });
+      calcInsumosDias();
+    }
   }
   updateVAUI();
 }
@@ -5080,7 +5101,7 @@ function hReintubCheck(){
   const checked=$('cReintub')?.checked;
   if(checked){
     confirmarReintubacion(_nReintub+1).then(ok=>{
-      if(ok){ const el=$('fReintub'); if(el) el.value=_nReintub+1; show('dReintubDet'); _showCol('colReintub'); }
+      if(ok){ const el=$('fReintub'); if(el) el.value=_nReintub+1; show('dReintubDet'); _showCol('colReintub'); autoFechasDispositivos(true,true); }
       else { const cr=$('cReintub'); if(cr) cr.checked=false; hide('dReintubDet'); }
     });
   } else {
@@ -5100,7 +5121,7 @@ function hReintubCheckNo(){
   const checked=$('cReintubNo')?.checked;
   if(checked){
     confirmarReintubacion(_nReintub+1).then(ok=>{
-      if(ok){ const el=$('fReintub'); if(el) el.value=_nReintub+1; show('dReintubDetNo'); _showCol('colReintub'); }
+      if(ok){ const el=$('fReintub'); if(el) el.value=_nReintub+1; show('dReintubDetNo'); _showCol('colReintub'); autoFechasDispositivos(true,true); }
       else { const cr=$('cReintubNo'); if(cr) cr.checked=false; hide('dReintubDetNo'); }
     });
   } else {
@@ -5770,18 +5791,40 @@ function setRuidosExtra(jsonStr){
   try{ (JSON.parse(jsonStr||'[]')||[]).forEach(r=>addRuidoRow(r.tipo,r.loc)); }catch(e){}
 }
 
-//  Insumos respiratorios: días de uso
+//  Dispositivos de circuito VM: día de uso y vencimiento POR FECHA CALENDARIO
+//  (no horas): instalación = día 1. HME se cambia en su día 2; HEPA y Trach Care
+//  en su día 3. Humidificación activa no vence.
+const _DISP_DEFS=[['fFecHME','sHMEDias',2],['fFecHEPA','sHEPADias',3],['fFecSonda','sSondaDias',3],['fFecHumid','sHumidDias',0]];
 function calcInsumosDias(){
-  const hoyF=hoy();
-  [['fFecFiltro','sFiltroDias'],['fFecSonda','sSondaDias']].forEach(([inp,lbl])=>{
+  const ref=v('gDate')||hoy();
+  _DISP_DEFS.forEach(([inp,lbl,dur])=>{
     const e=$(lbl); if(!e) return;
     const f=v(inp);
-    if(!f){ e.textContent=''; return; }
-    const d=dias(f,hoyF);
-    e.textContent=`${d} día${d===1?'':'s'} de uso`;
-    e.style.background = d>=3 ? '#fef3c7' : '#e0f2fe';
-    e.style.color = d>=3 ? '#92400e' : '#0369a1';
+    e.classList.remove('disp-ok','disp-warn','disp-bad','disp-none');
+    if(!f){ e.textContent='—'; e.classList.add('disp-none'); return; }
+    let d=dias(f,ref)+1; if(d<1)d=1;
+    if(!dur){ e.textContent=`Día ${d} · no vence`; e.classList.add('disp-ok'); }
+    else if(d<dur){ e.textContent=`Día ${d}/${dur}`; e.classList.add('disp-ok'); }
+    else if(d===dur){ e.textContent=`Día ${d}/${dur} · cambiar`; e.classList.add('disp-warn'); }
+    else { e.textContent=`Vencido (día ${d}/${dur})`; e.classList.add('disp-bad'); }
   });
+}
+//  Al conectar a VM (ingreso ventilado o cambio de soporte) se fechan HME/HEPA/Trach Care
+//  con la fecha del turno si están vacíos; force=true al intubar/reintubar (circuito nuevo).
+//  aunSinVM=true permite fechar aunque el soporte principal aún no marque VM (reintubación).
+function autoFechasDispositivos(force, aunSinVM){
+  if(!aunSinVM && v('fSop')!=='VM') return;
+  const f=v('gDate')||hoy();
+  let ch=false;
+  ['fFecHME','fFecHEPA','fFecSonda'].forEach(id=>{ const e=$(id); if(e&&(force||!e.value)){ e.value=f; ch=true; } });
+  if(ch) calcInsumosDias();
+}
+//  Checkbox de humidificación activa (params VM) ↔ fecha del dispositivo
+function syncHumidFecha(on){
+  const e=$('fFecHumid'); if(!e) return;
+  if(on && !e.value) e.value=v('gDate')||hoy();
+  if(!on) e.value='';
+  calcInsumosDias();
 }
 
 //  Cambio de tubo: TOT bloqueado hasta que se declare el cambio
