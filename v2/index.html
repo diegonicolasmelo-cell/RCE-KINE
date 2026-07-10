@@ -2801,7 +2801,7 @@ function fillForm(s) {
   // params
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
    ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
-   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],
+   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
    ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
    ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
    ['r_uma','KTM_UMA']]
@@ -2988,7 +2988,7 @@ function fillFormReplica(s) {
   chk('cHAct',s.VENT_H_ACTIVA);
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
    ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
-   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],
+   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
    ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
    ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
    ['r_uma','KTM_UMA']]
@@ -3151,7 +3151,7 @@ function guardar() {
     VENT_ADAPTADO: $('sAdapt') ? (v('sAdapt')==='Sincrónico') : '',
     VENT_VT:n(v('r_vt')), VENT_FR:n(v('r_fr')), VENT_PEEP:n(v('r_peep')),
     VENT_PMAX:n(v('r_pmax')), VENT_PMEDIA:n(v('r_pmedia')), VENT_PPL:n(v('r_ppl')),
-    VENT_PS:n(v('r_ps')), VENT_IPAP:n(v('r_ipap')), VENT_EPAP:n(v('r_epap')),
+    VENT_PS:n(v('r_ps')), VENT_IPAP:n(v('r_ipap')), VENT_IPAP_MAX:n(v('r_ipapmax')), VENT_EPAP:n(v('r_epap')),
     VENT_PINSP:n(v('r_pinsp')), VENT_FIO2:n(v('r_fio2')), VENT_SPO2:n(v('r_spo2')),
     VENT_FLUJO:n(v('r_flujo')), VENT_TI:n(v('r_ti')), VENT_TEMP:n(v('r_temp')),
     VENT_LITROS:n(v('r_litros')),
@@ -4042,12 +4042,12 @@ function genTexto() {
     }
     if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
   } else if(sop==='VNI'){
-    const ip=_np('r_ipap'), ep=_np('r_epap');
+    const ip=_np('r_ipap'), ipmax=_np('r_ipapmax'), ep=_np('r_epap');
     let vs=`Ventila espontáneo en modo ${modo||'VNI'}${_humid?' más humidificación activa':''}`;
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
     L.push(vs+'.');
     const _psVni=(ip>0&&ep>0)?Math.round((ip-ep)*10)/10:0;
-    const _pb=_pjoin([ip?`IPAP ${ip} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null]);
+    const _pb=_pjoin([ip?`IPAP ${ip}${ipmax?'–'+ipmax:''} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null]);
     if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
   } else if(sop==='CNAF'){
     const fl=_np('r_flujo');
@@ -4331,7 +4331,7 @@ function calcResp() {
   if(ppl>0) set('l_dp',`DP: ${(ppl-peep).toFixed(0)}`);
   if(vt>0&&(ppl-peep)>0) set('l_cesr',`${(vt/(ppl-peep)).toFixed(0)}`);
   if(['CPAP/PS','CFLEX'].includes(modo)&&fr>0&&vt>0) set('l_tobin',`${(fr/(vt/1000)).toFixed(0)}`);
-  if(['CNAF','OAF/CTAF'].includes(modo)&&spo2>0&&fio2>0&&fr>0) set('l_irox',`${((spo2/fio2)/fr).toFixed(2)}`);
+  if(['CNAF','OAF/CTAF'].includes(modo)&&spo2>0&&fio2>0&&fr>0) set('l_irox',`${((spo2/(fio2/100))/fr).toFixed(2)}`);
   const ip=parseFloat(v('r_ipap'))||0, ep=parseFloat(v('r_epap'))||0;
   if(ip>0&&ep>0) set('l_pscalc',`${ip-ep}`);
   const lit=parseFloat(v('r_litros'))||0;
@@ -4547,7 +4547,7 @@ function renderParams() {
     h+=`<div class="row">${fld('r_ipap','IPAP',80)}${fld('r_epap','EPAP',80)}${mon('l_pscalc','PS calc.',true)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}${_umaFld()}</div>`;
     if(sop==='VNI'){h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;}
   } else if(modo==='AVAPS'){
-    h+=`<div class="row">${fld('r_ipap','IPAP min',88)}${fld('r_epap','EPAP',80)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld('r_ipap','IPAP min',88)}${fld('r_ipapmax','IPAP max',88)}${fld('r_epap','EPAP',80)}${_umaFld()}</div>`;
     h+=`<div class="row">${fld('r_vt','VT med.',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}</div>`;
     h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
   } else if(modo==='CPAP'){
@@ -5080,6 +5080,7 @@ function hIntub(){
     show('dIntubDet');
     $('fVA').value='TOT';
     cascadeVA();
+    poblar('fSop',['VM'],'VM'); cascadeSop(); // recién intubado: solo tiene lógica VM
     _dispSnapshot={hme:v('fFecHME'),hepa:v('fFecHEPA'),tc:v('fFecSonda')};
     autoFechasDispositivos(true,true);
     toast('🫁 Intubación marcada — VA a TOT y dispositivos (HME/HEPA/Trach Care) fechados hoy. Completa TOT arriba ↑ y modo en Terapia Ventilatoria ↑.', 5500);
@@ -5145,10 +5146,12 @@ function renderParamsPEno(){
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">FR RPM</label><input id="peFRNo" type="number" min="0" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div></div>`;
   } else if(modo==='CNAF'){
-    html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FiO2~</label><input id="peFiO2No" type="number" min="21" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;" placeholder="~29%"></div>
+    html=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;">
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">F L/min</label><input id="peFNo" type="number" min="1" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
-      <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div></div>`;
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FR RPM</label><input id="peFRNo" type="number" min="0" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FiO2~</label><input id="peFiO2No" type="number" min="21" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;" placeholder="~29%"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div class="mon" style="height:28px;min-width:58px;"><span style="font-size:.55rem;color:var(--muted);">IROX</span><span id="peIroxNo" class="bold" style="font-size:.76rem;">--</span></div></div>`;
   } else if(['S/T','AVAPS'].includes(modo)){
     html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">IPAP</label><input id="peIPAPNo" type="number" min="0" max="35" style="width:65px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
@@ -5162,6 +5165,12 @@ function renderParamsPEno(){
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:65px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div></div>`;
   }
   box.innerHTML=html;
+  // Índice ROX en CNAF (rama no)
+  const _roxNo=()=>{ const o=$('peIroxNo'); if(!o) return;
+    const s2=parseFloat(v('peSpO2No'))||0, f2=parseFloat(v('peFiO2No'))||0, r2=parseFloat(v('peFRNo'))||0;
+    o.textContent=(s2>0&&f2>0&&r2>0)?((s2/(f2/100))/r2).toFixed(2):'--'; };
+  ['peSpO2No','peFiO2No','peFRNo'].forEach(id=>{ const e=$(id); if(e) e.oninput=_roxNo; });
+  _roxNo();
 }
 // Mapa modo PE → VA y Soporte implícitos (para guardar estado final)
 const _PE_META={
@@ -5191,7 +5200,7 @@ function renderParamsPE(){
   } else if(['NRC','Mascarilla'].includes(modo)){
     h+=pef('pe_litros','Litros L/m',85)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_fio2calc','FiO2~')+peUma;
   } else if(modo==='CNAF'){
-    h+=pef('pe_flujo','Flujo L/m',80)+peft('pe_temp','T° °C',68)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70)+peUma;
+    h+=pef('pe_flujo','Flujo L/m',80)+peft('pe_temp','T° °C',68)+pef('pe_fr','FR rpm',70)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_irox','IROX')+peUma;
   } else if(['S/T','AVAPS'].includes(modo)){
     h+=pef('pe_ipap','IPAP',65)+pef('pe_epap','EPAP',65)+pef('pe_fr','FR rpm',70)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(modo==='CPAP'){
@@ -5203,6 +5212,12 @@ function renderParamsPE(){
   if(litEl) litEl.oninput=()=>{
     const fc=$('pe_fio2calc'); if(fc) fc.textContent=litEl.value?`~${Math.min(100,21+4*parseFloat(litEl.value))}%`:'--';
   };
+  // Índice ROX en CNAF post-extubación (mismo cálculo que terapia ventilatoria)
+  const _roxPE=()=>{ const o=$('pe_irox'); if(!o) return;
+    const s2=parseFloat(v('pe_spo2'))||0, f2=parseFloat(v('pe_fio2'))||0, r2=parseFloat(v('pe_fr'))||0;
+    o.textContent=(s2>0&&f2>0&&r2>0)?((s2/(f2/100))/r2).toFixed(2):'--'; };
+  ['pe_spo2','pe_fio2','pe_fr'].forEach(id=>{ const e=$(id); if(e) e.oninput=_roxPE; });
+  _roxPE();
 }
 function peVA(){ return (_PE_META[v('peModo')]||{}).va||'Natural'; }
 function peSop(){ return (_PE_META[v('peModo')]||{}).sop||'Ambiente'; }

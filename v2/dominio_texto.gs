@@ -120,7 +120,8 @@ function generarTextoEvolucion(d) {
     if (hact) ventStr += '. Con humidificación activa';
     txt.push(ventStr + '.');
   } else if (sop === 'VNI') {
-    ventStr = `En VNI modo ${modo}, IPAP ${ipap > 0 ? ipap : '?'}/${epap > 0 ? epap : '?'} cmH₂O`;
+    const ipapMax = vn('VENT_IPAP_MAX');
+    ventStr = `En VNI modo ${modo}, IPAP ${ipap > 0 ? ipap : '?'}${ipapMax > 0 ? '–' + ipapMax : ''}/${epap > 0 ? epap : '?'} cmH₂O`;
     if (vt > 0) ventStr += `, VT ${vt} ml`;
     if (fio2 > 0) ventStr += `, FiO₂ ${fio2}%`;
     if (spo2 > 0) ventStr += `, SpO₂ ${spo2}%`;

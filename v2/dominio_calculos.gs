@@ -42,7 +42,8 @@ function calcularRespiratorio(evo) {
     calc.CALC_TOBIN = Math.round((fr / (vt / 1000)) * 10) / 10;
   }
   if (['CNAF', 'OAF/CTAF'].indexOf(modo) !== -1 && spo2 > 0 && fio2 > 0 && fr > 0) {
-    calc.CALC_IROX = Math.round(((spo2 / fio2) / fr) * 100) / 100;
+    // ROX estándar: SpO2 / FiO2 (fracción) / FR — corte clásico 4.88
+    calc.CALC_IROX = Math.round(((spo2 / (fio2 / 100)) / fr) * 100) / 100;
   }
   return calc;
 }

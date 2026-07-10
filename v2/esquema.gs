@@ -146,6 +146,7 @@ const _COLS_EVOLUCIONES = [
   ['DISP_HME_FECHA','texto'],    // dispositivos circuito VM: HME instalado (se cambia en su día 2, por fecha)
   ['DISP_HEPA_FECHA','texto'],   // HEPA instalado (se cambia en su día 3)
   ['DISP_HUMID_FECHA','texto'],  // humidificación activa: fecha de inicio (no vence)
+  ['VENT_IPAP_MAX','decimal'],   // AVAPS: IPAP máximo programado (VENT_IPAP guarda el mínimo)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -432,7 +433,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 270) errs.push('EVOLUCIONES != 270 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 271) errs.push('EVOLUCIONES != 271 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }
