@@ -140,6 +140,9 @@ const _COLS_EVOLUCIONES = [
   ['EVAL_DEGLUCION','texto'],     // valoración cualitativa de la deglución
   ['APNEA_TEST','texto'],         // test de apnea del turno (Positivo/Negativo) → histórico APNEA_JSON
   ['UPOT_ACTIVO','bool'],['UPOT_MEDIDAS','bool'],  // seguimiento UPOT + medidas de protección de órganos
+  // — Ingreso/cooperación, intubación secuencial y cambio de tubo reversible (jul-2026) —
+  ['INTUB_SOP_PREVIO','texto'],  // soporte respiratorio previo a la intubación (Ambiente/Naricera-NRC/CNAF/VNI)
+  ['TOT_CAMBIO','bool'],         // cambio de tubo este turno (checkbox reversible; cuenta como procedimiento)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -426,7 +429,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 265) errs.push('EVOLUCIONES != 265 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 267) errs.push('EVOLUCIONES != 267 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

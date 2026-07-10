@@ -232,6 +232,15 @@ desplazar los índices de datos ya escritos.*
 262. `EVAL_DEGLUCION` `texto` — valoración cualitativa de la deglución (grupo Tos y deglución).
 263. `APNEA_TEST` `texto` — test de apnea del turno; histórico repetible en `APNEA_JSON`/`APNEA_ULTIMO` (patrón BDT).
 264–265. `UPOT_ACTIVO`, `UPOT_MEDIDAS` `bool` — seguimiento UPOT/procuramiento y medidas de protección de órganos.
+
+**Extensión "ingreso/cooperación, intubación secuencial, cambio de tubo" (jul-2026)** — EVOLUCIONES 265 → 267:
+
+266. `INTUB_SOP_PREVIO` `texto` — soporte respiratorio previo a la intubación
+     (Ambiente/Naricera-NRC/CNAF/VNI); primer paso del flujo secuencial de intubación.
+267. `TOT_CAMBIO` `bool` — cambio de tubo este turno; checkbox reversible (no botón
+     irreversible): al marcar desbloquea N°/fijación y cuenta CAMBIO TOT como
+     procedimiento; al desmarcar restaura los valores previos (snapshot de sesión)
+     y anula el conteo — permite deshacer sin ensuciar la BD.
 La sección UPOT solo aparece con (TOT|TQT) + GCS ≤ 7 + sin sedación; el bloque Neurología, por palabras
 clave del diagnóstico. `LAB_*` y `VENT_RISETIME` quedan sin UI (columnas reservadas).
 
@@ -344,8 +353,8 @@ Ej.: *Diego Melo Villagrán, 34, 07/07/26* → **`070726Dmelov34`**.
 | CONFIG | 1 | 2 |
 | CATALOGOS | 1 | 4 |
 | CAMAS_ESTADO | 2 | 43 |
-| EVOLUCIONES | 3 | 265 |
-| EVOLUCIONES_ARCHIVO | 3 | 265 |
+| EVOLUCIONES | 3 | 267 |
+| EVOLUCIONES_ARCHIVO | 3 | 267 |
 | PROCEDIMIENTOS | 1 | 11 |
 | TIMELINE | 1 | 10 |
 | ARCHIVO_PACIENTES | 1 | 33 |

@@ -154,8 +154,9 @@ function generarTextoEvolucion(d) {
   }
   // Intubación nueva este turno (sin historial de VM)
   if (esVerdadero(d.INTUB_OCURRIO)) {
-    const ih = v('INTUB_HORA'), idt = v('INTUB_DET');
-    txt.push(`Paciente requiere intubación orotraqueal${ih ? ' a las ' + ih + ' hrs' : ''}${idt ? ' en contexto de ' + idt : ''}.`);
+    const ih = v('INTUB_HORA'), idt = v('INTUB_DET'), isp = v('INTUB_SOP_PREVIO');
+    const prevTxt = isp ? `Previo en ${isp.toLowerCase()}, p` : 'P';
+    txt.push(`${prevTxt}aciente requiere intubación orotraqueal${ih ? ' a las ' + ih + ' hrs' : ''}${idt ? ' en contexto de ' + idt : ''}.`);
   }
 
   // 7. Examen físico
