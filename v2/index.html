@@ -2576,6 +2576,15 @@ function abrirPanel(id, esIng) {
   const _cct=$('cCambioTOT'); if(_cct) _cct.checked=false; _totSnapshot=null; _lockTOT(false);
   setRuidosExtra(''); calcInsumosDias();
   hide('dUpotDet');
+  // Los modales de evaluación (MRC/FSS/CPAx) viven FUERA de <form id="kf">,
+  // por lo que $('kf').reset() no los alcanza — limpiar explícito para que
+  // cada apertura (sobre todo un ingreso nuevo) parta sin valores de un
+  // paciente anterior. fillForm()/fillFormReplica() los rellenan después
+  // solo si corresponde (turno guardado / réplica).
+  for(let i=1;i<=5;i++){ const e=$('fFssIt'+i); if(e) e.value=''; }
+  for(let i=1;i<=6;i++){ const d=$('fMrcD'+i); if(d) d.value=''; const iz=$('fMrcI'+i); if(iz) iz.value=''; }
+  for(let i=1;i<=10;i++){ const e=$('fCpax'+i); if(e) e.value=''; }
+  const _cpt=$('fCpaxTotal'); if(_cpt) _cpt.value='';
   sumFSS(); sumMRC(); sumCPAX();
   if(window.CFG && CFG.CPAX_ACTIVO===false) hide('rowCpax'); else show('rowCpax');
   aplicarGatesEval();
