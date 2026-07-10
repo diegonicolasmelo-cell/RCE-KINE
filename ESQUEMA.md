@@ -224,6 +224,17 @@ episodio y la interpreta con cortes configurables en CONFIG (`CORTE_MRC_DAUCI=48
 `CORTE_MRC_SEVERA=36`, `CORTE_DINAMO_H=11`, `CORTE_DINAMO_M=7`, `CORTE_FSS_INDEP=27`).
 desplazar los índices de datos ya escritos.*
 
+**Extensión "refactor por módulos" (jul-2026)** — EVOLUCIONES 255 → 265:
+
+256. `EX_RUIDOS_JSON` `json` — ruidos agregados adicionales `[{tipo,loc},…]` (auscultación multi-fila).
+257. `FILTRO_TIPO` `texto` — HME / HEPA (sección Insumos respiratorios, con días de uso calculados).
+258–261. `REINTUB_TOT_N/CM/MODO/PARAMS` — con qué queda el paciente al reintubar (sub-panel en las 3 rutas).
+262. `EVAL_DEGLUCION` `texto` — valoración cualitativa de la deglución (grupo Tos y deglución).
+263. `APNEA_TEST` `texto` — test de apnea del turno; histórico repetible en `APNEA_JSON`/`APNEA_ULTIMO` (patrón BDT).
+264–265. `UPOT_ACTIVO`, `UPOT_MEDIDAS` `bool` — seguimiento UPOT/procuramiento y medidas de protección de órganos.
+La sección UPOT solo aparece con (TOT|TQT) + GCS ≤ 7 + sin sedación; el bloque Neurología, por palabras
+clave del diagnóstico. `LAB_*` y `VENT_RISETIME` quedan sin UI (columnas reservadas).
+
 > **Total: 195 columnas**, todas nombradas, consultables y replicables. Eliminadas de v1 por
 > duplicidad/desuso: bloque `EGR_*` (→`EVAL_T_*`), `REINTUB_*` viejo (→`EXT_*`), `VENT_POST_EXT*`
 > (→`EXT_POST_DET`), `EX_RUIDOS_MAN`/`EX_SECR_*` (→ unificados), `KTM_UMA_VAL`, `EGR_FED`,
@@ -333,8 +344,8 @@ Ej.: *Diego Melo Villagrán, 34, 07/07/26* → **`070726Dmelov34`**.
 | CONFIG | 1 | 2 |
 | CATALOGOS | 1 | 4 |
 | CAMAS_ESTADO | 2 | 43 |
-| EVOLUCIONES | 3 | 255 |
-| EVOLUCIONES_ARCHIVO | 3 | 255 |
+| EVOLUCIONES | 3 | 265 |
+| EVOLUCIONES_ARCHIVO | 3 | 265 |
 | PROCEDIMIENTOS | 1 | 11 |
 | TIMELINE | 1 | 10 |
 | ARCHIVO_PACIENTES | 1 | 33 |

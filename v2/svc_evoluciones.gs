@@ -77,6 +77,22 @@ function guardarEvolucion(datos, ctx) {
         datos.BDT_ULTIMO = bdtRes + ' (' + fecha + ')';
       }
 
+      // Test de apnea — repetible (mismo patrón que BDT)
+      const apRes = String(datos.APNEA_TEST || '').trim();
+      if (apRes) {
+        let baseA = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
+        if (!baseA || !baseA.APNEA_JSON) {
+          const rpa = obtenerEvolucionPrevia(idCama, turnoKey);
+          if (rpa.ok && rpa.data) baseA = rpa.data;
+        }
+        let histA = [];
+        try { histA = JSON.parse((baseA && baseA.APNEA_JSON) || '[]') || []; } catch (e) {}
+        histA = histA.filter(function (h) { return h && h.turnoKey !== turnoKey; });
+        histA.push({ turnoKey: turnoKey, fecha: fecha, resultado: apRes });
+        datos.APNEA_JSON = JSON.stringify(histA);
+        datos.APNEA_ULTIMO = apRes + ' (' + fecha + ')';
+      }
+
       // Texto clínico
       datos.TEXTO_GENERADO = generarTextoEvolucion(datos);
 

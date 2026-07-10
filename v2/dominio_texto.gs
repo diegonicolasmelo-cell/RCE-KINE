@@ -184,9 +184,17 @@ function generarTextoEvolucion(d) {
     txt.push(`KTM no realizada. Contraindicación ${tipoContra ? tipoContra.toLowerCase() : ''}: ${contra || 'sin especificar'}.`);
   }
 
-  // 9. Procedimientos
-  const procRes = v('PROC_RESUMEN');
-  if (procRes) txt.push(`Procedimientos: ${procRes}.`);
+  // 9. Procedimientos: NO se imprimen como lista cruda (van narrados en el texto);
+  // PROC_JSON/PROC_RESUMEN quedan solo para la BD y la estadística.
+
+  // UPOT (procuramiento)
+  if (esVerdadero(d.UPOT_ACTIVO)) {
+    let u = 'Paciente en seguimiento por UPOT, con sospecha de muerte cerebral';
+    const ap = v('APNEA_TEST');
+    if (ap) u += `. Test de apnea ${ap.toLowerCase()}`;
+    if (esVerdadero(d.UPOT_MEDIDAS)) u += '. Se mantienen medidas de protección de órganos';
+    txt.push(u + '.');
+  }
 
   // 10. Muestras
   if (esVerdadero(d.MUE_REALIZADAS)) {

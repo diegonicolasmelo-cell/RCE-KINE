@@ -132,6 +132,14 @@ const _COLS_EVOLUCIONES = [
   //   CPAx 0-5: 1 respiratorio, 2 tos, 3 movilidad en cama, 4 supino→sedente, 5 equilibrio sedente,
   //   6 equilibrio bípedo, 7 sedente→bípedo, 8 transferencia cama→sillón, 9 marcha en el lugar, 10 prensión
   ['CPAX_TOTAL','entero'],    // 0-50; solo se guarda con los 10 ítems completos
+  // — Refactor por módulos (jul-2026): auscultación múltiple, insumos, reintubación
+  //   con parámetros, deglución, UPOT/test de apnea —
+  ['EX_RUIDOS_JSON','json'],      // ruidos agregados adicionales [{tipo,loc},...]
+  ['FILTRO_TIPO','texto'],        // HME / HEPA
+  ['REINTUB_TOT_N','texto'],['REINTUB_TOT_CM','texto'],['REINTUB_MODO','texto'],['REINTUB_PARAMS','texto'],
+  ['EVAL_DEGLUCION','texto'],     // valoración cualitativa de la deglución
+  ['APNEA_TEST','texto'],         // test de apnea del turno (Positivo/Negativo) → histórico APNEA_JSON
+  ['UPOT_ACTIVO','bool'],['UPOT_MEDIDAS','bool'],  // seguimiento UPOT + medidas de protección de órganos
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -418,7 +426,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 255) errs.push('EVOLUCIONES != 255 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 265) errs.push('EVOLUCIONES != 265 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

@@ -917,7 +917,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           <!-- Fila 2: Diagnóstico de ingreso + REM -->
           <div class="row" style="margin-bottom:0;">
             <div class="col grow"><label>Diagnóstico de Ingreso</label>
-              <input type="text" id="fDx" placeholder="Ej: Shock Séptico…" list="listDx" autocomplete="off">
+              <input type="text" id="fDx" placeholder="Ej: Shock Séptico…" list="listDx" autocomplete="off" oninput="aplicarGatesNeuro()">
               <datalist id="listDx">
                 <option>Shock Séptico</option><option>Sepsis</option><option>Neumonía grave</option>
                 <option>Insuficiencia respiratoria aguda</option><option>SDRA</option>
@@ -1072,6 +1072,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <div class="col wa"><label>TOT N°</label>
                   <select id="fTOTn" class="bold tc" style="height:34px;"><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option selected>8.0</option><option>8.5</option></select></div>
                 <div class="col ws"><label>Fijación</label><input type="number" id="fTOTcm" class="tc bold" value="22" style="height:34px;"></div>
+                <div class="col wa" style="align-self:flex-end;"><button type="button" id="btnCambioTOT" class="hidden" onclick="cambiarTubo()" style="height:32px;padding:0 10px;border:1px solid #bfdbfe;border-radius:6px;background:#eff6ff;color:#1d4ed8;font-size:.74rem;font-weight:700;cursor:pointer;">🔄 Cambiar tubo</button></div>
                 <div class="col grow"><label>Punto fijación</label>
                   <select id="fTOTfij" style="height:34px;">
                     <option value="">-- seleccionar --</option>
@@ -1126,7 +1127,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="mon" style="height:36px;"><span style="font-size:.58rem;color:var(--muted);">GCS</span><span id="lblGCS" class="bold">15</span></div>
             </div>
             <div class="row" style="margin-top:4px;">
-              <div class="col wa"><label>S5Q</label>
+              <div class="col wa" id="gS5Qw"><label>S5Q</label>
                 <select id="fS5Q" onchange="autoCoopera()">
                   <option value="">-</option>
                   <option value="lt3">&lt;3</option>
@@ -1134,8 +1135,24 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 </select></div>
               <div class="col wa"><label>Cooperación</label>
                 <select id="fCoop" onchange="aplicarGatesEval()"><option value="">-</option><option>Cooperador</option><option>No cooperador</option><option>No evaluable</option></select></div>
-              <div class="col wa"><label>CAM-ICU</label>
+              <div class="col wa" id="gCAMw"><label>CAM-ICU</label>
                 <select id="fCAMICU"><option value="">-</option><option value="pos">Positivo (+)</option><option value="neg">Negativo (−)</option><option value="ne">No evaluable</option></select></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UPOT / PROCURAMIENTO — visible SOLO si (TOT|TQT) + GCS ≤ 7 + sin sedación -->
+        <div class="fcard hidden" id="fcUpot" style="border-color:#fecdd3;">
+          <div class="fcard-hdr"><span class="fcard-title" style="color:#be123c;">🧿 UPOT — Procuramiento</span></div>
+          <div class="fcard-body">
+            <div class="check wa" style="margin-bottom:6px;"><input type="checkbox" id="cUPOT" onchange="if(this.checked)show('dUpotDet');else hide('dUpotDet');"><label for="cUPOT" style="font-weight:700;">Paciente en seguimiento por UPOT</label></div>
+            <div id="dUpotDet" class="hidden" style="padding:8px 10px;background:#fff1f2;border:1px solid #fecdd3;border-radius:7px;">
+              <div class="row" style="align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+                <div class="col wa"><label>Test de apnea</label>
+                  <select id="fApneaTest" style="height:30px;"><option value="">— no realizado —</option><option>Positivo</option><option>Negativo</option></select></div>
+                <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="cUPOTmed"><label for="cUPOTmed">Se mantienen medidas de protección de órganos</label></div>
+              </div>
+              <div style="font-size:.7rem;color:#9f1239;">El test de apnea se agrega solo a los procedimientos del turno y al histórico del episodio.</div>
             </div>
           </div>
         </div>
@@ -1172,15 +1189,24 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <div class="col ws"><label>FC</label><input type="number" id="fFC" style="width:64px;"></div>
               <div class="col ws"><label>PA</label><input type="text" id="fPA" placeholder="120/80" style="width:88px;"></div>
               <div class="col ws"><label>PAM</label><input type="number" id="fPAM" style="width:64px;"></div>
-              <div class="col ws"><label>PIC</label><input type="number" id="fPIC" style="width:64px;"></div>
-              <div class="col ws"><label>PPC</label><input type="number" id="fPPC" style="width:64px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEUROLOGÍA — visible solo si el Dx contiene HSA/ACV/TEC/Meningioma/Politrauma -->
+        <div class="fcard hidden" id="fcNeuro" style="border-color:#ddd6fe;">
+          <div class="fcard-hdr"><span class="fcard-title" style="color:var(--neuro);">🧠 Neurología</span></div>
+          <div class="fcard-body">
+            <div class="row" style="margin-bottom:0;">
+              <div class="col ws"><label>PIC</label><input type="number" id="fPIC" style="width:70px;"></div>
+              <div class="col ws"><label>PPC</label><input type="number" id="fPPC" style="width:70px;"></div>
             </div>
           </div>
         </div>
 
         <!-- ▌ RESPIRATORIO — Auscultación (izquierda) -->
         <div class="fcard fc-r">
-          <div class="fcard-hdr"><span class="fcard-title">🫁 Respiratorio — 🩺 Auscultación</span></div>
+          <div class="fcard-hdr"><span class="fcard-title">🩺 Auscultación</span></div>
           <div class="fcard-body">
             <div style="margin-bottom:10px;">
               <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;">Murmullo Pulmonar</label>
@@ -1224,14 +1250,14 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <option>CPI</option>
                 </select>
               </div>
+              <!-- Filas adicionales de ruidos (tipo + localización) -->
+              <div id="ruidosExtra" style="display:flex;flex-direction:column;gap:6px;margin-top:6px;"></div>
+              <button type="button" onclick="addRuidoRow()" style="margin-top:6px;padding:4px 12px;border:1px dashed #7dd3fc;border-radius:6px;background:#f0f9ff;color:#0369a1;font-size:.75rem;font-weight:700;cursor:pointer;">＋ Agregar ruido</button>
               <!-- compat oculto -->
               <div id="fRuidosTags" style="display:none;"></div>
             </div>
           </div>
         </div>
-
-        </div><!-- /sp-col izquierda -->
-        <div class="sp-col" style="border-left:1px solid var(--border);"><!-- columna derecha -->
 
         <!-- ▌ RESPIRATORIO — Terapia Ventilatoria + Manejo -->
         <div class="fcard fc-r mega-card">
@@ -1255,41 +1281,16 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               </div>
               <div id="paramsBox"></div>
 
-              <!-- Monitorización avanzada (v2) — colapsable -->
-              <div style="margin-top:8px;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;">
-                <button type="button" onclick="hMonAvToggle()" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f8fafc;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#475569;">
-                  <span>📈 Monitorización avanzada</span><span id="sMonAvArrow" style="font-size:.7rem;">▼</span>
-                </button>
-                <div id="dMonAv" class="hidden" style="padding:8px 10px;background:#fff;">
-                  <div class="row" style="margin-bottom:0;flex-wrap:wrap;">
-                    <div class="col ws"><label>AutoPEEP</label><input type="number" id="r_autopeep" style="height:32px;"></div>
-                    <div class="col ws"><label>P0.1</label><input type="number" step="0.1" id="r_p01" style="height:32px;"></div>
-                    <div class="col ws"><label>ΔPocc</label><input type="number" step="0.1" id="r_dpocc" style="height:32px;"></div>
-                    <div class="col ws"><label>Pmusc</label><input type="number" step="0.1" id="r_pmusc" style="height:32px;"></div>
-                    <div class="col ws"><label>Rise time</label><input type="number" step="0.1" id="r_rise" style="height:32px;"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- GSA / Laboratorio + mantención circuito (v2) — colapsable -->
-              <div style="margin-top:8px;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;">
-                <button type="button" onclick="hLabToggle()" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f8fafc;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#475569;">
-                  <span>🧪 GSA / Laboratorio · Circuito</span><span id="sLabArrow" style="font-size:.7rem;">▼</span>
-                </button>
-                <div id="dLab" class="hidden" style="padding:8px 10px;background:#fff;">
-                  <div class="row" style="margin-bottom:6px;flex-wrap:wrap;">
-                    <div class="col ws"><label>pH</label><input type="number" id="fPh" step="0.01" style="height:30px;width:70px;"></div>
-                    <div class="col ws"><label>PaCO₂</label><input type="number" id="fPaCO2" step="0.1" style="height:30px;width:70px;"></div>
-                    <div class="col ws"><label>PaO₂</label><input type="number" id="fPaO2" step="0.1" oninput="calcPafi()" style="height:30px;width:70px;"></div>
-                    <div class="col ws"><label>HCO₃</label><input type="number" id="fHCO3" step="0.1" style="height:30px;width:70px;"></div>
-                    <div class="col ws"><label>Lactato</label><input type="number" id="fLactato" step="0.1" style="height:30px;width:70px;"></div>
-                    <div class="col ws"><label>PaFi</label><input type="number" id="fPafi" style="height:30px;width:70px;font-weight:700;"></div>
-                  </div>
-                  <div style="font-size:.68rem;color:var(--muted);margin-bottom:8px;">PaFi se calcula sola desde PaO₂ y la FiO₂ registrada (editable). Weaning: &gt;150 · Decanulación: &gt;200.</div>
-                  <div class="row" style="margin-bottom:0;flex-wrap:wrap;border-top:1px dashed #e2e8f0;padding-top:8px;">
-                    <div class="col wa"><label>Últ. cambio filtro</label><input type="date" id="fFecFiltro" style="height:30px;"></div>
-                    <div class="col wa"><label>Últ. cambio sonda aspiración</label><input type="date" id="fFecSonda" style="height:30px;"></div>
-                  </div>
+              <!-- Insumos respiratorios (v2): filtro y sonda de aspiración cerrada -->
+              <div style="margin-top:8px;border:1px solid #bae6fd;border-radius:7px;padding:8px 10px;background:#f0f9ff;">
+                <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#0369a1;margin-bottom:6px;letter-spacing:.04em;">🧰 Insumos respiratorios</div>
+                <div class="row" style="margin-bottom:0;flex-wrap:wrap;align-items:flex-end;">
+                  <div class="col wa"><label>Filtro</label>
+                    <select id="fFiltroTipo" style="height:30px;"><option value="">--</option><option>HME</option><option>HEPA</option></select></div>
+                  <div class="col wa"><label>Instalado</label><input type="date" id="fFecFiltro" onchange="calcInsumosDias()" style="height:30px;"></div>
+                  <div class="col wa" style="align-self:flex-end;"><span id="sFiltroDias" class="interp-tip interp-ok" data-tip="" style="font-size:.72rem;padding:3px 8px;border-radius:5px;background:#e0f2fe;color:#0369a1;font-weight:700;white-space:nowrap;"></span></div>
+                  <div class="col wa"><label>Sonda asp. cerrada</label><input type="date" id="fFecSonda" onchange="calcInsumosDias()" style="height:30px;"></div>
+                  <div class="col wa" style="align-self:flex-end;"><span id="sSondaDias" style="font-size:.72rem;padding:3px 8px;border-radius:5px;background:#e0f2fe;color:#0369a1;font-weight:700;white-space:nowrap;"></span></div>
                 </div>
               </div>
 
@@ -1438,8 +1439,13 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                           <option>Otra</option>
                         </select>
                       </div>
-                      <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
-                        ℹ️ El texto generado tomará TOT, modo y parámetros desde <strong>Terapia Ventilatoria</strong> ↑
+                      <div class="row" style="align-items:flex-end;gap:6px;margin-top:6px;flex-wrap:wrap;background:#fff;border:1px dashed #fecaca;border-radius:6px;padding:6px 8px;">
+                        <div class="col ws"><label style="font-size:.66rem;">Nuevo TOT</label>
+                          <select id="fReintubTotN1" style="height:28px;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
+                        <div class="col ws"><label style="font-size:.66rem;">Fijación cm</label><input type="number" id="fReintubCmN1" style="height:28px;width:64px;"></div>
+                        <div class="col ws"><label style="font-size:.66rem;">Modo</label>
+                          <select id="fReintubModoN1" style="height:28px;"><option value="">--</option><option>ACVC</option><option>ACPC</option><option>CPAP/PS</option></select></div>
+                        <div class="col grow"><label style="font-size:.66rem;">Parámetros</label><input type="text" id="fReintubParN1" placeholder="VT 400 · FR 20 · PEEP 8 · FiO₂ 40%" style="height:28px;font-size:.76rem;"></div>
                       </div>
                     </div>
                   </div>
@@ -1545,8 +1551,13 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                         <option>Otra</option>
                       </select>
                     </div>
-                    <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
-                      ℹ️ El texto generado tomará TOT, modo y parámetros desde <strong>Terapia Ventilatoria</strong> ↑
+                    <div class="row" style="align-items:flex-end;gap:6px;margin-top:6px;flex-wrap:wrap;background:#fff;border:1px dashed #fecaca;border-radius:6px;padding:6px 8px;">
+                      <div class="col ws"><label style="font-size:.66rem;">Nuevo TOT</label>
+                        <select id="fReintubTotN2" style="height:28px;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
+                      <div class="col ws"><label style="font-size:.66rem;">Fijación cm</label><input type="number" id="fReintubCmN2" style="height:28px;width:64px;"></div>
+                      <div class="col ws"><label style="font-size:.66rem;">Modo</label>
+                        <select id="fReintubModoN2" style="height:28px;"><option value="">--</option><option>ACVC</option><option>ACPC</option><option>CPAP/PS</option></select></div>
+                      <div class="col grow"><label style="font-size:.66rem;">Parámetros</label><input type="text" id="fReintubParN2" placeholder="VT 400 · FR 20 · PEEP 8 · FiO₂ 40%" style="height:28px;font-size:.76rem;"></div>
                     </div>
                   </div>
                   </div><!-- /dExtNoDetalle -->
@@ -1592,8 +1603,13 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                       <option>Mascarilla</option><option>Naricera</option><option>Ambiente</option><option>VMI</option>
                     </select>
                   </div>
-                  <div style="font-size:.72rem;color:#b91c1c;background:#fee2e2;border-radius:5px;padding:5px 8px;line-height:1.4;">
-                    ℹ️ Cambia la <strong>Vía Aérea a TOT</strong> ↑ y registra modo y parámetros con que queda el paciente.
+                  <div class="row" style="align-items:flex-end;gap:6px;margin-top:6px;flex-wrap:wrap;background:#fff;border:1px dashed #fecaca;border-radius:6px;padding:6px 8px;">
+                    <div class="col ws"><label style="font-size:.66rem;">Nuevo TOT</label>
+                      <select id="fReintubTotT" style="height:28px;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
+                    <div class="col ws"><label style="font-size:.66rem;">Fijación cm</label><input type="number" id="fReintubCmT" style="height:28px;width:64px;"></div>
+                    <div class="col ws"><label style="font-size:.66rem;">Modo</label>
+                      <select id="fReintubModoT" style="height:28px;"><option value="">--</option><option>ACVC</option><option>ACPC</option><option>CPAP/PS</option></select></div>
+                    <div class="col grow"><label style="font-size:.66rem;">Parámetros</label><input type="text" id="fReintubParT" placeholder="VT 400 · FR 20 · PEEP 8 · FiO₂ 40%" style="height:28px;font-size:.76rem;"></div>
                   </div>
                 </div>
               </div>
@@ -1775,6 +1791,9 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           </div>
         </div>
 
+        </div><!-- /sp-col izquierda -->
+        <div class="sp-col" style="border-left:1px solid var(--border);"><!-- columna derecha -->
+
         <!-- ▌ TERAPIA FÍSICA (KTM + Evaluaciones) -->
         <div class="fcard fc-k mega-card" id="fcKtmCard">
           <div class="fcard-hdr"><span class="fcard-title">🏃 TERAPIA FÍSICA</span></div>
@@ -1846,26 +1865,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <input type="number" id="fBorg" min="0" max="10" style="width:60px;height:30px;border:1px solid #e2e8f0;border-radius:6px;padding:0 8px;font-size:.82rem;">
                 </div>
 
-                <!-- IMT -->
-                <div style="margin-bottom:8px;padding:8px 10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;">
-                  <div class="check wa" style="border:none;background:transparent;padding:0;margin-bottom:0;">
-                    <input type="checkbox" id="cIMT" onchange="if(this.checked)show('dIMT');else hide('dIMT');">
-                    <label for="cIMT" style="font-weight:700;color:#0369a1;">💨 IMT (Entrenamiento muscular inspiratorio)</label>
-                  </div>
-                  <div id="dIMT" class="hidden fade" style="margin-top:8px;">
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Frecuencia (series)</label>
-                        <input type="number" id="fIMTfreq" min="1" max="20" placeholder="3" style="width:72px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
-                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Intensidad (% PiMáx)</label>
-                        <input type="number" id="fIMTint" min="1" max="100" placeholder="30" style="width:80px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
-                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Tiempo (min)</label>
-                        <input type="number" id="fIMTt" min="1" max="60" placeholder="10" style="width:72px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
-                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Descanso entre series (seg)</label>
-                        <input type="number" id="fIMTdes" min="1" max="300" placeholder="60" style="width:80px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
-                    </div>
-                  </div>
-                </div>
-
                 <!-- Suspendida por alerta -->
                 <div style="padding:8px 10px;background:#fff8ed;border:1px solid #fde68a;border-radius:6px;">
                   <div class="check wa" style="border:none;background:transparent;padding:0;">
@@ -1891,13 +1890,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               <!-- CONTRAINDICADA -->
               <div id="dKTMs" class="hidden fade">
                 <div class="row">
-                  <div class="col wa"><label>Tipo</label>
-                    <select id="fKTMct" onchange="updateKTMcat()"><option value="">-- Tipo --</option><option>Absoluta</option><option>Relativa</option></select></div>
-                  <div class="col wa"><label>Categoría</label>
-                    <select id="fKTMcat" onchange="updateKTMraz()"><option value="">-- Cat. --</option></select></div>
-                  <div class="col grow"><label>Razón</label>
-                    <select id="fKTMraz"><option value="">-- Razón --</option></select></div>
+                  <div class="col grow"><label>Contraindicación (protocolo KTM v5)</label>
+                    <select id="fKTMcontra" onchange="hKTMcontra(this)"><option value="">-- Seleccionar --</option></select></div>
                 </div>
+                <input type="hidden" id="fKTMct"><input type="hidden" id="fKTMcat"><input type="hidden" id="fKTMraz">
                 <input type="text" id="fKTMman" placeholder="Descripción adicional..." style="height:35px;border:1px solid #fde68a;border-radius:6px;padding:0 10px;width:100%;margin-top:6px;background:#fffbeb;">
               </div>
 
@@ -1920,6 +1916,167 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               </div>
             </div>
 
+        <!-- EVALUACIONES FUNCIONALES (unificadas) -->
+        <div class="sub-sec" id="fcEgrCard">
+          <div class="sub-sec-title" style="color:var(--fisico);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <span>📏 Evaluaciones Funcionales</span>
+            <div class="check wa" style="border:none;background:transparent;padding:0;">
+              <input type="checkbox" id="cEgr" onchange="hEgr()">
+              <label for="cEgr" style="font-size:.78rem;">Registrar evaluación este turno</label>
+            </div>
+          </div>
+          <div id="dEgr" class="hidden" style="padding-top:6px;">
+            <div id="coopGateNota" class="hidden" style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:7px;padding:7px 10px;font-size:.76rem;font-weight:600;margin-bottom:8px;">
+              🔒 Paciente no cooperador — MRC-SS, FSS-ICU y dinamometría requieren cooperación (SAS 3-4 · S5Q ≥3).
+              Disponibles: PIM/PEM con válvula, ecografía diafragmática/cuádriceps y CPAx (observacional).
+            </div>
+            <!-- Escalas globales: total + botón para el detalle por ítem -->
+            <div class="row">
+              <div class="col wa"><label>MRC-SS (0-60)</label><input type="number" id="fMRC" min="0" max="60" oninput="interpMRC()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblMRC" class="interp-pill interp-empty">—</span></div>
+              <div class="col wa"><label>FSS-ICU (0-35)</label><input type="number" id="fFSS" min="0" max="35" oninput="interpFSS()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblFSS" class="interp-pill interp-empty">—</span></div>
+            </div>
+            <!-- FSS-ICU por ítem (opcional, colapsable) — misma pauta que la hoja física -->
+            <div id="secFssIt" style="border:1px solid #cffafe;border-radius:7px;overflow:hidden;margin-top:8px;">
+              <button type="button" onclick="hColToggle('dFssIt','sFssItArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#ecfeff;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#0e7490;">
+                <span>📝 FSS-ICU por ítem (opcional)</span><span id="sFssItArrow" style="font-size:.7rem;">▼</span>
+              </button>
+              <div id="dFssIt" class="hidden" style="padding:8px 10px;background:#fff;">
+                <div class="row" style="flex-wrap:wrap;margin-bottom:6px;">
+                  <div class="col wa"><label>1. Girar en cama</label><select id="fFssIt1" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                  <div class="col wa"><label>2. Supino → sedente</label><select id="fFssIt2" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                  <div class="col wa"><label>3. Sedente borde cama</label><select id="fFssIt3" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                  <div class="col wa"><label>4. Sedente → bípedo</label><select id="fFssIt4" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                  <div class="col wa"><label>5. Marcha</label><select id="fFssIt5" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+                </div>
+                <div class="resumen" id="fssItSum" style="font-size:.75rem;color:var(--muted);"></div>
+              </div>
+            </div>
+
+            <!-- MRC-SS por movimiento (opcional, colapsable) — 6 movimientos × 2 hemicuerpos -->
+            <div id="secMrcIt" style="border:1px solid #d9f99d;border-radius:7px;overflow:hidden;margin-top:6px;">
+              <button type="button" onclick="hColToggle('dMrcIt','sMrcItArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f7fee7;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#4d7c0f;">
+                <span>📝 MRC-SS por movimiento (opcional)</span><span id="sMrcItArrow" style="font-size:.7rem;">▼</span>
+              </button>
+              <div id="dMrcIt" class="hidden" style="padding:8px 10px;background:#fff;">
+                <table style="border-collapse:collapse;">
+                  <tr><th style="font-size:.68rem;color:var(--muted);text-align:left;padding:2px 6px;">Movimiento (0-5)</th>
+                      <th style="font-size:.68rem;color:var(--muted);padding:2px 6px;">Derecho</th>
+                      <th style="font-size:.68rem;color:var(--muted);padding:2px 6px;">Izquierdo</th></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">1. Abducción de hombro</td>
+                    <td><select id="fMrcD1" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI1" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">2. Flexión de codo</td>
+                    <td><select id="fMrcD2" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI2" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">3. Extensión de muñeca</td>
+                    <td><select id="fMrcD3" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI3" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">4. Flexión de cadera</td>
+                    <td><select id="fMrcD4" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI4" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">5. Extensión de rodilla</td>
+                    <td><select id="fMrcD5" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI5" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">6. Dorsiflexión de tobillo</td>
+                    <td><select id="fMrcD6" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
+                    <td><select id="fMrcI6" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
+                </table>
+                <div class="resumen" id="mrcItSum" style="font-size:.75rem;color:var(--muted);margin-top:6px;"></div>
+              </div>
+            </div>
+
+
+            <!-- 1) ECOGRAFÍA (muscular y diafragmática) -->
+            <div style="font-size:.67rem;font-weight:800;text-transform:uppercase;color:var(--fisico);margin:10px 0 4px;border-bottom:1px solid #cffafe;padding-bottom:2px;">📡 Ecografía muscular y diafragmática</div>
+            <div class="row">
+              <div class="col wa"><label>Cuádriceps D (mm)</label><input type="number" id="fCuadD" step="0.1"></div>
+              <div class="col wa"><label>Cuádriceps I (mm)</label><input type="number" id="fCuadI" step="0.1"></div>
+              <div class="col wa"><label>Heckmatt</label>
+                <select id="fHeckmatt"><option value="">--</option><option>I</option><option>II</option><option>III</option><option>IV</option></select></div>
+              <div class="col wa"><label>Grosor diafr. (mm)</label><input type="number" id="fGrosor" step="0.1"></div>
+            </div>
+            <div class="row">
+              <div class="col wa"><label>FED D (%)</label><input type="number" id="fFedD" step="1"></div>
+              <div class="col wa"><label>FED I (%)</label><input type="number" id="fFedI" step="1"></div>
+              <div class="col wa"><label>Excursión D (cm)</label><input type="number" id="fExcD" step="0.1"></div>
+              <div class="col wa"><label>Excursión I (cm)</label><input type="number" id="fExcI" step="0.1"></div>
+              <div class="col grow"><label>Hallazgos ecográficos</label><input type="text" id="fDiaf" placeholder="Descripción..."></div>
+            </div>
+            <!-- 2) FUERZA -->
+            <div style="font-size:.67rem;font-weight:800;text-transform:uppercase;color:var(--fisico);margin:10px 0 4px;border-bottom:1px solid #cffafe;padding-bottom:2px;">💪 Fuerza</div>
+            <div class="row">
+              <div class="col wa"><label>PIM (cmH₂O)</label><input type="number" id="fPIM" oninput="interpPIM()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPIM" class="interp-pill interp-empty">—</span></div>
+              <div class="col wa"><label>PEM (cmH₂O)</label><input type="number" id="fPEM"></div>
+              <div class="col wa"><label>Prensión / Dinam. (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="kg" oninput="interpDinamo()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPrension" class="interp-pill interp-empty">—</span></div>
+            </div>
+            <!-- 3) TOS Y DEGLUCIÓN -->
+            <div style="font-size:.67rem;font-weight:800;text-transform:uppercase;color:var(--fisico);margin:10px 0 4px;border-bottom:1px solid #cffafe;padding-bottom:2px;">😮‍💨 Tos y deglución</div>
+            <div class="row">
+              <div class="col wa"><label>FEM (L/s)</label><input type="number" id="fFEM" step="0.1"></div>
+              <div class="col wa"><label>Deglución</label>
+                <select id="fDeglucion"><option value="">--</option><option>Adecuada</option><option>Alterada leve</option><option>Alterada severa</option><option>No evaluable</option></select></div>
+              <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="fBDTp"><label for="fBDTp">BDT +</label></div>
+              <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="fBDTn"><label for="fBDTn">BDT -</label></div>
+              <div class="col wa" id="dPmantVA" style="display:none;"><label>Pmant VA (cmH₂O)</label><input type="number" id="fPVA"></div>
+            </div>
+            <!-- CPAx (opcional, colapsable) — Chelsea Critical Care Physical Assessment tool.
+                 Se desactiva con CONFIG.CPAX_ACTIVO = FALSE. -->
+            <div id="secCpax" style="border:1px solid #ede9fe;border-radius:7px;overflow:hidden;margin-top:6px;">
+              <button type="button" onclick="hColToggle('dCpax','sCpaxArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f5f3ff;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#6d28d9;">
+                <span>🕸️ CPAx (0-50)</span><span id="sCpaxArrow" style="font-size:.7rem;">▼</span>
+              </button>
+              <div id="dCpax" class="hidden" style="padding:8px 10px;background:#fff;">
+                <div class="row" style="flex-wrap:wrap;margin-bottom:6px;">
+                  <div class="col wa" title="0 ventilación total → 5 espontánea sin O2"><label>1. Función respiratoria</label><select id="fCpax1" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 ausente → 5 tos efectiva independiente"><label>2. Tos</label><select id="fCpax2" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 independiente"><label>3. Movilidad en cama (girar)</label><select id="fCpax3" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 independiente"><label>4. Supino → sedente</label><select id="fCpax4" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 alcanza fuera de base sin apoyo"><label>5. Equilibrio sedente (dinámico)</label><select id="fCpax5" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 sin ayudas técnicas"><label>6. Equilibrio bípedo</label><select id="fCpax6" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 sin apoyo de brazos"><label>7. Sedente → bípedo</label><select id="fCpax7" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 independiente"><label>8. Transferencia cama → sillón</label><select id="fCpax8" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 incapaz → 5 sin asistencia ni ayudas"><label>9. Marcha en el lugar</label><select id="fCpax9" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                  <div class="col wa" title="0 sin contracción → 5 ≈normal para edad/sexo (ajustar al % predicho)"><label>10. Prensión (% del predicho)</label><select id="fCpax10" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <button type="button" class="hbtn" style="background:#ede9fe;color:#6d28d9;border-color:#ddd6fe;" onclick="cpaxSugerir()">✨ Sugerir desde datos del turno</button>
+                  <div class="resumen" id="cpaxSum" style="flex:1;font-size:.75rem;color:var(--muted);"></div>
+                </div>
+                <div style="font-size:.68rem;color:var(--muted);margin-top:4px;">La sugerencia es una propuesta desde los datos ya registrados — el puntaje válido es el que confirma el kinesiólogo.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+          </div>
+        </div>
+
+        <!-- IMT — SIEMPRE disponible aunque no haya cooperación (única excepción acordada) -->
+        <div class="fcard" id="fcImtBox" style="border-color:#bae6fd;">
+          <div class="fcard-hdr"><span class="fcard-title" style="color:#0369a1;">💨 IMT — Entrenamiento muscular inspiratorio</span></div>
+          <div class="fcard-body">
+            <div class="check wa" style="border:none;background:transparent;padding:0;margin-bottom:0;">
+                    <input type="checkbox" id="cIMT" onchange="if(this.checked)show('dIMT');else hide('dIMT');">
+                    <label for="cIMT" style="font-weight:700;color:#0369a1;">💨 IMT (Entrenamiento muscular inspiratorio)</label>
+                  </div>
+                  <div id="dIMT" class="hidden fade" style="margin-top:8px;">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Frecuencia (series)</label>
+                        <input type="number" id="fIMTfreq" min="1" max="20" placeholder="3" style="width:72px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Intensidad (% PiMáx)</label>
+                        <input type="number" id="fIMTint" min="1" max="100" placeholder="30" style="width:80px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Tiempo (min)</label>
+                        <input type="number" id="fIMTt" min="1" max="60" placeholder="10" style="width:72px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Descanso entre series (seg)</label>
+                        <input type="number" id="fIMTdes" min="1" max="300" placeholder="60" style="width:80px;height:28px;border:1px solid #bae6fd;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                    </div>
+                  </div>
+                
           </div>
         </div>
 
@@ -1983,139 +2140,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <option>Educación al usuario / cuidador o familia</option>
               </datalist>
               <button type="button" class="btn btn-p" style="width:auto;padding:0 15px;height:35px;" onclick="addProc()">+ Agregar</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- EVALUACIONES FUNCIONALES (unificadas) -->
-        <div class="fcard fc-f" id="fcEgrCard">
-          <div class="fcard-hdr">
-            <span class="fcard-title" style="color:var(--fisico);">📏 Evaluaciones Funcionales</span>
-            <div class="check wa" style="border:none;background:transparent;padding:0;">
-              <input type="checkbox" id="cEgr" onchange="hEgr()">
-              <label for="cEgr" style="font-size:.78rem;">Registrar evaluación este turno</label>
-            </div>
-          </div>
-          <div id="dEgr" class="fcard-body hidden">
-            <div id="coopGateNota" class="hidden" style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:7px;padding:7px 10px;font-size:.76rem;font-weight:600;margin-bottom:8px;">
-              🔒 Paciente no cooperador — MRC-SS, FSS-ICU y dinamometría requieren cooperación (SAS 3-4 · S5Q ≥3).
-              Disponibles: PIM/PEM con válvula, ecografía diafragmática/cuádriceps y CPAx (observacional).
-            </div>
-            <div class="row">
-              <div class="col wa"><label>Prensión / Dinam. (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="kg" oninput="interpDinamo()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPrension" class="interp-pill interp-empty">—</span></div>
-              <div class="col wa"><label>MRC-SS (0-60)</label><input type="number" id="fMRC" min="0" max="60" oninput="interpMRC()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblMRC" class="interp-pill interp-empty">—</span></div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>FSS-ICU (0-35)</label><input type="number" id="fFSS" min="0" max="35" oninput="interpFSS()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblFSS" class="interp-pill interp-empty">—</span></div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>PIM (cmH₂O)</label><input type="number" id="fPIM" oninput="interpPIM()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPIM" class="interp-pill interp-empty">—</span></div>
-              <div class="col wa"><label>PEM (cmH₂O)</label><input type="number" id="fPEM"></div>
-              <div class="col wa"><label>FEM L/s</label><input type="number" id="fFEM" step="0.1"></div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>Grosor Diafr. (mm)</label><input type="number" id="fGrosor" step="0.1"></div>
-              <div class="col grow"><label>Hallazgos Ecográficos</label><input type="text" id="fDiaf" placeholder="Descripción..."></div>
-            </div>
-            <div class="row">
-              <div class="check wa"><input type="checkbox" id="fBDTp"><label for="fBDTp">BDT +</label></div>
-              <div class="check wa"><input type="checkbox" id="fBDTn"><label for="fBDTn">BDT -</label></div>
-              <!-- Pmant VA: solo si TQT -->
-              <div class="col wa" id="dPmantVA" style="display:none;"><label>Pmant VA (cmH₂O)</label><input type="number" id="fPVA"></div>
-            </div>
-            <!-- Ecografía muscular y diafragmática (v2 — protocolo KTM v5 / hoja RHB) -->
-            <div class="row" style="border-top:1px dashed #e2e8f0;padding-top:8px;margin-top:4px;">
-              <div class="col wa"><label>Cuádriceps D (mm)</label><input type="number" id="fCuadD" step="0.1"></div>
-              <div class="col wa"><label>Cuádriceps I (mm)</label><input type="number" id="fCuadI" step="0.1"></div>
-              <div class="col wa"><label>Heckmatt</label>
-                <select id="fHeckmatt"><option value="">--</option><option>I</option><option>II</option><option>III</option><option>IV</option></select></div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>FED D (%)</label><input type="number" id="fFedD" step="1"></div>
-              <div class="col wa"><label>FED I (%)</label><input type="number" id="fFedI" step="1"></div>
-              <div class="col wa"><label>Excursión D (cm)</label><input type="number" id="fExcD" step="0.1"></div>
-              <div class="col wa"><label>Excursión I (cm)</label><input type="number" id="fExcI" step="0.1"></div>
-            </div>
-
-            <!-- FSS-ICU por ítem (opcional, colapsable) — misma pauta que la hoja física -->
-            <div id="secFssIt" style="border:1px solid #cffafe;border-radius:7px;overflow:hidden;margin-top:8px;">
-              <button type="button" onclick="hColToggle('dFssIt','sFssItArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#ecfeff;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#0e7490;">
-                <span>📝 FSS-ICU por ítem (opcional)</span><span id="sFssItArrow" style="font-size:.7rem;">▼</span>
-              </button>
-              <div id="dFssIt" class="hidden" style="padding:8px 10px;background:#fff;">
-                <div class="row" style="flex-wrap:wrap;margin-bottom:6px;">
-                  <div class="col wa"><label>1. Girar en cama</label><select id="fFssIt1" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-                  <div class="col wa"><label>2. Supino → sedente</label><select id="fFssIt2" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-                  <div class="col wa"><label>3. Sedente borde cama</label><select id="fFssIt3" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-                  <div class="col wa"><label>4. Sedente → bípedo</label><select id="fFssIt4" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-                  <div class="col wa"><label>5. Marcha</label><select id="fFssIt5" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-                </div>
-                <div class="resumen" id="fssItSum" style="font-size:.75rem;color:var(--muted);"></div>
-              </div>
-            </div>
-
-            <!-- MRC-SS por movimiento (opcional, colapsable) — 6 movimientos × 2 hemicuerpos -->
-            <div id="secMrcIt" style="border:1px solid #d9f99d;border-radius:7px;overflow:hidden;margin-top:6px;">
-              <button type="button" onclick="hColToggle('dMrcIt','sMrcItArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f7fee7;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#4d7c0f;">
-                <span>📝 MRC-SS por movimiento (opcional)</span><span id="sMrcItArrow" style="font-size:.7rem;">▼</span>
-              </button>
-              <div id="dMrcIt" class="hidden" style="padding:8px 10px;background:#fff;">
-                <table style="border-collapse:collapse;">
-                  <tr><th style="font-size:.68rem;color:var(--muted);text-align:left;padding:2px 6px;">Movimiento (0-5)</th>
-                      <th style="font-size:.68rem;color:var(--muted);padding:2px 6px;">Derecho</th>
-                      <th style="font-size:.68rem;color:var(--muted);padding:2px 6px;">Izquierdo</th></tr>
-                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">1. Abducción de hombro</td>
-                    <td><select id="fMrcD1" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
-                    <td><select id="fMrcI1" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
-                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">2. Flexión de codo</td>
-                    <td><select id="fMrcD2" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
-                    <td><select id="fMrcI2" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
-                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">3. Extensión de muñeca</td>
-                    <td><select id="fMrcD3" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
-                    <td><select id="fMrcI3" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
-                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">4. Flexión de cadera</td>
-                    <td><select id="fMrcD4" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
-                    <td><select id="fMrcI4" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
-                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">5. Extensión de rodilla</td>
-                    <td><select id="fMrcD5" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
-                    <td><select id="fMrcI5" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
-                  <tr><td style="text-align:left;padding:2px 6px;font-size:.74rem;">6. Dorsiflexión de tobillo</td>
-                    <td><select id="fMrcD6" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td>
-                    <td><select id="fMrcI6" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
-                </table>
-                <div class="resumen" id="mrcItSum" style="font-size:.75rem;color:var(--muted);margin-top:6px;"></div>
-              </div>
-            </div>
-
-            <!-- CPAx (opcional, colapsable) — Chelsea Critical Care Physical Assessment tool.
-                 Se desactiva con CONFIG.CPAX_ACTIVO = FALSE. -->
-            <div id="secCpax" style="border:1px solid #ede9fe;border-radius:7px;overflow:hidden;margin-top:6px;">
-              <button type="button" onclick="hColToggle('dCpax','sCpaxArrow')" style="width:100%;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f5f3ff;border:none;cursor:pointer;font-size:.78rem;font-weight:700;color:#6d28d9;">
-                <span>🕸️ CPAx (0-50)</span><span id="sCpaxArrow" style="font-size:.7rem;">▼</span>
-              </button>
-              <div id="dCpax" class="hidden" style="padding:8px 10px;background:#fff;">
-                <div class="row" style="flex-wrap:wrap;margin-bottom:6px;">
-                  <div class="col wa" title="0 ventilación total → 5 espontánea sin O2"><label>1. Función respiratoria</label><select id="fCpax1" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                  <div class="col wa" title="0 ausente → 5 tos efectiva independiente"><label>2. Tos</label><select id="fCpax2" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                  <div class="col wa" title="0 incapaz → 5 independiente"><label>3. Movilidad en cama (girar)</label><select id="fCpax3" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                  <div class="col wa" title="0 incapaz → 5 independiente"><label>4. Supino → sedente</label><select id="fCpax4" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                  <div class="col wa" title="0 incapaz → 5 alcanza fuera de base sin apoyo"><label>5. Equilibrio sedente (dinámico)</label><select id="fCpax5" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                  <div class="col wa" title="0 incapaz → 5 sin ayudas técnicas"><label>6. Equilibrio bípedo</label><select id="fCpax6" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                  <div class="col wa" title="0 incapaz → 5 sin apoyo de brazos"><label>7. Sedente → bípedo</label><select id="fCpax7" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                  <div class="col wa" title="0 incapaz → 5 independiente"><label>8. Transferencia cama → sillón</label><select id="fCpax8" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                  <div class="col wa" title="0 incapaz → 5 sin asistencia ni ayudas"><label>9. Marcha en el lugar</label><select id="fCpax9" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                  <div class="col wa" title="0 sin contracción → 5 ≈normal para edad/sexo (ajustar al % predicho)"><label>10. Prensión (% del predicho)</label><select id="fCpax10" onchange="sumCPAX()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-                </div>
-                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                  <button type="button" class="hbtn" style="background:#ede9fe;color:#6d28d9;border-color:#ddd6fe;" onclick="cpaxSugerir()">✨ Sugerir desde datos del turno</button>
-                  <div class="resumen" id="cpaxSum" style="flex:1;font-size:.75rem;color:var(--muted);"></div>
-                </div>
-                <div style="font-size:.68rem;color:var(--muted);margin-top:4px;">La sugerencia es una propuesta desde los datos ya registrados — el puntaje válido es el que confirma el kinesiólogo.</div>
-              </div>
             </div>
           </div>
         </div>
@@ -2499,8 +2523,9 @@ function abrirPanel(id, esIng) {
   const _spCod=$('spCod'); if(_spCod) _spCod.textContent='';
   hide('dReintubDetT'); hide('dIntubDet');
   _vmHistFlag=false; _transIntubEsteTurno=false;
-  hide('dMonAv'); const _ma=$('sMonAvArrow'); if(_ma) _ma.textContent='▼';
-  hide('dLab'); const _la=$('sLabArrow'); if(_la) _la.textContent='▼';
+  _cambioTOT=false; _lockTOT(false);
+  setRuidosExtra(''); calcInsumosDias();
+  hide('dUpotDet');
   ['dFssIt','sFssItArrow','dMrcIt','sMrcItArrow','dCpax','sCpaxArrow'].forEach((x,i)=>{
     if(i%2===0) hide(x); else { const a=$(x); if(a) a.textContent='▼'; }
   });
@@ -2657,9 +2682,12 @@ function fillForm(s) {
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
   set('fCharlson',s.PAC_CHARLSON); set('fIngTipo',s.PAC_INGRESO_TIPO);
   set('fFC',s.HEMO_FC); set('fPA',s.HEMO_PA); set('fPAM',s.HEMO_PAM); set('fPIC',s.HEMO_PIC); set('fPPC',s.HEMO_PPC);
-  set('fPh',s.LAB_PH); set('fPaCO2',s.LAB_PACO2); set('fPaO2',s.LAB_PAO2); set('fHCO3',s.LAB_HCO3);
-  set('fLactato',s.LAB_LACTATO); set('fPafi',s.LAB_PAFI);
   set('fFecFiltro',_isoDia(s.VENT_FECHA_FILTRO)); set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA));
+  set('fFiltroTipo',s.FILTRO_TIPO); calcInsumosDias();
+  setRuidosExtra(s.EX_RUIDOS_JSON||'');
+  set('fDeglucion',s.EVAL_DEGLUCION);
+  chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
+  chk('cUPOTmed',s.UPOT_MEDIDAS);
   set('fVisage',s.EXT_VISAGE); set('fScoreVA',s.EXT_SCORE_VA);
   set('fDias',s.DIA_ESTADIA); set('fDiasVM',s.DIAS_VM);
   if(s.VA_EXTERNO_DIAS!==undefined){ set('fVAExtDias',s.VA_EXTERNO_DIAS||0); actualizarDiasVA(); }
@@ -2692,7 +2720,7 @@ function fillForm(s) {
    ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
    ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],
    ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
-   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],['r_rise','VENT_RISETIME'],
+   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
    ['r_uma','KTM_UMA']]
     .forEach(([id,k])=>{ const e=$(id); if(e&&s[k]!==undefined&&s[k]!=='') e.value=s[k]; });
   // v2: los "extras" ya son columnas planas del esquema — mismo objeto
@@ -2708,6 +2736,7 @@ function fillForm(s) {
 
   chk('cKTMr',s.KTM_REALIZADA); chk('cKTMs',s.KTM_SUSPENDIDA);
   set('fKTMct',s.KTM_CONTRA_TIPO); set('fKTMraz',s.KTM_CONTRA_RAZON); set('fKTMman',s.KTM_CONTRA_MANUAL);
+  const _fcS=$('fKTMcontra'); if(_fcS) _fcS.value=s.KTM_CONTRA_RAZON||'';
 
   // KTM — ACCIÓN DIARIA: siempre parte sin estado seleccionado (el colega registra lo de hoy)
   setKTMstate(null);
@@ -2819,7 +2848,7 @@ function fillForm(s) {
   aplicarFirmaTurno(s.PLAN_FIRMA_KINE);
   setFasesDesde(s.FASE_JSON||'');
   const _cod=$('spCod'); if(_cod) _cod.textContent=s.COD_PACIENTE||'';
-  const _ad=$('cAdapt'); if(_ad&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!=='') _ad.checked=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE');
+  const _ad=$('sAdapt'); if(_ad&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!=='') _ad.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico';
   hSed(); hHTrend(); hMultiDVA(); hSecr(); calcGCS(); calcPI();
   if(s.KTM_UMA===true||s.KTM_UMA==='TRUE') show('dUMA');
   _vmHistFlag = _vmHistFlag || !!s.EXT_TS ||
@@ -2831,6 +2860,7 @@ function fillForm(s) {
     s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
   updateVAUI();
   aplicarGatesEval();
+  if(v('fVA')==='TOT' && v('fTOTn') && !_cambioTOT) _lockTOT(true);
 }
 
 //  RÉPLICA DEL TURNO ANTERIOR
@@ -2877,7 +2907,7 @@ function fillFormReplica(s) {
    ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
    ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],
    ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
-   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],['r_rise','VENT_RISETIME'],
+   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
    ['r_uma','KTM_UMA']]
     .forEach(([id,k])=>{ const e=$(id); if(e&&s[k]!==undefined&&s[k]!=='') e.value=s[k]; });
 
@@ -2919,7 +2949,12 @@ function fillFormReplica(s) {
   aplicarFirmaTurno(s.PLAN_FIRMA_KINE);
   setFasesDesde(s.FASE_JSON||'');
   set('fFecFiltro',_isoDia(s.VENT_FECHA_FILTRO)); set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA));
-  const _adR=$('cAdapt'); if(_adR&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!=='') _adR.checked=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE');
+  set('fFiltroTipo',s.FILTRO_TIPO); calcInsumosDias();
+  setRuidosExtra(s.EX_RUIDOS_JSON||'');
+  chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
+  chk('cUPOTmed',s.UPOT_MEDIDAS);
+  const _fcR=$('fKTMcontra'); if(_fcR) _fcR.value=s.KTM_CONTRA_RAZON||'';
+  const _adR=$('sAdapt'); if(_adR&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!=='') _adR.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico';
 
   // Egreso: NO se replica (es específico del turno de egreso)
 
@@ -2933,6 +2968,7 @@ function fillFormReplica(s) {
     s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
   updateVAUI();
   aplicarGatesEval();
+  if(v('fVA')==='TOT' && v('fTOTn') && !_cambioTOT) _lockTOT(true);
 }
 
 /**
@@ -3027,7 +3063,7 @@ function guardar() {
     VENT_VIA_AEREA:v('fVA'), VENT_TOT_NUM:v('fTOTn'), VENT_TOT_CM:v('fTOTcm'),
     VENT_TQT_CALIBRE:v('fTQTn'), VENT_TQT_TIPO:v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
     VENT_H_ACTIVA:bv('cHAct'), KTM_UMA:v('r_uma')||'',
-    VENT_ADAPTADO: $('cAdapt') ? $('cAdapt').checked : '',
+    VENT_ADAPTADO: $('sAdapt') ? (v('sAdapt')==='Sincrónico') : '',
     VENT_VT:n(v('r_vt')), VENT_FR:n(v('r_fr')), VENT_PEEP:n(v('r_peep')),
     VENT_PMAX:n(v('r_pmax')), VENT_PMEDIA:n(v('r_pmedia')), VENT_PPL:n(v('r_ppl')),
     VENT_PS:n(v('r_ps')), VENT_IPAP:n(v('r_ipap')), VENT_EPAP:n(v('r_epap')),
@@ -3035,10 +3071,17 @@ function guardar() {
     VENT_FLUJO:n(v('r_flujo')), VENT_TI:n(v('r_ti')), VENT_TEMP:n(v('r_temp')),
     VENT_LITROS:n(v('r_litros')),
     VENT_AUTOPEEP:n(v('r_autopeep')), VENT_P01:n(v('r_p01')), VENT_DPOCC:n(v('r_dpocc')),
-    VENT_PMUSC:n(v('r_pmusc')), VENT_RISETIME:n(v('r_rise')),
-    LAB_PH:n(v('fPh')), LAB_PACO2:n(v('fPaCO2')), LAB_PAO2:n(v('fPaO2')), LAB_HCO3:n(v('fHCO3')),
-    LAB_LACTATO:n(v('fLactato')), LAB_PAFI:n(v('fPafi')),
+    VENT_PMUSC:n(v('r_pmusc')),
     VENT_FECHA_FILTRO:v('fFecFiltro'), VENT_FECHA_SONDA:v('fFecSonda'),
+    FILTRO_TIPO:v('fFiltroTipo'),
+    EX_RUIDOS_JSON: ruidosExtraJSON(),
+    EVAL_DEGLUCION:v('fDeglucion'),
+    APNEA_TEST:v('fApneaTest'),
+    UPOT_ACTIVO:bv('cUPOT'), UPOT_MEDIDAS:bv('cUPOTmed'),
+    REINTUB_TOT_N:_rSuf()?v('fReintubTot'+_rSuf()):'',
+    REINTUB_TOT_CM:_rSuf()?v('fReintubCm'+_rSuf()):'',
+    REINTUB_MODO:_rSuf()?v('fReintubModo'+_rSuf()):'',
+    REINTUB_PARAMS:_rSuf()?v('fReintubPar'+_rSuf()):'',
     KTM_REALIZADA:bv('cKTMr'), KTM_SUSPENDIDA:bv('cKTMs'),
     KTM_CONTRA_TIPO:v('fKTMct'), KTM_CONTRA_CAT:v('fKTMcat'),
     KTM_CONTRA_RAZON:v('fKTMraz'), KTM_CONTRA_MANUAL:v('fKTMman'),
@@ -3147,6 +3190,8 @@ function guardar() {
       if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
       if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
       if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
+      if(v('fApneaTest')) auto.push('TEST APNEA');
+      if(_cambioTOT) auto.push('CAMBIO TOT');
       if(_extOcurrio()||v('fPVEval')){
         const _et=_extTipo();
         if(_et==='protocolo')          auto.push('EXTUBACIÓN C/PROTOCOLO');
@@ -3167,6 +3212,8 @@ function guardar() {
       if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
       if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
       if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
+      if(v('fApneaTest')) auto.push('TEST APNEA');
+      if(_cambioTOT) auto.push('CAMBIO TOT');
       if(_extOcurrio()||v('fPVEval')){
         const _et=_extTipo();
         if(_et==='protocolo') auto.push('EXTUBACIÓN C/PROTOCOLO');
@@ -3186,6 +3233,8 @@ function guardar() {
       if($('cSupino')?.checked) auto.push('SUPINACIÓN');
       if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
       if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
+      if(v('fApneaTest')) auto.push('TEST APNEA');
+      if(_cambioTOT) auto.push('CAMBIO TOT');
       if(_extOcurrio()||v('fPVEval')){
         if(_extTipo()) auto.push('EXT');
         if(_extReintub()) auto.push('REINTUBACIÓN');
@@ -3802,6 +3851,14 @@ function genTexto() {
   if($('cAET')?.checked){ const niv=v('fAETnivel')||''; L.push(`Paciente con AET${niv?' Grupo '+niv:''}.`); }
   // Fase clínica (v2)
   if(FASES_SEL&&FASES_SEL.size) L.push(`Fase clínica: ${Array.from(FASES_SEL).join(' + ')}.`);
+  // UPOT / procuramiento
+  if($('cUPOT')?.checked){
+    let _u='Paciente en seguimiento por UPOT, con sospecha de muerte cerebral';
+    const _ap=v('fApneaTest');
+    if(_ap) _u+=`. Test de apnea ${_ap.toLowerCase()}`;
+    if($('cUPOTmed')?.checked) _u+='. Se mantienen medidas de protección de órganos';
+    L.push(_u+'.');
+  }
   // Reingreso
   if($('cReing')?.checked) L.push('Corresponde a reingreso a UCI.');
   if(esIng){
@@ -3821,7 +3878,7 @@ function genTexto() {
   const gcsT=$('lblGCS')?.textContent||'?';
   const va=gv('fVA')||'Natural'; const intub=va==='TOT'||va==='TQT';
   let s;
-  if($('cBNM')?.checked) s=`Sedado y con bloqueo neuromuscular para meta SAS ${sas||'1'}.`;
+  if($('cBNM')?.checked) s=`Sedado y con bloqueo neuromuscular para meta SAS ${sas||'1'} (+BNM).`;
   else if(sed==='Sin sedación') s='Sin sedación.';
   else if(sed==='Fuera de escalón') s=`Sedación fuera de escalón${sas?' (SAS '+sas+')':''}.`;
   else if(sed.startsWith('Escalón')) s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
@@ -3844,7 +3901,7 @@ function genTexto() {
   // Reintubación registrada SIN extubación este turno (VA venía no invasiva)
   if(_extReintub() && !_extOcurrio()){
     const _rh=v('fReintubHoraT'), _rz=_extReintubRaz();
-    L.push(`Paciente requirió reintubación${_rh?' a las '+_rh+' hrs':''}${_rz?' por '+_rz.toLowerCase():''}.`);
+    L.push(`Paciente requirió reintubación${_rh?' a las '+_rh+' hrs':''}${_rz?' por '+_rz.toLowerCase():''}${_reintubEquipoTxt()}.`);
   }
   // Intubación NUEVA este turno (paciente sin historial de VM)
   if($('cIntubO')?.checked){
@@ -3859,7 +3916,7 @@ function genTexto() {
   const _numTxt=id=>_mon(id).replace(/[^0-9.]/g,'');
   const _pjoin=arr=>arr.filter(Boolean).join(', ');
   const _humid=$('cHAct')?.checked;
-  const _interac=$('cAdapt')?($('cAdapt').checked?'adecuada':'inadecuada'):null;
+  const _interac=$('sAdapt')?(v('sAdapt')==='Sincrónico'?'adecuada':'inadecuada'):null;
   const _CTRL=['ACVC','ACPC'];
   const _espontaneo = !_CTRL.includes(modo);
   const _ps=_np('r_ps'), _tobin=_mon('l_tobin');
@@ -4079,7 +4136,7 @@ function genTexto() {
       if(_res==='superada'){
         L.push(`Se realiza PVE con resultado superado, progresando a extubación${_horaTxt}.`);
         if(_reint){
-          let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+          let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} por lo que se reintuba${v('fReintubHoraN1')?' a las '+v('fReintubHoraN1')+' hrs':''}${_reintubEquipoTxt()}.`;
           const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
           L.push(_rt);
         } else if(_peModo){ L.push(_peTxt()); }
@@ -4106,30 +4163,15 @@ function genTexto() {
         L.push(_etxt+'.');
       }
       if(_reint){
-        let _rt=`Evolucionando con ${(_rraz||'falla respiratoria').toLowerCase()} requiriendo reintubación.`;
+        let _rt=`Evolucionando con ${(_rraz||'falla respiratoria').toLowerCase()} por lo que se reintuba${v('fReintubHoraN2')?' a las '+v('fReintubHoraN2')+' hrs':''}${_reintubEquipoTxt()}.`;
         const _vm=_vmReintTxt(); if(_vm) _rt+=' '+_vm;
         L.push(_rt);
       } else if(_peModo){ L.push(_peTxt()); }
     }
     if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
   })();
-  (function(){
-    const auto=[];
-    // CULTIVO omitido — ya aparece integrado en la línea KTR
-    if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
-    if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
-    if(v('fPVEval')){
-      const _et=_extTipo();
-      if(_et==='protocolo')           auto.push('EXTUBACIÓN C/PROTOCOLO');
-      else if(_et==='sin_protocolo')  auto.push('EXTUBACIÓN S/PROTOCOLO');
-      else if(_et==='accidental')     auto.push('EXTUBACIÓN ACCIDENTAL');
-      else if(_et==='autoextubacion') auto.push('AUTOEXTUBACIÓN');
-      if(v('fPVEval')==='si') auto.push('PVE');
-      if(_extReintub()) auto.push('REINTUBACIÓN');
-    }
-    const all=Array.from(new Set([...(PROCS||[]),...auto]));
-    if(all.length) L.push(`Procedimientos: ${all.join(', ')}.`);
-  })();
+  // Procedimientos: no se imprimen como lista cruda — van narrados en el texto (BD: PROC_JSON).
+
   // PVE sin_condiciones espontáneo → justo antes del Plan
   if(_pveNoCond && _espontaneo){
     L.push('*Actualmente sin condiciones para realizar PVE. Por lo que mantiene soporte.');
@@ -4383,9 +4425,13 @@ function hPEUMA(){
 const _umaFld=()=>`<div class="col" style="flex-grow:0;"><label>UMA</label><div style="display:flex;align-items:center;gap:4px;"><select id="r_uma" onchange="hUMA()" style="height:35px;width:60px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option><option>+</option><option>++</option><option>+++</option></select><span id="umatip" class="interp-tip interp-ok" data-tip="${_UMA_TIPS['']}" style="font-size:.75rem;">ⓘ</span></div></div>`;
 const _humChk=(haAdapt)=>{
   const humVal=($('cHAct')&&$('cHAct').checked)||false;
-  const adaptVal=($('cAdapt')&&$('cAdapt').checked)||true;
+  const adaptVal=($('sAdapt')&&$('sAdapt').value)||'Sincrónico';
   let row=`<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;flex-wrap:wrap;">`;
-  if(haAdapt) row+=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:600;"><input type="checkbox" id="cAdapt" ${adaptVal?'checked':''} style="width:15px;height:15px;accent-color:var(--primary);"> Paciente adaptado al ventilador</label>`;
+  if(haAdapt) row+=`<span style="display:inline-flex;align-items:center;gap:5px;font-size:.8rem;font-weight:600;">Interacción P-VM
+    <select id="sAdapt" style="height:28px;font-size:.8rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 6px;">
+      <option${adaptVal==='Sincrónico'?' selected':''}>Sincrónico</option>
+      <option${adaptVal==='Asincrónico'?' selected':''}>Asincrónico</option>
+    </select></span>`;
   row+=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:600;"><input type="checkbox" id="cHAct" ${humVal?'checked':''} style="width:15px;height:15px;accent-color:var(--primary);">🌡️ Humidificación Activa</label>`;
   row+=`</div>`;
   return row;
@@ -4399,32 +4445,25 @@ function renderParams() {
   if(esVM) h+=_humChk(ctrl);
 
   if(modo==='ACVC'){
-    h+=lbl('Ventilación');
     h+=`<div class="row">${fld('r_vt','VT ml',80)}<div class="col" style="width:60px;flex-grow:0;"><label></label><span id="l_mlkg" style="font-size:.68rem;font-weight:700;color:#64748b;display:block;margin-top:24px;">--</span></div>${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_flujo','Flujo L/m',78)}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}</div>`;
-    h+=lbl('Mecánica');
-    h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_pmedia','Pmedia',70)}${fld('r_peep','PEEP',70)}${fld('r_ppl','Ppl',70)}${mon('l_dp','DP',true)}${mon('l_cesr','Cesr',true)}</div>`;
-    h+=lbl('Oxigenación');
+    h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_pmedia','Pmedia',70)}${fld('r_peep','PEEP',70)}${fld('r_ppl','Ppl',70)}${fld('r_autopeep','AutoPEEP',80)}${mon('l_dp','DP',true)}${mon('l_cesr','Cesr',true)}</div>`;
     h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
   } else if(modo==='ACPC'){
-    h+=lbl('Ventilación');
     h+=`<div class="row">${fld('r_pinsp','Pinsp',80)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}</div>`;
-    h+=lbl('Mecánica / Ox.');
-    h+=`<div class="row">${fld('r_peep','PEEP',70)}${fld('r_pmax','Pmax',70)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
+    h+=`<div class="row">${fld('r_peep','PEEP',70)}${fld('r_pmax','Pmax',70)}${fld('r_autopeep','AutoPEEP',80)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
   } else if(modo==='CPAP/PS'){
-    h+=lbl('Ventilación');
     h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${mon('l_tobin','I.Tobin',true)}${_umaFld()}</div>`;
-    h+=lbl('Oxigenación');
     h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
+    h+=`<details style="margin-top:6px;border:1px solid #e2e8f0;border-radius:7px;padding:6px 10px;background:#f8fafc;">
+      <summary style="font-size:.75rem;font-weight:700;color:#475569;cursor:pointer;" title="Índices de esfuerzo inspiratorio en ventilación espontánea: P0.1 (drive), ΔPocc (presión de oclusión) y Pmusc estimada. Útiles para evaluar sobre/sub-asistencia en CPAP/PS.">📈 Monitoreo avanzado (P0.1 · ΔPocc · Pmusc) ⓘ</summary>
+      <div class="row" style="margin-top:6px;">${fld('r_p01','P0.1',70)}${fld('r_dpocc','ΔPocc',70)}${fld('r_pmusc','Pmusc',70)}</div>
+    </details>`;
   } else if(modo==='S/T'){
-    h+=lbl('Ventilación');
     h+=`<div class="row">${fld('r_ipap','IPAP',80)}${fld('r_epap','EPAP',80)}${mon('l_pscalc','PS calc.',true)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}${_umaFld()}</div>`;
-    if(sop==='VNI'){h+=lbl('Oxigenación');h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;}
+    if(sop==='VNI'){h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;}
   } else if(modo==='AVAPS'){
-    h+=lbl('Presiones');
     h+=`<div class="row">${fld('r_ipap','IPAP min',88)}${fld('r_epap','EPAP',80)}${_umaFld()}</div>`;
-    h+=lbl('Ventilación');
     h+=`<div class="row">${fld('r_vt','VT med.',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}</div>`;
-    h+=lbl('Oxigenación');
     h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
   } else if(modo==='CPAP'){
     h+=`<div class="row">${fld('r_peep','CPAP',80)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
@@ -4445,6 +4484,7 @@ function hSed(){
   const s=v('fSed');
   if(s!=='Sin sedación'){show('gSAS');}else{const el=$('fSAS');if(el)el.value='';hide('gSAS');}
   autoCoopera();
+  aplicarGatesNeuro();
 }
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function addRuido(){
@@ -5593,6 +5633,147 @@ function aplicarGatesEval(){
     sumFSS(); sumMRC(); interpMRC(); interpFSS(); interpDinamo();
   }
   const nota=$('coopGateNota'); if(nota) nota.classList.toggle('hidden', !bloqueado);
+  // — KTM bloqueada por AET IIIC o BNM (auto "Contraindicada"; IMT queda disponible) —
+  const aetIIIC = !!$('cAET')?.checked && v('fAETnivel')==='IIIC';
+  const bnm = !!$('cBNM')?.checked;
+  const ktmBloq = aetIIIC || bnm;
+  const kc=$('fcKtmCard'); if(kc) kc.classList.toggle('hidden', ktmBloq);
+  if(ktmBloq){
+    setKTMstate('s');
+    const ct=$('fKTMct'); if(ct) ct.value='Absoluta';
+    const cc=$('fKTMcat'); if(cc) cc.value = bnm ? 'Nivel de consciencia' : 'Otra';
+    const cr=$('fKTMraz'); if(cr) cr.value = bnm ? 'Bloqueo neuromuscular (BNM)' : 'AET Grupo IIIC';
+    const fc=$('fKTMcontra'); if(fc) fc.value='';
+  }
+  // — SAS 1: la KTM solo permite Nivel 1 (protección) —
+  const sas1 = parseInt(v('fSAS'))===1;
+  document.querySelectorAll('.ktm-niv-btn').forEach(b=>{
+    const dis = sas1 && b.dataset.niv!=='1';
+    b.disabled=dis; b.style.opacity=dis?'.4':'';
+    if(dis) b.classList.remove('on');
+  });
+  if(sas1){ const h=$('fKTMniv'); if(h && h.value && h.value!=='1') h.value=''; }
+  aplicarGatesNeuro();
+}
+
+//  Ruidos agregados múltiples (auscultación)
+const _RUIDO_TIPOS=['Sin ruidos agregados','Crépitos','Sibilancias','Roncus','Estridor','Estertores','Frote pleural'];
+const _RUIDO_LOCS=['Ambos campos pulmonares','Bibasales','Base derecha','Base izquierda','Apical derecho','Apical izquierdo','Apicales','CPD','CPI'];
+function addRuidoRow(tipo,loc){
+  const box=$('ruidosExtra'); if(!box) return;
+  const row=document.createElement('div');
+  row.className='ruido-row';
+  row.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+  row.innerHTML=`<select class="rx-tipo" style="height:32px;font-size:.85rem;">`+
+    '<option value="">-- ruido --</option>'+_RUIDO_TIPOS.map(t=>`<option${t===tipo?' selected':''}>${t}</option>`).join('')+
+    `</select><select class="rx-loc" style="height:32px;font-size:.85rem;">`+
+    '<option value="">-- Localización --</option>'+_RUIDO_LOCS.map(l=>`<option${l===loc?' selected':''}>${l}</option>`).join('')+
+    `</select><button type="button" onclick="this.parentElement.remove()" style="width:26px;height:26px;border:1px solid #fecaca;border-radius:5px;background:#fff5f5;color:#b91c1c;cursor:pointer;font-weight:700;">×</button>`;
+  box.appendChild(row);
+}
+function ruidosExtraJSON(){
+  const out=[];
+  document.querySelectorAll('#ruidosExtra .ruido-row').forEach(r=>{
+    const t=r.querySelector('.rx-tipo')?.value||'', l=r.querySelector('.rx-loc')?.value||'';
+    if(t) out.push({tipo:t, loc:l});
+  });
+  return out.length?JSON.stringify(out):'';
+}
+function setRuidosExtra(jsonStr){
+  const box=$('ruidosExtra'); if(box) box.innerHTML='';
+  try{ (JSON.parse(jsonStr||'[]')||[]).forEach(r=>addRuidoRow(r.tipo,r.loc)); }catch(e){}
+}
+
+//  Insumos respiratorios: días de uso
+function calcInsumosDias(){
+  const hoyF=hoy();
+  [['fFecFiltro','sFiltroDias'],['fFecSonda','sSondaDias']].forEach(([inp,lbl])=>{
+    const e=$(lbl); if(!e) return;
+    const f=v(inp);
+    if(!f){ e.textContent=''; return; }
+    const d=dias(f,hoyF);
+    e.textContent=`${d} día${d===1?'':'s'} de uso`;
+    e.style.background = d>=3 ? '#fef3c7' : '#e0f2fe';
+    e.style.color = d>=3 ? '#92400e' : '#0369a1';
+  });
+}
+
+//  Cambio de tubo: TOT bloqueado hasta que se declare el cambio
+let _cambioTOT=false;
+function _lockTOT(lock){
+  ['fTOTn','fTOTcm'].forEach(id=>{ const e=$(id); if(e) e.disabled=lock; });
+  const b=$('btnCambioTOT'); if(b) b.classList.toggle('hidden', !lock);
+}
+function cambiarTubo(){
+  _cambioTOT=true; _lockTOT(false);
+  toast('🔄 Cambio de tubo: campos desbloqueados — se agregará CAMBIO TOT a los procedimientos.', 4200);
+}
+
+//  Contraindicación KTM: un solo select agrupado (Absoluta/Relativa × categoría)
+function poblarKTMcontra(){
+  const sel=$('fKTMcontra'); if(!sel||sel.options.length>1) return;
+  Object.keys(KTMmap).forEach(tipo=>{
+    Object.keys(KTMmap[tipo]).forEach(cat=>{
+      const og=document.createElement('optgroup');
+      og.label=tipo+' · '+cat;
+      KTMmap[tipo][cat].forEach(raz=>{
+        const o=document.createElement('option');
+        o.value=raz; o.textContent=raz; o.dataset.tipo=tipo; o.dataset.cat=cat;
+        og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+  });
+}
+function hKTMcontra(sel){
+  const o=sel.options[sel.selectedIndex];
+  const ct=$('fKTMct'), cc=$('fKTMcat'), cr=$('fKTMraz');
+  if(ct) ct.value=o?.dataset?.tipo||'';
+  if(cc) cc.value=o?.dataset?.cat||'';
+  if(cr) cr.value=sel.value||'';
+}
+
+//  Gates Neuro / UPOT / S5Q-CAM (según SAS, GCS, VA, sedación y Dx)
+function aplicarGatesNeuro(){
+  const sas=parseInt(v('fSAS'));
+  const gcs=parseInt($('lblGCS')?.textContent)||15;
+  // S5Q y CAM-ICU: requieren SAS 3-4 (o sin sedación) y GCS ≥ 8
+  const ocultarS5Q=(!isNaN(sas)&&sas<3)||gcs<8;
+  ['gS5Qw','gCAMw'].forEach(id=>{ const e=$(id); if(e) e.classList.toggle('hidden', ocultarS5Q); });
+  if(ocultarS5Q){ const c=$('fCAMICU'); if(c) c.value=''; }
+  // UPOT: (TOT|TQT) + GCS ≤ 7 + sin sedación
+  const va=v('fVA');
+  const upotVisible=(va==='TOT'||va==='TQT') && gcs<=7 && v('fSed')==='Sin sedación';
+  const u=$('fcUpot');
+  if(u){
+    u.classList.toggle('hidden', !upotVisible && !$('cUPOT')?.checked);
+    if(!upotVisible && !$('cUPOT')?.checked){
+      const at=$('fApneaTest'); if(at) at.value='';
+      const cm=$('cUPOTmed'); if(cm) cm.checked=false;
+      hide('dUpotDet');
+    }
+  }
+  // Neurología: por palabras clave del diagnóstico
+  const dx=(v('fDx')||'').toUpperCase();
+  const esNeuro=/HSA|ACV|TEC|MENINGIOMA|POLITRAUMA|SUBARACNOIDEA|CEREBRO|CRANEO|CRÁNEO|NEURO/.test(dx);
+  const nc=$('fcNeuro'); if(nc) nc.classList.toggle('hidden', !esNeuro);
+}
+
+//  Sufijo activo de la ruta de reintubación (standalone T / anidada N1 / N2)
+function _rSuf(){
+  if($('cReintubT')?.checked) return 'T';
+  if(v('fPVEval')==='si' && $('cReintub')?.checked) return 'N1';
+  if($('cReintubNo')?.checked) return 'N2';
+  return '';
+}
+function _reintubEquipoTxt(){
+  const sf=_rSuf(); if(!sf) return '';
+  const tn=v('fReintubTot'+sf), cm=v('fReintubCm'+sf), mo=v('fReintubModo'+sf), pa=v('fReintubPar'+sf);
+  let t='';
+  if(tn) t+=` con TOT N° ${tn}${cm?' a '+cm+' cm':''}`;
+  if(mo) t+=`, quedando en modo ${mo}${pa?' ('+pa+')':''}`;
+  else if(pa) t+=`, quedando con ${pa}`;
+  return t;
 }
 
 //  Colapsable genérico (v2)
@@ -5677,25 +5858,6 @@ function cpaxSugerir(){
   toast(aplicadas?`✨ ${aplicadas} sugerencia(s) aplicada(s) — revisa y corrige antes de guardar`:'Sin datos suficientes para sugerir (o ya estaba lleno)', 4200);
 }
 
-//  GSA / Laboratorio (v2) — colapsable + PaFi automática
-function hLabToggle(){
-  const b=$('dLab'), a=$('sLabArrow'); if(!b) return;
-  if(b.classList.contains('hidden')){ show('dLab'); if(a) a.textContent='▲'; }
-  else { hide('dLab'); if(a) a.textContent='▼'; }
-}
-function calcPafi(){
-  const pao2=parseFloat(v('fPaO2')), fio2=parseFloat(v('r_fio2'));
-  const e=$('fPafi'); if(!e) return;
-  if(!isNaN(pao2)&&!isNaN(fio2)&&fio2>0) e.value=Math.round(pao2/(fio2/100));
-}
-
-//  Monitorización avanzada (v2) — colapsable
-function hMonAvToggle(){
-  const b=$('dMonAv'), a=$('sMonAvArrow'); if(!b) return;
-  if(b.classList.contains('hidden')){ show('dMonAv'); if(a) a.textContent='▲'; }
-  else { hide('dMonAv'); if(a) a.textContent='▼'; }
-}
-
 //  Módulos pendientes de porte (tabs Pacientes/Estadísticas/Entrega/Archivados)
 function cerrarArcDet(){}
 
@@ -5732,6 +5894,7 @@ window.onload = function() {
   }).catch(()=>{});
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); }).catch(()=>{ FASES=[]; });
   api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; }).catch(()=>{ window.CFG={}; });
+  poblarKTMcontra();
   gs('GET_TODAS_CAMAS', {}, camas => {
     DB = camas || [];
     loadEvoSet(() => { if(window.Turnos) Turnos.init(); renderGrid(); loading(false); });
