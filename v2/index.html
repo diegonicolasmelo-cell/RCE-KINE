@@ -740,6 +740,10 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
       </div>
       <div class="ent-colegas" id="entColegas"></div>
       <div class="ent-beds" id="entBeds"></div>
+      <details id="entHist" style="margin-top:12px;border:1px solid var(--border);border-radius:9px;padding:8px 12px;background:#f8fafc;" ontoggle="if(this.open)entCargarHistorial()">
+        <summary style="font-size:.78rem;font-weight:700;color:#475569;cursor:pointer;">🕘 Entregas anteriores (historial)</summary>
+        <div id="entHistBody" style="margin-top:8px;font-size:.78rem;color:#64748b;">—</div>
+      </details>
     </div>
     <!-- Documento imprimible -->
     <div class="ent-doc-wrap">
@@ -6845,6 +6849,17 @@ function renderEntrega(d){
 function entImprimir(){
   if(!ENT_DATA){ toast('Genera la entrega primero.'); return; }
   window.print();
+}
+function entCargarHistorial(){
+  const b=$('entHistBody'); if(!b) return;
+  b.textContent='Cargando…';
+  gs('GET_ENTREGAS_TURNO',{limite:20}, rows=>{
+    if(!rows||!rows.length){ b.innerHTML='<i>Aún no hay entregas guardadas.</i>'; return; }
+    b.innerHTML=`<table class="ent-tbl" style="margin-bottom:0;"><tr>
+      <th>Fecha</th><th>Turno</th><th>Entrega</th><th>Recibe</th><th>Camas</th><th>En VM</th></tr>`+
+      rows.map(r=>`<tr><td>${r.fecha||''}</td><td>${r.turno||''}</td><td class="et-cama">${r.kineEntrega||'—'}</td><td>${r.kineRecibe||'—'}</td><td>${r.camasN||''} (${r.camasIds||''})</td><td class="et-vm">${r.enVM||''}</td></tr>`).join('')+
+      '</table>';
+  }, ()=>{ b.innerHTML='<i>No se pudo cargar el historial.</i>'; });
 }
 function entGuardar(){
   if(!ENT_DATA){ toast('Genera la entrega primero.'); return; }
