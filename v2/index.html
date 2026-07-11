@@ -2081,63 +2081,26 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
         <div class="fcard fc-proc">
           <div class="fcard-hdr"><span class="fcard-title">🔧 Procedimientos del Turno</span></div>
           <div class="fcard-body">
-            <div id="chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:26px;margin-bottom:8px;"></div>
-            <div style="display:flex;gap:8px;">
-              <input type="text" id="inProc" placeholder="Escribir o seleccionar procedimiento..." list="dlProc"
-                style="flex-grow:1;height:35px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;font-size:.84rem;">
-              <datalist id="dlProc">
-                <!-- Vía aérea -->
-                <option>INTUBACIÓN</option>
-                <option>PVE</option>
-                <option>EXTUBACIÓN C/PROTOCOLO</option>
-                <option>EXTUBACIÓN S/PROTOCOLO</option>
-                <option>AUTOEXTUBACIÓN</option>
-                <option>EXTUBACIÓN ACCIDENTAL</option>
-                <option>REINTUBACIÓN</option>
-                <option>DESVINCULACIÓN</option>
-                <option>CAMBIO TOT</option>
-                <option>TQT</option>
-                <option>CAMBIO TQT</option>
-                <option>DECANULACIÓN</option>
-                <!-- Administrativos -->
-                <option>INGRESO</option>
-                <option>EGRESO</option>
-                <option>FALLECE</option>
-                <option>PABELLÓN</option>
-                <option>ASISTENCIA EN PROCEDIMIENTO MÉDICO</option>
-                <!-- Estudios -->
-                <option>IMAGENOLOGÍA</option>
-                <option>CULTIVO DE SECRECIONES</option>
-                <option>PCR COVID</option>
-                <option>ECOGRAFÍA</option>
-                <option>EVALUACIÓN INTERMEDIA</option>
-                <option>TEST APNEA</option>
-                <!-- Posicionamiento -->
-                <option>SUPINO</option>
-                <option>PRONO</option>
-                <!-- Crítico -->
-                <option>RCP</option>
-                <!-- KTM -->
-                <option>KTM CONTRAINDICADA</option>
-                <option>KTM $ AET</option>
-                <option>KTM 1</option>
-                <option>KTM 2</option>
-                <option>KTM 3</option>
-                <option>KTM 4</option>
-                <option>KTM 5</option>
-                <!-- Hitos motores -->
-                <option>Hito Motor 1</option>
-                <option>Hito Motor 2</option>
-                <option>Hito Motor 3</option>
-                <option>Hito Motor 4</option>
-                <option>Hito Motor 5</option>
-                <!-- Otros -->
-                <option>IMT</option>
-                <option>EMS</option>
-                <option>Educación al usuario / cuidador o familia</option>
-              </datalist>
-              <button type="button" class="btn btn-p" style="width:auto;padding:0 15px;height:35px;" onclick="addProc()">+ Agregar</button>
-            </div>
+            <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#15803d;margin-bottom:6px;">✅ Se registran solos con la evolución</div>
+            <div id="autoProcs" style="display:flex;flex-wrap:wrap;gap:5px;min-height:24px;margin-bottom:10px;"></div>
+            <details style="border-top:1px solid #eef2f6;padding-top:8px;">
+              <summary style="font-size:.78rem;font-weight:700;color:#475569;cursor:pointer;">➕ Agregar manual (olvidados o no derivables)</summary>
+              <div id="chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:26px;margin:8px 0;"></div>
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="inProc" placeholder="Escribir o seleccionar procedimiento..." list="dlProc"
+                  style="flex-grow:1;height:35px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;font-size:.84rem;">
+                <datalist id="dlProc">
+                  <option>PABELLÓN</option>
+                  <option>ASISTENCIA EN PROCEDIMIENTO MÉDICO</option>
+                  <option>IMAGENOLOGÍA</option>
+                  <option>RCP</option>
+                  <option>CAMBIO TQT</option>
+                  <option>EMS</option>
+                  <option>Educación al usuario / cuidador o familia</option>
+                </datalist>
+                <button type="button" class="btn btn-p" style="width:auto;padding:0 15px;height:35px;" onclick="addProc()">+ Agregar</button>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -2655,6 +2618,7 @@ function abrirPanel(id, esIng) {
   // Gates al final: si es noche o falta cooperación, mandan sobre los defaults
   // (antes corrían antes de hKTM('r') y este las pisaba — p.ej. ingreso volvía a "Realizada").
   aplicarGatesEval();
+  _renderAutoProcs();
 
   if(!esIng) {
     loading(true,'Cargando evolución...');
@@ -2993,6 +2957,7 @@ function fillForm(s) {
   updateVAUI();
   aplicarGatesEval();
   if(v('fVA')==='TOT' && v('fTOTn') && !$('cCambioTOT')?.checked) _lockTOT(true);
+  _renderAutoProcs();
 }
 
 //  RÉPLICA DEL TURNO ANTERIOR
@@ -3103,6 +3068,7 @@ function fillFormReplica(s) {
   updateVAUI();
   aplicarGatesEval();
   if(v('fVA')==='TOT' && v('fTOTn') && !$('cCambioTOT')?.checked) _lockTOT(true);
+  _renderAutoProcs();
 }
 
 /**
@@ -3125,6 +3091,57 @@ function limpiarReplica() {
 }
 
 //  GUARDAR → SERVIDOR
+//  PROCEDIMIENTOS AUTOMÁTICOS — derivados del registro del turno. Fuente única
+//  para el payload (PROC_JSON/RESUMEN/CANTIDAD) y para la vista previa en vivo
+//  de la tarjeta Procedimientos. Lo manual (PROCS) queda solo para lo no
+//  derivable u olvidado.
+function _autoProcs(){
+  const auto=[];
+  const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
+  const muHisop=mu.filter(x=>String(x).toLowerCase().startsWith('hisopado'));
+  if(muHisop.length) auto.push('PCR COVID');
+  if(mu.length>muHisop.length) auto.push('CULTIVO DE SECRECIONES');
+  if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
+  if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
+  if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
+  if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
+  if(v('fApneaTest')) auto.push('TEST APNEA');
+  if($('cCambioTOT')?.checked) auto.push('CAMBIO TOT');
+  if(v('fVA')==='TOT' && (_extOcurrio()||v('fPVEval'))){
+    const _et=_extTipo();
+    if(_et==='protocolo')           auto.push('EXTUBACIÓN C/PROTOCOLO');
+    else if(_et==='sin_protocolo')  auto.push('EXTUBACIÓN S/PROTOCOLO');
+    else if(_et==='accidental')     auto.push('EXTUBACIÓN ACCIDENTAL');
+    else if(_et==='autoextubacion') auto.push('AUTOEXTUBACIÓN');
+    if(v('fPVEval')==='si') auto.push('PVE');
+    if(_extReintub()) auto.push('REINTUBACIÓN');
+  }
+  // v2: eventos y estudios que antes se anotaban a mano
+  if(v('fVA')==='TQT' && $('cDecanOcurrio')?.checked) auto.push('DECANULACIÓN');
+  if(v('fVA')==='TQT' && $('cRecanul')?.checked) auto.push('RECANULACIÓN');
+  if(['fGrosor','fDiaf','fHeckmatt','fCuadD','fCuadI','fFedD','fFedI','fExcD','fExcI'].some(id=>v(id))) auto.push('ECOGRAFÍA');
+  if($('cIMT')?.checked) auto.push('IMT');
+  if(v('cIng')==='true') auto.push('INGRESO');
+  if(_fechaInicioTQT && _fechaInicioTQT===(v('gDate')||hoy())) auto.push('TQT (INSTALACIÓN)');
+  // Evaluación intermedia: evaluación funcional registrada en un día DISTINTO
+  // al día de ingreso (definición de la unidad; no depende del tipo de panel).
+  if(['fMRC','fFSS','fPrension','fPIM','fPEM','fFEM','fCpaxTotal','fGrosor','fDiaf','fCuadD','fCuadI','fFedD','fFedI','fExcD','fExcI'].some(id=>v(id))){
+    const cama=DB.find(x=>String(x.ID_CAMA)===String(v('cBed')));
+    const fIng=(cama&&cama.FECHA_INGRESO)?_isoDia(cama.FECHA_INGRESO):'';
+    const fTurno=v('gDate')||hoy();
+    const distinto=fIng?(fTurno!==fIng):(parseInt(v('fDias'))>0);
+    if(distinto) auto.push('EVALUACIÓN INTERMEDIA');
+  }
+  return auto;
+}
+function _renderAutoProcs(){
+  const el=$('autoProcs'); if(!el) return;
+  const a=_autoProcs();
+  el.innerHTML=a.length
+    ? a.map(p=>`<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;padding:3px 10px;font-size:.75rem;font-weight:700;">✓ ${p}</span>`).join('')
+    : '<span style="font-size:.76rem;color:#94a3b8;font-style:italic;">Aún nada — se completan al registrar la evolución.</span>';
+}
+
 //  EVENTOS ÚNICOS — el payload lleva las claves de un evento SOLO cuando ese
 //  evento está activo en el formulario. Cuando no van, el servidor preserva lo
 //  ya guardado (fusión por clave ausente en guardarEvolucion). Así el estado
@@ -3344,65 +3361,9 @@ function guardar() {
     VENT_MODO_FINAL:      (_extOcurrio() && !_extReintub()) ? (_extPeModo()||'')
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'')
                         : v('fModo'),
-    PROC_JSON: (function(){
-      const auto=[];
-      const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
-      if(mu.length) auto.push('CULTIVO DE SECRECIONES');
-      if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
-      if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
-      if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
-      if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
-      if(v('fApneaTest')) auto.push('TEST APNEA');
-      if($('cCambioTOT')?.checked) auto.push('CAMBIO TOT');
-      if(_extOcurrio()||v('fPVEval')){
-        const _et=_extTipo();
-        if(_et==='protocolo')          auto.push('EXTUBACIÓN C/PROTOCOLO');
-        else if(_et==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
-        else if(_et==='accidental')    auto.push('EXTUBACIÓN ACCIDENTAL');
-        else if(_et==='autoextubacion')auto.push('AUTOEXTUBACIÓN');
-        if(v('fPVEval')==='si') auto.push('PVE');
-        if(_extReintub())              auto.push('REINTUBACIÓN');
-      }
-      const merged=Array.from(new Set([...(PROCS||[]), ...auto]));
-      return JSON.stringify(merged);
-    })(),
-    PROC_RESUMEN: (function(){
-      const auto=[];
-      const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
-      if(mu.length) auto.push('CULTIVO DE SECRECIONES');
-      if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
-      if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
-      if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
-      if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
-      if(v('fApneaTest')) auto.push('TEST APNEA');
-      if($('cCambioTOT')?.checked) auto.push('CAMBIO TOT');
-      if(_extOcurrio()||v('fPVEval')){
-        const _et=_extTipo();
-        if(_et==='protocolo') auto.push('EXTUBACIÓN C/PROTOCOLO');
-        else if(_et==='sin_protocolo') auto.push('EXTUBACIÓN S/PROTOCOLO');
-        else if(_et==='accidental') auto.push('EXTUBACIÓN ACCIDENTAL');
-        else if(_et==='autoextubacion') auto.push('AUTOEXTUBACIÓN');
-        if(v('fPVEval')==='si') auto.push('PVE');
-        if(_extReintub()) auto.push('REINTUBACIÓN');
-      }
-      return Array.from(new Set([...(PROCS||[]), ...auto])).join(', ');
-    })(),
-    PROC_CANTIDAD: (function(){
-      const auto=[];
-      const mu=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
-      if(mu.length) auto.push('CULTIVO DE SECRECIONES');
-      if($('cProno')?.checked) auto.push('PRONO');
-      if($('cSupino')?.checked) auto.push('SUPINACIÓN');
-      if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
-      if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
-      if(v('fApneaTest')) auto.push('TEST APNEA');
-      if($('cCambioTOT')?.checked) auto.push('CAMBIO TOT');
-      if(_extOcurrio()||v('fPVEval')){
-        if(_extTipo()) auto.push('EXT');
-        if(_extReintub()) auto.push('REINTUBACIÓN');
-      }
-      return new Set([...(PROCS||[]), ...auto]).size;
-    })(),
+    PROC_JSON: JSON.stringify(Array.from(new Set([...(PROCS||[]), ..._autoProcs()]))),
+    PROC_RESUMEN: Array.from(new Set([...(PROCS||[]), ..._autoProcs()])).join(', '),
+    PROC_CANTIDAD: new Set([...(PROCS||[]), ..._autoProcs()]).size,
     MUE_REALIZADAS:bv('cMue'),
     MUE_TIPOS_JSON:JSON.stringify(Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value)),
     MUE_HORA_TOMA:v('fCultHora'), MUE_CON_ATB:bv('cCultATB'),
@@ -3991,6 +3952,9 @@ function renderChips() {
     <span class="chip">${p}<button type="button" onclick="quitarProc(${i})">×</button></span>`).join('');
 }
 $('inProc')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addProc();} });
+// Vista previa en vivo de los procedimientos automáticos (delegado sobre el form)
+$('kf')?.addEventListener('change', _renderAutoProcs);
+$('kf')?.addEventListener('input', _renderAutoProcs);
 
 //  PREVIEW TEXTO (local)
 function previewTexto() {
