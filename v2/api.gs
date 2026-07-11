@@ -58,6 +58,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => agregarHito(Object.assign({ autor: ctx.firma, autorEmail: ctx.email }, datos)));
       case 'SET_ASIGNACION_TURNO':
         return _auditar(ctx, accion, () => guardarAsignacionTurno(datos));
+      case 'ANULAR_EVENTO':
+        return _auditar(ctx, accion, () => anularEvento(datos, ctx));
 
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);

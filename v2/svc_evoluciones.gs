@@ -354,3 +354,114 @@ function obtenerHistorialPaciente(idCama, patientId) {
     return ok({ hitos, evoluciones: evos });
   } catch (e) { return err('obtenerHistorialPaciente: ' + e.message, ERR.INTERNO, e); }
 }
+
+
+/**
+ * Anula un evento único ya guardado en un turno (marcado por error):
+ * borra sus columnas, lo quita de los procedimientos, recalcula el estado
+ * final de VA y los pliegues de contadores, regenera el texto y re-sincroniza
+ * la cama (incluidas las fechas de inicio de soporte/VA para que los días
+ * no se reinicien). Solo permitido si NO existen evoluciones posteriores del
+ * paciente (para no romper la historia construida sobre el evento).
+ */
+function anularEvento(datos, ctx) {
+  const idCama = String(datos.idCama || datos.ID_CAMA || '');
+  const turnoKey = String(datos.turnoKey || datos.TURNO_KEY || '');
+  const tipo = String(datos.tipo || '');
+  if (!idCama || !turnoKey || !tipo) return err('Faltan idCama/turnoKey/tipo.', ERR.VALIDACION);
+
+  const evoR = obtenerEvolucion(idCama, turnoKey);
+  if (!evoR.ok || !evoR.data) return err('No existe evolución para ese turno.', ERR.VALIDACION);
+  const evo = evoR.data;
+
+  // Guard: sin evoluciones posteriores del mismo paciente
+  const posteriores = repoLeerTodos('EVOLUCIONES', 'PATIENT_ID', evo.PATIENT_ID)
+    .filter(function (e) { return String(e.TURNO_KEY) > turnoKey; });
+  if (posteriores.length) {
+    return err('Solo se puede anular un evento desde la ÚLTIMA evolución del paciente (hay ' +
+      posteriores.length + ' turnos posteriores que se construyeron sobre este estado).', ERR.VALIDACION);
+  }
+
+  const GRUPOS = {
+    pve_ext: ['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_VAL','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO'],
+    reintub: ['REINTUB_TOT_N','REINTUB_TOT_CM','REINTUB_MODO','REINTUB_PARAMS','REINTUB_HORA','REINTUB_SOP_PREV','EXT_REINTUB','EXT_REINTUB_RAZ'],
+    intub:   ['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO'],
+    decan:   ['DECAN_OCURRIO','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL'],
+    cambio_tot: ['TOT_CAMBIO','TOT_CAMBIO_MOTIVO'],
+    cambio_tqt: ['TQT_CAMBIO','TQT_CAMBIO_MOTIVO'],
+  };
+  const PROCS_QUITAR = {
+    pve_ext: ['PVE','EXTUBACIÓN C/PROTOCOLO','EXTUBACIÓN S/PROTOCOLO','AUTOEXTUBACIÓN','EXTUBACIÓN ACCIDENTAL'],
+    reintub: ['REINTUBACIÓN'],
+    intub:   ['INTUBACIÓN'],
+    decan:   ['DECANULACIÓN','RECANULACIÓN'],
+    cambio_tot: ['CAMBIO TOT'],
+    cambio_tqt: ['CAMBIO TQT'],
+  };
+  if (!GRUPOS[tipo]) return err('Tipo de evento desconocido: ' + tipo, ERR.VALIDACION);
+
+  const tipos = [tipo];
+  // Anular la extubación arrastra la reintubación anidada del mismo turno
+  if (tipo === 'pve_ext' && esVerdadero(evo.EXT_REINTUB)) tipos.push('reintub');
+
+  return conLock(function () {
+    tipos.forEach(function (t) {
+      GRUPOS[t].forEach(function (c) { evo[c] = ''; });
+      if (t === 'reintub') {
+        repoEliminarDonde('REINTUBACIONES', function (r) { return String(r.ID_REINTUB) === evo.ID_EVOLUCION + '_REINTUB'; });
+        evo.N_REINTUB = Math.max(0, (parseInt(evo.N_REINTUB) || 1) - 1);
+      }
+    });
+
+    // Procedimientos: quitar los del evento
+    let procs = [];
+    try { procs = JSON.parse(evo.PROC_JSON || '[]') || []; } catch (e) {}
+    const quitar = tipos.reduce(function (a, t) { return a.concat(PROCS_QUITAR[t]); }, []);
+    procs = procs.filter(function (p) {
+      const up = String(p).toUpperCase();
+      return !quitar.some(function (q) { return up === q || up.indexOf(q + ' ') === 0; });
+    });
+    evo.PROC_JSON = JSON.stringify(procs);
+    evo.PROC_RESUMEN = procs.join(', ');
+    evo.PROC_CANTIDAD = procs.length;
+
+    // Estado final de VA y pliegue de contadores vuelven al estado del turno
+    if (tipo !== 'cambio_tot' && tipo !== 'cambio_tqt') {
+      evo.VENT_VIA_AEREA_FINAL = evo.VENT_VIA_AEREA;
+      evo.VENT_SOPORTE_FINAL = evo.VENT_SOPORTE;
+      evo.VENT_MODO_FINAL = evo.VENT_MODO;
+      if (tipo === 'pve_ext' || tipo === 'decan') {
+        const dvm = parseInt(evo.DIAS_VM) || 0;
+        evo.DIAS_VM_PREVIOS = Math.max(0, (parseInt(evo.DIAS_VM_PREVIOS) || 0) - dvm);
+      }
+    }
+
+    evo.TEXTO_GENERADO = generarTextoEvolucion(evo);
+    repoUpsert('EVOLUCIONES', 'ID_EVOLUCION', evo.ID_EVOLUCION, evo);
+
+    // Re-sincronizar la cama y restaurar las fechas de inicio (para que los
+    // contadores de días de VM/VA no se reinicien tras la anulación)
+    const fecha = _statISO(evo.FECHA);
+    const rc = obtenerCama(idCama);
+    const cama = rc.ok ? rc.data : {};
+    _syncCamaDesdeEvolucion(idCama, cama, evo, evo.TURNO, turnoKey, fecha, evo.PATIENT_ID);
+    if (tipo !== 'cambio_tot' && tipo !== 'cambio_tqt') {
+      const rest = function (iso, n) {
+        const dt = new Date(iso + 'T12:00:00');
+        dt.setDate(dt.getDate() - n);
+        return Utilities.formatDate(dt, leerConfig('TIMEZONE', 'America/Santiago'), 'yyyy-MM-dd');
+      };
+      const campos = {};
+      const dvm = parseInt(evo.DIAS_VM) || 0, dva = parseInt(evo.DIAS_VA) || 0;
+      if (evo.VENT_SOPORTE === 'VM' && fecha) campos.FECHA_INICIO_SOPORTE = rest(fecha, dvm);
+      if (evo.VENT_VIA_AEREA && evo.VENT_VIA_AEREA !== 'Natural' && fecha) campos.FECHA_INICIO_VA = rest(fecha, dva);
+      if (Object.keys(campos).length) repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, campos);
+    }
+
+    return ok({
+      idEvolucion: evo.ID_EVOLUCION, idCama: idCama, patientId: evo.PATIENT_ID || '',
+      turnoKey: turnoKey, accion: 'anular_' + tipos.join('+'), entidad: 'EVOLUCIONES',
+      TEXTO_GENERADO: evo.TEXTO_GENERADO || '',
+    });
+  });
+}

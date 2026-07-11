@@ -1229,6 +1229,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
         <div class="fcard fc-r mega-card">
           <div class="fcard-hdr"><span class="fcard-title">🫁 Respiratorio — 💨 Terapia Ventilatoria</span></div>
           <div class="fcard-body">
+            <div id="evStrip" class="hidden" style="margin:10px 16px 0;padding:8px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;font-size:.78rem;line-height:1.9;"></div>
 
             <!-- Terapia ventilatoria -->
             <div class="sub-sec" style="border-top:none;padding-top:0;">
@@ -2489,6 +2490,7 @@ function _resetHiddenYEventos(){
   const _decR=$('cDecanOcurrio'); if(_decR){ _decR.checked=false; if(typeof hDecan==='function') hDecan(); }
   const _rtR=$('cReintubT'); if(_rtR) _rtR.checked=false;
   hide('dReintubDetT');
+  const _evS=$('evStrip'); if(_evS){ _evS.classList.add('hidden'); _evS.innerHTML=''; }
   // cantidad de secreciones: la variable de módulo también debe partir limpia
   // (si no, el toggle des-selecciona al reelegir el mismo valor en otro paciente)
   if(typeof _secrQty!=='undefined'){ _secrQty=''; document.querySelectorAll('.secr-qty').forEach(b=>b.classList.remove('active')); }
@@ -2887,6 +2889,7 @@ function fillForm(s) {
     s.INTUB_OCURRIO===true || s.INTUB_OCURRIO==='TRUE' ||
     parseFloat(s.DIAS_VM)>0 || parseInt(s.DIAS_VM_PREVIOS)>0 || parseInt(s.N_REINTUB)>0 ||
     s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
+  _renderEvStrip(s);
   _evoEventoGuardado = s.EXT_OCURRIO===true||s.EXT_OCURRIO==='TRUE'||!!s.PVE_VAL||
     s.DECAN_OCURRIO===true||s.DECAN_OCURRIO==='TRUE'||s.INTUB_OCURRIO===true||s.INTUB_OCURRIO==='TRUE'||
     s.EXT_REINTUB===true||s.EXT_REINTUB==='TRUE'||s.TOT_CAMBIO===true||s.TOT_CAMBIO==='TRUE'||
@@ -6179,6 +6182,35 @@ function _renderEcf(){
 function _pickEcf(n){
   const t=$(_escalaTarget||'fEcf'); if(t){ t.value=String(n); t.dispatchEvent(new Event('change')); }
   cerrarEscala('mEcf');
+}
+
+// ══════════ ANULAR EVENTO DE UN TURNO GUARDADO ══════════
+// Al recargar un turno con eventos, estos se muestran como registrados con la
+// opción de anular (para corregir un evento marcado por error). La anulación
+// borra el evento de la fila, del texto y de los procedimientos en el servidor.
+function _renderEvStrip(s){
+  const el=$('evStrip'); if(!el) return;
+  const esT=x=>x===true||x==='TRUE';
+  const evs=[];
+  if(s.PVE_VAL||esT(s.EXT_OCURRIO)) evs.push(['pve_ext','✂️ PVE/Extubación'+(s.EXT_HORA?' '+s.EXT_HORA:'')]);
+  if(esT(s.EXT_REINTUB)) evs.push(['reintub','🔁 Reintubación']);
+  if(esT(s.INTUB_OCURRIO)) evs.push(['intub','🫁 Intubación'+(s.INTUB_HORA?' '+s.INTUB_HORA:'')]);
+  if(esT(s.DECAN_OCURRIO)) evs.push(['decan','⭕ Decanulación']);
+  if(esT(s.TOT_CAMBIO)) evs.push(['cambio_tot','🔄 Cambio de tubo']);
+  if(esT(s.TQT_CAMBIO)) evs.push(['cambio_tqt','🔄 Cambio de cánula']);
+  if(!evs.length){ el.classList.add('hidden'); el.innerHTML=''; return; }
+  el.innerHTML='<b style="color:#9a3412;">Eventos ya registrados este turno:</b> '+evs.map(([t,lbl])=>
+    `<span style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #fed7aa;border-radius:16px;padding:2px 4px 2px 10px;margin:1px 3px;font-weight:700;white-space:nowrap;">${lbl}<button type="button" onclick="anularEvento('${t}','${lbl.replace(/'/g,'')}')" title="Anular este evento" style="border:none;background:#fee2e2;color:#b91c1c;border-radius:12px;padding:3px 9px;cursor:pointer;font-size:.72rem;font-weight:700;">Anular</button></span>`).join('');
+  el.classList.remove('hidden');
+}
+function anularEvento(tipo,lbl){
+  if(!confirm(`¿Anular "${lbl}" de este turno?\n\nSe borrará el evento del registro, del texto y de los procedimientos. Esta acción no se puede deshacer.`)) return;
+  const id=v('cBed'), fecha=v('gDate')||hoy(), tkey=`${fecha}-${SHIFT}`;
+  loading(true,'Anulando evento...');
+  gs('ANULAR_EVENTO',{idCama:id,turnoKey:tkey,tipo:tipo}, _=>{
+    loading(false); toast('🗑️ Evento anulado del turno');
+    abrirPanel(id,false); recargar();
+  }, ()=>loading(false));
 }
 
 window.onload = function() {
