@@ -2336,9 +2336,25 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 </div>
 
 
+<!-- LOGIN GIS — visible solo cuando el servidor exige identidad (AUTH_DEV_MODE=FALSE) -->
+<div id="loginOvl" style="display:none;position:fixed;inset:0;background:#0e3a5f;z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:34px 38px;max-width:400px;width:92vw;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.4);">
+    <div style="font-size:2.2rem;">🫁</div>
+    <div style="font-size:1.15rem;font-weight:800;color:#0e3a5f;margin-top:6px;">RCE KINE UCIA</div>
+    <div style="font-size:.82rem;color:#64748b;margin:8px 0 18px;">Registro Clínico Electrónico · Kinesiología<br>Inicia sesión con tu cuenta Google registrada.</div>
+    <div id="gisBtn" style="display:flex;justify-content:center;"></div>
+    <div id="loginMsg" style="font-size:.78rem;color:#64748b;margin-top:14px;min-height:18px;"></div>
+  </div>
+</div>
+
+<script>
+//  Client ID de OAuth inyectado por el template del servidor (webapp.gs).
+//  Abierto como archivo local (harness) el scriptlet queda crudo y se descarta.
+window.__GIS_CLIENT_ID = '<?= (typeof clientId !== "undefined" && clientId) ? clientId : "" ?>';
+</script>
 <script>
 //  PUENTE v2 — google.script.run → api(accion, datos, TOKEN)
-const TOKEN = ''; // GIS pendiente (spike): en producción aquí va el id_token de Google
+let TOKEN = ''; // id_token de Google (GIS); vacío en AUTH_DEV_MODE
 let YO = { firma:'', dev:false };
 let FASES = [];
 let FASES_SEL = new Set();
@@ -2357,7 +2373,9 @@ function api(accion, datos) {
 function gs(accion, datos, ok, fail) {
   api(accion, datos).then(d => { if (ok) ok(d); }).catch(e => {
     const msg = (e && e.message) || String(e);
-    if (msg !== 'offline') toast('❌ ' + msg);
+    // Token GIS expirado a mitad de sesión → pedir re-login sin perder la vista
+    if (/Sesión no válida|Inicia sesión/i.test(msg)) { loading(false); mostrarLogin(); }
+    else if (msg !== 'offline') toast('❌ ' + msg);
     if (fail) fail(msg);
   });
 }
@@ -6850,11 +6868,19 @@ window.onload = function() {
   initControls();
   initClock();
   chequearReloj();
-  loading(true,'Cargando datos del servidor...');
+  loading(true,'Verificando identidad...');
+  // WHOAMI actúa de puerta: en AUTH_DEV_MODE pasa siempre; en producción,
+  // si no hay sesión GIS válida el servidor rechaza y se muestra el login.
   api('WHOAMI',{}).then(w=>{
     YO=w||{};
     if(YO.dev){ const d=$('devbar'); if(d) d.style.display='block'; }
-  }).catch(()=>{});
+    bootApp();
+  }).catch(()=>{ loading(false); mostrarLogin(); });
+};
+
+//  Carga inicial de datos (tras identidad verificada)
+function bootApp(){
+  loading(true,'Cargando datos del servidor...');
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); }).catch(()=>{ FASES=[]; });
   api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; }).catch(()=>{ window.CFG={}; });
   poblarKTMcontra();
@@ -6865,7 +6891,46 @@ window.onload = function() {
     loading(false);
     $('bedGrid').innerHTML='<div style="padding:40px;text-align:center;color:var(--danger);font-weight:600;">❌ No se pudo conectar con el servidor.<br><span style="font-size:.83rem;color:var(--muted);">Verifica que el script esté publicado como Web App.</span></div>';
   });
-};
+}
+
+//  ── LOGIN GIS ──────────────────────────────────────────────
+//  Se muestra cuando el servidor exige identidad. Carga el script de GIS
+//  bajo demanda, renderiza el botón y reintenta WHOAMI con el id_token.
+let _gisCargado=false;
+function mostrarLogin(){
+  const ovl=$('loginOvl'); if(!ovl) return;
+  ovl.style.display='flex';
+  const cid=(window.__GIS_CLIENT_ID&&window.__GIS_CLIENT_ID.indexOf('<?')===-1)?window.__GIS_CLIENT_ID:'';
+  if(!cid){
+    $('loginMsg').innerHTML='⚠️ Falta <b>OAUTH_CLIENT_ID</b> en la hoja CONFIG<br>(o activa AUTH_DEV_MODE=TRUE para desarrollo).';
+    return;
+  }
+  if(_gisCargado){ _gisRender(cid); return; }
+  const s=document.createElement('script');
+  s.src='https://accounts.google.com/gsi/client';
+  s.onload=()=>{ _gisCargado=true; _gisRender(cid); };
+  s.onerror=()=>{ $('loginMsg').textContent='❌ No se pudo cargar Google Sign-In. Revisa la conexión.'; };
+  document.head.appendChild(s);
+}
+function _gisRender(cid){
+  try{
+    google.accounts.id.initialize({ client_id: cid, callback: _gisCredencial });
+    google.accounts.id.renderButton($('gisBtn'), { type:'standard', size:'large', text:'signin_with', shape:'pill' });
+  }catch(e){ $('loginMsg').textContent='❌ '+(e.message||e); }
+}
+function _gisCredencial(resp){
+  TOKEN=(resp&&resp.credential)||'';
+  $('loginMsg').textContent='Verificando identidad…';
+  api('WHOAMI',{}).then(w=>{
+    YO=w||{};
+    $('loginOvl').style.display='none';
+    $('loginMsg').textContent='';
+    bootApp();
+  }).catch(e=>{
+    TOKEN='';
+    $('loginMsg').textContent='❌ '+((e&&e.message)||e);
+  });
+}
 
 let _mrResolver=null;
 function confirmarReintubacion(nNuevo){
