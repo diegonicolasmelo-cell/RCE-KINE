@@ -6900,7 +6900,8 @@ let _gisCargado=false;
 function mostrarLogin(){
   const ovl=$('loginOvl'); if(!ovl) return;
   ovl.style.display='flex';
-  const cid=(window.__GIS_CLIENT_ID&&window.__GIS_CLIENT_ID.indexOf('<?')===-1)?window.__GIS_CLIENT_ID:'';
+  // '<'+'?' evita que el compilador de templates de GAS lo lea como scriptlet
+  const cid=(window.__GIS_CLIENT_ID&&window.__GIS_CLIENT_ID.indexOf('<'+'?')===-1)?window.__GIS_CLIENT_ID:'';
   if(!cid){
     $('loginMsg').innerHTML='⚠️ Falta <b>OAUTH_CLIENT_ID</b> en la hoja CONFIG<br>(o activa AUTH_DEV_MODE=TRUE para desarrollo).';
     return;
