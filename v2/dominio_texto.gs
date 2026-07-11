@@ -37,7 +37,8 @@ function generarTextoEvolucion(d) {
   const va = v('VENT_VIA_AEREA') || 'Natural';
   const intubado = va === 'TOT' || va === 'TQT';
 
-  let sedStr = (sed === 'Sin sedación')      ? 'Sin sedoanalgesia.'
+  let sedStr = bnm                           ? `Sedado+BNM para meta SAS ${sas || '1'}.`
+             : (sed === 'Sin sedación')      ? 'Sin sedoanalgesia.'
              : (sed === 'Fuera de escalón')   ? `Sedación fuera de escalón${sas ? ' (SAS ' + sas + ')' : ''}.`
              : `Sedado en ${sed.toLowerCase()}${sas ? ' para SAS ' + sas : ''}.`;
   sedStr += ` GCS ${gcsTot}${intubado ? '' : '/15'}(O:${gcsO}, V:${gcsV}, M:${gcsM})`;
@@ -55,7 +56,7 @@ function generarTextoEvolucion(d) {
   let hemoStr = `Hemodinámicamente ${hEst === 'Estable' ? 'estable' : 'inestable'}`;
   if (dva === 'sin DVA') hemoStr += ', sin requerimientos de drogas vasoactivas';
   else {
-    hemoStr += `, con requerimiento de DVA en ${dva.replace(/^DVA\s*/i, '').toLowerCase()}`;
+    hemoStr += `, con requerimiento de DVA en ${dva.replace(/^DVA\s*/i, '').toLowerCase().replace(/dosis (baja|media|alta)/, 'dosis $1s')}`;
     if (mDVA && nDVA) hemoStr += ` (${nDVA} drogas en paralelo)`;
   }
   if (tend && tendT) hemoStr += `, con tendencia a ${tendT}`;
@@ -95,38 +96,46 @@ function generarTextoEvolucion(d) {
 
   let ventStr = '';
   if (sop === 'VM') {
-    if (modo === 'ACVC') {
-      ventStr = `En VM modalidad ACVC, ` + (vt > 0 ? `VT ${vt} ml` : '');
-      if (mlkg > 0) ventStr += ` (${mlkg} ml/kg PI)`;
-      ventStr += fr > 0 ? `, FR ${fr} rpm` : '';
-      ventStr += vm > 0 ? `, VM ${vm} L/min` : '';
-      ventStr += peep > 0 ? `, PEEP ${peep} cmH₂O` : '';
-      ventStr += pmax > 0 ? `, Pmax ${pmax} cmH₂O` : '';
-      if (dp > 0) ventStr += `, DP ${dp} cmH₂O`;
-    } else if (modo === 'ACPC') {
-      const pinsp = vn('VENT_PINSP');
-      ventStr = `En VM modalidad ACPC, ` + (pinsp > 0 ? `Pinsp ${pinsp} cmH₂O` : '');
-      ventStr += vt > 0 ? `, VT ${vt} ml` : '';
-      if (mlkg > 0) ventStr += ` (${mlkg} ml/kg PI)`;
-      ventStr += fr > 0 ? `, FR ${fr} rpm` : '';
-      ventStr += peep > 0 ? `, PEEP ${peep} cmH₂O` : '';
-    } else if (modo === 'CPAP/PS') {
-      ventStr = `En VM modo CPAP/PS, PS ${ps > 0 ? ps : '?'} cmH₂O + PEEP ${peep > 0 ? peep : '?'} cmH₂O`;
-      ventStr += vt > 0 ? `, VT ${vt} ml` : '';
-      if (mlkg > 0) ventStr += ` (${mlkg} ml/kg PI)`;
-      ventStr += fr > 0 ? `, FR ${fr} rpm` : '';
-      if (tobin > 0) ventStr += `, Índice de Tobin ${tobin}`;
-    } else {
-      ventStr = `En VM modo ${modo}`;
-      if (vt > 0) ventStr += `, VT ${vt} ml`;
-      if (fr > 0) ventStr += `, FR ${fr} rpm`;
-      if (peep > 0) ventStr += `, PEEP ${peep} cmH₂O`;
+    // Intro + parámetros en 3 líneas: volúmenes/frecuencia · presiones/mecánica · oxigenación
+    const pinsp = vn('VENT_PINSP'), pmedia = vn('VENT_PMEDIA'), ppl = vn('VENT_PPL');
+    const autopeep = vn('VENT_AUTOPEEP'), cesr = vn('CALC_CESR'), ie = v('CALC_IE'), ti = vn('VENT_TI');
+    let intro = `En VMI, modo ${modo || '?'}`;
+    if (d.VENT_ADAPTADO !== undefined && d.VENT_ADAPTADO !== null && d.VENT_ADAPTADO !== '') {
+      intro += `, con ${esVerdadero(d.VENT_ADAPTADO) ? 'adecuada' : 'inadecuada'} interacción P-VM`;
     }
-    if (fio2 > 0) ventStr += `, FiO₂ ${fio2}%`;
-    if (spo2 > 0) ventStr += `, SpO₂ ${spo2}%`;
-    ventStr += `, en día ${diasSop || '?'} de VM`;
-    if (hact) ventStr += '. Con humidificación activa';
-    txt.push(ventStr + '.');
+    intro += `, en día ${diasSop || '?'} de VM`;
+    if (hact) intro += ', con humidificación activa';
+    txt.push(intro + '.');
+    const j = a => a.filter(Boolean).join(', ');
+    const l1 = j([
+      vt > 0 ? `Vti ${vt} ml${mlkg > 0 ? ` (${mlkg} ml/kg PI)` : ''}` : null,
+      ps > 0 ? `PS ${ps} cmH₂O` : null,
+      pinsp > 0 ? `Pinsp ${pinsp} cmH₂O` : null,
+      fr > 0 ? `FR ${fr} rpm` : null,
+      vm > 0 ? `VM ${vm} L/min` : null,
+      flujo > 0 ? `Flujo ${flujo} L/min` : null,
+      ti > 0 ? `Ti ${ti} s` : null,
+      ie ? `I:E ${ie}` : null,
+      tobin > 0 ? `Índice de Tobin ${tobin}` : null,
+    ]);
+    const l2 = j([
+      pmax > 0 ? `Pmax ${pmax} cmH₂O` : null,
+      pmedia > 0 ? `Pmedia ${pmedia} cmH₂O` : null,
+      peep > 0 ? `PEEP ${peep} cmH₂O` : null,
+      ppl > 0 ? `Ppl ${ppl} cmH₂O` : null,
+      autopeep > 0 ? `AutoPEEP ${autopeep} cmH₂O` : null,
+      dp > 0 ? `DP ${dp} cmH₂O` : null,
+      cesr > 0 ? `Cesr ${cesr} ml/cmH₂O` : null,
+    ]);
+    const umaVM = v('KTM_UMA');
+    const l3 = j([
+      fio2 > 0 ? `FiO₂ ${fio2}%` : null,
+      spo2 > 0 ? `SpO₂ ${spo2}%` : null,
+      umaVM ? `UMA ${umaVM}` : null,
+    ]);
+    if (l1) txt.push(`TV: ${l1}.`);
+    if (l2) txt.push(l2 + '.');
+    if (l3) txt.push(l3 + '.');
   } else if (sop === 'VNI') {
     const ipapMax = vn('VENT_IPAP_MAX');
     ventStr = `En VNI modo ${modo}, IPAP ${ipap > 0 ? ipap : '?'}${ipapMax > 0 ? '–' + ipapMax : ''}/${epap > 0 ? epap : '?'} cmH₂O`;
@@ -218,7 +227,12 @@ function generarTextoEvolucion(d) {
   const secrC = v('RESP_SECR_QTY'), secrT = v('RESP_SECR_CAR');
   const ruidosText = ruidos === 'Otro' && ruidosLoc ? ruidosLoc : ruidos;
   let exStr = '';
-  if (mp) exStr += `Al examen físico: murmullo pulmonar ${mp}`;
+  if (mp) {
+    const mpTxt = mp === 'Presente Bilateral' ? 'MP(+) bilateral'
+                : /^Abolido/i.test(mp) ? 'MP(−) ' + mp.replace(/^Abolido\s*/i, 'abolido ')
+                : 'MP(+), ' + mp;
+    exStr += `Al examen físico: ${mpTxt}`;
+  }
   if (ruidosText && ruidosText !== 'sin ruidos agregados') exStr += `, con ${ruidosText}`;
   else if (ruidosText) exStr += `, sin ruidos agregados`;
   if (secrC) { exStr += `. Secreciones ${secrC}`; if (secrT) exStr += ` de característica ${secrT}`; }

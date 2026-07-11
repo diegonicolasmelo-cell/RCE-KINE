@@ -1605,6 +1605,16 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                       <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Reología</label>
                       <select id="fSecrReol" style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
                         <option value="">-- Seleccionar --</option>
+                        <option>Fluidas</option>
+                        <option>Ligosas</option>
+                        <option>Adherentes</option>
+                      </select>
+                    </div>
+                    <!-- Características -->
+                    <div style="margin-bottom:6px;">
+                      <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Características</label>
+                      <select id="fSecrCar" style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
+                        <option value="">-- Seleccionar --</option>
                         <option>Mucosas</option>
                         <option>Mucopurulentas</option>
                         <option>Purulentas</option>
@@ -1614,16 +1624,6 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                         <option>Mucosas con tinte hemático</option>
                         <option>Herrumbrosas</option>
                         <option>Carbonizadas</option>
-                      </select>
-                    </div>
-                    <!-- Características -->
-                    <div style="margin-bottom:6px;">
-                      <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Características</label>
-                      <select id="fSecrCar" style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
-                        <option value="">-- Seleccionar --</option>
-                        <option>Fluidas</option>
-                        <option>Ligosas</option>
-                        <option>Adherentes</option>
                       </select>
                     </div>
                     <!-- Cantidad -->
@@ -2422,6 +2422,9 @@ function _resetHiddenYEventos(){
   const _decR=$('cDecanOcurrio'); if(_decR){ _decR.checked=false; if(typeof hDecan==='function') hDecan(); }
   const _rtR=$('cReintubT'); if(_rtR) _rtR.checked=false;
   hide('dReintubDetT');
+  // cantidad de secreciones: la variable de módulo también debe partir limpia
+  // (si no, el toggle des-selecciona al reelegir el mismo valor en otro paciente)
+  if(typeof _secrQty!=='undefined'){ _secrQty=''; document.querySelectorAll('.secr-qty').forEach(b=>b.classList.remove('active')); }
   _evoEventoGuardado=false;
 }
 
@@ -3748,7 +3751,7 @@ function genTexto() {
   const gcsT=$('lblGCS')?.textContent||'?';
   const va=gv('fVA')||'Natural'; const intub=va==='TOT'||va==='TQT';
   let s;
-  if($('cBNM')?.checked) s=`Sedado y con bloqueo neuromuscular para meta SAS ${sas||'1'} (+BNM).`;
+  if($('cBNM')?.checked) s=`Sedado+BNM para meta SAS ${sas||'1'}.`;
   else if(sed==='Sin sedación') s='Sin sedación.';
   else if(sed==='Fuera de escalón') s=`Sedación fuera de escalón${sas?' (SAS '+sas+')':''}.`;
   else if(sed.startsWith('Escalón')) s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
@@ -3762,7 +3765,7 @@ function genTexto() {
   L.push(s);
   const hEst=gv('fHEst')||'Estable', dva=gv('fDVA')||'Sin requerimientos';
   let h=`HDN ${hEst==='Estable'?'estable':'inestable'}`;
-  h+=dva==='Sin requerimientos'?', sin requerimientos de DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase();
+  h+=dva==='Sin requerimientos'?', sin requerimientos de DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase().replace(/dosis (baja|media|alta)/,'dosis $1s');
   if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt}`; } L.push(h+'.');
   const _pic=gv('fPIC'), _ppc=gv('fPPC');
   if(_pic||_ppc) L.push(`Neuromonitoreo: ${[_pic?`PIC ${_pic} mmHg`:null,_ppc?`PPC ${_ppc} mmHg`:null].filter(Boolean).join(', ')}.`);
@@ -3803,31 +3806,33 @@ function genTexto() {
       // PVE sin_condiciones integrado solo en modo controlado
       if(_pveNoCond) vs+=', sin condiciones para realización de PVE en este turno';
     }
-    if(_mlkg) vs+=` ventilado a ${_mlkg} ml/kg de peso ideal`;
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
     L.push(vs+'.');
-    let _pb;
-    if(modo==='CPAP/PS'||modo==='CFLEX'){
-      _pb=_pjoin([
-        _ps?`PS ${_ps} cmH2O`:null, peep?`PEEP ${peep} cmH2O`:null,
-        _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH2O`:null,
-        vt?`Vti ${vt} ml`:null, fr?`FR ${fr} rpm`:null,
-        _numTxt('l_vm')?`VM ${_numTxt('l_vm')} L/min`:null,
-        (_tobin&&_tobin!=='--'&&_tobin!=='!')?`I.Tobín ${_tobin}`:null,
-        fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null
-      ]);
-    } else {
-      _pb=_pjoin([
-        vt?`Vti ${vt} ml`:null, fr?`FR ${fr} rpm`:null, _numTxt('l_vm')?`VM ${_numTxt('l_vm')} L/min`:null,
-        _np('r_flujo')?`Flujo ${_np('r_flujo')} L/min`:null, _np('r_ti')?`Ti ${_np('r_ti')} s`:null,
-        (_mon('l_ie')&&_mon('l_ie')!=='--'&&_mon('l_ie')!=='!')?`I:E ${_mon('l_ie')}`:null,
-        _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH2O`:null,
-        _np('r_pmedia')?`Pmedia ${_np('r_pmedia')} cmH2O`:null, peep?`PEEP ${peep} cmH2O`:null,
-        _np('r_ppl')?`Ppl ${_np('r_ppl')} cmH2O`:null, _numTxt('l_dp')?`DP ${_numTxt('l_dp')} cmH2O`:null,
-        _numTxt('l_cesr')?`Cesr ${_numTxt('l_cesr')} ml/cmH2O`:null, fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null
-      ]);
-    }
-    if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
+    // Parámetros en 3 líneas: volúmenes/frecuencia · presiones/mecánica · oxigenación
+    const _l1=_pjoin([
+      vt?`Vti ${vt} ml${_mlkg?` (${_mlkg} ml/kg PI)`:''}`:null,
+      _ps?`PS ${_ps} cmH2O`:null,
+      _np('r_pinsp')?`Pinsp ${_np('r_pinsp')} cmH2O`:null,
+      fr?`FR ${fr} rpm`:null,
+      _numTxt('l_vm')?`VM ${_numTxt('l_vm')} L/min`:null,
+      _np('r_flujo')?`Flujo ${_np('r_flujo')} L/min`:null,
+      _np('r_ti')?`Ti ${_np('r_ti')} s`:null,
+      (_mon('l_ie')&&_mon('l_ie')!=='--'&&_mon('l_ie')!=='!')?`I:E ${_mon('l_ie')}`:null,
+      (_tobin&&_tobin!=='--'&&_tobin!=='!')?`I.Tobín ${_tobin}`:null,
+    ]);
+    const _l2=_pjoin([
+      _np('r_pmax')?`Pmax ${_np('r_pmax')} cmH2O`:null,
+      _np('r_pmedia')?`Pmedia ${_np('r_pmedia')} cmH2O`:null,
+      peep?`PEEP ${peep} cmH2O`:null,
+      _np('r_ppl')?`Ppl ${_np('r_ppl')} cmH2O`:null,
+      _np('r_autopeep')?`AutoPEEP ${_np('r_autopeep')} cmH2O`:null,
+      _numTxt('l_dp')?`DP ${_numTxt('l_dp')} cmH2O`:null,
+      _numTxt('l_cesr')?`Cesr ${_numTxt('l_cesr')} ml/cmH2O`:null,
+    ]);
+    const _l3=_pjoin([fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null]);
+    if(_l1) L.push(`TV: ${_l1}.`);
+    if(_l2) L.push(`${_l2}.`);
+    if(_l3) L.push(`${_l3}.`);
   } else if(sop==='VNI'){
     const ip=_np('r_ipap'), ipmax=_np('r_ipapmax'), ep=_np('r_epap');
     let vs=`En VNI, modo ${modo||'?'}${_humid?', más humidificación activa':''}`;
@@ -3835,18 +3840,18 @@ function genTexto() {
     L.push(vs+'.');
     const _psVni=(ip>0&&ep>0)?Math.round((ip-ep)*10)/10:0;
     const _pb=_pjoin([ip?`IPAP ${ip}${ipmax?'–'+ipmax:''} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null]);
-    if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
+    if(_pb) L.push(`TV: ${_pb}.`);
   } else if(sop==='CNAF'){
     const fl=_np('r_flujo');
     L.push(`Ventila espontáneo con apoyo de CNAF${_humid?' con humidificación activa':''}.`);
     const _pb=_pjoin([fl?`Flujo ${fl} L/min`:null, fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null, _numTxt('l_irox')?`índice ROX ${_numTxt('l_irox')}`:null]);
-    if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
+    if(_pb) L.push(`TV: ${_pb}.`);
   } else if(sop==='Oxigenoterapia/OAF'){
     if(['CNAF','OAF/CTAF'].includes(modo)){
       const _fl=_np('r_flujo'), _tmp=gv('r_temp');
       L.push(`Ventila espontáneo con apoyo de ${modo}${_humid?' con humidificación activa':''}.`);
       const _pb=_pjoin([_fl?`Flujo ${_fl} L/min`:null, _tmp?`T° ${_tmp}°C`:null, fio2?`FiO2 ${fio2}%`:null, fr?`FR ${fr} rpm`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null, _numTxt('l_irox')?`índice ROX ${_numTxt('l_irox')}`:null]);
-      if(_pb) L.push(`Terapia ventilatoria: ${_pb}.`);
+      if(_pb) L.push(`TV: ${_pb}.`);
     } else {
       const _lit=_np('r_litros'), _dev=modo&&modo!=='Sin soporte'?modo:'';
       L.push(`Ventila espontáneo con FiO2 adicional${_dev?` por ${_dev}`:''}.`);
@@ -3871,7 +3876,12 @@ function genTexto() {
   const mp=v('fMPVal'), ru=v('fRuidosVal'), ruLoc=v('fRuidosLoc');
   if(mp||ru){
     let e='Auscultación';
-    if(mp) e+=`: murmullo pulmonar ${mp}`;
+    if(mp){
+      const _mpTxt = mp==='Presente Bilateral' ? 'MP(+) bilateral'
+                   : /^Abolido/i.test(mp) ? 'MP(−) '+mp.replace(/^Abolido\s*/i,'abolido ')
+                   : 'MP(+), '+mp;
+      e+=`: ${_mpTxt}`;
+    }
     if(ru){
       const _ruTags=(_tiState['fRuidosTags']||[]);
       if(_ruTags.includes('sin ruidos agregados')) e+=', sin ruidos agregados';
@@ -3894,7 +3904,7 @@ function genTexto() {
     if(qty!=='-'){
       if(reol) secrParts.push(reol.toLowerCase());
       if(car) secrParts.push(car.toLowerCase());
-      if(qtyTxt[qty]) secrParts.push(qtyTxt[qty]);
+      if(qtyTxt[qty]) secrParts.push('en '+qtyTxt[qty]);
     }
     // qty==='-' (sin secreciones) o sin datos → omite secreciones de la línea
     const secrTxt=secrParts.length?`, secreciones ${secrParts.join(' ')}`:'';
@@ -3911,7 +3921,7 @@ function genTexto() {
     // Línea KTR principal
     let ktrLine='';
     if(perm.length) ktrLine=`KTR + ${perm.join(' + ')}${secrTxt}`;
-    else if(secrTxt) ktrLine=`Secreciones${secrTxt.replace(/^, /,'')}`;
+    else if(secrTxt) ktrLine=`Secreciones ${secrParts.join(' ')}`;
     if(ktrLine){ L.push(ktrLine+(_cultSuffix||'')+'.'); }
     else if(_cultSuffix){ L.push(_cultSuffix.replace(/^: /,'')+'.'); }
     // Inhaloterapia
@@ -5529,7 +5539,7 @@ function aplicarGatesEval(){
     setKTMstate('s');
     const ct=$('fKTMct'); if(ct) ct.value='Absoluta';
     const cc=$('fKTMcat'); if(cc) cc.value = bnm ? 'Nivel de consciencia' : 'Otra';
-    const cr=$('fKTMraz'); if(cr) cr.value = bnm ? 'Bloqueo neuromuscular (BNM)' : 'AET Grupo IIIC';
+    const cr=$('fKTMraz'); if(cr) cr.value = bnm ? 'BNM' : 'AET Grupo IIIC';
     const fc=$('fKTMcontra'); if(fc) fc.value='';
   }
   // — SAS 1: la KTM solo permite Nivel 1 (protección) —
