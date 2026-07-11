@@ -775,6 +775,12 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 </div>
 
 
+<!-- TABS PRINCIPALES -->
+<div class="tabs">
+  <button class="tab on" id="tabG" onclick="setTab('G')">🛏️ CAMAS</button>
+  <button class="tab" id="tabD" onclick="setTab('D')">📊 ESTADÍSTICAS</button>
+</div>
+
 <!-- BANNER RETROSPECTIVO (cuando la fecha seleccionada no es hoy) -->
 <div id="retroBar">
   <span class="rb-ico">👁️</span>
@@ -787,6 +793,29 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 <div class="tc-wrap on" id="tcG">
   <div class="turno-legend" id="turnoLegend"></div>
   <div class="grid" id="bedGrid"></div>
+</div>
+
+<!-- TAB ESTADÍSTICAS -->
+<div class="tc-wrap" id="tcD">
+  <div class="dash">
+    <div class="dash-bar">
+      <div class="dash-bar-title">📊 Estadísticas del período</div>
+      <div class="dash-range">
+        <div class="dash-presets">
+          <button class="dpset on" onclick="dashPreset('mes',this)">Mes actual</button>
+          <button class="dpset" onclick="dashPreset('mesAnt',this)">Mes anterior</button>
+          <button class="dpset" onclick="dashPreset('30',this)">Últimos 30 días</button>
+          <button class="dpset" onclick="dashPreset('anio',this)">Año</button>
+        </div>
+        <div class="dash-dates">
+          <input type="date" id="dashDesde" class="datein dashin" onchange="loadStats()">
+          <span style="color:#94a3b8;">→</span>
+          <input type="date" id="dashHasta" class="datein dashin" onchange="loadStats()">
+        </div>
+      </div>
+    </div>
+    <div id="dashBody"><div class="pivot-empty">Selecciona un rango de fechas.</div></div>
+  </div>
 </div>
 
 
@@ -3105,12 +3134,15 @@ function _podarEventosPayload(p){
   const del=ks=>ks.forEach(k=>{ delete p[k]; });
   const va=v('fVA');
   const pveActivo=(va==='TOT') && !!v('fPVEval');
-  if(!pveActivo) del(['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_VAL','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_REINTUB','EXT_REINTUB_RAZ','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO']);
+  if(!pveActivo) del(['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_VAL','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO']);
   const decanActivo=(va==='TQT') && !!$('cDecanOcurrio')?.checked;
   if(!decanActivo) del(['DECAN_OCURRIO','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL']);
   if(!$('cIntubO')?.checked) del(['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO']);
+  // EXT_REINTUB va con el grupo reintubación (la ruta standalone ocurre con VA
+  // no invasiva, donde el grupo PVE está inactivo — el servidor gatilla el
+  // registro de reintubación con esta clave).
   if(!($('cReintubT')?.checked||$('cReintub')?.checked||$('cReintubNo')?.checked))
-    del(['REINTUB_TOT_N','REINTUB_TOT_CM','REINTUB_MODO','REINTUB_PARAMS','REINTUB_HORA','REINTUB_SOP_PREV']);
+    del(['REINTUB_TOT_N','REINTUB_TOT_CM','REINTUB_MODO','REINTUB_PARAMS','REINTUB_HORA','REINTUB_SOP_PREV','EXT_REINTUB','EXT_REINTUB_RAZ']);
   if(!$('cCambioTOT')?.checked) del(['TOT_CAMBIO']);
   // El estado FINAL de VA y el pliegue de contadores se derivan de los eventos:
   // si el turno guardado ya tiene un evento y ahora no hay ninguno activo
@@ -6142,6 +6174,86 @@ function chequearReloj(){
     }
     toast('⚠️ Reloj del equipo desajustado respecto del servidor', 6000);
   }).catch(()=>{});
+}
+
+// ══════════ ESTADÍSTICAS (tab 📊) ══════════
+function setTab(t){
+  ATAB=t;
+  $('tcG').classList.toggle('on', t==='G');
+  $('tcD').classList.toggle('on', t==='D');
+  $('tabG').classList.toggle('on', t==='G');
+  $('tabD').classList.toggle('on', t==='D');
+  if(t==='D' && !window._statsLoaded) dashPreset('mes', document.querySelector('.dpset'));
+}
+function dashPreset(tipo, btn){
+  document.querySelectorAll('.dpset').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  const h=new Date();
+  const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  let d1,d2=h;
+  if(tipo==='mes') d1=new Date(h.getFullYear(),h.getMonth(),1);
+  else if(tipo==='mesAnt'){ d1=new Date(h.getFullYear(),h.getMonth()-1,1); d2=new Date(h.getFullYear(),h.getMonth(),0); }
+  else if(tipo==='30') d1=new Date(h.getTime()-29*864e5);
+  else d1=new Date(h.getFullYear(),0,1);
+  $('dashDesde').value=iso(d1); $('dashHasta').value=iso(d2);
+  loadStats();
+}
+function loadStats(){
+  const desde=v('dashDesde'), hasta=v('dashHasta');
+  if(!desde||!hasta) return;
+  $('dashBody').innerHTML='<div class="pivot-empty">Cargando estadísticas…</div>';
+  gs('GET_STATS',{desde,hasta}, d=>{ window._statsLoaded=true; renderStats(d||{}); },
+    ()=>{ $('dashBody').innerHTML='<div class="pivot-empty">No se pudo cargar la estadística.</div>'; });
+}
+const _escSt=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function _kpi(lbl,val,sub,color){
+  return `<div class="kpi" style="--kpi-c:${color||'var(--primary)'}"><div class="kpi-lbl">${lbl}</div><div class="kpi-val">${(val===undefined||val===null||val==='')?'—':val}</div>${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;
+}
+function _bars(tallyObj, color, max){
+  const ent=Object.entries(tallyObj||{}).filter(([k,n])=>n>0).sort((a,b)=>b[1]-a[1]).slice(0,max||10);
+  if(!ent.length) return '<div style="color:#94a3b8;font-size:.8rem;font-style:italic;padding:8px 0;">Sin datos en el período</div>';
+  const top=ent[0][1];
+  return ent.map(([k,n])=>`<div class="chbar"><div class="chbar-top"><span class="chbar-lbl">${_escSt(k)}</span><span class="chbar-val">${n}</span></div><div class="chbar-track"><div class="chbar-fill" style="width:${Math.max(3,Math.round(n/top*100))}%;--bar-c:${color}"></div></div></div>`).join('');
+}
+function renderStats(d){
+  const ev=d.eventos||{}, k=d.ktm||{}, p=d.pacientes||{}, vm=d.vm||{}, eg=d.egresos||{}, e=d.evos||{};
+  let h='';
+  h+='<div class="dash-sec-title">Actividad</div><div class="kpi-grid">';
+  h+=_kpi('Pacientes atendidos', p.atendidos, `${p.ingresos||0} ingresos · ${p.egresos||0} egresos`, '#1d6fc4');
+  h+=_kpi('Evoluciones', e.total, `${e.dia||0} día · ${e.noche||0} noche`, '#64748b');
+  h+=_kpi('Turnos con VM', vm.turnosVM, `${vm.diasPacienteVM||0} días-paciente en VM`, '#0284c7');
+  h+=_kpi('Pacientes ventilados', p.ventilados, '', '#0369a1');
+  h+=_kpi('Sesiones KTR', k.ktrSesiones, `${k.imtSesiones||0} turnos con IMT`, '#0891b2');
+  h+=_kpi('KTM realizada', (k.realizadaPct||0)+'%', `${k.realizada||0} sí · ${k.contraindicada||0} CI · ${k.noRealizada||0} no · ${k.tiempoPromMin||0} min prom.`, '#d97706');
+  h+='</div>';
+  h+='<div class="dash-sec-title">Vía aérea y weaning</div><div class="kpi-grid">';
+  h+=_kpi('Intubaciones', ev.intubaciones, '', '#dc2626');
+  h+=_kpi('Extubaciones', ev.extubaciones, `${ev.extubProgramadas||0} programadas · ${ev.autoextubaciones||0} autoext.`, '#16a34a');
+  h+=_kpi('PVE éxito', (ev.pveExitoPct||0)+'%', `${ev.pveSuperadas||0} superadas · ${ev.pveFrustras||0} frustras`, '#7c3aed');
+  h+=_kpi('Reintubaciones', ev.reintubaciones, `tasa ${ev.tasaReintubPct||0}% de las extubaciones`, '#b91c1c');
+  h+=_kpi('Decanulaciones', ev.decanulaciones, `${ev.recanulaciones||0} recanulaciones`, '#0d9488');
+  h+=_kpi('Cambios de tubo', ev.cambiosTOT, '', '#92400e');
+  h+='</div>';
+  h+='<div class="dash-sec-title">Detalle</div><div class="dash-cards">';
+  h+=`<div class="dcard"><div class="dcard-h">🏃 Niveles KTM</div>${_bars(k.niveles,'#d97706',6)}</div>`;
+  h+=`<div class="dcard"><div class="dcard-h">⛔ Motivos de KTM no realizada / contraindicada</div>${_bars(k.motivosNo,'#dc2626')}</div>`;
+  h+=`<div class="dcard"><div class="dcard-h">🔧 Procedimientos</div>${_bars(d.procs,'#4338ca')}</div>`;
+  h+=`<div class="dcard"><div class="dcard-h">📋 Grupo REM (por paciente)</div>${_bars(d.rem,'#1d6fc4')}</div>`;
+  h+=`<div class="dcard"><div class="dcard-h">🏠 Destinos de egreso</div>${_bars(eg.destinos,'#16a34a')}</div>`;
+  h+=`<div class="dcard"><div class="dcard-h">🧾 Motivos de egreso</div>${_bars(eg.motivos,'#0891b2')}</div>`;
+  h+='</div>';
+  h+='<div class="dash-sec-title">Funcional al egreso</div><div class="kpi-grid">';
+  h+=_kpi('Estadía promedio', (eg.diasEstadiaProm||0)+' d', `${eg.total||0} egresos en el período`, '#64748b');
+  h+=_kpi('DAUCI', (eg.dauciPct||0)+'%', `${eg.dauci||0} pacientes`, '#dc2626');
+  h+=_kpi('MRC-SS promedio', eg.mrcProm, 'al egreso', '#d97706');
+  h+=_kpi('FSS-ICU promedio', eg.fssProm, 'al egreso', '#0891b2');
+  h+=_kpi('CPAx promedio', eg.cpaxProm, 'al egreso', '#7c3aed');
+  h+='</div>';
+  h+='<div class="dash-cards" style="margin-top:14px;">';
+  h+=`<div class="dcard"><div class="dcard-h">💪 Interpretación MRC al egreso</div>${_bars(eg.mrcInterp,'#d97706')}</div>`;
+  h+=`<div class="dcard"><div class="dcard-h">🚶 Interpretación FSS al egreso</div>${_bars(eg.fssInterp,'#0891b2')}</div>`;
+  h+='</div>';
+  $('dashBody').innerHTML=h;
 }
 
 window.onload = function() {

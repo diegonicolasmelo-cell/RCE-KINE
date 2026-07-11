@@ -38,6 +38,7 @@ function api(accion, datos, token) {
         NUM_CAMAS: parseInt(leerConfig('NUM_CAMAS', '18')) || 18,
       });
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);
+      case 'GET_STATS':        return obtenerStats(datos.desde, datos.hasta);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
       // ── Escrituras (auditadas) ──
