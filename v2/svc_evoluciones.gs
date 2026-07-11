@@ -27,6 +27,19 @@ function guardarEvolucion(datos, ctx) {
       datos.FECHA = fecha;
       datos.TURNO = turno;
 
+      // ── Fusión con lo ya guardado ──
+      // Los eventos únicos (PVE/extubación, decanulación, intubación,
+      // reintubación, cambio de tubo) viajan en el payload SOLO el turno en
+      // que se registran; en re-guardados posteriores el cliente omite esas
+      // claves y aquí se preservan desde la fila existente. Sin esta fusión,
+      // repoUpsert (reescritura de fila completa) borraba los eventos al
+      // re-guardar el turno.
+      const _prevR = obtenerEvolucion(idCama, turnoKey);
+      if (_prevR && _prevR.ok && _prevR.data) {
+        const _prev = _prevR.data;
+        Object.keys(_prev).forEach(function (k) { if (!(k in datos)) datos[k] = _prev[k]; });
+      }
+
       const rc = obtenerCama(idCama);
       const cama = rc.ok ? rc.data : {};
 
@@ -136,7 +149,7 @@ function guardarEvolucion(datos, ctx) {
       }
 
       SpreadsheetApp.flush();
-      return ok({ idEvolucion, idCama, patientId, turnoKey, accion: esNuevo ? 'crear' : 'actualizar', entidad: 'EVOLUCIONES' });
+      return ok({ idEvolucion, idCama, patientId, turnoKey, accion: esNuevo ? 'crear' : 'actualizar', entidad: 'EVOLUCIONES', TEXTO_GENERADO: evo.TEXTO_GENERADO || '' });
     } catch (e) { return err('guardarEvolucion: ' + e.message, ERR.INTERNO, e); }
   });
 }

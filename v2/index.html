@@ -2560,6 +2560,22 @@ function kBadge(c) {
 }
 
 // Días VM/VNI históricos por cama (total del ingreso actual), cache por fecha.
+// form.reset() NO limpia inputs hidden (en type=hidden, .value muta el propio
+// atributo default), así que el estado de eventos sobrevivía entre aperturas
+// (p.ej. fPVEval quedaba en "si" y el texto narraba una PVE fantasma).
+// Purga manual de hidden + reset de los eventos únicos a su estado inicial.
+function _resetHiddenYEventos(){
+  document.querySelectorAll('#kf input[type="hidden"]').forEach(e=>{
+    if(e.id==='cBed'||e.id==='cIng') return;
+    e.value='';
+  });
+  if(typeof _pveBtnReset==='function'){ _pveBtnReset(); hide('dPVESiRama'); hide('dPVENoRama'); _pveCleanSi(); _pveCleanNo(); }
+  const _decR=$('cDecanOcurrio'); if(_decR){ _decR.checked=false; if(typeof hDecan==='function') hDecan(); }
+  const _rtR=$('cReintubT'); if(_rtR) _rtR.checked=false;
+  hide('dReintubDetT');
+  _evoEventoGuardado=false;
+}
+
 function abrirPanel(id, esIng) {
   const fecha=v('gDate')||hoy();
   const tkey=`${fecha}-${SHIFT}`;
@@ -2577,6 +2593,7 @@ function abrirPanel(id, esIng) {
   $('spShift').textContent=`${_emoji} ${fecha}`;
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   $('kf').reset(); PROCS=[]; renderChips();
+  _resetHiddenYEventos();
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
 
   ['lblMRC','lblFSS','lblPIM'].forEach(id=>{ const e=$(id); if(e){e.textContent='—';e.className='interp-pill interp-empty';} });
@@ -2941,6 +2958,9 @@ function fillForm(s) {
     s.INTUB_OCURRIO===true || s.INTUB_OCURRIO==='TRUE' ||
     parseFloat(s.DIAS_VM)>0 || parseInt(s.DIAS_VM_PREVIOS)>0 || parseInt(s.N_REINTUB)>0 ||
     s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
+  _evoEventoGuardado = s.EXT_OCURRIO===true||s.EXT_OCURRIO==='TRUE'||!!s.PVE_VAL||
+    s.DECAN_OCURRIO===true||s.DECAN_OCURRIO==='TRUE'||s.INTUB_OCURRIO===true||s.INTUB_OCURRIO==='TRUE'||
+    s.EXT_REINTUB===true||s.EXT_REINTUB==='TRUE'||s.TOT_CAMBIO===true||s.TOT_CAMBIO==='TRUE';
   updateVAUI();
   aplicarGatesEval();
   if(v('fVA')==='TOT' && v('fTOTn') && !$('cCambioTOT')?.checked) _lockTOT(true);
@@ -3063,6 +3083,7 @@ function fillFormReplica(s) {
 function limpiarReplica() {
   const id=v('cBed'), fecha=v('gDate')||hoy();
   $('kf').reset(); PROCS=[]; renderChips();
+  _resetHiddenYEventos();
   _aislTags=[]; renderAislTags();
   ['fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
   if($('fMPVal'))     $('fMPVal').value='';
@@ -3075,6 +3096,30 @@ function limpiarReplica() {
 }
 
 //  GUARDAR → SERVIDOR
+//  EVENTOS ÚNICOS — el payload lleva las claves de un evento SOLO cuando ese
+//  evento está activo en el formulario. Cuando no van, el servidor preserva lo
+//  ya guardado (fusión por clave ausente en guardarEvolucion). Así el estado
+//  oculto del formulario no puede filtrarse a la base ni al texto, y un
+//  re-guardado del turno no borra los eventos que ya se registraron.
+function _podarEventosPayload(p){
+  const del=ks=>ks.forEach(k=>{ delete p[k]; });
+  const va=v('fVA');
+  const pveActivo=(va==='TOT') && !!v('fPVEval');
+  if(!pveActivo) del(['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_VAL','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_REINTUB','EXT_REINTUB_RAZ','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO']);
+  const decanActivo=(va==='TQT') && !!$('cDecanOcurrio')?.checked;
+  if(!decanActivo) del(['DECAN_OCURRIO','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL']);
+  if(!$('cIntubO')?.checked) del(['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO']);
+  if(!($('cReintubT')?.checked||$('cReintub')?.checked||$('cReintubNo')?.checked))
+    del(['REINTUB_TOT_N','REINTUB_TOT_CM','REINTUB_MODO','REINTUB_PARAMS','REINTUB_HORA','REINTUB_SOP_PREV']);
+  if(!$('cCambioTOT')?.checked) del(['TOT_CAMBIO']);
+  // El estado FINAL de VA y el pliegue de contadores se derivan de los eventos:
+  // si el turno guardado ya tiene un evento y ahora no hay ninguno activo
+  // (reapertura para corregir otra cosa), no se recalculan — se preservan.
+  const algunEvento=pveActivo||decanActivo||$('cIntubO')?.checked||$('cReintubT')?.checked||$('cReintub')?.checked||$('cReintubNo')?.checked;
+  if(_evoEventoGuardado && !algunEvento)
+    del(['VENT_VIA_AEREA_FINAL','VENT_SOPORTE_FINAL','VENT_MODO_FINAL','DIAS_VM_PREVIOS','FECHA_INICIO_VM','FECHA_INICIO_VNI','DIAS_VNI_PREVIOS']);
+}
+
 function guardar() {
   const id=v('cBed'), fecha=v('gDate')||hoy(), tkey=`${fecha}-${SHIFT}`;
   const n=x=>parseFloat(x)||null;
@@ -3334,13 +3379,15 @@ function guardar() {
     FASE_JSON: JSON.stringify(Array.from(FASES_SEL)),
     PLAN_PLANES:v('fPlanes'), PLAN_NOTA_TURNO:v('fNota'), PLAN_FIRMA_KINE:v('fFirma'),
   };
+  _podarEventosPayload(datos);
   const btn=$('btnGuardar'); btn.disabled=true; btn.textContent='⏳ Guardando...';
   toast('💾 Guardando en servidor...');
-  gs('GUARDAR_EVOLUCION', datos, _=>{
+  gs('GUARDAR_EVOLUCION', datos, r=>{
     btn.disabled=false; btn.textContent='✅ Guardado';
     toast('✅ Evolución guardada correctamente');
-    // Mostrar texto generado automáticamente
-    $('rtxt').value = genTexto();
+    // Texto DEFINITIVO del servidor (idéntico a lo que quedó guardado);
+    // genTexto() local solo como respaldo si la respuesta no lo trae.
+    $('rtxt').value = (r && r.TEXTO_GENERADO) || genTexto();
     show('rarea');
     $('rarea').scrollIntoView({behavior:'smooth', block:'start'});
     // Mostrar botón cerrar y actualizar grid en background
@@ -4172,7 +4219,7 @@ function genTexto() {
   // Extubación + PVE — texto clínico unificado
   (function(){
     const _pve=v('fPVEval');
-    if(!_pve) return;
+    if(!_pve || v('fVA')!=='TOT') return; // PVE/extubación solo existe con TOT
     const _et=_extTipo();
     const _mot=v('fExtMotivo');
     const _post=_extPostDet();
@@ -4907,6 +4954,7 @@ let _diasVNIPrevios=0;   // días VNI acumulados
 let _fechaInicioVNI='';  // fecha inicio VNI actual
 let _vaAnterior='';      // VA previa para detectar transiciones
 let _vmHistFlag=false;   // historial de VM detectado en los datos cargados (evo previa / cama)
+let _evoEventoGuardado=false; // el turno cargado YA tiene un evento único guardado (extub/PVE/decan/intub/reintub)
 let _transIntubEsteTurno=false; // hubo transición no-invasiva → invasiva en esta sesión de panel
 function actualizarDiasVA(){ actualizarContadores(); } // alias legacy
 function actualizarContadores(){
