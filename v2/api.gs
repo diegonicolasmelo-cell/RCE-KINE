@@ -36,6 +36,7 @@ function api(accion, datos, token) {
       case 'GET_CONFIG_UI':    return ok({
         CPAX_ACTIVO: leerConfig('CPAX_ACTIVO', 'TRUE') !== 'FALSE',
         NUM_CAMAS: parseInt(leerConfig('NUM_CAMAS', '18')) || 18,
+        CAT_DEF: catMatrices(),
       });
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);
       case 'GET_STATS':        return obtenerStats(datos.desde, datos.hasta);

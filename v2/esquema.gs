@@ -153,8 +153,10 @@ const _COLS_EVOLUCIONES = [
   ['BARTHEL_JSON','json'],       // ítems de la calculadora de Barthel (10 valores)
   ['CHARLSON_JSON','json'],      // ítems de la calculadora de Charlson {it:[índices], edad:bool}
   ['CAT_KINE','entero'],         // LEGACY: categorización K1–K4 (reemplazada por CAT_RESP/MOTOR; ya no se escribe)
-  ['CAT_RESP_PJE','entero'],     // categorización respiratoria SOCHIMI (5 variables × 1-3 pts; 5=Baja, 6-10=Media, 11-15=Alta)
-  ['CAT_MOTOR_PJE','entero'],    // categorización motora SOCHIMI (4 variables × 1-3 pts; 4=Baja, 5-8=Media, 9-12=Alta)
+  ['CAT_RESP_PJE','entero'],     // categorización respiratoria SOCHIMI (n variables × 1-3 pts según CAT_MATRICES)
+  ['CAT_MOTOR_PJE','entero'],    // categorización motora SOCHIMI (n variables × 1-3 pts según CAT_MATRICES)
+  ['CAT_RESP_NIVEL','texto'],    // Baja/Media/Alta calculado con la configuración vigente al guardar
+  ['CAT_MOTOR_NIVEL','texto'],   // Baja/Media/Alta calculado con la configuración vigente al guardar
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -164,6 +166,14 @@ const ESQUEMA = {
   ]},
   CATALOGOS: { headerRows: 1, cols: [
     ['TIPO','texto'],['VALOR','texto'],['ORDEN','entero'],['ACTIVO','bool'],
+  ]},
+  // Matrices de categorización SOCHIMI, editables por la coordinación sin tocar
+  // código (como las fases): qué variables componen cada matriz y sus cortes.
+  // VARIABLE debe ser un id de la librería del cliente (_CAT_VARS). UMBRAL_2/3 =
+  // cortes de 2 y 3 pts en variables numéricas (vacío = default; DINAMO usa 'H/M').
+  CAT_MATRICES: { headerRows: 1, cols: [
+    ['MATRIZ','texto'],['VARIABLE','texto'],['ACTIVA','bool'],
+    ['UMBRAL_2','texto'],['UMBRAL_3','texto'],['ORDEN','entero'],
   ]},
   CAMAS_ESTADO: { headerRows: 2, cols: [
     ['ID_CAMA','texto'],['OCUPADA','bool'],['STATUS_CAMA','texto'],['PATIENT_ID','uuid'],['COD_PACIENTE','texto'],
@@ -179,6 +189,7 @@ const ESQUEMA = {
     ['CHARLSON','entero'],['INGRESO_TIPO','texto'],  // S5 (persisten con el episodio, se cargan al abrir)
     ['CAT_KINE','entero'],  // LEGACY: categorización K1–K4 (ya no se escribe)
     ['CAT_RESP_PJE','entero'],['CAT_MOTOR_PJE','entero'],  // categorización SOCHIMI del último turno (badges R/M en la grilla)
+    ['CAT_RESP_NIVEL','texto'],['CAT_MOTOR_NIVEL','texto'],  // nivel Baja/Media/Alta según la config vigente al guardar
     // Últimas evaluaciones del episodio (arrastre para la matriz motora + badges de la grilla)
     ['ULT_COOP','texto'],['ULT_MRC','entero'],['ULT_MRC_FECHA','texto'],
     ['ULT_FSS','entero'],['ULT_FSS_FECHA','texto'],['ULT_DINAMO','decimal'],
@@ -389,6 +400,31 @@ function _sembrar(ss) {
     hCat.getRange(2, 1, filas.length, 4).setValues(filas);
   }
 
+  // CAT_MATRICES — matrices de categorización SOCHIMI (default de la guía 2017;
+  // la coordinación puede activar/desactivar variables y ajustar cortes aquí)
+  const hCM = ss.getSheetByName('CAT_MATRICES');
+  if (hCM && hCM.getLastRow() < 2) {
+    const filasCM = [
+      // MATRIZ, VARIABLE, ACTIVA, UMBRAL_2, UMBRAL_3, ORDEN
+      ['RESP','ASISTENCIA',  true,  '',      '',     1],
+      ['RESP','SAFI',        true,  '300',   '150',  2],
+      ['RESP','FR',          true,  '20',    '28',   3],
+      ['RESP','AUSCULTACION',true,  '',      '',     4],
+      ['RESP','SECRECIONES', true,  '',      '',     5],
+      ['RESP','VOLMIN',      false, '7',     '12',   6],
+      ['RESP','PEEP',        false, '7',     '10',   7],
+      ['RESP','FIO2',        false, '31',    '50',   8],
+      ['MOTOR','S5Q_COOP',   true,  '',      '',     1],
+      ['MOTOR','MRC',        true,  '48',    '36',   2],
+      ['MOTOR','FSS',        true,  '20',    '10',   3],
+      ['MOTOR','DINAMO',     true,  '30/17', '11/7', 4],
+      ['MOTOR','SAS',        false, '4',     '2',    5],
+      ['MOTOR','KTM_NIVEL',  false, '4',     '2',    6],
+      ['MOTOR','CPAX',       false, '40',    '20',   7],
+    ];
+    hCM.getRange(2, 1, filasCM.length, 6).setValues(filasCM);
+  }
+
   // KINESIOLOGOS — semilla (EMAIL vacío: se completa antes de producción)
   const hK = ss.getSheetByName('KINESIOLOGOS');
   if (hK.getLastRow() < 2) {
@@ -446,7 +482,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 279) errs.push('EVOLUCIONES != 279 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 281) errs.push('EVOLUCIONES != 281 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

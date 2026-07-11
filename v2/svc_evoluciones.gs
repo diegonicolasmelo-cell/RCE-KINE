@@ -201,7 +201,9 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     KTM_SUSP: esVerdadero(evo.KTM_SUSPENDIDA),
     FIRMA_KINE: val(evo.PLAN_FIRMA_KINE, cama.FIRMA_KINE), AUTOR_EMAIL: evo.AUTOR_EMAIL || '',
     CAT_RESP_PJE: val(evo.CAT_RESP_PJE, cama.CAT_RESP_PJE),
+    CAT_RESP_NIVEL: val(evo.CAT_RESP_NIVEL, cama.CAT_RESP_NIVEL),
     CAT_MOTOR_PJE: val(evo.CAT_MOTOR_PJE, cama.CAT_MOTOR_PJE),
+    CAT_MOTOR_NIVEL: val(evo.CAT_MOTOR_NIVEL, cama.CAT_MOTOR_NIVEL),
     // Arrastre de últimas evaluaciones (matriz motora + badges de la grilla)
     ULT_COOP: val(evo.SED_COOPERACION, cama.ULT_COOP),
     ULT_MRC: val(evo.EVAL_T_MRC, cama.ULT_MRC),

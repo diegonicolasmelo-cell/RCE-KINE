@@ -2434,14 +2434,17 @@ function renderGrid() {
       if(dvm>=14) al+=`<span class="abadge a-vm">⚠️ VM ${dvm}d</span>`;
       if(d>=21)   al+=`<span class="abadge a-dias">🕐 ${d}d UCI</span>`;
       if(c.KTM_SUSP===true||c.KTM_SUSP==='TRUE') al+=`<span class="abadge a-ktm">🚫 KTMC</span>`;
-      // Categorización SOCHIMI del último turno: chips R (resp) y M (motora)
-      const _catChip=(pje,n,letra,nom)=>{
-        const p=parseInt(pje)||0; if(!p) return '';
-        const nv=p<=n?'Baja':(p<=n*2?'Media':'Alta');
-        const col={Baja:'#16a34a',Media:'#d97706',Alta:'#dc2626'}[nv];
-        return `<span class="abadge" style="background:${col}18;color:${col};border:1px solid ${col}55;" title="Categorización ${nom} SOCHIMI del último turno: complejidad ${nv} (${p} pts)">${letra} ${nv}</span>`;
+      // Categorización SOCHIMI del último turno: chips R (resp) y M (motora).
+      // Usa el nivel guardado con la config vigente ese turno; filas antiguas
+      // (solo puntaje) se derivan con el n° de variables por defecto.
+      const _catChip=(pje,niv,n,letra,nom)=>{
+        const p=parseInt(pje)||0;
+        const nv=String(niv||'').trim()||(p?(p<=n?'Baja':(p<=n*2?'Media':'Alta')):'');
+        if(!nv) return '';
+        const col={Baja:'#16a34a',Media:'#d97706',Alta:'#dc2626'}[nv]||'#64748b';
+        return `<span class="abadge" style="background:${col}18;color:${col};border:1px solid ${col}55;" title="Categorización ${nom} SOCHIMI del último turno: complejidad ${nv}${p?` (${p} pts)`:''}">${letra} ${nv}</span>`;
       };
-      al+=_catChip(c.CAT_RESP_PJE,5,'R','respiratoria')+_catChip(c.CAT_MOTOR_PJE,4,'M','motora');
+      al+=_catChip(c.CAT_RESP_PJE,c.CAT_RESP_NIVEL,5,'R','respiratoria')+_catChip(c.CAT_MOTOR_PJE,c.CAT_MOTOR_NIVEL,4,'M','motora');
       // MRC-SS / FSS-ICU: solo aplica a paciente COOPERADOR (última cooperación
       // registrada). Con valor → "MRC 48 · 12-06"; sin valor → alerta de pendiente.
       if(/^cooperador$/i.test(String(c.ULT_COOP||'').trim())){
@@ -3120,6 +3123,7 @@ function guardar() {
   const id=v('cBed'), fecha=v('gDate')||hoy(), tkey=`${fecha}-${SHIFT}`;
   const n=x=>parseFloat(x)||null;
   const bv=id=>$(id)?.checked||false;
+  const _cR=calcCatResp(), _cM=calcCatMotor();
   // ★ Firma OBLIGATORIA — no se puede guardar sin firma del kinesiólogo ★
   if(!v('fFirma') || !String(v('fFirma')).trim()){
     toast('⚠️ Debes seleccionar la firma del kinesiólogo antes de guardar');
@@ -3176,8 +3180,10 @@ function guardar() {
     DECAN_RECANUL:     $('cRecanul')?.checked||false,
     // S2 extras
     ES_REINGRESO:      $('cReing')?.checked||false,
-    CAT_RESP_PJE:      (c=>c.datos?c.pje:'')(calcCatResp()),
-    CAT_MOTOR_PJE:     (c=>c.datos?c.pje:'')(calcCatMotor()),
+    CAT_RESP_PJE:      _cR.datos?_cR.pje:'',
+    CAT_RESP_NIVEL:    _cR.datos?_cR.nivel:'',
+    CAT_MOTOR_PJE:     _cM.datos?_cM.pje:'',
+    CAT_MOTOR_NIVEL:   _cM.datos?_cM.nivel:'',
     AET_ACTIVA:        $('cAET')?.checked||false,
     AET_NIVEL:         v('fAETnivel')||'',
     SED_TIPO:v('fSed'), SED_SAS:v('fSAS'), SED_S5Q:v('fS5Q'), SED_COOPERACION:v('fCoop'),
@@ -6330,103 +6336,162 @@ function _pickEcf(n){
 // ══════════ CATEGORIZACIÓN KINESIOLÓGICA (SOCHIMI 2017) ══════════
 // Modelo genérico de matrices (División de Kinesiología SOCHIMI): variables
 // clínicas × 3 niveles de severidad (1/2/3 pts); PF = suma → complejidad
-// Baja (PF = n variables), Media (n+1..2n) o Alta (>2n). Dos matrices, ambas
-// GENÉRICAS (no dependen del dispositivo): respiratoria (5 variables) y
-// motora (4 variables, modelo Clínica Alemana, con arrastre de últimas
-// evaluaciones del episodio vía cama.ULT_*).
+// Baja (PF = n variables), Media (n+1..2n) o Alta (>2n).
+// QUÉ variables componen cada matriz y sus cortes se define en la hoja
+// CAT_MATRICES de la planilla (llega en CFG.CAT_DEF) — la coordinación puede
+// cambiarlas sin tocar código, siempre que existan en la librería _CAT_VARS.
 const _CAT_COLORES={Baja:'#16a34a',Media:'#d97706',Alta:'#dc2626'};
 function _catNivel(pje,n){ return pje<=n?'Baja':(pje<=n*2?'Media':'Alta'); }
 function _camaPanel(){ return ((typeof DB!=='undefined'&&DB)||[]).find(x=>String(x.ID_CAMA)===String(v('cBed')))||{}; }
-
-function calcCatResp(){
-  const det=[]; let pje=0, datos=0;
-  const sop=v('fSop'), modo=v('fModo');
-  // 1) Asistencia ventilatoria: espontánea / soporte parcial / controlada
-  let a=1, aT='espontánea';
-  if(sop==='VM'){
-    if(modo==='CPAP/PS'&&!$('cBNM')?.checked){ a=2; aT='VM modo espontáneo'; }
-    else { a=3; aT='VM controlada/asistida'+($('cBNM')?.checked?' + BNM':''); }
-  } else if(sop==='VNI'){ a=2; aT='VNI'; }
-  else if(['CNAF','OAF/CTAF'].includes(modo)){ a=2; aT=modo; }
-  if(a>1) datos++; // el default del formulario (espontánea) no cuenta como dato
-  det.push(['Asistencia ventilatoria',a,aT]); pje+=a;
-  // 2) Oxigenación — SAFI SpO₂/FiO₂: >300 / 150–299 / <150
-  const spo2=parseFloat(v('r_spo2'))||0;
-  let fio2=parseFloat(v('r_fio2'))||0;
-  if(!fio2){ const l=parseFloat(v('r_litros'))||0; fio2=(modo==='NRC'&&l>0)?Math.min(100,21+4*l):21; }
-  let o=1, oT='sin dato';
-  if(spo2>0){ const safi=Math.round(spo2/(fio2/100)); oT='SAFI '+safi; o=safi>300?1:(safi>=150?2:3); datos++; }
-  det.push(['Oxigenación (SAFI)',o,oT]); pje+=o;
-  // 3) Frecuencia respiratoria: ≤20 / 21–28 / ≥29
-  const fr=parseFloat(v('r_fr'))||0;
-  let f=1, fT='sin dato';
-  if(fr>0){ fT=fr+' rpm'; f=fr<=20?1:(fr<=28?2:3); datos++; }
-  det.push(['Frecuencia respiratoria',f,fT]); pje+=f;
-  // 4) Auscultación: MP normal / disminuido o ruidos / abolido o húmedo bilateral
-  const mp=v('fMPVal');
-  const ruidos=[{tipo:v('fRuidosVal'),loc:v('fRuidosLoc')}];
-  try{ (JSON.parse(ruidosExtraJSON()||'[]')||[]).forEach(r=>ruidos.push(r)); }catch(e){}
-  const conRuido=ruidos.filter(r=>r.tipo&&r.tipo!=='Sin ruidos agregados');
-  const humBilat=conRuido.some(r=>/crépitos|estertores/i.test(r.tipo)&&/ambos campos|bibasales|apicales/i.test(r.loc||''));
-  let au=1, auT='sin dato';
-  if(mp||conRuido.length){
-    datos++;
-    if(/^Abolido/i.test(mp)||humBilat){ au=3; auT=/^Abolido/i.test(mp)?mp:'sign. húmeda bilateral'; }
-    else if(/^Disminuido/i.test(mp)||conRuido.length){ au=2; auT=(mp&&mp!=='Presente Bilateral')?mp:conRuido.map(r=>r.tipo).join(', '); }
-    else auT='MP(+) sin ruidos';
-  }
-  det.push(['Auscultación',au,auT]); pje+=au;
-  // 5) Secreciones (cantidad): −/+ → 1, ++ → 2, +++ → 3
-  const sq=v('fSecrQty')||(typeof _secrQty!=='undefined'?_secrQty:'');
-  let s=1, sT='sin dato';
-  if(sq){ sT=sq; s=sq==='+++'?3:(sq==='++'?2:1); datos++; }
-  det.push(['Secreciones',s,sT]); pje+=s;
-  const nivel=_catNivel(pje,5);
-  return {pje:pje,nivel:nivel,color:_CAT_COLORES[nivel],det:det,datos:datos};
-}
-
-function calcCatMotor(){
-  const det=[]; let pje=0, datos=0;
-  const cama=_camaPanel();
-  const s5q=v('fS5Q'), coop=v('fCoop');
-  const noEval=(s5q==='lt3')||(coop==='No evaluable');
-  // 1) S5Q / cooperación
-  let c1=2, t1='sin dato';
-  if(noEval){ c1=3; t1=(s5q==='lt3'?'S5Q <3':'no evaluable'); datos++; }
-  else if(coop==='No cooperador'){ c1=2; t1='no cooperador'; datos++; }
-  else if(coop==='Cooperador'||s5q==='gte3'){ c1=1; t1='S5Q ≥3, cooperador'; datos++; }
-  det.push(['S5Q / cooperación',c1,t1]); pje+=c1;
-  // 2-4) Escalas: valor de hoy → si no, última medición del episodio (arrastre)
-  //      → si no y el paciente no es evaluable, 3 pts (máx. dependencia); si es
-  //      evaluable sin medición, 2 pts (intermedio, invita a evaluar).
+function _catNoEval(){ return v('fS5Q')==='lt3'||v('fCoop')==='No evaluable'; }
+// Escala con arrastre: valor de hoy → última medición del episodio (cama.ULT_*)
+// → sin medición: 3 pts si el paciente no es evaluable, 2 pts si es evaluable.
+function _catEsc(hoyStr,ultV,ultF,nivelFn){
   const fmtF=x=>x?String(x).slice(5,10).split('-').reverse().join('-'):'';
-  const esc=(nombre,hoyStr,ultV,ultF,nivelFn)=>{
-    let pts, txt;
-    if(hoyStr!==''&&hoyStr!=null){ pts=nivelFn(parseFloat(hoyStr)); txt=String(hoyStr); datos++; }
-    else if(ultV!==''&&ultV!=null){ pts=nivelFn(parseFloat(ultV)); txt=ultV+' (última'+(ultF?' '+fmtF(ultF):'')+')'; datos++; }
-    else if(noEval){ pts=3; txt='no evaluable'; }
-    else { pts=2; txt='sin medición'; }
-    det.push([nombre,pts,txt]); pje+=pts;
-  };
-  esc('MRC-SS', v('fMRC'), cama.ULT_MRC, cama.ULT_MRC_FECHA, x=>x>=48?1:(x>=36?2:3));
-  esc('FSS-ICU', v('fFSS'), cama.ULT_FSS, cama.ULT_FSS_FECHA, x=>x>=20?1:(x>=10?2:3));
-  const sx=(v('fSexo')||cama.SEXO||'M');
-  const grip = sx==='F' ? (x=>x>17?1:(x>=8?2:3)) : (x=>x>30?1:(x>=12?2:3));
-  esc('Dinamometría', v('fPrension'), cama.ULT_DINAMO, '', grip);
-  const nivel=_catNivel(pje,4);
-  return {pje:pje,nivel:nivel,color:_CAT_COLORES[nivel],det:det,datos:datos};
+  if(hoyStr!==''&&hoyStr!=null) return {pts:nivelFn(parseFloat(hoyStr)),txt:String(hoyStr),dato:true};
+  if(ultV!==''&&ultV!=null) return {pts:nivelFn(parseFloat(ultV)),txt:ultV+' (última'+(ultF?' '+fmtF(ultF):'')+')',dato:true};
+  if(_catNoEval()) return {pts:3,txt:'no evaluable',dato:false};
+  return {pts:2,txt:'sin medición',dato:false};
 }
+
+// Librería de variables evaluables. Cada id puede usarse en la hoja CAT_MATRICES;
+// def2/def3 = cortes por defecto (los de la hoja mandan). Agregar una variable
+// nueva = agregar una entrada aquí que lea campos existentes del formulario.
+const _CAT_VARS={
+  // ── Respiratorias ──
+  ASISTENCIA:{nombre:'Asistencia ventilatoria',ev:()=>{
+    const sop=v('fSop'), modo=v('fModo');
+    let p=1, t='espontánea';
+    if(sop==='VM'){
+      if(modo==='CPAP/PS'&&!$('cBNM')?.checked){ p=2; t='VM modo espontáneo'; }
+      else { p=3; t='VM controlada/asistida'+($('cBNM')?.checked?' + BNM':''); }
+    } else if(sop==='VNI'){ p=2; t='VNI'; }
+    else if(['CNAF','OAF/CTAF'].includes(modo)){ p=2; t=modo; }
+    return {pts:p,txt:t,dato:p>1}; // el default del formulario (espontánea) no cuenta como dato
+  }},
+  SAFI:{nombre:'Oxigenación (SAFI)',def2:300,def3:150,ev:(u2,u3)=>{
+    const spo2=parseFloat(v('r_spo2'))||0;
+    let fio2=parseFloat(v('r_fio2'))||0;
+    if(!fio2){ const l=parseFloat(v('r_litros'))||0; fio2=(v('fModo')==='NRC'&&l>0)?Math.min(100,21+4*l):21; }
+    if(!(spo2>0)) return {pts:1,txt:'sin dato',dato:false};
+    const safi=Math.round(spo2/(fio2/100));
+    return {pts:safi>u2?1:(safi>=u3?2:3),txt:'SAFI '+safi,dato:true};
+  }},
+  FR:{nombre:'Frecuencia respiratoria',def2:20,def3:28,ev:(u2,u3)=>{
+    const fr=parseFloat(v('r_fr'))||0;
+    if(!(fr>0)) return {pts:1,txt:'sin dato',dato:false};
+    return {pts:fr<=u2?1:(fr<=u3?2:3),txt:fr+' rpm',dato:true};
+  }},
+  AUSCULTACION:{nombre:'Auscultación',ev:()=>{
+    const mp=v('fMPVal');
+    const ruidos=[{tipo:v('fRuidosVal'),loc:v('fRuidosLoc')}];
+    try{ (JSON.parse(ruidosExtraJSON()||'[]')||[]).forEach(r=>ruidos.push(r)); }catch(e){}
+    const conRuido=ruidos.filter(r=>r.tipo&&r.tipo!=='Sin ruidos agregados');
+    const humBilat=conRuido.some(r=>/crépitos|estertores/i.test(r.tipo)&&/ambos campos|bibasales|apicales/i.test(r.loc||''));
+    if(!mp&&!conRuido.length) return {pts:1,txt:'sin dato',dato:false};
+    if(/^Abolido/i.test(mp)||humBilat) return {pts:3,txt:/^Abolido/i.test(mp)?mp:'sign. húmeda bilateral',dato:true};
+    if(/^Disminuido/i.test(mp)||conRuido.length) return {pts:2,txt:(mp&&mp!=='Presente Bilateral')?mp:conRuido.map(r=>r.tipo).join(', '),dato:true};
+    return {pts:1,txt:'MP(+) sin ruidos',dato:true};
+  }},
+  SECRECIONES:{nombre:'Secreciones',ev:()=>{
+    const sq=v('fSecrQty')||(typeof _secrQty!=='undefined'?_secrQty:'');
+    if(!sq) return {pts:1,txt:'sin dato',dato:false};
+    return {pts:sq==='+++'?3:(sq==='++'?2:1),txt:sq,dato:true};
+  }},
+  VOLMIN:{nombre:'Volumen minuto',def2:7,def3:12,ev:(u2,u3)=>{
+    const vt=parseFloat(v('r_vt'))||0, fr=parseFloat(v('r_fr'))||0;
+    const vm=(vt>0&&fr>0)?vt*fr/1000:0;
+    if(!(vm>0)) return {pts:1,txt:'sin dato',dato:false};
+    return {pts:vm<u2?1:(vm<=u3?2:3),txt:vm.toFixed(1)+' L/min',dato:true};
+  }},
+  PEEP:{nombre:'PEEP',def2:7,def3:10,ev:(u2,u3)=>{
+    const x=parseFloat(v('r_peep'))||0;
+    if(!(x>0)) return {pts:1,txt:'sin dato',dato:false};
+    return {pts:x<u2?1:(x<u3?2:3),txt:x+' cmH₂O',dato:true};
+  }},
+  FIO2:{nombre:'FiO₂',def2:31,def3:50,ev:(u2,u3)=>{
+    const x=parseFloat(v('r_fio2'))||0;
+    if(!(x>0)) return {pts:1,txt:'sin dato',dato:false};
+    return {pts:x<u2?1:(x<=u3?2:3),txt:x+'%',dato:true};
+  }},
+  // ── Motoras ──
+  S5Q_COOP:{nombre:'S5Q / cooperación',ev:()=>{
+    const s5q=v('fS5Q'), coop=v('fCoop');
+    if(_catNoEval()) return {pts:3,txt:(s5q==='lt3'?'S5Q <3':'no evaluable'),dato:true};
+    if(coop==='No cooperador') return {pts:2,txt:'no cooperador',dato:true};
+    if(coop==='Cooperador'||s5q==='gte3') return {pts:1,txt:'S5Q ≥3, cooperador',dato:true};
+    return {pts:2,txt:'sin dato',dato:false};
+  }},
+  MRC:{nombre:'MRC-SS',def2:48,def3:36,ev:(u2,u3)=>
+    _catEsc(v('fMRC'),_camaPanel().ULT_MRC,_camaPanel().ULT_MRC_FECHA,x=>x>=u2?1:(x>=u3?2:3))},
+  FSS:{nombre:'FSS-ICU',def2:20,def3:10,ev:(u2,u3)=>
+    _catEsc(v('fFSS'),_camaPanel().ULT_FSS,_camaPanel().ULT_FSS_FECHA,x=>x>=u2?1:(x>=u3?2:3))},
+  DINAMO:{nombre:'Dinamometría',def2:'30/17',def3:'11/7',ev:(u2,u3)=>{
+    const cama=_camaPanel();
+    const sx=(v('fSexo')||cama.SEXO||'M');
+    // Umbrales por sexo en formato 'H/M' (p.ej. '30/17'); acepta número simple
+    const pick=(u,d)=>{ const p=String(u).split('/'); const x=parseFloat(p.length>1&&sx==='F'?p[1]:p[0]); return isNaN(x)?d:x; };
+    const a=pick(u2,sx==='F'?17:30), b=pick(u3,sx==='F'?7:11);
+    return _catEsc(v('fPrension'),cama.ULT_DINAMO,'',x=>x>a?1:(x>b?2:3));
+  }},
+  SAS:{nombre:'Estado mental (SAS)',def2:4,def3:2,ev:(u2,u3)=>{
+    if(v('fSed')==='Sin sedación') return {pts:1,txt:'sin sedación',dato:true};
+    const s=parseInt(v('fSAS'))||0;
+    if(!s) return {pts:1,txt:'sin dato',dato:false};
+    return {pts:s>=u2?1:(s>u3?2:3),txt:'SAS '+s,dato:true};
+  }},
+  KTM_NIVEL:{nombre:'Nivel de movilización (KTM)',def2:4,def3:2,ev:(u2,u3)=>{
+    if($('cKTMs')?.checked) return {pts:3,txt:'KTM contraindicada',dato:true};
+    const niv=parseInt(v('fKTMniv'))||0;
+    if(!niv||!$('cKTMr')?.checked) return {pts:_catNoEval()?3:2,txt:_catNoEval()?'no evaluable':'sin dato',dato:false};
+    return {pts:niv>=u2?1:(niv>u3?2:3),txt:'nivel '+niv,dato:true};
+  }},
+  CPAX:{nombre:'CPAx',def2:40,def3:20,ev:(u2,u3)=>
+    _catEsc(v('fCpaxTotal'),'','',x=>x>=u2?1:(x>=u3?2:3))},
+};
+
+// Composición por defecto (guía SOCHIMI / matriz motora Clínica Alemana) —
+// se usa solo si la planilla aún no tiene la hoja CAT_MATRICES.
+const _CAT_DEF_DEFAULT=[
+  {m:'RESP',v:'ASISTENCIA'},{m:'RESP',v:'SAFI'},{m:'RESP',v:'FR'},
+  {m:'RESP',v:'AUSCULTACION'},{m:'RESP',v:'SECRECIONES'},
+  {m:'MOTOR',v:'S5Q_COOP'},{m:'MOTOR',v:'MRC'},{m:'MOTOR',v:'FSS'},{m:'MOTOR',v:'DINAMO'},
+];
+function _catDef(){
+  const d=(window.CFG&&Array.isArray(CFG.CAT_DEF)&&CFG.CAT_DEF.length)?CFG.CAT_DEF:_CAT_DEF_DEFAULT;
+  return d;
+}
+function _calcMatriz(m){
+  // Umbral de la hoja: número (acepta coma decimal), 'H/M' se pasa tal cual;
+  // vacío o inválido → default de la librería.
+  const norm=(u,d)=>{ if(u==null||u==='') return d; const s=String(u).trim();
+    if(s.indexOf('/')!==-1) return s; const x=parseFloat(s.replace(',','.')); return isNaN(x)?d:x; };
+  const rows=_catDef().filter(r=>String(r.m||'').toUpperCase()===m&&_CAT_VARS[String(r.v||'').toUpperCase()]);
+  const det=[]; let pje=0, datos=0;
+  rows.forEach(r=>{
+    const vd=_CAT_VARS[String(r.v).toUpperCase()];
+    const res=vd.ev(norm(r.u2,vd.def2), norm(r.u3,vd.def3));
+    det.push([vd.nombre,res.pts,res.txt]); pje+=res.pts; if(res.dato) datos++;
+  });
+  const n=rows.length;
+  if(!n) return {pje:0,nivel:'',color:'#94a3b8',det:[],datos:0,n:0};
+  const nivel=_catNivel(pje,n);
+  return {pje:pje,nivel:nivel,color:_CAT_COLORES[nivel],det:det,datos:datos,n:n};
+}
+function calcCatResp(){ return _calcMatriz('RESP'); }
+function calcCatMotor(){ return _calcMatriz('MOTOR'); }
 
 function _updCategorias(){
   const pinta=(id,c,tag,matriz)=>{
     const el=$(id); if(!el) return;
-    if(!c.datos){ el.textContent=tag+': —'; el.style.background='#94a3b8'; el.title=matriz+' — sin datos aún'; return; }
+    const nom=`${matriz} SOCHIMI (${c.n||0} variables)`;
+    if(!c.datos){ el.textContent=tag+': —'; el.style.background='#94a3b8'; el.title=nom+' — sin datos aún'; return; }
     el.textContent=`${tag}: ${c.nivel} (${c.pje})`;
     el.style.background=c.color;
-    el.title=matriz+` · complejidad ${c.nivel} (${c.pje} pts) — `+c.det.map(d=>`${d[0]}: ${d[2]} = ${d[1]} pt`).join(' · ');
+    el.title=nom+` · complejidad ${c.nivel} (${c.pje} pts) — `+c.det.map(d=>`${d[0]}: ${d[2]} = ${d[1]} pt`).join(' · ');
   };
-  pinta('catResp', calcCatResp(), '🫁 R', 'Matriz respiratoria SOCHIMI (5 variables)');
-  pinta('catMotor', calcCatMotor(), '🦾 M', 'Matriz motora SOCHIMI (4 variables)');
+  pinta('catResp', calcCatResp(), '🫁 R', 'Matriz respiratoria');
+  pinta('catMotor', calcCatMotor(), '🦾 M', 'Matriz motora');
 }
 
 // ══════════ ANULAR EVENTO DE UN TURNO GUARDADO ══════════

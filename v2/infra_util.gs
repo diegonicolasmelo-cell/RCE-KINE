@@ -30,3 +30,18 @@ function catalogo(tipo) {
     .sort((a, b) => (parseInt(a.ORDEN) || 0) - (parseInt(b.ORDEN) || 0))
     .map(r => r.VALOR);
 }
+
+/**
+ * Definición activa de las matrices de categorización (hoja CAT_MATRICES),
+ * ordenada. null si la hoja no existe aún (el cliente usa su default SOCHIMI).
+ */
+function catMatrices() {
+  try {
+    const filas = repoLeerTodos('CAT_MATRICES')
+      .filter(r => esVerdadero(r.ACTIVA) && r.MATRIZ && r.VARIABLE)
+      .sort((a, b) => (parseInt(a.ORDEN) || 0) - (parseInt(b.ORDEN) || 0))
+      .map(r => ({ m: String(r.MATRIZ).trim().toUpperCase(), v: String(r.VARIABLE).trim().toUpperCase(),
+                   u2: String(r.UMBRAL_2 || '').trim(), u3: String(r.UMBRAL_3 || '').trim() }));
+    return filas.length ? filas : null;
+  } catch (e) { return null; }
+}

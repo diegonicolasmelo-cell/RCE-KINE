@@ -74,10 +74,14 @@ function obtenerStats(desde, hasta) {
     const kt = parseInt(e.RESP_KTR_CANT); if (kt > 0) ktrSes += kt;
     if (esVerdadero(e.KTM_IMT)) imtSes++;
     if (e.PROC_JSON) { try { (JSON.parse(e.PROC_JSON) || []).forEach(p => tally(procs, p)); } catch (x) {} }
+    // Nivel guardado con la configuración vigente ese turno; filas anteriores
+    // a CAT_MATRICES (solo puntaje) se derivan con el n° de variables default.
+    const nR = String(e.CAT_RESP_NIVEL || '').trim();
     const cr = parseInt(e.CAT_RESP_PJE) || 0;
-    if (cr) tally(catResp, catNivel(cr, 5));
+    if (nR) tally(catResp, nR); else if (cr) tally(catResp, catNivel(cr, 5));
+    const nM = String(e.CAT_MOTOR_NIVEL || '').trim();
     const cm = parseInt(e.CAT_MOTOR_PJE) || 0;
-    if (cm) tally(catMotor, catNivel(cm, 4));
+    if (nM) tally(catMotor, nM); else if (cm) tally(catMotor, catNivel(cm, 4));
   });
 
   // Grupo REM: por paciente (último valor registrado), no por evolución
