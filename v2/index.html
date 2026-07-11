@@ -3456,7 +3456,7 @@ const VENT_VARS = [
 // Variables de rehabilitación
 const REH_VARS = [
   { key: 'EVAL_NIVEL_MOTOR', label: 'Hito motor (1-6)',   color: '#0f766e', step:1, max:6 },
-  { key: 'KTM_NIVEL_KTR',  label: 'Nivel KTR (1-5)',    color: '#b45309', step:1, max:5 },
+  { key: 'KTM_NIVEL_KTR',  label: 'Nivel KTM (1-5)',    color: '#b45309', step:1, max:5 },
   { key: 'KTM_TIEMPO_MIN', label: 'Tiempo KTM (min)',   color: '#0284c7' },
   { key: 'EVAL_T_MRC',     label: 'MRC-SS (0-60)',      color: '#059669', max:60 },
   { key: 'EVAL_T_FSS',        label: 'FSS-ICU (0-35)',     color: '#7c3aed', max:35 },
@@ -3720,6 +3720,8 @@ function _renderTLResumen(){
   h+=pill('PVE', pveN?`${pveN}${pveUlt?` · últ. ${pveUlt.PVE_RESULTADO}`:''}`:'—', pveUlt?(pveUlt.PVE_RESULTADO==='superada'?'#16a34a':'#dc2626'):'#7c3aed');
   h+=pill('Reintubaciones', String(reintubs), reintubs?'#b91c1c':'#94a3b8');
   h+=pill('Mejor nivel KTM', nivMax?`Nivel ${nivMax}`:'—', '#d97706');
+  const ktrTot=evos.reduce((a,e)=>a+(parseInt(e.RESP_KTR_CANT)||0),0);
+  h+=pill('Sesiones KTR', ktrTot?String(ktrTot):'—', '#0891b2');
   if(mrc) h+=pill('MRC últ.', `${mrc.v} <span style="font-size:.62rem;color:#94a3b8;">${mrc.f}</span>`, '#d97706');
   if(fss) h+=pill('FSS últ.', `${fss.v} <span style="font-size:.62rem;color:#94a3b8;">${fss.f}</span>`, '#0891b2');
   if(cpax) h+=pill('CPAx últ.', `${cpax.v} <span style="font-size:.62rem;color:#94a3b8;">${cpax.f}</span>`, '#7c3aed');
