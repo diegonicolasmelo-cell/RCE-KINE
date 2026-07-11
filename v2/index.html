@@ -2050,7 +2050,8 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
   </div>
 
   <div class="tl-tabs">
-    <button class="tl-mtab on" id="tlMt-ev"   onclick="setTLtab('ev')">📜 Eventos</button>
+    <button class="tl-mtab on" id="tlMt-res"  onclick="setTLtab('res')">📊 Resumen</button>
+    <button class="tl-mtab"    id="tlMt-ev"   onclick="setTLtab('ev')">📜 Eventos</button>
     <button class="tl-mtab"    id="tlMt-vent" onclick="setTLtab('vent')">💬 Ventilatorio</button>
     <button class="tl-mtab"    id="tlMt-reh"  onclick="setTLtab('reh')">🏃 Rehabilitación</button>
   </div>
@@ -2076,6 +2077,8 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
       <option value="general">General</option>
     </select>
 
+    <!-- Packs (presets de un toque, solo en tabs Vent / Reh) -->
+    <div id="tlPacks" class="tl-varchips hidden" style="margin-left:8px;"></div>
     <!-- Selector de variables (multi, solo en tabs Vent / Reh) -->
     <span id="tlVarLbl" class="hidden" style="font-size:.68rem;color:#64748b;font-weight:700;text-transform:uppercase;margin-left:8px;">Variables:</span>
     <div id="tlVarChips" class="tl-varchips hidden"></div>
@@ -2293,7 +2296,7 @@ let EVO_SET  = new Set();
 let TLC      = null;        // ID cama actualmente abierta
 let TL_HITOS = [];          // array de hitos
 let TL_EVOS  = [];          // array de evoluciones (subset graficable)
-let TL_TAB   = 'ev';        // 'ev' | 'vent' | 'reh'
+let TL_TAB   = 'res';       // 'res' | 'ev' | 'vent' | 'reh'
 let TL_TURNO = 'all';       // 'all' | 'Dia' | 'Noche'
 let TL_VARS_SEL = new Set(); // variables seleccionadas para el gráfico (multi)
 let TL_NOMBRE= '';
@@ -3472,8 +3475,8 @@ function abrirTL(id) {
   TL_NOMBRE = c ? (c.NOMBRE || `Cama ${id}`) : `Cama ${id}`;
   $('tlNombre').textContent = TL_NOMBRE;
 
-  // Reset tab a Eventos + filtros
-  TL_TAB = 'ev'; TL_TURNO = 'all';
+  // Abre en Resumen (vista sin clics) + filtros
+  TL_TAB = 'res'; TL_TURNO = 'all';
   _updateTLTabsUI(); _updateTLFiltersUI();
   $('tlBody').innerHTML = '<div style="padding:30px;text-align:center;color:#94a3b8;">Cargando historial...</div>';
 
@@ -3571,7 +3574,7 @@ function setTLturno(t) {
   renderTL();
 }
 function _updateTLTabsUI() {
-  ['ev','vent','reh'].forEach(t => {
+  ['res','ev','vent','reh'].forEach(t => {
     const b = $('tlMt-' + t); if (b) b.classList.toggle('on', t === TL_TAB);
   });
 }
@@ -3590,23 +3593,62 @@ function _updateTLFiltersUI() {
     b.classList.toggle('on', esReh ? t === 'Dia' : t === TL_TURNO);
   });
 
-  // Variables → solo en 'vent' / 'reh'
-  const varVisible = TL_TAB !== 'ev';
+  // Variables y packs → solo en 'vent' / 'reh'
+  const varVisible = TL_TAB === 'vent' || TL_TAB === 'reh';
   $('tlVarLbl').classList.toggle('hidden', !varVisible);
   $('tlVarChips').classList.toggle('hidden', !varVisible);
+  $('tlPacks').classList.toggle('hidden', !varVisible);
   if (varVisible) {
     const vars = TL_TAB === 'vent' ? VENT_VARS : REH_VARS;
     const validKeys = vars.map(v => v.key);
-    const current = [...TL_VARS_SEL].filter(k => validKeys.includes(k));
+    let current = [...TL_VARS_SEL].filter(k => validKeys.includes(k));
+    // memoria de vista del navegador → si no, el primer pack del dominio
     if (!current.length) {
-      const def = TL_TAB === 'reh' ? ['EVAL_NIVEL_MOTOR','EVAL_T_MRC'] : ['VENT_PEEP','VENT_FIO2'];
-      TL_VARS_SEL = new Set(def.filter(k => validKeys.includes(k)));
-      if (!TL_VARS_SEL.size) TL_VARS_SEL = new Set([vars[0].key]);
-    } else {
-      TL_VARS_SEL = new Set(current);
+      try {
+        const g = JSON.parse(localStorage.getItem('rce_tl_vars_' + TL_TAB) || '[]').filter(k => validKeys.includes(k));
+        if (g.length) current = g;
+      } catch (e) {}
     }
+    if (!current.length) current = (TL_PACKS[TL_TAB] && TL_PACKS[TL_TAB][0] ? TL_PACKS[TL_TAB][0][1] : []).filter(k => validKeys.includes(k));
+    if (!current.length) current = [vars[0].key];
+    TL_VARS_SEL = new Set(current);
     _renderTLVarChips(vars);
+    _renderTLPacks();
   }
+}
+
+// ── Packs: presets de variables de un toque (el ajuste fino sigue en los chips) ──
+const TL_PACKS = {
+  vent: [
+    ['🫧 Oxigenación', ['VENT_FIO2','VENT_SPO2','CALC_IROX']],
+    ['⚙️ Mecánica',    ['VENT_PEEP','VENT_PMAX','CALC_DP','CALC_ML_KG']],
+    ['🪶 Weaning',     ['VENT_PS','CALC_TOBIN','VENT_FR']],
+    ['🎭 VNI',         ['VENT_IPAP','VENT_EPAP']],
+  ],
+  reh: [
+    ['📈 Progresión', ['KTM_NIVEL_KTR','EVAL_NIVEL_MOTOR']],
+    ['💪 Fuerza',     ['EVAL_T_MRC','EVAL_T_DINAMO','EVAL_T_PIM','EVAL_T_PEM']],
+    ['🚶 Función',    ['EVAL_T_FSS','CPAX_TOTAL','PAC_BARTHEL']],
+  ],
+};
+function _renderTLPacks(){
+  const el=$('tlPacks'); if(!el) return;
+  const packs=TL_PACKS[TL_TAB]||[];
+  el.innerHTML=packs.map(([lbl,keys],i)=>{
+    const on=keys.length===TL_VARS_SEL.size && keys.every(k=>TL_VARS_SEL.has(k));
+    return `<button class="tl-vchip ${on?'on':''}" style="font-weight:800;${on?'color:#0f172a;border-color:#0f172a;background:#f1f5f9;':''}" onclick="aplicarTLPack(${i})">${lbl}</button>`;
+  }).join('');
+}
+function aplicarTLPack(i){
+  const p=(TL_PACKS[TL_TAB]||[])[i]; if(!p) return;
+  TL_VARS_SEL=new Set(p[1]);
+  _guardarTLVars();
+  _renderTLVarChips(TL_TAB==='vent'?VENT_VARS:REH_VARS);
+  _renderTLPacks();
+  renderTL();
+}
+function _guardarTLVars(){
+  try{ localStorage.setItem('rce_tl_vars_'+TL_TAB, JSON.stringify([...TL_VARS_SEL])); }catch(e){}
 }
 
 function _renderTLVarChips(vars) {
@@ -3625,14 +3667,73 @@ function toggleTLVar(key) {
     TL_VARS_SEL.add(key);
   }
   const vars = TL_TAB === 'vent' ? VENT_VARS : REH_VARS;
+  _guardarTLVars();
   _renderTLVarChips(vars);
+  _renderTLPacks();
   renderTL();
 }
 
 function renderTL() {
   if (!$('tlBody')) return;
-  if (TL_TAB === 'ev')   _renderTLEventos();
-  else                   _renderTLChart(TL_TAB === 'vent' ? VENT_VARS : REH_VARS);
+  if (TL_TAB === 'res')      _renderTLResumen();
+  else if (TL_TAB === 'ev')  _renderTLEventos();
+  else                       _renderTLChart(TL_TAB === 'vent' ? VENT_VARS : REH_VARS);
+}
+
+// ── Eventos únicos del turno → marcadores para la fila 📌 de las tablas ──
+function _tlEventosSlot(e){
+  const esT=x=>x===true||x==='TRUE';
+  const out=[];
+  if(esT(e.INTUB_OCURRIO)) out.push(['🫁','Intubación','#b91c1c']);
+  if(e.PVE_RESULTADO==='superada') out.push(['▲','PVE superada','#16a34a']);
+  else if(e.PVE_RESULTADO==='frustra') out.push(['▲','PVE frustra','#dc2626']);
+  else if(e.PVE_VAL==='si') out.push(['▲','PVE','#7c3aed']);
+  if(esT(e.EXT_OCURRIO)) out.push(['✂️','Extubación','#16a34a']);
+  if(esT(e.EXT_REINTUB)) out.push(['🔁','Reintubación','#b91c1c']);
+  if(esT(e.DECAN_OCURRIO)) out.push(['⭕','Decanulación','#0d9488']);
+  if(esT(e.TOT_CAMBIO)) out.push(['🔄','Cambio de tubo','#92400e']);
+  if(esT(e.TQT_CAMBIO)) out.push(['🔄','Cambio de cánula','#92400e']);
+  return out;
+}
+
+// ── Tab Resumen — lo importante sin clics: KPIs del episodio + 3 tablas fijas ──
+function _renderTLResumen(){
+  const evos=TL_EVOS
+    .filter(e => TL_TURNO === 'all' || e.TURNO === TL_TURNO)
+    .slice().sort((a,b)=>String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
+  if(!evos.length){
+    $('tlBody').innerHTML='<div style="color:#94a3b8;text-align:center;padding:40px;font-style:italic;">Sin evoluciones registradas aún.</div>';
+    return;
+  }
+  const esT=x=>x===true||x==='TRUE';
+  const ult=evos[evos.length-1];
+  const pveN=evos.filter(e=>e.PVE_VAL==='si').length;
+  const pveUlt=[...evos].reverse().find(e=>e.PVE_RESULTADO);
+  const reintubs=evos.filter(e=>esT(e.EXT_REINTUB)).length;
+  const nivMax=Math.max(0,...evos.map(e=>parseInt(e.KTM_NIVEL_KTR)||0));
+  const ultCon=k=>{ const e=[...evos].reverse().find(x=>x[k]!==''&&x[k]!==null&&x[k]!==undefined); return e?{v:e[k],f:String(e.TURNO_KEY).slice(5,10)}:null; };
+  const mrc=ultCon('EVAL_T_MRC'), fss=ultCon('EVAL_T_FSS'), cpax=ultCon('CPAX_TOTAL');
+  const pill=(lbl,val,color)=>`<div style="background:#fff;border:1px solid #e2e8f0;border-left:4px solid ${color||'#94a3b8'};border-radius:9px;padding:6px 12px;min-width:104px;"><div style="font-size:.6rem;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.03em;">${lbl}</div><div style="font-size:1rem;font-weight:800;color:#0f172a;">${val}</div></div>`;
+  let h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">';
+  h+=pill('Día estadía', (ult.DIA_ESTADIA!==''&&ult.DIA_ESTADIA!==undefined)?ult.DIA_ESTADIA:'—', '#1d6fc4');
+  h+=pill('Días VM', (ult.DIAS_VM!==''&&ult.DIAS_VM!==undefined)?ult.DIAS_VM:'—', '#0284c7');
+  h+=pill('PVE', pveN?`${pveN}${pveUlt?` · últ. ${pveUlt.PVE_RESULTADO}`:''}`:'—', pveUlt?(pveUlt.PVE_RESULTADO==='superada'?'#16a34a':'#dc2626'):'#7c3aed');
+  h+=pill('Reintubaciones', String(reintubs), reintubs?'#b91c1c':'#94a3b8');
+  h+=pill('Mejor nivel KTM', nivMax?`Nivel ${nivMax}`:'—', '#d97706');
+  if(mrc) h+=pill('MRC últ.', `${mrc.v} <span style="font-size:.62rem;color:#94a3b8;">${mrc.f}</span>`, '#d97706');
+  if(fss) h+=pill('FSS últ.', `${fss.v} <span style="font-size:.62rem;color:#94a3b8;">${fss.f}</span>`, '#0891b2');
+  if(cpax) h+=pill('CPAx últ.', `${cpax.v} <span style="font-size:.62rem;color:#94a3b8;">${cpax.f}</span>`, '#7c3aed');
+  h+='</div>';
+  const TODAS=[...VENT_VARS,...REH_VARS];
+  const secc=(tit,keys)=>{
+    const sel=TODAS.filter(vd=>keys.includes(vd.key));
+    return `<div style="margin-bottom:16px;"><div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin-bottom:6px;">${tit}</div>${_tlTablaHTML(sel,true)}</div>`;
+  };
+  const hayPS=evos.some(e=>{const n=_parseNum(e.VENT_PS);return n!==null&&n>0;});
+  h+=secc('🫧 Oxigenación',['VENT_FIO2','VENT_SPO2']);
+  h+=secc('⚙️ Soporte',['VENT_PEEP',hayPS?'VENT_PS':'CALC_DP']);
+  h+=secc('🏃 Rehabilitación',['KTM_NIVEL_KTR','EVAL_NIVEL_MOTOR']);
+  $('tlBody').innerHTML=h;
 }
 
 // ── Tab Eventos — tabla horizontal: columnas = fechas, filas = eventos ──
@@ -3695,23 +3796,28 @@ function _renderTLEventos() {
 function _renderTLChart(varsList) {
   const sel = varsList.filter(v => TL_VARS_SEL.has(v.key));
   if (!sel.length) { $('tlBody').innerHTML = '<div class="ch-empty">Selecciona al menos una variable.</div>'; return; }
+  $('tlBody').innerHTML = _tlTablaHTML(sel, true);
+}
 
+// Tabla-heatmap compartida (tabs Vent/Reh y secciones del Resumen).
+// conEventos agrega la fila 📌 con los eventos únicos de cada turno.
+function _tlTablaHTML(sel, conEventos) {
   // Evoluciones filtradas y ordenadas cronológicamente
   const evos = TL_EVOS
     .filter(e => TL_TURNO === 'all' || e.TURNO === TL_TURNO)
     .slice()
     .sort((a, b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
 
-  // Slots (columnas): una por registro
+  // Slots (columnas): una por registro; se conservan turnos sin datos si tienen eventos
   const slots = evos.map(e => ({
-    fecha: e.FECHA || '',
+    fecha: String(e.FECHA || ''),
     turno: e.TURNO || '',
+    evts: conEventos ? _tlEventosSlot(e) : [],
     vals: sel.reduce((o, vd) => { o[vd.key] = _parseNum(e[vd.key]); return o; }, {})
-  })).filter(s => sel.some(vd => s.vals[vd.key] !== null));
+  })).filter(s => sel.some(vd => s.vals[vd.key] !== null) || s.evts.length);
 
   if (!slots.length) {
-    $('tlBody').innerHTML = '<div class="ch-empty" style="color:#94a3b8;text-align:center;padding:40px;font-style:italic;">Sin datos de estas variables en el rango seleccionado.</div>';
-    return;
+    return '<div class="ch-empty" style="color:#94a3b8;text-align:center;padding:24px;font-style:italic;">Sin datos de estas variables en el rango seleccionado.</div>';
   }
 
   const thBase = 'padding:6px 10px;white-space:nowrap;font-size:.7rem;font-family:monospace;font-weight:700;color:#475569;background:#f8fafc;border-right:1px solid #e2e8f0;border-bottom:2px solid #e2e8f0;text-align:center;min-width:90px;';
@@ -3749,7 +3855,19 @@ function _renderTLChart(varsList) {
     </tr>`;
   }).join('');
 
-  $('tlBody').innerHTML = `
+  // Fila 📌 de eventos únicos del turno (marcadores sobre la tabla)
+  let evRow = '';
+  if (conEventos && slots.some(s => s.evts.length)) {
+    const evCells = slots.map(s => {
+      if (!s.evts.length) return `<td style="padding:5px 6px;text-align:center;color:#e2e8f0;border-right:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;">·</td>`;
+      const tip = s.evts.map(x => x[1]).join(' · ');
+      const marks = s.evts.map(x => `<span style="color:${x[2]};font-weight:800;">${x[0]}</span>`).join(' ');
+      return `<td style="padding:5px 6px;text-align:center;border-right:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;white-space:nowrap;background:#fffbeb;" title="${tip}">${marks}</td>`;
+    }).join('');
+    evRow = `<tr><td style="${tdSticky}">📌 Eventos</td>${evCells}<td style="border-bottom:1px solid #f1f5f9;"></td></tr>`;
+  }
+
+  return `
     <div style="overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <table style="border-collapse:collapse;font-size:.8rem;min-width:max-content;width:100%;">
         <thead>
@@ -3759,7 +3877,7 @@ function _renderTLChart(varsList) {
             <th style="${thBase}min-width:70px;">Rango</th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody>${evRow}${rows}</tbody>
       </table>
     </div>`;
 }
