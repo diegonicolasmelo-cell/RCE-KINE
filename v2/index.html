@@ -755,6 +755,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
             <option>100</option>
           </select>
           <span id="lblEgBarthel" class="interp-tip" title=""></span>
+          <button type="button" onclick="abrirEscala('barthel','egBarthel')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
         </div>
       </div>
       <div class="col wm"><label>Firma kine</label><select id="egFirma" class="bold tc"></select></div>
@@ -858,7 +859,11 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
           </div>
           <!-- Fila 3 (v2 — hoja RHB): Charlson + tipo de ingreso -->
           <div class="row" style="margin-top:2px;margin-bottom:0;">
-            <div class="col ws"><label>Charlson</label><input type="number" id="fCharlson" min="0" max="37" style="width:70px;"></div>
+            <div class="col wa"><label>Charlson</label>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <input type="number" id="fCharlson" min="0" max="37" style="width:70px;">
+                <button type="button" onclick="abrirEscala('charlson','fCharlson')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
+              </div></div>
             <div class="col wa"><label>Ingreso</label>
               <select id="fIngTipo" style="min-width:110px;">
                 <option value="" disabled selected>--</option>
@@ -889,6 +894,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                     <option>100</option>
                   </select>
                   <span id="lblBarthel" class="interp-tip" title=""></span>
+                  <button type="button" onclick="abrirEscala('barthel','fBarthel')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
                 </div>
               </div>
               <div class="col ws" style="margin-right:18px;"><label>ECF</label>
@@ -899,6 +905,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                     <option>6</option><option>7</option><option>8</option><option>9</option>
                   </select>
                   <span id="lblEcf" class="interp-tip" title=""></span>
+                  <button type="button" onclick="abrirEscala('ecf','fEcf')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
                 </div>
               </div>
               <div class="col wa"><label>⚖️ AET</label>
@@ -2178,6 +2185,45 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
   </div>
 </div>
 
+<!-- CALCULADORAS DE ESCALAS (Barthel / Charlson / ECF) — fuera de <form id="kf"> -->
+<div class="tlmodal" id="mBarthel" role="dialog" aria-modal="true" style="width:min(680px,94vw);height:auto;max-height:90vh;">
+  <div class="phdr">
+    <div class="ptitle">🧮 Índice de Barthel — ABVD</div>
+    <button class="xbtn" onclick="cerrarEscala('mBarthel')" aria-label="Cerrar">×</button>
+  </div>
+  <div id="mBarthelBody" style="padding:12px 18px;overflow-y:auto;"></div>
+  <div style="padding:10px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div style="font-size:1.05rem;font-weight:800;">Total: <span id="barthelTot">—</span> / 100</div>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="btn btn-r" style="width:auto;padding:0 16px;height:40px;" onclick="cerrarEscala('mBarthel')">Cancelar</button>
+      <button type="button" class="btn btn-p" style="width:auto;padding:0 18px;height:40px;" onclick="aplicarBarthel()">✔ Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<div class="tlmodal" id="mCharlson" role="dialog" aria-modal="true" style="width:min(620px,94vw);height:auto;max-height:90vh;">
+  <div class="phdr">
+    <div class="ptitle">🧮 Índice de comorbilidad de Charlson</div>
+    <button class="xbtn" onclick="cerrarEscala('mCharlson')" aria-label="Cerrar">×</button>
+  </div>
+  <div id="mCharlsonBody" style="padding:12px 18px;overflow-y:auto;"></div>
+  <div style="padding:10px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div style="font-size:1.05rem;font-weight:800;">Total: <span id="charlsonTot">—</span></div>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="btn btn-r" style="width:auto;padding:0 16px;height:40px;" onclick="cerrarEscala('mCharlson')">Cancelar</button>
+      <button type="button" class="btn btn-p" style="width:auto;padding:0 18px;height:40px;" onclick="aplicarCharlson()">✔ Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<div class="tlmodal" id="mEcf" role="dialog" aria-modal="true" style="width:min(640px,94vw);height:auto;max-height:90vh;">
+  <div class="phdr">
+    <div class="ptitle">🧮 Escala Clínica de Fragilidad (1-9) — toca el nivel</div>
+    <button class="xbtn" onclick="cerrarEscala('mEcf')" aria-label="Cerrar">×</button>
+  </div>
+  <div id="mEcfBody" style="padding:12px 18px;overflow-y:auto;"></div>
+</div>
+
 <!-- TOAST -->
 <div id="tc"></div>
 
@@ -2495,6 +2541,10 @@ function abrirPanel(id, esIng) {
   for(let i=1;i<=6;i++){ const d=$('fMrcD'+i); if(d) d.value=''; const iz=$('fMrcI'+i); if(iz) iz.value=''; }
   for(let i=1;i<=10;i++){ const e=$('fCpax'+i); if(e) e.value=''; }
   const _cpt=$('fCpaxTotal'); if(_cpt) _cpt.value='';
+  for(let i=0;i<10;i++){ const e=$('bar'+i); if(e) e.value=''; }
+  for(let i=0;i<19;i++){ const e=$('ch'+i); if(e) e.checked=false; }
+  const _che=$('chEdad'); if(_che) _che.checked=false;
+  if(typeof sumBarthel==='function'){ sumBarthel(); sumCharlson(); }
   sumFSS(); sumMRC(); sumCPAX();
   if(window.CFG && CFG.CPAX_ACTIVO===false) hide('rowCpax'); else show('rowCpax');
   // defaults
@@ -2650,6 +2700,8 @@ function fillForm(s) {
   set('fNombre',s.PAC_NOMBRE); set('fEdad',s.PAC_EDAD); set('fTalla',s.PAC_TALLA);
   set('fBarthel',s.PAC_BARTHEL); set('fEcf',s.PAC_ECF);
   updBarthelLbl('fBarthel','lblBarthel'); updEcfLbl('fEcf','lblEcf');
+  (function(){ if(!s.BARTHEL_JSON) return; try{ const a=JSON.parse(s.BARTHEL_JSON)||[]; _renderBarthel(); a.forEach((x,i)=>{ const e=$('bar'+i); if(e) e.value=x; }); sumBarthel(); }catch(e){} })();
+  (function(){ if(!s.CHARLSON_JSON) return; try{ const o=JSON.parse(s.CHARLSON_JSON)||{}; _renderCharlson(); (o.it||[]).forEach(i=>{ const e=$('ch'+i); if(e) e.checked=true; }); const ce=$('chEdad'); if(ce) ce.checked=!!o.edad; sumCharlson(); }catch(e){} })();
   if(s.PAC_SEXO){ $('fSexo').value=s.PAC_SEXO; calcPI(); }
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
   set('fCharlson',s.PAC_CHARLSON); set('fIngTipo',s.PAC_INGRESO_TIPO);
@@ -3058,6 +3110,8 @@ function guardar() {
     PAC_SEXO:v('fSexo'), PAC_TALLA:v('fTalla'), PAC_BARTHEL:v('fBarthel'),
     PAC_ECF:v('fEcf'), PAC_DIAGNOSTICO:v('fDx'), PAC_DIAG_REM:v('fRem'),
     PAC_CHARLSON:v('fCharlson'), PAC_INGRESO_TIPO:v('fIngTipo'),
+    BARTHEL_JSON:(function(){ const a=[]; let any=false; for(let i=0;i<10;i++){ const x=v('bar'+i); a.push(x); if(x!=='') any=true; } return any?JSON.stringify(a):''; })(),
+    CHARLSON_JSON:(function(){ const a=[]; for(let i=0;i<CHARLSON_ITEMS.length;i++){ if($('ch'+i)?.checked) a.push(i); } const ed=$('chEdad')?.checked; return (a.length||ed)?JSON.stringify({it:a,edad:!!ed}):''; })(),
     // S1 extras
     PAC_AISLAMIENTO:   $('cAisl')?.checked||false,
     PAC_AISL_MICRO:    $('fAislMicroVal')?.value||'',
@@ -3823,8 +3877,8 @@ function genTexto() {
     const _cq=v('fCambioTQTmot')==='Otro'?(v('fCambioTQTdet')||''):v('fCambioTQTmot');
     L.push(`Se realiza cambio de cánula de TQT${_conMotivo(_cq)}.`);
   }
-  if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA en día ${dVA} mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()}.`); }
-  else if(va==='TQT') L.push(`VAA en día ${dVA} mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''}.`);
+  if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA en día ${dVA} mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()}${$('cCambioTOT')?.checked?' (tubo nuevo)':''}.`); }
+  else if(va==='TQT') L.push(`VAA en día ${dVA} mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''}${$('cCambioTQT')?.checked?' (cánula nueva)':''}.`);
   // — Helpers de soporte ventilatorio —
   const _np=id=>{ const x=parseFloat(gv(id)); return isNaN(x)?0:x; };
   const _mon=id=>{ const e=$(id); return e?(e.textContent||'').trim():''; };
@@ -4142,15 +4196,15 @@ const _BARTHEL_LBL=[
   [100,100,'Independiente','interp-ok'],
 ];
 const _ECF_LBL={
-  1:['Muy en forma',   'interp-ok'],
-  2:['En forma',       'interp-ok'],
-  3:['Manejando bien', 'interp-leve'],
-  4:['Vulnerable',     'interp-leve'],
-  5:['Fragilidad leve','interp-mod'],
-  6:['Fragilidad mod.','interp-mod'],
-  7:['Fragilidad sev.','interp-sev'],
-  8:['Frag. muy sev.', 'interp-tot'],
-  9:['Enf. terminal',  'interp-tot'],
+  1:['Muy en forma',          'interp-ok'],
+  2:['En forma',              'interp-ok'],
+  3:['Se las arregla bien',   'interp-leve'],
+  4:['Fragilidad muy leve',   'interp-leve'],
+  5:['Fragilidad leve',       'interp-mod'],
+  6:['Fragilidad moderada',   'interp-mod'],
+  7:['Fragilidad severa',     'interp-sev'],
+  8:['Fragilidad muy severa', 'interp-tot'],
+  9:['Enfermedad terminal',   'interp-tot'],
 };
 const _INTERP_CLASSES=['interp-ok','interp-leve','interp-mod','interp-sev','interp-tot'];
 function updBarthelLbl(selId,lblId){
@@ -6010,6 +6064,121 @@ function renderStats(d){
   h+=`<div class="dcard"><div class="dcard-h">🚶 Interpretación FSS al egreso</div>${_bars(eg.fssInterp,'#0891b2')}</div>`;
   h+='</div>';
   $('dashBody').innerHTML=h;
+}
+
+// ══════════ CALCULADORAS DE ESCALAS (Barthel / Charlson / ECF) ══════════
+const BARTHEL_ITEMS=[
+ ['Comer',[[0,'Incapaz'],[5,'Necesita ayuda (cortar, untar…)'],[10,'Independiente']]],
+ ['Lavarse (baño/ducha)',[[0,'Dependiente'],[5,'Independiente']]],
+ ['Vestirse',[[0,'Dependiente'],[5,'Necesita ayuda'],[10,'Independiente']]],
+ ['Arreglarse (aseo personal)',[[0,'Dependiente'],[5,'Independiente']]],
+ ['Deposición',[[0,'Incontinente'],[5,'Accidente ocasional'],[10,'Continente']]],
+ ['Micción',[[0,'Incontinente o sonda'],[5,'Accidente ocasional'],[10,'Continente']]],
+ ['Uso del retrete',[[0,'Dependiente'],[5,'Necesita ayuda'],[10,'Independiente']]],
+ ['Traslado sillón-cama',[[0,'Incapaz'],[5,'Gran ayuda (1-2 personas)'],[10,'Mínima ayuda o supervisión'],[15,'Independiente']]],
+ ['Deambulación',[[0,'Inmóvil'],[5,'Independiente en silla de ruedas'],[10,'Camina con ayuda de 1 persona'],[15,'Independiente (puede usar bastón)']]],
+ ['Escaleras',[[0,'Incapaz'],[5,'Necesita ayuda o supervisión'],[10,'Independiente']]],
+];
+const CHARLSON_ITEMS=[
+ [1,'Infarto agudo al miocardio'],[1,'Insuficiencia cardíaca congestiva'],[1,'Enfermedad vascular periférica'],
+ [1,'ACV o TIA'],[1,'Demencia'],[1,'EPOC / enfermedad pulmonar crónica'],[1,'Enfermedad del tejido conectivo'],
+ [1,'Úlcera péptica'],[1,'Hepatopatía leve'],[1,'Diabetes sin daño de órgano'],
+ [2,'Hemiplejía'],[2,'ERC moderada-severa'],[2,'Diabetes con daño de órgano'],[2,'Tumor sólido sin metástasis'],
+ [2,'Leucemia'],[2,'Linfoma'],[3,'Hepatopatía moderada-severa'],[6,'Tumor sólido metastásico'],[6,'VIH/SIDA'],
+];
+// CFS 1-9 en español (lámina de la unidad) con gradiente de colores tipo EVF chilena
+const ECF_NIVELES=[
+ [1,'#15803d','#fff','MUY EN FORMA','Robustas, activas, enérgicas y motivadas. Ejercicio regular; entre las más en forma para su edad.'],
+ [2,'#22c55e','#fff','EN FORMA','Sin síntomas de enfermedad activa, menos en forma que 1. Ejercicio ocasional (p. ej. estacional).'],
+ [3,'#84cc16','#1a2e05','SE LAS ARREGLA BIEN','Problemas médicos bien controlados; no activas más allá de la rutina de caminar.'],
+ [4,'#eab308','#422006','VIVE CON FRAGILIDAD MUY LEVE','Antes "vulnerable": no depende de otros, pero los síntomas limitan actividades. Queja común: estar "lento"/cansado.'],
+ [5,'#f59e0b','#422006','VIVE CON FRAGILIDAD LEVE','Enlentecimiento evidente; ayuda en AIVD (finanzas, transporte, tareas domésticas pesadas, medicamentos).'],
+ [6,'#f97316','#fff','VIVE CON FRAGILIDAD MODERADA','Ayuda en todas las actividades del exterior y mantención de la casa; problemas con escaleras, ayuda para bañarse.'],
+ [7,'#ef4444','#fff','VIVE CON FRAGILIDAD SEVERA','Totalmente dependiente para el cuidado personal (causa física o cognitiva); estable, sin alto riesgo de morir (~6 meses).'],
+ [8,'#b91c1c','#fff','VIVE CON FRAGILIDAD MUY SEVERA','Totalmente dependiente y próximo al final de la vida; no suele recuperarse ni de una enfermedad menor.'],
+ [9,'#7f1d1d','#fff','ENFERMEDAD TERMINAL','Esperanza de vida < 6 meses sin fragilidad severa evidente.'],
+];
+let _escalaTarget='';
+function abrirEscala(kind, targetId){
+  _escalaTarget=targetId||'';
+  const id = kind==='barthel'?'mBarthel':kind==='charlson'?'mCharlson':'mEcf';
+  if(kind==='barthel') _renderBarthel();
+  else if(kind==='charlson') _renderCharlson();
+  else _renderEcf();
+  $(id).classList.add('on'); $('ovl').classList.add('on');
+}
+function cerrarEscala(id){ $(id).classList.remove('on'); $('ovl').classList.remove('on'); }
+function _renderBarthel(){
+  const b=$('mBarthelBody'); if(!b) return;
+  if(!b.dataset.ready){
+    b.innerHTML=BARTHEL_ITEMS.map(([lbl,ops],i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #eef2f6;flex-wrap:wrap;">
+        <div style="flex:0 0 170px;font-size:.82rem;font-weight:700;">${i+1}. ${lbl}</div>
+        <select id="bar${i}" onchange="sumBarthel()" style="flex:1;min-width:200px;height:40px;border:1px solid #dbe2ea;border-radius:8px;padding:0 9px;font-size:.86rem;">
+          <option value="">-- seleccionar --</option>
+          ${ops.map(([p,t])=>`<option value="${p}">${t} (${p})</option>`).join('')}
+        </select>
+      </div>`).join('');
+    b.dataset.ready='1';
+  }
+  sumBarthel();
+}
+function sumBarthel(){
+  let tot=0,n=0;
+  for(let i=0;i<BARTHEL_ITEMS.length;i++){ const x=v('bar'+i); if(x!==''){ tot+=parseInt(x); n++; } }
+  const e=$('barthelTot'); if(e) e.textContent = n===BARTHEL_ITEMS.length ? tot : (n?`${tot} (${n}/10 ítems)`:'—');
+  return n===BARTHEL_ITEMS.length ? tot : null;
+}
+function aplicarBarthel(){
+  const tot=sumBarthel();
+  if(tot===null){ toast('⚠️ Faltan ítems del Barthel por responder'); return; }
+  const t=$(_escalaTarget||'fBarthel'); if(t){ t.value=String(tot); t.dispatchEvent(new Event('change')); }
+  cerrarEscala('mBarthel');
+}
+function _charlsonEdadPts(){ const e=parseInt(v('fEdad'))||0; return Math.min(4, Math.max(0, Math.floor((e-40)/10))); }
+function _renderCharlson(){
+  const b=$('mCharlsonBody'); if(!b) return;
+  if(!b.dataset.ready){
+    b.innerHTML=CHARLSON_ITEMS.map(([w,lbl],i)=>`
+      <label style="display:flex;align-items:center;gap:9px;padding:7px 10px;border:1px solid #eef2f6;border-radius:8px;margin-bottom:5px;cursor:pointer;font-size:.84rem;">
+        <input type="checkbox" id="ch${i}" onchange="sumCharlson()" style="width:17px;height:17px;accent-color:var(--primary);flex-shrink:0;">
+        <span style="flex:1;">${lbl}</span>
+        <span style="font-weight:800;color:#b45309;">+${w}</span>
+      </label>`).join('')
+      +`<label style="display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px dashed #cbd5e1;border-radius:8px;margin-top:8px;cursor:pointer;font-size:.84rem;background:#f8fafc;">
+        <input type="checkbox" id="chEdad" onchange="sumCharlson()" style="width:17px;height:17px;accent-color:var(--primary);flex-shrink:0;">
+        <span style="flex:1;">Ajuste por edad (+1 por década desde los 50; usa la edad del formulario)</span>
+        <span id="chEdadPts" style="font-weight:800;color:#b45309;"></span>
+      </label>`;
+    b.dataset.ready='1';
+  }
+  sumCharlson();
+}
+function sumCharlson(){
+  let tot=0;
+  CHARLSON_ITEMS.forEach(([w],i)=>{ if($('ch'+i)?.checked) tot+=w; });
+  const pts=_charlsonEdadPts();
+  const lb=$('chEdadPts'); if(lb) lb.textContent = $('chEdad')?.checked ? `+${pts}` : `(daría +${pts})`;
+  if($('chEdad')?.checked) tot+=pts;
+  const e=$('charlsonTot'); if(e) e.textContent=tot;
+  return tot;
+}
+function aplicarCharlson(){
+  const t=$(_escalaTarget||'fCharlson'); if(t){ t.value=String(sumCharlson()); t.dispatchEvent(new Event('change')); }
+  cerrarEscala('mCharlson');
+}
+function _renderEcf(){
+  const b=$('mEcfBody'); if(!b||b.dataset.ready) return;
+  b.innerHTML=ECF_NIVELES.map(([n,bg,fg,tit,desc])=>`
+    <button type="button" onclick="_pickEcf(${n})" style="display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;border:none;border-radius:10px;padding:10px 14px;margin-bottom:6px;cursor:pointer;background:${bg};color:${fg};">
+      <span style="font-size:1.35rem;font-weight:900;flex:0 0 24px;line-height:1.2;">${n}</span>
+      <span style="flex:1;"><b style="font-size:.85rem;letter-spacing:.02em;">${tit}</b><br><span style="font-size:.76rem;opacity:.92;line-height:1.35;">${desc}</span></span>
+    </button>`).join('');
+  b.dataset.ready='1';
+}
+function _pickEcf(n){
+  const t=$(_escalaTarget||'fEcf'); if(t){ t.value=String(n); t.dispatchEvent(new Event('change')); }
+  cerrarEscala('mEcf');
 }
 
 window.onload = function() {

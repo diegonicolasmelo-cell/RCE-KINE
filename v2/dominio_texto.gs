@@ -81,11 +81,11 @@ function generarTextoEvolucion(d) {
   }
   if (va === 'TOT') {
     const desc = (totN || totCm) ? ` N° ${totN || '?'} fijado en ${totCm || '?'} cm` : '';
-    txt.push(`Paciente con tubo orotraqueal${desc}, en día ${diasVA || '?'} de VA artificial.`);
+    txt.push(`Paciente con tubo orotraqueal${desc}, en día ${diasVA || '?'} de VA artificial${esVerdadero(d.TOT_CAMBIO) ? ' (tubo nuevo)' : ''}.`);
   } else if (va === 'TQT') {
     const tqtN = v('VENT_TQT_CALIBRE');
     const desc = (tqtN ? ` N° ${tqtN}` : '') + (tqtT ? ` tipo ${tqtT}` : '');
-    txt.push(`Paciente con traqueostomía${desc}, en día ${diasVA || '?'} de VA artificial.`);
+    txt.push(`Paciente con traqueostomía${desc}, en día ${diasVA || '?'} de VA artificial${esVerdadero(d.TQT_CAMBIO) ? ' (cánula nueva)' : ''}.`);
   } else if (va === 'Full Face' || va === 'Oronasal') {
     txt.push(`Paciente con máscara ${va} de VNI.`);
   }
