@@ -1902,8 +1902,8 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
               🔒 Paciente no cooperador — MRC-SS, FSS-ICU y dinamometría requieren cooperación (SAS 3-4 · S5Q ≥3).
               Disponibles: PIM/PEM con válvula, ecografía diafragmática/cuádriceps y CPAx (observacional).
             </div>
-            <!-- Escalas globales: total + botón para el detalle por ítem -->
-            <!-- Escalas: total (solo lectura) + botón para completar/ver el detalle por ítem -->
+            <!-- 1) FUERZA MUSCULAR (visible): MRC-SS + prensión manual -->
+            <div style="font-size:.67rem;font-weight:800;text-transform:uppercase;color:var(--fisico);margin:4px 0 4px;border-bottom:1px solid #cffafe;padding-bottom:2px;">💪 Fuerza muscular</div>
             <div class="row" id="rowEscalas">
               <div class="col wa" id="rowMrc"><label>MRC-SS (0-60)</label>
                 <div style="display:flex;align-items:center;gap:5px;">
@@ -1912,6 +1912,12 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                   <button type="button" id="btnMrc" class="hbtn" style="padding:4px 8px;font-size:.85rem;" onclick="abrirEvalModal('mrc')" title="Completar por ítem">📋</button>
                 </div>
               </div>
+              <div class="col wa"><label>Prensión / Dinam. (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="kg" oninput="interpDinamo()"></div>
+              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPrension" class="interp-pill interp-empty">—</span></div>
+            </div>
+            <!-- 2) FUNCIONALIDAD (visible): FSS-ICU + CPAx -->
+            <div style="font-size:.67rem;font-weight:800;text-transform:uppercase;color:var(--fisico);margin:10px 0 4px;border-bottom:1px solid #cffafe;padding-bottom:2px;">🏃 Funcionalidad</div>
+            <div class="row">
               <div class="col wa" id="rowFss"><label>FSS-ICU (0-35)</label>
                 <div style="display:flex;align-items:center;gap:5px;">
                   <input type="number" id="fFSS" readonly style="width:56px;background:#f8fafc;font-weight:700;" oninput="interpFSS()">
@@ -1928,41 +1934,45 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                 </div>
               </div>
             </div>
-            <!-- 1) ECOGRAFÍA (muscular y diafragmática) -->
-            <div style="font-size:.67rem;font-weight:800;text-transform:uppercase;color:var(--fisico);margin:10px 0 4px;border-bottom:1px solid #cffafe;padding-bottom:2px;">📡 Ecografía muscular y diafragmática</div>
-            <div class="row">
-              <div class="col wa"><label>Cuádriceps D (mm)</label><input type="number" id="fCuadD" step="0.1"></div>
-              <div class="col wa"><label>Cuádriceps I (mm)</label><input type="number" id="fCuadI" step="0.1"></div>
-              <div class="col wa"><label>Heckmatt</label>
-                <select id="fHeckmatt"><option value="">--</option><option>I</option><option>II</option><option>III</option><option>IV</option></select></div>
-              <div class="col wa"><label>Grosor diafr. (mm)</label><input type="number" id="fGrosor" step="0.1"></div>
-            </div>
-            <div class="row">
-              <div class="col wa"><label>FED D (%)</label><input type="number" id="fFedD" step="1"></div>
-              <div class="col wa"><label>FED I (%)</label><input type="number" id="fFedI" step="1"></div>
-              <div class="col wa"><label>Excursión D (cm)</label><input type="number" id="fExcD" step="0.1"></div>
-              <div class="col wa"><label>Excursión I (cm)</label><input type="number" id="fExcI" step="0.1"></div>
-              <div class="col grow"><label>Hallazgos ecográficos</label><input type="text" id="fDiaf" placeholder="Descripción..."></div>
-            </div>
-            <!-- 2) FUERZA -->
-            <div style="font-size:.67rem;font-weight:800;text-transform:uppercase;color:var(--fisico);margin:10px 0 4px;border-bottom:1px solid #cffafe;padding-bottom:2px;">💪 Fuerza</div>
-            <div class="row">
-              <div class="col wa"><label>PIM (cmH₂O)</label><input type="number" id="fPIM" oninput="interpPIM()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPIM" class="interp-pill interp-empty">—</span></div>
-              <div class="col wa"><label>PEM (cmH₂O)</label><input type="number" id="fPEM"></div>
-              <div class="col wa"><label>Prensión / Dinam. (kg)</label><input type="number" id="fPrension" min="0" step="0.5" placeholder="kg" oninput="interpDinamo()"></div>
-              <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPrension" class="interp-pill interp-empty">—</span></div>
-            </div>
-            <!-- 3) TOS Y DEGLUCIÓN -->
-            <div style="font-size:.67rem;font-weight:800;text-transform:uppercase;color:var(--fisico);margin:10px 0 4px;border-bottom:1px solid #cffafe;padding-bottom:2px;">😮‍💨 Tos y deglución</div>
-            <div class="row">
-              <div class="col wa"><label>FEM (L/s)</label><input type="number" id="fFEM" step="0.1"></div>
-              <div class="col wa"><label>Deglución</label>
-                <select id="fDeglucion"><option value="">--</option><option>Adecuada</option><option>Alterada leve</option><option>Alterada severa</option><option>No evaluable</option></select></div>
-              <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="fBDTp"><label for="fBDTp">BDT +</label></div>
-              <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="fBDTn"><label for="fBDTn">BDT -</label></div>
-              <div class="col wa" id="dPmantVA" style="display:none;"><label>Pmant VA (cmH₂O)</label><input type="number" id="fPVA"></div>
-            </div>
+            <!-- 3) desplegable: FUERZA MUSCULAR RESPIRATORIA (PIM/PEM) -->
+            <details id="dxFzaResp" style="margin-top:10px;border:1px solid #cffafe;border-radius:7px;padding:6px 10px;background:#f8feff;">
+              <summary style="font-size:.7rem;font-weight:800;text-transform:uppercase;color:var(--fisico);cursor:pointer;">💨 Fuerza muscular respiratoria (PIM · PEM)</summary>
+              <div class="row" style="margin-top:6px;">
+                <div class="col wa"><label>PIM (cmH₂O)</label><input type="number" id="fPIM" oninput="interpPIM()"></div>
+                <div class="col grow" style="align-self:flex-end;margin-bottom:6px;"><span id="lblPIM" class="interp-pill interp-empty">—</span></div>
+                <div class="col wa"><label>PEM (cmH₂O)</label><input type="number" id="fPEM"></div>
+              </div>
+            </details>
+            <!-- 4) desplegable: ECOGRAFÍA muscular y diafragmática -->
+            <details id="dxEco" style="margin-top:8px;border:1px solid #cffafe;border-radius:7px;padding:6px 10px;background:#f8feff;">
+              <summary style="font-size:.7rem;font-weight:800;text-transform:uppercase;color:var(--fisico);cursor:pointer;">📡 Ecografía muscular y diafragmática</summary>
+              <div class="row" style="margin-top:6px;">
+                <div class="col wa"><label>Cuádriceps D (mm)</label><input type="number" id="fCuadD" step="0.1"></div>
+                <div class="col wa"><label>Cuádriceps I (mm)</label><input type="number" id="fCuadI" step="0.1"></div>
+                <div class="col wa"><label>Heckmatt</label>
+                  <select id="fHeckmatt"><option value="">--</option><option>I</option><option>II</option><option>III</option><option>IV</option></select></div>
+                <div class="col wa"><label>Grosor diafr. (mm)</label><input type="number" id="fGrosor" step="0.1"></div>
+              </div>
+              <div class="row">
+                <div class="col wa"><label>FED D (%)</label><input type="number" id="fFedD" step="1"></div>
+                <div class="col wa"><label>FED I (%)</label><input type="number" id="fFedI" step="1"></div>
+                <div class="col wa"><label>Excursión D (cm)</label><input type="number" id="fExcD" step="0.1"></div>
+                <div class="col wa"><label>Excursión I (cm)</label><input type="number" id="fExcI" step="0.1"></div>
+                <div class="col grow"><label>Hallazgos ecográficos</label><input type="text" id="fDiaf" placeholder="Descripción..."></div>
+              </div>
+            </details>
+            <!-- 5) desplegable: TOS Y DEGLUCIÓN -->
+            <details id="dxTos" style="margin-top:8px;border:1px solid #cffafe;border-radius:7px;padding:6px 10px;background:#f8feff;">
+              <summary style="font-size:.7rem;font-weight:800;text-transform:uppercase;color:var(--fisico);cursor:pointer;">😮‍💨 Tos y deglución</summary>
+              <div class="row" style="margin-top:6px;">
+                <div class="col wa"><label>FEM (L/s)</label><input type="number" id="fFEM" step="0.1"></div>
+                <div class="col wa"><label>Deglución</label>
+                  <select id="fDeglucion"><option value="">--</option><option>Adecuada</option><option>Alterada leve</option><option>Alterada severa</option><option>No evaluable</option></select></div>
+                <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="fBDTp"><label for="fBDTp">BDT +</label></div>
+                <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="fBDTn"><label for="fBDTn">BDT -</label></div>
+                <div class="col wa" id="dPmantVA" style="display:none;"><label>Pmant VA (cmH₂O)</label><input type="number" id="fPVA"></div>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -2589,6 +2599,7 @@ function abrirPanel(id, esIng) {
   aplicarGatesEval();
   _renderAutoProcs();
   _updCategorias();
+  _abrirDetailsEval();
 
   if(!esIng) {
     loading(true,'Cargando evolución...');
@@ -2929,6 +2940,7 @@ function fillForm(s) {
     s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
   _renderEvStrip(s);
   _updCategorias();
+  _abrirDetailsEval();
   _evoEventoGuardado = s.EXT_OCURRIO===true||s.EXT_OCURRIO==='TRUE'||!!s.PVE_VAL||
     s.DECAN_OCURRIO===true||s.DECAN_OCURRIO==='TRUE'||s.INTUB_OCURRIO===true||s.INTUB_OCURRIO==='TRUE'||
     s.EXT_REINTUB===true||s.EXT_REINTUB==='TRUE'||s.TOT_CAMBIO===true||s.TOT_CAMBIO==='TRUE'||
@@ -3053,6 +3065,7 @@ function fillFormReplica(s) {
   if(v('fVA')==='TOT' && v('fTOTn') && !$('cCambioTOT')?.checked) _lockTOT(true);
   _renderAutoProcs();
   _updCategorias();
+  _abrirDetailsEval();
 }
 
 /**
@@ -5844,6 +5857,17 @@ function ruidosExtraJSON(){
 function setRuidosExtra(jsonStr){
   const box=$('ruidosExtra'); if(box) box.innerHTML='';
   try{ (JSON.parse(jsonStr||'[]')||[]).forEach(r=>addRuidoRow(r.tipo,r.loc)); }catch(e){}
+}
+
+//  Desplegables de Evaluaciones Funcionales: se abren solos si traen datos
+//  guardados (recarga de turno / réplica) y se cierran cuando están vacíos.
+function _abrirDetailsEval(){
+  const conDato=ids=>ids.some(id=>{ const e=$(id); if(!e) return false;
+    return e.type==='checkbox' ? e.checked : String(e.value||'')!==''; });
+  const map={ dxFzaResp:['fPIM','fPEM'],
+              dxEco:['fCuadD','fCuadI','fHeckmatt','fGrosor','fFedD','fFedI','fExcD','fExcI','fDiaf'],
+              dxTos:['fFEM','fDeglucion','fBDTp','fBDTn','fPVA'] };
+  Object.keys(map).forEach(id=>{ const d=$(id); if(d) d.open=conDato(map[id]); });
 }
 
 //  Dispositivos de circuito VM: día de uso y vencimiento POR FECHA CALENDARIO
