@@ -209,6 +209,13 @@ const ESQUEMA = {
     ['ID_HITO','texto'],['ID_CAMA','texto'],['PATIENT_ID','uuid'],['FECHA','fecha'],['TURNO','texto'],
     ['TIPO','texto'],['TEXTO','texto'],['AUTOR','texto'],['AUTOR_EMAIL','email'],['TIMESTAMP','ts'],
   ]},
+  // Historial de entregas de turno emitidas (no afecta datos clínicos)
+  ENTREGAS_TURNO: { headerRows: 1, cols: [
+    ['ID_ENTREGA','texto'],['TIMESTAMP','ts'],['FECHA','fecha'],['TURNO','texto'],
+    ['KINE_ENTREGA','texto'],['KINE_RECIBE','texto'],['CAMAS_N','entero'],
+    ['OCUPADAS','entero'],['EN_VM','entero'],['CAMAS_IDS','texto'],
+    ['NOTAS','texto'],['SNAPSHOT_JSON','json'],
+  ]},
   ARCHIVO_PACIENTES: { headerRows: 1, cols: [
     ['ID_ARCHIVO','texto'],['PATIENT_ID','uuid'],['CAMA_ORIGEN','texto'],['COD_PACIENTE','texto'],
     ['FECHA_INGRESO','fecha'],['FECHA_EGRESO','fecha'],['DIAS_TOTAL','entero'],['DIAS_VM_TOTAL','entero'],

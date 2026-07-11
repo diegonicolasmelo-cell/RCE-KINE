@@ -662,6 +662,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 <div class="tabs">
   <button class="tab on" id="tabG" onclick="setTab('G')">🛏️ CAMAS</button>
   <button class="tab" id="tabD" onclick="setTab('D')">📊 ESTADÍSTICAS</button>
+  <button class="tab" id="tabE" onclick="setTab('E')">📑 ENTREGA</button>
 </div>
 
 <!-- BANNER RETROSPECTIVO (cuando la fecha seleccionada no es hoy) -->
@@ -698,6 +699,54 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
       </div>
     </div>
     <div id="dashBody"><div class="pivot-empty">Selecciona un rango de fechas.</div></div>
+  </div>
+</div>
+
+<!-- TAB ENTREGA DE TURNO -->
+<div class="tc-wrap" id="tcE">
+  <div class="ent-shell">
+    <!-- Panel de configuración (no se imprime) -->
+    <div class="ent-config no-print">
+      <div class="ent-cfg-row">
+        <div class="ent-cfg-title">📑 Emitir entrega de turno</div>
+        <div class="ent-cfg-actions">
+          <button class="btn-ent btn-ent-mark" onclick="entToggleAll(true)">✓ Marcar ocupadas</button>
+          <button class="btn-ent btn-ent-clear" onclick="entToggleAll(false)">✕ Limpiar</button>
+          <button class="btn-ent btn-ent-ghost" onclick="entGenerar()">↻ Generar</button>
+          <button class="btn-ent btn-ent-print" onclick="entImprimir()" id="entPrintBtn" disabled>🖨️ Imprimir / PDF</button>
+          <button class="btn-ent btn-ent-save" onclick="entGuardar()" id="entSaveBtn" disabled>💾 Guardar</button>
+        </div>
+      </div>
+      <div class="ent-cfg-grid">
+        <div class="ent-fld">
+          <label>Fecha</label>
+          <input type="date" id="entFecha" class="datein dashin" onchange="entSync()">
+        </div>
+        <div class="ent-fld">
+          <label>Turno que entrega</label>
+          <select id="entTurno" class="dashin" onchange="entSync()">
+            <option value="Dia">☀️ Día</option>
+            <option value="Noche">🌙 Noche</option>
+          </select>
+        </div>
+        <div class="ent-fld">
+          <label>Kine que entrega</label>
+          <select id="entKineEntrega" class="dashin"></select>
+        </div>
+        <div class="ent-fld">
+          <label>Kine que recibe (turno <span id="entRecibeTurno">—</span>)</label>
+          <select id="entKineRecibe" class="dashin"></select>
+        </div>
+      </div>
+      <div class="ent-colegas" id="entColegas"></div>
+      <div class="ent-beds" id="entBeds"></div>
+    </div>
+    <!-- Documento imprimible -->
+    <div class="ent-doc-wrap">
+      <div id="entDoc" class="ent-doc">
+        <div class="ent-placeholder">Selecciona las camas y pulsa <b>Generar</b> para construir la entrega.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -6208,9 +6257,12 @@ function setTab(t){
   ATAB=t;
   $('tcG').classList.toggle('on', t==='G');
   $('tcD').classList.toggle('on', t==='D');
+  $('tcE').classList.toggle('on', t==='E');
   $('tabG').classList.toggle('on', t==='G');
   $('tabD').classList.toggle('on', t==='D');
+  $('tabE').classList.toggle('on', t==='E');
   if(t==='D' && !window._statsLoaded) dashPreset('mes', document.querySelector('.dpset'));
+  if(t==='E') initEntrega();
 }
 function dashPreset(tipo, btn){
   document.querySelectorAll('.dpset').forEach(b=>b.classList.remove('on'));
@@ -6588,6 +6640,210 @@ function anularEvento(tipo,lbl){
     loading(false); toast('🗑️ Evento anulado del turno');
     abrirPanel(id,false); recargar();
   }, ()=>loading(false));
+}
+
+/* ════════ ENTREGA DE TURNO (📑) ════════
+   Documento imprimible por camas seleccionadas: estado del turno + eventos
+   fechados del episodio + últimas evaluaciones + dispositivos por vencer. */
+let ENT_SEL=new Set(), ENT_DATA=null, ENT_INIT=false;
+let ENT_ASIGN={}, ENT_TEAM=[];
+const ENT_COL_PALETTE=['#1d4ed8','#0d9488','#b45309','#7c3aed','#be123c','#0284c7'];
+
+function initEntrega(){
+  if(!ENT_INIT){
+    $('entFecha').value=v('gDate')||hoy();
+    $('entTurno').value=SHIFT;
+    if(window.Turnos){
+      Turnos.fillFirmaSelect($('entKineEntrega'), (typeof YO!=='undefined'&&YO&&YO.firma)||'');
+      Turnos.fillFirmaSelect($('entKineRecibe'), '');
+    }
+    ENT_INIT=true;
+  }
+  entSync();
+  if(!ENT_SEL.size) entToggleAll(true); // pre-selecciona ocupadas
+  entRenderBeds();
+}
+function entSync(){
+  const t=v('entTurno');
+  const lbl=$('entRecibeTurno'); if(lbl) lbl.textContent=(t==='Dia')?'🌙 Noche':'☀️ Día sgte.';
+  entLoadColegas();
+}
+// ── Colegas del turno (tablero de turnos): un clic selecciona sus camas ──
+function entLoadColegas(){
+  const key=`${v('entFecha')||hoy()}-${v('entTurno')}`;
+  const host=$('entColegas');
+  if(host) host.innerHTML='<span class="ent-col-lbl">👥 Colegas de turno</span><span class="ent-col-empty">cargando…</span>';
+  gs('GET_ASIGNACION_TURNO',{key},
+    d=>{ ENT_TEAM=(d&&d.team)||[]; ENT_ASIGN=(d&&d.assign)||{}; entRenderColegas(); },
+    ()=>{ ENT_TEAM=[]; ENT_ASIGN={}; entRenderColegas(); });
+}
+function entRenderColegas(){
+  const host=$('entColegas'); if(!host) return;
+  let h='<span class="ent-col-lbl">👥 Colegas de turno</span>';
+  if(!ENT_TEAM.length){
+    host.innerHTML=h+'<span class="ent-col-empty">Sin asignación de turno para esta fecha · elige camas manualmente</span>';
+    return;
+  }
+  h+=ENT_TEAM.map((f,i)=>{
+    const col=ENT_COL_PALETTE[i%ENT_COL_PALETTE.length];
+    const n=Object.keys(ENT_ASIGN).filter(k=>ENT_ASIGN[k]===f).length;
+    return `<button class="ent-col-chip" onclick="entSelColega('${String(f).replace(/'/g,"\\'")}')" title="Seleccionar camas de ${f}">
+      <span class="ent-col-sw" style="background:${col}"></span>${f}<span class="ent-col-n">${n}</span></button>`;
+  }).join('');
+  host.innerHTML=h;
+}
+function entSelColega(firma){
+  const camas=Object.keys(ENT_ASIGN).filter(k=>ENT_ASIGN[k]===firma);
+  if(!camas.length){ toast(`${firma} no tiene camas asignadas en este turno`); return; }
+  ENT_SEL=new Set(camas.map(String));
+  entRenderBeds();
+  const ke=$('entKineEntrega'); if(ke && !ke.value) ke.value=firma;
+  toast(`✅ ${camas.length} cama(s) de ${firma} seleccionadas`);
+}
+function entRenderBeds(){
+  const host=$('entBeds'); if(!host) return;
+  const camas=(DB||[]).filter(c=>c.OCUPADA===true||c.OCUPADA==='TRUE').sort((a,b)=>(+a.ID_CAMA)-(+b.ID_CAMA));
+  if(!camas.length){ host.innerHTML='<div style="color:#94a3b8;font-size:.82rem;font-style:italic;padding:6px;">No hay camas ocupadas.</div>'; return; }
+  host.innerHTML=camas.map(c=>{
+    const id=String(c.ID_CAMA), on=ENT_SEL.has(id);
+    return `<button class="ent-bed ${on?'on':''}" onclick="entToggleBed('${id}')">
+      <span class="ent-bed-chk">${on?'✓':''}</span>
+      <span style="overflow:hidden;"><span class="ent-bed-id">Cama ${id}</span> <span class="ent-bed-nm">${c.NOMBRE||'—'}</span></span>
+    </button>`;
+  }).join('');
+}
+function entToggleBed(id){
+  id=String(id);
+  if(ENT_SEL.has(id)) ENT_SEL.delete(id); else ENT_SEL.add(id);
+  entRenderBeds();
+}
+function entToggleAll(soloOcupadas){
+  ENT_SEL=new Set();
+  if(soloOcupadas)(DB||[]).forEach(c=>{ if(c.OCUPADA===true||c.OCUPADA==='TRUE') ENT_SEL.add(String(c.ID_CAMA)); });
+  entRenderBeds();
+}
+function entGenerar(){
+  if(!ENT_SEL.size){ toast('Marca al menos una cama.'); return; }
+  const fecha=v('entFecha')||hoy(), turno=v('entTurno');
+  const idCamas=[...ENT_SEL].sort((a,b)=>(+a)-(+b));
+  $('entDoc').innerHTML='<div class="ent-placeholder">⏳ Generando entrega…</div>';
+  gs('GET_ENTREGA_TURNO',{idCamas,fecha,turno},
+    d=>{ ENT_DATA=d; renderEntrega(d); $('entPrintBtn').disabled=false; $('entSaveBtn').disabled=false; },
+    e=>{ $('entDoc').innerHTML=`<div class="ent-placeholder" style="color:var(--danger);">❌ ${e}</div>`; });
+}
+function renderEntrega(d){
+  if(!d||!d.fichas){ $('entDoc').innerHTML='<div class="ent-placeholder">Sin datos.</div>'; return; }
+  const [y,m,dd]=(d.fecha||'').split('-');
+  const fl=y?new Date(+y,+m-1,+dd).toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):d.fecha;
+  const kE=v('entKineEntrega'), kR=v('entKineRecibe');
+  const r=d.resumen||{};
+  let H=`<div class="ent-head">
+    <div class="ent-head-l">
+      <h1>Entrega de Turno · Kinesiología UCI</h1>
+      <div class="ent-sub">${fl} · Turno <b>${d.turno==='Dia'?'☀️ Día':'🌙 Noche'}</b> → entrante <b>${d.turno==='Dia'?'🌙 Noche':'☀️ Día (día sgte.)'}</b></div>
+    </div>
+    <div class="ent-head-r">
+      <div>Entrega: <b>${kE||'__________'}</b></div>
+      <div>Recibe: <b>${kR||'__________'}</b></div>
+    </div>
+  </div>
+  <div class="ent-resumen">
+    <span class="ent-pill">Camas en entrega: <b>${r.entregadas||d.fichas.length}</b></span>
+    <span class="ent-pill">Ocupadas unidad: <b>${r.ocupadas??'—'}</b>/${r.totalCamas||18}</span>
+    <span class="ent-pill">En VM: <b>${r.enVM??'—'}</b></span>
+  </div>
+  <div class="ent-fichas">`;
+
+  const catChip=(c,letra,n)=>{
+    if(!c||!c.nivel) return '';
+    const col={Baja:'#16a34a',Media:'#d97706',Alta:'#dc2626'}[c.nivel]||'#64748b';
+    return `<span class="ent-tag" style="background:${col}18;color:${col};border:1px solid ${col}55;">${letra} ${c.nivel}${c.pje?` (${c.pje})`:''}</span>`;
+  };
+  const _ln=(ico,partes)=>{
+    const txt=(Array.isArray(partes)?partes.filter(Boolean).join(' · '):partes);
+    return txt?`<div class="ent-ln"><span class="ent-ln-ico">${ico}</span><span class="ent-ln-body">${txt}</span></div>`:'';
+  };
+
+  d.fichas.forEach(f=>{
+    if(!f.ocupada&&!f.tieneEvo) return;
+    const meta=`${f.edad||'?'}a ${f.sexo||''} · ${f.diasEstadia||'?'}d UCI`;
+    const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+
+      (f.alertas||[]).map(a=>`<span class="ent-tag ent-tag-alert">⚠️ ${a}</span>`).join('');
+    // 🔵 Ventilatorio: VA + soporte + días VM / modo + parámetros
+    const vaP=[f.viaAerea, f.soporte==='VM'?'VM':(f.soporte||''), (f.diasVM!==''&&f.diasVM!=null)?`D-VM:${f.diasVM}`:''];
+    const lnVA=_ln('🔵',vaP);
+    const lnParams=(f.modo||f.params)?_ln('&nbsp;&nbsp;&nbsp;&nbsp;',[f.modo,f.params]):'';
+    // 📅 Eventos fechados del episodio
+    const lnEv=(f.eventos&&f.eventos.length)?_ln('📅',f.eventos):'';
+    // 🟡 Sedoanalgesia / neuro / HDN
+    const lnSed=_ln('🟡',[
+      f.sas!==''&&f.sas!=null?`SAS ${f.sas}`:'', f.sedTipo||'',
+      f.bnm?'<b style="color:#be123c;">BNM ✓</b>':'', f.cooperacion||'',
+      f.dva?`DVA ${f.dva}`:'', f.hemoEstado==='Inestable'?'<b style="color:#be123c;">HDN inestable</b>':'']);
+    // 🟢 Secreciones + último cultivo (fecha + estudio + microorganismo)
+    const cult=f.ultimoCultivo?`${f.ultimoCultivo.nombre||'Cultivo'} ${f.ultimoCultivo.fecha}${f.ultimoCultivo.micro?` → <b>${f.ultimoCultivo.micro}</b>`:''}`:'';
+    const lnSecr=_ln('🟢',[f.secr?`Secreciones ${f.secr}`:'',cult]);
+    // 🧰 Dispositivos de circuito (solo VM)
+    const lnDisp=(f.dispositivos&&f.dispositivos.length)?_ln('🧰',f.dispositivos.map(x=>{
+      const mark=x.estado==='vencido'?' <b style="color:#b91c1c;">VENCIDO</b>':(x.estado==='cambiar'?' <b style="color:#b45309;">cambiar</b>':'');
+      return `${x.n} día ${x.dia}/${x.dur}${mark}`;
+    })):'';
+    // 🟠 Terapia física + evaluaciones con fecha
+    const lnKTM=_ln('🟠',[
+      f.ktmRealizada&&f.ktmNivel?`KTM Nv${f.ktmNivel}`:'',
+      f.ktmSuspendida?`⚠️ KTM contraindicada${f.ktmContra?` (${f.ktmContra})`:''}`:'',
+      f.ktr?`KTR ×${f.ktr}`:'']);
+    const lnEval=(f.evals&&f.evals.length)?_ln('&nbsp;&nbsp;&nbsp;&nbsp;',f.evals):'';
+    const planVal=(f.plan||'').replace(/"/g,'&quot;');
+    H+=`<div class="ent-ficha">
+      <div class="ent-ficha-h">
+        <span class="ent-ficha-cama">${f.idCama}</span>
+        <span class="ent-ficha-nm">${f.nombre||'—'}</span>
+        <span class="ent-ficha-meta">${meta}</span>
+      </div>
+      ${chips?`<div style="padding:4px 11px 0;display:flex;gap:4px;flex-wrap:wrap;">${chips}</div>`:''}
+      ${f.diagnostico?`<div class="ent-dx">${f.diagnostico}</div>`:''}
+      <div class="ent-clin">
+        ${lnVA}${lnParams}${lnEv}
+        ${lnSed}
+        ${lnSecr}
+        ${lnDisp}
+        ${lnKTM}${lnEval}
+      </div>
+      <div class="ent-pend">
+        <textarea data-cama="${f.idCama}" rows="2" placeholder="📋 Planes / Pendientes…">${planVal}</textarea>
+      </div>
+      <div class="ent-firma">▸ <b>${f.firma||'—'}</b></div>
+    </div>`;
+  });
+  H+=`</div>
+  <div class="ent-foot">
+    <div class="ent-sign"><div class="ent-sign-line">Kine que entrega${kE?` · ${kE}`:''}</div></div>
+    <div style="align-self:flex-end;">Generado ${new Date(d.generado||Date.now()).toLocaleString('es-CL')}</div>
+    <div class="ent-sign"><div class="ent-sign-line">Kine que recibe${kR?` · ${kR}`:''}</div></div>
+  </div>`;
+  $('entDoc').innerHTML=H;
+}
+function entImprimir(){
+  if(!ENT_DATA){ toast('Genera la entrega primero.'); return; }
+  window.print();
+}
+function entGuardar(){
+  if(!ENT_DATA){ toast('Genera la entrega primero.'); return; }
+  const pend={};
+  document.querySelectorAll('#entDoc textarea[data-cama]').forEach(t=>{ pend[t.dataset.cama]=t.value; });
+  const payload={
+    fecha:ENT_DATA.fecha, turno:ENT_DATA.turno,
+    kineEntrega:v('entKineEntrega'), kineRecibe:v('entKineRecibe'),
+    resumen:ENT_DATA.resumen,
+    idCamas:ENT_DATA.fichas.map(f=>f.idCama),
+    notas:JSON.stringify(pend),
+    snapshotJson:JSON.stringify(ENT_DATA).slice(0,45000),
+  };
+  const b=$('entSaveBtn'); b.disabled=true; b.textContent='⏳ Guardando…';
+  gs('GUARDAR_ENTREGA_TURNO',payload,
+    ()=>{ toast('💾 Entrega guardada en historial'); b.textContent='💾 Guardar'; b.disabled=false; },
+    e=>{ toast('❌ '+e); b.textContent='💾 Guardar'; b.disabled=false; });
 }
 
 window.onload = function() {

@@ -40,6 +40,8 @@ function api(accion, datos, token) {
       });
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);
       case 'GET_STATS':        return obtenerStats(datos.desde, datos.hasta);
+      case 'GET_ENTREGA_TURNO':  return obtenerEntregaTurno(datos.idCamas, datos.fecha, datos.turno);
+      case 'GET_ENTREGAS_TURNO': return obtenerEntregasTurno(datos.limite || 30);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
       // ── Escrituras (auditadas) ──
@@ -61,6 +63,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => guardarAsignacionTurno(datos));
       case 'ANULAR_EVENTO':
         return _auditar(ctx, accion, () => anularEvento(datos, ctx));
+      case 'GUARDAR_ENTREGA_TURNO':
+        return _auditar(ctx, accion, () => guardarEntregaTurno(datos, ctx));
 
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);
