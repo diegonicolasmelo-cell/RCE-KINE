@@ -152,6 +152,7 @@ const _COLS_EVOLUCIONES = [
   ['TQT_CAMBIO_MOTIVO','texto'], // motivo del cambio de cánula
   ['BARTHEL_JSON','json'],       // ítems de la calculadora de Barthel (10 valores)
   ['CHARLSON_JSON','json'],      // ítems de la calculadora de Charlson {it:[índices], edad:bool}
+  ['CAT_KINE','entero'],         // categorización kinésica automática del turno (K1–K4; 4 = máxima complejidad)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -174,6 +175,7 @@ const ESQUEMA = {
     ['PROC_DIA','texto'],['FIRMA_DIA','texto'],['KEY_DIA','texto'],['KTR_NOCHE','entero'],['PROC_NOCHE','texto'],
     ['FIRMA_NOCHE','texto'],['KEY_NOCHE','texto'],
     ['CHARLSON','entero'],['INGRESO_TIPO','texto'],  // S5 (persisten con el episodio, se cargan al abrir)
+    ['CAT_KINE','entero'],  // categorización kinésica del último turno (badge en la grilla)
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -438,7 +440,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 276) errs.push('EVOLUCIONES != 276 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 277) errs.push('EVOLUCIONES != 277 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

@@ -200,6 +200,7 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     KTM_NIVEL: esVerdadero(evo.KTM_REALIZADA) ? (evo.KTM_NIVEL_KTR || '') : (turno === 'Noche' ? (cama.KTM_NIVEL || '') : ''),
     KTM_SUSP: esVerdadero(evo.KTM_SUSPENDIDA),
     FIRMA_KINE: val(evo.PLAN_FIRMA_KINE, cama.FIRMA_KINE), AUTOR_EMAIL: evo.AUTOR_EMAIL || '',
+    CAT_KINE: val(evo.CAT_KINE, cama.CAT_KINE),
     ULTIMO_TURNO_KEY: turnoKey,
     FECHA_INGRESO: cama.FECHA_INGRESO || (esIngreso ? fecha : ''),
     FECHA_INICIO_VA: fechaVA,

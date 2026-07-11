@@ -798,9 +798,12 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
       <input type="hidden" id="cBed">
       <input type="hidden" id="cIng" value="false">
       <!-- Fecha y turno — encabezado visible -->
-      <div style="padding:2px 2px 12px;">
-        <div id="spShift" style="font-size:1.25rem;font-weight:800;color:var(--txt);letter-spacing:-.01em;">--</div>
-        <div id="spTitle" style="font-size:.7rem;font-weight:600;color:var(--muted);margin-top:1px;">Registro Evolución</div>
+      <div style="padding:2px 2px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div>
+          <div id="spShift" style="font-size:1.25rem;font-weight:800;color:var(--txt);letter-spacing:-.01em;">--</div>
+          <div id="spTitle" style="font-size:.7rem;font-weight:600;color:var(--muted);margin-top:1px;">Registro Evolución</div>
+        </div>
+        <span id="catBadge" title="" style="color:#fff;font-weight:800;font-size:.8rem;padding:7px 15px;border-radius:20px;background:#94a3b8;white-space:nowrap;cursor:default;">—</span>
       </div>
 
       <!-- repBanner oculto permanentemente en esta versión -->
@@ -2428,6 +2431,9 @@ function renderGrid() {
       if(dvm>=14) al+=`<span class="abadge a-vm">⚠️ VM ${dvm}d</span>`;
       if(d>=21)   al+=`<span class="abadge a-dias">🕐 ${d}d UCI</span>`;
       if(c.KTM_SUSP===true||c.KTM_SUSP==='TRUE') al+=`<span class="abadge a-ktm">🚫 KTMC</span>`;
+      const _ck=parseInt(c.CAT_KINE)||0;
+      if(_ck){ const _ckc={1:'#16a34a',2:'#d97706',3:'#f97316',4:'#dc2626'}[_ck];
+        al+=`<span class="abadge" style="background:${_ckc}18;color:${_ckc};border:1px solid ${_ckc}55;" title="Categorización kinésica automática del último turno">K${_ck}</span>`; }
       // MRC-SS / FSS-ICU: solo aplica a paciente COOPERADOR.
       // Con valor → "MRC 48 · 12-06"; sin valor → alerta de pendiente.
       if(/^cooperador$/i.test(String(c.EVAL_COOP||'').trim())){
@@ -2558,6 +2564,7 @@ function abrirPanel(id, esIng) {
   // (antes corrían antes de hKTM('r') y este las pisaba — p.ej. ingreso volvía a "Realizada").
   aplicarGatesEval();
   _renderAutoProcs();
+  _updCatKine();
 
   if(!esIng) {
     loading(true,'Cargando evolución...');
@@ -2893,6 +2900,7 @@ function fillForm(s) {
     parseFloat(s.DIAS_VM)>0 || parseInt(s.DIAS_VM_PREVIOS)>0 || parseInt(s.N_REINTUB)>0 ||
     s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
   _renderEvStrip(s);
+  _updCatKine();
   _evoEventoGuardado = s.EXT_OCURRIO===true||s.EXT_OCURRIO==='TRUE'||!!s.PVE_VAL||
     s.DECAN_OCURRIO===true||s.DECAN_OCURRIO==='TRUE'||s.INTUB_OCURRIO===true||s.INTUB_OCURRIO==='TRUE'||
     s.EXT_REINTUB===true||s.EXT_REINTUB==='TRUE'||s.TOT_CAMBIO===true||s.TOT_CAMBIO==='TRUE'||
@@ -3159,6 +3167,7 @@ function guardar() {
     DECAN_RECANUL:     $('cRecanul')?.checked||false,
     // S2 extras
     ES_REINGRESO:      $('cReing')?.checked||false,
+    CAT_KINE:          calcCategoriaKine().cat,
     AET_ACTIVA:        $('cAET')?.checked||false,
     AET_NIVEL:         v('fAETnivel')||'',
     SED_TIPO:v('fSed'), SED_SAS:v('fSAS'), SED_S5Q:v('fS5Q'), SED_COOPERACION:v('fCoop'),
@@ -3907,6 +3916,8 @@ $('inProc')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefaul
 // Vista previa en vivo de los procedimientos automáticos (delegado sobre el form)
 $('kf')?.addEventListener('change', _renderAutoProcs);
 $('kf')?.addEventListener('input', _renderAutoProcs);
+$('kf')?.addEventListener('change', _updCatKine);
+$('kf')?.addEventListener('input', _updCatKine);
 
 //  PREVIEW TEXTO (local)
 function previewTexto() {
@@ -6168,6 +6179,7 @@ function renderStats(d){
   h+=_kpi('Cambios de tubo', ev.cambiosTOT, '', '#92400e');
   h+='</div>';
   h+='<div class="dash-sec-title">Detalle</div><div class="dash-cards">';
+  h+=`<div class="dcard"><div class="dcard-h">🏷️ Categorización kinésica (turnos)</div>${_bars(d.catKine,'#dc2626',4)}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🏃 Niveles KTM</div>${_bars(k.niveles,'#d97706',6)}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">⛔ Motivos de KTM no realizada / contraindicada</div>${_bars(k.motivosNo,'#dc2626')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🔧 Procedimientos</div>${_bars(d.procs,'#4338ca')}</div>`;
@@ -6302,6 +6314,51 @@ function _renderEcf(){
 function _pickEcf(n){
   const t=$(_escalaTarget||'fEcf'); if(t){ t.value=String(n); t.dispatchEvent(new Event('change')); }
   cerrarEscala('mEcf');
+}
+
+// ══════════ CATEGORIZACIÓN KINÉSICA AUTOMÁTICA (K1–K4) ══════════
+// Derivada del registro del turno, sin clics. K4 = máxima complejidad.
+// Criterios transparentes y editables aquí (validar con la unidad en uso).
+function calcCategoriaKine(){
+  const va=v('fVA'), sop=v('fSop'), modo=v('fModo');
+  const vmi=(va==='TOT'||va==='TQT')&&sop==='VM';
+  const vni=sop==='VNI';
+  const fio2=parseFloat(v('r_fio2'))||0, peep=parseFloat(v('r_peep'))||0;
+  const sas=parseInt(v('fSAS'))||null;
+  // ── K4 · Crítico complejo: VMI + al menos un agravante ──
+  if(vmi){
+    const r4=[];
+    if($('cBNM')?.checked) r4.push('BNM');
+    if($('cProno')?.checked) r4.push('prono');
+    if(v('fHEst')==='Inestable') r4.push('HDN inestable');
+    if(/media|alta/i.test(v('fDVA'))) r4.push('DVA ≥ dosis media');
+    if(fio2>=50) r4.push('FiO2 ≥ 50%');
+    if(peep>=10) r4.push('PEEP ≥ 10');
+    if(sas!==null&&sas<=2) r4.push('sedación profunda (SAS ≤ 2)');
+    if(r4.length) return {cat:4,label:'K4 · Crítico complejo',color:'#dc2626',razones:r4};
+    return {cat:3,label:'K3 · Crítico estable / weaning',color:'#f97316',razones:['VMI con parámetros estables']};
+  }
+  // ── K3 · VNI ──
+  if(vni) return {cat:3,label:'K3 · Crítico estable / weaning',color:'#f97316',razones:['VNI']};
+  // ── K2 · Requirente moderado ──
+  const r2=[];
+  if(['CNAF','OAF/CTAF'].includes(modo)) r2.push('CNAF/OAF');
+  if(va==='TQT') r2.push('TQT sin VM');
+  if(va==='TOT') r2.push('TOT sin VM');
+  if((parseInt(v('fKTRcnt'))||0)>=2) r2.push('KTR requirente (≥2 sesiones)');
+  const niv=parseInt(v('fKTMniv'))||0;
+  if(niv&&niv<=2) r2.push('movilización nivel '+niv);
+  if(['No cooperador','No evaluable'].includes(v('fCoop'))) r2.push('no cooperador');
+  if(r2.length) return {cat:2,label:'K2 · Requirente moderado',color:'#d97706',razones:r2};
+  // ── K1 · Baja complejidad ──
+  return {cat:1,label:'K1 · Baja complejidad',color:'#16a34a',razones:['sin soporte crítico, movilización avanzada']};
+}
+function _updCatKine(){
+  const el=$('catBadge'); if(!el) return;
+  const c=calcCategoriaKine();
+  el.textContent=c.label;
+  el.title='Automática según registro: '+c.razones.join(' · ');
+  el.style.background=c.color;
 }
 
 // ══════════ ANULAR EVENTO DE UN TURNO GUARDADO ══════════
