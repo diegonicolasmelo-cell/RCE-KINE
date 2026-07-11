@@ -973,6 +973,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
               <div style="display:flex;flex-direction:column;min-width:80px;">
                 <label style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);">Vía Aérea</label>
                 <select id="fVA" class="bold" onchange="cascadeVA()" style="height:38px;">
+                  <option value="">-</option>
                   <option>Natural</option><option>TOT</option><option>TQT</option><option>Full Face</option><option>Oronasal</option>
                 </select>
               </div>
@@ -2189,16 +2190,16 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
   <div id="mCpaxBody" style="padding:16px 18px;overflow-y:auto;display:flex;gap:18px;flex-wrap:wrap;">
     <div style="flex:1;min-width:280px;">
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <div title="0 ventilación total → 5 espontánea sin O2"><label style="font-size:.76rem;font-weight:600;">1. Función respiratoria</label><select id="fCpax1" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div title="0 ausente → 5 tos efectiva independiente"><label style="font-size:.76rem;font-weight:600;">2. Tos</label><select id="fCpax2" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div title="0 incapaz → 5 independiente"><label style="font-size:.76rem;font-weight:600;">3. Movilidad en cama (girar)</label><select id="fCpax3" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div title="0 incapaz → 5 independiente"><label style="font-size:.76rem;font-weight:600;">4. Supino → sedente</label><select id="fCpax4" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div title="0 incapaz → 5 alcanza fuera de base sin apoyo"><label style="font-size:.76rem;font-weight:600;">5. Equilibrio sedente (dinámico)</label><select id="fCpax5" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div title="0 incapaz → 5 sin ayudas técnicas"><label style="font-size:.76rem;font-weight:600;">6. Equilibrio bípedo</label><select id="fCpax6" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div title="0 incapaz → 5 sin apoyo de brazos"><label style="font-size:.76rem;font-weight:600;">7. Sedente → bípedo</label><select id="fCpax7" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div title="0 incapaz → 5 independiente"><label style="font-size:.76rem;font-weight:600;">8. Transferencia cama → sillón</label><select id="fCpax8" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div title="0 incapaz → 5 sin asistencia ni ayudas"><label style="font-size:.76rem;font-weight:600;">9. Marcha en el lugar</label><select id="fCpax9" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div title="0 sin contracción → 5 ≈normal para edad/sexo (ajustar al % predicho)"><label style="font-size:.76rem;font-weight:600;">10. Prensión (% del predicho)</label><select id="fCpax10" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+        <div title="0 ventilación total → 5 espontánea sin O2"><label style="font-size:.76rem;font-weight:600;">1. Función respiratoria</label><select id="fCpax1" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Ventilación mandatoria completa</option><option value="1">1 — VM mandatoria con esfuerzos espontáneos ocasionales</option><option value="2">2 — VM con soporte del esfuerzo espontáneo (p. ej. PSV)</option><option value="3">3 — Espontánea con CPAP/VNI</option><option value="4">4 — Espontánea con O₂ suplementario</option><option value="5">5 — Espontánea sin O₂</option></select></div>
+        <div title="0 ausente → 5 tos efectiva independiente"><label style="font-size:.76rem;font-weight:600;">2. Tos</label><select id="fCpax2" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Ausente</option><option value="1">1 — Débil e inefectiva, solo con succión profunda</option><option value="2">2 — Débil, requiere asistencia/succión oral</option><option value="3">3 — Débil pero productiva, sin asistencia</option><option value="4">4 — Efectiva con estímulo o enseñanza</option><option value="5">5 — Efectiva e independiente</option></select></div>
+        <div title="0 incapaz → 5 independiente"><label style="font-size:.76rem;font-weight:600;">3. Movilidad en cama (girar)</label><select id="fCpax3" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Incapaz / dependencia total</option><option value="1">1 — Asistencia de ≥3 personas</option><option value="2">2 — Asistencia de 2 personas</option><option value="3">3 — Asistencia de 1 persona</option><option value="4">4 — Supervisión o ayudas menores</option><option value="5">5 — Independiente</option></select></div>
+        <div title="0 incapaz → 5 independiente"><label style="font-size:.76rem;font-weight:600;">4. Supino → sedente</label><select id="fCpax4" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Incapaz / dependencia total</option><option value="1">1 — Asistencia de ≥3 personas</option><option value="2">2 — Asistencia de 2 personas</option><option value="3">3 — Asistencia de 1 persona</option><option value="4">4 — Supervisión o ayudas menores</option><option value="5">5 — Independiente</option></select></div>
+        <div title="0 incapaz → 5 alcanza fuera de base sin apoyo"><label style="font-size:.76rem;font-weight:600;">5. Equilibrio sedente (dinámico)</label><select id="fCpax5" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Incapaz de mantener sedente</option><option value="1">1 — Mantiene con asistencia máxima</option><option value="2">2 — Mantiene con asistencia moderada</option><option value="3">3 — Mantiene con asistencia mínima</option><option value="4">4 — Sin asistencia, sin alcanzar fuera de base</option><option value="5">5 — Alcanza fuera de la base de sustentación sin apoyo</option></select></div>
+        <div title="0 incapaz → 5 sin ayudas técnicas"><label style="font-size:.76rem;font-weight:600;">6. Equilibrio bípedo</label><select id="fCpax6" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Incapaz de ponerse de pie</option><option value="1">1 — Bípedo con grúa/bipedestador</option><option value="2">2 — Con andador alto + asistencia</option><option value="3">3 — Con ayuda técnica menor o 1 asistente</option><option value="4">4 — Sin ayudas, con supervisión</option><option value="5">5 — Independiente sin ayudas</option></select></div>
+        <div title="0 incapaz → 5 sin apoyo de brazos"><label style="font-size:.76rem;font-weight:600;">7. Sedente → bípedo</label><select id="fCpax7" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Incapaz</option><option value="1">1 — Asistencia máxima (≥2 personas)</option><option value="2">2 — Asistencia moderada + apoyo de brazos</option><option value="3">3 — Asistencia mínima, usando brazos</option><option value="4">4 — Independiente con apoyo de brazos</option><option value="5">5 — Independiente sin apoyo de brazos</option></select></div>
+        <div title="0 incapaz → 5 independiente"><label style="font-size:.76rem;font-weight:600;">8. Transferencia cama → sillón</label><select id="fCpax8" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Incapaz</option><option value="1">1 — Con grúa o deslizamiento (≥2 personas)</option><option value="2">2 — Asistencia de 2 personas</option><option value="3">3 — Asistencia de 1 persona</option><option value="4">4 — Supervisión o ayudas menores</option><option value="5">5 — Independiente</option></select></div>
+        <div title="0 incapaz → 5 sin asistencia ni ayudas"><label style="font-size:.76rem;font-weight:600;">9. Marcha en el lugar</label><select id="fCpax9" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Incapaz</option><option value="1">1 — Con grúa de marcha o 2 asistentes</option><option value="2">2 — Con andador + asistencia</option><option value="3">3 — Con ayuda técnica o 1 asistente</option><option value="4">4 — Supervisión o ayudas menores</option><option value="5">5 — Independiente sin ayudas</option></select></div>
+        <div title="0 sin contracción → 5 ≈normal para edad/sexo (ajustar al % predicho)"><label style="font-size:.76rem;font-weight:600;">10. Prensión (% del predicho)</label><select id="fCpax10" onchange="sumCPAX()" style="width:100%;"><option value="">--</option><option value="0">0 — Sin contracción visible</option><option value="1">1 — &lt;20% del predicho</option><option value="2">2 — &lt;40% del predicho</option><option value="3">3 — &lt;60% del predicho</option><option value="4">4 — &lt;80% del predicho</option><option value="5">5 — ≥80% del predicho (≈normal)</option></select></div>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;">
         <button type="button" class="hbtn eval-suggest" style="background:#ede9fe;color:#6d28d9;border-color:#ddd6fe;" onclick="cpaxSugerir()">✨ Sugerir desde datos del turno</button>
@@ -3163,6 +3164,13 @@ function guardar() {
     toast('⚠️ Debes seleccionar la firma del kinesiólogo antes de guardar');
     const sel=$('fFirma');
     if(sel){ sel.focus(); sel.style.outline='2px solid var(--danger)'; setTimeout(()=>{sel.style.outline='';},2500); }
+    return;
+  }
+  // ★ Vía aérea OBLIGATORIA — el select parte en "-" (sin estado) ★
+  if(!v('fVA')){
+    toast('⚠️ Registra la vía aérea del paciente antes de guardar');
+    const va=$('fVA');
+    if(va){ va.focus(); va.style.outline='2px solid var(--danger)'; setTimeout(()=>{va.style.outline='';},2500); }
     return;
   }
   const datos={
@@ -4473,6 +4481,10 @@ function autoCoopera(){
 //  Antes el orden tenía Oxigenoterapia primero en TOT/TQT, y al ingresar
 //  un paciente nuevo el form ponía "Oxigenoterapia" como soporte default.
 const VMAPS={
+  // VA sin seleccionar (estado inicial "-"): soporte y modo quedan en blanco
+  // hasta que se registre la vía aérea — evita que un ingreso que llega con
+  // tubo pase por "Natural" y dispare la lógica de transición (intubación).
+  '':         {sops:[''],                              modos:{'':['']}},
   'Natural':  {sops:['Ambiente','Oxigenoterapia/OAF'],  modos:{'Ambiente':['Sin soporte'],'Oxigenoterapia/OAF':['NRC','MMV','Mascarilla','CNAF']}},
   'TOT':      {sops:['VM','Oxigenoterapia/OAF'],         modos:{'VM':['ACVC','ACPC','CPAP/PS'],'Oxigenoterapia/OAF':['HME','Tubo T','CNAF']}},
   'TQT':      {sops:['VM','Oxigenoterapia/OAF'],         modos:{'VM':['ACVC','ACPC','CPAP/PS','CPAP','S/T','AVAPS','CFLEX'],'Oxigenoterapia/OAF':['HME','Tubo T','OAF/CTAF','CNAF']}},
@@ -4485,7 +4497,7 @@ function poblar(id, opts, def) {
   if(def&&opts.includes(def)) s.value=def;
 }
 function cascadeVA(preSop) {
-  const va=v('fVA'); const r=VMAPS[va]||VMAPS['Natural'];
+  const va=v('fVA'); const r=VMAPS[va]||VMAPS[''];
   poblar('fSop', r.sops, preSop); cascadeSop();
   if(_vaAnterior && _vaAnterior!==va){
     const prevInv=_vaAnterior==='TOT'||_vaAnterior==='TQT';
@@ -4539,7 +4551,7 @@ function cascadeVA(preSop) {
   const _pm=$('dPmantVA'); if(_pm) _pm.style.display=(va==='TQT'?'':'none');
 }
 function cascadeSop(preModo) {
-  const va=v('fVA'), sop=v('fSop'); const r=VMAPS[va]||VMAPS['Natural'];
+  const va=v('fVA'), sop=v('fSop'); const r=VMAPS[va]||VMAPS[''];
   const modos=(r.modos&&r.modos[sop])||['Sin soporte'];
   poblar('fModo', modos, preModo); renderParams();
   actualizarContadores();
@@ -4583,7 +4595,7 @@ function updateVAUI() {
   //   TOT → PVE/Extubación (reintubación anidada, mismo turno)
   //   TQT → Decanulación (con recanulación)
   const histVM=_hayHistorialVM();
-  const noInv=!esInv;
+  const noInv=!esInv && va!==''; // sin VA registrada aún no se ofrecen eventos de vía aérea
   if((noInv && !histVM) || $('cIntubO')?.checked || (_transIntubEsteTurno && !histVM)) show('dIntubSec'); else hide('dIntubSec');
   if((noInv && histVM) || $('cReintubT')?.checked || (_transIntubEsteTurno && histVM)) show('dReintubSec'); else hide('dReintubSec');
   _updateSinKTR();
