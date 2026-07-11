@@ -72,6 +72,13 @@ function generarTextoEvolucion(d) {
   // 5. Vía aérea
   const diasVA = v('DIAS_VA');
   const totN = v('VENT_TOT_NUM'), totCm = v('VENT_TOT_CM'), tqtT = v('VENT_TQT_TIPO');
+  const conMotivo = m => { m = String(m || '').trim(); if (!m) return ''; const ml = m.toLowerCase(); return (ml.indexOf('por ') === 0 || ml.indexOf('para ') === 0) ? ' ' + ml : ' por ' + ml; };
+  if (va === 'TOT' && esVerdadero(d.TOT_CAMBIO)) {
+    txt.push(`Se realiza cambio de TOT${conMotivo(v('TOT_CAMBIO_MOTIVO'))}.`);
+  }
+  if (va === 'TQT' && esVerdadero(d.TQT_CAMBIO)) {
+    txt.push(`Se realiza cambio de cánula de TQT${conMotivo(v('TQT_CAMBIO_MOTIVO'))}.`);
+  }
   if (va === 'TOT') {
     const desc = (totN || totCm) ? ` N° ${totN || '?'} fijado en ${totCm || '?'} cm` : '';
     txt.push(`Paciente con tubo orotraqueal${desc}, en día ${diasVA || '?'} de VA artificial.`);

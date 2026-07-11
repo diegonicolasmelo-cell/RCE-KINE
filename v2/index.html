@@ -983,6 +983,16 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                   <select id="fTOTn" class="bold tc" style="height:34px;"><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option selected>8.0</option><option>8.5</option></select></div>
                 <div class="col ws"><label>Fijación</label><input type="number" id="fTOTcm" class="tc bold" value="22" style="height:34px;"></div>
                 <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="cCambioTOT" onchange="toggleCambioTOT()"><label for="cCambioTOT" style="font-weight:700;color:#1d4ed8;">🔄 Cambio de tubo</label></div>
+                <div class="col wa hidden" id="dCambioTOTmot"><label>Motivo del cambio</label>
+                  <select id="fCambioTOTmot" onchange="if(this.value==='Otro')show('dCambioTOTdet');else{hide('dCambioTOTdet');const e=$('fCambioTOTdet');if(e)e.value='';}" style="min-width:200px;">
+                    <option value="">-- motivo --</option>
+                    <option>Cuff disfuncional</option>
+                    <option>TOT roto</option>
+                    <option>Para disminuir resistencia de la vía aérea</option>
+                    <option>Otro</option>
+                  </select></div>
+                <div class="col wa hidden" id="dCambioTOTdet"><label>Detalle</label>
+                  <input type="text" id="fCambioTOTdet" placeholder="Motivo..." style="min-width:160px;"></div>
                 <div class="col grow"><label>Punto fijación</label>
                   <select id="fTOTfij" style="height:34px;">
                     <option value="">-- seleccionar --</option>
@@ -1007,6 +1017,18 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                     <option>XL proximal</option>
                     <option>Ajustable</option>
                   </select></div>
+                <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="cCambioTQT" onchange="toggleCambioTQT()"><label for="cCambioTQT" style="font-weight:700;color:#1d4ed8;">🔄 Cambio de cánula</label></div>
+                <div class="col wa hidden" id="dCambioTQTmot"><label>Motivo del cambio</label>
+                  <select id="fCambioTQTmot" onchange="if(this.value==='Otro')show('dCambioTQTdet');else{hide('dCambioTQTdet');const e=$('fCambioTQTdet');if(e)e.value='';}" style="min-width:200px;">
+                    <option value="">-- motivo --</option>
+                    <option>Cuff disfuncional</option>
+                    <option>Por cánula corta</option>
+                    <option>Para favorecer rehabilitación</option>
+                    <option>Por presiones de vía aérea altas</option>
+                    <option>Otro</option>
+                  </select></div>
+                <div class="col wa hidden" id="dCambioTQTdet"><label>Detalle</label>
+                  <input type="text" id="fCambioTQTdet" placeholder="Motivo..." style="min-width:160px;"></div>
               </div>
             </div>
           </div>
@@ -1963,7 +1985,6 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                   <option>ASISTENCIA EN PROCEDIMIENTO MÉDICO</option>
                   <option>IMAGENOLOGÍA</option>
                   <option>RCP</option>
-                  <option>CAMBIO TQT</option>
                   <option>EMS</option>
                   <option>Educación al usuario / cuidador o familia</option>
                 </datalist>
@@ -2460,6 +2481,9 @@ function abrirPanel(id, esIng) {
   hide('dReintubDetT'); hide('dIntubDet');
   _vmHistFlag=false; _transIntubEsteTurno=false;
   const _cct=$('cCambioTOT'); if(_cct) _cct.checked=false; _totSnapshot=null; _lockTOT(false);
+  hide('dCambioTOTmot'); hide('dCambioTOTdet');
+  const _cqt=$('cCambioTQT'); if(_cqt) _cqt.checked=false; _tqtSnapshot=null;
+  hide('dCambioTQTmot'); hide('dCambioTQTdet');
   setRuidosExtra(''); calcInsumosDias();
   hide('dUpotDet');
   // Los modales de evaluación (MRC/FSS/CPAx) viven FUERA de <form id="kf">,
@@ -2813,7 +2837,8 @@ function fillForm(s) {
     s.VENT_SOPORTE==='VM' || s.VENT_VIA_AEREA==='TOT' || s.VENT_VIA_AEREA==='TQT';
   _evoEventoGuardado = s.EXT_OCURRIO===true||s.EXT_OCURRIO==='TRUE'||!!s.PVE_VAL||
     s.DECAN_OCURRIO===true||s.DECAN_OCURRIO==='TRUE'||s.INTUB_OCURRIO===true||s.INTUB_OCURRIO==='TRUE'||
-    s.EXT_REINTUB===true||s.EXT_REINTUB==='TRUE'||s.TOT_CAMBIO===true||s.TOT_CAMBIO==='TRUE';
+    s.EXT_REINTUB===true||s.EXT_REINTUB==='TRUE'||s.TOT_CAMBIO===true||s.TOT_CAMBIO==='TRUE'||
+    s.TQT_CAMBIO===true||s.TQT_CAMBIO==='TRUE';
   updateVAUI();
   aplicarGatesEval();
   if(v('fVA')==='TOT' && v('fTOTn') && !$('cCambioTOT')?.checked) _lockTOT(true);
@@ -2952,6 +2977,7 @@ function _autoProcs(){
   if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
   if(v('fApneaTest')) auto.push('TEST APNEA');
   if($('cCambioTOT')?.checked) auto.push('CAMBIO TOT');
+  if($('cCambioTQT')?.checked) auto.push('CAMBIO TQT');
   if(v('fVA')==='TOT' && (_extOcurrio()||v('fPVEval'))){
     const _et=_extTipo();
     if(_et==='protocolo')           auto.push('EXTUBACIÓN C/PROTOCOLO');
@@ -3005,7 +3031,8 @@ function _podarEventosPayload(p){
   // registro de reintubación con esta clave).
   if(!($('cReintubT')?.checked||$('cReintub')?.checked||$('cReintubNo')?.checked))
     del(['REINTUB_TOT_N','REINTUB_TOT_CM','REINTUB_MODO','REINTUB_PARAMS','REINTUB_HORA','REINTUB_SOP_PREV','EXT_REINTUB','EXT_REINTUB_RAZ']);
-  if(!$('cCambioTOT')?.checked) del(['TOT_CAMBIO']);
+  if(!$('cCambioTOT')?.checked) del(['TOT_CAMBIO','TOT_CAMBIO_MOTIVO']);
+  if(!$('cCambioTQT')?.checked) del(['TQT_CAMBIO','TQT_CAMBIO_MOTIVO']);
   // El estado FINAL de VA y el pliegue de contadores se derivan de los eventos:
   // si el turno guardado ya tiene un evento y ahora no hay ninguno activo
   // (reapertura para corregir otra cosa), no se recalculan — se preservan.
@@ -3192,6 +3219,9 @@ function guardar() {
     INTUB_DET:       v('fIntubDet'),
     INTUB_SOP_PREVIO: v('fIntubSopPrevio'),
     TOT_CAMBIO:      bv('cCambioTOT'),
+    TOT_CAMBIO_MOTIVO: v('fCambioTOTmot')==='Otro' ? (v('fCambioTOTdet')||'Otro') : v('fCambioTOTmot'),
+    TQT_CAMBIO:      bv('cCambioTQT'),
+    TQT_CAMBIO_MOTIVO: v('fCambioTQTmot')==='Otro' ? (v('fCambioTQTdet')||'Otro') : v('fCambioTQTmot'),
     EXT_REINTUB_RAZ: _extReintubRaz(),
     EXT_PE_VA:       peVAext(),
     EXT_PE_SOP:      peSopext(),
@@ -3782,6 +3812,16 @@ function genTexto() {
   if($('cIntubO')?.checked){
     const _ih=v('fIntubHora'), _idt=v('fIntubDet');
     L.push(`Paciente requiere intubación orotraqueal${_ih?' a las '+_ih+' hrs':''}${_idt?' en contexto de '+_idt:''}.`);
+  }
+  // "Por…"/"Para…" ya traen su preposición; el resto se une con "por"
+  const _conMotivo=m=>{ m=String(m||'').trim(); if(!m) return ''; const ml=m.toLowerCase(); return (ml.startsWith('por ')||ml.startsWith('para '))?' '+ml:' por '+ml; };
+  if(va==='TOT' && $('cCambioTOT')?.checked){
+    const _cm=v('fCambioTOTmot')==='Otro'?(v('fCambioTOTdet')||''):v('fCambioTOTmot');
+    L.push(`Se realiza cambio de TOT${_conMotivo(_cm)}.`);
+  }
+  if(va==='TQT' && $('cCambioTQT')?.checked){
+    const _cq=v('fCambioTQTmot')==='Otro'?(v('fCambioTQTdet')||''):v('fCambioTQTmot');
+    L.push(`Se realiza cambio de cánula de TQT${_conMotivo(_cq)}.`);
   }
   if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA en día ${dVA} mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()}.`); }
   else if(va==='TQT') L.push(`VAA en día ${dVA} mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''}.`);
@@ -5628,7 +5668,8 @@ function toggleCambioTOT(){
   if($('cCambioTOT')?.checked){
     _totSnapshot={n:v('fTOTn'), cm:v('fTOTcm')};
     _lockTOT(false);
-    toast('🔄 Cambio de tubo: registra el nuevo N° y fijación — se sumará como procedimiento.', 4200);
+    show('dCambioTOTmot');
+    toast('🔄 Cambio de tubo: registra el motivo y el nuevo N° y fijación — se sumará como procedimiento.', 4200);
   } else {
     if(_totSnapshot){
       const en=$('fTOTn'); if(en) en.value=_totSnapshot.n;
@@ -5636,6 +5677,29 @@ function toggleCambioTOT(){
     }
     _totSnapshot=null;
     _lockTOT(true);
+    hide('dCambioTOTmot'); hide('dCambioTOTdet');
+    const _m=$('fCambioTOTmot'); if(_m) _m.value='';
+    const _d=$('fCambioTOTdet'); if(_d) _d.value='';
+  }
+}
+
+//  Cambio de cánula TQT — espejo del cambio de TOT: checkbox reversible con
+//  snapshot (deshacer restaura calibre/tipo previos y limpia el motivo).
+let _tqtSnapshot=null;
+function toggleCambioTQT(){
+  if($('cCambioTQT')?.checked){
+    _tqtSnapshot={n:v('fTQTn'), t:v('fTQTt')};
+    show('dCambioTQTmot');
+    toast('🔄 Cambio de cánula: registra el motivo y el nuevo calibre/tipo — se sumará como procedimiento.', 4200);
+  } else {
+    if(_tqtSnapshot){
+      const en=$('fTQTn'); if(en) en.value=_tqtSnapshot.n;
+      const et=$('fTQTt'); if(et) et.value=_tqtSnapshot.t;
+    }
+    _tqtSnapshot=null;
+    hide('dCambioTQTmot'); hide('dCambioTQTdet');
+    const _m=$('fCambioTQTmot'); if(_m) _m.value='';
+    const _d=$('fCambioTQTdet'); if(_d) _d.value='';
   }
 }
 
