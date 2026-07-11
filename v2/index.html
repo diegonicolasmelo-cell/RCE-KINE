@@ -896,7 +896,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
             <!-- Día estadía + Barthel + ECF + AET en la misma fila -->
             <div class="row" style="margin-bottom:6px;align-items:flex-end;flex-wrap:wrap;">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:64px;" disabled></div>
-              <div class="col ws" style="margin-right:34px;"><label>Barthel</label>
+              <div class="col wa" style="margin-right:34px;"><label>Barthel</label>
                 <div style="display:flex;align-items:center;gap:5px;">
                   <select id="fBarthel" onchange="updBarthelLbl('fBarthel','lblBarthel')" style="width:72px;">
                     <option value="">--</option>
@@ -910,13 +910,13 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                   <button type="button" onclick="abrirEscala('barthel','fBarthel')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
                 </div>
               </div>
-              <div class="col ws" style="margin-right:34px;"><label>Charlson</label>
+              <div class="col wa" style="margin-right:34px;"><label>Charlson</label>
                 <div style="display:flex;align-items:center;gap:5px;">
                   <input type="number" id="fCharlson" min="0" max="37" style="width:64px;">
                   <button type="button" onclick="abrirEscala('charlson','fCharlson')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
                 </div>
               </div>
-              <div class="col ws" style="margin-right:34px;"><label>ECF</label>
+              <div class="col wa" style="margin-right:34px;"><label>ECF</label>
                 <div style="display:flex;align-items:center;gap:5px;">
                   <select id="fEcf" onchange="updEcfLbl('fEcf','lblEcf')" style="width:56px;">
                     <option value="">--</option>
