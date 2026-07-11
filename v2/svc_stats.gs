@@ -33,7 +33,9 @@ function obtenerStats(desde, hasta) {
   let intub = 0, ext = 0, extProg = 0, autoext = 0, pveSi = 0, pveSup = 0, pveFrus = 0;
   let decan = 0, recanul = 0, cambiosTOT = 0;
   let ktmR = 0, ktmC = 0, ktmN = 0, ktrSes = 0, imtSes = 0, ktmTiempo = 0, ktmTiempoN = 0;
-  const ktmNiveles = {}, ktmMotivosNo = {}, procs = {}, catKine = {};
+  const ktmNiveles = {}, ktmMotivosNo = {}, procs = {}, catResp = {}, catMotor = {};
+  // Puntaje SOCHIMI → nivel de complejidad (n variables: Baja=n, Media n+1..2n, Alta >2n)
+  const catNivel = (p, n) => p <= n ? 'Baja' : (p <= n * 2 ? 'Media' : 'Alta');
 
   evos.forEach(e => {
     const pid = String(e.PATIENT_ID || e.COD_PACIENTE || 'sin-id');
@@ -72,8 +74,10 @@ function obtenerStats(desde, hasta) {
     const kt = parseInt(e.RESP_KTR_CANT); if (kt > 0) ktrSes += kt;
     if (esVerdadero(e.KTM_IMT)) imtSes++;
     if (e.PROC_JSON) { try { (JSON.parse(e.PROC_JSON) || []).forEach(p => tally(procs, p)); } catch (x) {} }
-    const ck = parseInt(e.CAT_KINE) || 0;
-    if (ck) tally(catKine, 'K' + ck);
+    const cr = parseInt(e.CAT_RESP_PJE) || 0;
+    if (cr) tally(catResp, catNivel(cr, 5));
+    const cm = parseInt(e.CAT_MOTOR_PJE) || 0;
+    if (cm) tally(catMotor, catNivel(cm, 4));
   });
 
   // Grupo REM: por paciente (último valor registrado), no por evolución
@@ -129,7 +133,7 @@ function obtenerStats(desde, hasta) {
       tiempoPromMin: ktmTiempoN > 0 ? r1(ktmTiempo / ktmTiempoN) : 0,
       ktrSesiones: ktrSes, imtSesiones: imtSes,
     },
-    procs: procs, rem: rem, catKine: catKine,
+    procs: procs, rem: rem, catResp: catResp, catMotor: catMotor,
     egresos: {
       total: arch.length, destinos: destinos, motivos: motivosEgr,
       diasEstadiaProm: diasN > 0 ? r1(diasTot / diasN) : 0,

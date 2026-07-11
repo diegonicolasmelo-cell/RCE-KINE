@@ -152,7 +152,9 @@ const _COLS_EVOLUCIONES = [
   ['TQT_CAMBIO_MOTIVO','texto'], // motivo del cambio de cánula
   ['BARTHEL_JSON','json'],       // ítems de la calculadora de Barthel (10 valores)
   ['CHARLSON_JSON','json'],      // ítems de la calculadora de Charlson {it:[índices], edad:bool}
-  ['CAT_KINE','entero'],         // categorización kinésica automática del turno (K1–K4; 4 = máxima complejidad)
+  ['CAT_KINE','entero'],         // LEGACY: categorización K1–K4 (reemplazada por CAT_RESP/MOTOR; ya no se escribe)
+  ['CAT_RESP_PJE','entero'],     // categorización respiratoria SOCHIMI (5 variables × 1-3 pts; 5=Baja, 6-10=Media, 11-15=Alta)
+  ['CAT_MOTOR_PJE','entero'],    // categorización motora SOCHIMI (4 variables × 1-3 pts; 4=Baja, 5-8=Media, 9-12=Alta)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -175,7 +177,11 @@ const ESQUEMA = {
     ['PROC_DIA','texto'],['FIRMA_DIA','texto'],['KEY_DIA','texto'],['KTR_NOCHE','entero'],['PROC_NOCHE','texto'],
     ['FIRMA_NOCHE','texto'],['KEY_NOCHE','texto'],
     ['CHARLSON','entero'],['INGRESO_TIPO','texto'],  // S5 (persisten con el episodio, se cargan al abrir)
-    ['CAT_KINE','entero'],  // categorización kinésica del último turno (badge en la grilla)
+    ['CAT_KINE','entero'],  // LEGACY: categorización K1–K4 (ya no se escribe)
+    ['CAT_RESP_PJE','entero'],['CAT_MOTOR_PJE','entero'],  // categorización SOCHIMI del último turno (badges R/M en la grilla)
+    // Últimas evaluaciones del episodio (arrastre para la matriz motora + badges de la grilla)
+    ['ULT_COOP','texto'],['ULT_MRC','entero'],['ULT_MRC_FECHA','texto'],
+    ['ULT_FSS','entero'],['ULT_FSS_FECHA','texto'],['ULT_DINAMO','decimal'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -440,7 +446,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 277) errs.push('EVOLUCIONES != 277 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 279) errs.push('EVOLUCIONES != 279 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }
