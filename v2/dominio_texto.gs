@@ -60,6 +60,13 @@ function generarTextoEvolucion(d) {
   }
   if (tend && tendT) hemoStr += `, con tendencia a ${tendT}`;
   txt.push(hemoStr + '.');
+  const pic = vn('HEMO_PIC'), ppc = vn('HEMO_PPC');
+  if (pic > 0 || ppc > 0) {
+    const nm = [];
+    if (pic > 0) nm.push(`PIC ${pic} mmHg`);
+    if (ppc > 0) nm.push(`PPC ${ppc} mmHg`);
+    txt.push('Neuromonitoreo: ' + nm.join(', ') + '.');
+  }
 
   // 5. Vía aérea
   const diasVA = v('DIAS_VA');
@@ -68,7 +75,8 @@ function generarTextoEvolucion(d) {
     const desc = (totN || totCm) ? ` N° ${totN || '?'} fijado en ${totCm || '?'} cm` : '';
     txt.push(`Paciente con tubo orotraqueal${desc}, en día ${diasVA || '?'} de VA artificial.`);
   } else if (va === 'TQT') {
-    const desc = tqtT ? ` tipo ${tqtT}` : '';
+    const tqtN = v('VENT_TQT_CALIBRE');
+    const desc = (tqtN ? ` N° ${tqtN}` : '') + (tqtT ? ` tipo ${tqtT}` : '');
     txt.push(`Paciente con traqueostomía${desc}, en día ${diasVA || '?'} de VA artificial.`);
   } else if (va === 'Full Face' || va === 'Oronasal') {
     txt.push(`Paciente con máscara ${va} de VNI.`);
@@ -142,10 +150,55 @@ function generarTextoEvolucion(d) {
     txt.push(`En ventilación espontánea en ambiente, SpO₂ ${spo2}%.`);
   }
 
-  // Post-extubación / decanulación (bloque EXT_*)
-  if (esVerdadero(d.EXT_OCURRIO)) {
-    const det = v('EXT_POST_DET');
-    txt.push(`Post-extubación/decanulación${det ? ': ' + det : ''}.`);
+  // PVE / extubación — narrativa clínica (paridad con el preview del cliente)
+  (function () {
+    const pveVal = v('PVE_VAL'), pveRes = v('PVE_RESULTADO');
+    const extH = v('EXT_HORA'), extTipo = v('EXT_TIPO'), extMot = v('EXT_MOTIVO');
+    const postDet = v('EXT_POST_DET'), peModo = v('EXT_PE_MODO');
+    const horaTxt = extH ? ` a las ${extH} hrs` : '';
+    const queda = () => {
+      if (peModo) txt.push(`Paciente queda con ${peModo === 'Ambiente' ? 'vía aérea natural sin soporte' : peModo}${postDet ? '. ' + postDet : ''}.`);
+      else if (postDet) txt.push(postDet + '.');
+    };
+    if (pveVal === 'si') {
+      if (pveRes === 'superada') {
+        txt.push(`Se realiza PVE con resultado superado, progresando a extubación${horaTxt}.`);
+        if (esVerdadero(d.EXT_REINTUB)) {
+          const rz = v('EXT_REINTUB_RAZ'), rh = v('REINTUB_HORA');
+          txt.push(`Sin embargo, paciente evoluciona con ${(rz || 'falla respiratoria').toLowerCase()} por lo que se reintuba${rh ? ' a las ' + rh + ' hrs' : ''}.`);
+        } else queda();
+      } else if (pveRes === 'frustra') {
+        let mots = [];
+        try { mots = JSON.parse(d.PVE_FR_MOTIVOS || '[]') || []; } catch (e) {}
+        const mstr = mots.length ? mots.join(', ') : 'aspectos clínicos';
+        txt.push(`Se realiza PVE según protocolo con resultado fallido desde lo ${mstr}. Paciente continúa con soporte ventilatorio.`);
+      } else txt.push('Se realiza PVE según protocolo.');
+    } else if (esVerdadero(d.EXT_OCURRIO)) {
+      let e2 = extTipo === 'autoextubacion' ? `Paciente se autoextuba${horaTxt}`
+             : extTipo === 'accidental' ? `Extubación accidental${horaTxt}`
+             : `Se realiza extubación${extTipo === 'sin_protocolo' ? ' sin protocolo' : ''}${horaTxt}`;
+      if (extMot) e2 += `. ${extMot}`;
+      txt.push(e2 + '.');
+      if (esVerdadero(d.EXT_REINTUB)) {
+        const rz = v('EXT_REINTUB_RAZ'), rh = v('REINTUB_HORA');
+        txt.push(`Posteriormente requiere reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}.`);
+      } else queda();
+    }
+  })();
+
+  // Decanulación (evento del turno, VA=TQT)
+  if (esVerdadero(d.DECAN_OCURRIO)) {
+    const dt = v('DECAN_TIPO');
+    const dtTxt = dt === 'protocolo' ? ' según protocolo' : dt === 'sin_protocolo' ? ' sin protocolo' : dt === 'accidental' ? ' accidental' : '';
+    let t2 = `Se realiza decanulación${dtTxt}`;
+    if (esVerdadero(d.DECAN_RECANUL)) t2 += ', sin embargo paciente requiere recanulación';
+    else {
+      const dq = v('DECAN_QUEDA_DISP'), df = v('DECAN_QUEDA_FLUJO'), ds = v('DECAN_QUEDA_SPO2');
+      if (dq) t2 += `, quedando con ${dq}${df ? ' ' + df : ''}${ds ? `, SpO2 ${ds}%` : ''}`;
+    }
+    const dd = v('DECAN_DET');
+    if (dd) t2 += `. ${dd}`;
+    txt.push(t2 + '.');
   }
 
   // Reintubación sin extubación este turno (VA venía no invasiva)
@@ -184,10 +237,34 @@ function generarTextoEvolucion(d) {
   } else if (ktmS) {
     const tipoContra = v('KTM_CONTRA_TIPO');
     txt.push(`KTM no realizada. Contraindicación ${tipoContra ? tipoContra.toLowerCase() : ''}: ${contra || 'sin especificar'}.`);
+  } else if (esVerdadero(d.KTM_NO_REALIZADA)) {
+    const nr = v('KTM_NO_RAZON'), nc = v('KTM_NO_COMENTARIO');
+    let s2 = 'KTM no realizada';
+    if (nr) s2 += ` por ${nr.toLowerCase()}`;
+    if (nc) s2 += `. ${nc}`;
+    txt.push(s2 + '.');
   }
 
   // 9. Procedimientos: NO se imprimen como lista cruda (van narrados en el texto);
   // PROC_JSON/PROC_RESUMEN quedan solo para la BD y la estadística.
+
+  // Evaluaciones funcionales del turno
+  (function () {
+    const ev = [];
+    if (v('EVAL_T_MRC')) ev.push(`MRC-ss ${v('EVAL_T_MRC')}/60`);
+    if (v('EVAL_T_DINAMO')) ev.push(`Dinamometría ${v('EVAL_T_DINAMO')} kg`);
+    if (v('EVAL_T_FSS')) ev.push(`FSS-ICU ${v('EVAL_T_FSS')}/35`);
+    if (v('CPAX_TOTAL')) ev.push(`CPAx ${v('CPAX_TOTAL')}/50`);
+    if (v('EVAL_T_PIM')) ev.push(`PIM ${v('EVAL_T_PIM')} cmH₂O`);
+    if (v('EVAL_T_PEM')) ev.push(`PEM ${v('EVAL_T_PEM')} cmH₂O`);
+    if (v('EVAL_T_FEM')) ev.push(`FEM ${v('EVAL_T_FEM')} L/min`);
+    if (v('EVAL_T_GROSOR')) ev.push(`Grosor diafragmático ${v('EVAL_T_GROSOR')} mm`);
+    if (v('EVAL_T_HALLAZGOS')) ev.push(`Ecografía: ${v('EVAL_T_HALLAZGOS')}`);
+    if (v('EVAL_T_CUAD_D') || v('EVAL_T_CUAD_I')) ev.push(`Grosor cuádriceps D/I ${v('EVAL_T_CUAD_D') || '—'}/${v('EVAL_T_CUAD_I') || '—'} mm`);
+    if (v('EVAL_DEGLUCION')) ev.push(`Deglución: ${v('EVAL_DEGLUCION')}`);
+    if (v('EVAL_NIVEL_MOTOR')) ev.push(`Hito motor ${v('EVAL_NIVEL_MOTOR')}/6`);
+    if (ev.length) txt.push('Evaluaciones funcionales: ' + ev.join('; ') + '.');
+  })();
 
   // UPOT (procuramiento)
   if (esVerdadero(d.UPOT_ACTIVO)) {
