@@ -24,20 +24,17 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .col textarea,.fcard-body textarea{height:auto;min-height:38px;padding:9px 11px;resize:vertical;font-size:.92rem;border:1px solid #dbe2ea;border-radius:9px;background:#fff;outline:none;font-family:inherit;width:100%;box-sizing:border-box;}
 .grow{flex-grow:1;}.ws{width:70px;flex-grow:0;}.wm{width:100px;flex-grow:0;}.wa{flex-grow:0;min-width:min-content;}
 .bold{font-weight:700;}.tc{text-align:center;}.mt{margin-top:8px;}.mb{margin-bottom:14px;}
-.stack{display:flex;flex-direction:column;gap:14px;}
 .check{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:10px;border:1.5px solid var(--border);background:#fff;transition:border-color .15s,background .15s;}
 .check:hover{border-color:#cbd5e1;}
 .check label{font-size:.8rem;font-weight:700;cursor:pointer;color:var(--txt);}
 .check input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--primary);flex-shrink:0;}
 .check:has(input:checked){border-color:#93c5fd;background:#eff6ff;}
+/* variante semántica roja (única en uso) */
+.cr label{color:#b91c1c;}
+.cr input[type=checkbox]{accent-color:#dc2626;}
+.cr:has(input:checked){border-color:#fca5a5;background:#fef2f2;}
 .row>.check{align-self:flex-end;margin-bottom:2px;}
 .row>.mon{align-self:flex-end;}
-/* variantes semánticas (verde / rojo / violeta) */
-.cg label{color:#15803d;}.cr label{color:#b91c1c;}.cp label{color:#7c3aed;}
-.cg input[type=checkbox]{accent-color:#16a34a;}.cr input[type=checkbox]{accent-color:#dc2626;}.cp input[type=checkbox]{accent-color:#7c3aed;}
-.cg:has(input:checked){border-color:#86efac;background:#f0fdf4;}
-.cr:has(input:checked){border-color:#fca5a5;background:#fef2f2;}
-.cp:has(input:checked){border-color:#c4b5fd;background:#f5f3ff;}
 .mon{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:9px;padding:5px 12px;min-width:70px;flex-shrink:0;background:#fff;border:1px solid var(--border);}
 .mon-y{background:#fefce8;border-color:#fde047;color:#854d0e;}
 .fade{animation:fi .2s ease-out;}
@@ -87,41 +84,8 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .dash-dates{display:flex;align-items:center;gap:6px;}
 .dashin{background:#fff!important;color:#1e293b!important;border:1px solid #cbd5e1!important;height:33px;}
 
-/* ─── SUB-NAV ESTADÍSTICAS ─── */
-.dash-subnav{display:flex;gap:4px;margin-bottom:18px;border-bottom:1px solid var(--border);}
-.dsub{background:transparent;border:none;border-bottom:2px solid transparent;padding:8px 16px;font-size:.84rem;font-weight:700;color:#94a3b8;cursor:pointer;margin-bottom:-1px;transition:all .12s;}
-.dsub:hover{color:var(--primary);}
-.dsub.on{color:var(--pdark);border-bottom-color:var(--primary);}
-
-/* ─── TABLA DINÁMICA ─── */
-.pivot-controls{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;background:#f8fafc;border:1px solid var(--border);border-radius:11px;padding:13px 15px;margin-bottom:11px;}
-.pv-ctrl{display:flex;flex-direction:column;gap:4px;}
-.pv-ctrl-grow{flex:1;min-width:140px;}
-.pv-ctrl label{font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
-.pv-ctrl select,.pv-ctrl input{height:34px;border-radius:7px;padding:0 9px;font-family:inherit;font-size:.82rem;background:#fff;border:1px solid #cbd5e1;color:#1e293b;outline:none;}
-.pv-ctrl select:focus,.pv-ctrl input:focus{border-color:var(--primary);}
-.pivot-presets{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:15px;}
-.pv-preset-lbl{font-size:.72rem;font-weight:700;color:var(--muted);}
-.pv-preset{background:#eef2f7;border:1px solid var(--border);color:#475569;padding:5px 11px;border-radius:7px;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .12s;}
-.pv-preset:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
-.pivot-table-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:11px;background:#fff;}
-.pivot-table{border-collapse:collapse;width:100%;font-size:.82rem;min-width:480px;}
-.pivot-table th,.pivot-table td{padding:9px 13px;text-align:right;border-bottom:1px solid #eef2f7;white-space:nowrap;}
-.pivot-table thead th{position:sticky;top:0;background:#0f172a;color:#fff;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;z-index:2;cursor:pointer;}
-.pivot-table thead th:first-child{text-align:left;position:sticky;left:0;z-index:3;}
-.pivot-table thead th.sortcol{color:#7dd3fc;}
-.pivot-table tbody th{text-align:left;font-weight:700;color:#1e293b;background:#f8fafc;position:sticky;left:0;z-index:1;}
-.pivot-table tbody tr:hover td,.pivot-table tbody tr:hover th{background:#eff6ff;}
-.pivot-cell-0{color:#cbd5e1;}
-.pivot-cell-hot{font-weight:800;color:var(--pdark);}
-.pivot-table .pv-total-col{background:#f1f5f9;font-weight:800;color:var(--pdark);}
-.pivot-table tfoot th,.pivot-table tfoot td{background:#0f172a;color:#fff;font-weight:800;border-bottom:none;position:sticky;bottom:0;}
-.pivot-table tfoot th:first-child{position:sticky;left:0;z-index:2;}
+/* mensaje vacío/cargando del dashboard */
 .pivot-empty{color:#94a3b8;text-align:center;padding:50px;font-style:italic;}
-.pivot-meta{font-size:.74rem;color:var(--muted);margin-bottom:10px;}
-.pivot-bar{position:relative;}
-.pivot-bar-fill{position:absolute;left:0;top:0;bottom:0;background:rgba(37,99,235,.09);border-radius:3px;z-index:0;}
-.pivot-bar span{position:relative;z-index:1;}
 
 /* KPI cards */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;margin-bottom:22px;}
@@ -149,43 +113,15 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .chbar-track{height:9px;background:#eef2f7;border-radius:5px;overflow:hidden;}
 .chbar-fill{height:100%;border-radius:5px;background:var(--bar-c,var(--primary));transition:width .5s cubic-bezier(.4,0,.2,1);}
 
-/* Donut + legend */
-.donut-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
-.donut-legend{display:flex;flex-direction:column;gap:7px;flex-grow:1;}
-.dleg{display:flex;align-items:center;gap:8px;font-size:.78rem;}
-.dleg-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
-.dleg-lbl{color:var(--txt);font-weight:600;flex-grow:1;}
-.dleg-val{font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;}
-
-/* Vertical column chart */
-.vbars{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:18px;}
-.vbar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;min-width:0;}
-.vbar-col{width:100%;max-width:46px;border-radius:6px 6px 0 0;background:var(--bar-c,var(--primary));position:relative;transition:height .5s cubic-bezier(.4,0,.2,1);min-height:3px;}
-.vbar-val{position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:.72rem;font-weight:800;color:var(--txt);font-variant-numeric:tabular-nums;}
-.vbar-lbl{font-size:.66rem;font-weight:700;color:var(--muted);text-align:center;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-
-/* Before/after pill */
-.ba-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed var(--border);}
-.ba-row:last-child{border-bottom:none;}
-.ba-lbl{font-size:.78rem;font-weight:700;color:var(--txt);width:130px;flex-shrink:0;}
-.ba-track{flex-grow:1;display:flex;align-items:center;gap:8px;}
-.ba-num{font-size:1.05rem;font-weight:800;font-variant-numeric:tabular-nums;}
-.ba-arrow{color:#94a3b8;font-weight:700;}
-.ba-delta{font-size:.72rem;font-weight:800;padding:2px 8px;border-radius:20px;}
-
-/* mini stat row */
-.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.mini{background:#f8fafc;border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
-.mini-v{font-size:1.3rem;font-weight:800;color:var(--txt);line-height:1;}
-.mini-l{font-size:.66rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-top:5px;letter-spacing:.3px;}
-
 @media print{
   .hdr,.tabs,.dash-bar,#retroBar{display:none!important;}
   .dash{padding:0;}
   .dcard,.kpi{break-inside:avoid;box-shadow:none;}
 }
 
-/* ─── ENTREGA DE TURNO ───────────────── */
+/* ─── ENTREGA DE TURNO ─────────────────
+   RESERVADO: módulo pendiente de portar (v1). El CSS se conserva a propósito
+   para reutilizarlo al construir la ficha de entrega; no hay markup aún. */
 .ent-shell{padding:18px 22px 60px;}
 .ent-config{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:20px;}
 .ent-cfg-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;}
@@ -346,53 +282,6 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .bmov{background:transparent;border:none;color:#94a3b8;cursor:pointer;padding:3px;border-radius:5px;display:flex;align-items:center;}
 .bmov:hover{background:#e2e8f0;color:#3b82f6;}
 
-/* TABLA */
-.tbl-wrap{padding:16px 22px;}
-.tbl-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;gap:10px;flex-wrap:wrap;}
-.tbl-title{font-size:.92rem;font-weight:800;}
-.search{background:#fff;border:1px solid #cbd5e1;border-radius:6px;padding:6px 11px;font-size:.83rem;outline:none;height:33px;width:190px;}
-.tbl-scroll{overflow-x:auto;background:#fff;border-radius:9px;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #e2e8f0;}
-table.nt{border-collapse:collapse;width:max-content;min-width:100%;font-size:.77rem;}
-table.nt th:first-child,table.nt td:first-child{position:sticky;left:0;z-index:10;background:#fff;box-shadow:2px 0 5px rgba(0,0,0,.06);}
-table.nt thead tr:first-child th:first-child{background:#1e293b;z-index:20;position:static;box-shadow:none;}
-table.nt thead tr:nth-child(2) th:first-child{background:#334155;z-index:20;}
-.ths{padding:7px 11px;font-weight:800;font-size:.67rem;text-transform:uppercase;letter-spacing:.8px;text-align:center;color:#fff;border-right:2px solid rgba(255,255,255,.2);}
-.ths.d{background:#1e293b;}.ths.dia{background:#1d4ed8;}.ths.noc{background:#4338ca;}
-.thc{padding:5px 8px;font-weight:700;font-size:.62rem;text-transform:uppercase;text-align:center;border:1px solid rgba(0,0,0,.07);}
-.thc.d{background:#f1f5f9;color:#334155;}.thc.dia{background:#dbeafe;color:#1e40af;}.thc.noc{background:#e0e7ff;color:#3730a3;}
-table.nt tbody tr{border-bottom:1px solid #f1f5f9;}
-table.nt tbody tr:hover td{background:#f8fafc!important;}
-table.nt tbody tr.re{opacity:.38;}
-table.nt tbody tr.rd td:first-child{border-left:3px solid var(--ok);}
-table.nt tbody tr.ro td:first-child{border-left:3px solid var(--danger);}
-table.nt tbody tr.r-egr td{background:#fbeef0;color:#7a5b5b;}
-table.nt tbody tr.r-egr td:first-child{border-left:3px solid #b02a2a;}
-.egr-tag{display:inline-block;background:#fde2e2;color:#b02a2a;font-weight:800;font-size:.66rem;padding:1px 7px;border-radius:4px;}
-td{padding:0;border:1px solid #f1f5f9;vertical-align:middle;}
-.tc-c{padding:5px 9px;font-weight:800;font-size:.84rem;text-align:center;min-width:50px;background:#fff;border-right:1px solid #e2e8f0;}
-.tc-n{padding:5px 9px;font-weight:600;min-width:170px;max-width:195px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tc-num{padding:4px 7px;text-align:center;font-family:'Courier New',monospace;font-size:.79rem;font-weight:600;min-width:46px;}
-.tc-dx{padding:5px 9px;min-width:145px;max-width:195px;color:#475569;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tc-sop,.tc-ktm{padding:4px 7px;text-align:center;min-width:78px;}
-.tc-ktr{padding:4px 7px;text-align:center;min-width:43px;font-family:'Courier New',monospace;font-weight:800;}
-.tc-kine{padding:4px 7px;text-align:center;min-width:50px;font-weight:800;}
-.tc-proc{padding:4px 7px;min-width:110px;max-width:145px;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tc-p4{padding:4px 6px;min-width:62px;max-width:92px;text-align:center;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#475569;}
-.tc-ex{padding:4px 6px;text-align:center;min-width:46px;}
-.ktr-1{color:#dc2626;}.ktr-2{color:#ea580c;}.ktr-3{color:#d97706;}.ktr-4{color:#16a34a;}.ktr-5{color:#0284c7;}
-.bs,.bk{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.69rem;font-weight:700;white-space:nowrap;}
-.bs-VM{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
-.bs-VNI{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;}
-.bs-CNAF{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;}
-.bs-Ox{background:#fffbeb;color:#92400e;border:1px solid #fde68a;}
-.bs-def{background:#f8fafc;color:#475569;border:1px solid #e2e8f0;}
-.bk-ok{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
-.bk-s{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
-.bk-e{background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0;}
-tr.r-tot td{background:#0f172a!important;color:#fff!important;font-weight:800;padding:7px 9px;}
-tr.r-tot td.tl{color:#93c5fd!important;font-size:.69rem;text-align:right;}
-tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-size:.95rem;text-align:center;}
-
 /* OVERLAY + PANEL */
 .ovl{position:fixed;top:0;left:0;width:100%;height:100vh;background:rgba(15,23,42,.42);backdrop-filter:blur(2px);z-index:99;opacity:0;pointer-events:none;transition:opacity .3s;}
 .ovl.on{opacity:1;pointer-events:auto;}
@@ -438,16 +327,10 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ti-wrap.violet{border-color:#e9d5ff;background:#faf5ff;}.ti-wrap.violet:focus-within{border-color:#a78bfa;}
 .ti-input{border:none;outline:none;background:transparent;font-size:.78rem;flex:1;min-width:100px;color:#374151;}
 .ti-tag{display:inline-flex;align-items:center;gap:3px;border-radius:20px;padding:2px 8px;font-size:.73rem;font-weight:700;white-space:nowrap;}
-.ti-tag.blue{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;}
 .ti-tag.sky{background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;}
 .ti-tag.violet{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;}
 .ti-tag button{background:none;border:none;cursor:pointer;font-size:.8rem;line-height:1;padding:0 1px;opacity:.6;color:inherit;}
 .ti-tag button:hover{opacity:1;}
-.ti-presets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;}
-.ti-chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:600;cursor:pointer;border:1px solid #bae6fd;background:#e0f2fe;color:#0369a1;transition:background .15s;}
-.ti-chip:hover{background:#bae6fd;}
-.ti-chip.violet{border-color:#c4b5fd;background:#ede9fe;color:#5b21b6;}
-.ti-chip.violet:hover{background:#c4b5fd;}
 .secr-qty{transition:background .12s,border-color .12s,color .12s;color:#475569;background:#f8fafc;border:1px solid #cbd5e1;border-radius:5px;cursor:pointer;font-weight:600;line-height:1;user-select:none;position:relative;}
 .secr-qty:hover{background:#e2e8f0;border-color:#94a3b8;}
 .secr-qty.active{background:#0284c7!important;border-color:#0369a1!important;color:#fff!important;}
@@ -476,7 +359,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .fc-n{--fc:var(--neuro);}
 .fc-h{--fc:var(--hemo);}
 .fc-r{--fc:var(--resp);}
-.fc-f{--fc:var(--fisico);}
 .fc-k{--fc:var(--kine);}
 .fc-upot{--fc:#be123c;}
 .fc-imt{--fc:#0284c7;}
@@ -559,9 +441,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ktm-state{background:transparent;border:none;padding:6px 13px;border-radius:5px;font-size:.78rem;font-weight:700;cursor:pointer;color:#64748b;}
 .ktm-state.on{background:#fff;color:#0f172a;box-shadow:0 1px 3px rgba(0,0,0,.1);}
 .ktm-state:hover{color:#0f172a;}
-.iv-chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:14px;border:1px solid #e2e8f0;background:#f8fafc;font-size:.74rem;font-weight:600;color:#64748b;cursor:pointer;user-select:none;transition:all .15s;}
-.iv-chip:hover{border-color:#cbd5e1;}
-.iv-chip.on{background:var(--kine);color:#fff;border-color:var(--kine);}
 .ktm-niv-btn{min-width:36px;padding:5px 10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.82rem;font-weight:800;cursor:pointer;transition:all .15s;}
 .ktm-niv-btn:hover{border-color:#f59e0b;color:#b45309;}
 .ktm-niv-btn.on{background:var(--kine);border-color:var(--kine);color:#fff;}
@@ -572,9 +451,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .sub-sec:last-child{border-bottom:none;}
 .sub-sec-title{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;color:var(--muted);}
 .mega-card .fcard-body{padding:0;}
-/* Sub-bloques anidados — sin color de fondo, solo borde superior sutil */
-.inset-block{border-top:1px solid var(--border);padding:7px 0 2px;margin-top:6px;}
-.inset-block-title{font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px;}
 /* ── Override estilos inline sobrecargados dentro del panel ──── */
 #sp [style*="background:#f0f9ff"],
 #sp [style*="background:#fdf4ff"],
@@ -621,11 +497,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .interp-warn{background:#fffbeb;color:#92400e;border:1px solid #fde68a;}
 .interp-danger{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
 .interp-empty{color:#94a3b8;background:transparent;border:1px solid transparent;}
-
-/* SUMMARY STAT */
-.stat-box{background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:10px 15px;display:flex;flex-direction:column;gap:2px;}
-.stat-lbl{font-size:.63rem;font-weight:800;text-transform:uppercase;color:#94a3b8;}
-.stat-val{font-size:1.55rem;font-weight:900;font-family:'Courier New',monospace;}
 
 /* ─── TURNO: leyenda sobre el grid ─── */
 .turno-legend{max-width:1400px;margin:14px auto 0;padding:0 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
@@ -1104,7 +975,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
               </div>
             </div>
             <!-- compat oculto -->
-            <input type="hidden" id="fDiasVA"><input type="hidden" id="cVAExterno"><div id="dVAExtDias" style="display:none;"></div>
+            <input type="hidden" id="fDiasVA">
             <div id="dVADet" class="hidden fade" style="background:#eff6ff;padding:8px;border-radius:6px;border:1px solid #bfdbfe;margin-top:4px;">
               <!-- TOT -->
               <div id="dTOT" class="row hidden" style="margin-bottom:6px;align-items:flex-end;">
@@ -1265,8 +1136,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 <option>Abolido CPIz</option>
                 <option>Abolido CPD</option>
               </select>
-              <!-- compat oculto -->
-              <div id="fMPTags" style="display:none;"></div>
               <input type="hidden" id="fMPCalidad"><input type="hidden" id="fMPLoc">
             </div>
             <div>
@@ -2181,7 +2050,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
     <!-- Selector de variables (multi, solo en tabs Vent / Reh) -->
     <span id="tlVarLbl" class="hidden" style="font-size:.68rem;color:#64748b;font-weight:700;text-transform:uppercase;margin-left:8px;">Variables:</span>
     <div id="tlVarChips" class="tl-varchips hidden"></div>
-    <select id="tlVarSel" class="hidden" onchange="renderTL()"></select>
     <button class="hbtn" onclick="imprimirHojaRHB()" style="margin-left:auto;" title="Genera la Hoja de Seguimiento RHB con los datos del episodio">🖨️ Hoja RHB</button>
   </div>
 
@@ -2540,17 +2408,6 @@ function renderGrid() {
   if(window.Turnos) Turnos.renderLegend();
 }
 
-//  TABLA PACIENTES
-function sBadge(s) {
-  const m={'VM':'bs-VM','VNI':'bs-VNI','CNAF':'bs-CNAF','Oxigenoterapia/OAF':'bs-Ox'};
-  return `<span class="bs ${m[s]||'bs-def'}">${s||'-'}</span>`;
-}
-function kBadge(c) {
-  if(c.KTM_SUSP===true||c.KTM_SUSP==='TRUE') return `<span class="bk bk-s">KTMC</span>`;
-  if(c.KTM_NIVEL) return `<span class="bk bk-ok">KTM ${c.KTM_NIVEL}</span>`;
-  return `<span class="bk bk-e">-</span>`;
-}
-
 // Días VM/VNI históricos por cama (total del ingreso actual), cache por fecha.
 // form.reset() NO limpia inputs hidden (en type=hidden, .value muta el propio
 // atributo default), así que el estado de eventos sobrevivía entre aperturas
@@ -2593,7 +2450,7 @@ function abrirPanel(id, esIng) {
   if(typeof setKTMstate==='function') setKTMstate('r');
   // v2: al ingreso, Terapia Física parte "No realizada: Motivo ingreso" (override manual permitido).
   if(esIng){ setKTMstate('n'); const _mr=$('fKTMnoRaz'); if(_mr) _mr.value='Motivo ingreso'; }
-  hAisl(); hAET(); hExt();
+  hAisl(); hAET();
   // v2: fases clínicas + reintubación standalone + COD + evaluaciones nocturnas
   FASES_SEL=new Set(); renderFases();
   const _spCod=$('spCod'); if(_spCod) _spCod.textContent='';
@@ -2614,7 +2471,7 @@ function abrirPanel(id, esIng) {
   sumFSS(); sumMRC(); sumCPAX();
   if(window.CFG && CFG.CPAX_ACTIVO===false) hide('rowCpax'); else show('rowCpax');
   // defaults
-  cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM(esIng ? 'n' : 'r'); hMue(); hEgr(); calcGCS();
+  cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hKTM(esIng ? 'n' : 'r'); hMue(); hEgr(); calcGCS();
   // Gates al final: si es noche o falta cooperación, mandan sobre los defaults
   // (antes corrían antes de hKTM('r') y este las pisaba — p.ej. ingreso volvía a "Realizada").
   aplicarGatesEval();
@@ -2942,7 +2799,7 @@ function fillForm(s) {
   setFasesDesde(s.FASE_JSON||'');
   const _cod=$('spCod'); if(_cod) _cod.textContent=s.COD_PACIENTE||'';
   const _ad=$('sAdapt'); if(_ad&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!=='') _ad.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico';
-  hSed(); hHTrend(); hMultiDVA(); hSecr(); calcGCS(); calcPI();
+  hSed(); hHTrend(); hMultiDVA(); calcGCS(); calcPI();
   if(s.KTM_UMA===true||s.KTM_UMA==='TRUE') show('dUMA');
   _vmHistFlag = _vmHistFlag || !!s.EXT_TS ||
     s.EXT_OCURRIO===true || s.EXT_OCURRIO==='TRUE' ||
@@ -3057,7 +2914,7 @@ function fillFormReplica(s) {
 
   // Egreso: NO se replica (es específico del turno de egreso)
 
-  hSed(); hHTrend(); hMultiDVA(); hSecr(); calcGCS(); calcPI();
+  hSed(); hHTrend(); hMultiDVA(); calcGCS(); calcPI();
   _vmHistFlag = _vmHistFlag || !!s.EXT_TS ||
     s.EXT_OCURRIO===true || s.EXT_OCURRIO==='TRUE' ||
     s.EXT_REINTUB===true || s.EXT_REINTUB==='TRUE' ||
@@ -3075,21 +2932,6 @@ function fillFormReplica(s) {
  * Botón "Empezar en blanco" del banner de réplica:
  * limpia el formulario y lo rellena solo con los datos del paciente.
  */
-function limpiarReplica() {
-  const id=v('cBed'), fecha=v('gDate')||hoy();
-  $('kf').reset(); PROCS=[]; renderChips();
-  _resetHiddenYEventos();
-  _aislTags=[]; renderAislTags();
-  ['fSecrTags','fCultTags'].forEach(id=>{ _tiState[id]=[]; tiRender(id, id.replace('Tags','Val'), id==='fCultTags'?'violet':'sky'); });
-  if($('fMPVal'))     $('fMPVal').value='';
-  if($('fRuidosVal')) $('fRuidosVal').value='';
-  if($('fRuidosLoc')) $('fRuidosLoc').value='';
-  cascadeVA(); hSed(); hHTrend(); hMultiDVA(); hSecr(); hKTM('r'); hMue(); hEgr(); calcGCS(); hAisl(); hAET(); hExt();
-  const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha);
-  hide('repBanner'); const _riClr2=$('spRepInfo');if(_riClr2){_riClr2.textContent='';_riClr2.style.display='none';}
-  toast('📝 Formulario en blanco — listo para comenzar');
-}
-
 //  GUARDAR → SERVIDOR
 //  PROCEDIMIENTOS AUTOMÁTICOS — derivados del registro del turno. Fuente única
 //  para el payload (PROC_JSON/RESUMEN/CANTIDAD) y para la vista previa en vivo
@@ -3832,96 +3674,6 @@ function _renderTLChart(varsList) {
     </div>`;
 }
 
-// ── SVG multi-línea normalizado (cada variable a su propia escala) ──
-function _svgMultiChart(slots, seriesByVar) {
-  const W = 720, H = 210, pT = 12, pR = 14, pB = 26, pL = 30;
-  const innerW = W - pL - pR, innerH = H - pT - pB;
-  const n = slots.length;
-  const x = i => n === 1 ? pL + innerW / 2 : pL + (i / (n - 1)) * innerW;
-  const yPct = pct => pT + innerH - pct * innerH; // pct 0..1
-
-  // Grilla horizontal en % de escala
-  const grid = [0, 0.25, 0.5, 0.75, 1].map(p =>
-    `<line class="ch-grid" x1="${pL}" y1="${yPct(p)}" x2="${pL + innerW}" y2="${yPct(p)}"/>
-     <text class="ch-lbl" x="${pL - 4}" y="${yPct(p)}" text-anchor="end" dominant-baseline="middle">${Math.round(p*100)}%</text>`
-  ).join('');
-
-  const single = seriesByVar.length === 1;
-  let lines = '';
-  seriesByVar.forEach(s => {
-    if (!s.pts.length) return;
-    const yv = val => yPct(Math.max(0, Math.min(1, val / s.scaleMax)));
-    let path = '';
-    s.pts.forEach((p, k) => { path += (k === 0 ? 'M ' : ' L ') + x(p.i).toFixed(1) + ' ' + yv(p.val).toFixed(1); });
-    if (single) {
-      const area = path + ` L ${x(s.pts[s.pts.length-1].i).toFixed(1)} ${(pT+innerH).toFixed(1)} L ${x(s.pts[0].i).toFixed(1)} ${(pT+innerH).toFixed(1)} Z`;
-      lines += `<path class="ch-area" d="${area}" fill="${s.def.color}"/>`;
-    }
-    lines += `<path class="ch-line" d="${path}" stroke="${s.def.color}"/>`;
-    lines += s.pts.map(p => `<circle class="ch-dot${p.turno==='Noche'?' night':''}" cx="${x(p.i)}" cy="${yv(p.val)}" r="3" stroke="${s.def.color}">
-      <title>${s.def.label} · ${p.fecha} · ${p.turno} · ${p.val}</title></circle>`).join('');
-  });
-
-  // Etiquetas X (hasta 6)
-  const xIdx = n <= 6 ? slots.map((_, i) => i)
-    : [0, Math.floor((n-1)*0.2), Math.floor((n-1)*0.4), Math.floor((n-1)*0.6), Math.floor((n-1)*0.8), n-1];
-  const xLabels = xIdx.map(i => `<text class="ch-lbl" x="${x(i)}" y="${pT+innerH+15}" text-anchor="middle">${(slots[i].fecha||'').slice(5)}</text>`).join('');
-
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${grid}${lines}${xLabels}</svg>`;
-}
-
-// ── SVG line chart (sin librerías) ──
-function _svgLineChart(series, varDef) {
-  const W = 720, H = 200, pT = 10, pR = 14, pB = 24, pL = 38;
-  const innerW = W - pL - pR, innerH = H - pT - pB;
-  const vals = series.map(p => p.val);
-  const dataMax = Math.max(...vals);
-  const dataMin = Math.min(...vals);
-  const max = varDef.max ? varDef.max : _niceMax(dataMax);
-  const min = (varDef.max && dataMin >= 0) ? 0 : Math.max(0, Math.floor(dataMin * 0.9));
-  const range = Math.max(max - min, 1);
-
-  const x = i => series.length === 1 ? pL + innerW / 2 : pL + (i / (series.length - 1)) * innerW;
-  const y = v => pT + innerH - ((v - min) / range) * innerH;
-
-  // ticks
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map(t => Math.round((min + range * t) * 100) / 100);
-
-  let path = '';
-  series.forEach((p, i) => { path += (i === 0 ? 'M ' : ' L ') + x(i).toFixed(1) + ' ' + y(p.val).toFixed(1); });
-  const area = path + ` L ${x(series.length - 1).toFixed(1)} ${(pT + innerH).toFixed(1)} L ${x(0).toFixed(1)} ${(pT + innerH).toFixed(1)} Z`;
-
-  // x labels: hasta 6 etiquetas espaciadas
-  const xLabels = series.length <= 6
-    ? series.map((_, i) => i)
-    : [0, Math.floor((series.length - 1) * 0.2), Math.floor((series.length - 1) * 0.4),
-       Math.floor((series.length - 1) * 0.6), Math.floor((series.length - 1) * 0.8), series.length - 1];
-
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-    ${ticks.map(t => `<line class="ch-grid" x1="${pL}" y1="${y(t)}" x2="${pL + innerW}" y2="${y(t)}"/>`).join('')}
-    ${ticks.map(t => `<text class="ch-lbl" x="${pL - 5}" y="${y(t)}" text-anchor="end" dominant-baseline="middle">${t}</text>`).join('')}
-    <path class="ch-area" d="${area}" fill="${varDef.color}" />
-    <path class="ch-line" d="${path}" stroke="${varDef.color}" />
-    ${series.map((p, i) => `<circle class="ch-dot${p.turno === 'Noche' ? ' night' : ''}" cx="${x(i)}" cy="${y(p.val)}" r="3.2" stroke="${varDef.color}">
-      <title>${p.fecha} · ${p.turno} · ${p.val}</title>
-    </circle>`).join('')}
-    ${xLabels.map(i => `<text class="ch-lbl" x="${x(i)}" y="${pT + innerH + 14}" text-anchor="middle">${(series[i].fecha || '').slice(5)}</text>`).join('')}
-  </svg>`;
-}
-
-function _statsSummary(series) {
-  const vals = series.map(p => p.val);
-  const min = Math.min(...vals), max = Math.max(...vals);
-  const avg = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100;
-  const last = vals[vals.length - 1];
-  return `<div class="ch-stats">
-    <span>Mín: <b>${min}</b></span>
-    <span>Máx: <b>${max}</b></span>
-    <span>Prom: <b>${avg}</b></span>
-    <span>Último: <b>${last}</b></span>
-  </div>`;
-}
-
 function _parseNum(x) {
   if (x === '' || x === null || x === undefined) return null;
   if (x === true || x === 'TRUE')  return 1;
@@ -3929,16 +3681,6 @@ function _parseNum(x) {
   const n = parseFloat(x);
   return isNaN(n) ? null : n;
 }
-function _niceMax(v) {
-  if (v <= 0) return 1;
-  const mag = Math.pow(10, Math.floor(Math.log10(v)));
-  const r = v / mag;
-  if (r <= 1) return mag;
-  if (r <= 2) return 2 * mag;
-  if (r <= 5) return 5 * mag;
-  return 10 * mag;
-}
-
 //  PROCEDIMIENTOS CHIPS
 function addProc() {
   const inp=$('inProc'), val=inp.value.trim();
@@ -4620,29 +4362,10 @@ function hSed(){
   aplicarGatesNeuro();
 }
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
-function addRuido(){
-  const tipo=v('fRuidoTipo'), loc=v('fRuidoLoc');
-  if(!tipo) return;
-  const label=tipo==='Sin ruidos agregados'?'Sin ruidos agregados':(loc?`${tipo} ${loc}`:tipo);
-  // Si se agrega "Sin ruidos", limpiar el resto
-  if(tipo==='Sin ruidos agregados'){ _tiState['fRuidosTags']=[]; }
-  else { _tiState['fRuidosTags']=(_tiState['fRuidosTags']||[]).filter(t=>t!=='Sin ruidos agregados'); }
-  if(!(_tiState['fRuidosTags']||[]).includes(label)){
-    (_tiState['fRuidosTags']=_tiState['fRuidosTags']||[]).push(label);
-  }
-  // ruidos ahora es select directo, no multitag
-  $('fRuidoTipo').value=''; $('fRuidoLoc').value='';
-}
-function buildMP(){
-  const cal=v('fMPCalidad'), loc=v('fMPLoc');
-  const el=$('fMPVal');
-  if(el) el.value=(cal&&loc)?`${cal} ${loc}`:(cal||loc||'');
-}
 function loadMP(str){
   if($('fMPVal')) $('fMPVal').value=str||'';
 }
 function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='Sin requerimientos'){show('wMultiDVA');if(m&&m.checked)show('gDVAcnt');else hide('gDVAcnt');}else{hide('wMultiDVA');if(m)m.checked=false;hide('gDVAcnt');}}
-function hSecr(){}
 function hMue(){if($('cMue')?.checked)show('dMue');else hide('dMue');}
 
 // — Secreciones: cantidad con botones toggle —
@@ -4930,7 +4653,7 @@ function renderAislTags(){
 }
 function removeAislTag(i){ _aislTags.splice(i,1); renderAislTags(); }
 function setAislTags(str){ _aislTags=str?str.split(',').map(s=>s.trim()).filter(Boolean):[]; renderAislTags(); }
-function hVAExterno(){} // legacy compat
+ // legacy compat
 function hVAExtPrev(){
   const on=$('cVAExtPrev')?.checked;
   const inp=$('fVAExtDias');
@@ -5025,18 +4748,7 @@ function _aetKTMsuspend(on){
     const msg=$('dKTMaetMsg'); if(msg) hide('dKTMaetMsg');
   }
 }
-function hRuidos(el){
-  // "Sin ruidos" es excluyente con el resto
-  if(el&&el.id==='rSin'&&el.checked){
-    document.querySelectorAll('input[name="ruidos"]').forEach(c=>{if(c.id!=='rSin')c.checked=false;});
-    hide('dRuidosM');
-  } else if(el&&el.id!=='rSin'){
-    const rSin=$('rSin'); if(rSin) rSin.checked=false;
-  }
-  const otro=document.querySelector('input[name="ruidos"][value="otro"]');
-  if(otro&&otro.checked) show('dRuidosM'); else hide('dRuidosM');
-}
-function hPVE(){} // integrada en flujo de extubación
+ // integrada en flujo de extubación
 // ── Toggle PVE Sí/No ──
 function hPVEtoggle(val){
   const prev=v('fPVEval');
@@ -5090,13 +4802,6 @@ function hPVEres(){
   else if(res==='frustra'){ hide('dPVESuperada'); show('dPVEFracasada');
     const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); } }
   else { hide('dPVESuperada'); hide('dPVEFracasada'); }
-}
-function tiAddChip(tagsId, hiddenId, colorClass, val) {
-  if(!_tiState[tagsId]) _tiState[tagsId]=[];
-  if(!_tiState[tagsId].includes(val)) { _tiState[tagsId].push(val); tiRender(tagsId,hiddenId,colorClass); }
-}
-function hExt(){
-  // legacy — ya no se usa directamente; PVE toggle maneja todo
 }
 // ── Reintubación STANDALONE (VA no invasiva + historial VM) ──
 function hReintubCheckT(){
@@ -5155,13 +4860,11 @@ function hReintubCheck(){
     const el=$('fReintub'); if(el) el.value=_nReintub||0;
   }
 }
-function hExtProg(){ /* legacy — reemplazado por hPVEtoggle */ }
 function hExtTipo(){
   const t=document.querySelector('input[name="extTipo"]:checked')?.value||'';
   if(t==='sin_condiciones'){ hide('dExtNoDetalle'); }
   else { show('dExtNoDetalle'); }
 }
-function hExtQueda(){}
 function hReintubCheckNo(){
   const checked=$('cReintubNo')?.checked;
   if(checked){
@@ -5263,8 +4966,6 @@ function renderParamsPE(){
   ['pe_spo2','pe_fio2','pe_fr'].forEach(id=>{ const e=$(id); if(e) e.oninput=_roxPE; });
   _roxPE();
 }
-function peVA(){ return (_PE_META[v('peModo')]||{}).va||'Natural'; }
-function peSop(){ return (_PE_META[v('peModo')]||{}).sop||'Ambiente'; }
 // ── Helpers unificados PVE ──
 function _extOcurrio(){
   const pve=v('fPVEval');
@@ -5308,9 +5009,6 @@ function setKTMstate(q){
   if($('cKTMs')) $('cKTMs').checked = s;
 }
 
-// (cultivo de secreciones se gestiona desde Muestras: CCAET / FilmArray / Mini Lab / Hisopado COVID-19)
-function onCultivoCheck(){ /* no-op, mantiene compat */ }
-
 // Tipo de intervención KTM (chips) según nivel del protocolo
 const KTM_INTERV_BY_LVL = {
   '1':['Posicionamiento','Elongaciones','Movilización pasiva','NEMS','Entrenamiento musc. respiratoria'],
@@ -5319,8 +5017,6 @@ const KTM_INTERV_BY_LVL = {
   '4':['Equilibrio sedente y bípedo','Bipedestación','Marcha estática','Transición sedente a bípedo','Sedente en sillón','Tolerancia al ejercicio'],
   '5':['Coordinación dinámica en bípedo','Reeducación de la marcha','Marcha por habitación','Tolerancia al ejercicio'],
 };
-function onKTMnivChange(){}
-
 const KTM_NIV_DESC = {
   '1':'Protección muscular — paciente no cooperador (S5Q ≤ 3)',
   '2':'Movilización en cama — giros y ejercicio analítico',
@@ -5410,17 +5106,6 @@ const KTMmap={
     'Otra':['Decisión médica'],
   },
 };
-function updateKTMcat(){
-  const t=v('fKTMct'), s=$('fKTMcat'); if(!s) return; s.innerHTML='<option value="">-- Cat. --</option>';
-  if(KTMmap[t]) Object.keys(KTMmap[t]).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;s.appendChild(o);});
-  $('fKTMraz').innerHTML='<option value="">-- Razón --</option>';
-}
-function updateKTMraz(){
-  const t=v('fKTMct'), c=v('fKTMcat'), s=$('fKTMraz'); if(!s) return;
-  s.innerHTML='<option value="">-- Razón --</option>';
-  ((KTMmap[t]||{})[c]||[]).forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s.appendChild(o);});
-}
-
 //  RELOJ
 function initClock(){function up(){const d=new Date();const e=$('clk');if(e)e.textContent=`${pad(d.getHours())}:${pad(d.getMinutes())}`;}up();setInterval(up,1000);}
 
@@ -6114,9 +5799,6 @@ function cpaxSugerir(){
   sumCPAX();
   toast(aplicadas?`✨ ${aplicadas} sugerencia(s) aplicada(s) — revisa y corrige antes de guardar`:'Sin datos suficientes para sugerir (o ya estaba lleno)', 4200);
 }
-
-//  Módulos pendientes de porte (tabs Pacientes/Estadísticas/Entrega/Archivados)
-function cerrarArcDet(){}
 
 //  INICIO
 //  CHEQUEO DE RELOJ — la fecha y el turno se calculan con el reloj del
