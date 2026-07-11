@@ -36,8 +36,10 @@ function calcularRespiratorio(evo) {
     const te = 60 / fr - ti;
     if (te > 0) calc.CALC_IE = '1:' + (Math.round((te / ti) * 10) / 10);
   }
-  if (ppl > 0 && peep >= 0) calc.CALC_DP = Math.round((ppl - peep) * 10) / 10;
-  if (vt > 0 && ppl > 0 && (ppl - peep) > 0) calc.CALC_CESR = Math.round((vt / (ppl - peep)) * 10) / 10;
+  // Mecánica con PEEP total (PEEP + AutoPEEP): DP = Ppl − PEEPtot; Cest = VT/DP
+  const peepTot = peep + n(evo.VENT_AUTOPEEP);
+  if (ppl > 0 && peep >= 0) calc.CALC_DP = Math.round((ppl - peepTot) * 10) / 10;
+  if (vt > 0 && ppl > 0 && (ppl - peepTot) > 0) calc.CALC_CESR = Math.round((vt / (ppl - peepTot)) * 10) / 10;
   if (['CPAP/PS', 'CFLEX', 'S/T'].indexOf(modo) !== -1 && fr > 0 && vt > 0) {
     calc.CALC_TOBIN = Math.round((fr / (vt / 1000)) * 10) / 10;
   }

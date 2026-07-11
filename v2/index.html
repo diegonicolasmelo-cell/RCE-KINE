@@ -875,13 +875,8 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
               </select>
             </div>
           </div>
-          <!-- Fila 3 (v2 — hoja RHB): Charlson + tipo de ingreso -->
+          <!-- Fila 3 (v2 — hoja RHB): tipo de ingreso (Charlson vive en General, junto a Barthel) -->
           <div class="row" style="margin-top:2px;margin-bottom:0;">
-            <div class="col wa"><label>Charlson</label>
-              <div style="display:flex;align-items:center;gap:5px;">
-                <input type="number" id="fCharlson" min="0" max="37" style="width:70px;">
-                <button type="button" onclick="abrirEscala('charlson','fCharlson')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
-              </div></div>
             <div class="col wa"><label>Ingreso</label>
               <select id="fIngTipo" style="min-width:110px;">
                 <option value="" disabled selected>--</option>
@@ -901,7 +896,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
             <!-- Día estadía + Barthel + ECF + AET en la misma fila -->
             <div class="row" style="margin-bottom:6px;align-items:flex-end;flex-wrap:wrap;">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:64px;" disabled></div>
-              <div class="col ws" style="margin-right:18px;"><label>Barthel</label>
+              <div class="col ws" style="margin-right:34px;"><label>Barthel</label>
                 <div style="display:flex;align-items:center;gap:5px;">
                   <select id="fBarthel" onchange="updBarthelLbl('fBarthel','lblBarthel')" style="width:72px;">
                     <option value="">--</option>
@@ -915,7 +910,13 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
                   <button type="button" onclick="abrirEscala('barthel','fBarthel')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
                 </div>
               </div>
-              <div class="col ws" style="margin-right:18px;"><label>ECF</label>
+              <div class="col ws" style="margin-right:34px;"><label>Charlson</label>
+                <div style="display:flex;align-items:center;gap:5px;">
+                  <input type="number" id="fCharlson" min="0" max="37" style="width:64px;">
+                  <button type="button" onclick="abrirEscala('charlson','fCharlson')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
+                </div>
+              </div>
+              <div class="col ws" style="margin-right:34px;"><label>ECF</label>
                 <div style="display:flex;align-items:center;gap:5px;">
                   <select id="fEcf" onchange="updEcfLbl('fEcf','lblEcf')" style="width:56px;">
                     <option value="">--</option>
@@ -4434,8 +4435,10 @@ function calcResp() {
   if(vt&&fr) set('l_vm',`${(vt*fr/1000).toFixed(1)} L/m`);
   if(fr>0&&ti>0){const te=60/fr-ti;if(te>0)set('l_ie',`1:${(te/ti).toFixed(1)}`);else set('l_ie','!');}
   else{const eie=$('l_ie');if(eie&&eie.textContent!=='--')eie.textContent='--';}
-  if(ppl>0) set('l_dp',`DP: ${(ppl-peep).toFixed(0)}`);
-  if(vt>0&&(ppl-peep)>0) set('l_cesr',`${(vt/(ppl-peep)).toFixed(0)}`);
+  // Mecánica con PEEP total (PEEP + AutoPEEP): DP = Ppl − PEEPtot; Cest = VT/DP
+  const peepTot=peep+(parseFloat(v('r_autopeep'))||0);
+  if(ppl>0) set('l_dp',`DP: ${(ppl-peepTot).toFixed(0)}`);
+  if(vt>0&&(ppl-peepTot)>0) set('l_cesr',`${(vt/(ppl-peepTot)).toFixed(0)}`);
   if(['CPAP/PS','CFLEX'].includes(modo)&&fr>0&&vt>0) set('l_tobin',`${(fr/(vt/1000)).toFixed(0)}`);
   if(['CNAF','OAF/CTAF'].includes(modo)&&spo2>0&&fio2>0&&fr>0) set('l_irox',`${((spo2/(fio2/100))/fr).toFixed(2)}`);
   const ip=parseFloat(v('r_ipap'))||0, ep=parseFloat(v('r_epap'))||0;
