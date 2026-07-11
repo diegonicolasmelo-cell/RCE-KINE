@@ -172,6 +172,9 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   // (condicionante v1 #2 — "cambio de vía aérea recalcula días"). "Vía externa
   // previa" (condicionante #3) pliega los días previos hacia atrás en el ancla,
   // para que el contador arranque contando esos días ya transcurridos.
+  // Salida de VM este turno (weaning/extubación): descarta el circuito
+  const dejaVM = (sopAnt === 'VM' && sopNew !== 'VM');
+
   const vaNew = evo.VENT_VIA_AEREA || cama.VIA_AEREA || 'Natural';
   const vaAnt = cama.VIA_AEREA || '';
   const esVA = (vaNew !== 'Natural');
@@ -211,6 +214,13 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     ULT_FSS: val(evo.EVAL_T_FSS, cama.ULT_FSS),
     ULT_FSS_FECHA: val(evo.EVAL_T_FSS, '') !== '' ? fecha : (cama.ULT_FSS_FECHA || ''),
     ULT_DINAMO: val(evo.EVAL_T_DINAMO, cama.ULT_DINAMO),
+    // Dispositivos de circuito VM: estado del episodio. Al salir de VM (weaning/
+    // extubación) se limpian — el circuito se descarta; una reintubación fecha
+    // circuito nuevo desde el cliente (force=true).
+    DISP_HME_FECHA: dejaVM ? '' : val(evo.DISP_HME_FECHA, cama.DISP_HME_FECHA),
+    DISP_HEPA_FECHA: dejaVM ? '' : val(evo.DISP_HEPA_FECHA, cama.DISP_HEPA_FECHA),
+    DISP_TC_FECHA: dejaVM ? '' : val(evo.VENT_FECHA_SONDA, cama.DISP_TC_FECHA),
+    DISP_HUMID_FECHA: dejaVM ? '' : val(evo.DISP_HUMID_FECHA, cama.DISP_HUMID_FECHA),
     ULTIMO_TURNO_KEY: turnoKey,
     FECHA_INGRESO: cama.FECHA_INGRESO || (esIngreso ? fecha : ''),
     FECHA_INICIO_VA: fechaVA,

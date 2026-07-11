@@ -193,6 +193,10 @@ const ESQUEMA = {
     // Últimas evaluaciones del episodio (arrastre para la matriz motora + badges de la grilla)
     ['ULT_COOP','texto'],['ULT_MRC','entero'],['ULT_MRC_FECHA','texto'],
     ['ULT_FSS','entero'],['ULT_FSS_FECHA','texto'],['ULT_DINAMO','decimal'],
+    // Dispositivos de circuito VM: fecha de instalación (estado del EPISODIO, no del
+    // turno — el panel arrastra desde aquí para que la fecha visualizada no las pise)
+    ['DISP_HME_FECHA','texto'],['DISP_HEPA_FECHA','texto'],
+    ['DISP_TC_FECHA','texto'],['DISP_HUMID_FECHA','texto'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },

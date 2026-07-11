@@ -2742,9 +2742,13 @@ function fillForm(s) {
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
   set('fCharlson',s.PAC_CHARLSON); set('fIngTipo',s.PAC_INGRESO_TIPO);
   set('fFC',s.HEMO_FC); set('fPA',s.HEMO_PA); set('fPAM',s.HEMO_PAM); set('fPIC',s.HEMO_PIC); set('fPPC',s.HEMO_PPC);
-  set('fFecHME',_isoDia(s.DISP_HME_FECHA || (s.FILTRO_TIPO==='HME'?s.VENT_FECHA_FILTRO:'')));
-  set('fFecHEPA',_isoDia(s.DISP_HEPA_FECHA || (s.FILTRO_TIPO==='HEPA'?s.VENT_FECHA_FILTRO:'')));
-  set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)); set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA));
+  // Fechas de dispositivos: la fila del turno manda; si no trae, arrastre desde
+  // la cama (estado del episodio) — nunca desde la fecha que se está visualizando.
+  const _cDisp=_camaPanel();
+  set('fFecHME',_isoDia(s.DISP_HME_FECHA || (s.FILTRO_TIPO==='HME'?s.VENT_FECHA_FILTRO:''))||_isoDia(_cDisp.DISP_HME_FECHA));
+  set('fFecHEPA',_isoDia(s.DISP_HEPA_FECHA || (s.FILTRO_TIPO==='HEPA'?s.VENT_FECHA_FILTRO:''))||_isoDia(_cDisp.DISP_HEPA_FECHA));
+  set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)||_isoDia(_cDisp.DISP_TC_FECHA));
+  set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA)||_isoDia(_cDisp.DISP_HUMID_FECHA));
   calcInsumosDias();
   setRuidosExtra(s.EX_RUIDOS_JSON||'');
   set('fDeglucion',s.EVAL_DEGLUCION);
@@ -3020,9 +3024,13 @@ function fillFormReplica(s) {
   set('fPlanes',s.PLAN_PLANES);
   aplicarFirmaTurno(s.PLAN_FIRMA_KINE);
   setFasesDesde(s.FASE_JSON||'');
-  set('fFecHME',_isoDia(s.DISP_HME_FECHA || (s.FILTRO_TIPO==='HME'?s.VENT_FECHA_FILTRO:'')));
-  set('fFecHEPA',_isoDia(s.DISP_HEPA_FECHA || (s.FILTRO_TIPO==='HEPA'?s.VENT_FECHA_FILTRO:'')));
-  set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)); set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA));
+  // Fechas de dispositivos: la fila del turno manda; si no trae, arrastre desde
+  // la cama (estado del episodio) — nunca desde la fecha que se está visualizando.
+  const _cDisp=_camaPanel();
+  set('fFecHME',_isoDia(s.DISP_HME_FECHA || (s.FILTRO_TIPO==='HME'?s.VENT_FECHA_FILTRO:''))||_isoDia(_cDisp.DISP_HME_FECHA));
+  set('fFecHEPA',_isoDia(s.DISP_HEPA_FECHA || (s.FILTRO_TIPO==='HEPA'?s.VENT_FECHA_FILTRO:''))||_isoDia(_cDisp.DISP_HEPA_FECHA));
+  set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)||_isoDia(_cDisp.DISP_TC_FECHA));
+  set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA)||_isoDia(_cDisp.DISP_HUMID_FECHA));
   calcInsumosDias();
   setRuidosExtra(s.EX_RUIDOS_JSON||'');
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
@@ -5862,14 +5870,21 @@ function calcInsumosDias(){
 function autoFechasDispositivos(force, aunSinVM){
   if(!aunSinVM && v('fSop')!=='VM') return;
   const f=v('gDate')||hoy();
+  // Campo vacío ≠ dispositivo nuevo: primero se arrastra la fecha del episodio
+  // (cama.DISP_*); recién si la cama tampoco tiene (primera conexión a VM) se
+  // fecha con el turno. Así visualizar otro día no re-fecha los dispositivos.
+  const _c=_camaPanel();
+  const camaF={fFecHME:_c.DISP_HME_FECHA, fFecHEPA:_c.DISP_HEPA_FECHA, fFecSonda:_c.DISP_TC_FECHA};
   let ch=false;
-  ['fFecHME','fFecHEPA','fFecSonda'].forEach(id=>{ const e=$(id); if(e&&(force||!e.value)){ e.value=f; ch=true; } });
+  ['fFecHME','fFecHEPA','fFecSonda'].forEach(id=>{ const e=$(id); if(!e) return;
+    if(force){ e.value=f; ch=true; }
+    else if(!e.value){ e.value=_isoDia(camaF[id])||f; ch=true; } });
   if(ch) calcInsumosDias();
 }
 //  Checkbox de humidificación activa (params VM) ↔ fecha del dispositivo
 function syncHumidFecha(on){
   const e=$('fFecHumid'); if(!e) return;
-  if(on && !e.value) e.value=v('gDate')||hoy();
+  if(on && !e.value) e.value=_isoDia(_camaPanel().DISP_HUMID_FECHA)||v('gDate')||hoy();
   if(!on) e.value='';
   calcInsumosDias();
 }
