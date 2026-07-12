@@ -82,11 +82,11 @@ function generarTextoEvolucion(d) {
   }
   if (va === 'TOT') {
     const desc = (totN || totCm) ? ` N° ${totN || '?'} fijado en ${totCm || '?'} cm` : '';
-    txt.push(`Paciente con tubo orotraqueal${desc}, en día ${diasVA || '?'} de VA artificial${esVerdadero(d.TOT_CAMBIO) ? ' (tubo nuevo)' : ''}.`);
+    txt.push(`VAA mediante TOT${desc} (día ${diasVA || '?'})${esVerdadero(d.TOT_CAMBIO) ? ' (tubo nuevo)' : ''}.`);
   } else if (va === 'TQT') {
     const tqtN = v('VENT_TQT_CALIBRE');
     const desc = (tqtN ? ` N° ${tqtN}` : '') + (tqtT ? ` tipo ${tqtT}` : '');
-    txt.push(`Paciente con traqueostomía${desc}, en día ${diasVA || '?'} de VA artificial${esVerdadero(d.TQT_CAMBIO) ? ' (cánula nueva)' : ''}.`);
+    txt.push(`VAA mediante TQT${desc} (día ${diasVA || '?'})${esVerdadero(d.TQT_CAMBIO) ? ' (cánula nueva)' : ''}.`);
   } else if (va === 'Full Face' || va === 'Oronasal') {
     txt.push(`Paciente con máscara ${va} de VNI.`);
   }
@@ -107,11 +107,10 @@ function generarTextoEvolucion(d) {
     // Intro + parámetros en 3 líneas: volúmenes/frecuencia · presiones/mecánica · oxigenación
     const pinsp = vn('VENT_PINSP'), pmedia = vn('VENT_PMEDIA'), ppl = vn('VENT_PPL');
     const autopeep = vn('VENT_AUTOPEEP'), cesr = vn('CALC_CESR'), ie = v('CALC_IE'), ti = vn('VENT_TI');
-    let intro = `En VMI, modo ${modo || '?'}`;
+    let intro = `En VMI, modo ${modo || '?'} (día ${diasSop || '?'} de VM)`;
     if (d.VENT_ADAPTADO !== undefined && d.VENT_ADAPTADO !== null && d.VENT_ADAPTADO !== '') {
       intro += `, con ${esVerdadero(d.VENT_ADAPTADO) ? 'adecuada' : 'inadecuada'} interacción P-VM`;
     }
-    intro += `, en día ${diasSop || '?'} de VM`;
     if (hact) intro += ', con humidificación activa';
     txt.push(intro + '.');
     const j = a => a.filter(Boolean).join(', ');

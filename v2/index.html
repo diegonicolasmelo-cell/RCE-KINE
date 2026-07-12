@@ -4156,8 +4156,8 @@ function genTexto() {
     const _cq=v('fCambioTQTmot')==='Otro'?(v('fCambioTQTdet')||''):v('fCambioTQTmot');
     L.push(`Se realiza cambio de cánula de TQT${_conMotivo(_cq)}.`);
   }
-  if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA en día ${dVA} mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()}${$('cCambioTOT')?.checked?' (tubo nuevo)':''}.`); }
-  else if(va==='TQT') L.push(`VAA en día ${dVA} mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''}${$('cCambioTQT')?.checked?' (cánula nueva)':''}.`);
+  if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()} (día ${dVA})${$('cCambioTOT')?.checked?' (tubo nuevo)':''}.`); }
+  else if(va==='TQT') L.push(`VAA mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''} (día ${dVA})${$('cCambioTQT')?.checked?' (cánula nueva)':''}.`);
   // — Helpers de soporte ventilatorio —
   const _np=id=>{ const x=parseFloat(gv(id)); return isNaN(x)?0:x; };
   const _mon=id=>{ const e=$(id); return e?(e.textContent||'').trim():''; };
@@ -4173,9 +4173,9 @@ function genTexto() {
     const _mlkg=_numTxt('l_mlkg');
     let vs;
     if(_espontaneo){
-      vs=`Ventila espontáneo en modo ${modo}`;
+      vs=`Ventila espontáneo en modo ${modo} (día ${dVM} de VM)`;
     } else {
-      vs=`En VMI${_humid?' más humidificación activa':''}, modo ${modo}`;
+      vs=`En VMI${_humid?' más humidificación activa':''}, modo ${modo} (día ${dVM} de VM)`;
       // PVE sin_condiciones integrado solo en modo controlado
       if(_pveNoCond) vs+=', sin condiciones para realización de PVE en este turno';
     }

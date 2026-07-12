@@ -402,14 +402,21 @@ function _sembrar(ss) {
   const cfgExist = _valoresCol(hCfg, 1, 2);
   cfgDefaults.forEach(kv => { if (cfgExist.indexOf(kv[0]) === -1) hCfg.appendRow(kv); });
 
-  // CATALOGOS — fases clínicas iniciales
+  // CATALOGOS — fases clínicas: siembra inicial Y agrega las que falten
+  // (idempotente: correr crearORepararEstructura suma fases nuevas sin duplicar;
+  //  el orden de los chips se ajusta con la columna ORDEN de la hoja)
   const hCat = ss.getSheetByName('CATALOGOS');
-  if (hCat.getLastRow() < 2) {
-    const fases = ['Reanimación inicial','Protección pulmonar','Neuroprotección',
-      'Postoperatorio inmediato','Espera de second look','Weaning','Rehabilitación'];
-    const filas = fases.map((f, i) => ['FASE_CLINICA', f, i + 1, true]);
-    hCat.getRange(2, 1, filas.length, 4).setValues(filas);
-  }
+  const fases = ['Reanimación inicial','Protección pulmonar','Neuroprotección',
+    'Postoperatorio inmediato','Espera de second look','Weaning','Consolidación de weaning','Rehabilitación'];
+  const nCat = hCat.getLastRow();
+  const fasesExist = nCat >= 2
+    ? hCat.getRange(2, 1, nCat - 1, 2).getValues()
+        .filter(function (r) { return String(r[0]).trim() === 'FASE_CLINICA'; })
+        .map(function (r) { return String(r[1]).trim(); })
+    : [];
+  fases.forEach(function (f, i) {
+    if (fasesExist.indexOf(f) === -1) hCat.appendRow(['FASE_CLINICA', f, i + 1, true]);
+  });
 
   // CAT_MATRICES — matrices de categorización SOCHIMI (default de la guía 2017;
   // la coordinación puede activar/desactivar variables y ajustar cortes aquí)
