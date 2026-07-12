@@ -65,6 +65,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => anularEvento(datos, ctx));
       case 'GUARDAR_ENTREGA_TURNO':
         return _auditar(ctx, accion, () => guardarEntregaTurno(datos, ctx));
+      case 'GENERAR_REM':
+        return _auditar(ctx, accion, () => generarREM(datos.anio, datos.mes, ctx));
 
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);

@@ -702,6 +702,17 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
         </div>
       </div>
     </div>
+    <!-- REM mensual (informe de texto para estadística) -->
+    <details id="remBox" class="no-print" style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
+      <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">📄 REM mensual — informe para estadística</summary>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;">
+        <input type="month" id="remMes" class="datein dashin">
+        <button class="dpset" onclick="generarREMui()">⚙️ Generar</button>
+        <button class="dpset" onclick="copiarREM()" id="remCopy" disabled>📋 Copiar texto</button>
+        <span style="font-size:.72rem;color:#94a3b8;">El informe queda guardado por mes en la hoja ESTADISTICAS_REM.</span>
+      </div>
+      <pre id="remOut" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:14px 16px;font-size:.8rem;line-height:1.6;overflow-x:auto;white-space:pre-wrap;">Elige un mes y pulsa Generar.</pre>
+    </details>
     <div id="dashBody"><div class="pivot-empty">Selecciona un rango de fechas.</div></div>
   </div>
 </div>
@@ -6854,6 +6865,23 @@ function entImprimir(){
   if(!ENT_DATA){ toast('Genera la entrega primero.'); return; }
   window.print();
 }
+/* ── REM mensual (pestaña Estadísticas) ── */
+function generarREMui(){
+  const m=v('remMes');
+  if(!m){ toast('Elige el mes del informe.'); return; }
+  const [anio,mes]=m.split('-');
+  $('remOut').textContent='⏳ Generando informe…';
+  gs('GENERAR_REM',{anio,mes}, d=>{
+    $('remOut').textContent=(d&&d.textoREM)||'Sin datos para el período.';
+    $('remCopy').disabled=false;
+  }, e=>{ $('remOut').textContent='❌ '+e; });
+}
+function copiarREM(){
+  const t=$('remOut').textContent||'';
+  navigator.clipboard.writeText(t).then(()=>toast('📋 Informe REM copiado'))
+    .catch(()=>toast('No se pudo copiar — selecciona y copia manualmente.'));
+}
+
 function entCargarHistorial(){
   const b=$('entHistBody'); if(!b) return;
   b.textContent='Cargando…';
