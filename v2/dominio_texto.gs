@@ -42,7 +42,8 @@ function generarTextoEvolucion(d) {
              : (sed === 'Fuera de escalón')   ? `Sedación fuera de escalón${sas ? ' (SAS ' + sas + ')' : ''}.`
              : `Sedado en ${sed.toLowerCase()}${sas ? ' para SAS ' + sas : ''}.`;
   sedStr += ` GCS ${gcsTot}${intubado ? '' : '/15'}(O:${gcsO}, V:${gcsV}, M:${gcsM})`;
-  if (s5q)  sedStr += `, S5Q ${s5q}/5`;
+  const s5qTxt = s5q === 'lt3' ? '<3' : (s5q === 'gte3' ? '≥3' : s5q);
+  if (s5q)  sedStr += `, S5Q ${s5qTxt}/5`;
   if (coop) sedStr += ` (${coop})`;
   sedStr += '.';
   if (bnm) sedStr += ' Bajo BNM.';
@@ -50,11 +51,11 @@ function generarTextoEvolucion(d) {
 
   // 4. Hemodinamia
   const hEst = v('HEMO_ESTADO') || 'Estable';
-  const dva  = v('HEMO_DVA') || 'sin DVA';
+  const dva  = v('HEMO_DVA');
   const mDVA = esVerdadero(d.HEMO_MULTI_DVA), nDVA = v('HEMO_NUM_DVA');
   const tend = esVerdadero(d.HEMO_TENDENCIA), tendT = v('HEMO_TEND_TIPO');
   let hemoStr = `Hemodinámicamente ${hEst === 'Estable' ? 'estable' : 'inestable'}`;
-  if (dva === 'sin DVA') hemoStr += ', sin requerimientos de drogas vasoactivas';
+  if (!dva || dva === 'Sin requerimientos' || dva === 'sin DVA') hemoStr += ', sin requerimientos de drogas vasoactivas';
   else {
     hemoStr += `, con requerimiento de DVA en ${dva.replace(/^DVA\s*/i, '').toLowerCase().replace(/dosis (baja|media|alta)/, 'dosis $1s')}`;
     if (mDVA && nDVA) hemoStr += ` (${nDVA} drogas en paralelo)`;
@@ -150,20 +151,41 @@ function generarTextoEvolucion(d) {
     if (fio2 > 0) ventStr += `, FiO₂ ${fio2}%`;
     if (spo2 > 0) ventStr += `, SpO₂ ${spo2}%`;
     txt.push(ventStr + '.');
-  } else if (sop === 'CNAF') {
-    ventStr = `En CNAF con flujo ${flujo > 0 ? flujo : '?'} L/min, FiO₂ ${fio2 > 0 ? fio2 : '?'}%`;
-    if (spo2 > 0) ventStr += `, SpO₂ ${spo2}%`;
-    if (irox > 0) ventStr += `, Índice ROX ${irox}`;
-    txt.push(ventStr + '.');
-  } else if (sop === 'Oxigenoterapia') {
-    const litros = vn('VENT_LITROS');
-    ventStr = `En oxigenoterapia`;
-    if (litros > 0) ventStr += ` con ${litros} L/min`;
-    if (fio2 > 0) ventStr += `, FiO₂ ${fio2}%`;
-    if (spo2 > 0) ventStr += `, SpO₂ ${spo2}%`;
-    txt.push(ventStr + '.');
-  } else if (spo2 > 0) {
-    txt.push(`En ventilación espontánea en ambiente, SpO₂ ${spo2}%.`);
+  } else if (modo === 'CNAF' || modo === 'OAF/CTAF' || sop === 'CNAF') {
+    // v2: CNAF/OAF es un MODO bajo soporte 'Oxigenoterapia/OAF' (sop==='CNAF' cubre filas v1)
+    const temp = vn('VENT_TEMP'), umaC = v('KTM_UMA');
+    txt.push(`Ventila espontáneo con apoyo de ${modo || 'CNAF'}${hact ? ' con humidificación activa' : ''}.`);
+    const pb = [
+      flujo > 0 ? `Flujo ${flujo} L/min` : null,
+      temp > 0 ? `T° ${temp}°C` : null,
+      fio2 > 0 ? `FiO2 ${fio2}%` : null,
+      fr > 0 ? `FR ${fr} rpm` : null,
+      umaC ? `UMA ${umaC}` : null,
+      spo2 > 0 ? `SpO2 ${spo2}%` : null,
+      irox > 0 ? `índice ROX ${irox}` : null,
+    ].filter(Boolean).join(', ');
+    if (pb) txt.push(`TV: ${pb}.`);
+  } else if (sop === 'Oxigenoterapia/OAF' || sop === 'Oxigenoterapia') {
+    // Naricera/MMV/Mascarilla — y HME/Tubo T en TOT/TQT sin VM
+    const litros = vn('VENT_LITROS'), umaO = v('KTM_UMA');
+    const dev = (modo && modo !== 'Sin soporte') ? modo : '';
+    txt.push(`Ventila espontáneo con FiO2 adicional${dev ? ' por ' + dev : ''}.`);
+    const pb = [
+      litros > 0 ? `${litros} Lpm` : null,
+      fio2 > 0 ? `FiO2 ${fio2}%` : null,
+      fr > 0 ? `FR ${fr} rpm` : null,
+      umaO ? `UMA ${umaO}` : null,
+      spo2 > 0 ? `SpO2 ${spo2}%` : null,
+    ].filter(Boolean).join(', ');
+    if (pb) txt.push(`Oxigenoterapia: ${pb}.`);
+  } else {
+    const umaA = v('KTM_UMA');
+    const partes = [
+      fr > 0 ? `FR ${fr} rpm` : null,
+      umaA ? `UMA ${umaA}` : null,
+      spo2 > 0 ? `SpO2 ${spo2}%` : null,
+    ].filter(Boolean);
+    txt.push(`Ventila espontáneo sin O2 adicional${partes.length ? ', ' + partes.join(', ') : ''}.`);
   }
 
   // PVE / extubación — narrativa clínica (paridad con el preview del cliente)
@@ -229,21 +251,52 @@ function generarTextoEvolucion(d) {
     txt.push(`${prevTxt}aciente requiere intubación orotraqueal${ih ? ' a las ' + ih + ' hrs' : ''}${idt ? ' en contexto de ' + idt : ''}.`);
   }
 
-  // 7. Examen físico
+  // 7. Auscultación (las secreciones van en la línea de KTR, como el preview)
   const mp = v('EX_MP'), ruidos = v('EX_RUIDOS'), ruidosLoc = v('EX_RUIDOS_LOC');
-  const secrC = v('RESP_SECR_QTY'), secrT = v('RESP_SECR_CAR');
   const ruidosText = ruidos === 'Otro' && ruidosLoc ? ruidosLoc : ruidos;
   let exStr = '';
   if (mp) {
     const mpTxt = mp === 'Presente Bilateral' ? 'MP(+) bilateral'
                 : /^Abolido/i.test(mp) ? 'MP(−) ' + mp.replace(/^Abolido\s*/i, 'abolido ')
                 : 'MP(+), ' + mp;
-    exStr += `Al examen físico: ${mpTxt}`;
+    exStr += `Auscultación: ${mpTxt}`;
   }
-  if (ruidosText && ruidosText !== 'sin ruidos agregados') exStr += `, con ${ruidosText}`;
+  if (ruidosText && ruidosText !== 'sin ruidos agregados') exStr += `${mp ? ', con ' : 'Auscultación: '}${ruidosText}${ruidosLoc && ruidos !== 'Otro' ? ' ' + ruidosLoc : ''}`;
   else if (ruidosText) exStr += `, sin ruidos agregados`;
-  if (secrC) { exStr += `. Secreciones ${secrC}`; if (secrT) exStr += ` de característica ${secrT}`; }
   if (exStr) txt.push(exStr + '.');
+
+  // 7b. KTR / manejo respiratorio (paridad con el preview del cliente)
+  (function () {
+    if (esVerdadero(d.RESP_SIN_KTR)) { txt.push('Sin requerimientos de KTR en turno.'); return; }
+    const perm = [];
+    if (esVerdadero(d.RESP_SET)) perm.push('SET');
+    if (esVerdadero(d.RESP_SOF)) perm.push('SOF');
+    if (esVerdadero(d.RESP_SNF)) perm.push('SNF');
+    if (esVerdadero(d.RESP_ATOS)) perm.push('asistencia de tos');
+    const reol = v('RESP_SECR_REOL'), car = v('RESP_SECR_CAR'), qty = v('RESP_SECR_QTY');
+    const qtyTxt = { '+': 'escasa cantidad', '++': 'moderada cantidad', '+++': 'abundante cantidad' }[qty] || '';
+    const secrParts = [];
+    if (qty !== '-') {
+      if (reol) secrParts.push(reol.toLowerCase());
+      if (car) secrParts.push(car.toLowerCase());
+      if (qtyTxt) secrParts.push('en ' + qtyTxt);
+    }
+    const secrTxt = secrParts.length ? `, secreciones ${secrParts.join(' ')}` : '';
+    if (v('EX_CULT_RESULTADO')) txt.push('Resultado de cultivo: ' + v('EX_CULT_RESULTADO') + '.');
+    let linea = '';
+    if (perm.length) linea = `KTR + ${perm.join(' + ')}${secrTxt}`;
+    else if (secrTxt) linea = `Secreciones ${secrParts.join(' ')}`;
+    if (linea) txt.push(linea + '.');
+    if (esVerdadero(d.RESP_INHALO)) txt.push('Se administra inhaloterapia según indicación médica (SOS).');
+    const pos = [];
+    if (esVerdadero(d.RESP_POS_SED)) pos.push('Sedente >45°');
+    if (esVerdadero(d.RESP_POS_DCLD)) pos.push('DCL D');
+    if (esVerdadero(d.RESP_POS_DCLI)) pos.push('DCL I');
+    if (esVerdadero(d.RESP_POS_PRONO)) pos.push(v('RESP_PRONO_HORA') ? `Prono desde las ${v('RESP_PRONO_HORA')} hrs` : 'Prono');
+    if (esVerdadero(d.RESP_POS_SUPINO)) pos.push(v('RESP_SUPINO_HORA') ? `Se supina a las ${v('RESP_SUPINO_HORA')} hrs` : 'Supino');
+    if (v('RESP_POS_LIBRE')) pos.push(v('RESP_POS_LIBRE'));
+    if (pos.length) txt.push(`Posicionamiento: ${pos.join(', ')}.`);
+  })();
 
   // 8. KTM
   const ktmR = esVerdadero(d.KTM_REALIZADA), ktmS = esVerdadero(d.KTM_SUSPENDIDA);

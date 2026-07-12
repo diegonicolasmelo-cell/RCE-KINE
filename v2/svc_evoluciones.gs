@@ -65,6 +65,12 @@ function guardarEvolucion(datos, ctx) {
       Object.assign(datos, calcularRespiratorio(datos));
 
       // Días de estadía / VM / VA
+      if (!cama.FECHA_INGRESO) {
+        // Episodio sin fecha de ingreso (paciente cargado sin ingreso formal):
+        // se ancla al primer turno evolucionado para que los días no queden '?'.
+        cama.FECHA_INGRESO = fecha;
+        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { FECHA_INGRESO: fecha });
+      }
       if (cama.FECHA_INGRESO) {
         datos.DIA_ESTADIA = diasEntre(cama.FECHA_INGRESO, fecha);
         datos.DIAS_VM = (datos.VENT_SOPORTE === 'VM') ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : 0;
