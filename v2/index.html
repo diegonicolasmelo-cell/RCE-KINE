@@ -356,6 +356,10 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .min-pill:hover{background:#1e5a8f;}
 .min-pill::before{content:'📋';font-size:.9rem;}
 .pcontent{flex-grow:1;overflow-y:auto;padding:14px 16px 0;background:var(--bg);}
+/* En pantallas grandes el contenido del panel se compacta al centro,
+   dejando aire a los costados (el scroll sigue al borde de la ventana). */
+#sp .pcontent>form{max-width:1320px;margin:0 auto;}
+@media(min-width:1700px){ #sp .pcontent>form{max-width:1440px;} }
 
 /* FORM CARDS */
 /* ── FCARD — tarjeta blanca con barra superior de color (estética prototipo) ── */
