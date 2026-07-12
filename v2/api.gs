@@ -36,6 +36,8 @@ function api(accion, datos, token) {
       case 'GET_CONFIG_UI':    return ok({
         CPAX_ACTIVO: leerConfig('CPAX_ACTIVO', 'TRUE') !== 'FALSE',
         NUM_CAMAS: parseInt(leerConfig('NUM_CAMAS', '18')) || 18,
+        TURNO_DIA_INICIO: parseInt(leerConfig('TURNO_DIA_INICIO', '9')) || 9,
+        TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
         CAT_DEF: catMatrices(),
       });
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);

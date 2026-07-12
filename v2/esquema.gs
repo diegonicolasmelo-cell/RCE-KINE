@@ -391,6 +391,10 @@ function _sembrar(ss) {
     // DEBE quedar en FALSE en producción.
     ['AUTH_DEV_MODE', 'FALSE'],
     ['AUTH_DEV_FIRMA', 'DMV'],
+    // Ventanas de turno (hora en que PARTE cada turno; la madrugada previa al
+    // inicio del día sigue contando como la noche del día anterior)
+    ['TURNO_DIA_INICIO', '9'],
+    ['TURNO_NOCHE_INICIO', '21'],
     // Interpretación clínica (cortes ajustables por el equipo sin tocar código)
     ['CPAX_ACTIVO', 'TRUE'],        // FALSE oculta la sección CPAx del panel
     ['CORTE_MRC_DAUCI', '48'],      // MRC-SS < corte = DAUCI

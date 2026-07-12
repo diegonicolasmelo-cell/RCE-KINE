@@ -2445,16 +2445,51 @@ function toast(msg, t=3200) {
   setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, t);
 }
 
-function initControls() {
-  // ── Turno Noche: 20:01 del día D → 08:00 del día D+1.
-  // Si son 00:00–07:59, seguimos en el NOCHE del día ANTERIOR → mostrar esa fecha.
-  const _iNow = new Date(), _iH = _iNow.getHours();
-  SHIFT = (_iH >= 8 && _iH < 20) ? 'Dia' : 'Noche';
-  const _iSD = new Date(_iNow);
-  if (_iH < 8) _iSD.setDate(_iSD.getDate() - 1);
-  $('gDate').value = `${_iSD.getFullYear()}-${pad(_iSD.getMonth()+1)}-${pad(_iSD.getDate())}`;
+// ── TURNO LÓGICO: fecha y turno se calculan SIEMPRE como pareja ──
+// Día: H_DIA–(H_NOCHE-1) de hoy · Noche: H_NOCHE–23:59 de hoy · 00:00–(H_DIA-1)
+// sigue siendo la NOCHE DEL DÍA ANTERIOR (ventana de gracia para escribir
+// atrasado). Horarios ajustables en CONFIG (TURNO_DIA_INICIO / TURNO_NOCHE_INICIO).
+function _horasTurno(){
+  const c=window.CFG||{};
+  return { dia: parseInt(c.TURNO_DIA_INICIO)||9, noche: parseInt(c.TURNO_NOCHE_INICIO)||21 };
+}
+function _turnoLogico(now){
+  now = now || new Date();
+  const h = now.getHours(), H = _horasTurno();
+  const d = new Date(now);
+  let turno;
+  if (h >= H.dia && h < H.noche) turno = 'Dia';
+  else { turno = 'Noche'; if (h < H.dia) d.setDate(d.getDate() - 1); }
+  return { fecha: `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`, turno: turno };
+}
+function _aplicarTurno(fecha, turno){
+  SHIFT = turno;
+  $('gDate').value = fecha;
   $('sTgl').dataset.s = SHIFT;
   $('gDate').classList.add('turno-hoy');
+}
+function initControls() {
+  const t = _turnoLogico();
+  _aplicarTurno(t.fecha, t.turno);
+  _ultimoTurnoAuto = t.fecha + '-' + t.turno;
+  // Re-sincronización: si el reloj cruza una frontera de turno con la vista
+  // anclada a "hoy" y sin panel abierto, la pareja fecha+turno avanza sola.
+  setInterval(_syncTurnoAuto, 60000);
+}
+let _ultimoTurnoAuto = '';
+function _syncTurnoAuto(){
+  const t = _turnoLogico();
+  const key = t.fecha + '-' + t.turno;
+  if (key === _ultimoTurnoAuto) return;
+  _ultimoTurnoAuto = key;
+  if (!$('gDate').classList.contains('turno-hoy')) return;      // vista retrospectiva: no tocar
+  if (document.querySelector('#sp.on')) {                        // panel abierto: avisar sin mover nada
+    toast(`ℹ️ Cambió el turno: ahora corresponde ${t.turno==='Dia'?'☀️ Día':'🌙 Noche'} del ${t.fecha.slice(8,10)}-${t.fecha.slice(5,7)}. Se actualizará al cerrar el panel.`, 6000);
+    return;
+  }
+  _aplicarTurno(t.fecha, t.turno);
+  refrescarVista();
+  toast(`🕘 Turno actualizado: ${t.turno==='Dia'?'☀️ Día':'🌙 Noche'} del ${t.fecha.slice(8,10)}-${t.fecha.slice(5,7)}`, 5000);
 }
 
 // URL real de la Web App (se obtiene del servidor si se necesita)
@@ -2498,21 +2533,30 @@ function actualizarRetroBar() {
 }
 
 function volverAHoy() {
-  // Re-calcular la fecha de turno correcta al volver a hoy
-  const _vNow = new Date(), _vH = _vNow.getHours();
-  SHIFT = (_vH >= 8 && _vH < 20) ? 'Dia' : 'Noche';
-  const _vSD = new Date(_vNow);
-  if (_vH < 8) _vSD.setDate(_vSD.getDate() - 1);
-  $('gDate').value = `${_vSD.getFullYear()}-${pad(_vSD.getMonth()+1)}-${pad(_vSD.getDate())}`;
-  $('sTgl').dataset.s = SHIFT;
-  $('gDate').classList.add('turno-hoy');
+  const t = _turnoLogico();
+  _aplicarTurno(t.fecha, t.turno);
   refrescarVista();
 }
 
-//  TABS / SHIFT
+//  TABS / SHIFT — el botón mueve fecha y turno como UNIDAD coherente:
+//  · a Día   → siempre el día real de HOY (a las 07:00 del 12, "Día" = 12·Día;
+//              a las 22:00, "Día" = el día de hoy ya pasado, registro atrasado).
+//  · a Noche → la noche más reciente (antes de que parta la noche = ANOCHE;
+//              después de las H_NOCHE = la noche de hoy en curso).
+//  En vista retrospectiva (fecha elegida a mano) solo alterna el turno de ese día.
 function toggleShift() {
-  SHIFT = SHIFT==='Dia'?'Noche':'Dia';
-  $('sTgl').dataset.s = SHIFT;
+  const retro = !$('gDate').classList.contains('turno-hoy');
+  const target = SHIFT==='Dia' ? 'Noche' : 'Dia';
+  if (retro) {
+    SHIFT = target;
+    $('sTgl').dataset.s = SHIFT;
+    refrescarVista();
+    return;
+  }
+  const now = new Date(), H = _horasTurno();
+  const d = new Date(now);
+  if (target === 'Noche' && now.getHours() < H.noche) d.setDate(d.getDate() - 1);
+  _aplicarTurno(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`, target);
   refrescarVista();
 }
 function onFechaChange() { $('gDate').classList.remove('turno-hoy'); refrescarVista(); }
