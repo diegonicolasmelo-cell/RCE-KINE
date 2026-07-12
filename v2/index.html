@@ -4588,7 +4588,9 @@ function poblar(id, opts, def) {
 function cascadeVA(preSop) {
   const va=v('fVA'); const r=VMAPS[va]||VMAPS[''];
   poblar('fSop', r.sops, preSop); cascadeSop();
-  if(_vaAnterior && _vaAnterior!==va){
+  // En INGRESO nunca hay "transición" de vía aérea: se registra el estado de
+  // llegada (aunque el kine pase por Natural→TOT explorando el select).
+  if(_vaAnterior && _vaAnterior!==va && v('cIng')!=='true'){
     const prevInv=_vaAnterior==='TOT'||_vaAnterior==='TQT';
     const prevVNI=_vaAnterior==='Full Face'||_vaAnterior==='Oronasal';
     const prevNoInv=!prevInv;
@@ -4687,6 +4689,9 @@ function updateVAUI() {
   const noInv=!esInv && va!==''; // sin VA registrada aún no se ofrecen eventos de vía aérea
   if((noInv && !histVM) || $('cIntubO')?.checked || (_transIntubEsteTurno && !histVM)) show('dIntubSec'); else hide('dIntubSec');
   if((noInv && histVM) || $('cReintubT')?.checked || (_transIntubEsteTurno && histVM)) show('dReintubSec'); else hide('dReintubSec');
+  // INGRESO = registro del estado de llegada: sin eventos de vía aérea
+  // (intubación/reintubación/PVE-extubación/decanulación van en las evoluciones).
+  if(v('cIng')==='true'){ hide('dIntubSec'); hide('dReintubSec'); hide('dExtSec'); hide('dDecanSec'); }
   _updateSinKTR();
 }
 
