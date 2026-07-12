@@ -267,8 +267,28 @@ function _limpiarCamaInterno(idCama) {
     TEXTO_EVO_DIA: '', TEXTO_EVO_NOCHE: '', ULTIMO_TURNO_KEY: '', TIMELINE_JSON: '',
     KTR_DIA: '', KTM_DIA: '', PROC_DIA: '', FIRMA_DIA: '', KEY_DIA: '',
     KTR_NOCHE: '', PROC_NOCHE: '', FIRMA_NOCHE: '', KEY_NOCHE: '',
+    // Estado del episodio (v2): sin esto, el próximo paciente de la cama
+    // heredaba arrastres del anterior (evaluaciones, categorías, circuito).
+    CHARLSON: '', INGRESO_TIPO: '',
+    CAT_KINE: '', CAT_RESP_PJE: '', CAT_MOTOR_PJE: '', CAT_RESP_NIVEL: '', CAT_MOTOR_NIVEL: '',
+    ULT_COOP: '', ULT_MRC: '', ULT_MRC_FECHA: '', ULT_FSS: '', ULT_FSS_FECHA: '', ULT_DINAMO: '',
+    DISP_HME_FECHA: '', DISP_HEPA_FECHA: '', DISP_TC_FECHA: '', DISP_HUMID_FECHA: '',
   };
   repoActualizar('CAMAS_ESTADO', 'ID_CAMA', String(idCama), vacio);
+}
+
+/**
+ * Limpieza manual desde el editor de Apps Script (pacientes cargados a mano
+ * en la hoja que quedaron inconsistentes): deja las camas indicadas Libres.
+ * Uso: seleccionar esta función, ejecutar → pide nada; editar la línea de
+ * abajo con las camas o llamar limpiarCamasManual('3,5,8') desde la consola.
+ */
+function limpiarCamasManual(ids) {
+  const lista = String(ids || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  if (!lista.length) { console.log('Indica las camas: limpiarCamasManual("3,5,8")'); return; }
+  lista.forEach(_limpiarCamaInterno);
+  SpreadsheetApp.flush();
+  console.log('✅ Camas limpiadas y liberadas: ' + lista.join(', '));
 }
 
 // ── COD_PACIENTE ───────────────────────────────────────────
