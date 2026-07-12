@@ -181,6 +181,12 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   // Salida de VM este turno (weaning/extubación): descarta el circuito
   const dejaVM = (sopAnt === 'VM' && sopNew !== 'VM');
 
+  // PVE del episodio, acumulados por turnoKey (idempotente al re-guardar un
+  // turno: la clave se sobreescribe). De aquí se deriva la clase de weaning.
+  let weanPve = {};
+  try { weanPve = JSON.parse(cama.WEAN_PVE_JSON || '{}') || {}; } catch (e) { weanPve = {}; }
+  if (evo.PVE_VAL === 'si' && evo.PVE_RESULTADO) weanPve[turnoKey] = evo.PVE_RESULTADO;
+
   const vaNew = evo.VENT_VIA_AEREA || cama.VIA_AEREA || 'Natural';
   const vaAnt = cama.VIA_AEREA || '';
   const esVA = (vaNew !== 'Natural');
@@ -227,6 +233,7 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     DISP_HEPA_FECHA: dejaVM ? '' : val(evo.DISP_HEPA_FECHA, cama.DISP_HEPA_FECHA),
     DISP_TC_FECHA: dejaVM ? '' : val(evo.VENT_FECHA_SONDA, cama.DISP_TC_FECHA),
     DISP_HUMID_FECHA: dejaVM ? '' : val(evo.DISP_HUMID_FECHA, cama.DISP_HUMID_FECHA),
+    WEAN_PVE_JSON: JSON.stringify(weanPve),
     ULTIMO_TURNO_KEY: turnoKey,
     FECHA_INGRESO: cama.FECHA_INGRESO || (esIngreso ? fecha : ''),
     FECHA_INICIO_VA: fechaVA,

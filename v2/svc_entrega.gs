@@ -93,6 +93,13 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     if (esVerdadero(ev.TQT_CAMBIO)) eventos.push('🔄 Cambio de cánula ' + f);
   });
 
+  // ── Clasificación de weaning desde los PVE del episodio ──
+  const pves = {};
+  episodio.forEach(ev => {
+    if (ev.PVE_VAL === 'si' && ev.PVE_RESULTADO) pves[String(ev.TURNO_KEY)] = ev.PVE_RESULTADO;
+  });
+  const weaning = _weaningClase(pves, fecha, val(e && e.VENT_SOPORTE, c.SOPORTE));
+
   // ── Últimas evaluaciones con fecha (arrastre en cama + CPAx del episodio) ──
   const evals = [];
   if (val(c.ULT_MRC) !== '') evals.push('MRC-SS ' + c.ULT_MRC + (c.ULT_MRC_FECHA ? ' (' + dd(c.ULT_MRC_FECHA) + ')' : ''));
@@ -155,11 +162,34 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     evals: evals,
     dispositivos: disp,
     alertas: alertas,
+    weaning: weaning,
     ultimoCultivo: cultivo ? { fecha: dd(cultivo.iso), nombre: cultivo.nombre, micro: val(c.AISL_MICRO) } : null,
     plan: e ? val(e.PLAN_PLANES) : '',
     nota: e ? val(e.PLAN_NOTA_TURNO) : '',
     firma: val(e && e.PLAN_FIRMA_KINE, c.FIRMA_KINE),
   };
+}
+
+/**
+ * Clasificación del weaning (Boles et al., ERJ 2007 / estudio WIND 2017) a
+ * partir de los PVE del episodio. Solo aplica mientras el paciente sigue en
+ * VM (weaning en curso); superado el primer PVE sin frustros = simple (no se
+ * alerta). Difícil: ≥1 PVE frustro. Prolongado: ≥3 frustros o >7 días desde
+ * el primer PVE.
+ * @param {Object} pves {turnoKey: 'superada'|'frustra'}
+ * @param {string} fechaRef ISO de referencia (fecha de la entrega)
+ * @param {string} soporte soporte actual del paciente
+ * @return {?Object} {clase:'dificil'|'prolongado', frustras, dias, primerPve} o null
+ */
+function _weaningClase(pves, fechaRef, soporte) {
+  if (String(soporte) !== 'VM') return null;
+  const keys = Object.keys(pves || {}).sort();
+  if (!keys.length) return null;
+  const primer = keys[0].slice(0, 10);
+  const frustras = keys.filter(function (k) { return pves[k] === 'frustra'; }).length;
+  const dias = diasEntre(primer, fechaRef);
+  const clase = (frustras >= 3 || dias > 7) ? 'prolongado' : (frustras >= 1 ? 'dificil' : '');
+  return clase ? { clase: clase, frustras: frustras, dias: dias, primerPve: primer } : null;
 }
 
 /** Parámetros ventilatorios clave en texto compacto (solo no vacíos). */

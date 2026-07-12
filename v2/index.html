@@ -2434,6 +2434,20 @@ const dias = (a,b) => {
   return ms<0 ? 0 : Math.floor(ms/86400000);
 };
 
+// Clasificación del weaning (Boles 2007): difícil = ≥1 PVE frustro;
+// prolongado = ≥3 frustros o >7 días desde el primer PVE. Misma lógica que
+// _weaningClase() del servidor (svc_entrega.gs) — mantener en paridad.
+function _weanClase(json,fechaRef){
+  let w={}; try{ w=JSON.parse(json||'{}')||{}; }catch(e){ return null; }
+  const ks=Object.keys(w).sort();
+  if(!ks.length) return null;
+  const primer=ks[0].slice(0,10);
+  const frustras=ks.filter(k=>w[k]==='frustra').length;
+  const d=dias(primer,fechaRef);
+  const clase=(frustras>=3||d>7)?'prolongado':(frustras>=1?'dificil':'');
+  return clase?{clase,frustras,dias:d,primerPve:primer}:null;
+}
+
 //  LOADING & TOAST
 function loading(on, msg='Cargando...') {
   $('lov').style.display = on ? 'flex' : 'none';
@@ -2600,6 +2614,15 @@ function renderGrid() {
         return `<span class="abadge" style="background:${col}18;color:${col};border:1px solid ${col}55;" title="Categorización ${nom} SOCHIMI del último turno: complejidad ${nv}${p?` (${p} pts)`:''}">${letra} ${nv}</span>`;
       };
       al+=_catChip(c.CAT_RESP_PJE,c.CAT_RESP_NIVEL,5,'R','respiratoria')+_catChip(c.CAT_MOTOR_PJE,c.CAT_MOTOR_NIVEL,4,'M','motora');
+      // Weaning difícil/prolongado (Boles 2007) desde los PVE acumulados del
+      // episodio. Solo mientras sigue en VM (weaning en curso).
+      if(c.SOPORTE==='VM'&&c.WEAN_PVE_JSON){
+        const w=_weanClase(c.WEAN_PVE_JSON,fecha);
+        if(w){
+          const wcol=w.clase==='prolongado'?'#dc2626':'#d97706';
+          al+=`<span class="abadge" style="background:${wcol}18;color:${wcol};border:1px solid ${wcol}55;" title="Weaning ${w.clase==='prolongado'?'prolongado':'difícil'} (Boles 2007): ${w.frustras} PVE frustro(s), día ${w.dias} desde el primer PVE (${w.primerPve})">🌬️ W. ${w.clase==='prolongado'?'prolongado':'difícil'}</span>`;
+        }
+      }
       // MRC-SS / FSS-ICU: solo aplica a paciente COOPERADOR (última cooperación
       // registrada). Con valor → "MRC 48 · 12-06"; sin valor → alerta de pendiente.
       if(/^cooperador$/i.test(String(c.ULT_COOP||'').trim())){
@@ -6853,7 +6876,12 @@ function renderEntrega(d){
   d.fichas.forEach(f=>{
     if(!f.ocupada&&!f.tieneEvo) return;
     const meta=`${f.edad||'?'}a ${f.sexo||''} · ${f.diasEstadia||'?'}d UCI`;
-    const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+
+    // Weaning difícil/prolongado (Boles 2007) — calculado por el servidor
+    // desde los PVE del episodio; solo llega mientras sigue en VM.
+    const weanChip=f.weaning?(()=>{ const wc=f.weaning.clase==='prolongado'?'#dc2626':'#d97706';
+      const wn=f.weaning.clase==='prolongado'?'prolongado':'difícil';
+      return `<span class="ent-tag" style="background:${wc}18;color:${wc};border:1px solid ${wc}55;" title="${f.weaning.frustras} PVE frustro(s) · día ${f.weaning.dias} desde el primer PVE (${f.weaning.primerPve})">🌬️ Weaning ${wn}</span>`; })():'';
+    const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+
       (f.alertas||[]).map(a=>`<span class="ent-tag ent-tag-alert">⚠️ ${a}</span>`).join('');
     // 🔵 Ventilatorio: VA + soporte + días VM / modo + parámetros
     const vaP=[f.viaAerea, f.soporte==='VM'?'VM':(f.soporte||''), (f.diasVM!==''&&f.diasVM!=null)?`D-VM:${f.diasVM}`:''];

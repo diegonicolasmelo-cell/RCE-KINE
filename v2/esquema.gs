@@ -197,6 +197,9 @@ const ESQUEMA = {
     // turno — el panel arrastra desde aquí para que la fecha visualizada no las pise)
     ['DISP_HME_FECHA','texto'],['DISP_HEPA_FECHA','texto'],
     ['DISP_TC_FECHA','texto'],['DISP_HUMID_FECHA','texto'],
+    // PVE acumulados del episodio {turnoKey: 'superada'|'frustra'} — la clase de
+    // weaning (Boles 2007: difícil/prolongado) se deriva al mostrar, nunca se guarda
+    ['WEAN_PVE_JSON','json'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
