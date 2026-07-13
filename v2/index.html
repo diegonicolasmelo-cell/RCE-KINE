@@ -290,6 +290,29 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
   .ent-ficha{break-inside:avoid;}
   .ent-pend textarea{color:#78350f!important;-webkit-print-color-adjust:exact;}
 }
+/* ── Hoja RHB (formato oficial 'Registro y seguimiento en rehabilitación') ── */
+#rhbPrint{display:none;}
+@media print{
+  body.print-rhb *{visibility:hidden;}
+  body.print-rhb #rhbPrint{display:block;visibility:visible;position:absolute;left:0;top:0;width:100%;}
+  body.print-rhb #rhbPrint *{visibility:visible;}
+  body.print-rhb #tcE{display:none;}
+}
+.rhb-page{page-break-after:always;font-family:Calibri,'Segoe UI',Arial,sans-serif;color:#000;}
+.rhb-page:last-child{page-break-after:auto;}
+.rhb-titulo{text-align:center;font-size:11pt;font-weight:800;margin:0 0 10px;}
+.rhb-head{display:flex;justify-content:space-between;gap:30px;font-size:9pt;margin-bottom:8px;}
+.rhb-head div{line-height:1.7;}
+.rhb-head b{font-weight:700;}
+table.rhb{border-collapse:collapse;width:100%;table-layout:fixed;font-size:6.6pt;}
+table.rhb td,table.rhb th{border:.6pt solid #000;padding:1px 3px;height:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;}
+table.rhb .rl{width:128px;text-align:left;font-size:6.8pt;}
+table.rhb tr.rsep td{border-top:1.4pt solid #000;}
+table.rhb2{border-collapse:collapse;font-size:7pt;margin-top:12px;}
+table.rhb2 td,table.rhb2 th{border:.6pt solid #000;padding:1px 5px;height:14px;text-align:center;}
+table.rhb2 .rl{width:128px;text-align:left;}
+.rhb-obs{border:.8pt solid #000;min-height:70px;margin-top:12px;font-size:8.5pt;padding:4px 8px;}
+.rhb-notas{font-size:7.4pt;font-style:italic;margin-top:8px;line-height:1.5;}
 
 /* RETRO BANNER (vista de día anterior) */
 #retroBar{display:none;align-items:center;gap:12px;background:#fff8e1;border-bottom:1px solid rgba(255,159,10,.28);color:#7a4800;padding:8px 22px;font-size:.82rem;font-weight:600;position:sticky;top:93px;z-index:48;}
@@ -307,9 +330,9 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .bcard:hover .bbody,.bcard:hover .bfoot{box-shadow:0 5px 14px rgba(120,90,20,.10);}
 .bcard.sel{outline:2px dashed #3b82f6;outline-offset:4px;border-radius:12px;transform:scale(1.02);}
 /* pestaña de la carpeta */
-.bhdr{position:relative;z-index:3;width:fit-content;max-width:78%;padding:7px 14px 8px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(180deg,#f6ead0,#f0e0bb);border:1px solid #e0cfa0;border-bottom:none;border-radius:10px 10px 0 0;margin-bottom:-1px;}
+.bhdr{position:relative;z-index:3;width:fit-content;max-width:78%;padding:7px 14px 8px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(180deg,#f1e0b6,#ecd9a7);border:1px solid #d6bf84;border-bottom:none;border-radius:10px 10px 0 0;margin-bottom:-1px;}
 /* cuerpo de la carpeta */
-.bbody{position:relative;z-index:2;background:#fffefb;border:1px solid #e6d9b8;border-bottom:none;border-radius:0 12px 0 0;box-shadow:0 2px 6px rgba(120,90,20,.07);padding:13px;flex-grow:1;display:flex;flex-direction:column;gap:5px;transition:box-shadow .18s;}
+.bbody{position:relative;z-index:2;background:linear-gradient(180deg,#f9efd2,#f3e4ba);border:1px solid #d6bf84;border-bottom:none;border-radius:0 12px 0 0;box-shadow:0 2px 8px rgba(120,90,20,.10);padding:13px;flex-grow:1;display:flex;flex-direction:column;gap:5px;transition:box-shadow .18s;}
 /* hoja blanca asomando (turno ya evolucionado) */
 /* Evolucionado: hoja blanca asomando desde dentro de la carpeta, a (casi)
    todo el ancho — como papel dentro de un fichero. Pasa por DETRÁS de la
@@ -337,7 +360,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .a-ktm{background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;}
 .a-pend{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;}
 .a-eval{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;}
-.bfoot{position:relative;z-index:2;padding:9px 13px;background:#fdfaf1;border:1px solid #e6d9b8;border-top:1px dashed #eee3c6;border-radius:0 0 12px 12px;box-shadow:0 2px 8px rgba(120,90,20,.08);display:flex;gap:6px;flex-wrap:wrap;transition:box-shadow .18s;}
+.bfoot{position:relative;z-index:2;padding:9px 13px;background:#f0e2b6;border:1px solid #d6bf84;border-top:1px dashed #e2d09c;border-radius:0 0 12px 12px;box-shadow:0 3px 10px rgba(120,90,20,.12);display:flex;gap:6px;flex-wrap:wrap;transition:box-shadow .18s;}
 .bevo{flex-grow:1;background:var(--primary);color:#fff;border:none;padding:7px;border-radius:6px;font-weight:600;cursor:pointer;font-size:.8rem;}
 .bevo:hover{background:var(--pdark);}
 .btl,.balt{flex-grow:1;background:#fff;border:1px solid #cbd5e1;padding:7px;border-radius:6px;font-weight:600;cursor:pointer;font-size:.8rem;}
@@ -666,18 +689,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .devbar{background:#fef3c7;color:#92400e;font-size:.75rem;text-align:center;padding:4px;border-bottom:1px solid #fde68a;}
 .fase-chip{font-size:.73rem;padding:4px 11px;border-radius:20px;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;cursor:pointer;font-family:inherit;}
 .fase-chip.on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700;}
-/* ── v2: hoja RHB imprimible ── */
-#rhbSheet{display:none;}
-.rhb-t{border-collapse:collapse;width:100%;font-size:9px;}
-.rhb-t th,.rhb-t td{border:1px solid #999;padding:2px 4px;text-align:center;}
-.rhb-l{text-align:left!important;font-weight:700;white-space:nowrap;}
-.rhb-f{font-size:8px;color:#666;font-weight:400;}
-.rhb-hd{font-size:11px;margin-bottom:8px;line-height:1.5;}
-@media print{
-  body.print-rhb *{visibility:hidden;}
-  body.print-rhb #rhbSheet, body.print-rhb #rhbSheet *{visibility:visible;}
-  body.print-rhb #rhbSheet{display:block;position:absolute;left:0;top:0;width:100%;background:#fff;padding:8mm;}
-}
 
 </style>
 </head>
@@ -956,6 +967,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 <div class="ovl" id="ovl" onclick="cerrarTodo(event)"></div>
 <!-- PASTILLA MINIMIZADO -->
 <div id="minTray"></div>
+<!-- HOJA RHB imprimible (formato oficial) — solo visible al imprimir -->
+<div id="rhbPrint"></div>
 
 
 <!-- SIDE PANEL EVOLUCIÓN --><!-- SIDE PANEL EVOLUCIÓN -->
@@ -2313,8 +2326,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 </div>
 
 
-<!-- HOJA RHB IMPRIMIBLE (se llena al momento de imprimir) -->
-<div id="rhbSheet"></div>
 
 
 <!-- MODALES DE EVALUACIÓN: MRC / FSS / CPAx (detalle por ítem; el form principal solo
@@ -3966,65 +3977,6 @@ function abrirTL(id) {
   }, () => {
     $('tlBody').innerHTML = '<div style="color:var(--danger);text-align:center;padding:30px;">Error al cargar el historial.</div>';
   });
-}
-
-//  HOJA DE SEGUIMIENTO RHB — generada desde las evoluciones del episodio (S14)
-function imprimirHojaRHB(){
-  if(!TL_EVOS || !TL_EVOS.length){ toast('Sin evoluciones para generar la hoja.'); return; }
-  const evos=TL_EVOS.slice().sort((a,b)=>String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
-  const g=(e,k)=>{ const x=e?e[k]:''; return (x===undefined||x===null||x==='')?'':String(x); };
-  const esT=x=>x===true||x==='TRUE';
-  // 1 columna por día; la hoja física registra a las 19 h → prioriza turno Noche
-  const porDia={};
-  evos.forEach(e=>{ const f=String(e.TURNO_KEY).slice(0,10); if(!porDia[f]||String(e.TURNO)==='Noche') porDia[f]=e; });
-  const dias=Object.keys(porDia).sort();
-  const filas=[
-    ['Sedación (SAS)', e=>g(e,'SED_SAS')],
-    ['Conciencia (GCS)', e=>g(e,'SED_GCS_TOT')],
-    ['Cooperación (S5Q)', e=>g(e,'SED_S5Q')],
-    ['DVA', e=>g(e,'HEMO_DVA').replace('Sin requerimientos','—')],
-    ['Modo vent. / O2', e=>[g(e,'VENT_SOPORTE'),g(e,'VENT_MODO')].filter(Boolean).join(' ')],
-    ['Vía aérea', e=>g(e,'VENT_VIA_AEREA')],
-    ['PVE diaria', e=>g(e,'PVE_VAL')==='si'?(g(e,'PVE_RESULTADO')||'sí'):''],
-    ['Reintubación', e=>esT(e.EXT_REINTUB)?'SÍ':''],
-    ['FiO2 (%)', e=>g(e,'VENT_FIO2')],
-    ['Nivel KTM', e=>esT(e.KTM_REALIZADA)?g(e,'KTM_NIVEL_KTR'):(esT(e.KTM_SUSPENDIDA)?'C':'')],
-    ['Motivo suspensión', e=>g(e,'KTM_CONTRA_RAZON')||g(e,'KTM_CONTRA_MANUAL')],
-    ['IMT (cmH2O)', e=>esT(e.KTM_IMT)?g(e,'KTM_IMT_INT'):''],
-    ['Kinesiólogo', e=>g(e,'PLAN_FIRMA_KINE')],
-  ];
-  const primera=evos[0]||{};
-  let h=`<div class="rhb-hd"><b>REGISTRO Y SEGUIMIENTO EN REHABILITACIÓN</b> — RCE-KINE UCIA<br>
-    Paciente: <b>${TL_NOMBRE}</b> · ${g(primera,'COD_PACIENTE')} · Dx: ${g(primera,'PAC_DIAGNOSTICO')}<br>
-    Edad: ${g(primera,'PAC_EDAD')} · ECF: ${g(primera,'PAC_ECF')} · Barthel: ${g(primera,'PAC_BARTHEL')} · Charlson: ${g(primera,'PAC_CHARLSON')} · Ingreso: ${g(primera,'PAC_INGRESO_TIPO')}</div>`;
-  h+='<table class="rhb-t"><tr><th style="text-align:left;">Día UCI</th>'+dias.map((f,i)=>{
-    const de=g(porDia[f],'DIA_ESTADIA');
-    return `<th>${de!==''?de:i+1}<div class="rhb-f">${f.slice(5)}</div></th>`;
-  }).join('')+'</tr>';
-  filas.forEach(fd=>{ h+=`<tr><td class="rhb-l">${fd[0]}</td>`+dias.map(f=>'<td>'+fd[1](porDia[f])+'</td>').join('')+'</tr>'; });
-  h+='</table>';
-  // Evaluaciones por hitos (primera y última medición registrada)
-  const evals=[['MRC-ss','EVAL_T_MRC'],['FSS-ICU','EVAL_T_FSS'],['PIM','EVAL_T_PIM'],['PEM','EVAL_T_PEM'],
-    ['Grosor cuádriceps D (mm)','EVAL_T_CUAD_D'],['Grosor cuádriceps I (mm)','EVAL_T_CUAD_I'],
-    ['Índice de Heckmatt','EVAL_T_HECKMATT'],['FED D (%)','EVAL_T_FED_D'],['FED I (%)','EVAL_T_FED_I'],
-    ['Excursión D (cm)','EVAL_T_EXC_D'],['Excursión I (cm)','EVAL_T_EXC_I'],['Dinamometría (kg)','EVAL_T_DINAMO'],
-    ['CPAx (0-50)','CPAX_TOTAL']];
-  let hEv='';
-  evals.forEach(ed=>{
-    const con=evos.filter(e=>e[ed[1]]!==''&&e[ed[1]]!==undefined&&e[ed[1]]!==null);
-    if(!con.length) return;
-    const a=con[0], b=con[con.length-1];
-    hEv+=`<tr><td class="rhb-l">${ed[0]}</td>
-      <td>${a[ed[1]]} <span class="rhb-f">(${String(a.TURNO_KEY).slice(5,10)})</span></td>
-      <td>${con.length>1?`${b[ed[1]]} <span class="rhb-f">(${String(b.TURNO_KEY).slice(5,10)})</span>`:''}</td></tr>`;
-  });
-  if(hEv) h+='<table class="rhb-t" style="margin-top:10px;width:auto;min-width:50%;"><tr><th style="text-align:left;">Evaluación</th><th>Ev. inicial</th><th>Última</th></tr>'+hEv+'</table>';
-  h+=`<div class="rhb-f" style="margin-top:6px;">Generado por RCE-KINE el ${new Date().toLocaleString('es-CL')} · Criterio de inclusión hoja física: VMI > 24 h · Variables registradas por turno.</div>`;
-  const host=$('rhbSheet'); if(!host) return;
-  host.innerHTML=h;
-  document.body.classList.add('print-rhb');
-  window.print();
-  setTimeout(()=>{ document.body.classList.remove('print-rhb'); }, 800);
 }
 
 function cerrarTL() {
@@ -7620,6 +7572,99 @@ function renderEntrega(d){
 function entImprimir(){
   if(!ENT_DATA){ toast('Genera la entrega primero.'); return; }
   window.print();
+}
+
+// ══ HOJA RHB — formato oficial 'Registro y seguimiento en rehabilitación' ══
+// Reproduce la hoja V5 (horizontal, 15 días por página): cada columna se
+// completa con la evolución del TURNO DÍA de esa fecha (solo día, no noche);
+// el RUT queda en blanco para llenarlo a mano. Episodios >15 días agregan
+// páginas de continuación (solo la grilla).
+function imprimirHojaRHB(){
+  if(!TLC){ toast('Abre el historial de un paciente primero.'); return; }
+  const c=DB.find(x=>String(x.ID_CAMA)===String(TLC))||{};
+  const evos=(TL_EVOS||[]).slice().sort((a,b)=>String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
+  if(!evos.length){ toast('Este episodio no tiene evoluciones registradas.'); return; }
+  const fIng=_isoDia(c.FECHA_INGRESO)||String(evos[0].TURNO_KEY).slice(0,10);
+  const hoyRef=v('gDate')||hoy();
+  const nDias=Math.max(1,(dias(fIng,hoyRef)||0)+1);
+  const sum=(f,n)=>{const d=new Date(f+'T00:00:00');d.setDate(d.getDate()+n);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+  const ddmm=f=>f?f.slice(8,10)+'-'+f.slice(5,7):'';
+  const esT=x=>x===true||x==='TRUE';
+  const esc=x=>String(x??'').replace(/"/g,'&quot;');
+  const evoDia=f=>evos.find(e=>String(e.TURNO_KEY)===f+'-Dia')||null;
+  const s5q=x=>x==='lt3'?'<3':(x==='gte3'?'≥3':(x||''));
+  const dvaF=x=>{x=String(x||'');if(!x||/sin requerimientos/i.test(x))return '—';return x.replace(/^DVA\s*(dosis\s*)?/i,'');};
+  const filas=[  // [etiqueta, fn(evo), separadorSuperior]
+    ['Sedación (SAS)',e=>e.SED_SAS??''],
+    ['Nivel de conciencia (ECG)',e=>e.SED_GCS_TOT||''],
+    ['Cooperación (S5Q)',e=>s5q(e.SED_S5Q)],
+    ['Dosis de DVA',e=>dvaF(e.HEMO_DVA)],
+    ['Modo ventilatorio / O2',e=>e.VENT_MODO||e.VENT_SOPORTE||''],
+    ['Vía aérea artificial',e=>{const va=e.VENT_VIA_AEREA;return (va&&va!=='Natural')?va:'—';}],
+    ['PVE diaria',e=>e.PVE_VAL==='si'?(e.PVE_RESULTADO==='superada'?'S':'F'):'—'],
+    ['Reintubación',e=>esT(e.EXT_REINTUB)?'Sí':'—'],
+    ['FiO2',e=>(e.VENT_FIO2!==''&&e.VENT_FIO2!=null)?e.VENT_FIO2:''],
+    ['Nivel KTM',e=>esT(e.KTM_REALIZADA)?(e.KTM_NIVEL_KTR||''):(esT(e.KTM_SUSPENDIDA)?'C':(esT(e.KTM_NO_REALIZADA)?'NR':'')),true],
+    ['Motivo suspensión',e=>esT(e.KTM_SUSPENDIDA)?(e.KTM_CONTRA_RAZON||e.KTM_CONTRA_MANUAL||''):(esT(e.KTM_ALERTA)?(e.KTM_ALERTA_RAZ||''):(esT(e.KTM_NO_REALIZADA)?(e.KTM_NO_RAZON||''):''))],
+    ['Entrenamiento con IMT (cm H2O)',e=>esT(e.KTM_IMT)?(e.KTM_IMT_INT||'✓'):''],
+    ['Kinesiólogo responsable',e=>e.PLAN_FIRMA_KINE||''],
+  ];
+  // Evaluaciones: primera con datos / día 7 exacto / última con datos (si difiere)
+  const EVK=['EVAL_T_CUAD_D','EVAL_T_HECKMATT','EVAL_T_MRC','EVAL_T_FSS','EVAL_T_PIM','EVAL_T_PEM'];
+  const tiene=e=>EVK.some(k=>e[k]!==''&&e[k]!=null&&e[k]!==undefined);
+  const conEval=evos.filter(tiene);
+  const evIni=conEval[0]||null;
+  const f7=sum(fIng,6);
+  const ev7=conEval.find(e=>String(e.TURNO_KEY).slice(0,10)===f7)||null;
+  let evEgr=conEval.length>1?conEval[conEval.length-1]:null;
+  if(evEgr&&evIni&&evEgr.TURNO_KEY===evIni.TURNO_KEY) evEgr=null;
+  const evalCel=(e,k)=>(e&&e[k]!==''&&e[k]!=null)?e[k]:'';
+  const fEv=e=>e?ddmm(String(e.TURNO_KEY).slice(0,10)):'';
+
+  const motivo=String(c.INGRESO_TIPO||'');
+  const cabecera=`
+    <div class="rhb-titulo">REGISTRO Y SEGUIMIENTO EN REHABILITACIÓN</div>
+    <div class="rhb-head">
+      <div><b>Nombre:</b> ${c.NOMBRE||''}<br><b>Rut:</b> ______________________<br><b>Diagnóstico:</b> ${c.DIAGNOSTICO||''}<br><b>Edad:</b> ${c.EDAD||''}</div>
+      <div><b>Escala Clínica de Fragilidad:</b> ${c.ECF||''}<br><b>Índice de Barthel:</b> ${c.BARTHEL||''}<br><b>Índice de Charlson:</b> ${c.CHARLSON||''}<br><b>Motivo de ingreso:</b> Electivo ${/electivo/i.test(motivo)?'<b>X</b>':'__'} &nbsp;Urgencia ${/urgencia/i.test(motivo)?'<b>X</b>':'__'}</div>
+    </div>`;
+
+  let html='';
+  for(let p=0;p*15<nDias;p++){
+    const d0=p*15;
+    let grid='<table class="rhb"><tr><td class="rl"><b>Fecha</b></td>';
+    for(let i=0;i<15;i++){const dia=d0+i;grid+='<td>'+(dia<nDias?ddmm(sum(fIng,dia)):'')+'</td>';}
+    grid+='</tr><tr><td class="rl"><b>Días de estadía en UCI</b></td>';
+    for(let i=0;i<15;i++){grid+='<td>'+(d0+i<nDias?(d0+i+1):'')+'</td>';}
+    grid+='</tr>';
+    filas.forEach(([lbl,fn,sep])=>{
+      grid+=`<tr${sep?' class="rsep"':''}><td class="rl">${lbl}</td>`;
+      for(let i=0;i<15;i++){
+        const dia=d0+i;
+        let val='';
+        if(dia<nDias){ const e=evoDia(sum(fIng,dia)); if(e) val=fn(e); }
+        grid+=`<td title="${esc(val)}">${val??''}</td>`;
+      }
+      grid+='</tr>';
+    });
+    grid+='</table>';
+    html+=`<div class="rhb-page">${cabecera}${p>0?`<div style="font-size:7.5pt;margin-bottom:4px;">(continuación — días ${d0+1} a ${Math.min(d0+15,nDias)})</div>`:''}${grid}
+      ${p===0?`
+      <table class="rhb2"><tr><td class="rl"></td><th>Ev. inicial</th><th>Fecha</th><th>Día 7</th><th>Fecha</th><th>Egreso</th><th>Fecha</th></tr>
+        ${[['Grosor cuádriceps Dº','EVAL_T_CUAD_D'],['Índice de Heckmatt','EVAL_T_HECKMATT'],['MRC-ss','EVAL_T_MRC'],['FSS-ICU','EVAL_T_FSS'],['PIM','EVAL_T_PIM'],['PEM','EVAL_T_PEM']]
+          .map(([l,k])=>`<tr><td class="rl">${l}</td><td>${evalCel(evIni,k)}</td><td>${evIni?fEv(evIni):''}</td><td>${evalCel(ev7,k)}</td><td>${ev7?fEv(ev7):''}</td><td>${evalCel(evEgr,k)}</td><td>${evEgr?fEv(evEgr):''}</td></tr>`).join('')}
+      </table>
+      <div class="rhb-obs"><b>Observaciones:</b></div>
+      <div class="rhb-notas">Criterio de inclusión: duración <b>VMI &gt; 24 horas</b><br>
+      Para evaluar ECF e Índice de Barthel, se recopiló información relevante sobre el funcionamiento físico del paciente correspondiente a <b>2 semanas previo</b> a la admisión hospitalaria. Las variables clínicas se registran a las <b>19 horas de cada día</b>.</div>`:''}
+    </div>`;
+  }
+  $('rhbPrint').innerHTML=html;
+  document.body.classList.add('print-rhb');
+  const limpiar=()=>{ document.body.classList.remove('print-rhb'); window.removeEventListener('afterprint',limpiar); };
+  window.addEventListener('afterprint',limpiar);
+  window.print();
+  setTimeout(limpiar,1500);
 }
 /* ── REM mensual (pestaña Estadísticas) ── */
 function generarREMui(){
