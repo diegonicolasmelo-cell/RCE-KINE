@@ -91,6 +91,8 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     if (esVerdadero(ev.DECAN_OCURRIO)) eventos.push('⭕ Decanulación ' + f + (esVerdadero(ev.DECAN_RECANUL) ? ' → recanulado' : ''));
     if (esVerdadero(ev.TOT_CAMBIO)) eventos.push('🔄 Cambio de tubo ' + f);
     if (esVerdadero(ev.TQT_CAMBIO)) eventos.push('🔄 Cambio de cánula ' + f);
+    if (esVerdadero(ev.RESP_POS_PRONO)) eventos.push('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));
+    if (esVerdadero(ev.RESP_POS_SUPINO)) eventos.push('🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : ''));
   });
 
   // ── Clasificación de weaning desde los PVE del episodio ──
@@ -165,7 +167,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     ktmSuspendida: e ? esVerdadero(e.KTM_SUSPENDIDA) : esVerdadero(c.KTM_SUSP),
     ktmContra: e ? val(e.KTM_CONTRA_RAZON, val(e.KTM_CONTRA_CAT)) : '',
     ktr: e ? val(e.RESP_KTR_CANT, '') : '',
-    eventos: eventos.slice(-6),
+    eventos: eventos.slice(-8),
     evals: evals,
     dispositivos: disp,
     alertas: alertas,

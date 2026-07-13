@@ -667,6 +667,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
   <button class="tab on" id="tabG" onclick="setTab('G')">🛏️ CAMAS</button>
   <button class="tab" id="tabD" onclick="setTab('D')">📊 ESTADÍSTICAS</button>
   <button class="tab" id="tabE" onclick="setTab('E')">📑 ENTREGA</button>
+  <button class="tab" id="tabA" onclick="setTab('A')">🗃️ ARCHIVADOS</button>
 </div>
 
 <!-- BANNER RETROSPECTIVO (cuando la fecha seleccionada no es hoy) -->
@@ -769,6 +770,35 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
   </div>
 </div>
 
+<!-- TAB ARCHIVADOS (pacientes egresados) -->
+<div class="tc-wrap" id="tcA">
+  <div class="dash">
+    <div class="dash-bar">
+      <div class="dash-bar-title">🗃️ Pacientes archivados — <span id="arcCount" style="color:var(--pdark);">…</span></div>
+      <div class="dash-range">
+        <input type="text" id="arcQ" class="datein dashin" placeholder="🔍 Nombre, código o diagnóstico…" style="min-width:230px;" oninput="arcFiltrar()">
+        <div class="dash-dates">
+          <input type="date" id="arcDesde" class="datein dashin" onchange="arcFiltrar()">
+          <span style="color:#94a3b8;">→</span>
+          <input type="date" id="arcHasta" class="datein dashin" onchange="arcFiltrar()">
+        </div>
+        <button class="dpset" onclick="arcCSV()">⬇️ CSV</button>
+      </div>
+    </div>
+    <div id="arcBody" style="overflow-x:auto;background:#fff;border:1px solid var(--border);border-radius:10px;">
+      <div class="pivot-empty">Cargando archivados…</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE ARCHIVADO -->
+<div class="tlmodal" id="arcMod" role="dialog" aria-modal="true" style="width:min(860px,94vw);max-height:90vh;">
+  <div class="phdr">
+    <div class="ptitle" id="arcModTitulo">🗃️ Detalle paciente archivado</div>
+    <button class="xbtn" onclick="arcCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div id="arcModBody" style="padding:16px 20px;overflow-y:auto;"></div>
+</div>
 
 <!-- MODAL EGRESO --><!-- MODAL EGRESO -->
 <div class="tlmodal" id="egMod" role="dialog" aria-modal="true" style="width:min(540px,92vw);height:auto;max-height:88vh;">
@@ -2954,6 +2984,7 @@ function cerrarPanel() {
 function cerrarTodo(e) {
   if(e.target===$('ovl')) {
     cerrarTL(); cerrarEgreso();
+    if(typeof arcCerrar==='function'&&$('arcMod')?.classList.contains('on')) arcCerrar();
     ['mMrc','mFss','mCpax'].forEach(id=>{ const m=$(id); if(m) m.classList.remove('on'); });
   }
 }
@@ -6481,11 +6512,125 @@ function setTab(t){
   $('tcG').classList.toggle('on', t==='G');
   $('tcD').classList.toggle('on', t==='D');
   $('tcE').classList.toggle('on', t==='E');
+  $('tcA').classList.toggle('on', t==='A');
   $('tabG').classList.toggle('on', t==='G');
   $('tabD').classList.toggle('on', t==='D');
   $('tabE').classList.toggle('on', t==='E');
+  $('tabA').classList.toggle('on', t==='A');
   if(t==='D' && !window._statsLoaded) dashPreset('mes', document.querySelector('.dpset'));
   if(t==='E') initEntrega();
+  if(t==='A') initArchivados();
+}
+
+// ══ ARCHIVADOS (pacientes egresados) ══════════════════════════════════════
+let ARC_ALL=null, ARC_VIEW=[];
+const _arcF=s=>s?String(s).slice(0,10).split('-').reverse().join('-'):'—';
+
+function initArchivados(){ if(ARC_ALL===null) arcCargar(); }
+
+function arcCargar(){
+  $('arcBody').innerHTML='<div class="pivot-empty">Cargando archivados…</div>';
+  gs('GET_ARCHIVADOS',{},r=>{ ARC_ALL=r||[]; arcFiltrar(); },
+    ()=>{ $('arcBody').innerHTML='<div class="pivot-empty">Error al cargar. <button class="dpset" onclick="arcCargar()">Reintentar</button></div>'; });
+}
+
+function arcFiltrar(){
+  if(ARC_ALL===null) return;
+  const q=(v('arcQ')||'').toLowerCase(), d1=v('arcDesde'), d2=v('arcHasta');
+  ARC_VIEW=ARC_ALL.filter(a=>{
+    if(d1&&String(a.fEgreso)<d1) return false;
+    if(d2&&String(a.fEgreso)>d2) return false;
+    if(q&&[a.nombre,a.cod,a.diagnostico,a.diagRem].join(' ').toLowerCase().indexOf(q)===-1) return false;
+    return true;
+  });
+  $('arcCount').textContent=`${ARC_VIEW.length} egreso${ARC_VIEW.length===1?'':'s'}`;
+  arcRender();
+}
+
+function arcRender(){
+  if(!ARC_VIEW.length){
+    $('arcBody').innerHTML='<div class="pivot-empty">Sin pacientes archivados'+((v('arcQ')||v('arcDesde')||v('arcHasta'))?' con esos filtros':' todavía — aparecerán aquí al dar egresos')+'.</div>';
+    return;
+  }
+  const th='padding:8px 10px;font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#64748b;text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;background:#f8fafc;';
+  const td='padding:8px 10px;font-size:.8rem;border-bottom:1px solid #f1f5f9;white-space:nowrap;';
+  const rows=ARC_VIEW.map((a,i)=>{
+    const evals=[a.mrc!==''&&a.mrc!=null?`MRC ${a.mrc}`:'',a.fss!==''&&a.fss!=null?`FSS ${a.fss}`:'',a.cpax!==''&&a.cpax!=null?`CPAx ${a.cpax}`:''].filter(Boolean).join(' · ')||'—';
+    const dauci=a.dauci?'<span style="background:#dc262618;color:#dc2626;border:1px solid #dc262655;border-radius:12px;padding:1px 8px;font-size:.68rem;font-weight:800;">DAUCI</span>':'';
+    return `<tr onclick="arcDetalle(${i})" style="cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="${td}font-weight:700;">${_arcF(a.fEgreso)}</td>
+      <td style="${td}text-align:center;">${a.cama||'—'}</td>
+      <td style="${td}color:#64748b;">${a.cod||'—'}</td>
+      <td style="${td}font-weight:700;color:#0f172a;max-width:190px;overflow:hidden;text-overflow:ellipsis;" title="${a.nombre||''}">${a.nombre||'—'}</td>
+      <td style="${td}">${a.edad||'?'}a ${a.sexo||''}</td>
+      <td style="${td}max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${a.diagnostico||''}">${a.diagnostico||'—'}</td>
+      <td style="${td}text-align:center;">${a.dias??'—'} / ${a.diasVM??'—'}</td>
+      <td style="${td}">${a.motivo||'—'}${a.destino?` → ${a.destino}`:''}</td>
+      <td style="${td}">${evals} ${dauci}</td>
+      <td style="${td}text-align:center;color:#64748b;">${a.firma||''}</td>
+    </tr>`;
+  }).join('');
+  $('arcBody').innerHTML=`<table style="border-collapse:collapse;width:100%;min-width:980px;">
+    <thead><tr>
+      <th style="${th}">Egreso</th><th style="${th}">Cama</th><th style="${th}">Código</th>
+      <th style="${th}">Nombre</th><th style="${th}">Edad</th><th style="${th}">Diagnóstico</th>
+      <th style="${th}" title="Días de estadía / días de VM">Días UCI/VM</th><th style="${th}">Motivo → Destino</th>
+      <th style="${th}">Evals egreso</th><th style="${th}">Kine</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function arcDetalle(i){
+  const a=ARC_VIEW[i]; if(!a) return;
+  $('arcModTitulo').textContent=`🗃️ ${a.nombre||'Paciente'} — ${a.cod||''}`;
+  const chip=(l,val)=>val!==''&&val!=null&&val!==undefined?`<div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:7px 11px;"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;font-weight:800;">${l}</div><div style="font-size:.86rem;font-weight:700;color:#0f172a;margin-top:1px;">${val}</div></div>`:'';
+  $('arcModBody').innerHTML=`
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+      ${chip('Ingreso',_arcF(a.fIngreso))}${chip('Egreso',_arcF(a.fEgreso))}
+      ${chip('Días UCI',a.dias)}${chip('Días VM',a.diasVM)}
+      ${chip('Cama',a.cama)}${chip('Edad',(a.edad||'?')+'a '+(a.sexo||''))}
+      ${chip('Diagnóstico',a.diagnostico)}${chip('Motivo',a.motivo)}${chip('Destino',a.destino)}
+      ${chip('KTR totales',a.ktr)}${chip('Turnos KTM',a.turnosKTM)}
+      ${chip('Barthel in/eg',(a.barthelIn??'—')+' / '+(a.barthelEg||'—'))}
+      ${chip('MRC egreso',a.mrc)}${chip('FSS egreso',a.fss)}${chip('CPAx egreso',a.cpax)}
+      ${a.dauci?'<div style="background:#dc262618;border:1px solid #dc262655;border-radius:8px;padding:7px 11px;color:#dc2626;font-weight:800;font-size:.8rem;align-self:center;">⚠️ DAUCI al egreso</div>':''}
+      ${chip('Kine responsable',a.firma)}
+    </div>
+    ${a.obs?`<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 12px;font-size:.8rem;margin-bottom:14px;"><b>Observaciones:</b> ${a.obs}</div>`:''}
+    <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin-bottom:8px;">📜 Evoluciones del episodio</div>
+    <div id="arcEvos" style="color:#94a3b8;font-size:.8rem;">Cargando evoluciones…</div>`;
+  $('arcMod').classList.add('on'); $('ovl').classList.add('on');
+  gs('GET_HISTORIAL_PACIENTE',{idCama:a.cama,patientId:a.patientId},d=>{
+    const evos=(d&&d.evoluciones)||[];
+    const box=$('arcEvos'); if(!box) return;
+    if(!evos.length){ box.textContent='Sin evoluciones registradas para este episodio.'; return; }
+    box.innerHTML=evos.slice().reverse().map(e=>{
+      const tk=String(e.TURNO_KEY||''); const f=tk.slice(0,10).split('-').reverse().join('-');
+      const turno=tk.endsWith('Noche')?'🌙 Noche':'☀️ Día';
+      return `<details style="border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#fff;">
+        <summary style="padding:8px 12px;cursor:pointer;font-size:.8rem;font-weight:700;color:#0f172a;">${f} · ${turno} <span style="color:#94a3b8;font-weight:600;">· ${e.PLAN_FIRMA_KINE||''}</span></summary>
+        <pre style="margin:0;padding:10px 14px;white-space:pre-wrap;font-size:.78rem;line-height:1.55;color:#1e293b;border-top:1px solid #f1f5f9;font-family:inherit;">${(e.TEXTO_GENERADO||'(sin texto generado)')}</pre>
+      </details>`;
+    }).join('');
+  },()=>{ const box=$('arcEvos'); if(box) box.textContent='Error al cargar las evoluciones.'; });
+}
+
+function arcCerrar(){ $('arcMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+
+function arcCSV(){
+  if(!ARC_VIEW.length){ toast('No hay filas para exportar'); return; }
+  const cols=[['Fecha egreso','fEgreso'],['Fecha ingreso','fIngreso'],['Cama','cama'],['Código','cod'],['Nombre','nombre'],
+    ['Edad','edad'],['Sexo','sexo'],['Diagnóstico','diagnostico'],['Diag REM','diagRem'],['Días UCI','dias'],['Días VM','diasVM'],
+    ['Motivo','motivo'],['Destino','destino'],['KTR totales','ktr'],['Turnos VM','turnosVM'],['Turnos KTM','turnosKTM'],
+    ['Barthel ingreso','barthelIn'],['Barthel egreso','barthelEg'],['MRC egreso','mrc'],['FSS egreso','fss'],
+    ['Dinamometría egreso','dinamo'],['CPAx egreso','cpax'],['DAUCI','dauci'],['Kine','firma'],['Observaciones','obs']];
+  const esc=x=>{ const s=String(x??''); return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const csv='\ufeff'+cols.map(c=>c[0]).join(';')+'\n'+
+    ARC_VIEW.map(a=>cols.map(c=>esc(a[c[1]])).join(';')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const aEl=document.createElement('a');
+  aEl.href=URL.createObjectURL(blob);
+  aEl.download=`RCE_KINE_archivados_${hoy()}.csv`;
+  aEl.click(); URL.revokeObjectURL(aEl.href);
 }
 function dashPreset(tipo, btn){
   document.querySelectorAll('.dpset').forEach(b=>b.classList.remove('on'));

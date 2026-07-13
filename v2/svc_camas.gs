@@ -318,3 +318,38 @@ function _codUnico(cod) {
   while (activos.indexOf(cod + '-' + n) !== -1) n++;
   return cod + '-' + n;
 }
+
+// ── ARCHIVADOS: pacientes egresados (hoja ARCHIVO_PACIENTES) ───────────────
+/**
+ * Lista de egresos para la pestaña Archivados, del más reciente al más
+ * antiguo. Filtros opcionales: desde/hasta (por FECHA_EGRESO) y q (texto
+ * libre sobre nombre/código/diagnóstico). El detalle de evoluciones se pide
+ * aparte con GET_HISTORIAL_PACIENTE (lee EVOLUCIONES + EVOLUCIONES_ARCHIVO).
+ */
+function obtenerArchivados(params) {
+  try {
+    params = params || {};
+    const iso = v => { const s = String(v || ''); return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : s; };
+    let rows = repoLeerTodos('ARCHIVO_PACIENTES').map(a => ({
+      id: a.ID_ARCHIVO, patientId: a.PATIENT_ID, cama: String(a.CAMA_ORIGEN || ''), cod: a.COD_PACIENTE,
+      nombre: a.NOMBRE, edad: a.EDAD, sexo: a.SEXO, diagnostico: a.DIAGNOSTICO, diagRem: a.DIAG_REM,
+      fIngreso: iso(a.FECHA_INGRESO), fEgreso: iso(a.FECHA_EGRESO),
+      dias: a.DIAS_TOTAL, diasVM: a.DIAS_VM_TOTAL, diasVA: a.DIAS_VA_TOTAL,
+      motivo: a.MOTIVO_EGRESO, destino: a.DESTINO_EGRESO,
+      ktr: a.KTR_TOTAL, turnosVM: a.TURNOS_VM, turnosKTM: a.TURNOS_KTM, turnosKTMC: a.TURNOS_KTMC,
+      extubOk: esVerdadero(a.EXTUBACION_OK), reintub: esVerdadero(a.REINTUBACION),
+      barthelIn: a.BARTHEL_INGRESO, barthelEg: a.BARTHEL_EGRESO,
+      mrc: a.MRC_SS_EGRESO, fss: a.FSS_EGRESO, dinamo: a.DINAMO_EGRESO, cpax: a.CPAX_EGRESO,
+      dauci: esVerdadero(a.DAUCI), faseFinal: a.FASE_FINAL,
+      firma: a.FIRMA_RESPONSABLE, obs: a.OBSERVACIONES,
+    }));
+    if (params.desde) rows = rows.filter(r => r.fEgreso >= params.desde);
+    if (params.hasta) rows = rows.filter(r => r.fEgreso <= params.hasta);
+    if (params.q) {
+      const q = String(params.q).toLowerCase();
+      rows = rows.filter(r => [r.nombre, r.cod, r.diagnostico, r.diagRem].join(' ').toLowerCase().indexOf(q) !== -1);
+    }
+    rows.sort((a, b) => String(b.fEgreso).localeCompare(String(a.fEgreso)) || String(b.id).localeCompare(String(a.id)));
+    return ok(params.limite ? rows.slice(0, params.limite) : rows);
+  } catch (e) { return err('obtenerArchivados: ' + e.message, ERR.INTERNO, e); }
+}
