@@ -1311,10 +1311,18 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                 </select></div>
             </div>
             <!-- Signos vitales (v2 — hoja de registro diaria) -->
-            <div class="row" style="margin-top:4px;margin-bottom:0;">
-              <div class="col ws"><label>FC</label><input type="number" id="fFC" style="width:64px;"></div>
-              <div class="col ws"><label>PA</label><input type="text" id="fPA" placeholder="120/80" style="width:88px;"></div>
-              <div class="col ws"><label>PAM</label><input type="number" id="fPAM" style="width:64px;"></div>
+            <div class="row" style="margin-top:4px;margin-bottom:0;align-items:flex-end;">
+              <div class="col wa"><label>FC</label>
+                <select id="fFC">
+                  <option value="">-</option>
+                  <option>Eucárdico</option>
+                  <option>Taquicárdico</option>
+                  <option>Bradicárdico</option>
+                </select></div>
+              <div class="check cr wa"><input type="checkbox" id="cArritmia" onchange="hArritmia()"><label for="cArritmia">Arritmia</label></div>
+              <div class="col wa hidden" id="gArritmiaTipo"><label>Tipo</label><input type="text" id="fArritmiaTipo" placeholder="FA, extrasístoles..."></div>
+              <div class="check cr wa"><input type="checkbox" id="cMetaPAM" onchange="hMetaPAM()"><label for="cMetaPAM">Meta PAM</label></div>
+              <div class="col ws hidden" id="gPAM"><label>PAM</label><input type="number" id="fPAM" style="width:64px;"></div>
             </div>
           </div>
         </div>
@@ -1396,10 +1404,13 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
             <div class="row" style="align-items:flex-end;">
               <div class="col wa"><label>Trach Care</label><input type="date" id="fFecSonda" onchange="calcInsumosDias()"></div>
               <span id="sSondaDias" class="disp-chip disp-none" style="align-self:flex-end;margin-bottom:8px;">—</span>
-              <div class="col wa"><label>Humidificación activa</label><input type="date" id="fFecHumid" onchange="calcInsumosDias()"></div>
+            </div>
+            <div class="row" style="align-items:flex-end;">
+              <div class="check cr wa"><input type="checkbox" id="cHAct" onchange="syncHumidFecha(this.checked)"><label for="cHAct">🌡️ Humidificación Activa</label></div>
+              <div class="col wa"><label>Desde</label><input type="date" id="fFecHumid" onchange="calcInsumosDias()"></div>
               <span id="sHumidDias" class="disp-chip disp-none" style="align-self:flex-end;margin-bottom:8px;">—</span>
             </div>
-            <div style="font-size:.68rem;color:var(--muted);">Se fechan solos al conectar a VM (ingreso, intubación o reintubación). HME se cambia en su día 2; HEPA y Trach Care en su día 3 (por fecha, no horas). La humidificación activa no vence.</div>
+            <div style="font-size:.68rem;color:var(--muted);">Se fechan solos al conectar a VM (ingreso, intubación o reintubación). HME se cambia en su día 2; HEPA y Trach Care en su día 3 (por fecha, no horas). Al activar humidificación activa se retira el filtro HME (humidificación pasiva↔activa son excluyentes); la humidificación activa no vence.</div>
           </div>
         </div>
 
@@ -2846,6 +2857,9 @@ function abrirPanel(id, esIng) {
   // v2: al ingreso, Terapia Física parte "No realizada: Motivo ingreso" (override manual permitido).
   if(esIng){ setKTMstate('n'); const _mr=$('fKTMnoRaz'); if(_mr) _mr.value='Motivo ingreso'; }
   hAisl(); hAET();
+  // HDN: arritmia / meta PAM parten cerrados; humidificación activa re-habilita HME
+  hide('gArritmiaTipo'); hide('gPAM');
+  const _hme=$('fFecHME'); if(_hme) _hme.disabled=false;
   // v2: fases clínicas + reintubación standalone + COD + evaluaciones nocturnas
   FASES_SEL=new Set(); renderFases();
   PEND_SEL=new Set(); renderPend();
@@ -3112,7 +3126,11 @@ function fillForm(s) {
   if(s.PAC_SEXO){ $('fSexo').value=s.PAC_SEXO; calcPI(); }
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
   set('fCharlson',s.PAC_CHARLSON); set('fIngTipo',s.PAC_INGRESO_TIPO);
-  set('fFC',s.HEMO_FC); set('fPA',s.HEMO_PA); set('fPAM',s.HEMO_PAM); set('fPIC',s.HEMO_PIC); set('fPPC',s.HEMO_PPC);
+  set('fFC',s.HEMO_FC); set('fPIC',s.HEMO_PIC); set('fPPC',s.HEMO_PPC);
+  chk('cArritmia',s.HEMO_ARRITMIA); if(s.HEMO_ARRITMIA===true||s.HEMO_ARRITMIA==='TRUE') show('gArritmiaTipo'); else hide('gArritmiaTipo');
+  set('fArritmiaTipo',s.HEMO_ARRITMIA_TIPO);
+  chk('cMetaPAM',s.HEMO_META_PAM);
+  if(s.HEMO_META_PAM===true||s.HEMO_META_PAM==='TRUE'){ show('gPAM'); set('fPAM',s.HEMO_PAM); } else hide('gPAM');
   // Fechas de dispositivos: la fila del turno manda; si no trae, arrastre desde
   // la cama (estado del episodio) — nunca desde la fecha que se está visualizando.
   const _cDisp=_camaPanel();
@@ -3121,6 +3139,7 @@ function fillForm(s) {
   set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)||_isoDia(_cDisp.DISP_TC_FECHA));
   set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA)||_isoDia(_cDisp.DISP_HUMID_FECHA));
   calcInsumosDias();
+  { const _hme=$('fFecHME'); if(_hme) _hme.disabled=(s.VENT_H_ACTIVA===true||s.VENT_H_ACTIVA==='TRUE'); }
   setRuidosExtra(s.EX_RUIDOS_JSON||'');
   set('fDeglucion',s.EVAL_DEGLUCION);
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
@@ -3410,6 +3429,7 @@ function fillFormReplica(s) {
   set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)||_isoDia(_cDisp.DISP_TC_FECHA));
   set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA)||_isoDia(_cDisp.DISP_HUMID_FECHA));
   calcInsumosDias();
+  { const _hme=$('fFecHME'); if(_hme) _hme.disabled=(s.VENT_H_ACTIVA===true||s.VENT_H_ACTIVA==='TRUE'); }
   setRuidosExtra(s.EX_RUIDOS_JSON||'');
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
   chk('cUPOTmed',s.UPOT_MEDIDAS);
@@ -3600,7 +3620,9 @@ function guardar() {
     SED_GCS_TOT:$('lblGCS')?.textContent||'', SED_BNM:bv('cBNM'),
     HEMO_ESTADO:v('fHEst'), HEMO_DVA:v('fDVA'), HEMO_MULTI_DVA:bv('cMultiDVA'),
     HEMO_NUM_DVA:v('fDVAcnt'), HEMO_TENDENCIA:bv('cHTrend'), HEMO_TEND_TIPO:v('fHTT'),
-    HEMO_FC:n(v('fFC')), HEMO_PA:v('fPA'), HEMO_PAM:n(v('fPAM')), HEMO_PIC:n(v('fPIC')), HEMO_PPC:n(v('fPPC')),
+    HEMO_FC:v('fFC'), HEMO_PIC:n(v('fPIC')), HEMO_PPC:n(v('fPPC')),
+    HEMO_ARRITMIA:bv('cArritmia'), HEMO_ARRITMIA_TIPO:bv('cArritmia')?v('fArritmiaTipo'):'',
+    HEMO_META_PAM:bv('cMetaPAM'), HEMO_PAM:bv('cMetaPAM')?n(v('fPAM')):'',
     EX_MP:     v('fMPVal'),
     EX_RUIDOS: v('fRuidosVal'), EX_RUIDOS_LOC: v('fRuidosLoc'),
     EX_CULT_RESULTADO: v('fCultVal'),
@@ -5011,18 +5033,18 @@ function hPEUMA(){
   tip.classList.add(_UMA_CLS[v]||'interp-ok');
 }
 const _umaFld=()=>`<div class="col" style="flex-grow:0;"><label>UMA</label><div style="display:flex;align-items:center;gap:4px;"><select id="r_uma" onchange="hUMA()" style="height:35px;width:60px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option><option>+</option><option>++</option><option>+++</option></select><span id="umatip" class="interp-tip interp-ok" data-tip="${_UMA_TIPS['']}" style="font-size:.75rem;">ⓘ</span></div></div>`;
+// Humidificación Activa vive en el bloque Dispositivos (redundante repetirla
+// aquí); este helper solo arma el selector de interacción P-VM cuando aplica.
 const _humChk=(haAdapt)=>{
-  const humVal=($('cHAct')&&$('cHAct').checked)||false;
+  if(!haAdapt) return '';
   const adaptVal=($('sAdapt')&&$('sAdapt').value)||'Sincrónico';
-  let row=`<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;flex-wrap:wrap;">`;
-  if(haAdapt) row+=`<span style="display:inline-flex;align-items:center;gap:5px;font-size:.8rem;font-weight:600;">Interacción P-VM
+  return `<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:.8rem;font-weight:600;">Interacción P-VM
     <select id="sAdapt" style="height:28px;font-size:.8rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 6px;">
       <option${adaptVal==='Sincrónico'?' selected':''}>Sincrónico</option>
       <option${adaptVal==='Asincrónico'?' selected':''}>Asincrónico</option>
-    </select></span>`;
-  row+=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:600;"><input type="checkbox" id="cHAct" ${humVal?'checked':''} onchange="syncHumidFecha(this.checked)" style="width:15px;height:15px;accent-color:var(--primary);">🌡️ Humidificación Activa</label>`;
-  row+=`</div>`;
-  return row;
+    </select></span>
+  </div>`;
 };
 function renderParams() {
   const modo=v('fModo'), va=v('fVA'), sop=v('fSop');
@@ -5080,6 +5102,8 @@ function hSed(){
   aplicarGatesNeuro();
 }
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
+function hArritmia(){ if($('cArritmia')?.checked) show('gArritmiaTipo'); else { hide('gArritmiaTipo'); const e=$('fArritmiaTipo'); if(e) e.value=''; } }
+function hMetaPAM(){ if($('cMetaPAM')?.checked) show('gPAM'); else { hide('gPAM'); const e=$('fPAM'); if(e) e.value=''; } }
 function loadMP(str){
   if($('fMPVal')) $('fMPVal').value=str||'';
 }
@@ -6327,11 +6351,18 @@ function autoFechasDispositivos(force, aunSinVM){
     else if(!e.value){ e.value=_isoDia(camaF[id])||f; ch=true; } });
   if(ch) calcInsumosDias();
 }
-//  Checkbox de humidificación activa (params VM) ↔ fecha del dispositivo
+//  Checkbox de humidificación activa (bloque Dispositivos) ↔ fecha del
+//  dispositivo. Humidificación pasiva (HME) y activa son EXCLUYENTES: al
+//  activar la humidificación activa se retira el filtro HME del circuito
+//  (su fecha se borra y el campo queda deshabilitado, para que no siga
+//  contando días de un filtro que ya no está puesto). Al desactivarla se
+//  vuelve a habilitar para registrar el filtro HME nuevo que se instale.
 function syncHumidFecha(on){
   const e=$('fFecHumid'); if(!e) return;
   if(on && !e.value) e.value=_isoDia(_camaPanel().DISP_HUMID_FECHA)||v('gDate')||hoy();
   if(!on) e.value='';
+  const hme=$('fFecHME');
+  if(hme){ hme.disabled=on; if(on) hme.value=''; }
   calcInsumosDias();
 }
 

@@ -180,6 +180,11 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   // para que el contador arranque contando esos días ya transcurridos.
   // Salida de VM este turno (weaning/extubación): descarta el circuito
   const dejaVM = (sopAnt === 'VM' && sopNew !== 'VM');
+  // Humidificación activa ↔ HME son excluyentes: con activa puesta, el filtro
+  // HME está retirado del circuito — su fecha se fuerza vacía en la cama (si
+  // no, val() haría arrastre desde el episodio y "resucitaría" un filtro que
+  // ya no está puesto, igual que dejaVM para el resto del circuito).
+  const hactOn = esVerdadero(evo.VENT_H_ACTIVA);
 
   // PVE del episodio, acumulados por turnoKey (idempotente al re-guardar un
   // turno: la clave se sobreescribe). De aquí se deriva la clase de weaning.
@@ -245,7 +250,7 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     // Dispositivos de circuito VM: estado del episodio. Al salir de VM (weaning/
     // extubación) se limpian — el circuito se descarta; una reintubación fecha
     // circuito nuevo desde el cliente (force=true).
-    DISP_HME_FECHA: dejaVM ? '' : val(evo.DISP_HME_FECHA, cama.DISP_HME_FECHA),
+    DISP_HME_FECHA: (dejaVM || hactOn) ? '' : val(evo.DISP_HME_FECHA, cama.DISP_HME_FECHA),
     DISP_HEPA_FECHA: dejaVM ? '' : val(evo.DISP_HEPA_FECHA, cama.DISP_HEPA_FECHA),
     DISP_TC_FECHA: dejaVM ? '' : val(evo.VENT_FECHA_SONDA, cama.DISP_TC_FECHA),
     DISP_HUMID_FECHA: dejaVM ? '' : val(evo.DISP_HUMID_FECHA, cama.DISP_HUMID_FECHA),

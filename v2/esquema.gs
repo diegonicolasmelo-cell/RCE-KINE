@@ -116,7 +116,10 @@ const _COLS_EVOLUCIONES = [
   ['PAC_CHARLSON','entero'],['PAC_INGRESO_TIPO','texto'],     // S5: índice de Charlson; Electivo/Urgencia (hoja RHB)
   ['EXT_VISAGE','entero'],['EXT_SCORE_VA','entero'],          // S7: VISAGE (≥3 éxito) y Score cuidados de VA (<6 adecuado) — neuro
   ['LAB_PH','decimal'],['LAB_PACO2','decimal'],['LAB_PAO2','decimal'],['LAB_HCO3','decimal'],['LAB_LACTATO','decimal'],['LAB_PAFI','decimal'], // S8: GSA
-  ['HEMO_FC','entero'],['HEMO_PA','texto'],['HEMO_PAM','entero'],['HEMO_PIC','entero'],['HEMO_PPC','entero'], // S9: signos vitales (hoja diaria)
+  // HEMO_FC: categórico (Eucárdico/Taquicárdico/Bradicárdico), ya no numérico.
+  // HEMO_PA: LEGACY — se dejó de capturar (columna sin uso, se conserva la
+  // posición). HEMO_PAM solo se pide si HEMO_META_PAM está marcado (S9).
+  ['HEMO_FC','texto'],['HEMO_PA','texto'],['HEMO_PAM','entero'],['HEMO_PIC','entero'],['HEMO_PPC','entero'],
   ['KTM_BORG','texto'],                                       // S12: percepción de esfuerzo (Borg 0-10)
   ['MUE_HORA_TOMA','texto'],['MUE_CON_ATB','bool'],           // S13: orden CCAET (hora de toma, con antibiótico)
   ['VENT_FECHA_FILTRO','texto'],['VENT_FECHA_SONDA','texto'], // S11: mantención circuito cerrado (persisten turno a turno)
@@ -163,6 +166,8 @@ const _COLS_EVOLUCIONES = [
   ['CAT_MOTOR_NIVEL','texto'],   // Baja/Media/Alta calculado con la configuración vigente al guardar
   ['KTM_EMS','bool'],            // electroestimulación neuromuscular (terapia física, junto a IMT)
   ['PLAN_PENDIENTES','json'],    // pendientes del turno (chips-recordatorio; NO se replican; van a la entrega)
+  ['HEMO_ARRITMIA','bool'],['HEMO_ARRITMIA_TIPO','texto'],  // arritmia (junto a FC) — tipo libre (FA, extrasístoles...)
+  ['HEMO_META_PAM','bool'],      // condiciona la captura de HEMO_PAM (sin meta, no se pide)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -534,7 +539,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 283) errs.push('EVOLUCIONES != 283 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 286) errs.push('EVOLUCIONES != 286 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }
