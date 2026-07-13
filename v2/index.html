@@ -6618,7 +6618,6 @@ function _regEgresosCama(tb,idCama,q){
         <td class="tc-n"><span title="${a.nombre||''}">${(a.nombre||'').slice(0,28)}</span></td>
         <td class="tc-num" style="color:var(--muted);">${a.sexo||'-'}</td>
         <td class="tc-num">${a.edad||'-'}</td>
-        <td class="tc-num">${dash}</td>
         <td class="tc-num">${a.dias||'-'}</td>
         <td class="tc-num" style="color:var(--resp);">${a.diasVM||'-'}</td>
         <td class="tc-num" style="color:var(--fisico);">${a.diasVA||'-'}</td>
@@ -6647,10 +6646,10 @@ function renderTabla(){
   t.innerHTML='';
   const head=t.createTHead();
   const tr1=head.insertRow();
-  [{l:'DATOS',n:10,c:'d'},{l:'TURNO DÍA',n:8,c:'dia'},{l:'TURNO NOCHE',n:6,c:'noc'}]
+  [{l:'DATOS',n:9,c:'d'},{l:'TURNO DÍA',n:8,c:'dia'},{l:'TURNO NOCHE',n:6,c:'noc'}]
     .forEach(s=>{const th=document.createElement('th');th.className=`ths ${s.c}`;th.colSpan=s.n;th.textContent=s.l;tr1.appendChild(th);});
   const tr2=head.insertRow();
-  [{l:'CAMA',c:'d'},{l:'PACIENTE',c:'d'},{l:'SEXO',c:'d'},{l:'EDAD',c:'d'},{l:'RANGO ET.',c:'d'},{l:'D.EST',c:'d'},
+  [{l:'CAMA',c:'d'},{l:'PACIENTE',c:'d'},{l:'SEXO',c:'d'},{l:'EDAD',c:'d'},{l:'D.EST',c:'d'},
    {l:'D.VM',c:'d'},{l:'D.VNI',c:'d'},{l:'DX INGRESO',c:'d'},{l:'SOPORTE',c:'d'},
    {l:'KTR',c:'dia'},{l:'KTM',c:'dia'},{l:'PROC 1',c:'dia'},{l:'PROC 2',c:'dia'},{l:'PROC 3',c:'dia'},{l:'PROC 4',c:'dia'},{l:'EXTUB.',c:'dia'},{l:'KINE',c:'dia'},
    {l:'KTR',c:'noc'},{l:'PROC 1',c:'noc'},{l:'PROC 2',c:'noc'},{l:'PROC 3',c:'noc'},{l:'EXTUB.',c:'noc'},{l:'KINE',c:'noc'}]
@@ -6696,7 +6695,6 @@ function renderTabla(){
       const nomHtml=nombre?`<span title="${nombre}">${String(nombre).slice(0,28)}</span>`
                           :'<span style="color:#cbd5e1;font-style:italic;">Disponible</span>';
       const dx=((diag||'').slice(0,24)+((diag||'').length>24?'…':''))||'-';
-      const rangoEt=e=>{ if(e==null||e==='')return '-'; e=+e; if(isNaN(e))return '-'; if(e<=39)return '≤39'; if(e<=54)return '40-54'; if(e<=69)return '55-69'; if(e<=79)return '70-79'; return '≥80'; };
       const ktrCell=n=>n>0?`<span class="ktr-${Math.min(n,5)}">${n}</span>`:dash;
       const ktmHtml=!evoD?dash
         :(esT(evoD.KTM_SUSPENDIDA)?'<span class="bk bk-s">KTMC</span>'
@@ -6717,7 +6715,6 @@ function renderTabla(){
         <td class="tc-n">${nomHtml}</td>
         <td class="tc-num" style="color:var(--muted);">${sexo||'-'}</td>
         <td class="tc-num">${edad||'-'}</td>
-        <td class="tc-num" style="color:var(--muted);font-size:.72rem;">${nombre?rangoEt(edad):'-'}</td>
         <td class="tc-num" style="color:${parseInt(dEst)>7?'var(--danger)':'inherit'};font-weight:${parseInt(dEst)>7?800:600};">${dEst!==''?dEst:'-'}</td>
         <td class="tc-num" style="color:var(--resp);">${dvm||'-'}</td>
         <td class="tc-num" style="color:var(--fisico);">${dvni||'-'}</td>
@@ -6740,7 +6737,7 @@ function renderTabla(){
     });
 
   const trT=tb.insertRow(); trT.className='r-tot';
-  trT.innerHTML=`<td colspan="23" class="tl">TOTAL KTR (DÍA + NOCHE)</td><td class="tv">${kD}</td>`;
+  trT.innerHTML=`<td colspan="22" class="tl">TOTAL KTR (DÍA + NOCHE)</td><td class="tv">${kD}</td>`;
 
   const ocupadas=DB.filter(c=>c.OCUPADA===true||c.OCUPADA==='TRUE').length;
   const enVM=DB.filter(c=>(c.OCUPADA===true||c.OCUPADA==='TRUE')&&c.SOPORTE==='VM').length;
