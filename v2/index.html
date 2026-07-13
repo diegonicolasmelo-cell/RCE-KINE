@@ -3257,7 +3257,7 @@ function fillFormReplica(s) {
 
   // Respiratorio
   set('fKTRcnt',_ex.RESP_KTR_CANT);
-  _loadCultFechas(_ex.RESP_CULT_FECHAS||'');
+  _loadCultFechas(_ex.RESP_CULT_FECHAS||'', true); // turno nuevo: histórico solo lectura
   _renderExtBadge(_ex.EXT_TS||'');
   if(_ex.EX_CULT_RESULTADO) tiSet('fCultTags','fCultVal','violet',_ex.EX_CULT_RESULTADO);
 
@@ -3279,11 +3279,14 @@ function fillFormReplica(s) {
   try {
   } catch(e){}
 
-  // Movilización
-  chk('cMue',s.MUE_REALIZADAS); hMue();
+  // Cultivo — ACCIÓN PUNTUAL DEL TURNO: nunca se replica. El histórico queda
+  // en los badges de fechas (solo lectura) y ya se reporta en la entrega,
+  // el timeline y el historial.
+  const _mue=$('cMue'); if(_mue) _mue.checked=false; hMue();
 
-  // Procedimientos
-  if(s.PROC_JSON){ try{ PROCS=JSON.parse(s.PROC_JSON)||[]; }catch(e){} renderChips(); }
+  // Procedimientos: los de cultivo no se replican (volverían a contarse
+  // como procedimiento nuevo en el turno siguiente)
+  if(s.PROC_JSON){ try{ PROCS=(JSON.parse(s.PROC_JSON)||[]).filter(p=>!/CULTIVO|PCR|HISOPADO|MINI ?LAB|CCAET/i.test(String(p))); }catch(e){} renderChips(); }
 
   // Plan (copia planes estructurales, NO copia nota libre de turno ni firma)
   set('fPlanes',s.PLAN_PLANES);
@@ -5100,19 +5103,27 @@ function _renderCultBadges(){
   el.innerHTML=html;
 }
 
-// Cargar fechas históricas al abrir registro anterior
-function _loadCultFechas(jsonStr){
+// Cargar fechas históricas al abrir registro anterior.
+// soloHist=true (réplica de turno NUEVO): solo badges de referencia, sin
+// re-marcar checkboxes — un cultivo tomado en el turno anterior no debe
+// volver a registrarse como procedimiento del turno actual.
+function _loadCultFechas(jsonStr, soloHist){
   try{ _cultFechas=JSON.parse(jsonStr||'{}')||{}; }catch(e){ _cultFechas={}; }
   _cultTurno=new Set(); // histórico = no es del turno actual
-  // Marcar checkboxes que ya tienen fecha hoy
-  const hoy=new Date().toLocaleDateString('es-CL');
-  Object.entries(_cultFechas).forEach(([tec,fecha])=>{
-    if(fecha===hoy){
-      const cb=document.querySelector(`input[name="mtest"][value="${tec}"]`);
-      if(cb) cb.checked=true;
-      _cultTurno.add(tec);
-    }
-  });
+  if(!soloHist){
+    // Marcar checkboxes que ya tienen fecha hoy (reapertura del MISMO turno)
+    const hoy=new Date().toLocaleDateString('es-CL');
+    Object.entries(_cultFechas).forEach(([tec,fecha])=>{
+      if(fecha===hoy){
+        const cb=document.querySelector(`input[name="mtest"][value="${tec}"]`);
+        if(cb) cb.checked=true;
+        _cultTurno.add(tec);
+      }
+    });
+  }
+  // Persistir el histórico en el hidden del payload: sin esto, un guardado
+  // que no toque el bloque de cultivos borraba RESP_CULT_FECHAS.
+  _saveCultFechas();
   _renderCultBadges();
   const tecs=Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value);
   tecs.some(t=>['Mini Lab','Hisopado'].includes(t))?show('dCultObj'):hide('dCultObj');
