@@ -334,40 +334,58 @@ function _tz() {
 // ============================================================
 function crearORepararEstructura() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    throw new Error('No hay planilla activa. El proyecto de Apps Script debe estar ' +
+      'CONTENIDO en el Google Sheet (abrirlo desde la planilla: Extensiones → Apps Script).');
+  }
   const creadas = [];
+  // "paso" acompaña cada etapa para que un fallo diga EXACTAMENTE dónde ocurrió
+  // (sin esto, el editor solo muestra un error genérico difícil de diagnosticar).
+  let paso = 'inicio';
+  try {
+    Object.keys(ESQUEMA).forEach(hoja => {
+      paso = 'hoja ' + hoja;
+      const def = ESQUEMA[hoja];
+      const total = def.cols.length;
+      let h = ss.getSheetByName(hoja);
+      if (!h) { h = ss.insertSheet(hoja); creadas.push(hoja); }
 
-  Object.keys(ESQUEMA).forEach(hoja => {
-    const def = ESQUEMA[hoja];
-    const total = def.cols.length;
-    let h = ss.getSheetByName(hoja);
-    if (!h) { h = ss.insertSheet(hoja); creadas.push(hoja); }
+      // Asegurar ancho suficiente (migración no destructiva).
+      paso = 'hoja ' + hoja + ' (ancho: ' + h.getMaxColumns() + ' → ' + total + ' columnas)';
+      if (h.getMaxColumns() < total) {
+        h.insertColumnsAfter(h.getMaxColumns(), total - h.getMaxColumns());
+      }
 
-    // Asegurar ancho suficiente (migración no destructiva).
-    if (h.getMaxColumns() < total) {
-      h.insertColumnsAfter(h.getMaxColumns(), total - h.getMaxColumns());
-    }
+      // Escribir encabezados (fila de nombres siempre re-sincronizada).
+      paso = 'hoja ' + hoja + ' (encabezados)';
+      const nombres = def.cols.map(c => c[0]);
+      if (def.headerRows >= 2) {
+        // Fila 1: título de la hoja; Fila 2: nombres; resto de headerRows: vacías.
+        h.getRange(1, 1).setValue(hoja);
+        h.getRange(2, 1, 1, total).setValues([nombres]);
+      } else {
+        h.getRange(1, 1, 1, total).setValues([nombres]);
+      }
+      h.setFrozenRows(def.headerRows);
 
-    // Escribir encabezados (fila de nombres siempre re-sincronizada).
-    const nombres = def.cols.map(c => c[0]);
-    if (def.headerRows >= 2) {
-      // Fila 1: título de la hoja; Fila 2: nombres; resto de headerRows: vacías.
-      h.getRange(1, 1).setValue(hoja);
-      h.getRange(2, 1, 1, total).setValues([nombres]);
-    } else {
-      h.getRange(1, 1, 1, total).setValues([nombres]);
-    }
-    h.setFrozenRows(def.headerRows);
+      // Formato texto '@' en columnas sensibles.
+      paso = 'hoja ' + hoja + ' (formato de columnas)';
+      _forzarTexto(h, def);
+    });
 
-    // Formato texto '@' en columnas sensibles.
-    _forzarTexto(h, def);
-  });
-
-  _sembrar(ss);
-  SpreadsheetApp.flush();
+    paso = 'datos semilla (_sembrar)';
+    _sembrar(ss);
+    paso = 'flush final';
+    SpreadsheetApp.flush();
+  } catch (e) {
+    throw new Error('crearORepararEstructura falló en: ' + paso + ' → ' + e.message +
+      (e.stack ? '\n' + e.stack : ''));
+  }
 
   const msg = creadas.length
     ? 'Hojas creadas: ' + creadas.join(', ') + '.'
     : 'Todas las hojas existían; estructura verificada.';
+  console.log(msg);
   return { ok: true, creadas: creadas, mensaje: msg };
 }
 
