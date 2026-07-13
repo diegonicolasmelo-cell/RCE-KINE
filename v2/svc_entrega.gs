@@ -131,6 +131,13 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
   if (coop && val(c.ULT_FSS) === '') alertas.push('FSS-ICU pendiente');
   if (!e) alertas.push('Sin evolución de este turno');
 
+  // ICU-AW: debilidad adquirida en UCI — MRC-SS <48 en paciente cooperador.
+  // Se resuelve sola cuando una medición posterior alcanza ≥48.
+  const icuaw = (coop && val(c.ULT_MRC) !== '' && parseInt(c.ULT_MRC) < 48)
+    ? { mrc: c.ULT_MRC, fecha: dd(c.ULT_MRC_FECHA) } : null;
+  // Candidato a PVE: tamizaje sincronizado en la cama al guardar el último turno.
+  const candidatoPve = String(c.SOPORTE) === 'VM' && esVerdadero(c.WEAN_CAND_PVE);
+
   return {
     idCama: id,
     ocupada: esVerdadero(c.OCUPADA),
@@ -163,6 +170,8 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     dispositivos: disp,
     alertas: alertas,
     weaning: weaning,
+    icuaw: icuaw,
+    candidatoPve: candidatoPve,
     ultimoCultivo: cultivo ? { fecha: dd(cultivo.iso), nombre: cultivo.nombre, micro: val(c.AISL_MICRO) } : null,
     plan: e ? val(e.PLAN_PLANES) : '',
     nota: e ? val(e.PLAN_NOTA_TURNO) : '',

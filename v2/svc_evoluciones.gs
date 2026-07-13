@@ -187,6 +187,22 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   try { weanPve = JSON.parse(cama.WEAN_PVE_JSON || '{}') || {}; } catch (e) { weanPve = {}; }
   if (evo.PVE_VAL === 'si' && evo.PVE_RESULTADO) weanPve[turnoKey] = evo.PVE_RESULTADO;
 
+  // Tamizaje de candidato a PVE con los parámetros de este turno (criterios de
+  // screening clásicos, ABC trial). Si el turno ya trae PVE registrado, el
+  // tamizaje ya se resolvió y no se marca. Con datos incompletos no se marca
+  // (conservador).
+  let candPve = false;
+  if (sopNew === 'VM' && evo.PVE_VAL !== 'si') {
+    const _n = x => parseFloat(x);
+    const dvaTxt = String(evo.HEMO_DVA || '');
+    candPve = _n(evo.VENT_FIO2) > 0 && _n(evo.VENT_FIO2) <= 50 &&
+      _n(evo.VENT_PEEP) > 0 && _n(evo.VENT_PEEP) <= 8 &&
+      _n(evo.VENT_SPO2) >= 90 &&
+      evo.HEMO_ESTADO !== 'Inestable' &&
+      (dvaTxt === '' || /sin requerimientos|dosis bajas/i.test(dvaTxt)) &&
+      !esVerdadero(evo.SED_BNM);
+  }
+
   const vaNew = evo.VENT_VIA_AEREA || cama.VIA_AEREA || 'Natural';
   const vaAnt = cama.VIA_AEREA || '';
   const esVA = (vaNew !== 'Natural');
@@ -234,6 +250,7 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     DISP_TC_FECHA: dejaVM ? '' : val(evo.VENT_FECHA_SONDA, cama.DISP_TC_FECHA),
     DISP_HUMID_FECHA: dejaVM ? '' : val(evo.DISP_HUMID_FECHA, cama.DISP_HUMID_FECHA),
     WEAN_PVE_JSON: JSON.stringify(weanPve),
+    WEAN_CAND_PVE: candPve,
     ULTIMO_TURNO_KEY: turnoKey,
     FECHA_INGRESO: cama.FECHA_INGRESO || (esIngreso ? fecha : ''),
     FECHA_INICIO_VA: fechaVA,

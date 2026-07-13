@@ -2623,6 +2623,11 @@ function renderGrid() {
           al+=`<span class="abadge" style="background:${wcol}18;color:${wcol};border:1px solid ${wcol}55;" title="Weaning ${w.clase==='prolongado'?'prolongado':'difícil'} (Boles 2007): ${w.frustras} PVE frustro(s), día ${w.dias} desde el primer PVE (${w.primerPve})">🌬️ W. ${w.clase==='prolongado'?'prolongado':'difícil'}</span>`;
         }
       }
+      // Candidato a PVE: tamizaje con los parámetros del último turno guardado
+      // (FiO2≤50, PEEP≤8, SpO2≥90, HDN estable sin DVA altas, sin BNM).
+      if(c.SOPORTE==='VM'&&(c.WEAN_CAND_PVE===true||c.WEAN_CAND_PVE==='TRUE')){
+        al+=`<span class="abadge" style="background:#16a34a18;color:#16a34a;border:1px solid #16a34a55;" title="Cumple criterios de tamizaje para prueba de ventilación espontánea según el último turno guardado: FiO₂ ≤50%, PEEP ≤8, SpO₂ ≥90%, hemodinamia estable sin DVA en dosis altas, sin BNM">🟢 Candidato a PVE</span>`;
+      }
       // MRC-SS / FSS-ICU: solo aplica a paciente COOPERADOR (última cooperación
       // registrada). Con valor → "MRC 48 · 12-06"; sin valor → alerta de pendiente.
       if(/^cooperador$/i.test(String(c.ULT_COOP||'').trim())){
@@ -2631,6 +2636,10 @@ function renderGrid() {
         al += _t(c.ULT_MRC)
           ? `<span class="abadge a-eval">MRC ${c.ULT_MRC}${c.ULT_MRC_FECHA?` · ${_f(c.ULT_MRC_FECHA)}`:''}</span>`
           : `<span class="abadge a-pend">📋 MRC pend.</span>`;
+        // ICU-AW: MRC-SS <48 en cooperador. Se resuelve sola con MRC ≥48.
+        if(_t(c.ULT_MRC)&&parseInt(c.ULT_MRC)<48){
+          al+=`<span class="abadge" style="background:#9333ea18;color:#9333ea;border:1px solid #9333ea55;" title="Debilidad adquirida en UCI: MRC-SS ${c.ULT_MRC} (<48) en paciente cooperador${c.ULT_MRC_FECHA?`, medido el ${_f(c.ULT_MRC_FECHA)}`:''}. Se resuelve con una medición ≥48.">🧬 ICU-AW</span>`;
+        }
         al += _t(c.ULT_FSS)
           ? `<span class="abadge a-eval">FSS ${c.ULT_FSS}${c.ULT_FSS_FECHA?` · ${_f(c.ULT_FSS_FECHA)}`:''}</span>`
           : `<span class="abadge a-pend">📋 FSS-ICU pend.</span>`;
@@ -6881,7 +6890,9 @@ function renderEntrega(d){
     const weanChip=f.weaning?(()=>{ const wc=f.weaning.clase==='prolongado'?'#dc2626':'#d97706';
       const wn=f.weaning.clase==='prolongado'?'prolongado':'difícil';
       return `<span class="ent-tag" style="background:${wc}18;color:${wc};border:1px solid ${wc}55;" title="${f.weaning.frustras} PVE frustro(s) · día ${f.weaning.dias} desde el primer PVE (${f.weaning.primerPve})">🌬️ Weaning ${wn}</span>`; })():'';
-    const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+
+    const pveChip=f.candidatoPve?`<span class="ent-tag" style="background:#16a34a18;color:#16a34a;border:1px solid #16a34a55;" title="Cumple criterios de tamizaje para PVE según el último turno guardado">🟢 Candidato a PVE</span>`:'';
+    const awChip=f.icuaw?`<span class="ent-tag" style="background:#9333ea18;color:#9333ea;border:1px solid #9333ea55;" title="Debilidad adquirida en UCI: MRC-SS ${f.icuaw.mrc} (<48) en paciente cooperador${f.icuaw.fecha?`, medido el ${f.icuaw.fecha}`:''}">🧬 ICU-AW (MRC ${f.icuaw.mrc})</span>`:'';
+    const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+pveChip+awChip+
       (f.alertas||[]).map(a=>`<span class="ent-tag ent-tag-alert">⚠️ ${a}</span>`).join('');
     // 🔵 Ventilatorio: VA + soporte + días VM / modo + parámetros
     const vaP=[f.viaAerea, f.soporte==='VM'?'VM':(f.soporte||''), (f.diasVM!==''&&f.diasVM!=null)?`D-VM:${f.diasVM}`:''];

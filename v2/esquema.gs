@@ -200,6 +200,9 @@ const ESQUEMA = {
     // PVE acumulados del episodio {turnoKey: 'superada'|'frustra'} — la clase de
     // weaning (Boles 2007: difícil/prolongado) se deriva al mostrar, nunca se guarda
     ['WEAN_PVE_JSON','json'],
+    // Tamizaje de candidato a PVE con los parámetros del último turno guardado
+    // (FiO2≤50, PEEP≤8, SpO2≥90, hemodinamia estable sin DVA altas, sin BNM)
+    ['WEAN_CAND_PVE','bool'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
