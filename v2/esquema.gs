@@ -162,6 +162,7 @@ const _COLS_EVOLUCIONES = [
   ['CAT_RESP_NIVEL','texto'],    // Baja/Media/Alta calculado con la configuración vigente al guardar
   ['CAT_MOTOR_NIVEL','texto'],   // Baja/Media/Alta calculado con la configuración vigente al guardar
   ['KTM_EMS','bool'],            // electroestimulación neuromuscular (terapia física, junto a IMT)
+  ['PLAN_PENDIENTES','json'],    // pendientes del turno (chips-recordatorio; NO se replican; van a la entrega)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -533,7 +534,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 282) errs.push('EVOLUCIONES != 282 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 283) errs.push('EVOLUCIONES != 283 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

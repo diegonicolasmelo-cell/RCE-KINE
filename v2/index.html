@@ -2204,6 +2204,13 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
       <div class="fcard fc-g">
         <div class="fcard-hdr"><span class="fcard-title">📋 Planes y Pendientes</span></div>
         <div class="fcard-body">
+          <!-- Pendientes predefinidos: recordatorios del turno (sin fecha, NO se
+               replican; llegan a la ficha de la entrega para el que recibe) -->
+          <div class="col" style="margin-bottom:12px;">
+            <label>⏳ Pendientes del turno <span style="font-weight:400;color:var(--muted);text-transform:none;">— recordatorio para la entrega, solo de este turno</span></label>
+            <div id="pendChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;"></div>
+            <input type="text" id="pendLibre" placeholder="Otro pendiente… + Enter" style="margin-top:7px;height:30px;max-width:280px;">
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div class="col"><label>Plan Kinésico (próximo turno)</label>
               <textarea id="fPlanes" rows="3" placeholder="Plan para el próximo turno..." style="width:100%;box-sizing:border-box;"></textarea></div>
@@ -2841,6 +2848,7 @@ function abrirPanel(id, esIng) {
   hAisl(); hAET();
   // v2: fases clínicas + reintubación standalone + COD + evaluaciones nocturnas
   FASES_SEL=new Set(); renderFases();
+  PEND_SEL=new Set(); renderPend();
   const _spCod=$('spCod'); if(_spCod) _spCod.textContent='';
   hide('dReintubDetT'); hide('dIntubDet');
   _vmHistFlag=false; _transIntubEsteTurno=false;
@@ -2954,7 +2962,7 @@ function _snapPanel() {
     modales: cap(_SEL_MODAL_CAMPOS),
     scroll: pc ? pc.scrollTop : 0,
     vars: {
-      PROCS: [...(PROCS || [])], FASES: [...FASES_SEL], AISL: [..._aislTags],
+      PROCS: [...(PROCS || [])], FASES: [...FASES_SEL], PEND: [...PEND_SEL], AISL: [..._aislTags],
       TI: JSON.parse(JSON.stringify(_tiState)), CULTF: { ..._cultFechas }, CULTT: [..._cultTurno],
       _secrQty, _pronoTs, _supinoTs,
       _diasVABase, _diasTOTBase, _diasTQTBase, _fechaInicioVA, _fechaInicioTQT,
@@ -2979,7 +2987,7 @@ function _restaurarMin(m) {
   app(_SEL_MODAL_CAMPOS, m.snap.modales);
   // 3) Estado JS interno del panel
   const V = m.snap.vars;
-  PROCS = [...V.PROCS]; FASES_SEL = new Set(V.FASES); _aislTags = [...V.AISL];
+  PROCS = [...V.PROCS]; FASES_SEL = new Set(V.FASES); PEND_SEL = new Set(V.PEND || []); _aislTags = [...V.AISL];
   Object.keys(_tiState).forEach(k => delete _tiState[k]); Object.assign(_tiState, V.TI);
   _cultFechas = { ...V.CULTF }; _cultTurno = new Set(V.CULTT);
   _secrQty = V._secrQty; _pronoTs = V._pronoTs; _supinoTs = V._supinoTs;
@@ -3279,6 +3287,7 @@ function fillForm(s) {
   set('fPlanes',s.PLAN_PLANES); set('fNota',s.PLAN_NOTA_TURNO); set('fFirma',s.PLAN_FIRMA_KINE);
   aplicarFirmaTurno(s.PLAN_FIRMA_KINE);
   setFasesDesde(s.FASE_JSON||'');
+  setPendDesde(s.PLAN_PENDIENTES||'');
   const _cod=$('spCod'); if(_cod) _cod.textContent=s.COD_PACIENTE||'';
   const _ad=$('sAdapt'); if(_ad&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!=='') _ad.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico';
   hSed(); hHTrend(); hMultiDVA(); calcGCS(); calcPI();
@@ -3730,6 +3739,7 @@ function guardar() {
     MUE_RESULTADOS_JSON:JSON.stringify((_tiState['fCultTags']||[]).filter(Boolean)),
     EVAL_NIVEL_MOTOR:v('fNivelMotor'),
     FASE_JSON: JSON.stringify(Array.from(FASES_SEL)),
+    PLAN_PENDIENTES: JSON.stringify(Array.from(PEND_SEL)),
     PLAN_PLANES:v('fPlanes'), PLAN_NOTA_TURNO:v('fNota'), PLAN_FIRMA_KINE:v('fFirma'),
   };
   _podarEventosPayload(datos);
@@ -4332,6 +4342,7 @@ function renderChips() {
 // #sp vía innerHTML (los elementos se recrean y pierden sus listeners).
 function _bindPanelListeners(){
   $('inProc')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addProc();} });
+  $('pendLibre')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const t=e.target.value.trim(); if(t){ PEND_SEL.add(t); renderPend(); e.target.value=''; } } });
   // Vista previa en vivo de los procedimientos automáticos (delegado sobre el form)
   $('kf')?.addEventListener('change', _renderAutoProcs);
   $('kf')?.addEventListener('input', _renderAutoProcs);
@@ -6169,6 +6180,26 @@ function setFasesDesde(jsonStr){
   renderFases();
 }
 
+// ── Pendientes del turno (chips, recordatorio sin fecha; NO se replican) ──
+const PEND_LIST=['CCAET pendiente','Progresar weaning','Pabellón pendiente','EEG','Traslado',
+  'Test de apnea','TQT','Cambio de TOT','Cambio de TQT','Decanulación','Evaluación funcional',
+  'Pronar','Supinar','Rx tórax control','TAC/Scanner','Ventana de sedación','Válvula de fonación','Egreso'];
+let PEND_SEL=new Set();
+function renderPend(){
+  const box=$('pendChips'); if(!box) return;
+  const extras=[...PEND_SEL].filter(p=>!PEND_LIST.includes(p));
+  box.innerHTML=[...PEND_LIST,...extras].map(p=>{
+    const on=PEND_SEL.has(p);
+    return `<button type="button" class="fase-chip${on?' on':''}" onclick="togglePend(this.dataset.p)" data-p="${String(p).replace(/"/g,'&quot;')}">${on?'✓ ':''}${p}</button>`;
+  }).join('');
+}
+function togglePend(p){ if(PEND_SEL.has(p)) PEND_SEL.delete(p); else PEND_SEL.add(p); renderPend(); }
+function setPendDesde(jsonStr){
+  PEND_SEL=new Set();
+  try{ (JSON.parse(jsonStr||'[]')||[]).forEach(p=>PEND_SEL.add(p)); }catch(e){}
+  renderPend();
+}
+
 //  GATES DE EVALUACIÓN (acordado):
 //  · Noche: Evaluaciones Funcionales y Terapia Física OCULTAS (KTM queda "no realizada").
 //  · Paciente no cooperador / no evaluable / BNM: se bloquean los tests VOLITIVOS
@@ -7450,6 +7481,7 @@ function renderEntrega(d){
         ${lnKTM}${lnEval}
       </div>
       <div class="ent-pend">
+        ${(f.pendientes&&f.pendientes.length)?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">${f.pendientes.map(p=>`<span style="background:#fde68a;color:#78350f;border:1px solid #f59e0b55;border-radius:10px;padding:1px 8px;font-size:.66rem;font-weight:800;">⏳ ${p}</span>`).join('')}</div>`:''}
         <textarea data-cama="${f.idCama}" rows="2" placeholder="📋 Planes / Pendientes…">${planVal}</textarea>
       </div>
       <div class="ent-firma">▸ <b>${f.firma||'—'}</b></div>

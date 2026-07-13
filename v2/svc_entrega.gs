@@ -176,6 +176,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     candidatoPve: candidatoPve,
     ultimoCultivo: cultivo ? { fecha: dd(cultivo.iso), nombre: cultivo.nombre, micro: val(c.AISL_MICRO) } : null,
     plan: e ? val(e.PLAN_PLANES) : '',
+    pendientes: e ? (function () { try { return JSON.parse(e.PLAN_PENDIENTES || '[]') || []; } catch (x) { return []; } })() : [],
     nota: e ? val(e.PLAN_NOTA_TURNO) : '',
     firma: val(e && e.PLAN_FIRMA_KINE, c.FIRMA_KINE),
   };
