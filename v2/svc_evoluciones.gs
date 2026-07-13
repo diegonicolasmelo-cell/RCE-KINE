@@ -374,7 +374,21 @@ function obtenerEvosDelDia(fecha) {
     const f = String(fecha || hoyISO()).slice(0, 10);
     const evos = repoLeerTodos('EVOLUCIONES')
       .filter(function (e) { return String(e.TURNO_KEY).indexOf(f) === 0; })
-      .map(function (e) { return { ID_CAMA: String(e.ID_CAMA), TURNO_KEY: String(e.TURNO_KEY) }; });
+      .map(function (e) {
+        return {
+          ID_CAMA: String(e.ID_CAMA), TURNO_KEY: String(e.TURNO_KEY),
+          // Registro Diario (pestaña 📋): lo hecho en cada turno, por cama
+          PAC_NOMBRE: e.PAC_NOMBRE, PAC_EDAD: e.PAC_EDAD, PAC_SEXO: e.PAC_SEXO,
+          PAC_DIAGNOSTICO: e.PAC_DIAGNOSTICO, VENT_SOPORTE: e.VENT_SOPORTE,
+          DIA_ESTADIA: e.DIA_ESTADIA, DIAS_VM: e.DIAS_VM,
+          DIAS_VM_PREVIOS: e.DIAS_VM_PREVIOS, DIAS_VNI_PREVIOS: e.DIAS_VNI_PREVIOS,
+          RESP_KTR_CANT: e.RESP_KTR_CANT,
+          KTM_REALIZADA: e.KTM_REALIZADA, KTM_SUSPENDIDA: e.KTM_SUSPENDIDA,
+          KTM_NIVEL_KTR: e.KTM_NIVEL_KTR,
+          PROC_RESUMEN: e.PROC_RESUMEN, PLAN_FIRMA_KINE: e.PLAN_FIRMA_KINE,
+          EXT_OCURRIO: e.EXT_OCURRIO, DECAN_OCURRIO: e.DECAN_OCURRIO,
+        };
+      });
     return ok(evos);
   } catch (e) { return err('obtenerEvosDelDia: ' + e.message, ERR.INTERNO, e); }
 }
