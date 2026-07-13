@@ -2705,6 +2705,16 @@ function _resetHiddenYEventos(){
 }
 
 function abrirPanel(id, esIng) {
+  // Si esta cama quedó minimizada con un borrador, se restaura tal cual
+  // (aunque se entre por el botón de la cama y no por la bandeja): lo
+  // escrito manda por sobre el reset + recarga.
+  const _dIdx=_minStack.findIndex(m=>String(m.camaId)===String(id));
+  if(_dIdx!==-1 && _minStack[_dIdx].snap){
+    const _m=_minStack.splice(_dIdx,1)[0];
+    _renderMinTray();
+    _restaurarMin(_m);
+    return;
+  }
   const fecha=v('gDate')||hoy();
   const tkey=`${fecha}-${SHIFT}`;
   $('cBed').value=id; $('cIng').value=String(esIng); window._camaEvo=id;
@@ -2815,6 +2825,9 @@ function actualizarTituloPanel(nombre) {
   el.textContent = nombre && nombre.trim() ? `${nombre.trim()} — ${tipo}` : tipo;
 }
 // ── Minimizar múltiples pacientes ──────────────────────────────────────────
+// Al minimizar se toma un SNAPSHOT COMPLETO del panel (HTML + valores de los
+// campos + estado JS interno) y al restaurar se aplica tal cual: nada de lo
+// escrito se pierde, sin re-cargar desde el servidor ni resetear el form.
 const _minStack = [];
 
 function _renderMinTray() {
@@ -2823,6 +2836,79 @@ function _renderMinTray() {
   tray.innerHTML = _minStack.map((m, i) =>
     `<div class="min-pill" onclick="restaurarDesdeMin(${i})">${m.label}</div>`
   ).join('');
+}
+
+// Los valores de inputs son propiedades (no viajan en innerHTML): se capturan
+// aparte, por posición en el DOM — el orden es estable porque el HTML
+// restaurado es idéntico. Los modales de escalas (MRC/FSS/CPAx/Barthel/
+// Charlson) viven fuera de #sp y abrirPanel() los limpia, así que también
+// se capturan.
+const _SEL_PANEL_CAMPOS = '#sp input,#sp select,#sp textarea';
+const _SEL_MODAL_CAMPOS = '#mMrc input,#mMrc select,#mFss input,#mFss select,#mCpax input,#mCpax select,#mBarthel input,#mBarthel select,#mCharlson input,#mCharlson select';
+
+function _snapPanel() {
+  const cap = sel => [...document.querySelectorAll(sel)].map(e => ({ v: e.value, c: e.checked }));
+  const pc = document.querySelector('#sp .pcontent');
+  return {
+    html: $('sp').innerHTML,
+    campos: cap(_SEL_PANEL_CAMPOS),
+    modales: cap(_SEL_MODAL_CAMPOS),
+    scroll: pc ? pc.scrollTop : 0,
+    vars: {
+      PROCS: [...(PROCS || [])], FASES: [...FASES_SEL], AISL: [..._aislTags],
+      TI: JSON.parse(JSON.stringify(_tiState)), CULTF: { ..._cultFechas }, CULTT: [..._cultTurno],
+      _secrQty, _pronoTs, _supinoTs,
+      _diasVABase, _diasTOTBase, _diasTQTBase, _fechaInicioVA, _fechaInicioTQT,
+      _diasVMEpisodio, _diasVMPrevios, _nReintub,
+      _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
+      _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
+      _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
+    },
+  };
+}
+
+function _restaurarMin(m) {
+  const sp = $('sp');
+  // 1) Estructura + visibilidad + textos del encabezado, tal como quedaron
+  sp.innerHTML = m.snap.html;
+  // 2) Valores de campos (posicional: mismo HTML → mismo orden)
+  const app = (sel, arr) => [...document.querySelectorAll(sel)].forEach((e, i) => {
+    const st = arr[i]; if (!st) return;
+    if (e.type === 'checkbox' || e.type === 'radio') e.checked = st.c; else e.value = st.v;
+  });
+  app(_SEL_PANEL_CAMPOS, m.snap.campos);
+  app(_SEL_MODAL_CAMPOS, m.snap.modales);
+  // 3) Estado JS interno del panel
+  const V = m.snap.vars;
+  PROCS = [...V.PROCS]; FASES_SEL = new Set(V.FASES); _aislTags = [...V.AISL];
+  Object.keys(_tiState).forEach(k => delete _tiState[k]); Object.assign(_tiState, V.TI);
+  _cultFechas = { ...V.CULTF }; _cultTurno = new Set(V.CULTT);
+  _secrQty = V._secrQty; _pronoTs = V._pronoTs; _supinoTs = V._supinoTs;
+  _diasVABase = V._diasVABase; _diasTOTBase = V._diasTOTBase; _diasTQTBase = V._diasTQTBase;
+  _fechaInicioVA = V._fechaInicioVA; _fechaInicioTQT = V._fechaInicioTQT;
+  _diasVMEpisodio = V._diasVMEpisodio; _diasVMPrevios = V._diasVMPrevios; _nReintub = V._nReintub;
+  _diasVNIEpisodio = V._diasVNIEpisodio; _diasVNIPrevios = V._diasVNIPrevios; _fechaInicioVNI = V._fechaInicioVNI;
+  _vaAnterior = V._vaAnterior; _vmHistFlag = V._vmHistFlag; _evoEventoGuardado = V._evoEventoGuardado;
+  _transIntubEsteTurno = V._transIntubEsteTurno; _vaAntesIntub = V._vaAntesIntub;
+  _dispSnapshot = V._dispSnapshot; _totSnapshot = V._totSnapshot; _tqtSnapshot = V._tqtSnapshot;
+  // 4) innerHTML mató los listeners delegados del form → re-atar
+  _bindPanelListeners();
+  // 5) Si la vista global cambió mientras estaba minimizado (p. ej. cruzó las
+  //    09:00 y avanzó de turno), el borrador manda: se vuelve a SU fecha+turno
+  //    para que se guarde en el turno correcto.
+  if (v('gDate') !== m.fecha || SHIFT !== m.turno) {
+    $('gDate').value = m.fecha; SHIFT = m.turno; $('sTgl').dataset.s = SHIFT;
+    const t = _turnoLogico();
+    if (t.fecha === m.fecha && t.turno === m.turno) $('gDate').classList.add('turno-hoy');
+    else $('gDate').classList.remove('turno-hoy');
+    refrescarVista();
+  }
+  // 6) Mostrar el panel donde quedó
+  $('ovl').classList.add('on'); sp.classList.add('on');
+  document.body.style.overflow = 'hidden';
+  const pc = document.querySelector('#sp .pcontent');
+  if (pc) { pc.scrollTop = m.snap.scroll || 0; requestAnimationFrame(() => { pc.scrollTop = m.snap.scroll || 0; }); }
+  toast('📂 Borrador restaurado — recuerda guardar');
 }
 
 function minimizarPanel() {
@@ -2834,11 +2920,12 @@ function minimizarPanel() {
   const nombre = ($('fNombre')?.value || '').trim();
   const pila = nombre.split(' ')[0];
   const label = `${cama}${pila ? '. ' + pila : ''}`;
-  if (!_minStack.find(m => m.camaId === camaId)) {
-    _minStack.push({ camaId, label, esIng });
-  }
+  const entry = { camaId, label, esIng, fecha: v('gDate') || hoy(), turno: SHIFT, snap: _snapPanel() };
+  const idx = _minStack.findIndex(m => m.camaId === camaId);
+  if (idx !== -1) _minStack[idx] = entry; else _minStack.push(entry);
   sp.classList.remove('on');
   $('ovl').classList.remove('on');
+  document.body.style.overflow = '';
   _renderMinTray();
 }
 
@@ -2847,7 +2934,8 @@ function restaurarDesdeMin(i) {
   if (!m) return;
   _minStack.splice(i, 1);
   _renderMinTray();
-  abrirPanel(m.camaId, m.esIng);
+  if (m.snap) _restaurarMin(m);
+  else abrirPanel(m.camaId, m.esIng);
 }
 
 function cerrarPanel() {
@@ -4133,12 +4221,17 @@ function renderChips() {
   $('chips').innerHTML=PROCS.map((p,i)=>`
     <span class="chip">${p}<button type="button" onclick="quitarProc(${i})">×</button></span>`).join('');
 }
-$('inProc')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addProc();} });
-// Vista previa en vivo de los procedimientos automáticos (delegado sobre el form)
-$('kf')?.addEventListener('change', _renderAutoProcs);
-$('kf')?.addEventListener('input', _renderAutoProcs);
-$('kf')?.addEventListener('change', _updCategorias);
-$('kf')?.addEventListener('input', _updCategorias);
+// Listeners del panel: atados aparte porque restaurar un minimizado repone
+// #sp vía innerHTML (los elementos se recrean y pierden sus listeners).
+function _bindPanelListeners(){
+  $('inProc')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addProc();} });
+  // Vista previa en vivo de los procedimientos automáticos (delegado sobre el form)
+  $('kf')?.addEventListener('change', _renderAutoProcs);
+  $('kf')?.addEventListener('input', _renderAutoProcs);
+  $('kf')?.addEventListener('change', _updCategorias);
+  $('kf')?.addEventListener('input', _updCategorias);
+}
+_bindPanelListeners();
 
 //  PREVIEW TEXTO (local)
 function previewTexto() {
