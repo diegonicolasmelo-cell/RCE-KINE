@@ -2143,13 +2143,17 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
           </div>
         </div>
 
-        <!-- IMT — SIEMPRE disponible aunque no haya cooperación (única excepción acordada) -->
+        <!-- IMT + EMS — SIEMPRE disponibles aunque no haya cooperación (única excepción acordada) -->
         <div class="fcard fc-imt" id="fcImtBox">
-          <div class="fcard-hdr"><span class="fcard-title">💨 IMT — Entrenamiento muscular inspiratorio</span></div>
+          <div class="fcard-hdr"><span class="fcard-title">💨 IMT / ⚡ EMS — Entrenamiento muscular</span></div>
           <div class="fcard-body">
             <div class="check wa" style="border:none;background:transparent;padding:0;margin-bottom:0;">
                     <input type="checkbox" id="cIMT" onchange="if(this.checked)show('dIMT');else hide('dIMT');">
                     <label for="cIMT" style="font-weight:700;color:#0369a1;">💨 IMT (Entrenamiento muscular inspiratorio)</label>
+                  </div>
+            <div class="check wa" style="border:none;background:transparent;padding:0;margin:6px 0 0;">
+                    <input type="checkbox" id="cEMS">
+                    <label for="cEMS" style="font-weight:700;color:#b45309;">⚡ EMS (Electroestimulación neuromuscular)</label>
                   </div>
                   <div id="dIMT" class="hidden fade" style="margin-top:8px;">
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -3174,7 +3178,7 @@ function fillForm(s) {
   const hfn=$('fKTMniv'); if(hfn) hfn.value='';
   const hfa=$('fKTMasis'); if(hfa) hfa.value='';
   const nd=$('ktmNivDesc'); if(nd) nd.textContent='';
-  chk('cIMT',false); hide('dIMT');
+  chk('cIMT',false); hide('dIMT'); chk('cEMS',false);
 
   // Respiratorio — KTR persiste como referencia; maniobras son acción diaria
   set('fKTRcnt',_ex.RESP_KTR_CANT);
@@ -3367,6 +3371,7 @@ function fillFormReplica(s) {
   if(s.KTM_ASISTENCIA) setKTMasis(s.KTM_ASISTENCIA);
   set('fKTMt',s.KTM_TIEMPO_MIN);
   chk('cIMT',s.KTM_IMT); if(s.KTM_IMT===true||s.KTM_IMT==='TRUE') show('dIMT');
+  chk('cEMS',s.KTM_EMS);
   set('fIMTfreq',s.KTM_IMT_FREQ); set('fIMTint',s.KTM_IMT_INT); set('fIMTt',s.KTM_IMT_T); set('fIMTdes',s.KTM_IMT_DES);
   set('fKTMnoRaz',_ex.KTM_NO_RAZON); set('fKTMnoCom',_ex.KTM_NO_COMENTARIO);
   chk('cKTMalert',_ex.KTM_ALERTA); set('fKTMalertCat',_ex.KTM_ALERTA_CAT);
@@ -3456,6 +3461,7 @@ function _autoProcs(){
   if(v('fVA')==='TQT' && $('cRecanul')?.checked) auto.push('RECANULACIÓN');
   if(['fGrosor','fDiaf','fHeckmatt','fCuadD','fCuadI','fFedD','fFedI','fExcD','fExcI'].some(id=>v(id))) auto.push('ECOGRAFÍA');
   if($('cIMT')?.checked) auto.push('IMT');
+  if($('cEMS')?.checked) auto.push('EMS');
   if(v('cIng')==='true') auto.push('INGRESO');
   if(_fechaInicioTQT && _fechaInicioTQT===(v('gDate')||hoy())) auto.push('TQT (INSTALACIÓN)');
   // Evaluación intermedia: evaluación funcional registrada en un día DISTINTO
@@ -3617,6 +3623,7 @@ function guardar() {
     KTM_NIVEL_KTR:v('fKTMniv'), KTM_ASISTENCIA:v('fKTMasis'), KTM_TIEMPO_MIN:v('fKTMt'),
     KTM_BORG:v('fBorg'),
     KTM_IMT:bv('cIMT'), KTM_IMT_FREQ:v('fIMTfreq'), KTM_IMT_INT:v('fIMTint'), KTM_IMT_T:v('fIMTt'), KTM_IMT_DES:v('fIMTdes'),
+    KTM_EMS:bv('cEMS'),
     // ★ KTM 3-way — "no realizada" se infiere si ni realizada ni suspendida
     KTM_NO_REALIZADA: ($('bKTMn')?.classList.contains('on')) || (!bv('cKTMr') && !bv('cKTMs')),
     KTM_NO_RAZON:        v('fKTMnoRaz'),
@@ -4595,6 +4602,7 @@ function genTexto() {
       if(_d) imt+=`, descanso ${_d} seg entre series`;
       L.push(imt+'.');
     }
+    if($('cEMS')?.checked) L.push('Se realiza electroestimulación neuromuscular (EMS).');
     if($('cKTMalert')?.checked){
       L.push(`KTM suspendida durante la sesión por señal de alerta ${(gv('fKTMalertCat')||'').toLowerCase()}: ${gv('fKTMalertRaz')||'sin especificar'}.`);
     }
@@ -6600,7 +6608,7 @@ function _regCargarEgresos(fecha){
     (data||[]).forEach(a=>{ const k=String(a.cama||''); if(!k) return; (map[k]=map[k]||[]).push(a); });
     REG_EGR=map;
     if(ATAB==='P') renderTabla();
-  },()=>{});
+  },()=>{ _regEgrKey=null; });
 }
 
 function _regEgresosCama(tb,idCama,q){
@@ -6667,7 +6675,12 @@ function renderTabla(){
       const evoN=EVOS_DIA.find(e=>String(e.ID_CAMA)===id&&String(e.TURNO_KEY)===`${fecha}-Noche`)||null;
       const evoRef=evoD||evoN;
       const ocu=c.OCUPADA===true||c.OCUPADA==='TRUE';
-      if(!ocu&&!evoRef) { /* fila libre */ }
+      // Totales del día ANTES del filtro de búsqueda: el resumen refleja la
+      // unidad completa aunque la tabla esté filtrada.
+      const ktrD=evoD?(parseInt(evoD.RESP_KTR_CANT)||0):0;
+      const ktrN=evoN?(parseInt(evoN.RESP_KTR_CANT)||0):0;
+      kD+=ktrD+ktrN;
+      if(evoD) nEvoD++; if(evoN) nEvoN++;
       // Datos del paciente: la evolución del día manda (correcto también en
       // fechas pasadas con otro ocupante); si no hay, el ocupante actual.
       const nombre=evoRef?evoRef.PAC_NOMBRE:(ocu?c.NOMBRE:'');
@@ -6687,11 +6700,6 @@ function renderTabla(){
                       :(ocu&&c.SOPORTE==='VM'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
       const dvni=evoRef?((parseInt(evoRef.DIAS_VNI_PREVIOS)||0)+(evoRef.VENT_SOPORTE==='VNI'&&ocu&&c.SOPORTE==='VNI'?dias(c.FECHA_INICIO_SOPORTE,fecha):0))
                        :(ocu&&c.SOPORTE==='VNI'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
-      const ktrD=evoD?(parseInt(evoD.RESP_KTR_CANT)||0):0;
-      const ktrN=evoN?(parseInt(evoN.RESP_KTR_CANT)||0):0;
-      kD+=ktrD+ktrN;
-      if(evoD) nEvoD++; if(evoN) nEvoN++;
-
       const nomHtml=nombre?`<span title="${nombre}">${String(nombre).slice(0,28)}</span>`
                           :'<span style="color:#cbd5e1;font-style:italic;">Disponible</span>';
       const dx=((diag||'').slice(0,24)+((diag||'').length>24?'…':''))||'-';

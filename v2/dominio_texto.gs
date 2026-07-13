@@ -304,6 +304,7 @@ function generarTextoEvolucion(d) {
   const uma = v('KTM_UMA');
   if (ktmR) {
     let ktmStr = `Se realiza KTM nivel ${nivel || '?'}`;
+    if (v('KTM_ASISTENCIA')) ktmStr += ` con asistencia ${v('KTM_ASISTENCIA').toLowerCase()}`;
     if (tiempo) ktmStr += ` durante ${tiempo} minutos`;
     if (uma) ktmStr += `. UMA ${uma}`;
     txt.push(ktmStr + '.');
@@ -316,6 +317,19 @@ function generarTextoEvolucion(d) {
     if (nr) s2 += ` por ${nr.toLowerCase()}`;
     if (nc) s2 += `. ${nc}`;
     txt.push(s2 + '.');
+  }
+  // IMT / EMS — paridad con el preview del cliente (genTexto)
+  if (esVerdadero(d.KTM_IMT)) {
+    let imt = 'Se realiza IMT';
+    if (v('KTM_IMT_FREQ')) imt += ` ${v('KTM_IMT_FREQ')} series`;
+    if (v('KTM_IMT_INT')) imt += ` al ${v('KTM_IMT_INT')}% de PiMáx`;
+    if (v('KTM_IMT_T')) imt += ` por ${v('KTM_IMT_T')} min`;
+    if (v('KTM_IMT_DES')) imt += `, descanso ${v('KTM_IMT_DES')} seg entre series`;
+    txt.push(imt + '.');
+  }
+  if (esVerdadero(d.KTM_EMS)) txt.push('Se realiza electroestimulación neuromuscular (EMS).');
+  if (esVerdadero(d.KTM_ALERTA)) {
+    txt.push(`KTM suspendida durante la sesión por señal de alerta ${(v('KTM_ALERTA_CAT') || '').toLowerCase()}: ${v('KTM_ALERTA_RAZ') || 'sin especificar'}.`);
   }
 
   // 9. Procedimientos: NO se imprimen como lista cruda (van narrados en el texto);

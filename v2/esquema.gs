@@ -146,7 +146,11 @@ const _COLS_EVOLUCIONES = [
   ['DISP_HME_FECHA','texto'],    // dispositivos circuito VM: HME instalado (se cambia en su día 2, por fecha)
   ['DISP_HEPA_FECHA','texto'],   // HEPA instalado (se cambia en su día 3)
   ['DISP_HUMID_FECHA','texto'],  // humidificación activa: fecha de inicio (no vence)
-  ['VENT_IPAP_MAX','decimal'],   // AVAPS: IPAP máximo programado (VENT_IPAP guarda el mínimo)
+  // DUPLICADO HISTÓRICO: VENT_IPAP_MAX ya existe en la posición 78; esta columna
+  // quedó duplicada al agregarse de nuevo en la cola. NO se puede eliminar (las
+  // posiciones son fijas: borrarla desalinearía todas las columnas siguientes),
+  // así que se renombra a legacy y deja de usarse. El dato vive en la pos. 78.
+  ['LEGACY_IPAP_MAX_DUP','decimal'],
   ['TOT_CAMBIO_MOTIVO','texto'], // motivo del cambio de tubo (cuff disfuncional / roto / resistencia / otro)
   ['TQT_CAMBIO','bool'],         // cambio de cánula de TQT este turno (checkbox reversible)
   ['TQT_CAMBIO_MOTIVO','texto'], // motivo del cambio de cánula
@@ -157,6 +161,7 @@ const _COLS_EVOLUCIONES = [
   ['CAT_MOTOR_PJE','entero'],    // categorización motora SOCHIMI (n variables × 1-3 pts según CAT_MATRICES)
   ['CAT_RESP_NIVEL','texto'],    // Baja/Media/Alta calculado con la configuración vigente al guardar
   ['CAT_MOTOR_NIVEL','texto'],   // Baja/Media/Alta calculado con la configuración vigente al guardar
+  ['KTM_EMS','bool'],            // electroestimulación neuromuscular (terapia física, junto a IMT)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -528,7 +533,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 281) errs.push('EVOLUCIONES != 281 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 282) errs.push('EVOLUCIONES != 282 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }
