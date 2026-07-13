@@ -168,6 +168,11 @@ const _COLS_EVOLUCIONES = [
   ['PLAN_PENDIENTES','json'],    // pendientes del turno (chips-recordatorio; NO se replican; van a la entrega)
   ['HEMO_ARRITMIA','bool'],['HEMO_ARRITMIA_TIPO','texto'],  // arritmia (junto a FC) — tipo libre (FA, extrasístoles...)
   ['HEMO_META_PAM','bool'],      // condiciona la captura de HEMO_PAM (sin meta, no se pide)
+  // Parámetros de la EMS (terapia física)
+  ['KTM_EMS_FREQ','texto'],['KTM_EMS_INT','texto'],['KTM_EMS_PULSO','texto'],
+  ['KTM_EMS_T','texto'],['KTM_EMS_GRUPO','texto'],
+  // IMS — ICU Mobility Scale 0-10 (reemplaza al hito motor 1-6; EVAL_NIVEL_MOTOR queda legacy)
+  ['EVAL_IMS','texto'],
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -539,7 +544,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 286) errs.push('EVOLUCIONES != 286 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 292) errs.push('EVOLUCIONES != 292 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

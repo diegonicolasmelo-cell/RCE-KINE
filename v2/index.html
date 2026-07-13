@@ -304,14 +304,14 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .grid{padding:20px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:22px 14px;max-width:1400px;margin:0 auto;}
 .bcard{background:transparent;border:none;box-shadow:none;display:flex;flex-direction:column;overflow:visible;position:relative;transition:transform .18s;}
 .bcard:hover{transform:translateY(-2px);}
-.bcard:hover .bbody,.bcard:hover .bfoot{box-shadow:0 6px 16px rgba(120,90,20,.16);}
+.bcard:hover .bbody,.bcard:hover .bfoot{box-shadow:0 5px 14px rgba(120,90,20,.10);}
 .bcard.sel{outline:2px dashed #3b82f6;outline-offset:4px;border-radius:12px;transform:scale(1.02);}
 /* pestaña de la carpeta */
-.bhdr{position:relative;z-index:3;width:fit-content;max-width:78%;padding:7px 14px 8px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(180deg,#f1e0b6,#ecd9a7);border:1px solid #d6bf84;border-bottom:none;border-radius:10px 10px 0 0;margin-bottom:-1px;}
+.bhdr{position:relative;z-index:3;width:fit-content;max-width:78%;padding:7px 14px 8px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(180deg,#f6ead0,#f0e0bb);border:1px solid #e0cfa0;border-bottom:none;border-radius:10px 10px 0 0;margin-bottom:-1px;}
 /* cuerpo de la carpeta */
-.bbody{position:relative;z-index:2;background:linear-gradient(180deg,#f9efd2,#f3e4ba);border:1px solid #d6bf84;border-bottom:none;border-radius:0 12px 0 0;box-shadow:0 2px 8px rgba(120,90,20,.10);padding:13px;flex-grow:1;display:flex;flex-direction:column;gap:5px;transition:box-shadow .18s;}
+.bbody{position:relative;z-index:2;background:#fffefb;border:1px solid #e6d9b8;border-bottom:none;border-radius:0 12px 0 0;box-shadow:0 2px 6px rgba(120,90,20,.07);padding:13px;flex-grow:1;display:flex;flex-direction:column;gap:5px;transition:box-shadow .18s;}
 /* hoja blanca asomando (turno ya evolucionado) */
-.bcard.evo .bbody::before{content:'';position:absolute;top:-13px;right:14px;width:52%;height:15px;background:#fff repeating-linear-gradient(180deg,transparent 0 4px,#dde5ee 4px 5px);border:1px solid #c6cfda;border-bottom:none;border-radius:3px 3px 0 0;transform:rotate(-1.2deg);transform-origin:bottom right;box-shadow:0 -1px 3px rgba(0,0,0,.07);}
+.bcard.evo .bbody::before{content:'';position:absolute;top:-9px;right:16px;width:44%;height:10px;background:#fff repeating-linear-gradient(180deg,transparent 0 3px,#eef2f7 3px 4px);border:1px solid #e2e8f0;border-bottom:none;border-radius:3px 3px 0 0;box-shadow:0 -1px 2px rgba(0,0,0,.04);}
 /* cama vacía: carpeta gris plana */
 .bcard:not(.occ) .bhdr{background:#e8ecf1;border-color:#d3dae2;}
 .bcard:not(.occ) .bbody{background:#eef1f5;border-color:#d3dae2;box-shadow:none;}
@@ -332,7 +332,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .a-ktm{background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;}
 .a-pend{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;}
 .a-eval{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;}
-.bfoot{position:relative;z-index:2;padding:9px 13px;background:#f0e2b6;border:1px solid #d6bf84;border-top:1px dashed #e2d09c;border-radius:0 0 12px 12px;box-shadow:0 3px 10px rgba(120,90,20,.12);display:flex;gap:6px;flex-wrap:wrap;transition:box-shadow .18s;}
+.bfoot{position:relative;z-index:2;padding:9px 13px;background:#fdfaf1;border:1px solid #e6d9b8;border-top:1px dashed #eee3c6;border-radius:0 0 12px 12px;box-shadow:0 2px 8px rgba(120,90,20,.08);display:flex;gap:6px;flex-wrap:wrap;transition:box-shadow .18s;}
 .bevo{flex-grow:1;background:var(--primary);color:#fff;border:none;padding:7px;border-radius:6px;font-weight:600;cursor:pointer;font-size:.8rem;}
 .bevo:hover{background:var(--pdark);}
 .btl,.balt{flex-grow:1;background:#fff;border:1px solid #cbd5e1;padding:7px;border-radius:6px;font-weight:600;cursor:pointer;font-size:.8rem;}
@@ -1822,21 +1822,12 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   <!-- Col derecha: Evaluación de secreciones -->
                   <div style="padding:10px 12px;">
                     <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;color:#0369a1;margin-bottom:8px;letter-spacing:.04em;">Secreciones</div>
-                    <!-- Reología -->
-                    <div style="margin-bottom:6px;">
-                      <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Reología</label>
-                      <select id="fSecrReol" style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
-                        <option value="">-- Seleccionar --</option>
-                        <option>Fluidas</option>
-                        <option>Ligosas</option>
-                        <option>Adherentes</option>
-                      </select>
-                    </div>
-                    <!-- Características -->
+                    <!-- Características PRIMERO: sin características = sin secreciones,
+                         y la reología queda bloqueada (no tiene sentido sin secreción) -->
                     <div style="margin-bottom:6px;">
                       <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Características</label>
-                      <select id="fSecrCar" style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
-                        <option value="">-- Seleccionar --</option>
+                      <select id="fSecrCar" onchange="hSecrCond()" style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
+                        <option value="">-- Sin secreciones --</option>
                         <option>Mucosas</option>
                         <option>Mucopurulentas</option>
                         <option>Purulentas</option>
@@ -1846,6 +1837,16 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                         <option>Mucosas con tinte hemático</option>
                         <option>Herrumbrosas</option>
                         <option>Carbonizadas</option>
+                      </select>
+                    </div>
+                    <!-- Reología (se desbloquea solo con características seleccionadas) -->
+                    <div style="margin-bottom:6px;">
+                      <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Reología</label>
+                      <select id="fSecrReol" disabled style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
+                        <option value="">-- Seleccionar --</option>
+                        <option>Fluidas</option>
+                        <option>Ligosas</option>
+                        <option>Adherentes</option>
                       </select>
                     </div>
                     <!-- Cantidad -->
@@ -1971,17 +1972,13 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                         <button type="button" class="ktm-niv-btn" data-niv="5" onclick="setKTMniv('5')">5</button>
                       </div>
                     </div>
-                    <div>
-                      <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:5px;">🦵 Hito Motor Más Alto</label>
-                      <select id="fNivelMotor" style="height:30px;font-size:.78rem;border:1px solid #e2e8f0;border-radius:6px;padding:0 6px;">
-                        <option value="">—</option>
-                        <option value="1">1 · Reposo en cama</option>
-                        <option value="2">2 · Sedente en cama</option>
-                        <option value="3">3 · Sedente borde / silla</option>
-                        <option value="4">4 · Bipedestación</option>
-                        <option value="5">5 · Marcha asistida</option>
-                        <option value="6">6 · Marcha autónoma</option>
-                      </select>
+                    <div style="position:relative;">
+                      <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:5px;">🦵 IMS — Escala de Movilidad UCI</label>
+                      <button type="button" id="imsBtn" onclick="toggleIMS()" style="height:30px;min-width:210px;font-size:.78rem;border:1px solid #e2e8f0;border-radius:6px;padding:0 10px;background:#fff;cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                        <span id="imsBtnLbl" style="color:#94a3b8;">— Seleccionar nivel</span><span style="color:#94a3b8;">▾</span>
+                      </button>
+                      <div id="imsPanel" class="hidden" style="position:absolute;z-index:40;top:100%;left:0;margin-top:4px;width:330px;max-height:320px;overflow-y:auto;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:6px;"></div>
+                      <input type="hidden" id="fIMS">
                     </div>
                   </div>
                   <div id="ktmNivDesc" style="font-size:.7rem;color:var(--muted);margin-top:4px;min-height:1.2em;"></div>
@@ -2018,16 +2015,11 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                   </div>
                   <div id="dKTMalert" class="hidden fade" style="margin-top:6px;">
                     <div class="row" style="margin-bottom:0;">
-                      <div class="col wa"><label>Categoría</label>
-                        <select id="fKTMalertCat" onchange="updateKTMalertRaz()">
-                          <option value="">-- Categoría --</option>
-                          <option>Respiratorio</option>
-                          <option>Hemodinámico</option>
-                          <option>Clínico</option>
-                        </select></div>
-                      <div class="col grow"><label>Criterio</label>
-                        <select id="fKTMalertRaz"><option value="">-- Criterio --</option></select></div>
+                      <div class="col grow"><label>Criterio (la categoría se infiere sola)</label>
+                        <select id="fKTMalertRaz" onchange="syncKTMalertCat()"><option value="">-- Criterio --</option></select></div>
                     </div>
+                    <!-- Categoría inferida desde el criterio (Respiratorio/Hemodinámico/Clínico) -->
+                    <input type="hidden" id="fKTMalertCat">
                   </div>
                 </div>
               </div>
@@ -2163,8 +2155,22 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
                     <label for="cIMT" style="font-weight:700;color:#0369a1;">💨 IMT (Entrenamiento muscular inspiratorio)</label>
                   </div>
             <div class="check wa" style="border:none;background:transparent;padding:0;margin:6px 0 0;">
-                    <input type="checkbox" id="cEMS">
+                    <input type="checkbox" id="cEMS" onchange="if(this.checked)show('dEMS');else hide('dEMS');">
                     <label for="cEMS" style="font-weight:700;color:#b45309;">⚡ EMS (Electroestimulación neuromuscular)</label>
+                  </div>
+                  <div id="dEMS" class="hidden fade" style="margin-top:8px;">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Frecuencia (Hz)</label>
+                        <input type="number" id="fEMSfreq" min="1" max="200" placeholder="50" style="width:72px;height:28px;border:1px solid #fde68a;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Intensidad (mA)</label>
+                        <input type="number" id="fEMSint" min="1" max="150" placeholder="60" style="width:72px;height:28px;border:1px solid #fde68a;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Ancho de pulso (µs)</label>
+                        <input type="number" id="fEMSpulso" min="50" max="1000" placeholder="400" style="width:88px;height:28px;border:1px solid #fde68a;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Tiempo (min)</label>
+                        <input type="number" id="fEMSt" min="1" max="120" placeholder="30" style="width:72px;height:28px;border:1px solid #fde68a;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                      <div><label style="font-size:.65rem;color:var(--muted);display:block;margin-bottom:3px;">Grupo muscular</label>
+                        <input type="text" id="fEMSgrupo" placeholder="Cuádriceps bilateral..." style="width:170px;height:28px;border:1px solid #fde68a;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+                    </div>
                   </div>
                   <div id="dIMT" class="hidden fade" style="margin-top:8px;">
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -2818,6 +2824,7 @@ function _resetHiddenYEventos(){
   // cantidad de secreciones: la variable de módulo también debe partir limpia
   // (si no, el toggle des-selecciona al reelegir el mismo valor en otro paciente)
   if(typeof _secrQty!=='undefined'){ _secrQty=''; document.querySelectorAll('.secr-qty').forEach(b=>b.classList.remove('active')); }
+  if(typeof hSecrCond==='function') hSecrCond();
   _evoEventoGuardado=false;
 }
 
@@ -2859,6 +2866,7 @@ function abrirPanel(id, esIng) {
   hAisl(); hAET();
   // HDN: arritmia / meta PAM parten cerrados; humidificación activa re-habilita HME
   hide('gArritmiaTipo'); hide('gPAM');
+  if(typeof setIMS==='function') setIMS('');
   const _hme=$('fFecHME'); if(_hme) _hme.disabled=false;
   // v2: fases clínicas + reintubación standalone + COD + evaluaciones nocturnas
   FASES_SEL=new Set(); renderFases();
@@ -3205,7 +3213,7 @@ function fillForm(s) {
   const hfn=$('fKTMniv'); if(hfn) hfn.value='';
   const hfa=$('fKTMasis'); if(hfa) hfa.value='';
   const nd=$('ktmNivDesc'); if(nd) nd.textContent='';
-  chk('cIMT',false); hide('dIMT'); chk('cEMS',false);
+  chk('cIMT',false); hide('dIMT'); chk('cEMS',false); hide('dEMS');
 
   // Respiratorio — KTR persiste como referencia; maniobras son acción diaria
   set('fKTRcnt',_ex.RESP_KTR_CANT);
@@ -3302,7 +3310,7 @@ function fillForm(s) {
   const dbCult=$('dCultBadges'); if(dbCult) dbCult.innerHTML='';
   (function(){ if(!s.MUE_RESULTADOS_JSON) return; let arr=[]; try{arr=JSON.parse(s.MUE_RESULTADOS_JSON);}catch(e){} fillCultRes(arr); })();
   hEgr();
-  set('fNivelMotor',s.EVAL_NIVEL_MOTOR);
+  setIMS(s.EVAL_IMS!==undefined&&s.EVAL_IMS!==null?String(s.EVAL_IMS):'');
   set('fPlanes',s.PLAN_PLANES); set('fNota',s.PLAN_NOTA_TURNO); set('fFirma',s.PLAN_FIRMA_KINE);
   aplicarFirmaTurno(s.PLAN_FIRMA_KINE);
   setFasesDesde(s.FASE_JSON||'');
@@ -3399,7 +3407,9 @@ function fillFormReplica(s) {
   if(s.KTM_ASISTENCIA) setKTMasis(s.KTM_ASISTENCIA);
   set('fKTMt',s.KTM_TIEMPO_MIN);
   chk('cIMT',s.KTM_IMT); if(s.KTM_IMT===true||s.KTM_IMT==='TRUE') show('dIMT');
-  chk('cEMS',s.KTM_EMS);
+  chk('cEMS',s.KTM_EMS); if(s.KTM_EMS===true||s.KTM_EMS==='TRUE') show('dEMS');
+  set('fEMSfreq',s.KTM_EMS_FREQ); set('fEMSint',s.KTM_EMS_INT); set('fEMSpulso',s.KTM_EMS_PULSO);
+  set('fEMSt',s.KTM_EMS_T); set('fEMSgrupo',s.KTM_EMS_GRUPO);
   set('fIMTfreq',s.KTM_IMT_FREQ); set('fIMTint',s.KTM_IMT_INT); set('fIMTt',s.KTM_IMT_T); set('fIMTdes',s.KTM_IMT_DES);
   set('fKTMnoRaz',_ex.KTM_NO_RAZON); set('fKTMnoCom',_ex.KTM_NO_COMENTARIO);
   chk('cKTMalert',_ex.KTM_ALERTA); set('fKTMalertCat',_ex.KTM_ALERTA_CAT);
@@ -3655,6 +3665,8 @@ function guardar() {
     KTM_BORG:v('fBorg'),
     KTM_IMT:bv('cIMT'), KTM_IMT_FREQ:v('fIMTfreq'), KTM_IMT_INT:v('fIMTint'), KTM_IMT_T:v('fIMTt'), KTM_IMT_DES:v('fIMTdes'),
     KTM_EMS:bv('cEMS'),
+    KTM_EMS_FREQ:v('fEMSfreq'), KTM_EMS_INT:v('fEMSint'), KTM_EMS_PULSO:v('fEMSpulso'),
+    KTM_EMS_T:v('fEMSt'), KTM_EMS_GRUPO:v('fEMSgrupo'),
     // ★ KTM 3-way — "no realizada" se infiere si ni realizada ni suspendida
     KTM_NO_REALIZADA: ($('bKTMn')?.classList.contains('on')) || (!bv('cKTMr') && !bv('cKTMs')),
     KTM_NO_RAZON:        v('fKTMnoRaz'),
@@ -3759,7 +3771,7 @@ function guardar() {
     MUE_TIPOS_JSON:JSON.stringify(Array.from(document.querySelectorAll('input[name="mtest"]:checked')).map(c=>c.value)),
     MUE_HORA_TOMA:v('fCultHora'), MUE_CON_ATB:bv('cCultATB'),
     MUE_RESULTADOS_JSON:JSON.stringify((_tiState['fCultTags']||[]).filter(Boolean)),
-    EVAL_NIVEL_MOTOR:v('fNivelMotor'),
+    EVAL_IMS:v('fIMS'),
     FASE_JSON: JSON.stringify(Array.from(FASES_SEL)),
     PLAN_PENDIENTES: JSON.stringify(Array.from(PEND_SEL)),
     PLAN_PLANES:v('fPlanes'), PLAN_NOTA_TURNO:v('fNota'), PLAN_FIRMA_KINE:v('fFirma'),
@@ -3912,7 +3924,7 @@ const VENT_VARS = [
 ];
 // Variables de rehabilitación
 const REH_VARS = [
-  { key: 'EVAL_NIVEL_MOTOR', label: 'Hito motor (1-6)',   color: '#0f766e', step:1, max:6 },
+  { key: 'EVAL_IMS', label: 'IMS (0-10)',   color: '#0f766e', step:1, max:10 },
   { key: 'KTM_NIVEL_KTR',  label: 'Nivel KTM (1-5)',    color: '#b45309', step:1, max:5 },
   { key: 'KTM_TIEMPO_MIN', label: 'Tiempo KTM (min)',   color: '#0284c7' },
   { key: 'EVAL_T_MRC',     label: 'MRC-SS (0-60)',      color: '#059669', max:60 },
@@ -4083,7 +4095,7 @@ const TL_PACKS = {
     ['🎭 VNI',         ['VENT_IPAP','VENT_EPAP']],
   ],
   reh: [
-    ['📈 Progresión', ['KTM_NIVEL_KTR','EVAL_NIVEL_MOTOR']],
+    ['📈 Progresión', ['KTM_NIVEL_KTR','EVAL_IMS']],
     ['💪 Fuerza',     ['EVAL_T_MRC','EVAL_T_DINAMO','EVAL_T_PIM','EVAL_T_PEM']],
     ['🚶 Función',    ['EVAL_T_FSS','CPAX_TOTAL','PAC_BARTHEL']],
   ],
@@ -4191,7 +4203,7 @@ function _renderTLResumen(){
   const hayPS=evos.some(e=>{const n=_parseNum(e.VENT_PS);return n!==null&&n>0;});
   h+=secc('🫧 Oxigenación',['VENT_FIO2','VENT_SPO2']);
   h+=secc('⚙️ Soporte',['VENT_PEEP',hayPS?'VENT_PS':'CALC_DP']);
-  h+=secc('🏃 Rehabilitación',['KTM_NIVEL_KTR','EVAL_NIVEL_MOTOR']);
+  h+=secc('🏃 Rehabilitación',['KTM_NIVEL_KTR','EVAL_IMS']);
   $('tlBody').innerHTML=h;
 }
 
@@ -4635,7 +4647,14 @@ function genTexto() {
       if(_d) imt+=`, descanso ${_d} seg entre series`;
       L.push(imt+'.');
     }
-    if($('cEMS')?.checked) L.push('Se realiza electroestimulación neuromuscular (EMS).');
+    if($('cEMS')?.checked){
+      let ems='Se realiza electroestimulación neuromuscular (EMS)';
+      if(v('fEMSgrupo')) ems+=` en ${v('fEMSgrupo').toLowerCase()}`;
+      const emsP=[v('fEMSfreq')?`${v('fEMSfreq')} Hz`:'', v('fEMSint')?`${v('fEMSint')} mA`:'', v('fEMSpulso')?`ancho de pulso ${v('fEMSpulso')} µs`:''].filter(Boolean);
+      if(emsP.length) ems+=` (${emsP.join(', ')})`;
+      if(v('fEMSt')) ems+=` por ${v('fEMSt')} min`;
+      L.push(ems+'.');
+    }
     if($('cKTMalert')?.checked){
       L.push(`KTM suspendida durante la sesión por señal de alerta ${(gv('fKTMalertCat')||'').toLowerCase()}: ${gv('fKTMalertRaz')||'sin especificar'}.`);
     }
@@ -4669,7 +4688,7 @@ function genTexto() {
     if(gv('fFedD')||gv('fFedI')) ev.push(`FED D/I ${gv('fFedD')||'—'}/${gv('fFedI')||'—'} %`);
     if(gv('fExcD')||gv('fExcI')) ev.push(`Excursión diafragmática D/I ${gv('fExcD')||'—'}/${gv('fExcI')||'—'} cm`);
     if(gv('fDeglucion')) ev.push(`Deglución: ${gv('fDeglucion')}`);
-    if(gv('fNivelMotor')) ev.push(`Hito motor ${gv('fNivelMotor')}/6`);
+    if(gv('fIMS')!=='') ev.push(`IMS ${gv('fIMS')}/10`);
     if(ev.length) L.push('Evaluaciones funcionales: ' + ev.join('; ') + '.');
   }
   // Extubación + PVE — texto clínico unificado
@@ -5111,6 +5130,14 @@ function hMultiDVA(){const d=v('fDVA'),m=$('cMultiDVA');if(d!=='Sin requerimient
 function hMue(){if($('cMue')?.checked)show('dMue');else hide('dMue');}
 
 // — Secreciones: cantidad con botones toggle —
+// Reología condicionada a Características: sin secreción registrada no hay
+// reología que describir (se bloquea y se limpia).
+function hSecrCond(){
+  const car=v('fSecrCar'), reol=$('fSecrReol');
+  if(!reol) return;
+  reol.disabled=!car;
+  if(!car) reol.value='';
+}
 let _secrQty='';
 const _SECR_VALS=['-','+','++','+++'];
 function hSecrQty(val){
@@ -5791,13 +5818,72 @@ const KTM_ALERT_MAP = {
   'Hemodinámico':['PAM <65 mmHg','FC <40 o >130 lpm','Dolor precordial','ECG alterado','SvO₂ <65%','Noradrenalina ≥0.3 mcg/kg/min','Prueba tolerancia ortostática (+)'],
   'Clínico':['Diaforesis','Cambios coloración piel','Náuseas / vómitos','Mareo','Dolor de difícil control','Decisión médica'],
 };
+// Lista ÚNICA de criterios (agrupados visualmente); la categoría ya no se
+// pide: se infiere del criterio elegido y viaja en el hidden fKTMalertCat.
 function updateKTMalertRaz(){
-  const cat = v('fKTMalertCat'), s = $('fKTMalertRaz'); if(!s) return;
-  s.innerHTML = '<option value="">-- Criterio --</option>';
-  (KTM_ALERT_MAP[cat] || []).forEach(r => {
-    const o = document.createElement('option'); o.value = r; o.textContent = r; s.appendChild(o);
+  const s = $('fKTMalertRaz'); if(!s || s.options.length > 1) return; // ya construida
+  Object.keys(KTM_ALERT_MAP).forEach(cat => {
+    const g = document.createElement('optgroup'); g.label = cat;
+    KTM_ALERT_MAP[cat].forEach(r => {
+      const o = document.createElement('option'); o.value = r; o.textContent = r; g.appendChild(o);
+    });
+    s.appendChild(g);
   });
 }
+function syncKTMalertCat(){
+  const raz = v('fKTMalertRaz'); let cat = '';
+  Object.keys(KTM_ALERT_MAP).forEach(c => { if (KTM_ALERT_MAP[c].indexOf(raz) !== -1) cat = c; });
+  const h = $('fKTMalertCat'); if (h) h.value = cat;
+}
+updateKTMalertRaz(); // construir la lista al cargar (el DOM ya existe aquí)
+
+// ══ IMS — ICU Mobility Scale (0-10), selector visual ══════════════════════
+const IMS_NIVELES=[
+  [0,'🛏️','Nada — acostado, movilización pasiva'],
+  [1,'💪','Ejercicios en cama (activos/activo-asistidos)'],
+  [2,'🪑','Traslado pasivo a sillón (sin bipedestación)'],
+  [3,'🦵','Sedente al borde de la cama'],
+  [4,'🧍','Bipedestación (con o sin ayuda)'],
+  [5,'🔄','Transferencia cama → sillón de pie'],
+  [6,'👣','Marcha en el lugar (al lado de la cama)'],
+  [7,'🚶‍♂️👥','Marcha con asistencia de 2 o más personas'],
+  [8,'🚶‍♂️🤝','Marcha con asistencia de 1 persona'],
+  [9,'🚶‍♂️🦯','Marcha independiente con ayuda técnica'],
+  [10,'🏃','Marcha independiente sin ayuda técnica'],
+];
+function _renderIMSPanel(){
+  const p=$('imsPanel'); if(!p||p.childElementCount) return;
+  p.innerHTML=IMS_NIVELES.map(([n,ico,lbl])=>`
+    <div onclick="setIMS('${n}')" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''"
+         style="display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:7px;cursor:pointer;">
+      <span style="font-size:1.25rem;width:38px;text-align:center;flex-shrink:0;">${ico}</span>
+      <span style="width:24px;height:24px;border-radius:50%;background:#0c4f96;color:#fff;font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${n}</span>
+      <span style="font-size:.76rem;color:#1e293b;line-height:1.25;">${lbl}</span>
+    </div>`).join('');
+}
+function toggleIMS(){
+  _renderIMSPanel();
+  const p=$('imsPanel'); if(p) p.classList.toggle('hidden');
+}
+function setIMS(n){
+  const h=$('fIMS'); if(h) h.value=(n===''||n===null)?'':String(n);
+  const lbl=$('imsBtnLbl');
+  if(lbl){
+    if(n===''||n===null){ lbl.innerHTML='— Seleccionar nivel'; lbl.style.color='#94a3b8'; }
+    else{
+      const it=IMS_NIVELES.find(x=>String(x[0])===String(n));
+      lbl.innerHTML=it?`${it[1]} <b>IMS ${it[0]}</b> · ${it[2]}`:`IMS ${n}`;
+      lbl.style.color='#0f172a';
+    }
+  }
+  const p=$('imsPanel'); if(p) p.classList.add('hidden');
+}
+// Cerrar el panel IMS al hacer clic fuera (listener a nivel documento:
+// sobrevive a la restauración de minimizados vía innerHTML)
+document.addEventListener('click',e=>{
+  const p=$('imsPanel');
+  if(p&&!p.classList.contains('hidden')&&!e.target.closest('#imsPanel')&&!e.target.closest('#imsBtn')) p.classList.add('hidden');
+});
 
 // Interpretaciones funcionales
 function _setInterp(id, text, cls){
@@ -6605,10 +6691,10 @@ function cpaxSugerir(){
   const f2c=x=>{ const n=parseInt(x); if(isNaN(n)) return null; return n===0?0:n===1?1:n<=3?2:n===4?3:n<=6?4:5; };
   const map={3:'fFssIt1',4:'fFssIt2',5:'fFssIt3',7:'fFssIt4',9:'fFssIt5'};
   Object.keys(map).forEach(k=>{ const c=f2c(v(map[k])); if(c!==null) sug[k]=c; });
-  const hito=parseInt(v('fNivelMotor'));
-  if(!isNaN(hito)){
-    if(sug[6]===undefined) sug[6]= hito>=6?4 : hito>=5?3 : hito>=4?2 : 0;
-    if(sug[8]===undefined) sug[8]= hito>=4?3 : hito>=3?2 : 0;
+  const ims=parseInt(v('fIMS'));
+  if(!isNaN(ims)){
+    if(sug[6]===undefined) sug[6]= ims>=9?4 : ims>=7?3 : ims>=4?2 : 0;
+    if(sug[8]===undefined) sug[8]= ims>=4?3 : ims>=3?2 : 0;
   }
   // 10. Prensión (grueso desde cortes DAUCI; el % predicho lo ajusta el kine)
   const din=parseFloat(v('fPrension')), sx=v('fSexo');
@@ -6745,11 +6831,11 @@ function renderTabla(){
       if(evoD) nEvoD++; if(evoN) nEvoN++;
       // Datos del paciente: la evolución del día manda (correcto también en
       // fechas pasadas con otro ocupante); si no hay, el ocupante actual.
-      const nombre=evoRef?evoRef.PAC_NOMBRE:(ocu?c.NOMBRE:'');
-      const sexo=evoRef?evoRef.PAC_SEXO:(ocu?c.SEXO:'');
-      const edad=evoRef?evoRef.PAC_EDAD:(ocu?c.EDAD:'');
-      const diag=evoRef?evoRef.PAC_DIAGNOSTICO:(ocu?c.DIAGNOSTICO:'');
-      const sop=evoRef?evoRef.VENT_SOPORTE:(ocu?c.SOPORTE:'');
+      const nombre=(evoRef&&evoRef.PAC_NOMBRE)||(ocu?c.NOMBRE:'');
+      const sexo=(evoRef&&evoRef.PAC_SEXO)||(ocu?c.SEXO:'');
+      const edad=(evoRef&&evoRef.PAC_EDAD)||(ocu?c.EDAD:'');
+      const diag=(evoRef&&evoRef.PAC_DIAGNOSTICO)||(ocu?c.DIAGNOSTICO:'');
+      const sop=(evoRef&&evoRef.VENT_SOPORTE)||(ocu?c.SOPORTE:'');
       if(q&&!(String(nombre||'').toLowerCase().includes(q)||String(diag||'').toLowerCase().includes(q))) return;
 
       const tr=tb.insertRow();
@@ -6757,7 +6843,7 @@ function renderTabla(){
       else if(EVO_SET.has(id)) tr.className='rd';
       else tr.className='ro';
 
-      const dEst=evoRef?(evoRef.DIA_ESTADIA??''):(ocu?dias(c.FECHA_INGRESO,fecha):'');
+      const dEst=(evoRef&&evoRef.DIA_ESTADIA!==''&&evoRef.DIA_ESTADIA!=null)?evoRef.DIA_ESTADIA:(ocu?dias(c.FECHA_INGRESO,fecha):'');
       const dvm=evoRef?((parseInt(evoRef.DIAS_VM_PREVIOS)||0)+(parseInt(evoRef.DIAS_VM)||0))
                       :(ocu&&c.SOPORTE==='VM'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
       const dvni=evoRef?((parseInt(evoRef.DIAS_VNI_PREVIOS)||0)+(evoRef.VENT_SOPORTE==='VNI'&&ocu&&c.SOPORTE==='VNI'?dias(c.FECHA_INICIO_SOPORTE,fecha):0))
@@ -6835,10 +6921,10 @@ function regCSV(){
     const ocu=c.OCUPADA===true||c.OCUPADA==='TRUE';
     if(!ocu&&!evoRef){ csv+=`${id};DISPONIBLE\n`; return; }
     const ktm=evoD?(esT(evoD.KTM_SUSPENDIDA)?'C':(esT(evoD.KTM_REALIZADA)?(evoD.KTM_NIVEL_KTR||''):'')):'';
-    csv+=[id,esc(evoRef?evoRef.PAC_NOMBRE:c.NOMBRE),(evoRef?evoRef.PAC_SEXO:c.SEXO)||'',(evoRef?evoRef.PAC_EDAD:c.EDAD)||'',
+    csv+=[id,esc((evoRef&&evoRef.PAC_NOMBRE)||c.NOMBRE),((evoRef&&evoRef.PAC_SEXO)||c.SEXO)||'',((evoRef&&evoRef.PAC_EDAD)||c.EDAD)||'',
       evoRef?(evoRef.DIA_ESTADIA??''):dias(c.FECHA_INGRESO,fecha),
       evoRef?((parseInt(evoRef.DIAS_VM_PREVIOS)||0)+(parseInt(evoRef.DIAS_VM)||0)):'',
-      (evoRef?evoRef.VENT_SOPORTE:c.SOPORTE)||'',esc(evoRef?evoRef.PAC_DIAGNOSTICO:c.DIAGNOSTICO),
+      ((evoRef&&evoRef.VENT_SOPORTE)||c.SOPORTE)||'',esc((evoRef&&evoRef.PAC_DIAGNOSTICO)||c.DIAGNOSTICO),
       evoD?(parseInt(evoD.RESP_KTR_CANT)||0):'',ktm,esc(evoD?evoD.PROC_RESUMEN:''),evoD?(evoD.PLAN_FIRMA_KINE||''):'',
       evoN?(parseInt(evoN.RESP_KTR_CANT)||0):'',esc(evoN?evoN.PROC_RESUMEN:''),evoN?(evoN.PLAN_FIRMA_KINE||''):''].join(';')+'\n';
   });
@@ -6857,7 +6943,7 @@ function initArchivados(){ if(ARC_ALL===null) arcCargar(); }
 function arcCargar(){
   $('arcBody').innerHTML='<div class="pivot-empty">Cargando archivados…</div>';
   gs('GET_ARCHIVADOS',{},r=>{ ARC_ALL=r||[]; arcFiltrar(); },
-    ()=>{ $('arcBody').innerHTML='<div class="pivot-empty">Error al cargar. <button class="dpset" onclick="arcCargar()">Reintentar</button></div>'; });
+    msg=>{ $('arcBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'desconocido')+' <button class="dpset" onclick="arcCargar()">Reintentar</button></div>'; });
 }
 
 function arcFiltrar(){

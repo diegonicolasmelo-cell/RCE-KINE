@@ -327,7 +327,16 @@ function generarTextoEvolucion(d) {
     if (v('KTM_IMT_DES')) imt += `, descanso ${v('KTM_IMT_DES')} seg entre series`;
     txt.push(imt + '.');
   }
-  if (esVerdadero(d.KTM_EMS)) txt.push('Se realiza electroestimulación neuromuscular (EMS).');
+  if (esVerdadero(d.KTM_EMS)) {
+    let ems = 'Se realiza electroestimulación neuromuscular (EMS)';
+    if (v('KTM_EMS_GRUPO')) ems += ` en ${v('KTM_EMS_GRUPO').toLowerCase()}`;
+    const emsP = [v('KTM_EMS_FREQ') ? `${v('KTM_EMS_FREQ')} Hz` : '',
+                  v('KTM_EMS_INT') ? `${v('KTM_EMS_INT')} mA` : '',
+                  v('KTM_EMS_PULSO') ? `ancho de pulso ${v('KTM_EMS_PULSO')} µs` : ''].filter(Boolean);
+    if (emsP.length) ems += ` (${emsP.join(', ')})`;
+    if (v('KTM_EMS_T')) ems += ` por ${v('KTM_EMS_T')} min`;
+    txt.push(ems + '.');
+  }
   if (esVerdadero(d.KTM_ALERTA)) {
     txt.push(`KTM suspendida durante la sesión por señal de alerta ${(v('KTM_ALERTA_CAT') || '').toLowerCase()}: ${v('KTM_ALERTA_RAZ') || 'sin especificar'}.`);
   }
@@ -349,7 +358,8 @@ function generarTextoEvolucion(d) {
     if (v('EVAL_T_HALLAZGOS')) ev.push(`Ecografía: ${v('EVAL_T_HALLAZGOS')}`);
     if (v('EVAL_T_CUAD_D') || v('EVAL_T_CUAD_I')) ev.push(`Grosor cuádriceps D/I ${v('EVAL_T_CUAD_D') || '—'}/${v('EVAL_T_CUAD_I') || '—'} mm`);
     if (v('EVAL_DEGLUCION')) ev.push(`Deglución: ${v('EVAL_DEGLUCION')}`);
-    if (v('EVAL_NIVEL_MOTOR')) ev.push(`Hito motor ${v('EVAL_NIVEL_MOTOR')}/6`);
+    if (v('EVAL_IMS')) ev.push(`IMS ${v('EVAL_IMS')}/10`);
+    else if (v('EVAL_NIVEL_MOTOR')) ev.push(`Hito motor ${v('EVAL_NIVEL_MOTOR')}/6`); // legacy
     if (ev.length) txt.push('Evaluaciones funcionales: ' + ev.join('; ') + '.');
   })();
 

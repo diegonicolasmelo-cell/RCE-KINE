@@ -159,7 +159,9 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     sas: e ? val(e.SED_SAS) : '',
     bnm: e ? esVerdadero(e.SED_BNM) : false,
     cooperacion: val(e && e.SED_COOPERACION, c.ULT_COOP),
-    dva: e ? String(e.HEMO_DVA || '').replace('Sin requerimientos', '') : '',
+    // El valor guardado ya trae el prefijo 'DVA' ('DVA dosis media'); se quita
+    // aquí porque la ficha lo antepone al renderizar (evita 'DVA DVA dosis media').
+    dva: e ? String(e.HEMO_DVA || '').replace('Sin requerimientos', '').replace(/^DVA\s*/i, '') : '',
     hemoEstado: e ? val(e.HEMO_ESTADO) : '',
     secr: e ? [e.RESP_SECR_REOL, e.RESP_SECR_QTY].filter(function (x) { return x; }).join(' ') : '',
     ktmNivel: e ? val(e.KTM_NIVEL_KTR, '') : val(c.KTM_NIVEL, ''),
