@@ -7523,9 +7523,18 @@ function renderStats(d){
   h+=`<div class="dcard"><div class="dcard-h">🏠 Destinos de egreso</div>${_bars(eg.destinos,'#16a34a')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🧾 Motivos de egreso</div>${_bars(eg.motivos,'#0891b2')}</div>`;
   h+='</div>';
+  // DAUCI en vivo: evaluaciones del período (no espera al egreso)
+  const dv=d.dauciEval||{};
+  if((dv.evaluados||0)>0){
+    h+='<div class="dash-sec-title">Debilidad adquirida (evaluaciones del período)</div><div class="kpi-grid">';
+    h+=_kpi('DAUCI detectada', (dv.dauciPct||0)+'%', `${dv.dauci||0} de ${dv.evaluados||0} pacientes evaluados (MRC-SS <${dv.corte||48})`, '#dc2626');
+    h+=_kpi('DAUCI severa', (dv.severa||0), `MRC-SS <${dv.corteSev||36}`, '#b91c1c');
+    h+=_kpi('Pacientes con MRC-SS', (dv.evaluados||0), 'evaluados en el período', '#0891b2');
+    h+='</div>';
+  }
   h+='<div class="dash-sec-title">Funcional al egreso</div><div class="kpi-grid">';
   h+=_kpi('Estadía promedio', (eg.diasEstadiaProm||0)+' d', `${eg.total||0} egresos en el período`, '#64748b');
-  h+=_kpi('DAUCI', (eg.dauciPct||0)+'%', `${eg.dauci||0} pacientes`, '#dc2626');
+  h+=_kpi('DAUCI al egreso', (eg.dauciPct||0)+'%', `${eg.dauci||0} pacientes egresados`, '#dc2626');
   h+=_kpi('MRC-SS promedio', eg.mrcProm, 'al egreso', '#d97706');
   h+=_kpi('FSS-ICU promedio', eg.fssProm, 'al egreso', '#0891b2');
   h+=_kpi('CPAx promedio', eg.cpaxProm, 'al egreso', '#7c3aed');

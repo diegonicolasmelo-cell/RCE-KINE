@@ -29,6 +29,7 @@ function obtenerStats(desde, hasta) {
 
   const pacientes = {};   // PATIENT_ID → { rem, vm }
   const vmDiasSet = {};   // 'pid|fecha' → true (días-paciente en VM)
+  const mrcUlt = {};      // PATIENT_ID → { val, key }  MRC-SS más reciente del rango (DAUCI en vivo)
   let dia = 0, noche = 0, ingresos = 0, turnosVM = 0;
   let intub = 0, ext = 0, extProg = 0, autoext = 0, pveSi = 0, pveSup = 0, pveFrus = 0;
   let decan = 0, recanul = 0, cambiosTOT = 0;
@@ -45,6 +46,13 @@ function obtenerStats(desde, hasta) {
 
     if (String(e.TURNO) === 'Noche') noche++; else dia++;
     if (esVerdadero(e.ES_INGRESO)) ingresos++;
+
+    // MRC-SS más reciente por paciente → DAUCI "en vivo" (no espera al egreso)
+    const _mrc = parseFloat(e.EVAL_T_MRC);
+    if (!isNaN(_mrc) && _mrc > 0) {
+      const kk = String(e.TURNO_KEY || (f + '-' + e.TURNO));
+      if (!mrcUlt[pid] || kk > mrcUlt[pid].key) mrcUlt[pid] = { val: _mrc, key: kk };
+    }
     if (e.VENT_SOPORTE === 'VM') { turnosVM++; vmDiasSet[pid + '|' + f] = true; pacientes[pid].vm = true; }
 
     // Eventos únicos de vía aérea
@@ -82,6 +90,18 @@ function obtenerStats(desde, hasta) {
     const nM = String(e.CAT_MOTOR_NIVEL || '').trim();
     const cm = parseInt(e.CAT_MOTOR_PJE) || 0;
     if (nM) tally(catMotor, nM); else if (cm) tally(catMotor, catNivel(cm, 4));
+  });
+
+  // ── DAUCI "en vivo": pacientes evaluados en el rango cuya última MRC-SS
+  //    indica debilidad (no espera al egreso). Usa los mismos cortes que el egreso. ──
+  const cDauci = parseFloat(leerConfig('CORTE_MRC_DAUCI', '48')) || 48;
+  const cSev = parseFloat(leerConfig('CORTE_MRC_SEVERA', '36')) || 36;
+  let mrcEval = 0, mrcDauci = 0, mrcSev = 0;
+  Object.keys(mrcUlt).forEach(pid => {
+    mrcEval++;
+    const val = mrcUlt[pid].val;
+    if (val < cDauci) mrcDauci++;
+    if (val < cSev) mrcSev++;
   });
 
   // Grupo REM: por paciente (último valor registrado), no por evolución
@@ -138,6 +158,11 @@ function obtenerStats(desde, hasta) {
       ktrSesiones: ktrSes, imtSesiones: imtSes,
     },
     procs: procs, rem: rem, catResp: catResp, catMotor: catMotor,
+    dauciEval: {
+      evaluados: mrcEval, dauci: mrcDauci, severa: mrcSev,
+      dauciPct: mrcEval > 0 ? r1(mrcDauci / mrcEval * 100) : 0,
+      corte: cDauci, corteSev: cSev,
+    },
     egresos: {
       total: arch.length, destinos: destinos, motivos: motivosEgr,
       diasEstadiaProm: diasN > 0 ? r1(diasTot / diasN) : 0,
