@@ -3338,7 +3338,7 @@ function fillForm(s) {
   chk('cHAct',s.VENT_H_ACTIVA);
   // params
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
-   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
+   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],['r_pafi','VENT_PAFI'],
    ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
    ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
    ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
@@ -3535,7 +3535,7 @@ function fillFormReplica(s) {
   set('fTQTn',s.VENT_TQT_CALIBRE); set('fTQTt',s.VENT_TQT_TIPO);
   chk('cHAct',s.VENT_H_ACTIVA);
   [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
-   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],
+   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],['r_pafi','VENT_PAFI'],
    ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
    ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
    ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
@@ -3797,7 +3797,7 @@ function guardar() {
     VENT_VT:n(v('r_vt')), VENT_FR:n(v('r_fr')), VENT_PEEP:n(v('r_peep')),
     VENT_PMAX:n(v('r_pmax')), VENT_PMEDIA:n(v('r_pmedia')), VENT_PPL:n(v('r_ppl')),
     VENT_PS:n(v('r_ps')), VENT_IPAP:n(v('r_ipap')), VENT_IPAP_MAX:n(v('r_ipapmax')), VENT_EPAP:n(v('r_epap')),
-    VENT_PINSP:n(v('r_pinsp')), VENT_FIO2:n(v('r_fio2')), VENT_SPO2:n(v('r_spo2')),
+    VENT_PINSP:n(v('r_pinsp')), VENT_FIO2:n(v('r_fio2')), VENT_SPO2:n(v('r_spo2')), VENT_PAFI:n(v('r_pafi')),
     VENT_FLUJO:n(v('r_flujo')), VENT_TI:n(v('r_ti')), VENT_TEMP:n(v('r_temp')),
     VENT_LITROS:n(v('r_litros')),
     VENT_AUTOPEEP:n(v('r_autopeep')), VENT_P01:n(v('r_p01')), VENT_DPOCC:n(v('r_dpocc')),
@@ -3929,6 +3929,9 @@ function guardar() {
     FASE_JSON: JSON.stringify(Array.from(FASES_SEL)),
     PLAN_PENDIENTES: JSON.stringify(Array.from(PEND_SEL)),
     PLAN_PLANES:v('fPlanes'), PLAN_NOTA_TURNO:v('fNota'), PLAN_FIRMA_KINE:v('fFirma'),
+    // Texto EXACTO de la vista previa: el servidor lo respeta al guardar, así el
+    // texto guardado es idéntico al que el kinesiólogo revisó en la vista previa.
+    TEXTO_GENERADO: genTexto(),
   };
   _podarEventosPayload(datos);
   const btn=$('btnGuardar'); btn.disabled=true; btn.textContent='⏳ Guardando...';
@@ -4565,8 +4568,13 @@ function genTexto() {
   else if(sed==='Fuera de escalón') s=`Sedación fuera de escalón${sas?' (SAS '+sas+')':''}.`;
   else if(sed.startsWith('Escalón')) s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
   else s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
+  // GCS: en intubado el total ("11T") y la verbal ("1T") ya vienen con "T"
+  // desde calcGCS; el sufijo /15 solo aplica a paciente sin vía aérea artificial.
   s+=` GCS ${gcsT}${intub?'':'/15'}(O:${gv('fGCSO')||'?'}, V:${gv('fGCSV')||'?'}, M:${gv('fGCSM')||'?'})`;
-  if(coop) s+=`, ${coop}`;
+  // Cooperación: solo se informa si el paciente NO está profundamente sedado
+  // (SAS distinto de 1-2, o GCS total > 7). En sedación profunda no aplica.
+  { const _sasN=parseInt(sas,10), _gcsN=parseInt(gcsT,10);
+    if(coop && ((!isNaN(_sasN)&&_sasN!==1&&_sasN!==2)||(!isNaN(_gcsN)&&_gcsN>7))) s+=`, ${coop}`; }
   if(camicu==='pos') s+=', CAM-ICU positivo';
   else if(camicu==='neg') s+=', CAM-ICU negativo';
   else if(camicu==='ne') s+=', CAM-ICU no evaluable';
@@ -4648,7 +4656,7 @@ function genTexto() {
       _numTxt('l_dp')?`DP ${_numTxt('l_dp')} cmH2O`:null,
       _numTxt('l_cesr')?`Cesr ${_numTxt('l_cesr')} ml/cmH2O`:null,
     ]);
-    const _l3=_pjoin([fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null]);
+    const _l3=_pjoin([fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null, _np('r_pafi')?`PaFiO2 ${_np('r_pafi')}`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null]);
     if(_l1) L.push(`TV: ${_l1}.`);
     if(_l2) L.push(`${_l2}.`);
     if(_l3) L.push(`${_l3}.`);
@@ -4658,7 +4666,7 @@ function genTexto() {
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
     L.push(vs+'.');
     const _psVni=(ip>0&&ep>0)?Math.round((ip-ep)*10)/10:0;
-    const _pb=_pjoin([ip?`IPAP ${ip}${ipmax?'–'+ipmax:''} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null]);
+    const _pb=_pjoin([ip?`IPAP ${ip}${ipmax?'–'+ipmax:''} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null, _np('r_pafi')?`PaFiO2 ${_np('r_pafi')}`:null]);
     if(_pb) L.push(`TV: ${_pb}.`);
   } else if(sop==='CNAF'){
     const fl=_np('r_flujo');
@@ -4813,7 +4821,7 @@ function genTexto() {
     if(gv('fFedD')||gv('fFedI')) ev.push(`FED D/I ${gv('fFedD')||'—'}/${gv('fFedI')||'—'} %`);
     if(gv('fExcD')||gv('fExcI')) ev.push(`Excursión diafragmática D/I ${gv('fExcD')||'—'}/${gv('fExcI')||'—'} cm`);
     if(gv('fDeglucion')) ev.push(`Deglución: ${gv('fDeglucion')}`);
-    if(gv('fIMS')!=='') ev.push(`IMS ${gv('fIMS')}/10`);
+    { const _ims=$('fIMS')?.value; if(_ims!==''&&_ims!=null) ev.push(`IMS ${_ims}/10`); }
     if(ev.length) L.push('Evaluaciones funcionales: ' + ev.join('; ') + '.');
   }
   // Extubación + PVE — texto clínico unificado
@@ -5201,30 +5209,30 @@ function renderParams() {
   if(modo==='ACVC'){
     h+=`<div class="row">${fld('r_vt','VT ml',80)}<div class="col" style="width:60px;flex-grow:0;"><label></label><span id="l_mlkg" style="font-size:.68rem;font-weight:700;color:#64748b;display:block;margin-top:24px;">--</span></div>${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_flujo','Flujo L/m',78)}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}</div>`;
     h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_pmedia','Pmedia',70)}${fld('r_peep','PEEP',70)}${fld('r_ppl','Ppl',70)}${fld('r_autopeep','AutoPEEP',80)}${mon('l_dp','DP',true)}${mon('l_cesr','Cesr',true)}</div>`;
-    h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
+    h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;
   } else if(modo==='ACPC'){
     h+=`<div class="row">${fld('r_pinsp','Pinsp',80)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}</div>`;
-    h+=`<div class="row">${fld('r_peep','PEEP',70)}${fld('r_pmax','Pmax',70)}${fld('r_autopeep','AutoPEEP',80)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
+    h+=`<div class="row">${fld('r_peep','PEEP',70)}${fld('r_pmax','Pmax',70)}${fld('r_autopeep','AutoPEEP',80)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;
   } else if(modo==='CPAP/PS'){
     h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${mon('l_tobin','I.Tobin',true)}${_umaFld()}</div>`;
-    h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
+    h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;
     h+=`<details style="margin-top:6px;border:1px solid #e2e8f0;border-radius:7px;padding:6px 10px;background:#f8fafc;">
       <summary style="font-size:.75rem;font-weight:700;color:#475569;cursor:pointer;" title="Índices de esfuerzo inspiratorio en ventilación espontánea: P0.1 (drive), ΔPocc (presión de oclusión) y Pmusc estimada. Útiles para evaluar sobre/sub-asistencia en CPAP/PS.">📈 Monitoreo avanzado (P0.1 · ΔPocc · Pmusc) ⓘ</summary>
       <div class="row" style="margin-top:6px;">${fld('r_p01','P0.1',70)}${fld('r_dpocc','ΔPocc',70)}${fld('r_pmusc','Pmusc',70)}</div>
     </details>`;
   } else if(modo==='S/T'){
     h+=`<div class="row">${fld('r_ipap','IPAP',80)}${fld('r_epap','EPAP',80)}${mon('l_pscalc','PS calc.',true)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}${_umaFld()}</div>`;
-    if(sop==='VNI'){h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;}
+    if(sop==='VNI'){h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;}
   } else if(modo==='AVAPS'){
     h+=`<div class="row">${fld('r_ipap','IPAP min',88)}${fld('r_ipapmax','IPAP max',88)}${fld('r_epap','EPAP',80)}${_umaFld()}</div>`;
     h+=`<div class="row">${fld('r_vt','VT med.',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}</div>`;
-    h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}</div>`;
+    h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;
   } else if(modo==='CPAP'){
-    h+=`<div class="row">${fld('r_peep','CPAP',80)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld('r_peep','CPAP',80)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}${_umaFld()}</div>`;
   } else if(modo==='CFLEX'){
-    h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_tobin','I.Tobin',true)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_tobin','I.Tobin',true)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}${_umaFld()}</div>`;
   } else if(['CNAF','OAF/CTAF'].includes(modo)){
-    h+=`<div class="row">${fld('r_flujo','Flujo L/m',80)}${fld('r_temp','T° °C',70)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${mon('l_irox','IROX',true)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld('r_flujo','Flujo L/m',80)}${fld('r_temp','T° °C',70)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}${mon('l_irox','IROX',true)}${_umaFld()}</div>`;
   } else if(modo==='NRC'){
     h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${mon('l_fio2nrc','FiO₂~')}${_umaFld()}</div>`;
   } else if(['HME','Tubo T'].includes(modo)){

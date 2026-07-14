@@ -27,6 +27,14 @@ function guardarEvolucion(datos, ctx) {
       datos.FECHA = fecha;
       datos.TURNO = turno;
 
+      // La vista previa (cliente) ya generó el texto que el kinesiólogo revisó:
+      // se respeta tal cual para que el texto GUARDADO sea IDÉNTICO al de la
+      // vista previa (antes divergían por usar dos generadores distintos). Se
+      // captura ANTES de la fusión con la fila previa (que podría reinyectar un
+      // texto antiguo). Fallback al generador del servidor si no viene (llamadas
+      // API sin navegador, como los smoke tests).
+      const _textoCliente = String(datos.TEXTO_GENERADO || '').trim();
+
       // ── Fusión con lo ya guardado ──
       // Los eventos únicos (PVE/extubación, decanulación, intubación,
       // reintubación, cambio de tubo) viajan en el payload SOLO el turno en
@@ -112,8 +120,8 @@ function guardarEvolucion(datos, ctx) {
         datos.APNEA_ULTIMO = apRes + ' (' + fecha + ')';
       }
 
-      // Texto clínico
-      datos.TEXTO_GENERADO = generarTextoEvolucion(datos);
+      // Texto clínico: el de la vista previa (cliente) si vino; si no, se genera.
+      datos.TEXTO_GENERADO = _textoCliente || generarTextoEvolucion(datos);
 
       // Procedimientos del turno
       let procs = [];

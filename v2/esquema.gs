@@ -173,6 +173,7 @@ const _COLS_EVOLUCIONES = [
   ['KTM_EMS_T','texto'],['KTM_EMS_GRUPO','texto'],
   // IMS — ICU Mobility Scale 0-10 (reemplaza al hito motor 1-6; EVAL_NIVEL_MOTOR queda legacy)
   ['EVAL_IMS','texto'],
+  ['VENT_PAFI','decimal'],  // PaFiO2 (PaO2/FiO2) del turno
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -558,7 +559,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 292) errs.push('EVOLUCIONES != 292 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 293) errs.push('EVOLUCIONES != 293 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

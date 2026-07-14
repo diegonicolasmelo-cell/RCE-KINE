@@ -41,10 +41,14 @@ function generarTextoEvolucion(d) {
              : (sed === 'Sin sedación')      ? 'Sin sedoanalgesia.'
              : (sed === 'Fuera de escalón')   ? `Sedación fuera de escalón${sas ? ' (SAS ' + sas + ')' : ''}.`
              : `Sedado en ${sed.toLowerCase()}${sas ? ' para SAS ' + sas : ''}.`;
+  // GCS: el total (SED_GCS_TOT="11T") y la verbal (SED_GCS_V="1T") ya vienen con
+  // "T" desde el cliente en intubado; /15 solo para paciente sin VA artificial.
   sedStr += ` GCS ${gcsTot}${intubado ? '' : '/15'}(O:${gcsO}, V:${gcsV}, M:${gcsM})`;
   const s5qTxt = s5q === 'lt3' ? '<3' : (s5q === 'gte3' ? '≥3' : s5q);
   if (s5q)  sedStr += `, S5Q ${s5qTxt}/5`;
-  if (coop) sedStr += ` (${coop})`;
+  // Cooperación: solo si NO está profundamente sedado (SAS ≠ 1-2 o GCS > 7).
+  const _sasN = parseInt(sas, 10), _gcsN = parseInt(gcsTot, 10);
+  if (coop && ((!isNaN(_sasN) && _sasN !== 1 && _sasN !== 2) || (!isNaN(_gcsN) && _gcsN > 7))) sedStr += `, ${coop}`;
   sedStr += '.';
   if (bnm) sedStr += ' Bajo BNM.';
   txt.push(sedStr);
@@ -101,6 +105,7 @@ function generarTextoEvolucion(d) {
   const ipap = vn('VENT_IPAP'), epap = vn('VENT_EPAP'), ps = vn('VENT_PS');
   const flujo = vn('VENT_FLUJO'), irox = vn('CALC_IROX'), tobin = vn('CALC_TOBIN');
   const hact = esVerdadero(d.VENT_H_ACTIVA);
+  const pafi = vn('VENT_PAFI');
 
   let ventStr = '';
   if (sop === 'VM') {
@@ -138,6 +143,7 @@ function generarTextoEvolucion(d) {
     const l3 = j([
       fio2 > 0 ? `FiO₂ ${fio2}%` : null,
       spo2 > 0 ? `SpO₂ ${spo2}%` : null,
+      pafi > 0 ? `PaFiO₂ ${pafi}` : null,
       umaVM ? `UMA ${umaVM}` : null,
     ]);
     if (l1) txt.push(`TV: ${l1}.`);
@@ -149,6 +155,7 @@ function generarTextoEvolucion(d) {
     if (vt > 0) ventStr += `, VT ${vt} ml`;
     if (fio2 > 0) ventStr += `, FiO₂ ${fio2}%`;
     if (spo2 > 0) ventStr += `, SpO₂ ${spo2}%`;
+    if (pafi > 0) ventStr += `, PaFiO₂ ${pafi}`;
     txt.push(ventStr + '.');
   } else if (modo === 'CNAF' || modo === 'OAF/CTAF' || sop === 'CNAF') {
     // v2: CNAF/OAF es un MODO bajo soporte 'Oxigenoterapia/OAF' (sop==='CNAF' cubre filas v1)
