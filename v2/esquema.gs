@@ -251,6 +251,20 @@ const ESQUEMA = {
     ['DAUCI','bool'],['MRC_INTERP','texto'],['FSS_INTERP','texto'],['DINAMO_INTERP','texto'],
     ['DINAMO_EGRESO','decimal'],['CPAX_EGRESO','entero'],
   ]},
+  // ── Ventiladores de la unidad: inventario vivo + trazabilidad de movimientos ──
+  VENTILADORES: { headerRows: 1, cols: [
+    ['ID_VM','texto'],['NOMBRE','texto'],['MARCA','texto'],['MODELO','texto'],
+    ['NUM_SERIE','texto'],['NUM_INVENTARIO','texto'],['ANIO_ADQ','entero'],
+    ['UBIC_TIPO','texto'],       // CAMA | BODEGA | PRESTAMO
+    ['UBIC_DETALLE','texto'],    // n° de cama, o unidad externa del préstamo
+    ['FECHA_UBICACION','texto'], // desde cuándo está en esa ubicación (ISO)
+    ['ESTADO','texto'],          // Operativo | En mantención | Con falla | De baja
+    ['ACTIVO','bool'],['OBS','texto'],['TIMESTAMP','ts'],
+  ]},
+  MOVIMIENTOS_VM: { headerRows: 1, cols: [
+    ['ID_MOV','texto'],['ID_VM','texto'],['TIMESTAMP','ts'],['FECHA','texto'],
+    ['DESDE','texto'],['HACIA','texto'],['MOTIVO','texto'],['FIRMA','texto'],['AUTOR_EMAIL','email'],
+  ]},
   KINESIOLOGOS: { headerRows: 1, cols: [
     ['FIRMA','texto'],['NOMBRE','texto'],['EMAIL','email'],['APOYO','bool'],['ACTIVO','bool'],
   ]},

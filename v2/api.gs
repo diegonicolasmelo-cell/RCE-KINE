@@ -43,6 +43,8 @@ function api(accion, datos, token) {
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);
       case 'GET_STATS':        return obtenerStats(datos.desde, datos.hasta);
       case 'GET_ARCHIVADOS':   return obtenerArchivados(datos);
+      case 'GET_VENTILADORES': return obtenerVentiladores();
+      case 'GET_MOVIMIENTOS_VM': return obtenerMovimientosVM(datos.idVm || '', datos.limite || 40);
       case 'GET_ENTREGA_TURNO':  return obtenerEntregaTurno(datos.idCamas, datos.fecha, datos.turno);
       case 'GET_ENTREGAS_TURNO': return obtenerEntregasTurno(datos.limite || 30);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
@@ -70,6 +72,12 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => guardarEntregaTurno(datos, ctx));
       case 'GENERAR_REM':
         return _auditar(ctx, accion, () => generarREM(datos.anio, datos.mes, ctx));
+      case 'GUARDAR_VENTILADOR':
+        return _auditar(ctx, accion, () => guardarVentilador(datos, ctx));
+      case 'MOVER_VENTILADOR':
+        return _auditar(ctx, accion, () => moverVentilador(datos, ctx));
+      case 'BAJA_VENTILADOR':
+        return _auditar(ctx, accion, () => bajaVentilador(datos, ctx));
 
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);

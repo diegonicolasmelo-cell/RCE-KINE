@@ -762,6 +762,7 @@ table.rhb2 .rl{width:128px;text-align:left;}
   <button class="tab" id="tabD" onclick="setTab('D')">📊 ESTADÍSTICAS</button>
   <button class="tab" id="tabE" onclick="setTab('E')">📑 ENTREGA</button>
   <button class="tab" id="tabA" onclick="setTab('A')">🗃️ ARCHIVADOS</button>
+  <button class="tab" id="tabV" onclick="setTab('V')">🔧 VENTILADORES</button>
 </div>
 
 <!-- BANNER RETROSPECTIVO (cuando la fecha seleccionada no es hoy) -->
@@ -894,6 +895,102 @@ table.rhb2 .rl{width:128px;text-align:left;}
     </div>
     <div id="arcBody" style="overflow-x:auto;background:#fff;border:1px solid var(--border);border-radius:10px;">
       <div class="pivot-empty">Cargando archivados…</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB VENTILADORES (seguimiento de equipos) -->
+<div class="tc-wrap" id="tcV">
+  <div class="dash">
+    <div class="dash-bar">
+      <div class="dash-bar-title">🔧 Ventiladores de la unidad — <span id="vmCount" style="color:var(--pdark);">…</span></div>
+      <div class="dash-range">
+        <button class="dpset" onclick="vmNuevo()">＋ Agregar ventilador</button>
+        <button class="dpset" onclick="vmCargar()">↻ Actualizar</button>
+      </div>
+    </div>
+    <div id="vmAlerta"></div>
+    <div id="vmBody"><div class="pivot-empty">Cargando ventiladores…</div></div>
+  </div>
+</div>
+
+<!-- MODAL FICHA/ALTA VENTILADOR -->
+<div class="tlmodal" id="vmMod" role="dialog" aria-modal="true" style="width:min(560px,94vw);max-height:90vh;">
+  <div class="phdr">
+    <div class="ptitle" id="vmModTit">🔧 Ventilador</div>
+    <button class="xbtn" onclick="vmCerrarMod()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:16px 22px;overflow-y:auto;">
+    <input type="hidden" id="vmfId">
+    <div class="row">
+      <div class="col grow"><label>Nombre / código *</label><input type="text" id="vmfNombre" placeholder="VM-01" style="height:36px;"></div>
+      <div class="col wa"><label>Año adquisición</label><input type="number" id="vmfAnio" min="1990" max="2100" placeholder="2022" style="height:36px;width:110px;"></div>
+    </div>
+    <div class="row">
+      <div class="col grow"><label>Marca</label><input type="text" id="vmfMarca" placeholder="Dräger, Mindray…" style="height:36px;"></div>
+      <div class="col grow"><label>Modelo</label><input type="text" id="vmfModelo" placeholder="Evita V300…" style="height:36px;"></div>
+    </div>
+    <div class="row">
+      <div class="col grow"><label>N° de serie</label><input type="text" id="vmfSerie" style="height:36px;"></div>
+      <div class="col grow"><label>N° de inventario</label><input type="text" id="vmfInvent" style="height:36px;"></div>
+    </div>
+    <div class="row" id="vmfUbicRow">
+      <div class="col wa"><label>Ubicación inicial</label>
+        <select id="vmfUbicTipo" onchange="vmfUbicUI()" style="height:36px;">
+          <option value="BODEGA">📦 Bodega</option>
+          <option value="CAMA">🛏️ Cama</option>
+          <option value="PRESTAMO">🔁 Préstamo</option>
+        </select></div>
+      <div class="col wa hidden" id="vmfCamaBox"><label>Cama</label><select id="vmfCama" style="height:36px;"></select></div>
+      <div class="col wa hidden" id="vmfUniBox"><label>Unidad</label>
+        <select id="vmfUnidad" style="height:36px;">
+          <option>Urgencias</option><option>UTI</option><option>Medicina</option>
+          <option>Neurología</option><option>Cirugía</option><option>Otra</option>
+        </select></div>
+      <div class="col wa"><label>Desde</label><input type="date" id="vmfFecha" style="height:36px;"></div>
+    </div>
+    <div class="row">
+      <div class="col wa"><label>Estado</label>
+        <select id="vmfEstado" style="height:36px;">
+          <option>Operativo</option><option>En mantención</option><option>Con falla</option>
+        </select></div>
+      <div class="col grow"><label>Observaciones</label><input type="text" id="vmfObs" style="height:36px;"></div>
+    </div>
+    <div style="display:flex;gap:9px;padding-top:12px;border-top:1px solid #e2e8f0;">
+      <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMod()">Cancelar</button>
+      <button type="button" id="vmfBtn" class="btn btn-p" onclick="vmGuardar()">💾 Guardar ventilador</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MOVER VENTILADOR -->
+<div class="tlmodal" id="vmMove" role="dialog" aria-modal="true" style="width:min(480px,94vw);max-height:82vh;">
+  <div class="phdr">
+    <div class="ptitle" id="vmMoveTit">🔁 Mover ventilador</div>
+    <button class="xbtn" onclick="vmCerrarMove()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:16px 22px;overflow-y:auto;">
+    <input type="hidden" id="vmmId">
+    <div id="vmmDesde" style="font-size:.82rem;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin-bottom:12px;"></div>
+    <div class="row">
+      <div class="col wa"><label>Destino</label>
+        <select id="vmmTipo" onchange="vmmUI()" style="height:36px;">
+          <option value="CAMA">🛏️ Cama</option>
+          <option value="BODEGA">📦 Bodega</option>
+          <option value="PRESTAMO">🔁 Préstamo a otra unidad</option>
+        </select></div>
+      <div class="col wa" id="vmmCamaBox"><label>Cama</label><select id="vmmCama" style="height:36px;"></select></div>
+      <div class="col wa hidden" id="vmmUniBox"><label>Unidad</label>
+        <select id="vmmUnidad" style="height:36px;">
+          <option>Urgencias</option><option>UTI</option><option>Medicina</option>
+          <option>Neurología</option><option>Cirugía</option><option>Otra</option>
+        </select></div>
+      <div class="col wa"><label>Fecha</label><input type="date" id="vmmFecha" style="height:36px;"></div>
+    </div>
+    <div class="row"><div class="col grow"><label>Motivo (opcional)</label><input type="text" id="vmmMotivo" placeholder="Recambio, falla, requerimiento clínico…" style="height:36px;"></div></div>
+    <div style="display:flex;gap:9px;padding-top:12px;border-top:1px solid #e2e8f0;">
+      <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMove()">Cancelar</button>
+      <button type="button" class="btn btn-p" onclick="vmMoverOk()">🔁 Mover</button>
     </div>
   </div>
 </div>
@@ -6764,7 +6861,7 @@ function chequearReloj(){
 // ══════════ ESTADÍSTICAS (tab 📊) ══════════
 function setTab(t){
   ATAB=t;
-  ['G','P','D','E','A'].forEach(k=>{
+  ['G','P','D','E','A','V'].forEach(k=>{
     $('tc'+k).classList.toggle('on', t===k);
     $('tab'+k).classList.toggle('on', t===k);
   });
@@ -6772,6 +6869,7 @@ function setTab(t){
   if(t==='E') initEntrega();
   if(t==='A') initArchivados();
   if(t==='P') renderTabla();
+  if(t==='V') initVentiladores();
 }
 
 // ══ REGISTRO DIARIO (pestaña 📋, portado de v1 "Pacientes") ═══════════════
@@ -7077,6 +7175,169 @@ function arcCSV(){
   aEl.href=URL.createObjectURL(blob);
   aEl.download=`RCE_KINE_archivados_${hoy()}.csv`;
   aEl.click(); URL.revokeObjectURL(aEl.href);
+}
+
+// ══ VENTILADORES (pestaña 🔧) — inventario vivo + movimientos ═════════════
+let VM_ALL=null;
+const VM_EST_COL={'Operativo':'#16a34a','En mantención':'#d97706','Con falla':'#dc2626','De baja':'#64748b'};
+
+function initVentiladores(){ if(VM_ALL===null) vmCargar(); else vmRender(); }
+
+function vmCargar(){
+  $('vmBody').innerHTML='<div class="pivot-empty">Cargando ventiladores…</div>';
+  gs('GET_VENTILADORES',{},r=>{ VM_ALL=r||[]; vmRender(); },
+    msg=>{ $('vmBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'')+' <button class="dpset" onclick="vmCargar()">Reintentar</button></div>'; });
+}
+
+function _vmCard(x){
+  const col=VM_EST_COL[x.estado]||'#64748b';
+  const d=x.fechaUbicacion?(dias(x.fechaUbicacion,v('gDate')||hoy())+1):null;
+  const meta=[x.marca,x.modelo].filter(Boolean).join(' ');
+  const ids=[x.serie?`Serie ${x.serie}`:'',x.inventario?`Inv. ${x.inventario}`:'',x.anio?`Adq. ${x.anio}`:''].filter(Boolean).join(' · ');
+  // Paciente al que ventila (cruce con el censo): informativo
+  let pac='';
+  if(x.ubicTipo==='CAMA'){
+    const c=(DB||[]).find(k=>String(k.ID_CAMA)===String(x.ubicDetalle));
+    if(c&&(c.OCUPADA===true||c.OCUPADA==='TRUE')&&c.SOPORTE==='VM') pac=`<div style="font-size:.72rem;color:#0369a1;">🫁 Ventilando a ${c.NOMBRE||'paciente'}</div>`;
+    else pac='<div style="font-size:.72rem;color:#94a3b8;">Sala sin paciente en VM</div>';
+  }
+  return `<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:11px 13px;display:flex;flex-direction:column;gap:4px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <span style="font-weight:800;color:#0f172a;">${x.nombre||'—'}</span>
+      <span style="background:${col}18;color:${col};border:1px solid ${col}55;border-radius:12px;padding:1px 9px;font-size:.68rem;font-weight:800;white-space:nowrap;">${x.estado}</span>
+    </div>
+    ${meta?`<div style="font-size:.8rem;color:#475569;">${meta}</div>`:''}
+    ${ids?`<div style="font-size:.7rem;color:#94a3b8;">${ids}</div>`:''}
+    <div style="font-size:.74rem;color:#64748b;">📍 ${x.ubicTipo==='CAMA'?`Cama ${x.ubicDetalle}`:(x.ubicTipo==='PRESTAMO'?`Préstamo: ${x.ubicDetalle}`:'Bodega')}${d?` · día ${d}`:''}${x.fechaUbicacion?` (desde ${x.fechaUbicacion.slice(8,10)}-${x.fechaUbicacion.slice(5,7)})`:''}</div>
+    ${pac}
+    ${x.obs?`<div style="font-size:.72rem;color:#92400e;background:#fffbeb;border-radius:6px;padding:3px 8px;">${x.obs}</div>`:''}
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
+      ${x.activo?`<button class="dpset" onclick="vmMover('${x.id}')">🔁 Mover</button>
+      <button class="dpset" onclick="vmEditar('${x.id}')">✏️ Editar</button>`:''}
+      <button class="dpset" onclick="vmHist('${x.id}')">🕘 Historial</button>
+      ${x.activo?`<button class="dpset" style="color:#b91c1c;" onclick="vmBaja('${x.id}')">⛔ Baja</button>`:''}
+    </div>
+    <div id="vmh_${x.id}" class="hidden" style="font-size:.74rem;color:#475569;border-top:1px dashed var(--border);padding-top:6px;"></div>
+  </div>`;
+}
+
+function vmRender(){
+  const act=(VM_ALL||[]).filter(x=>x.activo);
+  const bajas=(VM_ALL||[]).filter(x=>!x.activo);
+  const enCama=act.filter(x=>x.ubicTipo==='CAMA').sort((a,b)=>(+a.ubicDetalle)-(+b.ubicDetalle));
+  const bodega=act.filter(x=>x.ubicTipo!=='CAMA'&&x.ubicTipo!=='PRESTAMO');
+  const prest=act.filter(x=>x.ubicTipo==='PRESTAMO');
+  $('vmCount').textContent=`${act.length} operativos (${enCama.length} en salas · ${bodega.length} en bodega · ${prest.length} prestados)`;
+
+  // Alerta de cruce: pacientes en VM en camas sin ventilador asignado
+  const camasConVM=new Set(enCama.map(x=>String(x.ubicDetalle)));
+  const sinEquipo=(DB||[]).filter(c=>(c.OCUPADA===true||c.OCUPADA==='TRUE')&&c.SOPORTE==='VM'&&!camasConVM.has(String(c.ID_CAMA))).map(c=>c.ID_CAMA);
+  $('vmAlerta').innerHTML=sinEquipo.length
+    ?`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:9px 14px;margin-bottom:12px;font-size:.82rem;color:#991b1b;"><b>⚠️ Camas con paciente en VM sin ventilador asignado:</b> ${sinEquipo.join(', ')} — asigna el equipo para mantener la trazabilidad.</div>`:'';
+
+  const secc=(t,arr,vacio)=>`<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin:14px 0 8px;">${t}</div>`+
+    (arr.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;">${arr.map(_vmCard).join('')}</div>`
+      :`<div style="font-size:.8rem;color:#94a3b8;font-style:italic;">${vacio}</div>`);
+  let h=secc(`🛏️ En salas (${enCama.length})`,enCama,'Ningún ventilador asignado a salas.');
+  h+=secc(`📦 Bodega (${bodega.length})`,bodega,'Bodega sin stock disponible.');
+  h+=secc(`🔁 Prestados a otras unidades (${prest.length})`,prest,'Sin préstamos vigentes.');
+  if(bajas.length) h+=`<details style="margin-top:14px;"><summary style="font-size:.75rem;color:#94a3b8;cursor:pointer;">⛔ Dados de baja (${bajas.length})</summary>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:8px;opacity:.7;">${bajas.map(_vmCard).join('')}</div></details>`;
+  $('vmBody').innerHTML=h;
+}
+
+// ── Alta / edición ──
+function _vmFillCamas(sel){
+  const n=(window.CFG&&CFG.NUM_CAMAS)||18;
+  sel.innerHTML=Array.from({length:n},(_,i)=>`<option>${i+1}</option>`).join('');
+}
+function vmNuevo(){
+  $('vmModTit').textContent='➕ Agregar ventilador';
+  ['vmfId','vmfNombre','vmfMarca','vmfModelo','vmfSerie','vmfInvent','vmfAnio','vmfObs'].forEach(id=>$(id).value='');
+  $('vmfEstado').value='Operativo';
+  $('vmfUbicTipo').value='BODEGA'; _vmFillCamas($('vmfCama')); vmfUbicUI();
+  $('vmfFecha').value=v('gDate')||hoy();
+  show('vmfUbicRow');
+  $('vmMod').classList.add('on'); $('ovl').classList.add('on');
+}
+function vmEditar(id){
+  const x=(VM_ALL||[]).find(k=>k.id===id); if(!x) return;
+  $('vmModTit').textContent='✏️ Editar '+(x.nombre||'ventilador');
+  $('vmfId').value=x.id; $('vmfNombre').value=x.nombre||''; $('vmfMarca').value=x.marca||'';
+  $('vmfModelo').value=x.modelo||''; $('vmfSerie').value=x.serie||''; $('vmfInvent').value=x.inventario||'';
+  $('vmfAnio').value=x.anio||''; $('vmfObs').value=x.obs||''; $('vmfEstado').value=x.estado||'Operativo';
+  hide('vmfUbicRow'); // la ubicación se cambia con 🔁 Mover (queda trazada)
+  $('vmMod').classList.add('on'); $('ovl').classList.add('on');
+}
+function vmfUbicUI(){
+  const t=v('vmfUbicTipo');
+  $('vmfCamaBox').classList.toggle('hidden',t!=='CAMA');
+  $('vmfUniBox').classList.toggle('hidden',t!=='PRESTAMO');
+}
+function vmCerrarMod(){ $('vmMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function vmGuardar(){
+  if(!v('vmfNombre').trim()){ toast('El ventilador necesita un nombre/código.'); $('vmfNombre').focus(); return; }
+  const esNuevo=!v('vmfId');
+  const d={ id:v('vmfId')||'', nombre:v('vmfNombre').trim(), marca:v('vmfMarca'), modelo:v('vmfModelo'),
+    serie:v('vmfSerie'), inventario:v('vmfInvent'), anio:v('vmfAnio'), estado:v('vmfEstado'), obs:v('vmfObs') };
+  if(esNuevo){
+    d.ubicTipo=v('vmfUbicTipo');
+    d.ubicDetalle=d.ubicTipo==='CAMA'?v('vmfCama'):(d.ubicTipo==='PRESTAMO'?v('vmfUnidad'):'');
+    d.fecha=v('vmfFecha');
+  }
+  loading(true,'Guardando ventilador…');
+  gs('GUARDAR_VENTILADOR',d,_=>{ loading(false); vmCerrarMod(); toast('✅ Ventilador guardado'); vmCargar(); },()=>loading(false));
+}
+
+// ── Mover ──
+function vmMover(id){
+  const x=(VM_ALL||[]).find(k=>k.id===id); if(!x) return;
+  $('vmmId').value=id;
+  $('vmMoveTit').textContent='🔁 Mover '+(x.nombre||'ventilador');
+  $('vmmDesde').innerHTML=`Ubicación actual: <b>${x.ubicTipo==='CAMA'?'Cama '+x.ubicDetalle:(x.ubicTipo==='PRESTAMO'?'Préstamo: '+x.ubicDetalle:'Bodega')}</b>${x.fechaUbicacion?` · desde ${x.fechaUbicacion.slice(8,10)}-${x.fechaUbicacion.slice(5,7)}`:''}`;
+  _vmFillCamas($('vmmCama'));
+  $('vmmTipo').value=x.ubicTipo==='CAMA'?'BODEGA':'CAMA'; vmmUI();
+  $('vmmFecha').value=v('gDate')||hoy(); $('vmmMotivo').value='';
+  $('vmMove').classList.add('on'); $('ovl').classList.add('on');
+}
+function vmmUI(){
+  const t=v('vmmTipo');
+  $('vmmCamaBox').classList.toggle('hidden',t!=='CAMA');
+  $('vmmUniBox').classList.toggle('hidden',t!=='PRESTAMO');
+}
+function vmCerrarMove(){ $('vmMove').classList.remove('on'); $('ovl').classList.remove('on'); }
+function vmMoverOk(){
+  const t=v('vmmTipo');
+  const d={ idVm:v('vmmId'), tipo:t, detalle:t==='CAMA'?v('vmmCama'):(t==='PRESTAMO'?v('vmmUnidad'):''),
+    fecha:v('vmmFecha'), motivo:v('vmmMotivo') };
+  loading(true,'Moviendo ventilador…');
+  gs('MOVER_VENTILADOR',d,r=>{ loading(false); vmCerrarMove(); toast('🔁 '+((r&&r.resumen)||'Ventilador movido')); vmCargar(); },()=>loading(false));
+}
+
+// ── Baja e historial ──
+function vmBaja(id){
+  const x=(VM_ALL||[]).find(k=>k.id===id); if(!x) return;
+  uiConfirm({ icono:'⛔', titulo:'Dar de baja del inventario',
+    mensaje:`<b>${x.nombre}</b> ${x.marca?`(${x.marca} ${x.modelo||''})`:''} saldrá del inventario activo.`,
+    detalle:'No se borra: queda en "Dados de baja" con todo su historial de movimientos.',
+    confirmar:'⛔ Dar de baja', tono:'rojo',
+  }).then(okC=>{
+    if(!okC) return;
+    loading(true,'Dando de baja…');
+    gs('BAJA_VENTILADOR',{idVm:id},_=>{ loading(false); toast('⛔ Ventilador dado de baja'); vmCargar(); },()=>loading(false));
+  });
+}
+function vmHist(id){
+  const box=$('vmh_'+id); if(!box) return;
+  if(!box.classList.contains('hidden')){ box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  box.innerHTML='Cargando historial…';
+  gs('GET_MOVIMIENTOS_VM',{idVm:id,limite:15},rows=>{
+    box.innerHTML=(rows&&rows.length)?rows.map(m=>{
+      const f=m.fecha?`${m.fecha.slice(8,10)}-${m.fecha.slice(5,7)}-${m.fecha.slice(2,4)}`:'';
+      return `<div style="padding:2px 0;">📅 <b>${f}</b> · ${m.desde} → <b>${m.hacia}</b>${m.motivo?` · ${m.motivo}`:''}${m.firma?` <span style="color:#94a3b8;">(${m.firma})</span>`:''}</div>`;
+    }).join(''):'Sin movimientos registrados.';
+  },()=>{ box.innerHTML='Error al cargar el historial.'; });
 }
 function dashPreset(tipo, btn){
   document.querySelectorAll('.dpset').forEach(b=>b.classList.remove('on'));
