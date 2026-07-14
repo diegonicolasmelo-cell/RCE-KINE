@@ -457,6 +457,9 @@ function _sembrar(ss) {
     ['CORTE_DINAMO_H', '11'],       // kg, hombres (Ali 2008)
     ['CORTE_DINAMO_M', '7'],        // kg, mujeres
     ['CORTE_FSS_INDEP', '27'],      // FSS-ICU >= corte = independencia funcional
+    // TEMPORAL: permite editar el texto de la vista previa en pantalla (solo
+    // demostración; NO se guarda). Poner en FALSE cuando termine el afinamiento.
+    ['EDITOR_TEXTO_DEMO', 'TRUE'],
   ];
   const cfgExist = _valoresCol(hCfg, 1, 2);
   cfgDefaults.forEach(kv => { if (cfgExist.indexOf(kv[0]) === -1) hCfg.appendRow(kv); });

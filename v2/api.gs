@@ -38,6 +38,7 @@ function api(accion, datos, token) {
         NUM_CAMAS: parseInt(leerConfig('NUM_CAMAS', '18')) || 18,
         TURNO_DIA_INICIO: parseInt(leerConfig('TURNO_DIA_INICIO', '9')) || 9,
         TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
+        EDITOR_TEXTO_DEMO: leerConfig('EDITOR_TEXTO_DEMO', 'FALSE') === 'TRUE',
         CAT_DEF: catMatrices(),
       });
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);

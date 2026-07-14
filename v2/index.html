@@ -2410,9 +2410,15 @@ table.rhb2 .rl{width:128px;text-align:left;}
 
       <!-- TEXTO GENERADO -->
       <div id="rarea" class="hidden">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="color:#94a3b8;font-size:.7rem;font-weight:700;">📄 TEXTO GENERADO (COPIA Y PEGA EN LA FICHA)</span>
-          <button type="button" class="btn btn-c" style="width:auto;padding:8px 20px;font-size:.85rem;font-weight:800;" onclick="copiar()">📋 Copiar Texto</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
+          <span style="color:#94a3b8;font-size:.7rem;font-weight:700;">📄 TEXTO GENERADO (COPIA Y PEGA EN LA FICHA)<span id="rtxtEditBadge" style="display:none;color:#b45309;"> · ✏️ editado manualmente (no se guarda)</span></span>
+          <div style="display:flex;gap:8px;">
+            <button type="button" id="btnEditarTexto" style="display:none;width:auto;padding:8px 14px;font-size:.8rem;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:8px;cursor:pointer;" onclick="toggleEditarTexto()">✏️ Editar (demo)</button>
+            <button type="button" class="btn btn-c" style="width:auto;padding:8px 20px;font-size:.85rem;font-weight:800;" onclick="copiar()">📋 Copiar Texto</button>
+          </div>
+        </div>
+        <div id="rtxtDemoBanner" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:7px 12px;margin-bottom:8px;font-size:.76rem;color:#92400e;line-height:1.5;">
+          🧪 <b>Modo edición de texto (demostración).</b> Puedes modificar el texto para mostrar el formato que quieres — <b>estos cambios NO se guardan en el sistema</b>, solo sirven para afinar el generador mientras ajustamos el formato.
         </div>
         <textarea id="rtxt" rows="20" readonly></textarea>
       </div>
@@ -3946,6 +3952,7 @@ function guardar() {
     // Texto DEFINITIVO del servidor (idéntico a lo que quedó guardado);
     // genTexto() local solo como respaldo si la respuesta no lo trae.
     $('rtxt').value = (r && r.TEXTO_GENERADO) || genTexto();
+    _marcarTextoGenerado($('rtxt').value);
     show('rarea');
     $('rarea').scrollIntoView({behavior:'smooth', block:'start'});
     // Mostrar botón cerrar y actualizar grid en background
@@ -4520,6 +4527,7 @@ _bindPanelListeners();
 //  PREVIEW TEXTO (local)
 function previewTexto() {
   $('rtxt').value = genTexto();
+  _marcarTextoGenerado($('rtxt').value);
   show('rarea');
   $('rtxt').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -4528,6 +4536,50 @@ function copiar() {
   try { document.execCommand('copy'); toast('📋 Texto copiado'); } catch(e){}
   window.getSelection()?.removeAllRanges();
 }
+
+// ── Editor de texto DEMO (temporal, mientras afinamos el generador) ──
+// Permite editar el texto de la vista previa SOLO en pantalla, para mostrar el
+// formato deseado. Los cambios NO se envían al backend (guardar() usa siempre
+// genTexto(), nunca el textarea). Se activa/desactiva desde CONFIG:
+// EDITOR_TEXTO_DEMO=TRUE/FALSE (sin re-pegar código).
+let _rtxtGen='';        // último texto GENERADO (para detectar edición manual)
+let _editTextoOn=false;  // modo edición activo
+function _aplicarEditorTextoDemo(){
+  const on = !!(window.CFG && String(CFG.EDITOR_TEXTO_DEMO)==='true');
+  const btn=$('btnEditarTexto'); if(btn) btn.style.display = on ? '' : 'none';
+  if(!on){ _desactivarEditorTexto(); }  // por si se apagó desde la planilla
+}
+// Marca el texto mostrado como "recién generado" (sin edición manual pendiente).
+function _marcarTextoGenerado(t){
+  _rtxtGen = t||'';
+  const b=$('rtxtEditBadge'); if(b) b.style.display='none';
+}
+function toggleEditarTexto(){
+  if(_editTextoOn) _desactivarEditorTexto();
+  else _activarEditorTexto();
+}
+function _activarEditorTexto(){
+  const ta=$('rtxt'); if(!ta) return;
+  _editTextoOn=true;
+  ta.readOnly=false;
+  ta.style.background='#fffdf5'; ta.style.borderColor='#f59e0b'; ta.style.borderStyle='dashed';
+  const bn=$('rtxtDemoBanner'); if(bn) bn.style.display='';
+  const btn=$('btnEditarTexto'); if(btn){ btn.textContent='🔒 Bloquear'; }
+  ta.focus();
+}
+function _desactivarEditorTexto(){
+  const ta=$('rtxt'); if(!ta) return;
+  _editTextoOn=false;
+  ta.readOnly=true;
+  ta.style.background=''; ta.style.borderColor=''; ta.style.borderStyle='';
+  const bn=$('rtxtDemoBanner'); if(bn) bn.style.display='none';
+  const btn=$('btnEditarTexto'); if(btn){ btn.textContent='✏️ Editar (demo)'; }
+}
+// Badge "editado manualmente" cuando el contenido difiere del generado.
+$('rtxt')?.addEventListener('input', ()=>{
+  const b=$('rtxtEditBadge'); if(!b) return;
+  b.style.display = ($('rtxt').value !== _rtxtGen) ? '' : 'none';
+});
 function genTexto() {
   const gv=id=>{ const e=$(id); return e&&e.value?e.value:null; };
   const esIng=v('cIng')==='true';
@@ -8097,7 +8149,7 @@ window.onload = function() {
 function bootApp(){
   loading(true,'Cargando datos del servidor...');
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); }).catch(()=>{ FASES=[]; });
-  api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; }).catch(()=>{ window.CFG={}; });
+  api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; _aplicarEditorTextoDemo(); }).catch(()=>{ window.CFG={}; });
   poblarKTMcontra();
   gs('GET_TODAS_CAMAS', {}, camas => {
     DB = camas || [];
