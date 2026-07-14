@@ -186,7 +186,13 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .btn-ent-clear{background:#fff;color:#475569;border:1.5px solid #cbd5e1;}
 .btn-ent-clear:hover{background:#f1f5f9;border-color:#94a3b8;}
 .btn-ent:disabled{opacity:.45;cursor:not-allowed;}
-.ent-cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+.ent-cfg-grid{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:16px;}
+.ent-fld-big input,.ent-fld-big select{height:44px;font-size:1.02rem;font-weight:800;color:var(--pdark);border:2px solid #bcd7f2;border-radius:10px;padding:0 12px;background:#fff;font-family:inherit;}
+.ent-kine-sel{height:44px;min-width:250px;border:1px solid var(--border);border-radius:10px;padding:0 10px;background:#fff;font-size:.9rem;font-family:inherit;}
+.ent-gen-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;height:54px;margin-top:14px;border:none;background:linear-gradient(135deg,#0c4f96,#1d6fc4);color:#fff;border-radius:12px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(12,79,150,.32);font-family:inherit;transition:transform .12s,box-shadow .15s,background .15s;}
+.ent-gen-btn:hover{transform:translateY(-1px);box-shadow:0 9px 26px rgba(12,79,150,.42);}
+.ent-gen-btn:disabled{background:#cbd5e1;box-shadow:none;cursor:not-allowed;transform:none;color:#f1f5f9;}
+.ent-gen-count{background:rgba(255,255,255,.22);border-radius:16px;padding:2px 12px;font-size:.84rem;font-weight:700;}
 .ent-fld{display:flex;flex-direction:column;gap:5px;}
 .ent-fld label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
 .ent-fld .dashin{height:34px;border-radius:7px;padding:0 9px;font-family:inherit;font-size:.82rem;}
@@ -831,34 +837,32 @@ table.rhb2 .rl{width:128px;text-align:left;}
         <div class="ent-cfg-actions">
           <button class="btn-ent btn-ent-mark" onclick="entToggleAll(true)">✓ Marcar ocupadas</button>
           <button class="btn-ent btn-ent-clear" onclick="entToggleAll(false)">✕ Limpiar</button>
-          <button class="btn-ent btn-ent-ghost" onclick="entGenerar()">↻ Generar</button>
           <button class="btn-ent btn-ent-print" onclick="entImprimir()" id="entPrintBtn" disabled>🖨️ Imprimir / PDF</button>
           <button class="btn-ent btn-ent-save" onclick="entGuardar()" id="entSaveBtn" disabled>💾 Guardar</button>
         </div>
       </div>
       <div class="ent-cfg-grid">
-        <div class="ent-fld">
+        <div class="ent-fld ent-fld-big">
           <label>Fecha</label>
-          <input type="date" id="entFecha" class="datein dashin" onchange="entSync()">
+          <input type="date" id="entFecha" onchange="entSync()">
         </div>
-        <div class="ent-fld">
+        <div class="ent-fld ent-fld-big">
           <label>Turno que entrega</label>
-          <select id="entTurno" class="dashin" onchange="entSync()">
+          <select id="entTurno" onchange="entSync()">
             <option value="Dia">☀️ Día</option>
             <option value="Noche">🌙 Noche</option>
           </select>
         </div>
         <div class="ent-fld">
           <label>Kine que entrega</label>
-          <select id="entKineEntrega" class="dashin"></select>
-        </div>
-        <div class="ent-fld">
-          <label>Kine que recibe (turno <span id="entRecibeTurno">—</span>)</label>
-          <select id="entKineRecibe" class="dashin"></select>
+          <select id="entKineEntrega" class="ent-kine-sel"></select>
         </div>
       </div>
       <div class="ent-colegas" id="entColegas"></div>
       <div class="ent-beds" id="entBeds"></div>
+      <button type="button" id="entGenBtn" class="ent-gen-btn" onclick="entGenerar()">
+        📄 Generar entrega de turno <span class="ent-gen-count" id="entGenCount">0 camas</span>
+      </button>
       <details id="entHist" style="margin-top:12px;border:1px solid var(--border);border-radius:9px;padding:8px 12px;background:#f8fafc;" ontoggle="if(this.open)entCargarHistorial()">
         <summary style="font-size:.78rem;font-weight:700;color:#475569;cursor:pointer;">🕘 Entregas anteriores (historial)</summary>
         <div id="entHistBody" style="margin-top:8px;font-size:.78rem;color:#64748b;">—</div>
@@ -7472,7 +7476,6 @@ function initEntrega(){
     $('entTurno').value=SHIFT;
     if(window.Turnos){
       Turnos.fillFirmaSelect($('entKineEntrega'), (typeof YO!=='undefined'&&YO&&YO.firma)||'');
-      Turnos.fillFirmaSelect($('entKineRecibe'), '');
     }
     ENT_INIT=true;
   }
@@ -7481,8 +7484,6 @@ function initEntrega(){
   entRenderBeds();
 }
 function entSync(){
-  const t=v('entTurno');
-  const lbl=$('entRecibeTurno'); if(lbl) lbl.textContent=(t==='Dia')?'🌙 Noche':'☀️ Día sgte.';
   entLoadColegas();
 }
 // ── Colegas del turno (tablero de turnos): un clic selecciona sus camas ──
@@ -7517,8 +7518,16 @@ function entSelColega(firma){
   const ke=$('entKineEntrega'); if(ke && !ke.value) ke.value=firma;
   toast(`✅ ${camas.length} cama(s) de ${firma} seleccionadas`);
 }
+function entUpdateGenBtn(){
+  const b=$('entGenBtn'), c=$('entGenCount');
+  if(!b||!c) return;
+  const n=ENT_SEL.size;
+  c.textContent=n===1?'1 cama seleccionada':`${n} camas seleccionadas`;
+  b.disabled=!n;
+}
 function entRenderBeds(){
   const host=$('entBeds'); if(!host) return;
+  entUpdateGenBtn();
   const camas=(DB||[]).filter(c=>c.OCUPADA===true||c.OCUPADA==='TRUE').sort((a,b)=>(+a.ID_CAMA)-(+b.ID_CAMA));
   if(!camas.length){ host.innerHTML='<div style="color:#94a3b8;font-size:.82rem;font-style:italic;padding:6px;">No hay camas ocupadas.</div>'; return; }
   host.innerHTML=camas.map(c=>{
@@ -7545,14 +7554,15 @@ function entGenerar(){
   const idCamas=[...ENT_SEL].sort((a,b)=>(+a)-(+b));
   $('entDoc').innerHTML='<div class="ent-placeholder">⏳ Generando entrega…</div>';
   gs('GET_ENTREGA_TURNO',{idCamas,fecha,turno},
-    d=>{ ENT_DATA=d; renderEntrega(d); $('entPrintBtn').disabled=false; $('entSaveBtn').disabled=false; },
+    d=>{ ENT_DATA=d; renderEntrega(d); $('entPrintBtn').disabled=false; $('entSaveBtn').disabled=false;
+         document.querySelector('.ent-doc-wrap')?.scrollIntoView({behavior:'smooth',block:'start'}); },
     e=>{ $('entDoc').innerHTML=`<div class="ent-placeholder" style="color:var(--danger);">❌ ${e}</div>`; });
 }
 function renderEntrega(d){
   if(!d||!d.fichas){ $('entDoc').innerHTML='<div class="ent-placeholder">Sin datos.</div>'; return; }
   const [y,m,dd]=(d.fecha||'').split('-');
   const fl=y?new Date(+y,+m-1,+dd).toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):d.fecha;
-  const kE=v('entKineEntrega'), kR=v('entKineRecibe');
+  const kE=v('entKineEntrega');
   const r=d.resumen||{};
   let H=`<div class="ent-head">
     <div class="ent-head-l">
@@ -7561,7 +7571,7 @@ function renderEntrega(d){
     </div>
     <div class="ent-head-r">
       <div>Entrega: <b>${kE||'__________'}</b></div>
-      <div>Recibe: <b>${kR||'__________'}</b></div>
+      <div>Recibe: <b>____________</b></div>
     </div>
   </div>
   <div class="ent-resumen">
@@ -7645,7 +7655,7 @@ function renderEntrega(d){
   <div class="ent-foot">
     <div class="ent-sign"><div class="ent-sign-line">Kine que entrega${kE?` · ${kE}`:''}</div></div>
     <div style="align-self:flex-end;">Generado ${new Date(d.generado||Date.now()).toLocaleString('es-CL')}</div>
-    <div class="ent-sign"><div class="ent-sign-line">Kine que recibe${kR?` · ${kR}`:''}</div></div>
+    <div class="ent-sign"><div class="ent-sign-line">Kine que recibe</div></div>
   </div>`;
   $('entDoc').innerHTML=H;
 }
@@ -7780,7 +7790,7 @@ function entGuardar(){
   document.querySelectorAll('#entDoc textarea[data-cama]').forEach(t=>{ pend[t.dataset.cama]=t.value; });
   const payload={
     fecha:ENT_DATA.fecha, turno:ENT_DATA.turno,
-    kineEntrega:v('entKineEntrega'), kineRecibe:v('entKineRecibe'),
+    kineEntrega:v('entKineEntrega'), kineRecibe:'',
     resumen:ENT_DATA.resumen,
     idCamas:ENT_DATA.fichas.map(f=>f.idCama),
     notas:JSON.stringify(pend),
