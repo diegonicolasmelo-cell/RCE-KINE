@@ -67,6 +67,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => agregarHito(Object.assign({ autor: ctx.firma, autorEmail: ctx.email }, datos)));
       case 'SET_ASIGNACION_TURNO':
         return _auditar(ctx, accion, () => guardarAsignacionTurno(datos));
+      case 'AGREGAR_FASE':
+        return _auditar(ctx, accion, () => agregarFaseClinica(datos.nombre));
       case 'ANULAR_EVENTO':
         return _auditar(ctx, accion, () => anularEvento(datos, ctx));
       case 'GUARDAR_ENTREGA_TURNO':

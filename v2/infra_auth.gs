@@ -60,9 +60,12 @@ function autorizar(idToken, firmaDeclarada) {
   // Permite construir/probar la app SIN que GIS funcione todavía.
   // Se activa con CONFIG.AUTH_DEV_MODE = TRUE. ⚠️ Poner FALSE en producción.
   if (esVerdadero(configVal('AUTH_DEV_MODE'))) {
-    const firmaDev = configVal('AUTH_DEV_FIRMA') || (firmaDeclarada || 'DEV');
+    // Modo prueba: entra cualquiera. Se respeta la firma que cada kinesiólogo
+    // declara (para que su evolución quede firmada con SU sigla); si no declara
+    // ninguna, cae a AUTH_DEV_FIRMA y luego a 'DEV'.
+    const firmaDev = (firmaDeclarada && String(firmaDeclarada).trim()) || configVal('AUTH_DEV_FIRMA') || 'DEV';
     console.warn('AUTH_DEV_MODE activo — identidad simulada: ' + firmaDev);
-    return { ok: true, email: 'dev@local', firma: String(firmaDev), nombre: 'Modo desarrollo', dev: true };
+    return { ok: true, email: 'dev@local', firma: String(firmaDev), nombre: 'Modo prueba', dev: true };
   }
   // ── PRODUCCIÓN (GIS real) ────────────────────────────────────────
   const claims = verificarToken(idToken);

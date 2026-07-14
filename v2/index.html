@@ -723,6 +723,7 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .devbar{background:#fef3c7;color:#92400e;font-size:.75rem;text-align:center;padding:4px;border-bottom:1px solid #fde68a;}
 .fase-chip{font-size:.73rem;padding:4px 11px;border-radius:20px;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;cursor:pointer;font-family:inherit;}
 .fase-chip.on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700;}
+.fase-chip-add{border-style:dashed;border-color:var(--primary);color:var(--primary);font-weight:700;padding:4px 10px;}
 
 </style>
 </head>
@@ -959,6 +960,10 @@ table.rhb2 .rl{width:128px;text-align:left;}
           <option>Operativo</option><option>En mantención</option><option>Con falla</option>
         </select></div>
       <div class="col grow"><label>Observaciones</label><input type="text" id="vmfObs" style="height:36px;"></div>
+    </div>
+    <div class="row">
+      <div class="col wa"><label>Última mantención</label><input type="date" id="vmfMant" style="height:36px;"></div>
+      <div class="col wa"><label>Próxima mantención</label><input type="date" id="vmfMantProx" style="height:36px;"></div>
     </div>
     <div style="display:flex;gap:9px;padding-top:12px;border-top:1px solid #e2e8f0;">
       <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMod()">Cancelar</button>
@@ -1668,6 +1673,10 @@ table.rhb2 .rl{width:128px;text-align:left;}
                   <button type="button" id="btnPVENo" onclick="hPVEtoggle('no')"
                     style="padding:3px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;">No</button>
                   <input type="hidden" id="fPVEval" value="">
+                </div>
+                <!-- Aviso fuera de protocolo: VM < 24 h → sin PVE, solo tipos de extubación -->
+                <div id="dPVEfueraProto" class="hidden" style="margin-bottom:6px;font-size:.72rem;font-weight:700;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 9px;">
+                  ⚠️ &lt;24 h de VM: extubación <b>fuera de protocolo</b> (sin PVE). Registra el tipo de extubación en <b>“No”</b>.
                 </div>
 
                 <!-- ── Rama SÍ PVE ── -->
@@ -5169,16 +5178,20 @@ function cascadeSop(preModo) {
 function _showCol(id){ const el=$(id); if(el){el.classList.remove('hidden');el.style.display='flex';} }
 function _hideCol(id){ const el=$(id); if(el){el.classList.add('hidden');el.style.display='none';} }
 function updateVAUI() {
-  // Regla de la unidad: la PVE solo procede con VM ≥ 1 día (24 h).
+  // Regla de la unidad: la PVE solo procede con VM ≥ 1 día (24 h). Con < 24 h
+  // (p.ej. paciente que llegó intubado y se extuba el mismo turno) la extubación
+  // es FUERA DE PROTOCOLO: se oculta "Sí" y solo queda la rama "No" (tipos).
   (function(){
     const _dvm=parseFloat(v('fDiasVM'))||0;
     const _bSi=$('btnPVESi');
     if(!_bSi) return;
     const _bloq=_dvm<1;
+    if(_bloq && v('fPVEval')==='si') hPVEtoggle('si'); // deselecciona y limpia la rama SÍ
     _bSi.disabled=_bloq;
+    _bSi.style.display=_bloq?'none':'';           // se oculta del todo (no solo atenuado)
     _bSi.style.opacity=_bloq?'.45':'';
     _bSi.title=_bloq?'PVE disponible desde las 24 h (≥1 día) de VM':'';
-    if(_bloq && v('fPVEval')==='si') hPVEtoggle('si'); // deselecciona y limpia la rama
+    const _nota=$('dPVEfueraProto'); if(_nota) _nota.classList.toggle('hidden', !_bloq);
   })();
   const va=v('fVA');
   const esInv=va==='TOT'||va==='TQT';
@@ -6469,16 +6482,44 @@ function aplicarFirmaTurno(firmaPrevia){
 //  FASES CLÍNICAS (v2 — catálogo CATALOGOS/FASE_CLINICA, persiste en FASE_JSON)
 function renderFases(){
   const box=$('faseChips'); if(!box) return;
-  if(!FASES||!FASES.length){
-    box.innerHTML='<span style="font-size:.72rem;color:var(--muted);font-style:italic;">Catálogo de fases no disponible</span>';
-    return;
-  }
-  box.innerHTML=FASES.map(f=>{
+  const chips=(FASES||[]).map(f=>{
     const on=FASES_SEL.has(f);
     return `<button type="button" class="fase-chip${on?' on':''}" onclick="toggleFase(this.dataset.f)" data-f="${String(f).replace(/"/g,'&quot;')}">${f}</button>`;
-  }).join('');
+  });
+  // Chip "+" para agregar una fase nueva al catálogo compartido
+  chips.push('<button type="button" class="fase-chip fase-chip-add" onclick="agregarFaseUI()" title="Agregar nueva fase al catálogo">＋</button>');
+  box.innerHTML=chips.join('');
 }
 function toggleFase(f){ if(FASES_SEL.has(f)) FASES_SEL.delete(f); else FASES_SEL.add(f); renderFases(); }
+// Input inline para agregar una fase nueva (persiste en el catálogo compartido)
+function agregarFaseUI(){
+  const box=$('faseChips'); if(!box) return;
+  if(box.querySelector('#faseNuevaInput')) { $('faseNuevaInput').focus(); return; }
+  const wrap=document.createElement('span');
+  wrap.style.cssText='display:inline-flex;gap:4px;align-items:center;';
+  wrap.innerHTML='<input id="faseNuevaInput" type="text" maxlength="40" placeholder="Nueva fase…" '+
+    'style="font-size:.73rem;padding:4px 9px;border:1px solid var(--primary);border-radius:20px;'+
+    'outline:none;width:130px;font-family:inherit;">';
+  box.appendChild(wrap);
+  const inp=$('faseNuevaInput'); inp.focus();
+  const cerrar=()=>renderFases();
+  const enviar=()=>{
+    const nom=(inp.value||'').trim();
+    if(!nom){ cerrar(); return; }
+    inp.disabled=true;
+    gs('AGREGAR_FASE',{nombre:nom}, r=>{
+      FASES=(r&&r.fases)||FASES;
+      FASES_SEL.add(nom);
+      renderFases();
+      toast('✅ Fase agregada');
+    }, ()=>{ renderFases(); });
+  };
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){ e.preventDefault(); enviar(); }
+    else if(e.key==='Escape'){ e.preventDefault(); cerrar(); }
+  });
+  inp.addEventListener('blur',()=>{ setTimeout(()=>{ if($('faseNuevaInput')&&!$('faseNuevaInput').disabled) cerrar(); },150); });
+}
 function setFasesDesde(jsonStr){
   FASES_SEL=new Set();
   try{ (JSON.parse(jsonStr||'[]')||[]).forEach(f=>FASES_SEL.add(f)); }catch(e){}
@@ -7257,6 +7298,19 @@ function vmCargar(){
     msg=>{ $('vmBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'')+' <button class="dpset" onclick="vmCargar()">Reintentar</button></div>'; });
 }
 
+// Línea de mantención en la tarjeta: última + próxima, con alerta si vence pronto/vencida.
+function _vmMantLinea(x){
+  if(!x.fechaMant && !x.fechaMantProx) return '';
+  const fmt=f=>f?`${f.slice(8,10)}-${f.slice(5,7)}-${f.slice(0,4)}`:'';
+  let prox='';
+  if(x.fechaMantProx){
+    const d=dias(hoy(),x.fechaMantProx); // >0 futuro, <0 vencida
+    const col=d<0?'#dc2626':(d<=30?'#d97706':'#16a34a');
+    const et=d<0?`vencida hace ${Math.abs(d)} d`:(d===0?'hoy':`en ${d} d`);
+    prox=` · <span style="color:${col};font-weight:700;">🔧 próx. ${fmt(x.fechaMantProx)} (${et})</span>`;
+  }
+  return `<div style="font-size:.71rem;color:#64748b;">🛠️ Mant.: ${x.fechaMant?`últ. ${fmt(x.fechaMant)}`:'sin registro'}${prox}</div>`;
+}
 function _vmCard(x){
   const col=VM_EST_COL[x.estado]||'#64748b';
   const d=x.fechaUbicacion?(dias(x.fechaUbicacion,v('gDate')||hoy())+1):null;
@@ -7278,6 +7332,7 @@ function _vmCard(x){
     ${ids?`<div style="font-size:.7rem;color:#94a3b8;">${ids}</div>`:''}
     <div style="font-size:.74rem;color:#64748b;">📍 ${x.ubicTipo==='CAMA'?`Cama ${x.ubicDetalle}`:(x.ubicTipo==='PRESTAMO'?`Préstamo: ${x.ubicDetalle}`:'Bodega')}${d?` · día ${d}`:''}${x.fechaUbicacion?` (desde ${x.fechaUbicacion.slice(8,10)}-${x.fechaUbicacion.slice(5,7)})`:''}</div>
     ${pac}
+    ${_vmMantLinea(x)}
     ${x.obs?`<div style="font-size:.72rem;color:#92400e;background:#fffbeb;border-radius:6px;padding:3px 8px;">${x.obs}</div>`:''}
     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;">
       ${x.activo?`<button class="dpset" onclick="vmMover('${x.id}')">🔁 Mover</button>
@@ -7321,7 +7376,7 @@ function _vmFillCamas(sel){
 }
 function vmNuevo(){
   $('vmModTit').textContent='➕ Agregar ventilador';
-  ['vmfId','vmfNombre','vmfMarca','vmfModelo','vmfSerie','vmfInvent','vmfAnio','vmfObs'].forEach(id=>$(id).value='');
+  ['vmfId','vmfNombre','vmfMarca','vmfModelo','vmfSerie','vmfInvent','vmfAnio','vmfObs','vmfMant','vmfMantProx'].forEach(id=>$(id).value='');
   $('vmfEstado').value='Operativo';
   $('vmfUbicTipo').value='BODEGA'; _vmFillCamas($('vmfCama')); vmfUbicUI();
   $('vmfFecha').value=v('gDate')||hoy();
@@ -7334,6 +7389,7 @@ function vmEditar(id){
   $('vmfId').value=x.id; $('vmfNombre').value=x.nombre||''; $('vmfMarca').value=x.marca||'';
   $('vmfModelo').value=x.modelo||''; $('vmfSerie').value=x.serie||''; $('vmfInvent').value=x.inventario||'';
   $('vmfAnio').value=x.anio||''; $('vmfObs').value=x.obs||''; $('vmfEstado').value=x.estado||'Operativo';
+  $('vmfMant').value=x.fechaMant||''; $('vmfMantProx').value=x.fechaMantProx||'';
   hide('vmfUbicRow'); // la ubicación se cambia con 🔁 Mover (queda trazada)
   $('vmMod').classList.add('on'); $('ovl').classList.add('on');
 }
@@ -7347,7 +7403,8 @@ function vmGuardar(){
   if(!v('vmfNombre').trim()){ toast('El ventilador necesita un nombre/código.'); $('vmfNombre').focus(); return; }
   const esNuevo=!v('vmfId');
   const d={ id:v('vmfId')||'', nombre:v('vmfNombre').trim(), marca:v('vmfMarca'), modelo:v('vmfModelo'),
-    serie:v('vmfSerie'), inventario:v('vmfInvent'), anio:v('vmfAnio'), estado:v('vmfEstado'), obs:v('vmfObs') };
+    serie:v('vmfSerie'), inventario:v('vmfInvent'), anio:v('vmfAnio'), estado:v('vmfEstado'), obs:v('vmfObs'),
+    fechaMant:v('vmfMant'), fechaMantProx:v('vmfMantProx') };
   if(esNuevo){
     d.ubicTipo=v('vmfUbicTipo');
     d.ubicDetalle=d.ubicTipo==='CAMA'?v('vmfCama'):(d.ubicTipo==='PRESTAMO'?v('vmfUnidad'):'');

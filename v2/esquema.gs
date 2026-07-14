@@ -261,6 +261,8 @@ const ESQUEMA = {
     ['FECHA_UBICACION','texto'], // desde cuándo está en esa ubicación (ISO)
     ['ESTADO','texto'],          // Operativo | En mantención | Con falla | De baja
     ['ACTIVO','bool'],['OBS','texto'],['TIMESTAMP','ts'],
+    ['FECHA_MANT','texto'],      // última mantención (ISO)
+    ['FECHA_MANT_PROX','texto'], // próxima mantención programada (ISO)
   ]},
   MOVIMIENTOS_VM: { headerRows: 1, cols: [
     ['ID_MOV','texto'],['ID_VM','texto'],['TIMESTAMP','ts'],['FECHA','texto'],
@@ -346,6 +348,38 @@ function leerConfig(clave, porDefecto) {
     }
   } catch (e) {}
   return porDefecto;
+}
+
+/** Escribe (o crea) una clave en la hoja CONFIG. */
+function escribirConfig(clave, valor) {
+  const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
+  if (!h) throw new Error('No existe la hoja CONFIG (corre crearORepararEstructura).');
+  const n = h.getLastRow();
+  if (n >= 2) {
+    const vals = h.getRange(2, 1, n - 1, 1).getValues();
+    for (let i = 0; i < vals.length; i++) {
+      if (String(vals[i][0]).trim() === clave) { h.getRange(i + 2, 2).setValue(valor); return; }
+    }
+  }
+  h.appendRow([clave, valor]);
+}
+
+/**
+ * MODO PRUEBA — abre la app a cualquiera (omite el login de Google).
+ * Correr esta función desde el editor de Apps Script. ⚠️ Solo para la marcha
+ * blanca; salir con salirModoPrueba() antes de operar con datos reales.
+ */
+function activarModoPrueba() {
+  escribirConfig('AUTH_DEV_MODE', 'TRUE');
+  console.warn('✅ MODO PRUEBA ACTIVO — cualquiera puede entrar sin login. Cada kine firma con su sigla.');
+  return 'Modo prueba ACTIVADO (AUTH_DEV_MODE=TRUE).';
+}
+
+/** Reactiva la autenticación de Google (producción). */
+function salirModoPrueba() {
+  escribirConfig('AUTH_DEV_MODE', 'FALSE');
+  console.warn('🔒 Autenticación de Google REACTIVADA (AUTH_DEV_MODE=FALSE).');
+  return 'Modo prueba DESACTIVADO (AUTH_DEV_MODE=FALSE).';
 }
 
 function _tz() {
@@ -469,7 +503,8 @@ function _sembrar(ss) {
   //  el orden de los chips se ajusta con la columna ORDEN de la hoja)
   const hCat = ss.getSheetByName('CATALOGOS');
   const fases = ['Reanimación inicial','Protección pulmonar','Neuroprotección',
-    'Postoperatorio inmediato','Espera de second look','Weaning','Consolidación de weaning','Rehabilitación'];
+    'Postoperatorio inmediato','Espera de second look','Weaning','Consolidación de weaning','Rehabilitación',
+    'Cuidados postparo'];
   const nCat = hCat.getLastRow();
   const fasesExist = nCat >= 2
     ? hCat.getRange(2, 1, nCat - 1, 2).getValues()

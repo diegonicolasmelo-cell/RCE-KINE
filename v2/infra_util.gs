@@ -32,6 +32,22 @@ function catalogo(tipo) {
 }
 
 /**
+ * Agrega una fase clínica al catálogo compartido (CATALOGOS/FASE_CLINICA).
+ * Valida nombre no vacío y rechaza duplicado (case-insensitive). ORDEN = max+1.
+ * @return {Object} ok({ fases:[...], ... }) o err(...)
+ */
+function agregarFaseClinica(nombre) {
+  const nom = String(nombre || '').trim();
+  if (!nom) return err('El nombre de la fase no puede estar vacío.', ERR.VALIDACION);
+  const filas = repoLeerTodos('CATALOGOS', 'TIPO', 'FASE_CLINICA');
+  const dup = filas.some(r => String(r.VALOR || '').trim().toLowerCase() === nom.toLowerCase());
+  if (dup) return err('La fase "' + nom + '" ya existe.', ERR.VALIDACION);
+  const maxOrden = filas.reduce((m, r) => Math.max(m, parseInt(r.ORDEN) || 0), 0);
+  repoInsertar('CATALOGOS', { TIPO: 'FASE_CLINICA', VALOR: nom, ORDEN: maxOrden + 1, ACTIVO: true });
+  return ok({ fases: catalogo('FASE_CLINICA'), entidad: 'CATALOGOS', accion: 'agregar fase: ' + nom });
+}
+
+/**
  * Definición activa de las matrices de categorización (hoja CAT_MATRICES),
  * ordenada. null si la hoja no existe aún (el cliente usa su default SOCHIMI).
  */
