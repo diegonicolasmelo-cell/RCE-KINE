@@ -67,8 +67,9 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .hbtn:hover{background:rgba(255,255,255,.19);}
 
 /* TABS */
-.tabs{background:#0e3a5f;border-bottom:1px solid rgba(255,255,255,.08);padding:0 22px;display:flex;gap:2px;position:sticky;top:53px;z-index:49;}
-.tab{background:transparent;color:rgba(255,255,255,.36);border:none;border-bottom:2px solid transparent;padding:9px 15px;font-size:.77rem;font-weight:600;cursor:pointer;letter-spacing:.1px;transition:color .15s;}
+.tabs{background:#0e3a5f;border-bottom:1px solid rgba(255,255,255,.08);padding:0 22px;display:flex;gap:2px;position:sticky;top:53px;z-index:49;overflow-x:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{background:transparent;color:rgba(255,255,255,.36);border:none;border-bottom:2px solid transparent;padding:9px 15px;font-size:.77rem;font-weight:600;cursor:pointer;letter-spacing:.1px;transition:color .15s;flex:0 0 auto;white-space:nowrap;}
 .tab:hover{color:rgba(255,255,255,.65);}.tab.on{color:#fff;border-bottom-color:#5fb0ec;font-weight:700;}
 .tc-wrap{display:none;}.tc-wrap.on{display:block;}
 /* ── Registro Diario (tabla portada de v1 "Pacientes") ── */
@@ -391,6 +392,9 @@ table.rhb2 .rl{width:128px;text-align:left;}
   .ws{width:58px;}
 }
 @media(max-width:560px){
+  /* Pestañas: barra deslizable con momentum; compactas para que quepan más */
+  .tabs{padding:0 8px;gap:0;}
+  .tab{padding:8px 11px;font-size:.72rem;}
   .phdr{padding:10px 12px;}
   .ptitle{font-size:.82rem;}
   .col label{font-size:.66rem;}
@@ -6873,6 +6877,10 @@ function setTab(t){
     $('tc'+k).classList.toggle('on', t===k);
     $('tab'+k).classList.toggle('on', t===k);
   });
+  // En móvil la barra de pestañas es deslizable: centrar la activa por si
+  // quedó fuera de vista (p. ej. Archivados/Ventiladores al final).
+  const _bar=document.querySelector('.tabs'), _bt=$('tab'+t);
+  if(_bar&&_bt){ _bar.scrollTo({left: _bt.offsetLeft-(_bar.clientWidth-_bt.offsetWidth)/2, behavior:'smooth'}); }
   if(t==='D' && !window._statsLoaded) dashPreset('mes', document.querySelector('.dpset'));
   if(t==='E') initEntrega();
   if(t==='A') initArchivados();
