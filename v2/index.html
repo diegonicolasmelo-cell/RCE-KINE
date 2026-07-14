@@ -685,6 +685,30 @@ table.rhb2 .rl{width:128px;text-align:left;}
 #modalReintub .mr-btn-cancel{background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;}
 #modalReintub .mr-btn-cancel:hover{background:#e2e8f0;}
 
+/* ── Confirmación propia (reemplaza al confirm() nativo del navegador) ── */
+.uc-ovl{position:fixed;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(2px);z-index:400;
+  display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s;}
+.uc-ovl.on{opacity:1;pointer-events:auto;}
+.uc-card{background:#fff;border-radius:14px;box-shadow:0 24px 64px rgba(0,0,0,.30);width:min(420px,92vw);
+  padding:26px 26px 22px;text-align:center;transform:scale(.94);transition:transform .18s;}
+.uc-ovl.on .uc-card{transform:scale(1);}
+.uc-ico{width:54px;height:54px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;
+  justify-content:center;font-size:1.6rem;margin:0 auto 12px;}
+.uc-card.uc-rojo .uc-ico{background:#fef2f2;}
+.uc-tit{font-size:1.02rem;font-weight:800;color:#0f172a;margin-bottom:6px;}
+.uc-msg{font-size:.88rem;color:#475569;line-height:1.55;}
+.uc-det{font-size:.78rem;color:#94a3b8;margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;
+  border-radius:8px;padding:7px 12px;}
+.uc-btns{display:flex;gap:9px;margin-top:18px;}
+.uc-cancel{flex:1;height:40px;border:1px solid #e2e8f0;background:#f8fafc;color:#374151;border-radius:9px;
+  font-size:.86rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+.uc-cancel:hover,.uc-cancel:focus{background:#eef2f6;}
+.uc-ok{flex:1.3;height:40px;border:none;background:var(--pdark);color:#fff;border-radius:9px;
+  font-size:.86rem;font-weight:800;cursor:pointer;font-family:inherit;transition:background .15s,box-shadow .15s;}
+.uc-ok:hover,.uc-ok:focus{background:var(--primary);box-shadow:0 4px 14px rgba(29,111,196,.35);}
+.uc-card.uc-rojo .uc-ok{background:var(--danger);}
+.uc-card.uc-rojo .uc-ok:hover,.uc-card.uc-rojo .uc-ok:focus{background:#b91c1c;box-shadow:0 4px 14px rgba(220,38,38,.35);}
+
 /* ── v2: barra dev, fase clínica, chip COD ── */
 .devbar{background:#fef3c7;color:#92400e;font-size:.75rem;text-align:center;padding:4px;border-bottom:1px solid #fde68a;}
 .fase-chip{font-size:.73rem;padding:4px 11px;border-radius:20px;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;cursor:pointer;font-family:inherit;}
@@ -969,6 +993,19 @@ table.rhb2 .rl{width:128px;text-align:left;}
 <div id="minTray"></div>
 <!-- HOJA RHB imprimible (formato oficial) — solo visible al imprimir -->
 <div id="rhbPrint"></div>
+<!-- CONFIRMACIÓN PROPIA (reemplaza al confirm() del navegador) -->
+<div id="ucOvl" class="uc-ovl">
+  <div class="uc-card" id="ucCard" role="alertdialog" aria-modal="true" aria-labelledby="ucTit">
+    <div class="uc-ico" id="ucIco">❓</div>
+    <div class="uc-tit" id="ucTit"></div>
+    <div class="uc-msg" id="ucMsg"></div>
+    <div class="uc-det" id="ucDet" style="display:none;"></div>
+    <div class="uc-btns">
+      <button type="button" class="uc-cancel" id="ucCancel" onclick="_ucFin(false)">Cancelar</button>
+      <button type="button" class="uc-ok" id="ucOk" onclick="_ucFin(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
 
 
 <!-- SIDE PANEL EVOLUCIÓN --><!-- SIDE PANEL EVOLUCIÓN -->
@@ -3881,8 +3918,15 @@ function confirmarEgreso() {
   }
   const motivo = DEST_TO_MOTIVO[destino] || destino;
   const c = DB.find(x => String(x.ID_CAMA) === String(EG_IDCAMA));
-  if (!confirm(`¿Confirmar egreso de ${c?.NOMBRE || 'paciente'} → ${destino}?\nEsto liberará la cama ${EG_IDCAMA}.`)) return;
+  uiConfirm({
+    icono:'🏠', titulo:'Confirmar egreso',
+    mensaje:`<b>${c?.NOMBRE || 'Paciente'}</b> egresa a <b>${destino}</b>.`,
+    detalle:`Motivo: ${motivo} · Se liberará la cama ${EG_IDCAMA} y el episodio pasará a Archivados.`,
+    confirmar:'🏠 Confirmar egreso',
+  }).then(ok => { if (ok) _ejecutarEgreso(destino, motivo); });
+}
 
+function _ejecutarEgreso(destino, motivo) {
   const btn = $('egConfBtn'); btn.disabled = true; btn.innerHTML = '⏳ Procesando...';
   loading(true, 'Procesando egreso...');
   gs('DAR_ALTA', {
@@ -3900,6 +3944,29 @@ function confirmarEgreso() {
     loading(false); btn.disabled = false; btn.innerHTML = '🏠 Confirmar egreso';
   });
 }
+
+// ══ CONFIRMACIÓN PROPIA — uiConfirm({icono,titulo,mensaje,detalle,confirmar,tono}) → Promise<bool>
+// Reemplaza al confirm() nativo (que muestra la URL de googleusercontent y
+// rompe la estética). tono:'rojo' para acciones destructivas.
+let _ucResolve=null;
+function uiConfirm(o){
+  o=o||{};
+  $('ucIco').textContent=o.icono||'❓';
+  $('ucTit').textContent=o.titulo||'¿Confirmar?';
+  $('ucMsg').innerHTML=o.mensaje||'';
+  const det=$('ucDet'); det.innerHTML=o.detalle||''; det.style.display=o.detalle?'':'none';
+  $('ucOk').textContent=o.confirmar||'Confirmar';
+  $('ucCard').classList.toggle('uc-rojo', o.tono==='rojo');
+  $('ucOvl').classList.add('on');
+  setTimeout(()=>{ const b=$('ucOk'); if(b) b.focus(); },60);
+  return new Promise(res=>{ _ucResolve=res; });
+}
+function _ucFin(v){
+  $('ucOvl').classList.remove('on');
+  if(_ucResolve){ const r=_ucResolve; _ucResolve=null; r(v); }
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('ucOvl')?.classList.contains('on')) _ucFin(false); });
+$('ucOvl')?.addEventListener('click',e=>{ if(e.target===$('ucOvl')) _ucFin(false); });
 
 //  TRASLADO
 function mover(id) {
@@ -6033,9 +6100,15 @@ window.Turnos = (function () {
   }
 
   function clearAll() {
-    if (!confirm('¿Vaciar todas las asignaciones de este turno?')) return;
-    STATE.assign = {};
-    persist(); renderPanel(); repaint();
+    uiConfirm({
+      icono:'🧹', titulo:'Vaciar asignaciones',
+      mensaje:'Se quitarán todas las asignaciones de camas de este turno.',
+      confirmar:'Vaciar', tono:'rojo',
+    }).then(ok => {
+      if (!ok) return;
+      STATE.assign = {};
+      persist(); renderPanel(); repaint();
+    });
   }
 
   function countOf(f) {
@@ -7370,13 +7443,20 @@ function _renderEvStrip(s){
   el.classList.remove('hidden');
 }
 function anularEvento(tipo,lbl){
-  if(!confirm(`¿Anular "${lbl}" de este turno?\n\nSe borrará el evento del registro, del texto y de los procedimientos. Esta acción no se puede deshacer.`)) return;
-  const id=v('cBed'), fecha=v('gDate')||hoy(), tkey=`${fecha}-${SHIFT}`;
-  loading(true,'Anulando evento...');
-  gs('ANULAR_EVENTO',{idCama:id,turnoKey:tkey,tipo:tipo}, _=>{
-    loading(false); toast('🗑️ Evento anulado del turno');
-    abrirPanel(id,false); recargar();
-  }, ()=>loading(false));
+  uiConfirm({
+    icono:'🗑️', titulo:'Anular evento del turno',
+    mensaje:`Se anulará <b>${lbl}</b> de este turno.`,
+    detalle:'Se borrará del registro, del texto y de los procedimientos. Esta acción no se puede deshacer.',
+    confirmar:'Anular evento', tono:'rojo',
+  }).then(okC=>{
+    if(!okC) return;
+    const id=v('cBed'), fecha=v('gDate')||hoy(), tkey=`${fecha}-${SHIFT}`;
+    loading(true,'Anulando evento...');
+    gs('ANULAR_EVENTO',{idCama:id,turnoKey:tkey,tipo:tipo}, _=>{
+      loading(false); toast('🗑️ Evento anulado del turno');
+      abrirPanel(id,false); recargar();
+    }, ()=>loading(false));
+  });
 }
 
 /* ════════ ENTREGA DE TURNO (📑) ════════
