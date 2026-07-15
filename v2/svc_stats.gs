@@ -22,14 +22,14 @@ function obtenerStats(desde, hasta) {
   const tally = (obj, k) => { k = String(k || '').trim(); if (!k) return; obj[k] = (obj[k] || 0) + 1; };
   const r1 = x => Math.round(x * 10) / 10;
 
-  // ── EVOLUCIONES del rango ──
-  const evos = repoLeerTodos('EVOLUCIONES').filter(e => {
+  // ── EVOLUCIONES (todas = episodios activos; al egresar se archivan) ──
+  const allEvos = repoLeerTodos('EVOLUCIONES');
+  const evos = allEvos.filter(e => {
     const f = _statISO(e.FECHA); return f && f >= desde && f <= hasta;
   });
 
   const pacientes = {};   // PATIENT_ID → { rem, vm }
   const vmDiasSet = {};   // 'pid|fecha' → true (días-paciente en VM)
-  const mrcUlt = {};      // PATIENT_ID → { val, key }  MRC-SS más reciente del rango (DAUCI en vivo)
   let dia = 0, noche = 0, ingresos = 0, turnosVM = 0;
   let intub = 0, ext = 0, extProg = 0, autoext = 0, pveSi = 0, pveSup = 0, pveFrus = 0;
   let decan = 0, recanul = 0, cambiosTOT = 0;
@@ -46,13 +46,6 @@ function obtenerStats(desde, hasta) {
 
     if (String(e.TURNO) === 'Noche') noche++; else dia++;
     if (esVerdadero(e.ES_INGRESO)) ingresos++;
-
-    // MRC-SS más reciente por paciente → DAUCI "en vivo" (no espera al egreso)
-    const _mrc = parseFloat(e.EVAL_T_MRC);
-    if (!isNaN(_mrc) && _mrc > 0) {
-      const kk = String(e.TURNO_KEY || (f + '-' + e.TURNO));
-      if (!mrcUlt[pid] || kk > mrcUlt[pid].key) mrcUlt[pid] = { val: _mrc, key: kk };
-    }
     if (e.VENT_SOPORTE === 'VM') { turnosVM++; vmDiasSet[pid + '|' + f] = true; pacientes[pid].vm = true; }
 
     // Eventos únicos de vía aérea
@@ -92,17 +85,31 @@ function obtenerStats(desde, hasta) {
     if (nM) tally(catMotor, nM); else if (cm) tally(catMotor, catNivel(cm, 4));
   });
 
-  // ── DAUCI "en vivo": pacientes evaluados en el rango cuya última MRC-SS
-  //    indica debilidad (no espera al egreso). Usa los mismos cortes que el egreso. ──
+  // ── DAUCI ACTUAL: pacientes actualmente ingresados cuya MRC-SS más reciente
+  //    indica debilidad. No depende del rango de fechas: es una foto del estado
+  //    de hoy. (EVOLUCIONES solo guarda episodios activos; al egresar se archivan,
+  //    así que la última MRC de cada cama ocupada es su estado vigente.) ──
   const cDauci = parseFloat(leerConfig('CORTE_MRC_DAUCI', '48')) || 48;
   const cSev = parseFloat(leerConfig('CORTE_MRC_SEVERA', '36')) || 36;
+  const activos = {}; // PATIENT_ID → true (camas ocupadas)
+  repoLeerTodos('CAMAS').forEach(c => { if (esVerdadero(c.OCUPADA) && c.PATIENT_ID) activos[String(c.PATIENT_ID)] = true; });
+  const mrcAct = {};  // PATIENT_ID ingresado → { val, key } (MRC-SS más reciente)
+  allEvos.forEach(e => {
+    const pid = String(e.PATIENT_ID || '');
+    if (!activos[pid]) return;
+    const m = parseFloat(e.EVAL_T_MRC);
+    if (isNaN(m) || m <= 0) return;
+    const kk = String(e.TURNO_KEY || (_statISO(e.FECHA) + '-' + e.TURNO));
+    if (!mrcAct[pid] || kk > mrcAct[pid].key) mrcAct[pid] = { val: m, key: kk };
+  });
   let mrcEval = 0, mrcDauci = 0, mrcSev = 0;
-  Object.keys(mrcUlt).forEach(pid => {
+  Object.keys(mrcAct).forEach(pid => {
     mrcEval++;
-    const val = mrcUlt[pid].val;
+    const val = mrcAct[pid].val;
     if (val < cDauci) mrcDauci++;
     if (val < cSev) mrcSev++;
   });
+  const ingresadosN = Object.keys(activos).length;
 
   // Grupo REM: por paciente (último valor registrado), no por evolución
   const rem = {};
@@ -158,8 +165,8 @@ function obtenerStats(desde, hasta) {
       ktrSesiones: ktrSes, imtSesiones: imtSes,
     },
     procs: procs, rem: rem, catResp: catResp, catMotor: catMotor,
-    dauciEval: {
-      evaluados: mrcEval, dauci: mrcDauci, severa: mrcSev,
+    dauciActual: {
+      ingresados: ingresadosN, evaluados: mrcEval, dauci: mrcDauci, severa: mrcSev,
       dauciPct: mrcEval > 0 ? r1(mrcDauci / mrcEval * 100) : 0,
       corte: cDauci, corteSev: cSev,
     },

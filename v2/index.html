@@ -7523,13 +7523,13 @@ function renderStats(d){
   h+=`<div class="dcard"><div class="dcard-h">🏠 Destinos de egreso</div>${_bars(eg.destinos,'#16a34a')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🧾 Motivos de egreso</div>${_bars(eg.motivos,'#0891b2')}</div>`;
   h+='</div>';
-  // DAUCI en vivo: evaluaciones del período (no espera al egreso)
-  const dv=d.dauciEval||{};
+  // DAUCI actual: pacientes actualmente ingresados (foto de hoy, no del rango)
+  const dv=d.dauciActual||{};
   if((dv.evaluados||0)>0){
-    h+='<div class="dash-sec-title">Debilidad adquirida (evaluaciones del período)</div><div class="kpi-grid">';
-    h+=_kpi('DAUCI detectada', (dv.dauciPct||0)+'%', `${dv.dauci||0} de ${dv.evaluados||0} pacientes evaluados (MRC-SS <${dv.corte||48})`, '#dc2626');
+    h+='<div class="dash-sec-title">Debilidad adquirida — pacientes ingresados hoy</div><div class="kpi-grid">';
+    h+=_kpi('Con DAUCI', (dv.dauci||0), `de ${dv.evaluados||0} evaluados (MRC-SS <${dv.corte||48}) · ${dv.dauciPct||0}%`, '#dc2626');
     h+=_kpi('DAUCI severa', (dv.severa||0), `MRC-SS <${dv.corteSev||36}`, '#b91c1c');
-    h+=_kpi('Pacientes con MRC-SS', (dv.evaluados||0), 'evaluados en el período', '#0891b2');
+    h+=_kpi('Evaluados con MRC-SS', (dv.evaluados||0), `de ${dv.ingresados||0} ingresados`, '#0891b2');
     h+='</div>';
   }
   h+='<div class="dash-sec-title">Funcional al egreso</div><div class="kpi-grid">';
