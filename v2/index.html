@@ -4427,7 +4427,7 @@ function _renderTLResumen(){
         ${fase?`<span class="fa">${_tlEscHtml(fase)}</span>`:''}</div>
       ${(chips||evChips.length)?`<div class="tlr-chips">${chips}${evChips.join('')}</div>`:''}
       ${vp.length?`<div class="tlr-params">${vp.join('')}</div>`:''}
-      ${txt?`<div class="tlr-txt clamp" onclick="this.classList.toggle('clamp')" title="Clic para expandir/plegar">${_tlEscHtml(txt)}</div>`:''}
+      ${txt?`<div class="tlr-txt" onclick="this.classList.toggle('clamp')" title="Clic para plegar/expandir">${_tlEscHtml(txt)}</div>`:''}
       ${e.PLAN_FIRMA_KINE?`<div class="tlr-sign">✍ ${_tlEscHtml(e.PLAN_FIRMA_KINE)}</div>`:''}
     </div></div>`;
   }).join('');
