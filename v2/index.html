@@ -509,6 +509,39 @@ table.rhb2 .rl{width:128px;text-align:left;}
   #tlp .tl-tabs{padding:0 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
   #tlp .tl-filters{padding:8px 10px;}
 }
+/* Historial — vista Resumen (cabecera de hitos + tendencia plegable + feed) */
+.tlr-sec{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:4px 0 9px;}
+.tlr-rail{display:flex;gap:0;overflow-x:auto;padding:6px 2px 14px;-webkit-overflow-scrolling:touch;}
+.tlr-step{flex:0 0 auto;min-width:118px;max-width:156px;position:relative;padding:20px 12px 0;}
+.tlr-step::before{content:"";position:absolute;top:7px;left:0;right:0;height:2px;background:#cbd5e1;}
+.tlr-step:first-child::before{left:50%;} .tlr-step:last-child::before{right:50%;}
+.tlr-step::after{content:"";position:absolute;top:2px;left:calc(50% - 6px);width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--tone,#1d6fc4);}
+.tlr-step .d{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;text-align:center;color:var(--tone,#1d6fc4);}
+.tlr-step .l{font-size:.74rem;font-weight:650;text-align:center;color:#1e293b;line-height:1.25;margin-top:2px;}
+.tlr-step .f{font-size:.62rem;color:#94a3b8;text-align:center;font-family:monospace;}
+.tlr-det{border:1px solid #e2e8f0;border-radius:11px;margin:2px 0 16px;overflow:hidden;background:#fff;}
+.tlr-det>summary{cursor:pointer;list-style:none;padding:10px 13px;font-size:.8rem;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:7px;user-select:none;}
+.tlr-det>summary::-webkit-details-marker{display:none;}
+.tlr-det>summary .cv{color:#1d6fc4;transition:transform .2s;display:inline-block;}
+.tlr-det[open]>summary .cv{transform:rotate(90deg);}
+.tlr-det .in{padding:6px 13px 12px;border-top:1px solid #f1f5f9;}
+.tlr-feed{display:flex;flex-direction:column;gap:10px;}
+.tlr-card{display:grid;grid-template-columns:5px 1fr;border:1px solid #e2e8f0;border-radius:11px;overflow:hidden;background:#fff;}
+.tlr-card .rail{background:var(--tone,#1d6fc4);}
+.tlr-card .in{padding:11px 13px;display:flex;flex-direction:column;gap:8px;min-width:0;}
+.tlr-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.tlr-h .day{font-weight:800;font-size:.86rem;color:#0f172a;}
+.tlr-h .fe{font-size:.74rem;color:#64748b;font-family:monospace;}
+.tlr-h .fa{font-size:.72rem;font-weight:700;color:#1d6fc4;margin-left:auto;}
+.tlr-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.tlr-chip{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:650;padding:3px 8px;border-radius:6px;white-space:nowrap;line-height:1.2;}
+.tlr-params{display:flex;gap:5px;flex-wrap:wrap;}
+.tlr-p{font-size:.7rem;color:#64748b;background:#f1f5f9;border-radius:5px;padding:2px 7px;}
+.tlr-p b{color:#0f172a;font-weight:700;}
+.tlr-txt{font-size:.8rem;color:#334155;line-height:1.42;white-space:pre-wrap;}
+.tlr-txt.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;}
+.tlr-sign{font-size:.7rem;color:#94a3b8;}
+@media (prefers-reduced-motion:reduce){.tlr-det>summary .cv{transition:none;}}
 .tl-ev{display:flex;gap:9px;padding:9px 10px;border:1px solid #f1f5f9;border-radius:7px;background:#fff;margin-bottom:6px;align-items:flex-start;}
 .tl-ev:hover{border-color:#cbd5e1;}
 .tl-dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex-shrink:0;}
@@ -2454,10 +2487,8 @@ table.rhb2 .rl{width:128px;text-align:left;}
   </div>
 
   <div class="tl-tabs">
-    <button class="tl-mtab on" id="tlMt-res"  onclick="setTLtab('res')">📊 Resumen</button>
-    <button class="tl-mtab"    id="tlMt-ev"   onclick="setTLtab('ev')">📜 Eventos</button>
-    <button class="tl-mtab"    id="tlMt-vent" onclick="setTLtab('vent')">💬 Ventilatorio</button>
-    <button class="tl-mtab"    id="tlMt-reh"  onclick="setTLtab('reh')">🏃 Rehabilitación</button>
+    <button class="tl-mtab on" id="tlMt-res" onclick="setTLtab('res')">📊 Resumen</button>
+    <button class="tl-mtab"    id="tlMt-seg" onclick="setTLtab('seg')">📈 Seguimiento</button>
   </div>
 
   <!-- Filtros (cambian según tab) -->
@@ -4185,12 +4216,10 @@ function cerrarTL() {
   $('ovl').classList.remove('on');
 }
 
+// Seguimiento = ventilatorio + rehabilitación en un solo heatmap de variables
+const SEG_VARS = [...VENT_VARS, ...REH_VARS];
 function setTLtab(t) {
   TL_TAB = t;
-  // RHB solo es diurno: forzar filtro a Día
-  if (t === 'reh' && TL_TURNO !== 'Dia') {
-    TL_TURNO = 'Dia';
-  }
   _updateTLTabsUI();
   _updateTLFiltersUI();
   renderTL();
@@ -4201,61 +4230,53 @@ function setTLturno(t) {
   renderTL();
 }
 function _updateTLTabsUI() {
-  ['res','ev','vent','reh'].forEach(t => {
+  ['res','seg'].forEach(t => {
     const b = $('tlMt-' + t); if (b) b.classList.toggle('on', t === TL_TAB);
   });
 }
 function _updateTLFiltersUI() {
-  // Tipo → solo en 'ev'
-  const tipoVisible = TL_TAB === 'ev';
-  $('tlTipoLbl').classList.toggle('hidden', !tipoVisible);
-  $('tlTipoSel').classList.toggle('hidden', !tipoVisible);
+  // El filtro por tipo (era exclusivo del tab Eventos) ya no aplica
+  $('tlTipoLbl').classList.add('hidden');
+  $('tlTipoSel').classList.add('hidden');
 
-  // Filtro turno: RHB solo de día → ocultar botones Todos y Noche
-  const esReh = TL_TAB === 'reh';
+  // Filtro de turno: Todos/Día/Noche visibles en ambos tabs
   document.querySelectorAll('#tlSegTurno button').forEach(b => {
-    const t = b.dataset.turno;
-    // Para RHB: solo mostrar el botón Día
-    b.classList.toggle('hidden', esReh && t !== 'Dia');
-    b.classList.toggle('on', esReh ? t === 'Dia' : t === TL_TURNO);
+    b.classList.remove('hidden');
+    b.classList.toggle('on', b.dataset.turno === TL_TURNO);
   });
 
-  // Variables y packs → solo en 'vent' / 'reh'
-  const varVisible = TL_TAB === 'vent' || TL_TAB === 'reh';
+  // Variables y packs → solo en 'seg' (ventilatorio + rehabilitación)
+  const varVisible = TL_TAB === 'seg';
   $('tlVarLbl').classList.toggle('hidden', !varVisible);
   $('tlVarChips').classList.toggle('hidden', !varVisible);
   $('tlPacks').classList.toggle('hidden', !varVisible);
   if (varVisible) {
-    const vars = TL_TAB === 'vent' ? VENT_VARS : REH_VARS;
-    const validKeys = vars.map(v => v.key);
+    const validKeys = SEG_VARS.map(v => v.key);
     let current = [...TL_VARS_SEL].filter(k => validKeys.includes(k));
-    // memoria de vista del navegador → si no, el primer pack del dominio
     if (!current.length) {
       try {
-        const g = JSON.parse(localStorage.getItem('rce_tl_vars_' + TL_TAB) || '[]').filter(k => validKeys.includes(k));
+        const g = JSON.parse(localStorage.getItem('rce_tl_vars_seg') || '[]').filter(k => validKeys.includes(k));
         if (g.length) current = g;
       } catch (e) {}
     }
-    if (!current.length) current = (TL_PACKS[TL_TAB] && TL_PACKS[TL_TAB][0] ? TL_PACKS[TL_TAB][0][1] : []).filter(k => validKeys.includes(k));
-    if (!current.length) current = [vars[0].key];
+    if (!current.length) current = (TL_PACKS.seg && TL_PACKS.seg[0] ? TL_PACKS.seg[0][1] : []).filter(k => validKeys.includes(k));
+    if (!current.length) current = [SEG_VARS[0].key];
     TL_VARS_SEL = new Set(current);
-    _renderTLVarChips(vars);
+    _renderTLVarChips(SEG_VARS);
     _renderTLPacks();
   }
 }
 
 // ── Packs: presets de variables de un toque (el ajuste fino sigue en los chips) ──
 const TL_PACKS = {
-  vent: [
+  seg: [
     ['🫧 Oxigenación', ['VENT_FIO2','VENT_SPO2','CALC_IROX']],
     ['⚙️ Mecánica',    ['VENT_PEEP','VENT_PMAX','CALC_DP','CALC_ML_KG']],
     ['🪶 Weaning',     ['VENT_PS','CALC_TOBIN','VENT_FR']],
     ['🎭 VNI',         ['VENT_IPAP','VENT_EPAP']],
-  ],
-  reh: [
-    ['📈 Progresión', ['KTM_NIVEL_KTR','EVAL_IMS']],
-    ['💪 Fuerza',     ['EVAL_T_MRC','EVAL_T_DINAMO','EVAL_T_PIM','EVAL_T_PEM']],
-    ['🚶 Función',    ['EVAL_T_FSS','CPAX_TOTAL','PAC_BARTHEL']],
+    ['📈 Progresión',  ['KTM_NIVEL_KTR','EVAL_IMS']],
+    ['💪 Fuerza',      ['EVAL_T_MRC','EVAL_T_DINAMO','EVAL_T_PIM','EVAL_T_PEM']],
+    ['🚶 Función',     ['EVAL_T_FSS','CPAX_TOTAL','PAC_BARTHEL']],
   ],
 };
 function _renderTLPacks(){
@@ -4267,15 +4288,15 @@ function _renderTLPacks(){
   }).join('');
 }
 function aplicarTLPack(i){
-  const p=(TL_PACKS[TL_TAB]||[])[i]; if(!p) return;
+  const p=(TL_PACKS.seg||[])[i]; if(!p) return;
   TL_VARS_SEL=new Set(p[1]);
   _guardarTLVars();
-  _renderTLVarChips(TL_TAB==='vent'?VENT_VARS:REH_VARS);
+  _renderTLVarChips(SEG_VARS);
   _renderTLPacks();
   renderTL();
 }
 function _guardarTLVars(){
-  try{ localStorage.setItem('rce_tl_vars_'+TL_TAB, JSON.stringify([...TL_VARS_SEL])); }catch(e){}
+  try{ localStorage.setItem('rce_tl_vars_seg', JSON.stringify([...TL_VARS_SEL])); }catch(e){}
 }
 
 function _renderTLVarChips(vars) {
@@ -4293,18 +4314,16 @@ function toggleTLVar(key) {
   } else {
     TL_VARS_SEL.add(key);
   }
-  const vars = TL_TAB === 'vent' ? VENT_VARS : REH_VARS;
   _guardarTLVars();
-  _renderTLVarChips(vars);
+  _renderTLVarChips(SEG_VARS);
   _renderTLPacks();
   renderTL();
 }
 
 function renderTL() {
   if (!$('tlBody')) return;
-  if (TL_TAB === 'res')      _renderTLResumen();
-  else if (TL_TAB === 'ev')  _renderTLEventos();
-  else                       _renderTLChart(TL_TAB === 'vent' ? VENT_VARS : REH_VARS);
+  if (TL_TAB === 'res') _renderTLResumen();
+  else                  _renderTLChart(SEG_VARS);
 }
 
 // ── Eventos únicos del turno → marcadores para la fila 📌 de las tablas ──
@@ -4324,6 +4343,9 @@ function _tlEventosSlot(e){
 }
 
 // ── Tab Resumen — lo importante sin clics: KPIs del episodio + 3 tablas fijas ──
+function _tlEscHtml(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function _tlFaseTxt(e){ try{ const a=JSON.parse(e.FASE_JSON||'[]'); return a&&a.length?a.join(' + '):''; }catch(_){ return ''; } }
+
 function _renderTLResumen(){
   const evos=TL_EVOS
     .filter(e => TL_TURNO === 'all' || e.TURNO === TL_TURNO)
@@ -4334,6 +4356,25 @@ function _renderTLResumen(){
   }
   const esT=x=>x===true||x==='TRUE';
   const ult=evos[evos.length-1];
+
+  // ── 1) CABECERA DE HITOS (horizontal) ──
+  const hk=[];
+  const ing=evos.find(e=>esT(e.ES_INGRESO));
+  if(ing) hk.push({dia:ing.DIA_ESTADIA,fecha:String(ing.FECHA||''),icon:'🏥',label:'Ingreso',color:'#059669'});
+  evos.forEach(e=>{ _tlEventosSlot(e).forEach(ev=>hk.push({dia:e.DIA_ESTADIA,fecha:String(e.FECHA||''),icon:ev[0],label:ev[1],color:ev[2]})); });
+  const egr=(TL_HITOS||[]).find(h=>h.TIPO==='egreso');
+  if(egr) hk.push({dia:'',fecha:String(egr.FECHA||''),icon:'🏠',label:'Alta',color:'#dc2626'});
+  let h='';
+  if(hk.length){
+    h+='<div class="tlr-sec">📌 Hitos del episodio</div><div class="tlr-rail">';
+    h+=hk.map(m=>`<div class="tlr-step" style="--tone:${m.color}">
+      <div class="d">${m.dia!==''&&m.dia!=null?'Día '+m.dia:'—'}</div>
+      <div class="l">${m.icon} ${_tlEscHtml(m.label)}</div>
+      <div class="f">${m.fecha.slice(5)}</div></div>`).join('');
+    h+='</div>';
+  }
+
+  // ── 2) TENDENCIA (plegable): KPIs + heatmaps curados ──
   const pveN=evos.filter(e=>e.PVE_VAL==='si').length;
   const pveUlt=[...evos].reverse().find(e=>e.PVE_RESULTADO);
   const reintubs=evos.filter(e=>esT(e.EXT_REINTUB)).length;
@@ -4341,27 +4382,57 @@ function _renderTLResumen(){
   const ultCon=k=>{ const e=[...evos].reverse().find(x=>x[k]!==''&&x[k]!==null&&x[k]!==undefined); return e?{v:e[k],f:String(e.TURNO_KEY).slice(5,10)}:null; };
   const mrc=ultCon('EVAL_T_MRC'), fss=ultCon('EVAL_T_FSS'), cpax=ultCon('CPAX_TOTAL');
   const pill=(lbl,val,color)=>`<div style="background:#fff;border:1px solid #e2e8f0;border-left:4px solid ${color||'#94a3b8'};border-radius:9px;padding:6px 12px;min-width:104px;"><div style="font-size:.6rem;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.03em;">${lbl}</div><div style="font-size:1rem;font-weight:800;color:#0f172a;">${val}</div></div>`;
-  let h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">';
-  h+=pill('Día estadía', (ult.DIA_ESTADIA!==''&&ult.DIA_ESTADIA!==undefined)?ult.DIA_ESTADIA:'—', '#1d6fc4');
-  h+=pill('Días VM', (ult.DIAS_VM!==''&&ult.DIAS_VM!==undefined)?ult.DIAS_VM:'—', '#0284c7');
-  h+=pill('PVE', pveN?`${pveN}${pveUlt?` · últ. ${pveUlt.PVE_RESULTADO}`:''}`:'—', pveUlt?(pveUlt.PVE_RESULTADO==='superada'?'#16a34a':'#dc2626'):'#7c3aed');
-  h+=pill('Reintubaciones', String(reintubs), reintubs?'#b91c1c':'#94a3b8');
-  h+=pill('Mejor nivel KTM', nivMax?`Nivel ${nivMax}`:'—', '#d97706');
+  let tend='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">';
+  tend+=pill('Día estadía', (ult.DIA_ESTADIA!==''&&ult.DIA_ESTADIA!==undefined)?ult.DIA_ESTADIA:'—', '#1d6fc4');
+  tend+=pill('Días VM', (ult.DIAS_VM!==''&&ult.DIAS_VM!==undefined)?ult.DIAS_VM:'—', '#0284c7');
+  tend+=pill('PVE', pveN?`${pveN}${pveUlt?` · últ. ${pveUlt.PVE_RESULTADO}`:''}`:'—', pveUlt?(pveUlt.PVE_RESULTADO==='superada'?'#16a34a':'#dc2626'):'#7c3aed');
+  tend+=pill('Reintubaciones', String(reintubs), reintubs?'#b91c1c':'#94a3b8');
+  tend+=pill('Mejor nivel KTM', nivMax?`Nivel ${nivMax}`:'—', '#d97706');
   const ktrTot=evos.reduce((a,e)=>a+(parseInt(e.RESP_KTR_CANT)||0),0);
-  h+=pill('Sesiones KTR', ktrTot?String(ktrTot):'—', '#0891b2');
-  if(mrc) h+=pill('MRC últ.', `${mrc.v} <span style="font-size:.62rem;color:#94a3b8;">${mrc.f}</span>`, '#d97706');
-  if(fss) h+=pill('FSS últ.', `${fss.v} <span style="font-size:.62rem;color:#94a3b8;">${fss.f}</span>`, '#0891b2');
-  if(cpax) h+=pill('CPAx últ.', `${cpax.v} <span style="font-size:.62rem;color:#94a3b8;">${cpax.f}</span>`, '#7c3aed');
-  h+='</div>';
+  tend+=pill('Sesiones KTR', ktrTot?String(ktrTot):'—', '#0891b2');
+  if(mrc) tend+=pill('MRC últ.', `${mrc.v} <span style="font-size:.62rem;color:#94a3b8;">${mrc.f}</span>`, '#d97706');
+  if(fss) tend+=pill('FSS últ.', `${fss.v} <span style="font-size:.62rem;color:#94a3b8;">${fss.f}</span>`, '#0891b2');
+  if(cpax) tend+=pill('CPAx últ.', `${cpax.v} <span style="font-size:.62rem;color:#94a3b8;">${cpax.f}</span>`, '#7c3aed');
+  tend+='</div>';
   const TODAS=[...VENT_VARS,...REH_VARS];
   const secc=(tit,keys)=>{
     const sel=TODAS.filter(vd=>keys.includes(vd.key));
     return `<div style="margin-bottom:16px;"><div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin-bottom:6px;">${tit}</div>${_tlTablaHTML(sel,true)}</div>`;
   };
   const hayPS=evos.some(e=>{const n=_parseNum(e.VENT_PS);return n!==null&&n>0;});
-  h+=secc('🫧 Oxigenación',['VENT_FIO2','VENT_SPO2']);
-  h+=secc('⚙️ Soporte',['VENT_PEEP',hayPS?'VENT_PS':'CALC_DP']);
-  h+=secc('🏃 Rehabilitación',['KTM_NIVEL_KTR','EVAL_IMS']);
+  tend+=secc('🫧 Oxigenación',['VENT_FIO2','VENT_SPO2']);
+  tend+=secc('⚙️ Soporte',['VENT_PEEP',hayPS?'VENT_PS':'CALC_DP']);
+  tend+=secc('🏃 Rehabilitación',['KTM_NIVEL_KTR','EVAL_IMS']);
+  h+=`<details class="tlr-det" open><summary><span class="cv">▸</span> 📈 Tendencia por día <span style="font-weight:500;color:#94a3b8;font-size:.75rem;">(FiO₂, PEEP, MRC…)</span></summary><div class="in">${tend}</div></details>`;
+
+  // ── 3) FEED de turnos (detalle, más reciente arriba) ──
+  h+='<div class="tlr-sec">🗒️ Detalle por turno</div><div class="tlr-feed">';
+  h+=[...evos].reverse().map(e=>{
+    const evs=_tlEventosSlot(e);
+    const tone=evs.length?evs[0][2]:'#1d6fc4';
+    const chips=evs.map(ev=>`<span class="tlr-chip" style="color:${ev[2]};background:${ev[2]}18;border:1px solid ${ev[2]}55;">${ev[0]} ${_tlEscHtml(ev[1])}</span>`).join('');
+    const evChips=[];
+    if(e.EVAL_T_MRC!==''&&e.EVAL_T_MRC!=null) evChips.push(`<span class="tlr-chip" style="color:#059669;background:#05966918;border:1px solid #05966955;">📐 MRC ${_tlEscHtml(e.EVAL_T_MRC)}</span>`);
+    if(e.EVAL_T_FSS!==''&&e.EVAL_T_FSS!=null) evChips.push(`<span class="tlr-chip" style="color:#7c3aed;background:#7c3aed18;border:1px solid #7c3aed55;">📐 FSS ${_tlEscHtml(e.EVAL_T_FSS)}</span>`);
+    if(e.CPAX_TOTAL!==''&&e.CPAX_TOTAL!=null) evChips.push(`<span class="tlr-chip" style="color:#7c3aed;background:#7c3aed18;border:1px solid #7c3aed55;">📐 CPAx ${_tlEscHtml(e.CPAX_TOTAL)}</span>`);
+    const vp=[]; const addp=(l,val,suf)=>{ if(val!==''&&val!=null&&val!==undefined) vp.push(`<span class="tlr-p">${l} <b>${_tlEscHtml(val)}${suf||''}</b></span>`); };
+    addp('Soporte', e.VENT_SOPORTE); addp('Modo', e.VENT_MODO); addp('PEEP', e.VENT_PEEP);
+    addp('FiO₂', e.VENT_FIO2,'%'); addp('SpO₂', e.VENT_SPO2,'%');
+    const fase=_tlFaseTxt(e);
+    const txt=String(e.TEXTO_GENERADO||'').trim();
+    return `<div class="tlr-card" style="--tone:${tone}"><div class="rail"></div><div class="in">
+      <div class="tlr-h"><span class="day">Día ${e.DIA_ESTADIA!==''&&e.DIA_ESTADIA!=null?e.DIA_ESTADIA:'—'}</span>
+        <span class="fe">${String(e.FECHA||'').slice(5)}</span>
+        <span style="font-size:.7rem;font-weight:700;color:${e.TURNO==='Dia'?'#d97706':'#1d6fc4'};">${e.TURNO==='Dia'?'☀ DÍA':'🌙 NOCHE'}</span>
+        ${fase?`<span class="fa">${_tlEscHtml(fase)}</span>`:''}</div>
+      ${(chips||evChips.length)?`<div class="tlr-chips">${chips}${evChips.join('')}</div>`:''}
+      ${vp.length?`<div class="tlr-params">${vp.join('')}</div>`:''}
+      ${txt?`<div class="tlr-txt clamp" onclick="this.classList.toggle('clamp')" title="Clic para expandir/plegar">${_tlEscHtml(txt)}</div>`:''}
+      ${e.PLAN_FIRMA_KINE?`<div class="tlr-sign">✍ ${_tlEscHtml(e.PLAN_FIRMA_KINE)}</div>`:''}
+    </div></div>`;
+  }).join('');
+  h+='</div>';
+
   $('tlBody').innerHTML=h;
 }
 
