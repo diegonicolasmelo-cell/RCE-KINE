@@ -106,6 +106,34 @@ function repoEliminarDonde(hoja, fn) {
 }
 
 /**
+ * Actualiza en bloque todas las filas que cumplan fn(obj); mut(obj) devuelve
+ * los campos a cambiar para esa fila. Lee y escribe el rango completo UNA vez,
+ * por lo que sirve para re-etiquetar muchas filas sin buscar por id (que se
+ * volvería ambiguo si los ids cambian durante la operación, p.ej. traslados).
+ * @return {number} filas modificadas.
+ */
+function repoActualizarDonde(hoja, fn, mut) {
+  const h = _hoja(hoja);
+  const fi = FILA_DATOS[hoja], total = TOTAL_COLS[hoja], ult = h.getLastRow();
+  if (ult < fi) return 0;
+  const rango = h.getRange(fi, 1, ult - fi + 1, total);
+  const datos = rango.getValues();
+  const colmap = COL[hoja];
+  let n = 0;
+  for (let i = 0; i < datos.length; i++) {
+    const obj = esquemaFilaAObjeto(hoja, datos[i]);
+    if (!fn(obj)) continue;
+    const campos = mut(obj) || {};
+    Object.keys(campos).forEach(k => {
+      if (colmap[k]) datos[i][colmap[k] - 1] = (campos[k] == null) ? '' : campos[k];
+    });
+    n++;
+  }
+  if (n) rango.setValues(datos);
+  return n;
+}
+
+/**
  * Upsert por clave: si existe la fila (colKey==id) la actualiza; si no, inserta.
  * @return {string} 'crear' | 'actualizar'
  */

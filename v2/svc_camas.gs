@@ -202,6 +202,25 @@ function darAltaPaciente(datos, ctx) {
   });
 }
 
+// ── TRASLADO ───────────────────────────────────────────────
+/**
+ * Re-etiqueta las filas del episodio a su nueva cama: EVOLUCIONES (ID_CAMA e
+ * ID_EVOLUCION, cuya clave incluye la cama) y TIMELINE (ID_CAMA). Sin esto el
+ * historial "quedaba pegado" a la cama antigua: la replicación del turno
+ * previo, el registro del día y el cache de hitos leen por cama y mostraban
+ * datos del ocupante anterior tras un traslado.
+ */
+function _reetiquetarEpisodioACama(patientId, idCamaNueva) {
+  if (!patientId) return;
+  const pid = String(patientId), nueva = String(idCamaNueva);
+  repoActualizarDonde('EVOLUCIONES',
+    e => String(e.PATIENT_ID) === pid,
+    e => ({ ID_CAMA: nueva, ID_EVOLUCION: 'CAMA_' + nueva + '_' + e.TURNO_KEY }));
+  repoActualizarDonde('TIMELINE',
+    h => String(h.PATIENT_ID) === pid,
+    () => ({ ID_CAMA: nueva }));
+}
+
 // ── TRASLADO: intercambio entre dos camas ocupadas ─────────
 function intercambiarCamas(idA, idB, ctx) {
   ctx = ctx || {};
@@ -215,6 +234,11 @@ function intercambiarCamas(idA, idB, ctx) {
       const campB = Object.assign({}, A); campB.ID_CAMA = String(idB);
       repoActualizar('CAMAS_ESTADO', 'ID_CAMA', String(idA), campA);
       repoActualizar('CAMAS_ESTADO', 'ID_CAMA', String(idB), campB);
+
+      // El episodio completo viaja con el paciente (antes de los hitos, para
+      // que el cache TIMELINE_JSON se reconstruya con las filas correctas).
+      _reetiquetarEpisodioACama(A.PATIENT_ID, idB);
+      _reetiquetarEpisodioACama(B.PATIENT_ID, idA);
 
       const fecha = hoyISO();
       _agregarHitoInterno({ idCama: idA, patientId: B.PATIENT_ID, fecha, turno: 'Dia', tipo: 'general', texto: `Traslado a Cama ${idA} (desde ${idB})`, autor: ctx.firma || '', autorEmail: ctx.email || '' });
@@ -239,6 +263,7 @@ function moverACamaVacia(idOrigen, idDestino, ctx) {
       const camp = Object.assign({}, O); camp.ID_CAMA = String(idDestino);
       repoActualizar('CAMAS_ESTADO', 'ID_CAMA', String(idDestino), camp);
       _limpiarCamaInterno(String(idOrigen));
+      _reetiquetarEpisodioACama(O.PATIENT_ID, idDestino);
 
       _agregarHitoInterno({ idCama: idDestino, patientId: O.PATIENT_ID, fecha: hoyISO(), turno: 'Dia', tipo: 'general', texto: `Traslado a Cama ${idDestino} (desde ${idOrigen})`, autor: ctx.firma || '', autorEmail: ctx.email || '' });
       SpreadsheetApp.flush();
