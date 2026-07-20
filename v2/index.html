@@ -2088,7 +2088,7 @@ table.rhb2 .rl{width:128px;text-align:left;}
                     <!-- Cantidad -->
                     <div>
                       <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Cantidad</label>
-                      <div style="display:flex;gap:4px;">
+                      <div id="secrQtyRow" style="display:flex;gap:4px;border-radius:6px;padding:2px;">
                         <button type="button" class="secr-qty" id="sqBtn0" onclick="hSecrQty('-')"   data-tip="Sin secreciones" style="width:30px;height:28px;font-size:.85rem;">−</button>
                         <button type="button" class="secr-qty" id="sqBtn1" onclick="hSecrQty('+')"   data-tip="Escasas"         style="width:30px;height:28px;font-size:.82rem;">+</button>
                         <button type="button" class="secr-qty" id="sqBtn2" onclick="hSecrQty('++')"  data-tip="Moderadas"       style="width:36px;height:28px;font-size:.78rem;">++</button>
@@ -3062,6 +3062,7 @@ function _resetHiddenYEventos(){
   // cantidad de secreciones: la variable de módulo también debe partir limpia
   // (si no, el toggle des-selecciona al reelegir el mismo valor en otro paciente)
   if(typeof _secrQty!=='undefined'){ _secrQty=''; document.querySelectorAll('.secr-qty').forEach(b=>b.classList.remove('active')); }
+  if(typeof _secrHeredado!=='undefined') _secrHeredado=false;
   if(typeof hSecrCond==='function') hSecrCond();
   _evoEventoGuardado=false;
 }
@@ -3238,7 +3239,7 @@ function _snapPanel() {
       _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
       _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
       _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
-      _iniVA, _iniSop, _transAvisoOk,
+      _iniVA, _iniSop, _transAvisoOk, _secrHeredado,
     },
   };
 }
@@ -3268,6 +3269,7 @@ function _restaurarMin(m) {
   _transIntubEsteTurno = V._transIntubEsteTurno; _vaAntesIntub = V._vaAntesIntub;
   _dispSnapshot = V._dispSnapshot; _totSnapshot = V._totSnapshot; _tqtSnapshot = V._tqtSnapshot;
   _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _transAvisoOk = !!V._transAvisoOk;
+  _secrHeredado = !!V._secrHeredado;
   // 4) innerHTML mató los listeners delegados del form → re-atar
   _bindPanelListeners();
   // 5) Si la vista global cambió mientras estaba minimizado (p. ej. cruzó las
@@ -3618,6 +3620,18 @@ function fillFormReplica(s) {
   if($('fRuidosLoc')) $('fRuidosLoc').value=s.EX_RUIDOS_LOC||'';
   tiSet('fSecrTags','fSecrVal','sky',s.EX_SECR_TIPO||'');
 
+  // Permeabilización — secreciones: se replican como PUNTO DE PARTIDA y quedan
+  // heredadas (ámbar) para forzar confirmación. Las técnicas (SOF/SNF/SET/tos)
+  // son acción puntual del turno: nunca se replican.
+  set('fSecrCar',s.RESP_SECR_CAR); hSecrCond();
+  set('fSecrReol',s.RESP_SECR_REOL);
+  if(s.RESP_SECR_QTY){
+    _secrQty=String(s.RESP_SECR_QTY);
+    _SECR_VALS.forEach((v,i)=>{ const b=$('sqBtn'+i); if(b) b.classList.toggle('active',v===_secrQty); });
+    const h=$('fSecrQty'); if(h) h.value=_secrQty;
+    _secrHeredado=true;
+  }
+
   // Vía aérea — prioriza estado FINAL si hubo extubación en turno anterior
   const _vaF = s.VENT_VIA_AEREA_FINAL||s.VENT_VIA_AEREA;
   const _sopF = s.VENT_SOPORTE_FINAL||s.VENT_SOPORTE;
@@ -3878,11 +3892,14 @@ function transAvisoGuardar(){ _transAvisoOk=true; transAvisoCerrar(); guardar();
 // reconstruye el campo (cambio de modo = el kine ya está editando ese módulo).
 // Los campos de ESTADO (vía aérea, soporte, modo, fase, dx) no se marcan:
 // son hechos que persisten entre turnos, no mediciones.
-const _HER_CAMPOS=['fSed','fSAS','fS5Q','fCoop','fGCSO','fGCSV','fGCSM',
-  'fHEst','fDVA','fDVAcnt','fHTT',
+const _HER_CAMPOS=['fSed','fSAS','fS5Q','fCoop','fGCSO','fGCSV','fGCSM',   // sedación / conciencia
+  'fHEst','fDVA','fDVAcnt','fHTT',                                          // hemodinamia
+  'fMPVal','fRuidosVal','fRuidosLoc',                                       // auscultación
   'r_vt','r_fr','r_peep','r_pmax','r_pmedia','r_ppl','r_fio2','r_spo2','r_pafi',
   'r_flujo','r_ti','r_ps','r_ipap','r_ipapmax','r_epap','r_pinsp','r_litros','r_temp',
-  'r_autopeep','r_p01','r_dpocc','r_pmusc'];
+  'r_autopeep','r_p01','r_dpocc','r_pmusc','r_uma',                         // terapia ventilatoria (soporte/modo)
+  'fKTRcnt',                                                                // KTR respiratorio
+  'fSecrCar','fSecrReol'];                                                  // permeabilización — secreciones
 function _herPendientes(){
   return [...document.querySelectorAll('#sp .heredado')].filter(e=>e.offsetParent!==null).length;
 }
@@ -3900,6 +3917,11 @@ function _marcarHeredados(){
       const c=e.closest('.fcard'); if(c) cards.add(c);
     }
   });
+  // Cantidad de secreciones: widget de botones (no es un campo), se marca su fila
+  if(_secrHeredado && String(_secrQty||'')!==''){
+    const row=$('secrQtyRow');
+    if(row && row.offsetParent!==null){ row.classList.add('heredado'); const c=row.closest('.fcard'); if(c) cards.add(c); }
+  }
   cards.forEach(c=>{
     const hdr=c.querySelector('.fcard-hdr');
     if(!hdr||hdr.querySelector('.her-chip')) return;
@@ -3913,6 +3935,7 @@ function _marcarHeredados(){
 function confirmarHeredadosCard(btn){
   const c=btn.closest('.fcard'); if(!c) return;
   c.querySelectorAll('.heredado').forEach(e=>e.classList.remove('heredado'));
+  if(c.querySelector('#secrQtyRow')) _secrHeredado=false;
   btn.remove();
   toast('✓ Módulo confirmado sin cambios');
 }
@@ -5590,9 +5613,10 @@ function hSecrCond(){
   const car=v('fSecrCar'), reol=$('fSecrReol');
   if(!reol) return;
   reol.disabled=!car;
-  if(!car) reol.value='';
+  if(!car){ reol.value=''; reol.classList.remove('heredado'); }  // sin característica no hay reología heredada que confirmar
 }
 let _secrQty='';
+let _secrHeredado=false;   // la cantidad de secreciones viene replicada del turno anterior (heredada, sin confirmar)
 const _SECR_VALS=['-','+','++','+++'];
 function hSecrQty(val){
   _secrQty=(_secrQty===val)?'':val;
@@ -5600,6 +5624,8 @@ function hSecrQty(val){
     const b=$('sqBtn'+i); if(b) b.classList.toggle('active',v===_secrQty);
   });
   const h=$('fSecrQty'); if(h) h.value=_secrQty;
+  // Interactuar con la cantidad la confirma (deja de estar heredada)
+  _secrHeredado=false; $('secrQtyRow')?.classList.remove('heredado');
 }
 
 // — Posicionamiento colapsable —
