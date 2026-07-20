@@ -101,6 +101,10 @@ const _COLS_EVOLUCIONES = [
   ['PROC_JSON','json'],['PROC_RESUMEN','texto'],['PROC_CANTIDAD','entero'],
   // W. Planes, firma y generado
   ['PLAN_PLANES','texto'],['PLAN_NOTA_TURNO','texto'],['PLAN_FIRMA_KINE','texto'],['TEXTO_GENERADO','texto'],
+  // Editor de texto (opción A): TEXTO_GENERADO guarda lo que quedó en pantalla
+  // (oficial, editable); TEXTO_AUTO conserva la salida del motor para
+  // trazabilidad y refinamiento; TEXTO_MANUAL marca si hubo edición a mano.
+  ['TEXTO_AUTO','texto'],['TEXTO_MANUAL','bool'],
   // X. Extensiones post-congelamiento (SIEMPRE al final — nunca insertar al medio,
   // para no desplazar los índices de datos ya escritos).
   ['REINTUB_HORA','texto'],   // hora de la reintubación (independiente de EXT_HORA, que es la de extubación)
@@ -599,7 +603,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 293) errs.push('EVOLUCIONES != 293 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 295) errs.push('EVOLUCIONES != 295 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

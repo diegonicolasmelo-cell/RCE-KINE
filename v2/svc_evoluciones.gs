@@ -34,6 +34,11 @@ function guardarEvolucion(datos, ctx) {
       // texto antiguo). Fallback al generador del servidor si no viene (llamadas
       // API sin navegador, como los smoke tests).
       const _textoCliente = String(datos.TEXTO_GENERADO || '').trim();
+      // Editor de texto (opción A): el cliente manda además la salida cruda del
+      // motor (TEXTO_AUTO) y si hubo edición manual (TEXTO_MANUAL). Se capturan
+      // ANTES de la fusión con la fila previa, igual que el texto oficial.
+      const _textoAutoCli = String(datos.TEXTO_AUTO || '').trim();
+      const _textoManualCli = esVerdadero(datos.TEXTO_MANUAL);
 
       // ── Fusión con lo ya guardado ──
       // Los eventos únicos (PVE/extubación, decanulación, intubación,
@@ -120,8 +125,12 @@ function guardarEvolucion(datos, ctx) {
         datos.APNEA_ULTIMO = apRes + ' (' + fecha + ')';
       }
 
-      // Texto clínico: el de la vista previa (cliente) si vino; si no, se genera.
+      // Texto clínico: el de la PANTALLA (cliente) si vino; si no, se genera.
       datos.TEXTO_GENERADO = _textoCliente || generarTextoEvolucion(datos);
+      // Respaldo del motor: si el cliente no lo trae (API sin navegador) y no
+      // hubo edición manual, el oficial ES la salida del motor.
+      datos.TEXTO_AUTO = _textoAutoCli || (_textoManualCli ? '' : datos.TEXTO_GENERADO);
+      datos.TEXTO_MANUAL = _textoManualCli;
 
       // Procedimientos del turno
       let procs = [];

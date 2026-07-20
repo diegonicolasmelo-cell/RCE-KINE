@@ -49,7 +49,7 @@ function auditoriaCalidad() {
       return vals.join('|') === '|||||||||||' ? '' : vals.join('|');   // '' = sin mediciones
     };
 
-    const resumen = { huecos: 0, transicion: 0, evaluacion: 0, pve: 0, clones: 0 };
+    const resumen = { huecos: 0, transicion: 0, evaluacion: 0, pve: 0, clones: 0, texto: 0 };
     const filas = [];
 
     camas.forEach(function (c) {
@@ -128,6 +128,16 @@ function auditoriaCalidad() {
           }
           if (n >= 3) add('clones', 'ambar', 'Mediciones idénticas (FiO₂/PEEP/VT/FR/SpO₂/sedación/HDN) en los últimos ' + n + ' turnos — revisar si se están re-midiendo');
         }
+      }
+
+      // ── 6) Textos editados a mano (informativo): insumo para refinar el motor ──
+      const editados = evos.filter(function (e) { return esVerdadero(e.TEXTO_MANUAL); });
+      if (editados.length) {
+        const dets = editados.slice(-4).map(function (e) {
+          const k = String(e.TURNO_KEY); return k.slice(8, 10) + '-' + k.slice(5, 7) + ' ' + (k.indexOf('Noche') !== -1 ? '🌙' : '☀️');
+        }).join(', ');
+        add('texto', 'info', 'Texto retocado a mano en ' + editados.length + ' turno(s): ' + dets +
+          (editados.length > 4 ? '…' : '') + ' — compara con el texto del motor para ver qué frases afinar');
       }
 
       if (h.length) filas.push({ cama: String(c.ID_CAMA), nombre: c.NOMBRE || '', cod: c.COD_PACIENTE || '', hallazgos: h });

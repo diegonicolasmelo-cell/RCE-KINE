@@ -2493,19 +2493,16 @@ table.rhb2 .rl{width:128px;text-align:left;}
         <button type="button" id="btnCerrarPost" class="btn" style="width:auto;padding:0 15px;flex-shrink:0;background:#334155;color:#fff;display:none;" onclick="cerrarPanel()">✖ Cerrar</button>
       </div>
 
-      <!-- TEXTO GENERADO -->
+      <!-- TEXTO DE LA EVOLUCIÓN — editor real: se guarda tal como se ve -->
       <div id="rarea" class="hidden">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
-          <span style="color:#94a3b8;font-size:.7rem;font-weight:700;">📄 TEXTO GENERADO (COPIA Y PEGA EN LA FICHA)<span id="rtxtEditBadge" style="display:none;color:#b45309;"> · ✏️ editado manualmente (no se guarda)</span></span>
+          <span style="color:#94a3b8;font-size:.7rem;font-weight:700;">📄 TEXTO DE LA EVOLUCIÓN — editable; se guarda tal como lo ves<span id="rtxtEditBadge" style="display:none;color:#b45309;"> · ✍️ editado a mano</span></span>
           <div style="display:flex;gap:8px;">
-            <button type="button" id="btnEditarTexto" style="display:none;width:auto;padding:8px 14px;font-size:.8rem;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:8px;cursor:pointer;" onclick="toggleEditarTexto()">✏️ Editar (demo)</button>
+            <button type="button" id="btnRegenTexto" style="display:none;width:auto;padding:8px 14px;font-size:.8rem;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:8px;cursor:pointer;" onclick="regenerarTexto()" title="Vuelve al texto del generador (descarta los retoques manuales)">🔄 Regenerar</button>
             <button type="button" class="btn btn-c" style="width:auto;padding:8px 20px;font-size:.85rem;font-weight:800;" onclick="copiar()">📋 Copiar Texto</button>
           </div>
         </div>
-        <div id="rtxtDemoBanner" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:7px 12px;margin-bottom:8px;font-size:.76rem;color:#92400e;line-height:1.5;">
-          🧪 <b>Modo edición de texto (demostración).</b> Puedes modificar el texto para mostrar el formato que quieres — <b>estos cambios NO se guardan en el sistema</b>, solo sirven para afinar el generador mientras ajustamos el formato.
-        </div>
-        <textarea id="rtxt" rows="20" readonly></textarea>
+        <textarea id="rtxt" rows="20"></textarea>
       </div>
     </form>
   </div>
@@ -3112,6 +3109,7 @@ function abrirPanel(id, esIng) {
   const _gClr=$('spGapAviso'); if(_gClr){_gClr.style.display='none';_gClr.innerHTML='';}
   _transAvisoOk=false; _iniVA=''; _iniSop='';
   _limpiarHeredados();
+  _marcarTextoGenerado('');   // editor de texto: parte sin edición manual
   $('kf').reset(); PROCS=[]; renderChips();
   _resetHiddenYEventos();
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
@@ -3172,6 +3170,7 @@ function abrirPanel(id, esIng) {
         // ─── Turno YA guardado: carga exactamente lo que se registró ───
         fillForm(r.actual);
         _snapIniEstado();
+        _mostrarEditorTexto(r.actual);
       } else if(r && r.previa) {
         // ─── Turno NUEVO: replica el turno inmediatamente anterior ───
         if(c) fillCama(c,fecha);
@@ -3183,16 +3182,19 @@ function abrirPanel(id, esIng) {
         $('repBannerTxt').innerHTML='';hide('repBanner');
         _snapIniEstado();
         _avisoGapTurnos(String(r.previa.TURNO_KEY||''), fecha, c);
+        _mostrarEditorTexto(null);
       } else {
         // Sin turno previo: arranca en blanco con datos del paciente
         if(c) fillCama(c,fecha);
         _snapIniEstado();
         _avisoGapTurnos('', fecha, c);
+        _mostrarEditorTexto(null);
       }
-    }, ()=>{ loading(false); const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha); _snapIniEstado(); });
+    }, ()=>{ loading(false); const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha); _snapIniEstado(); _mostrarEditorTexto(null); });
   } else {
     const c=DB.find(x=>String(x.ID_CAMA)===String(id));
     if(c) fillCama(c,fecha);
+    _mostrarEditorTexto(null);
   }
   $('ovl').classList.add('on');
   $('sp').classList.add('on');
@@ -3256,6 +3258,7 @@ function _snapPanel() {
       _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
       _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
       _iniVA, _iniSop, _transAvisoOk, _secrHeredado,
+      _rtxtGen, _textoManual,
     },
   };
 }
@@ -3286,6 +3289,7 @@ function _restaurarMin(m) {
   _dispSnapshot = V._dispSnapshot; _totSnapshot = V._totSnapshot; _tqtSnapshot = V._tqtSnapshot;
   _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _transAvisoOk = !!V._transAvisoOk;
   _secrHeredado = !!V._secrHeredado;
+  _rtxtGen = V._rtxtGen || ''; _setTextoManual(!!V._textoManual);
   // 4) innerHTML mató los listeners delegados del form → re-atar
   _bindPanelListeners();
   // 5) Si la vista global cambió mientras estaba minimizado (p. ej. cruzó las
@@ -4196,20 +4200,27 @@ function guardar() {
     FASE_JSON: JSON.stringify(Array.from(FASES_SEL)),
     PLAN_PENDIENTES: JSON.stringify(Array.from(PEND_SEL)),
     PLAN_PLANES:v('fPlanes'), PLAN_NOTA_TURNO:v('fNota'), PLAN_FIRMA_KINE:v('fFirma'),
-    // Texto EXACTO de la vista previa: el servidor lo respeta al guardar, así el
-    // texto guardado es idéntico al que el kinesiólogo revisó en la vista previa.
-    TEXTO_GENERADO: genTexto(),
   };
+  // Editor de texto (opción A): lo que está EN PANTALLA es el texto oficial y
+  // se guarda tal cual; la salida cruda del motor viaja aparte (TEXTO_AUTO)
+  // para trazabilidad y refinamiento del generador. Sin edición manual, ambos
+  // son idénticos (texto regenerado al momento de guardar).
+  datos.TEXTO_AUTO = genTexto();
+  const _rtV = ($('rtxt')?.value || '').trim();
+  datos.TEXTO_MANUAL = !!(_textoManual && _rtV);
+  datos.TEXTO_GENERADO = datos.TEXTO_MANUAL ? $('rtxt').value : datos.TEXTO_AUTO;
   _podarEventosPayload(datos);
   const btn=$('btnGuardar'); btn.disabled=true; btn.textContent='⏳ Guardando...';
   toast('💾 Guardando en servidor...');
   gs('GUARDAR_EVOLUCION', datos, r=>{
     btn.disabled=false; btn.textContent='✅ Guardado';
     toast('✅ Evolución guardada correctamente');
-    // Texto DEFINITIVO del servidor (idéntico a lo que quedó guardado);
-    // genTexto() local solo como respaldo si la respuesta no lo trae.
-    $('rtxt').value = (r && r.TEXTO_GENERADO) || genTexto();
-    _marcarTextoGenerado($('rtxt').value);
+    // Texto DEFINITIVO: si hubo edición manual, lo de pantalla ES lo guardado
+    // (no se toca); si no, se refleja el texto que confirmó el servidor.
+    if(!_textoManual){
+      $('rtxt').value = (r && r.TEXTO_GENERADO) || genTexto();
+      _marcarTextoGenerado($('rtxt').value);
+    }
     show('rarea');
     $('rarea').scrollIntoView({behavior:'smooth', block:'start'});
     // Mostrar botón cerrar y actualizar grid en background
@@ -4635,7 +4646,7 @@ function _renderTLResumen(){
       ${(chips||evChips.length)?`<div class="tlr-chips">${chips}${evChips.join('')}</div>`:''}
       ${vp.length?`<div class="tlr-params">${vp.join('')}</div>`:''}
       ${txt?`<div class="tlr-txt" onclick="this.classList.toggle('clamp')" title="Clic para plegar/expandir">${_tlEscHtml(txt)}</div>`:''}
-      ${e.PLAN_FIRMA_KINE?`<div class="tlr-sign">✍ ${_tlEscHtml(e.PLAN_FIRMA_KINE)}</div>`:''}
+      ${e.PLAN_FIRMA_KINE?`<div class="tlr-sign">✍ ${_tlEscHtml(e.PLAN_FIRMA_KINE)}${(e.TEXTO_MANUAL===true||e.TEXTO_MANUAL==='TRUE')?' <span style="color:#b45309;font-weight:700;" title="El texto de este turno fue retocado a mano sobre el generado">· ✍️ texto editado</span>':''}</div>`:''}
     </div></div>`;
   }).join('');
   h+='</div>';
@@ -4821,13 +4832,15 @@ function _bindPanelListeners(){
   // Tocar un campo heredado (aunque quede igual) lo confirma
   $('kf')?.addEventListener('change', _herTouch);
   $('kf')?.addEventListener('input', _herTouch);
+  // Editor de texto: regeneración en vivo mientras no haya edición manual
+  $('kf')?.addEventListener('change', _rtxtLive);
+  $('kf')?.addEventListener('input', _rtxtLive);
 }
 _bindPanelListeners();
 
-//  PREVIEW TEXTO (local)
+//  PREVIEW TEXTO (local) — con edición manual pendiente NO regenera (solo muestra)
 function previewTexto() {
-  $('rtxt').value = genTexto();
-  _marcarTextoGenerado($('rtxt').value);
+  if(!_textoManual){ $('rtxt').value = genTexto(); _marcarTextoGenerado($('rtxt').value); }
   show('rarea');
   $('rtxt').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -4837,49 +4850,60 @@ function copiar() {
   window.getSelection()?.removeAllRanges();
 }
 
-// ── Editor de texto DEMO (temporal, mientras afinamos el generador) ──
-// Permite editar el texto de la vista previa SOLO en pantalla, para mostrar el
-// formato deseado. Los cambios NO se envían al backend (guardar() usa siempre
-// genTexto(), nunca el textarea). Se activa/desactiva desde CONFIG:
-// EDITOR_TEXTO_DEMO=TRUE/FALSE (sin re-pegar código).
-let _rtxtGen='';        // último texto GENERADO (para detectar edición manual)
-let _editTextoOn=false;  // modo edición activo
-function _aplicarEditorTextoDemo(){
-  const on = !!(window.CFG && String(CFG.EDITOR_TEXTO_DEMO)==='true');
-  const btn=$('btnEditarTexto'); if(btn) btn.style.display = on ? '' : 'none';
-  if(!on){ _desactivarEditorTexto(); }  // por si se apagó desde la planilla
-}
-// Marca el texto mostrado como "recién generado" (sin edición manual pendiente).
+// ── EDITOR DE TEXTO (opción A) ─────────────────────────────────────────────
+// El texto es un editor real: se regenera EN VIVO mientras se llenan casillas
+// y se puede escribir encima cuando se quiera. Al primer retoque manual la
+// regeneración automática se PAUSA (badge «editado a mano» + 🔄 Regenerar,
+// que descarta lo editado previa confirmación). Se guarda TAL CUAL lo que
+// está en pantalla; la salida del motor viaja aparte (TEXTO_AUTO) para
+// trazabilidad y para refinar el generador comparando ambos.
+let _rtxtGen='';          // último texto salido del motor (para detectar edición)
+let _textoManual=false;   // el texto en pantalla tiene retoques manuales
 function _marcarTextoGenerado(t){
   _rtxtGen = t||'';
-  const b=$('rtxtEditBadge'); if(b) b.style.display='none';
+  _setTextoManual(false);
 }
-function toggleEditarTexto(){
-  if(_editTextoOn) _desactivarEditorTexto();
-  else _activarEditorTexto();
+function _setTextoManual(on){
+  _textoManual=!!on;
+  const b=$('rtxtEditBadge'); if(b) b.style.display=on?'':'none';
+  const r=$('btnRegenTexto'); if(r) r.style.display=on?'':'none';
 }
-function _activarEditorTexto(){
-  const ta=$('rtxt'); if(!ta) return;
-  _editTextoOn=true;
-  ta.readOnly=false;
-  ta.style.background='#fffdf5'; ta.style.borderColor='#f59e0b'; ta.style.borderStyle='dashed';
-  const bn=$('rtxtDemoBanner'); if(bn) bn.style.display='';
-  const btn=$('btnEditarTexto'); if(btn){ btn.textContent='🔒 Bloquear'; }
-  ta.focus();
+function regenerarTexto(){
+  if(_textoManual && !confirm('🔄 Regenerar vuelve al texto del generador y descarta tus retoques manuales. ¿Continuar?')) return;
+  $('rtxt').value=genTexto();
+  _marcarTextoGenerado($('rtxt').value);
 }
-function _desactivarEditorTexto(){
-  const ta=$('rtxt'); if(!ta) return;
-  _editTextoOn=false;
-  ta.readOnly=true;
-  ta.style.background=''; ta.style.borderColor=''; ta.style.borderStyle='';
-  const bn=$('rtxtDemoBanner'); if(bn) bn.style.display='none';
-  const btn=$('btnEditarTexto'); if(btn){ btn.textContent='✏️ Editar (demo)'; }
+// Mostrar el editor al abrir un turno: si el turno guardado traía edición
+// manual, se respeta (regeneración en pausa); si no, texto del motor en vivo.
+function _mostrarEditorTexto(s){
+  const manual = s && (s.TEXTO_MANUAL===true||s.TEXTO_MANUAL==='TRUE') && s.TEXTO_GENERADO;
+  if(manual){
+    $('rtxt').value=s.TEXTO_GENERADO;
+    _rtxtGen=String(s.TEXTO_AUTO||'');
+    _setTextoManual(true);
+  } else if(s && s.TEXTO_GENERADO){
+    $('rtxt').value=s.TEXTO_GENERADO;
+    _marcarTextoGenerado(s.TEXTO_GENERADO);
+  } else {
+    $('rtxt').value=genTexto();
+    _marcarTextoGenerado($('rtxt').value);
+  }
+  show('rarea');
 }
-// Badge "editado manualmente" cuando el contenido difiere del generado.
-$('rtxt')?.addEventListener('input', ()=>{
-  const b=$('rtxtEditBadge'); if(!b) return;
-  b.style.display = ($('rtxt').value !== _rtxtGen) ? '' : 'none';
-});
+// Escribir en el textarea marca (o desmarca, si vuelve a coincidir) la edición
+$('rtxt')?.addEventListener('input', ()=>{ _setTextoManual($('rtxt').value !== _rtxtGen); });
+// Regeneración EN VIVO al cambiar el formulario, solo sin edición manual
+let _rtxtTimer=null;
+function _rtxtLive(ev){
+  if(ev && ev.target && ev.target.id==='rtxt') return;   // escribir el texto no lo regenera
+  if(_textoManual) return;
+  clearTimeout(_rtxtTimer);
+  _rtxtTimer=setTimeout(()=>{
+    if(_textoManual) return;
+    const ra=$('rarea'); if(!ra||ra.classList.contains('hidden')) return;
+    $('rtxt').value=genTexto(); _rtxtGen=$('rtxt').value;
+  },250);
+}
 function genTexto() {
   const gv=id=>{ const e=$(id); return e&&e.value?e.value:null; };
   const esIng=v('cIng')==='true';
@@ -7795,6 +7819,7 @@ function renderAuditoria(d){
     evaluacion: ['📋','Evaluaciones pendientes/envejecidas','#d97706'],
     pve:        ['🟢','PVE pendientes','#16a34a'],
     clones:     ['🧬','Mediciones clonadas','#7c3aed'],
+    texto:      ['✍️','Textos editados a mano','#0369a1'],
   };
   const r=d.resumen||{};
   let h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">';
@@ -7815,9 +7840,9 @@ function renderAuditoria(d){
         </div>
         <div style="padding:8px 12px;display:flex;flex-direction:column;gap:5px;">
           ${f.hallazgos.map(x=>{ const m=META[x.tipo]||['⚠️','',''];
-            const col=x.sev==='rojo'?'#dc2626':'#b45309';
-            const bg=x.sev==='rojo'?'#fef2f2':'#fffbeb';
-            const bd=x.sev==='rojo'?'#fecaca':'#fde68a';
+            const col=x.sev==='rojo'?'#dc2626':(x.sev==='info'?'#0369a1':'#b45309');
+            const bg=x.sev==='rojo'?'#fef2f2':(x.sev==='info'?'#f0f9ff':'#fffbeb');
+            const bd=x.sev==='rojo'?'#fecaca':(x.sev==='info'?'#bae6fd':'#fde68a');
             return `<div style="font-size:.8rem;background:${bg};border:1px solid ${bd};color:${col};border-radius:7px;padding:5px 10px;">${m[0]} ${_escSt(x.texto)}</div>`; }).join('')}
         </div>
       </div>`;
@@ -8563,7 +8588,7 @@ window.onload = function() {
 function bootApp(){
   loading(true,'Cargando datos del servidor...');
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); }).catch(()=>{ FASES=[]; });
-  api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; _aplicarEditorTextoDemo(); }).catch(()=>{ window.CFG={}; });
+  api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; }).catch(()=>{ window.CFG={}; });
   poblarKTMcontra();
   gs('GET_TODAS_CAMAS', {}, camas => {
     DB = camas || [];
