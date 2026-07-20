@@ -3640,10 +3640,14 @@ function fillFormReplica(s) {
   _renderExtBadge(_ex.EXT_TS||'');
   if(_ex.EX_CULT_RESULTADO) tiSet('fCultTags','fCultVal','violet',_ex.EX_CULT_RESULTADO);
 
-  // KTM estado y nivel (replica estado previo como punto de partida)
+  // KTM estado y nivel (replica estado previo como punto de partida).
+  // "Motivo ingreso" es razón EXCLUSIVA del turno de ingreso: NO se replica —
+  // sin esto quedaba pegada turno tras turno ("KTM no realizada: motivo
+  // ingreso" al día 8). El turno siguiente parte en "Realizada" (default).
+  const _razIngKTM=/^motivo ingreso$/i.test(String(_ex.KTM_NO_RAZON||'').trim());
   if(s.KTM_REALIZADA===true||s.KTM_REALIZADA==='TRUE') setKTMstate('r');
   else if(s.KTM_SUSPENDIDA===true||s.KTM_SUSPENDIDA==='TRUE') setKTMstate('s');
-  else if(_ex && (_ex.KTM_NO_REALIZADA===true||_ex.KTM_NO_RAZON)) setKTMstate('n');
+  else if(_ex && !_razIngKTM && (_ex.KTM_NO_REALIZADA===true||_ex.KTM_NO_RAZON)) setKTMstate('n');
   else setKTMstate('r');
   set('fKTMct',s.KTM_CONTRA_TIPO); set('fKTMraz',s.KTM_CONTRA_RAZON); set('fKTMman',s.KTM_CONTRA_MANUAL);
   if(s.KTM_NIVEL_KTR) setKTMniv(String(s.KTM_NIVEL_KTR));
@@ -3654,7 +3658,7 @@ function fillFormReplica(s) {
   set('fEMSfreq',s.KTM_EMS_FREQ); set('fEMSint',s.KTM_EMS_INT); set('fEMSpulso',s.KTM_EMS_PULSO);
   set('fEMSt',s.KTM_EMS_T); set('fEMSgrupo',s.KTM_EMS_GRUPO);
   set('fIMTfreq',s.KTM_IMT_FREQ); set('fIMTint',s.KTM_IMT_INT); set('fIMTt',s.KTM_IMT_T); set('fIMTdes',s.KTM_IMT_DES);
-  set('fKTMnoRaz',_ex.KTM_NO_RAZON); set('fKTMnoCom',_ex.KTM_NO_COMENTARIO);
+  if(!_razIngKTM){ set('fKTMnoRaz',_ex.KTM_NO_RAZON); set('fKTMnoCom',_ex.KTM_NO_COMENTARIO); }
   chk('cKTMalert',_ex.KTM_ALERTA); set('fKTMalertCat',_ex.KTM_ALERTA_CAT);
   if(_ex.KTM_ALERTA_CAT){ updateKTMalertRaz(); set('fKTMalertRaz',_ex.KTM_ALERTA_RAZ); }
   if(_ex.KTM_ALERTA===true||_ex.KTM_ALERTA==='TRUE') show('dKTMalert');
