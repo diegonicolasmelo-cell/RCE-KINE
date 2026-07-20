@@ -491,6 +491,8 @@ function _sembrar(ss) {
     ['CORTE_DINAMO_H', '11'],       // kg, hombres (Ali 2008)
     ['CORTE_DINAMO_M', '7'],        // kg, mujeres
     ['CORTE_FSS_INDEP', '27'],      // FSS-ICU >= corte = independencia funcional
+    ['EVAL_DIAS_ALERTA', '5'],      // días sin re-evaluar MRC/FSS (cooperador) antes de alertar
+    ['PVE_TURNOS_ALERTA', '2'],     // turnos seguidos candidato a PVE sin PVE antes de alertar
     // TEMPORAL: permite editar el texto de la vista previa en pantalla (solo
     // demostración; NO se guarda). Poner en FALSE cuando termine el afinamiento.
     ['EDITOR_TEXTO_DEMO', 'TRUE'],

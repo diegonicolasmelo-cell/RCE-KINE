@@ -131,6 +131,14 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
   const coop = /^cooperador$/i.test(String(c.ULT_COOP || '').trim());
   if (coop && val(c.ULT_MRC) === '') alertas.push('MRC-SS pendiente');
   if (coop && val(c.ULT_FSS) === '') alertas.push('FSS-ICU pendiente');
+  // Evaluaciones ENVEJECIDAS (cooperador con valor antiguo): mismo patrón que
+  // los dispositivos por vencer, con corte configurable EVAL_DIAS_ALERTA.
+  const cutEval = parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5;
+  const _edadEval = function (f) { const iso = _statISO(f); return iso ? diasEntre(iso, fecha) : null; };
+  const edadMrc = coop && val(c.ULT_MRC) !== '' ? _edadEval(c.ULT_MRC_FECHA) : null;
+  if (edadMrc != null && edadMrc > cutEval) alertas.push('MRC-SS hace ' + edadMrc + 'd');
+  const edadFss = coop && val(c.ULT_FSS) !== '' ? _edadEval(c.ULT_FSS_FECHA) : null;
+  if (edadFss != null && edadFss > cutEval) alertas.push('FSS-ICU hace ' + edadFss + 'd');
   if (!e) alertas.push('Sin evolución de este turno');
 
   // ICU-AW: debilidad adquirida en UCI — MRC-SS <48 en paciente cooperador.
@@ -139,6 +147,19 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     ? { mrc: c.ULT_MRC, fecha: dd(c.ULT_MRC_FECHA) } : null;
   // Candidato a PVE: tamizaje sincronizado en la cama al guardar el último turno.
   const candidatoPve = String(c.SOPORTE) === 'VM' && esVerdadero(c.WEAN_CAND_PVE);
+  // ¿Cuántos turnos SEGUIDOS lleva candidato sin que se haga la PVE? Se deriva
+  // del episodio (sin columnas nuevas): se camina desde el último turno hacia
+  // atrás mientras el turno cumpla tamizaje y no registre PVE. Al superar el
+  // corte PVE_TURNOS_ALERTA escala a la sección de alertas.
+  let pveRacha = 0;
+  if (candidatoPve) {
+    for (let i = episodio.length - 1; i >= 0; i--) {
+      if (_turnoCandidatoPve(episodio[i])) pveRacha++;
+      else break;
+    }
+    const cutPve = parseInt(leerConfig('PVE_TURNOS_ALERTA', '2')) || 2;
+    if (pveRacha >= cutPve) alertas.push('Candidato a PVE hace ' + pveRacha + ' turnos sin PVE');
+  }
 
   return {
     idCama: id,
@@ -176,12 +197,31 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     weaning: weaning,
     icuaw: icuaw,
     candidatoPve: candidatoPve,
+    pveRacha: pveRacha,
     ultimoCultivo: cultivo ? { fecha: dd(cultivo.iso), nombre: cultivo.nombre, micro: val(c.AISL_MICRO) } : null,
     plan: e ? val(e.PLAN_PLANES) : '',
     pendientes: e ? (function () { try { return JSON.parse(e.PLAN_PENDIENTES || '[]') || []; } catch (x) { return []; } })() : [],
     nota: e ? val(e.PLAN_NOTA_TURNO) : '',
     firma: val(e && e.PLAN_FIRMA_KINE, c.FIRMA_KINE),
   };
+}
+
+/**
+ * ¿Este turno cumplía el tamizaje de candidato a PVE sin registrar PVE?
+ * MISMOS criterios que _syncCamaDesdeEvolucion (svc_evoluciones.gs): FiO₂ ≤50,
+ * PEEP ≤8, SpO₂ ≥90, HDN estable sin DVA altas, sin BNM, en VM. Sirve para
+ * derivar la racha de turnos candidato sin PVE desde el episodio.
+ */
+function _turnoCandidatoPve(e) {
+  if (String(e.VENT_SOPORTE) !== 'VM' || e.PVE_VAL === 'si') return false;
+  const n = function (x) { return parseFloat(x); };
+  const dva = String(e.HEMO_DVA || '');
+  return n(e.VENT_FIO2) > 0 && n(e.VENT_FIO2) <= 50 &&
+    n(e.VENT_PEEP) > 0 && n(e.VENT_PEEP) <= 8 &&
+    n(e.VENT_SPO2) >= 90 &&
+    e.HEMO_ESTADO !== 'Inestable' &&
+    (dva === '' || /sin requerimientos|dosis bajas/i.test(dva)) &&
+    !esVerdadero(e.SED_BNM);
 }
 
 /**

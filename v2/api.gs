@@ -39,6 +39,7 @@ function api(accion, datos, token) {
         TURNO_DIA_INICIO: parseInt(leerConfig('TURNO_DIA_INICIO', '9')) || 9,
         TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
         EDITOR_TEXTO_DEMO: leerConfig('EDITOR_TEXTO_DEMO', 'FALSE') === 'TRUE',
+        EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
         CAT_DEF: catMatrices(),
       });
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);
