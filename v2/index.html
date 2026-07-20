@@ -251,6 +251,8 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ent-ficha{border:1px solid #d7dee8;border-radius:8px;overflow:hidden;break-inside:avoid;}
 /* Header de ficha */
 .ent-ficha-h{display:flex;align-items:baseline;gap:9px;padding:7px 11px;background:#f0f4f9;border-bottom:1px solid #dde3ec;}
+.ent-ficha-sinevo{border:2px solid #dc2626;}
+.ent-sinevo-strip{background:#dc2626;color:#fff;font-weight:800;font-size:.68rem;letter-spacing:.04em;padding:4px 11px;}
 .ent-ficha-cama{font-size:.9rem;font-weight:900;color:#fff;background:var(--pdark);border-radius:5px;padding:2px 8px;flex-shrink:0;line-height:1.4;}
 .ent-ficha-nm{font-weight:700;color:#0f172a;font-size:.84rem;flex-grow:1;}
 .ent-ficha-meta{font-size:.67rem;color:#64748b;white-space:nowrap;flex-shrink:0;}
@@ -1047,6 +1049,22 @@ table.rhb2 .rl{width:128px;text-align:left;}
   </div>
 </div>
 
+<!-- MODAL AVISO: cambio de estado sin evento registrado (etapa 1b — no bloqueante) -->
+<div class="tlmodal" id="transAviso" role="dialog" aria-modal="true" style="width:min(470px,94vw);z-index:103;">
+  <div class="phdr">
+    <div class="ptitle">⚠️ Cambio sin evento registrado</div>
+    <button class="xbtn" onclick="transAvisoCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:16px 22px;overflow-y:auto;">
+    <div id="transAvisoLista" style="display:flex;flex-direction:column;gap:8px;font-size:.85rem;color:#334155;"></div>
+    <div style="font-size:.75rem;color:#94a3b8;margin-top:10px;">El evento se registra siempre a mano (con su hora, tipo y motivo) — esto es solo un recordatorio para que el cambio no quede sin explicación en el historial.</div>
+    <div style="display:flex;gap:9px;padding-top:14px;margin-top:12px;border-top:1px solid #e2e8f0;">
+      <button type="button" class="btn btn-p" style="flex:1;" onclick="transAvisoCerrar()">✍️ Volver y registrar el evento</button>
+      <button type="button" class="btn btn-r" style="width:auto;padding:0 14px;" onclick="transAvisoGuardar()">Guardar igual</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DETALLE ARCHIVADO -->
 <div class="tlmodal" id="arcMod" role="dialog" aria-modal="true" style="width:min(860px,94vw);max-height:90vh;">
   <div class="phdr">
@@ -1178,6 +1196,8 @@ table.rhb2 .rl{width:128px;text-align:left;}
     <form id="kf" onsubmit="return false;" autocomplete="off">
       <input type="hidden" id="cBed">
       <input type="hidden" id="cIng" value="false">
+      <!-- Etapa 1(a): aviso de turnos previos sin evolución (regla: todo turno se evoluciona) -->
+      <div id="spGapAviso" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;border-radius:9px;padding:8px 12px;font-size:.78rem;font-weight:600;margin-bottom:10px;"></div>
       <!-- Fecha y turno — encabezado visible -->
       <div style="padding:2px 2px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
         <div>
@@ -3068,6 +3088,8 @@ function abrirPanel(id, esIng) {
   const _emoji = SHIFT==='Dia' ? '☀️' : '🌙';
   $('spShift').textContent=`${_emoji} ${fecha}`;
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
+  const _gClr=$('spGapAviso'); if(_gClr){_gClr.style.display='none';_gClr.innerHTML='';}
+  _transAvisoOk=false; _iniVA=''; _iniSop='';
   $('kf').reset(); PROCS=[]; renderChips();
   _resetHiddenYEventos();
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
@@ -3127,6 +3149,7 @@ function abrirPanel(id, esIng) {
       if(r && r.actual) {
         // ─── Turno YA guardado: carga exactamente lo que se registró ───
         fillForm(r.actual);
+        _snapIniEstado();
       } else if(r && r.previa) {
         // ─── Turno NUEVO: replica el turno inmediatamente anterior ───
         if(c) fillCama(c,fecha);
@@ -3136,11 +3159,15 @@ function abrirPanel(id, esIng) {
         const _turnoLabel = (pTurno||'').toLowerCase()==='dia' ? 'Dia' : 'Noche';
         const _ri=$('spRepInfo'); if(_ri){_ri.textContent=`Datos replicados del turno ${_turnoLabel} del ${fl}`;_ri.style.display='';}
         $('repBannerTxt').innerHTML='';hide('repBanner');
+        _snapIniEstado();
+        _avisoGapTurnos(String(r.previa.TURNO_KEY||''), fecha, c);
       } else {
         // Sin turno previo: arranca en blanco con datos del paciente
         if(c) fillCama(c,fecha);
+        _snapIniEstado();
+        _avisoGapTurnos('', fecha, c);
       }
-    }, ()=>{ loading(false); const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha); });
+    }, ()=>{ loading(false); const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha); _snapIniEstado(); });
   } else {
     const c=DB.find(x=>String(x.ID_CAMA)===String(id));
     if(c) fillCama(c,fecha);
@@ -3206,6 +3233,7 @@ function _snapPanel() {
       _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
       _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
       _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
+      _iniVA, _iniSop, _transAvisoOk,
     },
   };
 }
@@ -3234,6 +3262,7 @@ function _restaurarMin(m) {
   _vaAnterior = V._vaAnterior; _vmHistFlag = V._vmHistFlag; _evoEventoGuardado = V._evoEventoGuardado;
   _transIntubEsteTurno = V._transIntubEsteTurno; _vaAntesIntub = V._vaAntesIntub;
   _dispSnapshot = V._dispSnapshot; _totSnapshot = V._totSnapshot; _tqtSnapshot = V._tqtSnapshot;
+  _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _transAvisoOk = !!V._transAvisoOk;
   // 4) innerHTML mató los listeners delegados del form → re-atar
   _bindPanelListeners();
   // 5) Si la vista global cambió mientras estaba minimizado (p. ej. cruzó las
@@ -3764,6 +3793,73 @@ function _podarEventosPayload(p){
     del(['VENT_VIA_AEREA_FINAL','VENT_SOPORTE_FINAL','VENT_MODO_FINAL','DIAS_VM_PREVIOS','FECHA_INICIO_VM','FECHA_INICIO_VNI','DIAS_VNI_PREVIOS']);
 }
 
+// ══ ETAPA 1: huecos de registro y transiciones sin evento ══════════════════
+// (a) Aviso de turnos previos sin evolución (regla: todo turno se evoluciona).
+// (b) Aviso NO bloqueante al guardar si la vía aérea/soporte cambió respecto
+//     al estado con que abrió el turno y no hay ningún evento que lo explique.
+//     El registro del evento es SIEMPRE manual — esto solo detecta el olvido.
+function _snapIniEstado(){ _iniVA=v('fVA')||''; _iniSop=v('fSop')||''; }
+
+/** Turno inmediatamente anterior a (fecha, turno): Dia←Noche de ayer, Noche←Dia. */
+function _turnoPrevioKey(fecha,turno){
+  if(turno==='Noche') return fecha+'-Dia';
+  const [y,m,d]=String(fecha).split('-').map(Number);
+  const dt=new Date(y,m-1,d); dt.setDate(dt.getDate()-1);
+  const p=n=>('0'+n).slice(-2);
+  return dt.getFullYear()+'-'+p(dt.getMonth()+1)+'-'+p(dt.getDate())+'-Noche';
+}
+function _tkLabel(k){
+  const [y,m,d,t]=String(k).split('-');
+  return (t==='Dia'?'☀️ Día':'🌙 Noche')+' '+d+'-'+m;
+}
+function _avisoGapTurnos(prevKeyReal, fecha, cama){
+  const g=$('spGapAviso'); if(g) { g.style.display='none'; g.innerHTML=''; } else return;
+  if(v('cIng')==='true') return;
+  const esperado=_turnoPrevioKey(fecha, SHIFT);
+  if(prevKeyReal){
+    if(String(prevKeyReal)>=esperado) return;              // sin hueco
+    let faltan=0, k=esperado;
+    while(k>String(prevKeyReal) && faltan<60){ const [y,m,d,t]=k.split('-'); k=_turnoPrevioKey(y+'-'+m+'-'+d,t); faltan++; }
+    g.innerHTML='⚠️ '+(faltan===1
+      ? `El turno anterior (${_tkLabel(esperado)}) quedó <b>sin evolución</b>.`
+      : `Hay <b>${faltan} turnos sin evolución</b> desde el último registro (${_tkLabel(prevKeyReal)}).`)
+      +' Todo turno se evoluciona: puedes completarlo cambiando la fecha/turno arriba.';
+    g.style.display='';
+  } else if(cama){
+    const fIng=_isoDia(cama.FECHA_INGRESO||'');
+    if(fIng && fIng<fecha){
+      g.innerHTML=`⚠️ Paciente ingresado el ${fIng} <b>sin evoluciones registradas</b> en el episodio.`;
+      g.style.display='';
+    }
+  }
+}
+/** Discordancias estado-evento del turno (venía con X, quedó con Y, sin evento). */
+function _avisosTransicion(){
+  if(v('cIng')==='true'||!_iniVA) return [];
+  const va=v('fVA'), sop=v('fSop');
+  const out=[];
+  const inv=x=>x==='TOT'||x==='TQT';
+  const intubEvt=$('cIntubO')?.checked||_extReintub();
+  const procsAll=[...(PROCS||[]),..._autoProcs()].map(p=>String(p).toUpperCase());
+  const hayDesvinc=procsAll.some(p=>p.indexOf('DESVINCULACI')!==-1);
+  if(_iniVA==='TOT'&&!inv(va)&&!_extOcurrio())
+    out.push(`Venía con <b>TOT</b> y quedó con <b>${va||'—'}</b>, pero no hay extubación registrada (bloque PVE / Extubación).`);
+  if(_iniVA==='TQT'&&!inv(va)&&!$('cDecanOcurrio')?.checked)
+    out.push(`Venía con <b>TQT</b> y quedó con <b>${va||'—'}</b>, pero no hay decanulación registrada.`);
+  if(!inv(_iniVA)&&inv(va)&&!intubEvt)
+    out.push(`Venía con vía aérea <b>${_iniVA}</b> y quedó con <b>${va}</b>, pero no hay intubación ni reintubación registrada.`);
+  if(_iniSop==='VM'&&sop!=='VM'&&_iniVA==='TQT'&&va==='TQT'&&!hayDesvinc&&!$('cDecanOcurrio')?.checked)
+    out.push(`Venía en <b>VM</b> y quedó en <b>${sop||'—'}</b>, sin desvinculación registrada (agrégala en Procedimientos).`);
+  return out;
+}
+function _mostrarTransAviso(avisos){
+  const l=$('transAvisoLista');
+  if(l) l.innerHTML=avisos.map(a=>`<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:8px 10px;">${a}</div>`).join('');
+  $('transAviso')?.classList.add('on');
+}
+function transAvisoCerrar(){ $('transAviso')?.classList.remove('on'); }
+function transAvisoGuardar(){ _transAvisoOk=true; transAvisoCerrar(); guardar(); }
+
 function guardar() {
   const id=v('cBed'), fecha=v('gDate')||hoy(), tkey=`${fecha}-${SHIFT}`;
   const n=x=>parseFloat(x)||null;
@@ -3782,6 +3878,12 @@ function guardar() {
     const va=$('fVA');
     if(va){ va.focus(); va.style.outline='2px solid var(--danger)'; setTimeout(()=>{va.style.outline='';},2500); }
     return;
+  }
+  // ★ Etapa 1(b): cambio de estado sin evento que lo explique — aviso NO
+  //   bloqueante ("Guardar igual" disponible); el evento se registra a mano ★
+  if(!_transAvisoOk){
+    const _avs=_avisosTransicion();
+    if(_avs.length){ _mostrarTransAviso(_avs); return; }
   }
   const datos={
     ID_CAMA:id, TURNO_KEY:tkey, ES_INGRESO:v('cIng')==='true',
@@ -5734,6 +5836,8 @@ let _fechaInicioVNI='';  // fecha inicio VNI actual
 let _vaAnterior='';      // VA previa para detectar transiciones
 let _vmHistFlag=false;   // historial de VM detectado en los datos cargados (evo previa / cama)
 let _evoEventoGuardado=false; // el turno cargado YA tiene un evento único guardado (extub/PVE/decan/intub/reintub)
+let _iniVA='', _iniSop='';    // estado (VA/soporte) con que ABRIÓ el turno — base del aviso de transición
+let _transAvisoOk=false;      // el kine ya vio el aviso de transición y eligió guardar igual
 let _transIntubEsteTurno=false; // hubo transición no-invasiva → invasiva en esta sesión de panel
 function actualizarDiasVA(){ actualizarContadores(); } // alias legacy
 function actualizarContadores(){
@@ -8054,6 +8158,8 @@ function renderEntrega(d){
     <span class="ent-pill">Camas en entrega: <b>${r.entregadas||d.fichas.length}</b></span>
     <span class="ent-pill">Ocupadas unidad: <b>${r.ocupadas??'—'}</b>/${r.totalCamas||18}</span>
     <span class="ent-pill">En VM: <b>${r.enVM??'—'}</b></span>
+    ${(()=>{const n=d.fichas.filter(f=>f.ocupada&&!f.tieneEvo).length;
+      return n?`<span class="ent-pill" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c;">⚠️ Sin evolución del turno: <b>${n}</b></span>`:'';})()}
   </div>
   <div class="ent-fichas">`;
 
@@ -8077,8 +8183,11 @@ function renderEntrega(d){
       return `<span class="ent-tag" style="background:${wc}18;color:${wc};border:1px solid ${wc}55;" title="${f.weaning.frustras} PVE frustro(s) · día ${f.weaning.dias} desde el primer PVE (${f.weaning.primerPve})">🌬️ Weaning ${wn}</span>`; })():'';
     const pveChip=f.candidatoPve?`<span class="ent-tag" style="background:#16a34a18;color:#16a34a;border:1px solid #16a34a55;" title="Cumple criterios de tamizaje para PVE según el último turno guardado">🟢 Candidato a PVE</span>`:'';
     const awChip=f.icuaw?`<span class="ent-tag" style="background:#9333ea18;color:#9333ea;border:1px solid #9333ea55;" title="Debilidad adquirida en UCI: MRC-SS ${f.icuaw.mrc} (<48) en paciente cooperador${f.icuaw.fecha?`, medido el ${f.icuaw.fecha}`:''}">🧬 ICU-AW (MRC ${f.icuaw.mrc})</span>`:'';
+    // Sin evolución del turno: ficha en rojo con franja propia (el chip del
+    // servidor se filtra para no duplicar el mismo aviso).
+    const sinEvoF=f.ocupada&&!f.tieneEvo;
     const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+pveChip+awChip+
-      (f.alertas||[]).map(a=>`<span class="ent-tag ent-tag-alert">⚠️ ${a}</span>`).join('');
+      (f.alertas||[]).filter(a=>!/^Sin evolución/i.test(a)).map(a=>`<span class="ent-tag ent-tag-alert">⚠️ ${a}</span>`).join('');
     // 🔵 Ventilatorio: VA + soporte + días VM / modo + parámetros
     const vaP=[f.viaAerea, f.soporte==='VM'?'VM':(f.soporte||''), (f.diasVM!==''&&f.diasVM!=null)?`D-VM:${f.diasVM}`:''];
     const lnVA=_ln('🔵',vaP);
@@ -8105,12 +8214,13 @@ function renderEntrega(d){
       f.ktr?`KTR ×${f.ktr}`:'']);
     const lnEval=(f.evals&&f.evals.length)?_ln('&nbsp;&nbsp;&nbsp;&nbsp;',f.evals):'';
     const planVal=(f.plan||'').replace(/"/g,'&quot;');
-    H+=`<div class="ent-ficha">
+    H+=`<div class="ent-ficha${sinEvoF?' ent-ficha-sinevo':''}">
       <div class="ent-ficha-h">
         <span class="ent-ficha-cama">${f.idCama}</span>
         <span class="ent-ficha-nm">${f.nombre||'—'}</span>
         <span class="ent-ficha-meta">${meta}</span>
       </div>
+      ${sinEvoF?'<div class="ent-sinevo-strip">⚠️ SIN EVOLUCIÓN DE ESTE TURNO — pendiente de registro</div>':''}
       ${chips?`<div style="padding:4px 11px 0;display:flex;gap:4px;flex-wrap:wrap;">${chips}</div>`:''}
       ${f.diagnostico?`<div class="ent-dx">${f.diagnostico}</div>`:''}
       <div class="ent-clin">
