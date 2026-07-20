@@ -878,6 +878,15 @@ table.rhb2 .rl{width:128px;text-align:left;}
       </div>
       <pre id="remOut" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:14px 16px;font-size:.8rem;line-height:1.6;overflow-x:auto;white-space:pre-wrap;">Elige un mes y pulsa Generar.</pre>
     </details>
+    <!-- Control de calidad del registro (pacientes ingresados) -->
+    <details id="audBox" class="no-print" style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
+      <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">🔍 Control de calidad del registro — pacientes ingresados</summary>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;">
+        <button class="dpset" onclick="loadAuditoria()">⚙️ Auditar ahora</button>
+        <span style="font-size:.72rem;color:#94a3b8;">Revisa los episodios activos: turnos sin evolución, cambios de estado sin evento, evaluaciones envejecidas, PVE pendientes y mediciones clonadas. Solo lectura.</span>
+      </div>
+      <div id="audBody"><div class="pivot-empty">Pulsa «Auditar ahora».</div></div>
+    </details>
     <div id="dashBody"><div class="pivot-empty">Selecciona un rango de fechas.</div></div>
   </div>
 </div>
@@ -7772,6 +7781,52 @@ function loadStats(){
     ()=>{ $('dashBody').innerHTML='<div class="pivot-empty">No se pudo cargar la estadística.</div>'; });
 }
 const _escSt=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ── Control de calidad del registro (auditoría de episodios activos) ──
+function loadAuditoria(){
+  $('audBody').innerHTML='<div class="pivot-empty">Auditando episodios activos…</div>';
+  gs('GET_AUDITORIA',{}, d=>renderAuditoria(d||{}),
+    ()=>{ $('audBody').innerHTML='<div class="pivot-empty">No se pudo generar la auditoría.</div>'; });
+}
+function renderAuditoria(d){
+  const META={
+    huecos:     ['📝','Turnos sin evolución','#dc2626'],
+    transicion: ['🔀','Cambios sin evento','#b91c1c'],
+    evaluacion: ['📋','Evaluaciones pendientes/envejecidas','#d97706'],
+    pve:        ['🟢','PVE pendientes','#16a34a'],
+    clones:     ['🧬','Mediciones clonadas','#7c3aed'],
+  };
+  const r=d.resumen||{};
+  let h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">';
+  h+=`<span class="ent-pill">Camas revisadas: <b>${d.camasRevisadas??'—'}</b></span>`;
+  h+=`<span class="ent-pill" style="${d.camasConHallazgos?'background:#fee2e2;border-color:#fca5a5;color:#b91c1c;':'background:#dcfce7;border-color:#86efac;color:#15803d;'}">Con hallazgos: <b>${d.camasConHallazgos||0}</b></span>`;
+  Object.keys(META).forEach(t=>{ if(r[t]) h+=`<span class="ent-pill" style="color:${META[t][2]};">${META[t][0]} ${META[t][1]}: <b>${r[t]}</b></span>`; });
+  h+='</div>';
+  if(!(d.filas||[]).length){
+    h+='<div style="padding:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;color:#15803d;font-weight:700;font-size:.85rem;">✅ Sin hallazgos: el registro de los pacientes ingresados está completo y coherente.</div>';
+  } else {
+    h+='<div style="display:flex;flex-direction:column;gap:8px;">';
+    d.filas.forEach(f=>{
+      h+=`<div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;">
+        <div style="display:flex;align-items:baseline;gap:8px;padding:6px 12px;background:#f8fafc;border-bottom:1px solid var(--border);">
+          <span style="font-weight:800;color:var(--pdark);">Cama ${f.cama}</span>
+          <span style="font-weight:700;font-size:.82rem;">${_escSt(f.nombre||'—')}</span>
+          <span style="font-size:.7rem;color:#94a3b8;font-family:monospace;">${_escSt(f.cod||'')}</span>
+        </div>
+        <div style="padding:8px 12px;display:flex;flex-direction:column;gap:5px;">
+          ${f.hallazgos.map(x=>{ const m=META[x.tipo]||['⚠️','',''];
+            const col=x.sev==='rojo'?'#dc2626':'#b45309';
+            const bg=x.sev==='rojo'?'#fef2f2':'#fffbeb';
+            const bd=x.sev==='rojo'?'#fecaca':'#fde68a';
+            return `<div style="font-size:.8rem;background:${bg};border:1px solid ${bd};color:${col};border-radius:7px;padding:5px 10px;">${m[0]} ${_escSt(x.texto)}</div>`; }).join('')}
+        </div>
+      </div>`;
+    });
+    h+='</div>';
+  }
+  h+=`<div style="font-size:.7rem;color:#94a3b8;margin-top:8px;">Generado ${d.generado?new Date(d.generado).toLocaleString('es-CL'):''} · cortes: evaluaciones >${d.cortes?.evalDias??5} d · PVE ≥${d.cortes?.pveTurnos??2} turnos (ajustables en CONFIG).</div>`;
+  $('audBody').innerHTML=h;
+}
 function _kpi(lbl,val,sub,color){
   return `<div class="kpi" style="--kpi-c:${color||'var(--primary)'}"><div class="kpi-lbl">${lbl}</div><div class="kpi-val">${(val===undefined||val===null||val==='')?'—':val}</div>${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;
 }
