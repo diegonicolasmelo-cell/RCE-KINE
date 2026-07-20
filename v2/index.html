@@ -454,6 +454,10 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .fcard-hdr{padding:12px 16px 10px;background:transparent;border-bottom:1px solid #eef2f6;display:flex;align-items:center;gap:8px;}
 .fcard-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--fc,#64748b);display:flex;align-items:center;gap:7px;}
 .fcard-title::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--fc,#94a3b8);flex-shrink:0;}
+/* Etapa 2: mediciones heredadas de la réplica — ámbar hasta tocarlas o confirmar el módulo */
+.heredado{background:#fffbeb !important;border-color:#f5b942 !important;}
+.her-chip{margin-left:auto;background:#fffbeb;color:#b45309;border:1px solid #f59e0b;border-radius:14px;padding:2px 10px;font-size:.66rem;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.her-chip:hover{background:#fef3c7;}
 .fcard-body{padding:12px 16px 14px;}
 /* Un solo acento por dominio clínico */
 .fc-id{--fc:var(--primary);}
@@ -1052,14 +1056,14 @@ table.rhb2 .rl{width:128px;text-align:left;}
 <!-- MODAL AVISO: cambio de estado sin evento registrado (etapa 1b — no bloqueante) -->
 <div class="tlmodal" id="transAviso" role="dialog" aria-modal="true" style="width:min(470px,94vw);z-index:103;">
   <div class="phdr">
-    <div class="ptitle">⚠️ Cambio sin evento registrado</div>
+    <div class="ptitle">⚠️ Revisa antes de guardar</div>
     <button class="xbtn" onclick="transAvisoCerrar()" aria-label="Cerrar">×</button>
   </div>
   <div style="padding:16px 22px;overflow-y:auto;">
     <div id="transAvisoLista" style="display:flex;flex-direction:column;gap:8px;font-size:.85rem;color:#334155;"></div>
-    <div style="font-size:.75rem;color:#94a3b8;margin-top:10px;">El evento se registra siempre a mano (con su hora, tipo y motivo) — esto es solo un recordatorio para que el cambio no quede sin explicación en el historial.</div>
+    <div style="font-size:.75rem;color:#94a3b8;margin-top:10px;">Nada se bloquea: puedes guardar igual. Los eventos se registran siempre a mano; los campos en ámbar son valores heredados del turno anterior que aún no revisas.</div>
     <div style="display:flex;gap:9px;padding-top:14px;margin-top:12px;border-top:1px solid #e2e8f0;">
-      <button type="button" class="btn btn-p" style="flex:1;" onclick="transAvisoCerrar()">✍️ Volver y registrar el evento</button>
+      <button type="button" class="btn btn-p" style="flex:1;" onclick="transAvisoCerrar()">✍️ Volver a revisar</button>
       <button type="button" class="btn btn-r" style="width:auto;padding:0 14px;" onclick="transAvisoGuardar()">Guardar igual</button>
     </div>
   </div>
@@ -3090,6 +3094,7 @@ function abrirPanel(id, esIng) {
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   const _gClr=$('spGapAviso'); if(_gClr){_gClr.style.display='none';_gClr.innerHTML='';}
   _transAvisoOk=false; _iniVA=''; _iniSop='';
+  _limpiarHeredados();
   $('kf').reset(); PROCS=[]; renderChips();
   _resetHiddenYEventos();
   // Reset selecciones internas (intervenciones KTM, interpretaciones, etc.)
@@ -3709,6 +3714,7 @@ function fillFormReplica(s) {
   _renderAutoProcs();
   _updCategorias();
   _abrirDetailsEval();
+  _marcarHeredados();
 }
 
 /**
@@ -3864,6 +3870,60 @@ function _mostrarTransAviso(avisos){
 function transAvisoCerrar(){ $('transAviso')?.classList.remove('on'); }
 function transAvisoGuardar(){ _transAvisoOk=true; transAvisoCerrar(); guardar(); }
 
+// ── Etapa 2: mediciones HEREDADAS de la réplica ────────────────────────────
+// Las mediciones puntuales que la réplica precarga quedan en ámbar (.heredado)
+// hasta que el kine las toque —aunque confirme el mismo valor— o confirme el
+// módulo completo con «✓ Sin cambios». El DOM es la fuente de verdad: la marca
+// sobrevive al minimizar (viaja en el HTML) y desaparece sola si renderParams()
+// reconstruye el campo (cambio de modo = el kine ya está editando ese módulo).
+// Los campos de ESTADO (vía aérea, soporte, modo, fase, dx) no se marcan:
+// son hechos que persisten entre turnos, no mediciones.
+const _HER_CAMPOS=['fSed','fSAS','fS5Q','fCoop','fGCSO','fGCSV','fGCSM',
+  'fHEst','fDVA','fDVAcnt','fHTT',
+  'r_vt','r_fr','r_peep','r_pmax','r_pmedia','r_ppl','r_fio2','r_spo2','r_pafi',
+  'r_flujo','r_ti','r_ps','r_ipap','r_ipapmax','r_epap','r_pinsp','r_litros','r_temp',
+  'r_autopeep','r_p01','r_dpocc','r_pmusc'];
+function _herPendientes(){
+  return [...document.querySelectorAll('#sp .heredado')].filter(e=>e.offsetParent!==null).length;
+}
+function _limpiarHeredados(){
+  document.querySelectorAll('#sp .heredado').forEach(e=>e.classList.remove('heredado'));
+  document.querySelectorAll('#sp .her-chip').forEach(e=>e.remove());
+}
+function _marcarHeredados(){
+  _limpiarHeredados();
+  const cards=new Set();
+  _HER_CAMPOS.forEach(id=>{
+    const e=$(id);
+    if(e && e.offsetParent!==null && String(e.value||'').trim()!==''){
+      e.classList.add('heredado');
+      const c=e.closest('.fcard'); if(c) cards.add(c);
+    }
+  });
+  cards.forEach(c=>{
+    const hdr=c.querySelector('.fcard-hdr');
+    if(!hdr||hdr.querySelector('.her-chip')) return;
+    const b=document.createElement('button');
+    b.type='button'; b.className='her-chip'; b.textContent='✓ Sin cambios';
+    b.title='Valores en ámbar heredados del turno anterior: corrígelos si cambiaron o confirma aquí que siguen vigentes';
+    b.setAttribute('onclick','confirmarHeredadosCard(this)'); // atributo inline: sobrevive al minimizar/restaurar
+    hdr.appendChild(b);
+  });
+}
+function confirmarHeredadosCard(btn){
+  const c=btn.closest('.fcard'); if(!c) return;
+  c.querySelectorAll('.heredado').forEach(e=>e.classList.remove('heredado'));
+  btn.remove();
+  toast('✓ Módulo confirmado sin cambios');
+}
+function _herTouch(ev){
+  const t=ev.target;
+  if(!t||!t.classList||!t.classList.contains('heredado')) return;
+  t.classList.remove('heredado');
+  const c=t.closest('.fcard');
+  if(c && !c.querySelector('.heredado')) c.querySelector('.her-chip')?.remove();
+}
+
 function guardar() {
   const id=v('cBed'), fecha=v('gDate')||hoy(), tkey=`${fecha}-${SHIFT}`;
   const n=x=>parseFloat(x)||null;
@@ -3883,10 +3943,12 @@ function guardar() {
     if(va){ va.focus(); va.style.outline='2px solid var(--danger)'; setTimeout(()=>{va.style.outline='';},2500); }
     return;
   }
-  // ★ Etapa 1(b): cambio de estado sin evento que lo explique — aviso NO
-  //   bloqueante ("Guardar igual" disponible); el evento se registra a mano ★
+  // ★ Etapa 1(b) + 2: avisos NO bloqueantes antes de guardar — cambio de
+  //   estado sin evento y mediciones heredadas sin confirmar ★
   if(!_transAvisoOk){
     const _avs=_avisosTransicion();
+    const _nHer=_herPendientes();
+    if(_nHer) _avs.push(`Quedan <b>${_nHer} valores heredados del turno anterior sin revisar</b> (en ámbar). Corrígelos si cambiaron, tócalos para confirmarlos, o usa «✓ Sin cambios» en cada módulo.`);
     if(_avs.length){ _mostrarTransAviso(_avs); return; }
   }
   const datos={
@@ -4717,6 +4779,9 @@ function _bindPanelListeners(){
   $('kf')?.addEventListener('input', _renderAutoProcs);
   $('kf')?.addEventListener('change', _updCategorias);
   $('kf')?.addEventListener('input', _updCategorias);
+  // Tocar un campo heredado (aunque quede igual) lo confirma
+  $('kf')?.addEventListener('change', _herTouch);
+  $('kf')?.addEventListener('input', _herTouch);
 }
 _bindPanelListeners();
 
