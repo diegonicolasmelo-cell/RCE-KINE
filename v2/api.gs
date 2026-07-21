@@ -49,6 +49,7 @@ function api(accion, datos, token) {
       case 'GET_MOVIMIENTOS_VM': return obtenerMovimientosVM(datos.idVm || '', datos.limite || 40);
       case 'GET_ENTREGA_TURNO':  return obtenerEntregaTurno(datos.idCamas, datos.fecha, datos.turno);
       case 'GET_AUDITORIA':      return auditoriaCalidad();
+      case 'GET_BUSCAR_PACIENTE': return buscarPacientes(datos.q || '');
       case 'GET_ENTREGAS_TURNO': return obtenerEntregasTurno(datos.limite || 30);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 

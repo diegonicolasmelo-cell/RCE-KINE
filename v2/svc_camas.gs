@@ -378,3 +378,42 @@ function obtenerArchivados(params) {
     return ok(params.limite ? rows.slice(0, params.limite) : rows);
   } catch (e) { return err('obtenerArchivados: ' + e.message, ERR.INTERNO, e); }
 }
+
+// ── BUSCADOR GLOBAL: pacientes activos + egresados ─────────────────────────
+/**
+ * Busca por nombre, código, diagnóstico o cama ("cama 10" / "10"), sin
+ * distinguir acentos ni mayúsculas. Devuelve activos primero (por cama) y
+ * egresados del más reciente al más antiguo, tope 20. El cliente abre el
+ * historial del episodio con el patientId del resultado.
+ */
+function buscarPacientes(q) {
+  try {
+    const t = _sinAcentos(String(q || '').trim()).toLowerCase();
+    if (t.length < 2) return ok([]);
+    const iso = v => { const s = String(v || ''); return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : s; };
+    const norm = s => _sinAcentos(String(s || '')).toLowerCase();
+    const mCama = t.match(/^(?:cama\s*)?(\d{1,2})$/);
+    const activos = [];
+    repoLeerTodos('CAMAS_ESTADO').forEach(function (c) {
+      if (!esVerdadero(c.OCUPADA)) return;
+      const hit = (mCama && String(c.ID_CAMA).trim() === mCama[1]) ||
+        norm(c.NOMBRE).indexOf(t) !== -1 || norm(c.COD_PACIENTE).indexOf(t) !== -1 ||
+        norm(c.DIAGNOSTICO).indexOf(t) !== -1;
+      if (hit) activos.push({ tipo: 'activo', patientId: c.PATIENT_ID || '', cama: String(c.ID_CAMA),
+        nombre: c.NOMBRE, cod: c.COD_PACIENTE, edad: c.EDAD, dx: c.DIAGNOSTICO,
+        fIngreso: iso(c.FECHA_INGRESO), fEgreso: '' });
+    });
+    const egresados = [];
+    repoLeerTodos('ARCHIVO_PACIENTES').forEach(function (a) {
+      const hit = (mCama && String(a.CAMA_ORIGEN).trim() === mCama[1]) ||
+        norm(a.NOMBRE).indexOf(t) !== -1 || norm(a.COD_PACIENTE).indexOf(t) !== -1 ||
+        norm(a.DIAGNOSTICO).indexOf(t) !== -1;
+      if (hit) egresados.push({ tipo: 'egresado', patientId: a.PATIENT_ID || '', cama: String(a.CAMA_ORIGEN || ''),
+        nombre: a.NOMBRE, cod: a.COD_PACIENTE, edad: a.EDAD, dx: a.DIAGNOSTICO,
+        fIngreso: iso(a.FECHA_INGRESO), fEgreso: iso(a.FECHA_EGRESO) });
+    });
+    activos.sort(function (a, b) { return (parseInt(a.cama) || 0) - (parseInt(b.cama) || 0); });
+    egresados.sort(function (a, b) { return String(b.fEgreso).localeCompare(String(a.fEgreso)); });
+    return ok(activos.concat(egresados).slice(0, 20));
+  } catch (e) { return err('buscarPacientes: ' + e.message, ERR.INTERNO, e); }
+}

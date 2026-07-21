@@ -330,6 +330,19 @@ table.rhb2 .rl{width:128px;text-align:left;}
 #retroBar .rb-strong{font-weight:800;}
 #retroBar .rb-back{margin-left:auto;background:#ff9f0a;color:#fff;border:none;padding:5px 13px;border-radius:7px;font-weight:700;cursor:pointer;font-size:.78rem;}
 #retroBar .rb-back:hover{background:#e68900;}
+/* ── Buscador global de pacientes (header): activos + egresados ── */
+.hsearch{position:relative;}
+.hsearch input{min-width:150px;}
+#hSrchRes{position:absolute;top:calc(100% + 8px);right:0;width:min(380px,94vw);background:#fff;color:#0f172a;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 14px 38px rgba(0,0,0,.25);z-index:70;max-height:62vh;overflow-y:auto;padding:6px;}
+.hsr-item{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px;cursor:pointer;}
+.hsr-item:hover{background:#f1f5f9;}
+.hsr-top{display:flex;gap:7px;align-items:baseline;flex-wrap:wrap;}
+.hsr-nm{font-weight:800;font-size:.85rem;}
+.hsr-tag{font-size:.62rem;font-weight:800;border-radius:10px;padding:1px 8px;white-space:nowrap;}
+.hsr-tag.act{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
+.hsr-tag.egr{background:#e2e8f0;color:#475569;border:1px solid #cbd5e1;}
+.hsr-sub{font-size:.7rem;color:#64748b;}
+.hsr-empty{padding:12px;color:#94a3b8;font-size:.8rem;text-align:center;}
 
 /* BED GRID — fichero clásico 🗂️: cada cama es una carpeta manila con pestaña;
    al estar evolucionado el turno asoma una hoja blanca desde el interior */
@@ -796,11 +809,18 @@ table.rhb2 .rl{width:128px;text-align:left;}
     <span>|</span>
     <span>Camas: <b id="stOc">-</b>/<span id="stTot">18</span></span>
     <span>VM: <b id="stVM">-</b></span>
+    <button class="hbtn" onclick="cambiarDia(-1)" title="Día anterior" style="padding:6px 10px;">◀</button>
     <input type="date" id="gDate" class="datein" onchange="onFechaChange()">
+    <button class="hbtn" onclick="cambiarDia(1)" title="Día siguiente" style="padding:6px 10px;">▶</button>
     <div class="stgl" id="sTgl" data-s="Dia" onclick="toggleShift()">
       <div class="stgl-sl"></div>
       <div class="stgl-btn d">☀️ DÍA</div>
       <div class="stgl-btn n">🌙 NOCHE</div>
+    </div>
+    <div class="hsearch">
+      <input type="text" id="hSrch" class="datein" placeholder="🔍 Paciente / cama…" autocomplete="off"
+        oninput="hSrchInput()" onfocus="hSrchInput()" onkeydown="if(event.key==='Escape')hSrchCerrar()">
+      <div id="hSrchRes" class="hidden"></div>
     </div>
     <div class="hbar-actions">
       <button class="hbtn" onclick="recargar()">🔄 Actualizar</button>
@@ -4433,6 +4453,73 @@ function cerrarTL() {
   $('tlp').classList.remove('on');
   $('ovl').classList.remove('on');
 }
+
+//  Historial por PATIENT_ID (activo o egresado) — mismo modal ⏱️, otra puerta:
+//  la usa el buscador global para llegar al episodio sin saber dónde está.
+function abrirTLPaciente(patientId, nombre, idCama){
+  TLC = idCama || '';
+  TL_NOMBRE = nombre || 'Paciente';
+  $('tlNombre').textContent = TL_NOMBRE;
+  TL_TAB='res'; TL_TURNO='all';
+  _updateTLTabsUI(); _updateTLFiltersUI();
+  $('tlBody').innerHTML='<div style="padding:30px;text-align:center;color:#94a3b8;">Cargando historial...</div>';
+  $('tlp').classList.add('on'); $('ovl').classList.add('on');
+  gs('GET_HISTORIAL_PACIENTE',{ idCama: idCama||'', patientId: patientId||'' }, data=>{
+    TL_HITOS=data.hitos||[]; TL_EVOS=data.evoluciones||[]; renderTL();
+  }, ()=>{ $('tlBody').innerHTML='<div style="color:var(--danger);text-align:center;padding:30px;">Error al cargar el historial.</div>'; });
+}
+
+//  NAVEGACIÓN DE FECHAS ◀ ▶ — hojear la panorámica día a día sin abrir calendario
+function cambiarDia(delta){
+  const f=v('gDate')||hoy();
+  const [y,m,d]=f.split('-').map(Number);
+  const dt=new Date(y,m-1,d); dt.setDate(dt.getDate()+delta);
+  const p=n=>('0'+n).slice(-2);
+  const nueva=dt.getFullYear()+'-'+p(dt.getMonth()+1)+'-'+p(dt.getDate());
+  const t=_turnoLogico();
+  if(nueva===t.fecha){ volverAHoy(); return; }   // llegó a hoy → vuelve a la vista vigente
+  $('gDate').value=nueva;
+  onFechaChange();
+}
+
+//  BUSCADOR GLOBAL 🔍 — activos y egresados por nombre/código/cama; al elegir
+//  abre el historial del episodio (ahí están los hitos fechados: intubación,
+//  PVE, extubación, decanulación…).
+let _hSrchTimer=null;
+function hSrchInput(){
+  const q=(v('hSrch')||'').trim();
+  clearTimeout(_hSrchTimer);
+  if(q.length<2){ hSrchCerrar(); return; }
+  _hSrchTimer=setTimeout(()=>{
+    gs('GET_BUSCAR_PACIENTE',{q}, rows=>hSrchRender(rows||[], q), ()=>hSrchCerrar());
+  },300);
+}
+function hSrchRender(rows,q){
+  const box=$('hSrchRes'); if(!box) return;
+  if(!rows.length){
+    box.innerHTML=`<div class="hsr-empty">Sin resultados para «${_escSt(q)}»</div>`;
+    box.classList.remove('hidden'); return;
+  }
+  const dd=s=>s?String(s).slice(5,10).split('-').reverse().join('-'):'';
+  window._hSrchRows=rows;
+  box.innerHTML=rows.map((r,i)=>`
+    <div class="hsr-item" onmousedown="hSrchAbrir(${i})">
+      <div class="hsr-top">
+        <span class="hsr-tag ${r.tipo==='activo'?'act':'egr'}">${r.tipo==='activo'?('🛏️ Cama '+r.cama):'🗃️ Egresado'}</span>
+        <span class="hsr-nm">${_escSt(r.nombre||'—')}</span>
+        <span style="font-size:.72rem;color:#64748b;">${r.edad?_escSt(r.edad)+' a':''}</span>
+      </div>
+      <div class="hsr-sub">${_escSt(r.dx||'')}${r.tipo==='egresado'?` · ${dd(r.fIngreso)} → ${dd(r.fEgreso)}${r.cama?` · cama ${_escSt(r.cama)}`:''}`:''}</div>
+    </div>`).join('');
+  box.classList.remove('hidden');
+}
+function hSrchAbrir(i){
+  const r=(window._hSrchRows||[])[i]; if(!r) return;
+  hSrchCerrar();
+  abrirTLPaciente(r.patientId, r.nombre, r.tipo==='activo'?r.cama:'');
+}
+function hSrchCerrar(){ $('hSrchRes')?.classList.add('hidden'); }
+document.addEventListener('click',e=>{ if(!e.target.closest('.hsearch')) hSrchCerrar(); });
 
 // Seguimiento = ventilatorio + rehabilitación en un solo heatmap de variables
 const SEG_VARS = [...VENT_VARS, ...REH_VARS];
