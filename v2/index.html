@@ -1702,6 +1702,28 @@ table.rhb2 .rl{width:128px;text-align:left;}
               <div id="paramsBox"></div>
 
 
+              <!-- TRAQUEOSTOMÍA — instalación (solo si VA = TQT) -->
+              <div id="dTqtSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:7px;letter-spacing:.04em;">🔪 Traqueostomía</div>
+                <div class="check wa" style="margin-bottom:8px;"><input type="checkbox" id="cTqtO" onchange="hTqtO()"><label for="cTqtO" style="font-weight:700;">Ocurrió TQT este turno</label></div>
+                <div id="dTqtDet" class="hidden">
+                  <div class="row" style="margin-bottom:8px;gap:8px;align-items:flex-end;">
+                    <div class="col wa"><label>Hora</label><input type="time" id="fTqtHora" style="height:30px;"></div>
+                    <div class="col wa"><label>Técnica</label>
+                      <select id="fTqtTec" style="height:30px;">
+                        <option value="">-- seleccionar --</option>
+                        <option>Percutánea</option>
+                        <option>Quirúrgica</option>
+                      </select></div>
+                    <div class="col grow"><label>Detalle (opcional)</label>
+                      <input type="text" id="fTqtDet" placeholder="Operador, complicaciones…" style="height:30px;"></div>
+                  </div>
+                  <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;">
+                    💡 El calibre y tipo de cánula se registran arriba (campos TQT) — el texto dirá cómo quedó: «VAA mediante TQT percutánea N°8.5 con puerto subglótico realizada hoy a las 14:00 hrs.»
+                  </div>
+                </div>
+              </div>
+
               <!-- DECANULACIÓN (solo si VA = TQT) -->
               <div id="dDecanSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
                 <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:7px;letter-spacing:.04em;">✂️ Decanulación</div>
@@ -3089,6 +3111,7 @@ function _resetHiddenYEventos(){
   });
   if(typeof _pveBtnReset==='function'){ _pveBtnReset(); hide('dPVESiRama'); hide('dPVENoRama'); _pveCleanSi(); _pveCleanNo(); }
   const _decR=$('cDecanOcurrio'); if(_decR){ _decR.checked=false; if(typeof hDecan==='function') hDecan(); }
+  const _tqR=$('cTqtO'); if(_tqR){ _tqR.checked=false; hide('dTqtDet'); }
   const _rtR=$('cReintubT'); if(_rtR) _rtR.checked=false;
   hide('dReintubDetT');
   const _evS=$('evStrip'); if(_evS){ _evS.classList.add('hidden'); _evS.innerHTML=''; }
@@ -3462,6 +3485,8 @@ function fillForm(s) {
   if(_sopFinal) cascadeSop(_modoFinal);
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM);
   chk('cIntubO',s.INTUB_OCURRIO); set('fIntubHora',s.INTUB_HORA); set('fIntubDet',s.INTUB_DET);
+  chk('cTqtO',s.TQT_OCURRIO); set('fTqtHora',s.TQT_HORA); set('fTqtTec',s.TQT_TECNICA); set('fTqtDet',s.TQT_DET);
+  if(s.TQT_OCURRIO===true||s.TQT_OCURRIO==='TRUE') show('dTqtDet'); else hide('dTqtDet');
   set('fIntubSopPrevio',s.INTUB_SOP_PREVIO);
   if(s.INTUB_OCURRIO===true||s.INTUB_OCURRIO==='TRUE') show('dIntubDet');
   chk('cCambioTOT',s.TOT_CAMBIO);
@@ -3584,10 +3609,11 @@ function fillForm(s) {
     if(!_ex.EX_CULT_RESULTADO) return;
     tiSet('fCultTags','fCultVal','violet',_ex.EX_CULT_RESULTADO);
   })();
-  // Extubación / Decanulación — ACCIÓN DIARIA: siempre desmarcada
+  // Extubación / Decanulación / TQT — ACCIÓN DIARIA: siempre desmarcada
   (function(){
     const fpve=$('fPVEval'); if(fpve) fpve.value=''; _pveBtnReset?.(); hide('dPVESiRama'); hide('dPVENoRama'); _pveCleanSi?.(); _pveCleanNo?.();
     const dec=$('cDecanOcurrio'); if(dec) dec.checked=false; hDecan();
+    const tq=$('cTqtO'); if(tq) tq.checked=false; hide('dTqtDet');
     const rin=$('cReintubT'); if(rin) rin.checked=false; hide('dReintubDetT');
     const inb=$('cIntubO'); if(inb) inb.checked=false; hide('dIntubDet');
   })();
@@ -3622,7 +3648,7 @@ function fillForm(s) {
   _evoEventoGuardado = s.EXT_OCURRIO===true||s.EXT_OCURRIO==='TRUE'||!!s.PVE_VAL||
     s.DECAN_OCURRIO===true||s.DECAN_OCURRIO==='TRUE'||s.INTUB_OCURRIO===true||s.INTUB_OCURRIO==='TRUE'||
     s.EXT_REINTUB===true||s.EXT_REINTUB==='TRUE'||s.TOT_CAMBIO===true||s.TOT_CAMBIO==='TRUE'||
-    s.TQT_CAMBIO===true||s.TQT_CAMBIO==='TRUE';
+    s.TQT_CAMBIO===true||s.TQT_CAMBIO==='TRUE'||s.TQT_OCURRIO===true||s.TQT_OCURRIO==='TRUE';
   updateVAUI();
   aplicarGatesEval();
   if(v('fVA')==='TOT' && v('fTOTn') && !$('cCambioTOT')?.checked) _lockTOT(true);
@@ -3809,7 +3835,9 @@ function _autoProcs(){
   if($('cIMT')?.checked) auto.push('IMT');
   if($('cEMS')?.checked) auto.push('EMS');
   if(v('cIng')==='true') auto.push('INGRESO');
-  if(_fechaInicioTQT && _fechaInicioTQT===(v('gDate')||hoy())) auto.push('TQT (INSTALACIÓN)');
+  // TQT instalada: por el evento (🔪) o por la transición TOT→TQT del turno.
+  // 'TQT' (no 'TQT (INSTALACIÓN)') para que genere el hito Traqueostomía.
+  if($('cTqtO')?.checked || (_fechaInicioTQT && _fechaInicioTQT===(v('gDate')||hoy()))) auto.push('TQT');
   // Evaluación intermedia: evaluación funcional registrada en un día DISTINTO
   // al día de ingreso (definición de la unidad; no depende del tipo de panel).
   if(['fMRC','fFSS','fPrension','fPIM','fPEM','fFEM','fCpaxTotal','fGrosor','fDiaf','fCuadD','fCuadI','fFedD','fFedI','fExcD','fExcI'].some(id=>v(id))){
@@ -3841,6 +3869,8 @@ function _podarEventosPayload(p){
   if(!pveActivo) del(['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_VAL','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO']);
   const decanActivo=(va==='TQT') && !!$('cDecanOcurrio')?.checked;
   if(!decanActivo) del(['DECAN_OCURRIO','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL']);
+  const tqtActivo=(va==='TQT') && !!$('cTqtO')?.checked;
+  if(!tqtActivo) del(['TQT_OCURRIO','TQT_HORA','TQT_TECNICA','TQT_DET']);
   if(!$('cIntubO')?.checked) del(['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO']);
   // EXT_REINTUB va con el grupo reintubación (la ruta standalone ocurre con VA
   // no invasiva, donde el grupo PVE está inactivo — el servidor gatilla el
@@ -3852,7 +3882,7 @@ function _podarEventosPayload(p){
   // El estado FINAL de VA y el pliegue de contadores se derivan de los eventos:
   // si el turno guardado ya tiene un evento y ahora no hay ninguno activo
   // (reapertura para corregir otra cosa), no se recalculan — se preservan.
-  const algunEvento=pveActivo||decanActivo||$('cIntubO')?.checked||$('cReintubT')?.checked||$('cReintub')?.checked||$('cReintubNo')?.checked;
+  const algunEvento=pveActivo||decanActivo||tqtActivo||$('cIntubO')?.checked||$('cReintubT')?.checked||$('cReintub')?.checked||$('cReintubNo')?.checked;
   if(_evoEventoGuardado && !algunEvento)
     del(['VENT_VIA_AEREA_FINAL','VENT_SOPORTE_FINAL','VENT_MODO_FINAL','DIAS_VM_PREVIOS','FECHA_INICIO_VM','FECHA_INICIO_VNI','DIAS_VNI_PREVIOS']);
 }
@@ -3903,9 +3933,11 @@ function _avisosTransicion(){
   const va=v('fVA'), sop=v('fSop');
   const out=[];
   const inv=x=>x==='TOT'||x==='TQT';
-  const intubEvt=$('cIntubO')?.checked||_extReintub();
+  const intubEvt=$('cIntubO')?.checked||_extReintub()||$('cTqtO')?.checked;
   const procsAll=[...(PROCS||[]),..._autoProcs()].map(p=>String(p).toUpperCase());
   const hayDesvinc=procsAll.some(p=>p.indexOf('DESVINCULACI')!==-1);
+  if(_iniVA==='TOT'&&va==='TQT'&&!$('cTqtO')?.checked)
+    out.push(`Venía con <b>TOT</b> y quedó con <b>TQT</b>, pero no hay traqueostomía registrada (bloque 🔪 Traqueostomía).`);
   if(_iniVA==='TOT'&&!inv(va)&&!_extOcurrio())
     out.push(`Venía con <b>TOT</b> y quedó con <b>${va||'—'}</b>, pero no hay extubación registrada (bloque PVE / Extubación).`);
   if(_iniVA==='TQT'&&!inv(va)&&!$('cDecanOcurrio')?.checked)
@@ -4061,6 +4093,11 @@ function guardar() {
     DECAN_QUEDA_SPO2:  v('fDecanSpo2'),
     DECAN_DET:         v('fDecanDet'),
     DECAN_RECANUL:     $('cRecanul')?.checked||false,
+    // Traqueostomía instalada este turno
+    TQT_OCURRIO:       $('cTqtO')?.checked||false,
+    TQT_HORA:          v('fTqtHora'),
+    TQT_TECNICA:       v('fTqtTec'),
+    TQT_DET:           v('fTqtDet'),
     // S2 extras
     ES_REINGRESO:      $('cReing')?.checked||false,
     CAT_RESP_PJE:      _cR.datos?_cR.pje:'',
@@ -4642,6 +4679,7 @@ function _tlEventosSlot(e){
   if(esT(e.EXT_OCURRIO)) out.push(['✂️','Extubación','#16a34a']);
   if(esT(e.EXT_REINTUB)) out.push(['🔁','Reintubación','#b91c1c']);
   if(esT(e.DECAN_OCURRIO)) out.push(['⭕','Decanulación','#0d9488']);
+  if(esT(e.TQT_OCURRIO)) out.push(['🔪','Traqueostomía','#7c3aed']);
   if(esT(e.TOT_CAMBIO)) out.push(['🔄','Cambio de tubo','#92400e']);
   if(esT(e.TQT_CAMBIO)) out.push(['🔄','Cambio de cánula','#92400e']);
   return out;
@@ -5078,6 +5116,12 @@ function genTexto() {
     L.push(`Se realiza cambio de cánula de TQT${_conMotivo(_cq)}.`);
   }
   if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()} (día ${dVA})${$('cCambioTOT')?.checked?' (tubo nuevo)':''}.`); }
+  else if(va==='TQT'&&$('cTqtO')?.checked){
+    // TQT instalada ESTE turno: importa cómo quedó (técnica + cánula + hora)
+    const _tec=(gv('fTqtTec')||'').toLowerCase();
+    const _hq=gv('fTqtHora'), _det=(gv('fTqtDet')||'').trim();
+    L.push(`VAA mediante TQT${_tec?' '+_tec:''} N°${gv('fTQTn')||'?'}${gv('fTQTt')?' '+String(gv('fTQTt')).toLowerCase():''} realizada hoy${_hq?' a las '+_hq+' hrs':''}${_det?' ('+_det+')':''}.`);
+  }
   else if(va==='TQT') L.push(`VAA mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''} (día ${dVA})${$('cCambioTQT')?.checked?' (cánula nueva)':''}.`);
   // — Helpers de soporte ventilatorio —
   const _np=id=>{ const x=parseFloat(gv(id)); return isNaN(x)?0:x; };
@@ -5599,14 +5643,14 @@ function updateVAUI() {
   const esInv=va==='TOT'||va==='TQT';
   const esVNI=va==='Full Face'||va==='Oronasal';
   if(va==='TOT'){
-    show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');
+    show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');hide('dTqtSec');
     _showCol('colDiasTOT'); _hideCol('colDiasTQT'); _showCol('colDiasVAA');
   } else if(va==='TQT'){
-    show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');
+    show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');show('dTqtSec');
     if(_diasTOTBase>0) _showCol('colDiasTOT'); else _hideCol('colDiasTOT');
     _showCol('colDiasTQT'); _showCol('colDiasVAA');
   } else {
-    hide('dVADet');hide('dExtSec');hide('dDecanSec');
+    hide('dVADet');hide('dExtSec');hide('dDecanSec');hide('dTqtSec');
     _hideCol('colDiasTOT');_hideCol('colDiasTQT');
     if(_diasVABase>0||esVNI) _showCol('colDiasVAA'); else _hideCol('colDiasVAA');
   }
@@ -5624,7 +5668,7 @@ function updateVAUI() {
   if((noInv && histVM) || $('cReintubT')?.checked || (_transIntubEsteTurno && histVM)) show('dReintubSec'); else hide('dReintubSec');
   // INGRESO = registro del estado de llegada: sin eventos de vía aérea
   // (intubación/reintubación/PVE-extubación/decanulación van en las evoluciones).
-  if(v('cIng')==='true'){ hide('dIntubSec'); hide('dReintubSec'); hide('dExtSec'); hide('dDecanSec'); }
+  if(v('cIng')==='true'){ hide('dIntubSec'); hide('dReintubSec'); hide('dExtSec'); hide('dDecanSec'); hide('dTqtSec'); }
   _updateSinKTR();
 }
 
@@ -6095,6 +6139,10 @@ function actualizarContadores(){
 }
 function hDecan(){
   if($('cDecanOcurrio')?.checked) show('dDecanDet'); else hide('dDecanDet');
+}
+function hTqtO(){
+  if($('cTqtO')?.checked) show('dTqtDet'); else hide('dTqtDet');
+  if(typeof _renderAutoProcs==='function') _renderAutoProcs();
 }
 function hAET(){
   if($('cAET')?.checked){show('dAETnivel');hAETtip();}
@@ -8287,6 +8335,7 @@ function _renderEvStrip(s){
   if(s.PVE_VAL||esT(s.EXT_OCURRIO)) evs.push(['pve_ext','✂️ PVE/Extubación'+(s.EXT_HORA?' '+s.EXT_HORA:'')]);
   if(esT(s.EXT_REINTUB)) evs.push(['reintub','🔁 Reintubación']);
   if(esT(s.INTUB_OCURRIO)) evs.push(['intub','🫁 Intubación'+(s.INTUB_HORA?' '+s.INTUB_HORA:'')]);
+  if(esT(s.TQT_OCURRIO)) evs.push(['tqt','🔪 Traqueostomía'+(s.TQT_HORA?' '+s.TQT_HORA:'')]);
   if(esT(s.DECAN_OCURRIO)) evs.push(['decan','⭕ Decanulación']);
   if(esT(s.TOT_CAMBIO)) evs.push(['cambio_tot','🔄 Cambio de tubo']);
   if(esT(s.TQT_CAMBIO)) evs.push(['cambio_tqt','🔄 Cambio de cánula']);

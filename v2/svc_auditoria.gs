@@ -93,8 +93,10 @@ function auditoriaCalidad() {
           add('transicion', 'rojo', 'Salió de TOT (→ ' + vaCur + ') sin extubación registrada — turno ' + et);
         if (vaPrev === 'TQT' && vaCur === 'Natural' && !esVerdadero(cur.DECAN_OCURRIO))
           add('transicion', 'rojo', 'Salió de TQT (→ Natural) sin decanulación registrada — turno ' + et);
-        if (!inv(vaPrev) && inv(vaCur) && !esVerdadero(cur.INTUB_OCURRIO) && !esVerdadero(cur.EXT_REINTUB))
+        if (!inv(vaPrev) && inv(vaCur) && !esVerdadero(cur.INTUB_OCURRIO) && !esVerdadero(cur.EXT_REINTUB) && !esVerdadero(cur.TQT_OCURRIO))
           add('transicion', 'rojo', 'Pasó de ' + vaPrev + ' a ' + vaCur + ' sin intubación/reintubación registrada — turno ' + et);
+        if (vaPrev === 'TOT' && vaCur === 'TQT' && !esVerdadero(cur.TQT_OCURRIO))
+          add('transicion', 'ambar', 'Pasó de TOT a TQT sin traqueostomía registrada — turno ' + et);
         if (sopPrev === 'VM' && sopCur && sopCur !== 'VM' && vaPrev === 'TQT' && vaCur === 'TQT' &&
             !/DESVINCULACI/i.test(String(cur.PROC_RESUMEN || '')) && !esVerdadero(cur.DECAN_OCURRIO))
           add('transicion', 'ambar', 'Salió de VM con TQT (→ ' + sopCur + ') sin desvinculación registrada — turno ' + et);

@@ -87,6 +87,13 @@ function generarTextoEvolucion(d) {
   if (va === 'TOT') {
     const desc = (totN || totCm) ? ` N° ${totN || '?'} fijado en ${totCm || '?'} cm` : '';
     txt.push(`VAA mediante TOT${desc} (día ${diasVA || '?'})${esVerdadero(d.TOT_CAMBIO) ? ' (tubo nuevo)' : ''}.`);
+  } else if (va === 'TQT' && esVerdadero(d.TQT_OCURRIO)) {
+    // TQT instalada ESTE turno: importa cómo quedó (técnica + cánula + hora)
+    const tqtN = v('VENT_TQT_CALIBRE');
+    const tec = String(v('TQT_TECNICA') || '').toLowerCase();
+    const hq = v('TQT_HORA');
+    const det = String(v('TQT_DET') || '').trim();
+    txt.push(`VAA mediante TQT${tec ? ' ' + tec : ''} N°${tqtN || '?'}${tqtT ? ' ' + String(tqtT).toLowerCase() : ''} realizada hoy${hq ? ' a las ' + hq + ' hrs' : ''}${det ? ' (' + det + ')' : ''}.`);
   } else if (va === 'TQT') {
     const tqtN = v('VENT_TQT_CALIBRE');
     const desc = (tqtN ? ` N° ${tqtN}` : '') + (tqtT ? ` tipo ${tqtT}` : '');

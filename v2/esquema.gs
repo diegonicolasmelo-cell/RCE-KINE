@@ -161,6 +161,10 @@ const _COLS_EVOLUCIONES = [
   ['TOT_CAMBIO_MOTIVO','texto'], // motivo del cambio de tubo (cuff disfuncional / roto / resistencia / otro)
   ['TQT_CAMBIO','bool'],         // cambio de cánula de TQT este turno (checkbox reversible)
   ['TQT_CAMBIO_MOTIVO','texto'], // motivo del cambio de cánula
+  ['TQT_OCURRIO','bool'],        // traqueostomía INSTALADA este turno (evento 🔪)
+  ['TQT_HORA','texto'],          // hora del procedimiento
+  ['TQT_TECNICA','texto'],       // Percutánea | Quirúrgica
+  ['TQT_DET','texto'],           // detalle: operador, complicaciones…
   ['BARTHEL_JSON','json'],       // ítems de la calculadora de Barthel (10 valores)
   ['CHARLSON_JSON','json'],      // ítems de la calculadora de Charlson {it:[índices], edad:bool}
   ['CAT_KINE','entero'],         // LEGACY: categorización K1–K4 (reemplazada por CAT_RESP/MOTOR; ya no se escribe)
@@ -603,7 +607,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 295) errs.push('EVOLUCIONES != 295 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 299) errs.push('EVOLUCIONES != 299 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }
