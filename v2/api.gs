@@ -40,6 +40,10 @@ function api(accion, datos, token) {
         TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
         EDITOR_TEXTO_DEMO: leerConfig('EDITOR_TEXTO_DEMO', 'FALSE') === 'TRUE',
         EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
+        BANNERS: {
+          G: leerConfig('BANNER_G', ''), P: leerConfig('BANNER_P', ''), D: leerConfig('BANNER_D', ''),
+          E: leerConfig('BANNER_E', ''), A: leerConfig('BANNER_A', ''), V: leerConfig('BANNER_V', ''),
+        },
         CAT_DEF: catMatrices(),
       });
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);
@@ -72,6 +76,13 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => guardarAsignacionTurno(datos));
       case 'AGREGAR_FASE':
         return _auditar(ctx, accion, () => agregarFaseClinica(datos.nombre));
+      case 'SET_BANNER':
+        return _auditar(ctx, accion, () => {
+          const tab = String(datos.tab || '');
+          if (['G', 'P', 'D', 'E', 'A', 'V'].indexOf(tab) === -1) return err('Pestaña inválida.', ERR.VALIDACION);
+          escribirConfig('BANNER_' + tab, String(datos.valor || ''));
+          return ok({ entidad: 'CONFIG', accion: 'portada ' + tab, valor: String(datos.valor || '') });
+        });
       case 'ANULAR_EVENTO':
         return _auditar(ctx, accion, () => anularEvento(datos, ctx));
       case 'GUARDAR_ENTREGA_TURNO':

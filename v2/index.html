@@ -8,10 +8,22 @@
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
-  --bg:#f4f6f8;--card:#fff;--txt:#111827;--muted:#6b7280;--border:#e5e7eb;
-  --primary:#1d6fc4;--pdark:#0c4f96;--ok:#1a9e52;--danger:#dc2626;--warn:#d97706;
+  /* Piel "papel" (estética Notion): fondo cálido, texto carbón, bordes tenues.
+     Los colores SEMÁNTICOS de alarma (--danger/--warn) se mantienen saturados:
+     base tranquila, semáforo clínico que grita. */
+  --bg:#f7f6f3;--card:#fff;--txt:#37352f;--muted:#787066;--border:#e9e5e0;
+  --primary:#2a6395;--pdark:#1f4e77;--ok:#2f7a4c;--danger:#dc2626;--warn:#d97706;
   --pcard:#fdf8e3;
-  --neuro:#5856d6;--hemo:#e11d48;--resp:#0284c7;--kine:#d97706;--fisico:#0891b2;
+  --neuro:#6940a5;--hemo:#c4554d;--resp:#2a6395;--kine:#b26b00;--fisico:#0d7f8c;
+  /* Paleta apagada para chips/tags (dusty, estilo Notion) */
+  --n-gray-bg:#f1f0ef;--n-gray:#5f5c58;
+  --n-orange-bg:#fbecdd;--n-orange:#b26b00;
+  --n-yellow-bg:#faf3dd;--n-yellow:#8f6d00;
+  --n-green-bg:#e8f3ec;--n-green:#2f7a4c;
+  --n-blue-bg:#e7f0f8;--n-blue:#2a6395;
+  --n-purple-bg:#f0eaf9;--n-purple:#6940a5;
+  --n-pink-bg:#f9ebf3;--n-pink:#ad3d80;
+  --n-red-bg:#fbe9e7;--n-red:#c4554d;
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Arial,sans-serif;}
 body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
@@ -19,7 +31,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-bottom:9px;}
 .col{display:flex;flex-direction:column;gap:3px;flex-grow:1;}
 .col label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
-.col input,.col select,.col textarea{height:38px;border:1px solid #dbe2ea;border-radius:9px;padding:0 11px;font-size:.92rem;outline:none;background:#fff;width:100%;transition:border-color .15s;}
+.col input,.col select,.col textarea{height:38px;border:1px solid #e2ddd6;border-radius:9px;padding:0 11px;font-size:.92rem;outline:none;background:#fff;width:100%;transition:border-color .15s;}
 .col input:focus,.col select:focus{border-color:var(--primary);box-shadow:0 0 0 2px #bfdbfe55;}
 .col textarea,.fcard-body textarea{height:auto;min-height:38px;padding:9px 11px;resize:vertical;font-size:.92rem;border:1px solid #dbe2ea;border-radius:9px;background:#fff;outline:none;font-family:inherit;width:100%;box-sizing:border-box;}
 .grow{flex-grow:1;}.ws{width:70px;flex-grow:0;}.wm{width:100px;flex-grow:0;}.wa{flex-grow:0;min-width:min-content;}
@@ -369,6 +381,16 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .vmz-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .vmz-slot.dropping,.vmz-zona.dropping{outline:3px dashed #2563eb;outline-offset:-3px;background:#eff6ff;}
 .vmz-vacio{font-size:.72rem;color:#cbd5e1;font-style:italic;}
+/* ── Portadas por pestaña (estilo Notion): preset de degradado o imagen propia ── */
+.tbanner{position:relative;height:96px;border-radius:12px;margin:2px 0 40px;overflow:visible;}
+.tbanner .tb-cover{position:absolute;inset:0;border-radius:12px;background-size:cover;background-position:center;}
+.tbanner .tb-icon{position:absolute;left:26px;bottom:-24px;width:58px;height:58px;background:#fff;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:1.9rem;box-shadow:0 2px 10px rgba(55,53,47,.18);z-index:2;}
+.tbanner .tb-btn{position:absolute;right:12px;bottom:10px;background:rgba(255,255,255,.88);border:none;border-radius:6px;padding:3px 10px;font-size:.66rem;font-weight:700;color:#5f5c58;cursor:pointer;opacity:0;transition:opacity .18s;}
+.tbanner:hover .tb-btn{opacity:1;}
+@media (max-width:640px){.tbanner{height:64px;margin-bottom:34px;}.tbanner .tb-icon{width:46px;height:46px;font-size:1.5rem;bottom:-18px;left:18px;}.tbanner .tb-btn{opacity:1;}}
+.bn-sw{width:74px;height:44px;border-radius:9px;border:2px solid transparent;cursor:pointer;background-size:cover;background-position:center;}
+.bn-sw.on{border-color:var(--primary);box-shadow:0 0 0 3px #2a639533;}
+@media print{.tbanner{display:none!important;}}
 
 /* BED GRID — fichero clásico 🗂️: cada cama es una carpeta manila con pestaña;
    al estar evolucionado el turno asoma una hoja blanca desde el interior */
@@ -400,14 +422,15 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .d-done{background:var(--ok);box-shadow:0 0 6px rgba(5,150,105,.45);}
 .pname{font-size:.98rem;font-weight:700;color:var(--pdark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .empty-txt{color:var(--muted);font-style:italic;text-align:center;padding:14px 0;}
-.pill{display:inline-flex;align-items:center;font-size:.72rem;font-weight:600;padding:3px 7px;border-radius:5px;background:#f8fafc;border:1px solid #e2e8f0;color:var(--muted);}
-.pill-d{background:#fef2f2;color:#b91c1c;border-color:#fecaca;}
-.abadge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.67rem;font-weight:700;}
-.a-vm{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;}
-.a-dias{background:#fffbeb;color:#92400e;border:1px solid #fde68a;}
-.a-ktm{background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;}
-.a-pend{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;}
-.a-eval{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;}
+.pill{display:inline-flex;align-items:center;font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:5px;background:var(--n-gray-bg);border:1px solid transparent;color:var(--n-gray);}
+.pill-d{background:var(--n-red-bg);color:var(--n-red);}
+.abadge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:.67rem;font-weight:700;border:1px solid transparent;}
+/* alarma dura: VM prolongada SIEMPRE saturada (semáforo clínico) */
+.a-vm{background:var(--danger);color:#fff;}
+.a-dias{background:var(--n-yellow-bg);color:var(--n-yellow);}
+.a-ktm{background:var(--n-purple-bg);color:var(--n-purple);}
+.a-pend{background:var(--n-orange-bg);color:var(--n-orange);}
+.a-eval{background:var(--n-blue-bg);color:var(--n-blue);}
 .bfoot{position:relative;z-index:2;padding:9px 13px;background:#f0e2b6;border:1px solid #d6bf84;border-top:1px dashed #e2d09c;border-radius:0 0 12px 12px;box-shadow:0 3px 10px rgba(120,90,20,.12);display:flex;gap:6px;flex-wrap:wrap;transition:box-shadow .18s;}
 .bevo{flex-grow:1;background:var(--primary);color:#fff;border:none;padding:7px;border-radius:6px;font-weight:600;cursor:pointer;font-size:.8rem;}
 .bevo:hover{background:var(--pdark);}
@@ -809,8 +832,9 @@ table.rhb2 .rl{width:128px;text-align:left;}
 
 /* ── v2: barra dev, fase clínica, chip COD ── */
 .devbar{background:#fef3c7;color:#92400e;font-size:.75rem;text-align:center;padding:4px;border-bottom:1px solid #fde68a;}
-.fase-chip{font-size:.73rem;padding:4px 11px;border-radius:20px;border:1px solid #cbd5e1;background:#f8fafc;color:#475569;cursor:pointer;font-family:inherit;}
-.fase-chip.on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700;}
+.fase-chip{font-size:.73rem;padding:4px 11px;border-radius:6px;border:1px solid transparent;background:var(--n-gray-bg);color:var(--n-gray);cursor:pointer;font-family:inherit;font-weight:600;}
+.fase-chip:hover{background:#e9e6e2;}
+.fase-chip.on{background:var(--n-purple-bg);border-color:#d8c8f0;color:var(--n-purple);font-weight:800;}
 .fase-chip-add{border-style:dashed;border-color:var(--primary);color:var(--primary);font-weight:700;padding:4px 10px;}
 
 </style>
@@ -875,12 +899,24 @@ table.rhb2 .rl{width:128px;text-align:left;}
 
 <!-- TAB GENERAL --><!-- TAB GENERAL -->
 <div class="tc-wrap on" id="tcG">
+  <!-- Portada estilo Notion (personalizable: preset o URL propia) -->
+  <div class="tbanner" id="bnG">
+    <div class="tb-cover"></div>
+    <div class="tb-icon">🛏️</div>
+    <button type="button" class="tb-btn no-print" onclick="bannerMenu('G')">🖼️ Portada</button>
+  </div>
   <div class="turno-legend" id="turnoLegend"></div>
   <div class="grid" id="bedGrid"></div>
 </div>
 
 <!-- TAB REGISTRO DIARIO (portado de v1 "Pacientes") -->
 <div class="tc-wrap" id="tcP">
+  <!-- Portada estilo Notion (personalizable: preset o URL propia) -->
+  <div class="tbanner" id="bnP">
+    <div class="tb-cover"></div>
+    <div class="tb-icon">📋</div>
+    <button type="button" class="tb-btn no-print" onclick="bannerMenu('P')">🖼️ Portada</button>
+  </div>
   <div class="tbl-wrap">
     <div class="tbl-bar">
       <div class="tbl-title">📋 Registro Diario — <span id="tblFecha" style="color:var(--pdark);font-weight:700;"></span></div>
@@ -896,6 +932,12 @@ table.rhb2 .rl{width:128px;text-align:left;}
 
 <!-- TAB ESTADÍSTICAS -->
 <div class="tc-wrap" id="tcD">
+  <!-- Portada estilo Notion (personalizable: preset o URL propia) -->
+  <div class="tbanner" id="bnD">
+    <div class="tb-cover"></div>
+    <div class="tb-icon">📊</div>
+    <button type="button" class="tb-btn no-print" onclick="bannerMenu('D')">🖼️ Portada</button>
+  </div>
   <div class="dash">
     <div class="dash-bar">
       <div class="dash-bar-title">📊 Estadísticas del período</div>
@@ -939,6 +981,12 @@ table.rhb2 .rl{width:128px;text-align:left;}
 
 <!-- TAB ENTREGA DE TURNO -->
 <div class="tc-wrap" id="tcE">
+  <!-- Portada estilo Notion (personalizable: preset o URL propia) -->
+  <div class="tbanner" id="bnE">
+    <div class="tb-cover"></div>
+    <div class="tb-icon">📑</div>
+    <button type="button" class="tb-btn no-print" onclick="bannerMenu('E')">🖼️ Portada</button>
+  </div>
   <div class="ent-shell">
     <!-- Panel de configuración (no se imprime) -->
     <div class="ent-config no-print">
@@ -989,6 +1037,12 @@ table.rhb2 .rl{width:128px;text-align:left;}
 
 <!-- TAB ARCHIVADOS (pacientes egresados) -->
 <div class="tc-wrap" id="tcA">
+  <!-- Portada estilo Notion (personalizable: preset o URL propia) -->
+  <div class="tbanner" id="bnA">
+    <div class="tb-cover"></div>
+    <div class="tb-icon">🗃️</div>
+    <button type="button" class="tb-btn no-print" onclick="bannerMenu('A')">🖼️ Portada</button>
+  </div>
   <div class="dash">
     <div class="dash-bar">
       <div class="dash-bar-title">🗃️ Pacientes archivados — <span id="arcCount" style="color:var(--pdark);">…</span></div>
@@ -1010,6 +1064,12 @@ table.rhb2 .rl{width:128px;text-align:left;}
 
 <!-- TAB VENTILADORES (seguimiento de equipos) -->
 <div class="tc-wrap" id="tcV">
+  <!-- Portada estilo Notion (personalizable: preset o URL propia) -->
+  <div class="tbanner" id="bnV">
+    <div class="tb-cover"></div>
+    <div class="tb-icon">🔧</div>
+    <button type="button" class="tb-btn no-print" onclick="bannerMenu('V')">🖼️ Portada</button>
+  </div>
   <div class="dash">
     <div class="dash-bar">
       <div class="dash-bar-title">🔧 Ventiladores de la unidad — <span id="vmCount" style="color:var(--pdark);">…</span></div>
@@ -1113,6 +1173,26 @@ table.rhb2 .rl{width:128px;text-align:left;}
     <div style="display:flex;gap:9px;padding-top:12px;border-top:1px solid #e2e8f0;">
       <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMove()">Cancelar</button>
       <button type="button" class="btn btn-p" onclick="vmMoverOk()">🔁 Mover</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PORTADA: elegir preset o URL propia para el banner de la pestaña -->
+<div class="tlmodal" id="bnMod" role="dialog" aria-modal="true" style="width:min(440px,94vw);">
+  <div class="phdr">
+    <div class="ptitle">🖼️ Portada de la pestaña</div>
+    <button class="xbtn" onclick="bnCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:16px 22px;overflow-y:auto;">
+    <input type="hidden" id="bnTab">
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Degradados incluidos</div>
+    <div id="bnSwatches" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;"></div>
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">O una imagen propia (URL)</div>
+    <input type="text" id="bnUrl" placeholder="https://… (foto del equipo, del hospital…)" style="width:100%;height:34px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:.8rem;">
+    <div style="font-size:.68rem;color:var(--muted);margin-top:6px;">La imagen se muestra sobre el degradado: si la URL falla (sin internet), el degradado la respalda.</div>
+    <div style="display:flex;gap:9px;padding-top:14px;margin-top:12px;border-top:1px solid var(--border);">
+      <button type="button" class="btn btn-r" style="width:auto;padding:0 16px;" onclick="bnCerrar()">Cancelar</button>
+      <button type="button" class="btn btn-p" style="flex:1;" onclick="bnGuardar()">💾 Guardar portada</button>
     </div>
   </div>
 </div>
@@ -3482,6 +3562,7 @@ function cerrarTodo(e) {
     // y el aviso de revisión (antes quedaban flotando sin telón)
     if($('vmMove')?.classList.contains('on')) vmCerrarMove();
     if(typeof vmCerrarMod==='function'&&$('vmMod')?.classList.contains('on')) vmCerrarMod();
+    if($('bnMod')?.classList.contains('on')) bnCerrar();
     if($('transAviso')?.classList.contains('on')) transAvisoCerrar();
     ['mMrc','mFss','mCpax'].forEach(id=>{ const m=$(id); if(m) m.classList.remove('on'); });
   }
@@ -3495,6 +3576,7 @@ document.addEventListener('keydown', e=>{
   if($('tlp')?.classList.contains('on')){ cerrarTL(); return; }
   if(typeof arcCerrar==='function'&&$('arcMod')?.classList.contains('on')){ arcCerrar(); return; }
   if($('vmMove')?.classList.contains('on')){ vmCerrarMove(); return; }
+  if($('bnMod')?.classList.contains('on')){ bnCerrar(); return; }
   if(typeof vmCerrarMod==='function'&&$('vmMod')?.classList.contains('on')) vmCerrarMod();
 });
 
@@ -4690,6 +4772,61 @@ function hSrchAbrir(i){
 }
 function hSrchCerrar(){ $('hSrchRes')?.classList.add('hidden'); }
 document.addEventListener('click',e=>{ if(!e.target.closest('.hsearch')) hSrchCerrar(); });
+
+//  PORTADAS por pestaña (estilo Notion): preset de degradado o URL propia.
+//  Se guardan en CONFIG (BANNER_G…BANNER_V) vía SET_BANNER; si la imagen no
+//  carga (sin internet), el degradado del preset queda de respaldo debajo.
+const BN_PRESETS={
+  azul:    'radial-gradient(circle at 85% 10%, rgba(255,255,255,.35) 0, transparent 40%), linear-gradient(115deg,#2a6395 0%,#4d8bb8 45%,#7fb6a4 100%)',
+  purpura: 'radial-gradient(circle at 15% 90%, rgba(255,255,255,.3) 0, transparent 45%), linear-gradient(115deg,#6940a5,#8d6cc3 55%,#ad3d80 130%)',
+  verde:   'radial-gradient(circle at 80% 100%, rgba(255,255,255,.3) 0, transparent 45%), linear-gradient(115deg,#2f7a4c,#57a274 60%,#7fb6a4 130%)',
+  tierra:  'radial-gradient(circle at 20% 0%, rgba(255,255,255,.3) 0, transparent 45%), linear-gradient(115deg,#8a6a5c,#b26b00 70%,#e3c95f 140%)',
+  carbon:  'repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 14px, transparent 14px 28px), linear-gradient(115deg,#44403a,#5f5c58 55%,#2a6395 140%)',
+  rosa:    'radial-gradient(circle at 70% 20%, rgba(255,255,255,.35) 0, transparent 45%), linear-gradient(115deg,#ad3d80,#c86a9e 60%,#8d6cc3 140%)',
+  papel:   'linear-gradient(115deg,#e9e5e0,#d6d0c6 60%,#b8b1a5 140%)',
+};
+const BN_DEF={G:'azul',P:'papel',D:'purpura',E:'verde',A:'tierra',V:'carbon'};
+function _bnValor(tab){ return (window.CFG&&CFG.BANNERS&&CFG.BANNERS[tab])||''; }
+function aplicarBanners(){
+  ['G','P','D','E','A','V'].forEach(tab=>{
+    const cov=document.querySelector('#bn'+tab+' .tb-cover'); if(!cov) return;
+    const val=_bnValor(tab);
+    if(/^https?:\/\//i.test(val)){
+      cov.style.backgroundImage='url("'+val.replace(/"/g,'')+'"), '+BN_PRESETS[BN_DEF[tab]];
+    } else {
+      cov.style.backgroundImage=BN_PRESETS[val]||BN_PRESETS[BN_DEF[tab]];
+    }
+  });
+}
+function bannerMenu(tab){
+  $('bnTab').value=tab;
+  const val=_bnValor(tab);
+  $('bnUrl').value=/^https?:/i.test(val)?val:'';
+  const sel=(!/^https?:/i.test(val)&&val)?val:BN_DEF[tab];
+  $('bnSwatches').innerHTML=Object.keys(BN_PRESETS).map(k=>
+    `<button type="button" class="bn-sw${sel===k&&!$('bnUrl').value?' on':''}" data-k="${k}" title="${k}"
+      style="background-image:${BN_PRESETS[k]}" onclick="bnElegir(this)"></button>`).join('');
+  $('bnMod').classList.add('on'); $('ovl').classList.add('on');
+}
+function bnElegir(btn){
+  document.querySelectorAll('#bnSwatches .bn-sw').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); $('bnUrl').value='';
+}
+function bnCerrar(){ $('bnMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function bnGuardar(){
+  const tab=v('bnTab');
+  const url=(v('bnUrl')||'').trim();
+  if(url && !/^https?:\/\//i.test(url)){ toast('⚠️ La URL debe partir con https://'); return; }
+  let valor=url;
+  if(!url){ const sel=document.querySelector('#bnSwatches .bn-sw.on'); valor=sel?sel.dataset.k:BN_DEF[tab]; }
+  loading(true,'Guardando portada…');
+  gs('SET_BANNER',{tab, valor}, _=>{
+    loading(false);
+    window.CFG=window.CFG||{}; CFG.BANNERS=CFG.BANNERS||{}; CFG.BANNERS[tab]=valor;
+    aplicarBanners(); bnCerrar(); toast('🖼️ Portada actualizada');
+  }, ()=>loading(false));
+}
+aplicarBanners();   // defaults al cargar; se re-aplica cuando llega CONFIG
 
 // Seguimiento = ventilatorio + rehabilitación en un solo heatmap de variables
 const SEG_VARS = [...VENT_VARS, ...REH_VARS];
@@ -8971,7 +9108,7 @@ function bootApp(){
   loading(true,'Cargando datos del servidor...');
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); })
     .catch(()=>{ FASES=[]; toast('⚠️ No se pudo cargar el catálogo de fases — reintenta con 🔄 Actualizar'); });
-  api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; }).catch(()=>{ window.CFG={}; });
+  api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; aplicarBanners(); }).catch(()=>{ window.CFG={}; });
   poblarKTMcontra();
   gs('GET_TODAS_CAMAS', {}, camas => {
     DB = camas || [];
