@@ -343,6 +343,32 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .hsr-tag.egr{background:#e2e8f0;color:#475569;border:1px solid #cbd5e1;}
 .hsr-sub{font-size:.7rem;color:#64748b;}
 .hsr-empty{padding:12px;color:#94a3b8;font-size:.8rem;text-align:center;}
+/* ── Tablero de ventiladores por zonas (drag & drop + tocar-tocar) ── */
+.vmz-hint{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:9px;padding:7px 12px;font-size:.76rem;font-weight:600;margin-bottom:12px;}
+.vmz-board{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;align-items:start;}
+@media (max-width:760px){.vmz-board{grid-template-columns:1fr;}}
+.vmz-zona{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.vmz-zh{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #eef2f6;color:#475569;}
+.vmz-camas>.vmz-zh{color:#0e3a5f;background:#f0f6fc;}
+.vmz-pasillo{color:#7c3aed;background:#faf5ff;}
+.vmz-bodega{color:#475569;background:#f8fafc;}
+.vmz-equipos{color:#b45309;background:#fffbeb;}
+.vmz-prestamo{color:#0d9488;background:#f0fdfa;}
+.vmz-zc{background:#f1f5f9;border-radius:12px;padding:1px 9px;font-size:.7rem;color:#475569;font-weight:700;text-transform:none;letter-spacing:0;}
+.vmz-zb{padding:10px;min-height:44px;}
+.vmz-col{display:flex;flex-direction:column;gap:12px;}
+.vmz-camgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:7px;padding:10px;}
+.vmz-slot{border:1.5px dashed #cbd5e1;border-radius:9px;min-height:56px;padding:4px 6px;font-size:.62rem;color:#94a3b8;font-weight:700;cursor:pointer;}
+.vmz-slot .n{display:block;margin-bottom:3px;}
+.vmz-slot.occ{border-style:solid;border-color:#dde3ec;background:#fafcff;}
+.vmz-slot.pac{border-color:#93c5fd;background:#eff6ff;}
+.vmz-slot.pac .n{color:#1d6fc4;}
+.vmz-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1.5px solid #94a3b8;border-radius:8px;padding:3px 8px;font-size:.68rem;font-weight:800;color:#0f172a;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:grab;margin:2px 4px 2px 0;user-select:none;}
+.vmz-chip:active{cursor:grabbing;}
+.vmz-chip.sel{border-color:#2563eb;box-shadow:0 0 0 3px #2563eb33;background:#eff6ff;}
+.vmz-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.vmz-slot.dropping,.vmz-zona.dropping{outline:3px dashed #2563eb;outline-offset:-3px;background:#eff6ff;}
+.vmz-vacio{font-size:.72rem;color:#cbd5e1;font-style:italic;}
 
 /* BED GRID — fichero clásico 🗂️: cada cama es una carpeta manila con pestaña;
    al estar evolucionado el turno asoma una hoja blanca desde el interior */
@@ -1063,8 +1089,10 @@ table.rhb2 .rl{width:128px;text-align:left;}
       <div class="col wa"><label>Destino</label>
         <select id="vmmTipo" onchange="vmmUI()" style="height:36px;">
           <option value="CAMA">🛏️ Cama</option>
+          <option value="PASILLO">🚪 Pasillo</option>
           <option value="BODEGA">📦 Bodega</option>
-          <option value="PRESTAMO">🔁 Préstamo a otra unidad</option>
+          <option value="EQUIPOS">🔧 Equipos médicos</option>
+          <option value="PRESTAMO">🏥 Otro servicio (préstamo)</option>
         </select></div>
       <div class="col wa" id="vmmCamaBox"><label>Cama</label><select id="vmmCama" style="height:36px;"></select></div>
       <div class="col wa hidden" id="vmmUniBox"><label>Unidad</label>
@@ -1075,6 +1103,13 @@ table.rhb2 .rl{width:128px;text-align:left;}
       <div class="col wa"><label>Fecha</label><input type="date" id="vmmFecha" style="height:36px;"></div>
     </div>
     <div class="row"><div class="col grow"><label>Motivo (opcional)</label><input type="text" id="vmmMotivo" placeholder="Recambio, falla, requerimiento clínico…" style="height:36px;"></div></div>
+    <!-- Zona ↔ estado: sugerencias al entrar/salir de Equipos médicos -->
+    <div id="vmmMantRow" class="hidden" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:7px 11px;margin-bottom:10px;font-size:.8rem;color:#92400e;">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;"><input type="checkbox" id="vmmMant" checked> 🔧 Marcar <b>"En mantención"</b> al dejarlo en Equipos médicos</label>
+    </div>
+    <div id="vmmOperRow" class="hidden" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:7px 11px;margin-bottom:10px;font-size:.8rem;color:#166534;">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;"><input type="checkbox" id="vmmOper" checked> 🟢 Volver a <b>"Operativo"</b> al salir de mantención</label>
+    </div>
     <div style="display:flex;gap:9px;padding-top:12px;border-top:1px solid #e2e8f0;">
       <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMove()">Cancelar</button>
       <button type="button" class="btn btn-p" onclick="vmMoverOk()">🔁 Mover</button>
@@ -7891,7 +7926,7 @@ function _vmCard(x){
     </div>
     ${meta?`<div style="font-size:.8rem;color:#475569;">${meta}</div>`:''}
     ${ids?`<div style="font-size:.7rem;color:#94a3b8;">${ids}</div>`:''}
-    <div style="font-size:.74rem;color:#64748b;">📍 ${x.ubicTipo==='CAMA'?`Cama ${x.ubicDetalle}`:(x.ubicTipo==='PRESTAMO'?`Préstamo: ${x.ubicDetalle}`:'Bodega')}${d?` · día ${d}`:''}${x.fechaUbicacion?` (desde ${x.fechaUbicacion.slice(8,10)}-${x.fechaUbicacion.slice(5,7)})`:''}</div>
+    <div style="font-size:.74rem;color:#64748b;">📍 ${VMZ_UBIC_LBL(x)}${d?` · día ${d}`:''}${x.fechaUbicacion?` (desde ${x.fechaUbicacion.slice(8,10)}-${x.fechaUbicacion.slice(5,7)})`:''}</div>
     ${pac}
     ${_vmMantLinea(x)}
     ${x.obs?`<div style="font-size:.72rem;color:#92400e;background:#fffbeb;border-radius:6px;padding:3px 8px;">${x.obs}</div>`:''}
@@ -7905,13 +7940,85 @@ function _vmCard(x){
   </div>`;
 }
 
+// ══ TABLERO POR ZONAS — drag & drop (escritorio) + tocar-tocar (tablet) ═════
+// Nada se mueve sin pasar por el modal de confirmación (vmMove) prellenado.
+let VMZ_SEL=null;   // id del ventilador seleccionado con un toque (modo tocar-tocar)
+function vmzTableroHTML(act){
+  const n=(window.CFG&&CFG.NUM_CAMAS)||18;
+  const chip=x=>{ const col=VM_EST_COL[x.estado]||'#64748b';
+    return `<span class="vmz-chip${VMZ_SEL===x.id?' sel':''}" draggable="true" data-id="${x.id}"
+      ondragstart="vmzDragStart(event)" onclick="vmzChipTap(event,'${x.id}')"
+      title="${_escSt(x.estado||'')} — arrastra o toca y elige destino">
+      <span class="vmz-dot" style="background:${col};"></span>${_escSt(x.nombre||'—')}${x.ubicTipo==='PRESTAMO'&&x.ubicDetalle?` <b style="color:#0d9488;">→ ${_escSt(x.ubicDetalle)}</b>`:''}</span>`; };
+  const porCama={}; act.filter(x=>x.ubicTipo==='CAMA').forEach(x=>porCama[String(x.ubicDetalle)]=x);
+  let slots='';
+  for(let i=1;i<=n;i++){
+    const c=(DB||[]).find(k=>String(k.ID_CAMA)===String(i));
+    const pacVM=!!(c&&(c.OCUPADA===true||c.OCUPADA==='TRUE')&&c.SOPORTE==='VM');
+    const x=porCama[String(i)];
+    slots+=`<div class="vmz-slot${x?' occ':''}${pacVM?' pac':''}" data-tipo="CAMA" data-det="${i}"
+      ondragover="vmzOver(event)" ondragleave="vmzLeave(event)" ondrop="vmzDrop(event)" onclick="vmzZonaTap(this)">
+      <span class="n">Cama ${i}${pacVM?' · 🫁 VM':''}</span>${x?chip(x):''}</div>`;
+  }
+  const zona=(tipo,icono,titulo,arr,extra)=>`<div class="vmz-zona" data-tipo="${tipo}"
+      ondragover="vmzOver(event)" ondragleave="vmzLeave(event)" ondrop="vmzDrop(event)" onclick="vmzZonaTap(this)">
+      <div class="vmz-zh vmz-${tipo.toLowerCase()}">${icono} ${titulo} <span class="vmz-zc">${arr.length}${extra?' · '+extra:''}</span></div>
+      <div class="vmz-zb">${arr.length?arr.map(chip).join(''):'<span class="vmz-vacio">— vacío —</span>'}</div></div>`;
+  const pasillo=act.filter(x=>x.ubicTipo==='PASILLO');
+  const equipos=act.filter(x=>x.ubicTipo==='EQUIPOS');
+  const bodega=act.filter(x=>['CAMA','PRESTAMO','PASILLO','EQUIPOS'].indexOf(x.ubicTipo)===-1);
+  const prest=act.filter(x=>x.ubicTipo==='PRESTAMO');
+  return `<div class="vmz-hint">🖐️ <b>Arrastra</b> un ventilador a su destino — o <b>tócalo y luego toca la zona</b> (tablet). Nada se mueve sin confirmar.</div>
+  <div class="vmz-board">
+    <div class="vmz-zona vmz-camas"><div class="vmz-zh">🛏️ Camas <span class="vmz-zc">${Object.keys(porCama).length} ventiladores</span></div>
+      <div class="vmz-camgrid">${slots}</div></div>
+    <div class="vmz-col">
+      ${zona('PASILLO','🚪','Pasillo',pasillo,'')}
+      ${zona('BODEGA','📦','Bodega',bodega,'disponible')}
+      ${zona('EQUIPOS','🔧','Equipos médicos',equipos,'mantención')}
+      ${zona('PRESTAMO','🏥','Otro servicio',prest,'préstamo')}
+    </div>
+  </div>`;
+}
+function vmzDragStart(ev){ ev.dataTransfer.setData('text/plain', ev.target.closest('.vmz-chip').dataset.id); }
+function vmzOver(ev){ ev.preventDefault(); ev.currentTarget.classList.add('dropping'); }
+function vmzLeave(ev){ ev.currentTarget.classList.remove('dropping'); }
+function vmzDrop(ev){
+  ev.preventDefault(); ev.stopPropagation(); ev.currentTarget.classList.remove('dropping');
+  const id=ev.dataTransfer.getData('text/plain'); if(!id) return;
+  vmzIniciar(id, ev.currentTarget.dataset.tipo, ev.currentTarget.dataset.det||'');
+}
+function vmzChipTap(ev,id){
+  ev.stopPropagation();
+  if(VMZ_SEL===id){ VMZ_SEL=null; toast('❌ Selección cancelada.'); }
+  else{ VMZ_SEL=id; const x=(VM_ALL||[]).find(k=>k.id===id);
+    toast('🖐️ '+((x&&x.nombre)||'Ventilador')+' seleccionado — ahora toca la cama o zona destino.',4200); }
+  vmRender();
+}
+function vmzZonaTap(el){
+  if(!VMZ_SEL) return;
+  const id=VMZ_SEL; VMZ_SEL=null; vmRender();
+  vmzIniciar(id, el.dataset.tipo, el.dataset.det||'');
+}
+function vmzIniciar(id,tipo,det){
+  const x=(VM_ALL||[]).find(k=>k.id===id); if(!x) return;
+  if(x.ubicTipo===tipo && (tipo!=='CAMA'||String(x.ubicDetalle)===String(det))){ toast('Ya está en ese destino.'); return; }
+  vmMover(id);                                  // modal de confirmación, prellenado
+  $('vmmTipo').value=tipo; vmmUI();
+  if(tipo==='CAMA' && det) $('vmmCama').value=String(det);
+}
+
 function vmRender(){
   const act=(VM_ALL||[]).filter(x=>x.activo);
   const bajas=(VM_ALL||[]).filter(x=>!x.activo);
   const enCama=act.filter(x=>x.ubicTipo==='CAMA').sort((a,b)=>(+a.ubicDetalle)-(+b.ubicDetalle));
-  const bodega=act.filter(x=>x.ubicTipo!=='CAMA'&&x.ubicTipo!=='PRESTAMO');
+  const pasillo=act.filter(x=>x.ubicTipo==='PASILLO');
+  const equipos=act.filter(x=>x.ubicTipo==='EQUIPOS');
+  const bodega=act.filter(x=>['CAMA','PRESTAMO','PASILLO','EQUIPOS'].indexOf(x.ubicTipo)===-1);
   const prest=act.filter(x=>x.ubicTipo==='PRESTAMO');
-  $('vmCount').textContent=`${act.length} operativos (${enCama.length} en salas · ${bodega.length} en bodega · ${prest.length} prestados)`;
+  const mant=act.filter(x=>x.estado==='En mantención').length;
+  const falla=act.filter(x=>x.estado==='Con falla').length;
+  $('vmCount').textContent=`${act.length} en el parque · 🟢 ${act.length-mant-falla} operativos · 🟠 ${mant} mantención · 🔴 ${falla} falla`;
 
   // Alerta de cruce: pacientes en VM en camas sin ventilador asignado
   const camasConVM=new Set(enCama.map(x=>String(x.ubicDetalle)));
@@ -7922,11 +8029,18 @@ function vmRender(){
   const secc=(t,arr,vacio)=>`<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin:14px 0 8px;">${t}</div>`+
     (arr.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;">${arr.map(_vmCard).join('')}</div>`
       :`<div style="font-size:.8rem;color:#94a3b8;font-style:italic;">${vacio}</div>`);
-  let h=secc(`🛏️ En salas (${enCama.length})`,enCama,'Ningún ventilador asignado a salas.');
-  h+=secc(`📦 Bodega (${bodega.length})`,bodega,'Bodega sin stock disponible.');
-  h+=secc(`🔁 Prestados a otras unidades (${prest.length})`,prest,'Sin préstamos vigentes.');
-  if(bajas.length) h+=`<details style="margin-top:14px;"><summary style="font-size:.75rem;color:#94a3b8;cursor:pointer;">⛔ Dados de baja (${bajas.length})</summary>
+  // Tablero por zonas (vista principal) + tarjetas de gestión (colapsables)
+  let h=vmzTableroHTML(act);
+  let cards=secc(`🛏️ En salas (${enCama.length})`,enCama,'Ningún ventilador asignado a salas.');
+  cards+=secc(`🚪 Pasillo (${pasillo.length})`,pasillo,'Sin equipos en pasillo.');
+  cards+=secc(`📦 Bodega (${bodega.length})`,bodega,'Bodega sin stock disponible.');
+  cards+=secc(`🔧 Equipos médicos (${equipos.length})`,equipos,'Sin equipos en mantención externa.');
+  cards+=secc(`🏥 Otro servicio (${prest.length})`,prest,'Sin préstamos vigentes.');
+  if(bajas.length) cards+=`<details style="margin-top:14px;"><summary style="font-size:.75rem;color:#94a3b8;cursor:pointer;">⛔ Dados de baja (${bajas.length})</summary>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:8px;opacity:.7;">${bajas.map(_vmCard).join('')}</div></details>`;
+  h+=`<details style="margin-top:16px;border:1px solid var(--border);border-radius:10px;padding:8px 14px;background:#fff;">
+    <summary style="font-size:.82rem;font-weight:800;color:var(--pdark);cursor:pointer;">📋 Tarjetas y gestión — editar · historial · mantención · baja</summary>
+    ${cards}</details>`;
   $('vmBody').innerHTML=h;
 }
 
@@ -7976,12 +8090,17 @@ function vmGuardar(){
 }
 
 // ── Mover ──
+const VMZ_UBIC_LBL=x=>({CAMA:'Cama '+x.ubicDetalle,PRESTAMO:'Préstamo: '+x.ubicDetalle,PASILLO:'Pasillo',EQUIPOS:'Equipos médicos'})[x.ubicTipo]||'Bodega';
+let VMZ_ESTADO='';   // estado actual del ventilador abierto en el modal (para sugerir mantención↔operativo)
 function vmMover(id){
   const x=(VM_ALL||[]).find(k=>k.id===id); if(!x) return;
   $('vmmId').value=id;
+  VMZ_ESTADO=x.estado||'';
   $('vmMoveTit').textContent='🔁 Mover '+(x.nombre||'ventilador');
-  $('vmmDesde').innerHTML=`Ubicación actual: <b>${x.ubicTipo==='CAMA'?'Cama '+x.ubicDetalle:(x.ubicTipo==='PRESTAMO'?'Préstamo: '+x.ubicDetalle:'Bodega')}</b>${x.fechaUbicacion?` · desde ${x.fechaUbicacion.slice(8,10)}-${x.fechaUbicacion.slice(5,7)}`:''}`;
+  $('vmmDesde').innerHTML=`Ubicación actual: <b>${VMZ_UBIC_LBL(x)}</b>${x.fechaUbicacion?` · desde ${x.fechaUbicacion.slice(8,10)}-${x.fechaUbicacion.slice(5,7)}`:''} · estado <b>${x.estado||'—'}</b>`;
   _vmFillCamas($('vmmCama'));
+  const _m=$('vmmMant'); if(_m) _m.checked=true;
+  const _o=$('vmmOper'); if(_o) _o.checked=true;
   $('vmmTipo').value=x.ubicTipo==='CAMA'?'BODEGA':'CAMA'; vmmUI();
   $('vmmFecha').value=v('gDate')||hoy(); $('vmmMotivo').value='';
   $('vmMove').classList.add('on'); $('ovl').classList.add('on');
@@ -7990,14 +8109,20 @@ function vmmUI(){
   const t=v('vmmTipo');
   $('vmmCamaBox').classList.toggle('hidden',t!=='CAMA');
   $('vmmUniBox').classList.toggle('hidden',t!=='PRESTAMO');
+  // Zona ↔ estado: entrar a Equipos médicos sugiere "En mantención"; salir
+  // estando en mantención sugiere volver a "Operativo"
+  $('vmmMantRow')?.classList.toggle('hidden', !(t==='EQUIPOS'&&VMZ_ESTADO!=='En mantención'));
+  $('vmmOperRow')?.classList.toggle('hidden', !(t!=='EQUIPOS'&&VMZ_ESTADO==='En mantención'));
 }
 function vmCerrarMove(){ $('vmMove').classList.remove('on'); $('ovl').classList.remove('on'); }
 function vmMoverOk(){
   const t=v('vmmTipo');
   const d={ idVm:v('vmmId'), tipo:t, detalle:t==='CAMA'?v('vmmCama'):(t==='PRESTAMO'?v('vmmUnidad'):''),
     fecha:v('vmmFecha'), motivo:v('vmmMotivo') };
+  if(!$('vmmMantRow')?.classList.contains('hidden') && $('vmmMant')?.checked) d.estado='En mantención';
+  else if(!$('vmmOperRow')?.classList.contains('hidden') && $('vmmOper')?.checked) d.estado='Operativo';
   loading(true,'Moviendo ventilador…');
-  gs('MOVER_VENTILADOR',d,r=>{ loading(false); vmCerrarMove(); toast('🔁 '+((r&&r.resumen)||'Ventilador movido')); vmCargar(); },()=>loading(false));
+  gs('MOVER_VENTILADOR',d,r=>{ loading(false); vmCerrarMove(); VMZ_SEL=null; toast('🔁 '+((r&&r.resumen)||'Ventilador movido')); vmCargar(); },()=>loading(false));
 }
 
 // ── Baja e historial ──

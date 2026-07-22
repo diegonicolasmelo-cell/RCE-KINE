@@ -28,6 +28,8 @@ function obtenerVentiladores() {
 function _vmUbicLabel(tipo, detalle) {
   if (tipo === 'CAMA') return 'Cama ' + detalle;
   if (tipo === 'PRESTAMO') return 'Préstamo: ' + (detalle || '¿unidad?');
+  if (tipo === 'PASILLO') return 'Pasillo';
+  if (tipo === 'EQUIPOS') return 'Equipos médicos';
   return 'Bodega';
 }
 
@@ -77,10 +79,10 @@ function moverVentilador(d, ctx) {
       if (!vmx) return err('Ventilador no encontrado.', ERR.VALIDACION);
       if (!esVerdadero(vmx.ACTIVO)) return err('El ventilador está dado de baja.', ERR.VALIDACION);
       const tipo = d.tipo;
-      if (['CAMA', 'BODEGA', 'PRESTAMO'].indexOf(tipo) === -1) return err('Destino inválido.', ERR.VALIDACION);
+      if (['CAMA', 'BODEGA', 'PRESTAMO', 'PASILLO', 'EQUIPOS'].indexOf(tipo) === -1) return err('Destino inválido.', ERR.VALIDACION);
       if (tipo === 'CAMA' && !d.detalle) return err('Indica el número de cama.', ERR.VALIDACION);
       if (tipo === 'PRESTAMO' && !d.detalle) return err('Indica la unidad del préstamo.', ERR.VALIDACION);
-      const detalle = tipo === 'BODEGA' ? '' : String(d.detalle);
+      const detalle = (tipo === 'CAMA' || tipo === 'PRESTAMO') ? String(d.detalle) : '';
       // Una cama tiene UN ventilador: si otro equipo ocupa la cama destino, se rechaza.
       if (tipo === 'CAMA') {
         const choque = repoLeerTodos('VENTILADORES').find(function (x) {
