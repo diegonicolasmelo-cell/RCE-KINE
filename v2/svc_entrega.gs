@@ -89,7 +89,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     if (esVerdadero(ev.EXT_OCURRIO)) eventos.push('✂️ Extubación ' + f + (ev.EXT_HORA ? ' ' + ev.EXT_HORA : '') + (ev.EXT_TIPO ? ' (' + ev.EXT_TIPO + ')' : ''));
     if (esVerdadero(ev.EXT_REINTUB)) eventos.push('⚠️ Reintubación ' + f);
     if (esVerdadero(ev.TQT_OCURRIO)) eventos.push('🔪 TQT ' + f + (ev.TQT_HORA ? ' ' + ev.TQT_HORA : '') + (ev.TQT_TECNICA ? ' (' + String(ev.TQT_TECNICA).toLowerCase() + ')' : ''));
-    if (esVerdadero(ev.DECAN_OCURRIO)) eventos.push('⭕ Decanulación ' + f + (esVerdadero(ev.DECAN_RECANUL) ? ' → recanulado' : ''));
+    if (esVerdadero(ev.DECAN_OCURRIO)) eventos.push('⭕ Decanulación ' + f + (ev.DECAN_HORA ? ' ' + ev.DECAN_HORA : '') + (esVerdadero(ev.DECAN_RECANUL) ? ' → recanulado' : ''));
     if (esVerdadero(ev.TOT_CAMBIO)) eventos.push('🔄 Cambio de tubo ' + f);
     if (esVerdadero(ev.TQT_CAMBIO)) eventos.push('🔄 Cambio de cánula ' + f);
     if (esVerdadero(ev.RESP_POS_PRONO)) eventos.push('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));

@@ -241,7 +241,8 @@ function generarTextoEvolucion(d) {
   if (esVerdadero(d.DECAN_OCURRIO)) {
     const dt = v('DECAN_TIPO');
     const dtTxt = dt === 'protocolo' ? ' según protocolo' : dt === 'sin_protocolo' ? ' sin protocolo' : dt === 'accidental' ? ' accidental' : '';
-    let t2 = `Se realiza decanulación${dtTxt}`;
+    const dh = v('DECAN_HORA');
+    let t2 = `Se realiza decanulación${dtTxt}${dh ? ' a las ' + dh + ' hrs' : ''}`;
     if (esVerdadero(d.DECAN_RECANUL)) t2 += ', sin embargo paciente requiere recanulación';
     else {
       const dq = v('DECAN_QUEDA_DISP'), df = v('DECAN_QUEDA_FLUJO'), ds = v('DECAN_QUEDA_SPO2');

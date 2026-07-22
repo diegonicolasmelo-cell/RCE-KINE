@@ -1740,6 +1740,10 @@ table.rhb2 .rl{width:128px;text-align:left;}
                     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">
                       <input type="radio" name="decanTipo" value="accidental"> 🔴 Accidental
                     </label>
+                    <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+                      <label style="font-size:.72rem;font-weight:700;color:#7c3aed;">Hora</label>
+                      <input type="time" id="fDecanHora" style="height:28px;font-size:.78rem;border:1px solid #e9d5ff;border-radius:5px;padding:0 6px;">
+                    </div>
                   </div>
                   <!-- Queda con (dispositivo post-decanulación) -->
                   <div style="margin-bottom:8px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
@@ -3868,7 +3872,7 @@ function _podarEventosPayload(p){
   const pveActivo=(va==='TOT') && !!v('fPVEval');
   if(!pveActivo) del(['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_VAL','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO']);
   const decanActivo=(va==='TQT') && !!$('cDecanOcurrio')?.checked;
-  if(!decanActivo) del(['DECAN_OCURRIO','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL']);
+  if(!decanActivo) del(['DECAN_OCURRIO','DECAN_HORA','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL']);
   const tqtActivo=(va==='TQT') && !!$('cTqtO')?.checked;
   if(!tqtActivo) del(['TQT_OCURRIO','TQT_HORA','TQT_TECNICA','TQT_DET']);
   if(!$('cIntubO')?.checked) del(['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO']);
@@ -4087,6 +4091,7 @@ function guardar() {
       return _fechaInicioVNI||'';
     })(),
     DECAN_OCURRIO:     $('cDecanOcurrio')?.checked||false,
+    DECAN_HORA:        v('fDecanHora'),
     DECAN_TIPO:        (document.querySelector('input[name="decanTipo"]:checked')?.value)||'',
     DECAN_QUEDA_DISP:  v('fDecanQueda'),
     DECAN_QUEDA_FLUJO: v('fDecanFlujo'),
@@ -5205,7 +5210,7 @@ function genTexto() {
   if(v('fVA')==='TQT' && $('cDecanOcurrio')?.checked){
     const _dt=document.querySelector('input[name="decanTipo"]:checked')?.value||'';
     const _dtTxt=_dt==='protocolo'?' según protocolo':_dt==='sin_protocolo'?' sin protocolo':_dt==='accidental'?' accidental':'';
-    let _t=`Se realiza decanulación${_dtTxt}`;
+    let _t=`Se realiza decanulación${_dtTxt}${v('fDecanHora')?' a las '+v('fDecanHora')+' hrs':''}`;
     if($('cRecanul')?.checked){ _t+=', sin embargo paciente requiere recanulación'; }
     else if(v('fDecanQueda')){ _t+=`, quedando con ${v('fDecanQueda')}${v('fDecanFlujo')?' '+v('fDecanFlujo'):''}${v('fDecanSpo2')?`, SpO2 ${v('fDecanSpo2')}%`:''}`; }
     if(v('fDecanDet')) _t+=`. ${v('fDecanDet')}`;
@@ -8336,7 +8341,7 @@ function _renderEvStrip(s){
   if(esT(s.EXT_REINTUB)) evs.push(['reintub','🔁 Reintubación']);
   if(esT(s.INTUB_OCURRIO)) evs.push(['intub','🫁 Intubación'+(s.INTUB_HORA?' '+s.INTUB_HORA:'')]);
   if(esT(s.TQT_OCURRIO)) evs.push(['tqt','🔪 Traqueostomía'+(s.TQT_HORA?' '+s.TQT_HORA:'')]);
-  if(esT(s.DECAN_OCURRIO)) evs.push(['decan','⭕ Decanulación']);
+  if(esT(s.DECAN_OCURRIO)) evs.push(['decan','⭕ Decanulación'+(s.DECAN_HORA?' '+s.DECAN_HORA:'')]);
   if(esT(s.TOT_CAMBIO)) evs.push(['cambio_tot','🔄 Cambio de tubo']);
   if(esT(s.TQT_CAMBIO)) evs.push(['cambio_tqt','🔄 Cambio de cánula']);
   if(!evs.length){ el.classList.add('hidden'); el.innerHTML=''; return; }

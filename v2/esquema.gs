@@ -83,7 +83,7 @@ const _COLS_EVOLUCIONES = [
   ['EXT_POST_DET','texto'],['EXT_REINTUB','bool'],['EXT_REINTUB_RAZ','texto'],['EXT_PE_VA','texto'],
   ['EXT_PE_SOP','texto'],['EXT_PE_MODO','texto'],
   // P. Decanulación
-  ['DECAN_OCURRIO','bool'],['DECAN_TIPO','texto'],['DECAN_QUEDA_DISP','texto'],['DECAN_QUEDA_FLUJO','texto'],
+  ['DECAN_OCURRIO','bool'],['DECAN_HORA','texto'],['DECAN_TIPO','texto'],['DECAN_QUEDA_DISP','texto'],['DECAN_QUEDA_FLUJO','texto'],
   ['DECAN_QUEDA_SPO2','texto'],['DECAN_DET','texto'],['DECAN_RECANUL','bool'],
   // Q. Estado final de vía aérea
   ['VENT_VIA_AEREA_FINAL','texto'],['VENT_SOPORTE_FINAL','texto'],['VENT_MODO_FINAL','texto'],
@@ -607,7 +607,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 299) errs.push('EVOLUCIONES != 299 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 300) errs.push('EVOLUCIONES != 300 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }
