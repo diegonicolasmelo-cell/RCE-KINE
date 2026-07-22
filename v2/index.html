@@ -2928,6 +2928,14 @@ function recargar() {
     loadEvoSet(() => { renderGrid(); if(ATAB==='P') renderTabla(); loading(false); toast('✅ Datos actualizados'); });
   }, () => loading(false));
 }
+// H3: refresco de fondo tras guardar — sin overlay ni toast, para no tapar el
+// panel abierto justo cuando el kine revisa su texto guardado.
+function recargarSilencioso() {
+  gs('GET_TODAS_CAMAS', {}, camas => {
+    DB = camas || [];
+    loadEvoSet(() => { renderGrid(); if(ATAB==='P') renderTabla(); });
+  }, noop);
+}
 
 //  EVOLUCIONES DEL DÍA SELECCIONADO (dots verdes + retrospectiva)
 function loadEvoSet(cb) {
@@ -3155,6 +3163,7 @@ function abrirPanel(id, esIng) {
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   const _gClr=$('spGapAviso'); if(_gClr){_gClr.style.display='none';_gClr.innerHTML='';}
   _transAvisoOk=false; _iniVA=''; _iniSop='';
+  _formDirty=false;           // panel recién abierto: sin cambios que perder
   _limpiarHeredados();
   _marcarTextoGenerado('');   // editor de texto: parte sin edición manual
   $('kf').reset(); PROCS=[]; renderChips();
@@ -3305,7 +3314,7 @@ function _snapPanel() {
       _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
       _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
       _iniVA, _iniSop, _transAvisoOk, _secrHeredado,
-      _rtxtGen, _textoManual,
+      _rtxtGen, _textoManual, _formDirty,
     },
   };
 }
@@ -3337,6 +3346,7 @@ function _restaurarMin(m) {
   _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _transAvisoOk = !!V._transAvisoOk;
   _secrHeredado = !!V._secrHeredado;
   _rtxtGen = V._rtxtGen || ''; _setTextoManual(!!V._textoManual);
+  _formDirty = !!V._formDirty;
   // 4) innerHTML mató los listeners delegados del form → re-atar
   _bindPanelListeners();
   // 5) Si la vista global cambió mientras estaba minimizado (p. ej. cruzó las
@@ -3385,6 +3395,11 @@ function restaurarDesdeMin(i) {
 }
 
 function cerrarPanel() {
+  // H1: cerrar con cambios sin guardar requiere confirmación (la × accidental
+  // en plena UCI no puede costar 10 minutos de registro). Minimizar no pasa
+  // por aquí, así que los borradores intencionales no molestan.
+  if(_formDirty && !confirm('⚠️ Hay cambios SIN GUARDAR en esta evolución.\n¿Cerrar y descartar? (usa − Minimizar si quieres conservar el borrador)')) return;
+  _formDirty=false;
   $('sp').classList.remove('on');
   $('ovl').classList.remove('on');
   document.body.style.overflow = '';
@@ -3397,6 +3412,14 @@ function cerrarPanel() {
   const idx = _minStack.findIndex(m => m.camaId === camaId);
   if (idx !== -1) { _minStack.splice(idx, 1); _renderMinTray(); }
 }
+// H2: cerrar la pestaña con trabajo sin guardar (panel abierto con cambios o
+// borradores minimizados) dispara el diálogo nativo del navegador.
+window.addEventListener('beforeunload', e=>{
+  if((_formDirty && document.querySelector('#sp.on')) || _minStack.length){
+    e.preventDefault(); e.returnValue='';
+  }
+});
+
 function cerrarTodo(e) {
   if(e.target===$('ovl')) {
     cerrarTL(); cerrarEgreso();
@@ -3960,6 +3983,20 @@ function _mostrarTransAviso(avisos){
 function transAvisoCerrar(){ $('transAviso')?.classList.remove('on'); }
 function transAvisoGuardar(){ _transAvisoOk=true; transAvisoCerrar(); guardar(); }
 
+// H4: espejo cliente de los rangos de dominio_validacion.gs (servidor sigue
+// validando igual — esto solo ahorra el round-trip al dedazo evidente)
+function _validarRangosCliente(){
+  const errs=[];
+  const r=(id,lbl,min,max)=>{ const s=v(id); if(s==='') return;
+    const x=parseFloat(s); if(isNaN(x)||x<min||x>max) errs.push(`${lbl} fuera de rango (${min}-${max}): ${s}`); };
+  r('fEdad','Edad',15,110); r('fTalla','Talla (cm)',100,230);
+  r('r_fio2','FiO₂ (%)',21,100); r('r_spo2','SpO₂ (%)',0,100);
+  r('r_vt','VT (ml)',50,1500); r('r_fr','FR (rpm)',4,60);
+  const pp=parseFloat(v('r_peep'));
+  if(v('r_peep')!=='' && !isNaN(pp) && pp>30) errs.push('PEEP > 30 cmH₂O — verificar: '+v('r_peep'));
+  return errs;
+}
+
 // ── Etapa 2: mediciones HEREDADAS de la réplica ────────────────────────────
 // Las mediciones puntuales que la réplica precarga quedan en ámbar (.heredado)
 // hasta que el kine las toque —aunque confirme el mismo valor— o confirme el
@@ -4040,6 +4077,13 @@ function guardar() {
     toast('⚠️ Registra la vía aérea del paciente antes de guardar');
     const va=$('fVA');
     if(va){ va.focus(); va.style.outline='2px solid var(--danger)'; setTimeout(()=>{va.style.outline='';},2500); }
+    return;
+  }
+  // ★ H4: rangos fisiológicos en el CLIENTE (misma tabla que el servidor,
+  //   dominio_validacion.gs) — el dedazo se detecta al instante, sin round-trip ★
+  const _errsR=_validarRangosCliente();
+  if(_errsR.length){
+    toast('⚠️ '+_errsR[0]);
     return;
   }
   // ★ Etapa 1(b) + 2: avisos NO bloqueantes antes de guardar — cambio de
@@ -4285,9 +4329,10 @@ function guardar() {
     }
     show('rarea');
     $('rarea').scrollIntoView({behavior:'smooth', block:'start'});
-    // Mostrar botón cerrar y actualizar grid en background
+    _formDirty=false;   // guardado: ya no hay cambios que perder
+    // Mostrar botón cerrar y actualizar grid en background (sin overlay)
     show('btnCerrarPost');
-    recargar();
+    recargarSilencioso();
   }, ()=>{ btn.disabled=false; btn.textContent='💾 Guardar Evolución'; });
 }
 
@@ -4965,6 +5010,9 @@ function _bindPanelListeners(){
   // Editor de texto: regeneración en vivo mientras no haya edición manual
   $('kf')?.addEventListener('change', _rtxtLive);
   $('kf')?.addEventListener('input', _rtxtLive);
+  // Cualquier interacción del usuario marca el formulario como "con cambios"
+  $('kf')?.addEventListener('input', ()=>{ _formDirty=true; });
+  $('kf')?.addEventListener('change', ()=>{ _formDirty=true; });
 }
 _bindPanelListeners();
 
@@ -6109,6 +6157,7 @@ let _vmHistFlag=false;   // historial de VM detectado en los datos cargados (evo
 let _evoEventoGuardado=false; // el turno cargado YA tiene un evento único guardado (extub/PVE/decan/intub/reintub)
 let _iniVA='', _iniSop='';    // estado (VA/soporte) con que ABRIÓ el turno — base del aviso de transición
 let _transAvisoOk=false;      // el kine ya vio el aviso de transición y eligió guardar igual
+let _formDirty=false;         // hay cambios sin guardar en el panel (confirmación al cerrar)
 let _transIntubEsteTurno=false; // hubo transición no-invasiva → invasiva en esta sesión de panel
 function actualizarDiasVA(){ actualizarContadores(); } // alias legacy
 function actualizarContadores(){
@@ -8728,7 +8777,8 @@ window.onload = function() {
 //  Carga inicial de datos (tras identidad verificada)
 function bootApp(){
   loading(true,'Cargando datos del servidor...');
-  api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); }).catch(()=>{ FASES=[]; });
+  api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); })
+    .catch(()=>{ FASES=[]; toast('⚠️ No se pudo cargar el catálogo de fases — reintenta con 🔄 Actualizar'); });
   api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; }).catch(()=>{ window.CFG={}; });
   poblarKTMcontra();
   gs('GET_TODAS_CAMAS', {}, camas => {
