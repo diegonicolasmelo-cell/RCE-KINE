@@ -3394,11 +3394,19 @@ function restaurarDesdeMin(i) {
   else abrirPanel(m.camaId, m.esIng);
 }
 
-function cerrarPanel() {
+function cerrarPanel(force) {
   // H1: cerrar con cambios sin guardar requiere confirmación (la × accidental
   // en plena UCI no puede costar 10 minutos de registro). Minimizar no pasa
   // por aquí, así que los borradores intencionales no molestan.
-  if(_formDirty && !confirm('⚠️ Hay cambios SIN GUARDAR en esta evolución.\n¿Cerrar y descartar? (usa − Minimizar si quieres conservar el borrador)')) return;
+  if(_formDirty && force!==true){
+    uiConfirm({
+      icono:'⚠️', titulo:'Cambios sin guardar',
+      mensaje:'Hay cambios <b>sin guardar</b> en esta evolución.',
+      detalle:'Si solo quieres pausar al paciente, usa − Minimizar: el borrador se conserva.',
+      confirmar:'Cerrar y descartar', tono:'rojo',
+    }).then(ok=>{ if(ok){ _formDirty=false; cerrarPanel(true); } });
+    return;
+  }
   _formDirty=false;
   $('sp').classList.remove('on');
   $('ovl').classList.remove('on');
@@ -3422,11 +3430,38 @@ window.addEventListener('beforeunload', e=>{
 
 function cerrarTodo(e) {
   if(e.target===$('ovl')) {
+    // H11: el egreso con datos digitados no se descarta por un clic afuera
+    if($('egMod')?.classList.contains('on')){
+      if(v('egDestino')||v('egObs')||v('egBarthel')){
+        uiConfirm({
+          icono:'🏠', titulo:'Cerrar egreso',
+          mensaje:'Se descartará lo ingresado <b>sin egresar</b> al paciente.',
+          confirmar:'Cerrar sin egresar', tono:'rojo',
+        }).then(ok=>{ if(ok) cerrarEgreso(); });
+      } else cerrarEgreso();
+      return;
+    }
     cerrarTL(); cerrarEgreso();
     if(typeof arcCerrar==='function'&&$('arcMod')?.classList.contains('on')) arcCerrar();
+    // H11: coherencia — clic afuera también cierra los modales de ventiladores
+    // y el aviso de revisión (antes quedaban flotando sin telón)
+    if($('vmMove')?.classList.contains('on')) vmCerrarMove();
+    if(typeof vmCerrarMod==='function'&&$('vmMod')?.classList.contains('on')) vmCerrarMod();
+    if($('transAviso')?.classList.contains('on')) transAvisoCerrar();
     ['mMrc','mFss','mCpax'].forEach(id=>{ const m=$(id); if(m) m.classList.remove('on'); });
   }
 }
+// H10: Escape cierra el modal visible (solo los de lectura/aviso — el panel de
+// evolución y el egreso exigen sus botones, protegidos por confirmación)
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  if($('ucOvl')?.classList.contains('on')) return;              // lo maneja uiConfirm
+  if($('transAviso')?.classList.contains('on')){ transAvisoCerrar(); return; }
+  if($('tlp')?.classList.contains('on')){ cerrarTL(); return; }
+  if(typeof arcCerrar==='function'&&$('arcMod')?.classList.contains('on')){ arcCerrar(); return; }
+  if($('vmMove')?.classList.contains('on')){ vmCerrarMove(); return; }
+  if(typeof vmCerrarMod==='function'&&$('vmMod')?.classList.contains('on')) vmCerrarMod();
+});
 
 function fillCama(c, fecha) {
   const s=(id,val)=>{ const e=$(id); if(e&&val!==undefined&&val!==null&&val!=='') e.value=String(val); };
@@ -4464,15 +4499,28 @@ function mover(id) {
     MOVECAMA=id; renderGrid(); toast('🛏️ Haz clic en otra cama (ocupada = intercambio, libre = traslado).');
   } else {
     if(String(MOVECAMA)===String(id)){MOVECAMA=null;renderGrid();toast('❌ Cancelado.');return;}
+    const origen=DB.find(x=>String(x.ID_CAMA)===String(MOVECAMA));
     const destino=DB.find(x=>String(x.ID_CAMA)===String(id));
     const destinoOcupada=!!(destino&&(destino.OCUPADA===true||destino.OCUPADA==='TRUE'));
     const accion=destinoOcupada?'INTERCAMBIAR_CAMAS':'MOVER_A_CAMA_VACIA';
     const datos=destinoOcupada?{idCamaA:MOVECAMA,idCamaB:id}:{idOrigen:MOVECAMA,idDestino:id};
-    loading(true,'Trasladando...');
-    gs(accion,datos, _=>{
-      MOVECAMA=null; loading(false); recargar();
-      toast(destinoOcupada?'✅ Camas intercambiadas.':'✅ Paciente trasladado a cama vacía.');
-    }, ()=>{MOVECAMA=null;loading(false);renderGrid();});
+    // H7: mover pacientes con TODO su historial merece confirmación — un
+    // clic errado intercambiaba camas al instante y ensuciaba ambos episodios
+    uiConfirm({
+      icono:'🛏️', titulo: destinoOcupada?'Intercambiar camas':'Traslado a cama vacía',
+      mensaje: destinoOcupada
+        ? `<b>${origen?.NOMBRE||('Cama '+MOVECAMA)}</b> (cama ${MOVECAMA}) ⇄ <b>${destino?.NOMBRE||('Cama '+id)}</b> (cama ${id})`
+        : `<b>${origen?.NOMBRE||('Cama '+MOVECAMA)}</b> pasa de la cama ${MOVECAMA} a la cama ${id} (vacía).`,
+      detalle:'El episodio completo (evoluciones, hitos e historial) viaja con cada paciente y queda el hito de traslado.',
+      confirmar: destinoOcupada?'⇄ Intercambiar':'🛏️ Trasladar',
+    }).then(okC=>{
+      if(!okC){ MOVECAMA=null; renderGrid(); return; }
+      loading(true,'Trasladando...');
+      gs(accion,datos, _=>{
+        MOVECAMA=null; loading(false); recargar();
+        toast(destinoOcupada?'✅ Camas intercambiadas.':'✅ Paciente trasladado a cama vacía.');
+      }, ()=>{MOVECAMA=null;loading(false);renderGrid();});
+    });
   }
 }
 
@@ -5047,9 +5095,13 @@ function _setTextoManual(on){
   const r=$('btnRegenTexto'); if(r) r.style.display=on?'':'none';
 }
 function regenerarTexto(){
-  if(_textoManual && !confirm('🔄 Regenerar vuelve al texto del generador y descarta tus retoques manuales. ¿Continuar?')) return;
-  $('rtxt').value=genTexto();
-  _marcarTextoGenerado($('rtxt').value);
+  const regen=()=>{ $('rtxt').value=genTexto(); _marcarTextoGenerado($('rtxt').value); };
+  if(!_textoManual){ regen(); return; }
+  uiConfirm({
+    icono:'🔄', titulo:'Regenerar texto',
+    mensaje:'Se vuelve al texto del generador y se <b>descartan tus retoques manuales</b>.',
+    confirmar:'🔄 Regenerar', tono:'rojo',
+  }).then(ok=>{ if(ok) regen(); });
 }
 // Mostrar el editor al abrir un turno: si el turno guardado traía edición
 // manual, se respeta (regeneración en pausa); si no, texto del motor en vivo.
@@ -8502,6 +8554,20 @@ function entToggleAll(soloOcupadas){
 }
 function entGenerar(){
   if(!ENT_SEL.size){ toast('Marca al menos una cama.'); return; }
+  // H9: regenerar pisa el documento — si hay planes/pendientes digitados en
+  // las fichas, confirmar antes de descartarlos
+  const _escritos=[...document.querySelectorAll('#entDoc textarea[data-cama]')].some(t=>t.value.trim()!==''&&t.defaultValue!==t.value);
+  if(_escritos){
+    uiConfirm({
+      icono:'📑', titulo:'Regenerar entrega',
+      mensaje:'Se <b>descartan los planes/pendientes</b> que escribiste en las fichas.',
+      confirmar:'Regenerar', tono:'rojo',
+    }).then(ok=>{ if(ok) _entGenerarGo(); });
+    return;
+  }
+  _entGenerarGo();
+}
+function _entGenerarGo(){
   const fecha=v('entFecha')||hoy(), turno=v('entTurno');
   const idCamas=[...ENT_SEL].sort((a,b)=>(+a)-(+b));
   $('entDoc').innerHTML='<div class="ent-placeholder">⏳ Generando entrega…</div>';
@@ -8718,6 +8784,7 @@ function imprimirHojaRHB(){
 function generarREMui(){
   const m=v('remMes');
   if(!m){ toast('Elige el mes del informe.'); return; }
+  if($('remOut').textContent.indexOf('⏳')===0) return;   // H13: ya hay una generación en curso
   const [anio,mes]=m.split('-');
   $('remOut').textContent='⏳ Generando informe…';
   gs('GENERAR_REM',{anio,mes}, d=>{
