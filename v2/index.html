@@ -2893,9 +2893,28 @@ table.rhb2 .rl{width:128px;text-align:left;}
 </div>
 
 <script>
-//  Client ID de OAuth inyectado por el template del servidor (webapp.gs).
-//  Abierto como archivo local (harness) el scriptlet queda crudo y se descarta.
-window.__GIS_CLIENT_ID = '<?= (typeof clientId !== "undefined" && clientId) ? clientId : "" ?>';
+//  RED DE SEGURIDAD DE ARRANQUE — bloque separado y mínimo: si el bloque
+//  principal muriera por cualquier motivo, este igual corre y convierte el
+//  spinner eterno en un mensaje con el error real (diagnosticable en la ronda).
+window.__bootErrores = [];
+window.addEventListener('error', function (ev) {
+  try { window.__bootErrores.push((ev.message || '') + ' @' + String(ev.filename || '').split('/').pop() + ':' + (ev.lineno || '')); } catch (_) {}
+});
+setTimeout(function () {
+  try {
+    var l = document.getElementById('lmsg');
+    if (!l) return;
+    if (/Conectando con el servidor|Verificando identidad/.test(l.textContent)) {
+      var det = window.__bootErrores.length
+        ? window.__bootErrores.join('<br>')
+        : (/Verificando/.test(l.textContent)
+            ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
+            : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
+      l.innerHTML = '❌ La app no pudo iniciar.<br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+        '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
+    }
+  } catch (_) {}
+}, 8000);
 </script>
 <script>
 //  PUENTE v2 — google.script.run → api(accion, datos, TOKEN)
@@ -9126,12 +9145,20 @@ let _gisCargado=false;
 function mostrarLogin(){
   const ovl=$('loginOvl'); if(!ovl) return;
   ovl.style.display='flex';
-  // '<'+'?' evita que el compilador de templates de GAS lo lea como scriptlet
-  const cid=(window.__GIS_CLIENT_ID&&window.__GIS_CLIENT_ID.indexOf('<'+'?')===-1)?window.__GIS_CLIENT_ID:'';
-  if(!cid){
-    $('loginMsg').innerHTML='⚠️ Falta <b>OAUTH_CLIENT_ID</b> en la hoja CONFIG<br>(o activa AUTH_DEV_MODE=TRUE para desarrollo).';
-    return;
-  }
+  // v2.1: el client id se pide en RUNTIME (GET_LOGIN_INFO es pública, pre-login)
+  // — ya no hay scriptlet de plantilla en este archivo.
+  if(window.__GIS_CID){ _gisPreparar(window.__GIS_CID); return; }
+  $('loginMsg').textContent='Preparando acceso…';
+  gs('GET_LOGIN_INFO',{}, r=>{
+    const cid=(r&&r.clientId)||'';
+    if(!cid){
+      $('loginMsg').innerHTML='⚠️ Falta <b>OAUTH_CLIENT_ID</b> en la hoja CONFIG<br>(o activa AUTH_DEV_MODE=TRUE para desarrollo).';
+      return;
+    }
+    window.__GIS_CID=cid; _gisPreparar(cid);
+  }, ()=>{ $('loginMsg').textContent='❌ No se pudo obtener la configuración de acceso.'; });
+}
+function _gisPreparar(cid){
   if(_gisCargado){ _gisRender(cid); return; }
   const s=document.createElement('script');
   s.src='https://accounts.google.com/gsi/client';

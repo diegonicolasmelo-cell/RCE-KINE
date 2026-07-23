@@ -5,10 +5,11 @@
 function doGet(e) {
   const page = (e && e.parameter && e.parameter.page) || '';
   if (page === 'spike') return _paginaSpike();
-  // index se sirve como TEMPLATE para inyectar el OAUTH_CLIENT_ID (login GIS).
-  const t = HtmlService.createTemplateFromFile('index');
-  t.clientId = configVal('OAUTH_CLIENT_ID', '');
-  return t.evaluate()
+  // v2.1: index se sirve como ARCHIVO PLANO (sin plantilla ni scriptlets).
+  // La compilación de plantillas demostró romper el arranque en el bootstrap
+  // de Google (/dev): el OAUTH_CLIENT_ID ahora se pide en runtime con la
+  // acción pública GET_LOGIN_INFO, así el HTML viaja intacto byte a byte.
+  return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('RCE-KINE · UCI')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
 }

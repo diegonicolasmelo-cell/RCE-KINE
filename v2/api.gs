@@ -12,6 +12,11 @@
 function api(accion, datos, token) {
   datos = datos || {};
 
+  // Acción PÚBLICA (pre-login): entrega el client id de GIS para dibujar el
+  // botón de acceso. No expone datos clínicos (un client id de OAuth es
+  // público por diseño). Reemplaza al scriptlet de plantilla que se eliminó.
+  if (accion === 'GET_LOGIN_INFO') return ok({ clientId: configVal('OAUTH_CLIENT_ID', '') });
+
   // Identidad (en AUTH_DEV_MODE=TRUE pasa siempre con una firma simulada).
   const firmaDecl = datos.PLAN_FIRMA_KINE || datos.firmaKine || '';
   const auth = autorizar(token, firmaDecl);
