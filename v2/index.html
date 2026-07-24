@@ -1914,7 +1914,7 @@ table.rhb2 .rl{width:128px;text-align:left;}
                     style="padding:3px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;">No</button>
                   <input type="hidden" id="fPVEval" value="">
                 </div>
-                <!-- Aviso fuera de protocolo: VM < 24 h → sin PVE, solo tipos de extubación -->
+                <!-- Aviso fuera de protocolo: VM bajo 24 h, sin PVE, solo tipos de extubación -->
                 <div id="dPVEfueraProto" class="hidden" style="margin-bottom:6px;font-size:.72rem;font-weight:700;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 9px;">
                   ⚠️ &lt;24 h de VM: extubación <b>fuera de protocolo</b> (sin PVE). Registra el tipo de extubación en <b>“No”</b>.
                 </div>
@@ -2002,11 +2002,11 @@ table.rhb2 .rl{width:128px;text-align:left;}
                   <div id="dPVEFracasada" class="hidden" style="margin-top:8px;padding:7px 9px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;">
                     <label style="font-size:.72rem;font-weight:700;color:#b45309;display:block;margin-bottom:4px;">Razón del fracaso:</label>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="FR > 35 rpm"> FR &gt;35</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="FR &gt; 35 rpm"> FR &gt;35</label>
                       <label class="check wa"><input type="checkbox" name="pveFrMot" value="desaturación"> Desaturación</label>
-                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="FC > 140 lpm"> FC &gt;140</label>
-                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="PAS > 180 o < 90 mmHg"> PAS &gt;180/&lt;90</label>
-                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="volumen minuto > 15 L/min"> Vol/min &gt;15</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="FC &gt; 140 lpm"> FC &gt;140</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="PAS &gt; 180 o &lt; 90 mmHg"> PAS &gt;180/&lt;90</label>
+                      <label class="check wa"><input type="checkbox" name="pveFrMot" value="volumen minuto &gt; 15 L/min"> Vol/min &gt;15</label>
                       <label class="check wa"><input type="checkbox" name="pveFrMot" value="aumento del trabajo respiratorio"> ↑Trabajo resp.</label>
                       <label class="check wa"><input type="checkbox" name="pveFrMot" value="secreciones abundantes"> Secr. abundantes</label>
                       <label class="check wa"><input type="checkbox" name="pveFrMot" value="caída de GCS"> Caída GCS</label>
