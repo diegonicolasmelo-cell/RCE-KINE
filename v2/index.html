@@ -357,7 +357,7 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .hsr-empty{padding:12px;color:#94a3b8;font-size:.8rem;text-align:center;}
 /* ── Tablero de ventiladores por zonas (drag & drop + tocar-tocar) ── */
 .vmz-hint{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:9px;padding:7px 12px;font-size:.76rem;font-weight:600;margin-bottom:12px;}
-.vmz-board{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;align-items:start;}
+.vmz-board{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;align-items:start;-webkit-user-select:none;user-select:none;}
 @media (max-width:760px){.vmz-board{grid-template-columns:1fr;}}
 .vmz-zona{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
 .vmz-zh{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #eef2f6;color:#475569;}
@@ -835,6 +835,9 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .fase-chip{font-size:.73rem;padding:4px 11px;border-radius:6px;border:1px solid transparent;background:var(--n-gray-bg);color:var(--n-gray);cursor:pointer;font-family:inherit;font-weight:600;}
 .fase-chip:hover{background:#e9e6e2;}
 .fase-chip.on{background:var(--n-purple-bg);border-color:#d8c8f0;color:var(--n-purple);font-weight:800;}
+.fase-chip.her{background:#fffbeb;border-color:#f5b942;color:#b45309;}
+.fase-chip-conf{background:#fffbeb;border:1px solid #f59e0b;color:#b45309;font-weight:800;}
+.fase-chip-conf:hover{background:#fef3c7;}
 .fase-chip-add{border-style:dashed;border-color:var(--primary);color:var(--primary);font-weight:700;padding:4px 10px;}
 
 </style>
@@ -2922,6 +2925,7 @@ let TOKEN = ''; // id_token de Google (GIS); vacío en AUTH_DEV_MODE
 let YO = { firma:'', dev:false };
 let FASES = [];
 let FASES_SEL = new Set();
+let _faseHeredada = false;   // la fase clínica viene replicada del turno anterior (ámbar hasta confirmar)
 
 function api(accion, datos) {
   return new Promise((res, rej) => {
@@ -3315,7 +3319,7 @@ function abrirPanel(id, esIng) {
   if(typeof setIMS==='function') setIMS('');
   const _hme=$('fFecHME'); if(_hme) _hme.disabled=false;
   // v2: fases clínicas + reintubación standalone + COD + evaluaciones nocturnas
-  FASES_SEL=new Set(); renderFases();
+  FASES_SEL=new Set(); _faseHeredada=false; renderFases();
   PEND_SEL=new Set(); renderPend();
   const _spCod=$('spCod'); if(_spCod) _spCod.textContent='';
   hide('dReintubDetT'); hide('dIntubDet');
@@ -3448,7 +3452,7 @@ function _snapPanel() {
       _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
       _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
       _iniVA, _iniSop, _transAvisoOk, _secrHeredado,
-      _rtxtGen, _textoManual, _formDirty,
+      _rtxtGen, _textoManual, _formDirty, _faseHeredada,
     },
   };
 }
@@ -3480,7 +3484,7 @@ function _restaurarMin(m) {
   _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _transAvisoOk = !!V._transAvisoOk;
   _secrHeredado = !!V._secrHeredado;
   _rtxtGen = V._rtxtGen || ''; _setTextoManual(!!V._textoManual);
-  _formDirty = !!V._formDirty;
+  _formDirty = !!V._formDirty; _faseHeredada = !!V._faseHeredada;
   // 4) innerHTML mató los listeners delegados del form → re-atar
   _bindPanelListeners();
   // 5) Si la vista global cambió mientras estaba minimizado (p. ej. cruzó las
@@ -3675,11 +3679,15 @@ function fillForm(s) {
   if($('fRuidosVal')) $('fRuidosVal').value=s.EX_RUIDOS||'';
   if($('fRuidosLoc')) $('fRuidosLoc').value=s.EX_RUIDOS_LOC||'';
   tiSet('fSecrTags','fSecrVal','sky',s.EX_SECR_TIPO||'');
-  // Prioriza estado FINAL de VA si hubo extubación en el turno anterior
-  const _vaFinal = s.VENT_VIA_AEREA_FINAL||s.VENT_VIA_AEREA;
+  // Prioriza estado FINAL de VA si hubo extubación en el turno anterior.
+  // Validación: solo se acepta un valor de la lista del select (trim); si el
+  // dato guardado quedó vacío o con basura, se cae a la VA vigente de la cama
+  // (antes el select quedaba en "-" y había que reelegir la vía aérea).
+  const _vaFinal = String(s.VENT_VIA_AEREA_FINAL||s.VENT_VIA_AEREA||'').trim();
   const _sopFinal = s.VENT_SOPORTE_FINAL||s.VENT_SOPORTE;
   const _modoFinal = s.VENT_MODO_FINAL||s.VENT_MODO;
-  if(_vaFinal){ $('fVA').value=_vaFinal; cascadeVA(_sopFinal); }
+  if(_VA_VALIDAS.includes(_vaFinal)){ $('fVA').value=_vaFinal; cascadeVA(_sopFinal); }
+  else { const _cVA=DB.find(x=>String(x.ID_CAMA)===String(v('cBed'))); if(_cVA&&_VA_VALIDAS.includes(String(_cVA.VIA_AEREA||'').trim())){ $('fVA').value=String(_cVA.VIA_AEREA).trim(); cascadeVA(_cVA.SOPORTE); } }
   if(_sopFinal) cascadeSop(_modoFinal);
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM);
   chk('cIntubO',s.INTUB_OCURRIO); set('fIntubHora',s.INTUB_HORA); set('fIntubDet',s.INTUB_DET);
@@ -3896,11 +3904,13 @@ function fillFormReplica(s) {
     _secrHeredado=true;
   }
 
-  // Vía aérea — prioriza estado FINAL si hubo extubación en turno anterior
-  const _vaF = s.VENT_VIA_AEREA_FINAL||s.VENT_VIA_AEREA;
+  // Vía aérea — prioriza estado FINAL si hubo extubación en turno anterior.
+  // fillCama ya dejó la VA vigente de la cama; solo se sobrescribe si el valor
+  // replicado es válido (evita que un dato vacío/basura borre la selección).
+  const _vaF = String(s.VENT_VIA_AEREA_FINAL||s.VENT_VIA_AEREA||'').trim();
   const _sopF = s.VENT_SOPORTE_FINAL||s.VENT_SOPORTE;
   const _modoF = s.VENT_MODO_FINAL||s.VENT_MODO;
-  if(_vaF){ $('fVA').value=_vaF; cascadeVA(_sopF); }
+  if(_VA_VALIDAS.includes(_vaF)){ $('fVA').value=_vaF; cascadeVA(_sopF); }
   if(_sopF) cascadeSop(_modoF);
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM);
   set('fTOTfij',s.TOT_FIJACION); // posición/fijación del TOT: persiste turno a turno
@@ -3961,6 +3971,7 @@ function fillFormReplica(s) {
   set('fPlanes',s.PLAN_PLANES);
   aplicarFirmaTurno(s.PLAN_FIRMA_KINE);
   setFasesDesde(s.FASE_JSON||'');
+  _faseHeredada=FASES_SEL.size>0; renderFases();   // réplica: fase en ámbar hasta confirmar
   // Fechas de dispositivos: la fila del turno manda; si no trae, arrastre desde
   // la cama (estado del episodio) — nunca desde la fecha que se está visualizando.
   const _cDisp=_camaPanel();
@@ -6398,6 +6409,7 @@ let _fechaInicioVNI='';  // fecha inicio VNI actual
 let _vaAnterior='';      // VA previa para detectar transiciones
 let _vmHistFlag=false;   // historial de VM detectado en los datos cargados (evo previa / cama)
 let _evoEventoGuardado=false; // el turno cargado YA tiene un evento único guardado (extub/PVE/decan/intub/reintub)
+const _VA_VALIDAS=['Natural','TOT','TQT','Full Face','Oronasal'];   // opciones válidas del select fVA
 let _iniVA='', _iniSop='';    // estado (VA/soporte) con que ABRIÓ el turno — base del aviso de transición
 let _transAvisoOk=false;      // el kine ya vio el aviso de transición y eligió guardar igual
 let _formDirty=false;         // hay cambios sin guardar en el panel (confirmación al cerrar)
@@ -7234,15 +7246,22 @@ function aplicarFirmaTurno(firmaPrevia){
 //  FASES CLÍNICAS (v2 — catálogo CATALOGOS/FASE_CLINICA, persiste en FASE_JSON)
 function renderFases(){
   const box=$('faseChips'); if(!box) return;
+  // Heredada de la réplica: solo las seleccionadas quedan en ámbar hasta que el
+  // kine las cambie o confirme con "✓ Sin cambios".
+  box.classList.toggle('fase-heredada', _faseHeredada && FASES_SEL.size>0);
   const chips=(FASES||[]).map(f=>{
     const on=FASES_SEL.has(f);
-    return `<button type="button" class="fase-chip${on?' on':''}" onclick="toggleFase(this.dataset.f)" data-f="${String(f).replace(/"/g,'&quot;')}">${f}</button>`;
+    return `<button type="button" class="fase-chip${on?' on':''}${on&&_faseHeredada?' her':''}" onclick="toggleFase(this.dataset.f)" data-f="${String(f).replace(/"/g,'&quot;')}">${f}</button>`;
   });
   // Chip "+" para agregar una fase nueva al catálogo compartido
   chips.push('<button type="button" class="fase-chip fase-chip-add" onclick="agregarFaseUI()" title="Agregar nueva fase al catálogo">＋</button>');
+  // Chip "✓ Sin cambios" cuando la fase viene heredada del turno anterior
+  if(_faseHeredada && FASES_SEL.size>0)
+    chips.push('<button type="button" class="fase-chip fase-chip-conf" onclick="confirmarFaseHeredada()" title="La fase clínica sigue igual que el turno anterior">✓ Sin cambios</button>');
   box.innerHTML=chips.join('');
 }
-function toggleFase(f){ if(FASES_SEL.has(f)) FASES_SEL.delete(f); else FASES_SEL.add(f); renderFases(); }
+function confirmarFaseHeredada(){ _faseHeredada=false; renderFases(); toast('✓ Fase clínica confirmada'); }
+function toggleFase(f){ if(FASES_SEL.has(f)) FASES_SEL.delete(f); else FASES_SEL.add(f); _faseHeredada=false; renderFases(); }
 // Input inline para agregar una fase nueva (persiste en el catálogo compartido)
 function agregarFaseUI(){
   const box=$('faseChips'); if(!box) return;
@@ -8102,9 +8121,11 @@ let VMZ_SEL=null;   // id del ventilador seleccionado con un toque (modo tocar-t
 function vmzTableroHTML(act){
   const n=(window.CFG&&CFG.NUM_CAMAS)||18;
   const chip=x=>{ const col=VM_EST_COL[x.estado]||'#64748b';
-    return `<span class="vmz-chip${VMZ_SEL===x.id?' sel':''}" draggable="true" data-id="${x.id}"
-      ondragstart="vmzDragStart(event)" onclick="vmzChipTap(event,'${x.id}')"
-      title="${_escSt(x.estado||'')} — arrastra o toca y elige destino">
+    const hasId=!!(x.id&&String(x.id).trim());
+    // .sel SOLO cuando hay id válido y coincide (evita marcar todos los de id vacío)
+    return `<span class="vmz-chip${hasId&&VMZ_SEL===x.id?' sel':''}${hasId?'':' vmz-noid'}" draggable="${hasId}" data-id="${_escSt(x.id||'')}"
+      ondragstart="vmzDragStart(event)" onclick="vmzChipTap(event,'${_escSt(x.id||'')}')"
+      title="${hasId?_escSt(x.estado||'')+' — arrastra o toca y elige destino':'⚠️ Este equipo no tiene ID — usa ✏️ Editar o corre repararIdsVentiladores()'}">
       <span class="vmz-dot" style="background:${col};"></span>${_escSt(x.nombre||'—')}${x.ubicTipo==='PRESTAMO'&&x.ubicDetalle?` <b style="color:#0d9488;">→ ${_escSt(x.ubicDetalle)}</b>`:''}</span>`; };
   const porCama={}; act.filter(x=>x.ubicTipo==='CAMA').forEach(x=>porCama[String(x.ubicDetalle)]=x);
   let slots='';
@@ -8136,7 +8157,7 @@ function vmzTableroHTML(act){
     </div>
   </div>`;
 }
-function vmzDragStart(ev){ ev.dataTransfer.setData('text/plain', ev.target.closest('.vmz-chip').dataset.id); }
+function vmzDragStart(ev){ const id=ev.target.closest('.vmz-chip').dataset.id; if(!id){ ev.preventDefault(); return; } ev.dataTransfer.setData('text/plain', id); }
 function vmzOver(ev){ ev.preventDefault(); ev.currentTarget.classList.add('dropping'); }
 function vmzLeave(ev){ ev.currentTarget.classList.remove('dropping'); }
 function vmzDrop(ev){
@@ -8146,6 +8167,7 @@ function vmzDrop(ev){
 }
 function vmzChipTap(ev,id){
   ev.stopPropagation();
+  if(!id){ toast('⚠️ Este equipo no tiene ID. Ábrelo con ✏️ Editar y guárdalo, o corre repararIdsVentiladores() en el editor.'); return; }
   if(VMZ_SEL===id){ VMZ_SEL=null; toast('❌ Selección cancelada.'); }
   else{ VMZ_SEL=id; const x=(VM_ALL||[]).find(k=>k.id===id);
     toast('🖐️ '+((x&&x.nombre)||'Ventilador')+' seleccionado — ahora toca la cama o zona destino.',4200); }
@@ -8157,6 +8179,7 @@ function vmzZonaTap(el){
   vmzIniciar(id, el.dataset.tipo, el.dataset.det||'');
 }
 function vmzIniciar(id,tipo,det){
+  if(!id){ toast('⚠️ Equipo sin ID — no se puede mover. Corre repararIdsVentiladores().'); return; }
   const x=(VM_ALL||[]).find(k=>k.id===id); if(!x) return;
   if(x.ubicTipo===tipo && (tipo!=='CAMA'||String(x.ubicDetalle)===String(det))){ toast('Ya está en ese destino.'); return; }
   vmMover(id);                                  // modal de confirmación, prellenado

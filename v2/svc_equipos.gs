@@ -7,6 +7,29 @@
  * Neurología, Cirugía…). Toda escritura pasa por api.gs y queda auditada.
  */
 
+/**
+ * Repara ventiladores sin ID_VM (filas cargadas a mano o de versiones viejas):
+ * les asigna un ID único. Sin ID, el tablero no puede seleccionarlos ni moverlos
+ * (todos los de id vacío se marcaban juntos). Idempotente: corre las veces que
+ * quieras. Ejecutar desde el editor de Apps Script.
+ */
+function repararIdsVentiladores() {
+  const rows = repoLeerTodos('VENTILADORES');
+  let n = 0;
+  rows.forEach(function (x) {
+    if (!String(x.ID_VM || '').trim()) {
+      const nid = uid('VM');
+      // clave de búsqueda: por nombre (única en la práctica) para ubicar la fila
+      repoActualizar('VENTILADORES', 'NOMBRE', x.NOMBRE, { ID_VM: nid });
+      n++;
+    }
+  });
+  SpreadsheetApp.flush();
+  const msg = 'Ventiladores reparados (ID asignado): ' + n;
+  console.log(msg);
+  return msg;
+}
+
 function obtenerVentiladores() {
   try {
     const rows = repoLeerTodos('VENTILADORES').map(function (x) {
