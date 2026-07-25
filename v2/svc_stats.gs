@@ -92,7 +92,7 @@ function obtenerStats(desde, hasta) {
   const cDauci = parseFloat(leerConfig('CORTE_MRC_DAUCI', '48')) || 48;
   const cSev = parseFloat(leerConfig('CORTE_MRC_SEVERA', '36')) || 36;
   const activos = {}; // PATIENT_ID → true (camas ocupadas)
-  repoLeerTodos('CAMAS').forEach(c => { if (esVerdadero(c.OCUPADA) && c.PATIENT_ID) activos[String(c.PATIENT_ID)] = true; });
+  repoLeerTodos('CAMAS_ESTADO').forEach(c => { if (esVerdadero(c.OCUPADA) && c.PATIENT_ID) activos[String(c.PATIENT_ID)] = true; });
   const mrcAct = {};  // PATIENT_ID ingresado → { val, key } (MRC-SS más reciente)
   allEvos.forEach(e => {
     const pid = String(e.PATIENT_ID || '');
