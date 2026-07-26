@@ -46,12 +46,6 @@ function _remRango(edad) {
   return '80+';
 }
 
-function _remColLetra(n) {
-  let s = '';
-  while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
-  return s;
-}
-
 function _remSexo(s) {
   const x = String(s || '').trim().toUpperCase().charAt(0);
   return x === 'M' ? 'H' : (x === 'F' ? 'M' : '');   // M(asculino)→H(ombre), F(emenino)→M(ujer)
@@ -188,103 +182,82 @@ function generarREM(anio, mes, ctx) {
     // ── Escribir la hoja REM_28 ──
     const nombreMes = new Date(parseInt(anio), parseInt(mm) - 1, 1)
       .toLocaleString('es-CL', { month: 'long', year: 'numeric' });
-    // Colores tomados del formulario original de estadística (REM.xlsx):
-    // crema FFFFCC datos · amarillo FFF2CC cabeceras · FFE599 etiquetas/totales ·
-    // gris D9D9D9 códigos · celeste DDEBF7 valores de códigos · CCFFFF su cabecera ·
-    // azules 2F5496 / B4C6E7 para títulos.
-    const filas = [], tags = [];
-    const anchoA = 4 + _REM_RANGOS.length * 2;
-    const pad = arr => { const f = arr.slice(); while (f.length < anchoA) f.push(''); return f; };
-    const add = (arr, tag) => { filas.push(pad(arr)); tags.push(tag); };
-    const filaMatriz = (lbl, o, tag) => add([lbl, o.T, o.H, o.M].concat(_REM_RANGOS.reduce((acc, r) => acc.concat([o[r + 'H'], o[r + 'M']]), [])), tag || 'dato');
-    const cabMatriz = lbl => add([lbl, 'Total', 'H', 'M'].concat(_REM_RANGOS.reduce((acc, r) => acc.concat([r + ' H', r + ' M']), [])), 'cab');
+    // ── Copia EXACTA del formulario oficial (svc_rem_plantilla.gs) ──
+    // La plantilla reproduce el REM 28 de estadística celda a celda (filas 24-190,
+    // columnas A-AK): textos, colores, negritas, combinadas y anchos, incluidas las
+    // casillas que quedan en 0. Aquí solo se escriben los valores del mes en las
+    // posiciones de _REM_POS.
+    const M = _REM_TPL_VALS.map(f => f.slice());
+    const F0 = _REM_TPL_FILA0;
+    const setC = (fila, col, val) => { M[fila - F0][col - 1] = val; };
 
-    add(['REM 28 · KINESIOLOGÍA UCI · ' + nombreMes.toUpperCase()], 'titulo');
-    add(['Generado ' + ahoraTS() + ' · tipo de atención: UPC · atención cerrada (todos los ingresos con PTI)'], 'sub');
-    add([], '');
-    add(['SECCIÓN A — INGRESOS DEL MES (Nº de personas; todos con PTI)'], 'seccion');
-    cabMatriz('Diagnóstico');
-    _REM_DIAGS.forEach(d => filaMatriz(d, ingPorDiag[d]));
-    filaMatriz('TOTAL INGRESOS', ingTotal, 'total');
-    add([], '');
-    add(['SECCIÓN A — EGRESOS DEL MES'], 'seccion');
-    cabMatriz('Motivo');
-    filaMatriz('Egresos por alta (incluye sala y traslados)', egAlta);
-    filaMatriz('Egresos por fallecimiento', egFallece);
-    add([], '');
-    add(['SECCIÓN B.2 — EVALUACIÓN INICIAL (Kinesiólogo/a · UPC)'], 'seccion');
-    cabMatriz('Profesional');
-    filaMatriz('Kinesiólogo/a', evalIni);
-    add([], '');
-    add(['SECCIÓN B.3 — EVALUACIÓN INTERMEDIA (1 por día evaluado · Kinesiólogo/a · UPC)'], 'seccion');
-    cabMatriz('Profesional');
-    filaMatriz('Kinesiólogo/a', evalInt);
-    add([], '');
-    add(['SECCIÓN B.4 — SESIONES DE REHABILITACIÓN (KTR + KTM · Kinesiólogo/a · UPC)'], 'seccion');
-    cabMatriz('Profesional');
-    filaMatriz('Kinesiólogo/a', sesiones);
-    add([], '');
-    add(['SECCIÓN B.6 — PROCEDIMIENTOS Y ACTIVIDADES'], 'seccion');
-    add(['Tipo', 'Total'], 'cab');
-    add(['Fisioterapia (= EMS)', turnosEMS], 'dato');
-    add(['Ejercicios terapéuticos (= sesiones KTM)', sumKTM], 'dato');
-    add(['Educación a usuario/a, cuidador/a y/o familiar', turnosEdu], 'dato');
-    add(['Terapia respiratoria y funcional pulmonar (= KTR + IMT)', sumKTR + turnosIMT], 'dato');
-    add(['TOTAL', turnosEMS + sumKTM + turnosEdu + sumKTR + turnosIMT], 'total');
-    add([], '');
-    add(['CÓDIGOS DE PRESTACIONES'], 'seccion');
-    add(['Código', 'Prestación', 'Actividades', 'Beneficiarios'], 'codcab');
-    add(['601101', 'Evaluación Kinesiológica Integral (1 por paciente)', nIngresos, nIngresos], 'codigo');
-    add(['601104', 'Atención Kinesiológica Integral UPC (1 por paciente)', nIngresos, nIngresos], 'codigo');
-    add(['601024', 'Reeducación motriz (1 por paciente)', nIngresos, nIngresos], 'codigo');
-    add(['601030', 'Maniobras permeabilización de la vía aérea (1 por paciente)', nIngresos, nIngresos], 'codigo');
-    add(['102501', 'Reeducación de la tos y respiración en pacientes con TQT (= turnos con IMT)', turnosIMT, Object.keys(pacIMT).length], 'codigo');
-    add(['1010922', 'Prueba de tolerancia ortostática (1ª bipedestación del episodio)', nPTO, nPTO], 'codigo');
-    add(['601171', 'Asistencia en IOT, VMNI, cambio de cánula (' + nIntub + ' IOT + ' + nReintub + ' reintub + ' + nVMNIini + ' VMNI + ' + nCanula + ' cánula)', nAsistVA, ''], 'codigo');
+    // Sección A: D=Ambos, E=H, F=M, G..AH=rangos 15-19…80+ (H/M), AJ=Cerrado (UCI).
+    const filaA = (fila, o) => {
+      setC(fila, 4, o.T); setC(fila, 5, o.H); setC(fila, 6, o.M);
+      _REM_RANGOS.forEach((r, i) => { setC(fila, 7 + i * 2, o[r + 'H']); setC(fila, 8 + i * 2, o[r + 'M']); });
+      setC(fila, 36, o.T);
+    };
+    filaA(_REM_POS.totalIng, ingTotal);
+    filaA(_REM_POS.pti, ingTotal);   // atención cerrada: todos los ingresos con PTI
+    Object.keys(_REM_POS.diag).forEach(d => filaA(_REM_POS.diag[d], ingPorDiag[d]));
+    filaA(_REM_POS.egAlta, egAlta);
+    filaA(_REM_POS.egFallece, egFallece);
+
+    // Secciones B.2/B.3/B.4: D=total, rangos 0-4…80+ en E..U (15-19 parte en col H=8),
+    // tipo de atención UPC en col Y=25. La fila TOTAL repite a Kinesiología (somos
+    // el único profesional que registra en esta plataforma).
+    const filaB = (fila, o) => {
+      setC(fila, 4, o.T);
+      _REM_RANGOS.forEach((r, i) => setC(fila, 8 + i, o[r + 'H'] + o[r + 'M']));
+      setC(fila, 25, o.T);
+    };
+    filaB(_REM_POS.b2Kine, evalIni); filaB(_REM_POS.b2Total, evalIni);
+    filaB(_REM_POS.b3Kine, evalInt); filaB(_REM_POS.b3Total, evalInt);
+    filaB(_REM_POS.b4Kine, sesiones); filaB(_REM_POS.b4Total, sesiones);
+
+    // B.6 (columna D).
+    setC(_REM_POS.b6Fisio, 4, turnosEMS);
+    setC(_REM_POS.b6Ejerc, 4, sumKTM);
+    setC(_REM_POS.b6Educ, 4, turnosEdu);
+    setC(_REM_POS.b6Resp, 4, sumKTR + turnosIMT);
+    setC(_REM_POS.b6Total, 4, turnosEMS + sumKTM + turnosEdu + sumKTR + turnosIMT);
+
+    // Códigos: patrón del original → E=actividades, F=G=beneficiarios (MAI),
+    // J=atención cerrada=actividades; H/I/K/L quedan en 0 como en el formulario.
+    const filaCod = (cod, actividades, beneficiarios) => {
+      const fila = _REM_POS.cod[cod];
+      setC(fila, 5, actividades); setC(fila, 6, beneficiarios);
+      setC(fila, 7, beneficiarios); setC(fila, 10, actividades);
+    };
+    filaCod('601101', nIngresos, nIngresos);
+    filaCod('601104', nIngresos, nIngresos);
+    filaCod('601024', nIngresos, nIngresos);
+    filaCod('601030', nIngresos, nIngresos);
+    filaCod('102501', turnosIMT, Object.keys(pacIMT).length);
+    filaCod('1010922', nPTO, nPTO);
+    filaCod('601171', nAsistVA, nAsistVA);
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let hoja = ss.getSheetByName('REM_28');
     if (!hoja) hoja = ss.insertSheet('REM_28');
-    hoja.clear();   // contenido Y formatos (una regeneración no arrastra colores viejos)
-    if (hoja.getMaxColumns() < anchoA) hoja.insertColumnsAfter(hoja.getMaxColumns(), anchoA - hoja.getMaxColumns());
-    hoja.getRange(1, 1, filas.length, anchoA).setValues(filas);
+    hoja.clear();
+    hoja.getRange(1, 1, hoja.getMaxRows(), hoja.getMaxColumns()).breakApart();
+    if (hoja.getMaxColumns() < _REM_TPL_NCOLS) hoja.insertColumnsAfter(hoja.getMaxColumns(), _REM_TPL_NCOLS - hoja.getMaxColumns());
+    const filaFin = F0 + M.length - 1;
+    if (hoja.getMaxRows() < filaFin) hoja.insertRowsAfter(hoja.getMaxRows(), filaFin - hoja.getMaxRows());
+
+    hoja.getRange(F0, 1, M.length, _REM_TPL_NCOLS).setValues(M);
+    const fondos = _REM_TPL_FONDOS.map(s => s.split('').map(ch => _REM_TPL_PALETA[parseInt(ch, 16)] || null));
+    hoja.getRange(F0, 1, M.length, _REM_TPL_NCOLS).setBackgrounds(fondos);
+    const pesos = _REM_TPL_NEGRITAS.map(s => s.split('').map(b => b === '1' ? 'bold' : 'normal'));
+    hoja.getRange(F0, 1, M.length, _REM_TPL_NCOLS).setFontWeights(pesos);
+    _REM_TPL_MERGES.forEach(a1 => { try { hoja.getRange(a1).merge(); } catch (ig) {} });
+    _REM_TPL_ANCHOS.forEach((w, i) => hoja.setColumnWidth(i + 1, w));
     hoja.setFrozenRows(0);
 
-    // Aplicar la paleta por tipo de fila (una llamada por estilo vía RangeList).
-    const zonas = {};   // clave de estilo → lista de rangos A1
-    const zona = (k, a1) => { (zonas[k] = zonas[k] || []).push(a1); };
-    const colFin = _remColLetra(anchoA);
-    tags.forEach((tag, i) => {
-      const r = i + 1;
-      if (tag === 'titulo') zona('titulo', 'A' + r + ':' + colFin + r);
-      else if (tag === 'sub') zona('sub', 'A' + r + ':' + colFin + r);
-      else if (tag === 'seccion') zona('seccion', 'A' + r + ':' + colFin + r);
-      else if (tag === 'cab') zona('cab', 'A' + r + ':' + colFin + r);
-      else if (tag === 'codcab') zona('codcab', 'A' + r + ':D' + r);
-      else if (tag === 'dato') { zona('etiqueta', 'A' + r); zona('datos', 'B' + r + ':' + colFin + r); }
-      else if (tag === 'total') zona('totalFila', 'A' + r + ':' + colFin + r);
-      else if (tag === 'codigo') { zona('codNum', 'A' + r); zona('codDesc', 'B' + r); zona('codVal', 'C' + r + ':D' + r); }
-    });
-    const pinta = (k, fondo, opts) => {
-      if (!zonas[k]) return;
-      const rl = hoja.getRangeList(zonas[k]);
-      if (fondo) rl.setBackground(fondo);
-      if (opts && opts.negrita) rl.setFontWeight('bold');
-      if (opts && opts.letra) rl.setFontColor(opts.letra);
-    };
-    pinta('titulo', '#2f5496', { negrita: true, letra: '#ffffff' });
-    pinta('sub', '#dce6f4', {});
-    pinta('seccion', '#b4c6e7', { negrita: true });
-    pinta('cab', '#fff2cc', { negrita: true });
-    pinta('etiqueta', '#ffe599', {});
-    pinta('datos', '#ffffcc', {});
-    pinta('totalFila', '#ffe599', { negrita: true });
-    pinta('codcab', '#ccffff', { negrita: true });
-    pinta('codNum', '#d9d9d9', {});
-    pinta('codDesc', '#ffffcc', {});
-    pinta('codVal', '#ddebf7', {});
-    hoja.setColumnWidth(1, 330);
-    for (let c = 2; c <= anchoA; c++) hoja.setColumnWidth(c, 52);
+    // Cabecera informativa en la zona libre (filas 1-2, vacías también en el original).
+    hoja.getRange(1, 1).setValue('REM 28 · KINESIOLOGÍA UCI · ' + nombreMes.toUpperCase()).setFontWeight('bold');
+    hoja.getRange(2, 1).setValue('Generado ' + ahoraTS() + ' · copia del formulario oficial; las casillas sin actividad quedan en 0.');
 
     // ── Resumen de pantalla ──
     const L = [];

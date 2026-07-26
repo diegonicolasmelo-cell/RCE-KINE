@@ -19,19 +19,26 @@ global.ahoraTS = () => '2026-08-01 08:00';
 global.ok = d => ({ ok: true, data: d });
 global.err = (m, c) => ({ ok: false, error: m, codigo: c });
 global.ERR = { VALIDACION: 'VALIDACION', INTERNO: 'INTERNO' };
-const escrituras = []; const formatos = [];
-const rangoStub = () => ({ setBackground(x){ formatos.push(x); return this; }, setFontWeight(){ return this; }, setFontColor(){ return this; } });
+const escrituras = []; let matrizEscrita = null, fondosEscritos = null, mergesHechos = 0;
+const rangoStub = (fila, col) => ({
+  setValues(v){ escrituras.push({ fila, col, v }); if (v.length > 100) matrizEscrita = { fila, col, v }; return this; },
+  setValue(){ return this; }, setBackgrounds(m){ fondosEscritos = m; return this; }, setFontWeights(){ return this; },
+  setBackground(){ return this; }, setFontWeight(){ return this; }, setFontColor(){ return this; },
+  breakApart(){ return this; }, merge(){ mergesHechos++; return this; },
+});
 global.SpreadsheetApp = { getActiveSpreadsheet: () => ({
   getSheetByName: () => null,
   insertSheet: () => ({
-    clear(){}, clearContents(){}, getMaxColumns: () => 40, insertColumnsAfter(){}, setFrozenRows(){},
-    setColumnWidth(){}, getRangeList: a1s => { const r = rangoStub(); r._n = a1s.length; return r; },
-    getRange: (r, c, nr, nc) => ({ setValues: v => escrituras.push({ nr, nc, v }) }),
+    clear(){}, clearContents(){}, getMaxColumns: () => 40, getMaxRows: () => 1000,
+    insertColumnsAfter(){}, insertRowsAfter(){}, setFrozenRows(){}, setColumnWidth(){},
+    getRange: (r, c) => rangoStub(r, c),
   }),
 })};
 
-eval(fs.readFileSync(path.join(v2, 'svc_stats.gs'), 'utf8'));   // _statISO
-eval(fs.readFileSync(path.join(v2, 'svc_rem.gs'), 'utf8'));
+// Un solo eval: en GAS los archivos comparten ámbito global (los const de un
+// eval separado no se verían desde el siguiente).
+eval(['svc_stats.gs', 'svc_rem_plantilla.gs', 'svc_rem.gs']
+  .map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 
 // ── Fixture ──
 const P1 = 'p1', P2 = 'p2', P3 = 'p3';
@@ -77,7 +84,27 @@ eq('B.6 educación', d.turnosEdu, 1);
 eq('turnos IMT', d.turnosIMT, 1);
 eq('PTO: solo P1 (la 1ª bipedestación de P2 fue en junio)', d.pto, 1);
 eq('asistencias VA (1 IOT + 1 reintub + 1 inicio VMNI + 1 cánula)', d.asistenciasVA, 4);
-eq('hoja escrita con filas', escrituras.length >= 1 && escrituras[0].v.length > 30, true);
+// ── Copia exacta del formulario: valores en las MISMAS celdas del original ──
+eq('plantilla escrita desde la fila 24', matrizEscrita && matrizEscrita.fila, 24);
+const celda = (fila, col) => matrizEscrita.v[fila - 24][col - 1];
+eq('D27 Total ingresos', celda(27, 4), 1);
+eq('D28 Ingresos con PTI (= total, atención cerrada)', celda(28, 4), 1);
+eq('fila ACV (29): D=1 y rango 45-49 Hombres (col 19)', celda(29, 4) + '/' + celda(29, 19), '1/1');
+eq('AJ27 atención Cerrado = total', celda(27, 36), 1);
+eq('D57 Egresos por alta (traslado de P2)', celda(57, 4), 1);
+eq('D59 Egresos por fallecimiento', celda(59, 4), 1);
+eq('B.2 Kinesiólogo D67 = ingresos', celda(67, 4), 1);
+eq('B.3 Kinesiólogo D79 = 1 día evaluado', celda(79, 4), 1);
+eq('B.4 Kinesiólogo D90 = 14 sesiones', celda(90, 4), 14);
+eq('B.4 col Y (UPC) = 14', celda(90, 25), 14);
+eq('B.6 Ejercicios terapéuticos D100 = KTM', celda(100, 4), 6);
+eq('B.6 Terapia respiratoria D120 = KTR+IMT', celda(120, 4), 9);
+eq('código 601101 fila 129: E=F=G=J', [celda(129,5),celda(129,6),celda(129,7),celda(129,10)].join(','), '1,1,1,1');
+eq('código 102501 fila 174: E=turnos IMT, F=pacientes', celda(174,5) + '/' + celda(174,6), '1/1');
+eq('código 601171 fila 170: E=4 asistencias VA', celda(170, 5), 4);
+eq('texto de una casilla del formulario intacto (C30 TEC)', celda(30, 3), 'Traumatismo encéfalo craneano (TEC)');
+eq('fondos aplicados (matriz misma dimensión)', fondosEscritos && fondosEscritos.length === matrizEscrita.v.length, true);
+eq('merges del original aplicados (43)', mergesHechos, 43);
 eq('upsert mensual guardado', global._upsert && global._upsert.v, '2026-07');
 
 console.log(fails.length ? '❌ ' + fails.length + ' FALLOS' : '✅ TODO OK');
