@@ -75,5 +75,12 @@ o commitear. Un bug que costó más de un intercambio merece guardia nueva.
   tras semanas de uso, comparar y refinar el motor con los patrones de
   edición reales.
 - **Versión móvil**: pendiente; mockups antes de código.
+- **Stock de cánulas TQT** (aprobado en concepto, NO implementar aún):
+  descuento automático por número+tipo al guardar TQT instalada o cambio de
+  cánula (paciente que llega traqueostomizado NO descuenta), libro de
+  movimientos + reposición manual + alerta de stock bajo, patrón del módulo
+  de ventiladores. Falta que Diego mande: inventario actual, si el cambio
+  puede variar de calibre, flujo de reposición y umbrales de alerta.
+  Mockup antes de código.
 - Privacidad: datos clínicos reales NO salen a APIs externas sin
   anonimización + aprobación institucional (Ley 19.628).
