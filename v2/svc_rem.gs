@@ -46,6 +46,12 @@ function _remRango(edad) {
   return '80+';
 }
 
+function _remColLetra(n) {
+  let s = '';
+  while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+
 function _remSexo(s) {
   const x = String(s || '').trim().toUpperCase().charAt(0);
   return x === 'M' ? 'H' : (x === 'F' ? 'M' : '');   // M(asculino)→H(ombre), F(emenino)→M(ujer)
@@ -182,64 +188,103 @@ function generarREM(anio, mes, ctx) {
     // ── Escribir la hoja REM_28 ──
     const nombreMes = new Date(parseInt(anio), parseInt(mm) - 1, 1)
       .toLocaleString('es-CL', { month: 'long', year: 'numeric' });
-    const filas = [];
+    // Colores tomados del formulario original de estadística (REM.xlsx):
+    // crema FFFFCC datos · amarillo FFF2CC cabeceras · FFE599 etiquetas/totales ·
+    // gris D9D9D9 códigos · celeste DDEBF7 valores de códigos · CCFFFF su cabecera ·
+    // azules 2F5496 / B4C6E7 para títulos.
+    const filas = [], tags = [];
     const anchoA = 4 + _REM_RANGOS.length * 2;
     const pad = arr => { const f = arr.slice(); while (f.length < anchoA) f.push(''); return f; };
-    const filaMatriz = (lbl, o) => pad([lbl, o.T, o.H, o.M].concat(_REM_RANGOS.reduce((acc, r) => acc.concat([o[r + 'H'], o[r + 'M']]), [])));
-    const cabMatriz = lbl => pad([lbl, 'Total', 'H', 'M'].concat(_REM_RANGOS.reduce((acc, r) => acc.concat([r + ' H', r + ' M']), [])));
-    const filaRangos = (lbl, o) => pad([lbl, o.T, '', ''].concat(_REM_RANGOS.reduce((acc, r) => acc.concat([o[r + 'H'] + o[r + 'M'], '']), [])));
-    const tit = t => pad([t]);
+    const add = (arr, tag) => { filas.push(pad(arr)); tags.push(tag); };
+    const filaMatriz = (lbl, o, tag) => add([lbl, o.T, o.H, o.M].concat(_REM_RANGOS.reduce((acc, r) => acc.concat([o[r + 'H'], o[r + 'M']]), [])), tag || 'dato');
+    const cabMatriz = lbl => add([lbl, 'Total', 'H', 'M'].concat(_REM_RANGOS.reduce((acc, r) => acc.concat([r + ' H', r + ' M']), [])), 'cab');
 
-    filas.push(tit('REM 28 · KINESIOLOGÍA UCI · ' + nombreMes.toUpperCase()));
-    filas.push(tit('Generado ' + ahoraTS() + ' · tipo de atención: UPC · atención cerrada (todos los ingresos con PTI)'));
-    filas.push(pad([]));
-    filas.push(tit('SECCIÓN A — INGRESOS DEL MES (Nº de personas; todos con PTI)'));
-    filas.push(cabMatriz('Diagnóstico'));
-    _REM_DIAGS.forEach(d => filas.push(filaMatriz(d, ingPorDiag[d])));
-    filas.push(filaMatriz('TOTAL INGRESOS', ingTotal));
-    filas.push(pad([]));
-    filas.push(tit('SECCIÓN A — EGRESOS DEL MES'));
-    filas.push(cabMatriz('Motivo'));
-    filas.push(filaMatriz('Egresos por alta (incluye sala y traslados)', egAlta));
-    filas.push(filaMatriz('Egresos por fallecimiento', egFallece));
-    filas.push(pad([]));
-    filas.push(tit('SECCIÓN B.2 — EVALUACIÓN INICIAL (Kinesiólogo/a · UPC)'));
-    filas.push(cabMatriz('Profesional'));
-    filas.push(filaMatriz('Kinesiólogo/a', evalIni));
-    filas.push(pad([]));
-    filas.push(tit('SECCIÓN B.3 — EVALUACIÓN INTERMEDIA (1 por día evaluado · Kinesiólogo/a · UPC)'));
-    filas.push(cabMatriz('Profesional'));
-    filas.push(filaMatriz('Kinesiólogo/a', evalInt));
-    filas.push(pad([]));
-    filas.push(tit('SECCIÓN B.4 — SESIONES DE REHABILITACIÓN (KTR + KTM · Kinesiólogo/a · UPC)'));
-    filas.push(cabMatriz('Profesional'));
-    filas.push(filaMatriz('Kinesiólogo/a', sesiones));
-    filas.push(pad([]));
-    filas.push(tit('SECCIÓN B.6 — PROCEDIMIENTOS Y ACTIVIDADES'));
-    filas.push(pad(['Tipo', 'Total']));
-    filas.push(pad(['Fisioterapia (= EMS)', turnosEMS]));
-    filas.push(pad(['Ejercicios terapéuticos (= sesiones KTM)', sumKTM]));
-    filas.push(pad(['Educación a usuario/a, cuidador/a y/o familiar', turnosEdu]));
-    filas.push(pad(['Terapia respiratoria y funcional pulmonar (= KTR + IMT)', sumKTR + turnosIMT]));
-    filas.push(pad(['TOTAL', turnosEMS + sumKTM + turnosEdu + sumKTR + turnosIMT]));
-    filas.push(pad([]));
-    filas.push(tit('CÓDIGOS DE PRESTACIONES'));
-    filas.push(pad(['Código', 'Prestación', 'Actividades', 'Beneficiarios']));
-    filas.push(pad(['601101', 'Evaluación Kinesiológica Integral (1 por paciente)', nIngresos, nIngresos]));
-    filas.push(pad(['601104', 'Atención Kinesiológica Integral UPC (1 por paciente)', nIngresos, nIngresos]));
-    filas.push(pad(['601024', 'Reeducación motriz (1 por paciente)', nIngresos, nIngresos]));
-    filas.push(pad(['601030', 'Maniobras permeabilización de la vía aérea (1 por paciente)', nIngresos, nIngresos]));
-    filas.push(pad(['102501', 'Reeducación de la tos y respiración en pacientes con TQT (= turnos con IMT)', turnosIMT, Object.keys(pacIMT).length]));
-    filas.push(pad(['1010922', 'Prueba de tolerancia ortostática (1ª bipedestación del episodio)', nPTO, nPTO]));
-    filas.push(pad(['601171', 'Asistencia en IOT, VMNI, cambio de cánula (' + nIntub + ' IOT + ' + nReintub + ' reintub + ' + nVMNIini + ' VMNI + ' + nCanula + ' cánula)', nAsistVA, '']));
+    add(['REM 28 · KINESIOLOGÍA UCI · ' + nombreMes.toUpperCase()], 'titulo');
+    add(['Generado ' + ahoraTS() + ' · tipo de atención: UPC · atención cerrada (todos los ingresos con PTI)'], 'sub');
+    add([], '');
+    add(['SECCIÓN A — INGRESOS DEL MES (Nº de personas; todos con PTI)'], 'seccion');
+    cabMatriz('Diagnóstico');
+    _REM_DIAGS.forEach(d => filaMatriz(d, ingPorDiag[d]));
+    filaMatriz('TOTAL INGRESOS', ingTotal, 'total');
+    add([], '');
+    add(['SECCIÓN A — EGRESOS DEL MES'], 'seccion');
+    cabMatriz('Motivo');
+    filaMatriz('Egresos por alta (incluye sala y traslados)', egAlta);
+    filaMatriz('Egresos por fallecimiento', egFallece);
+    add([], '');
+    add(['SECCIÓN B.2 — EVALUACIÓN INICIAL (Kinesiólogo/a · UPC)'], 'seccion');
+    cabMatriz('Profesional');
+    filaMatriz('Kinesiólogo/a', evalIni);
+    add([], '');
+    add(['SECCIÓN B.3 — EVALUACIÓN INTERMEDIA (1 por día evaluado · Kinesiólogo/a · UPC)'], 'seccion');
+    cabMatriz('Profesional');
+    filaMatriz('Kinesiólogo/a', evalInt);
+    add([], '');
+    add(['SECCIÓN B.4 — SESIONES DE REHABILITACIÓN (KTR + KTM · Kinesiólogo/a · UPC)'], 'seccion');
+    cabMatriz('Profesional');
+    filaMatriz('Kinesiólogo/a', sesiones);
+    add([], '');
+    add(['SECCIÓN B.6 — PROCEDIMIENTOS Y ACTIVIDADES'], 'seccion');
+    add(['Tipo', 'Total'], 'cab');
+    add(['Fisioterapia (= EMS)', turnosEMS], 'dato');
+    add(['Ejercicios terapéuticos (= sesiones KTM)', sumKTM], 'dato');
+    add(['Educación a usuario/a, cuidador/a y/o familiar', turnosEdu], 'dato');
+    add(['Terapia respiratoria y funcional pulmonar (= KTR + IMT)', sumKTR + turnosIMT], 'dato');
+    add(['TOTAL', turnosEMS + sumKTM + turnosEdu + sumKTR + turnosIMT], 'total');
+    add([], '');
+    add(['CÓDIGOS DE PRESTACIONES'], 'seccion');
+    add(['Código', 'Prestación', 'Actividades', 'Beneficiarios'], 'codcab');
+    add(['601101', 'Evaluación Kinesiológica Integral (1 por paciente)', nIngresos, nIngresos], 'codigo');
+    add(['601104', 'Atención Kinesiológica Integral UPC (1 por paciente)', nIngresos, nIngresos], 'codigo');
+    add(['601024', 'Reeducación motriz (1 por paciente)', nIngresos, nIngresos], 'codigo');
+    add(['601030', 'Maniobras permeabilización de la vía aérea (1 por paciente)', nIngresos, nIngresos], 'codigo');
+    add(['102501', 'Reeducación de la tos y respiración en pacientes con TQT (= turnos con IMT)', turnosIMT, Object.keys(pacIMT).length], 'codigo');
+    add(['1010922', 'Prueba de tolerancia ortostática (1ª bipedestación del episodio)', nPTO, nPTO], 'codigo');
+    add(['601171', 'Asistencia en IOT, VMNI, cambio de cánula (' + nIntub + ' IOT + ' + nReintub + ' reintub + ' + nVMNIini + ' VMNI + ' + nCanula + ' cánula)', nAsistVA, ''], 'codigo');
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let hoja = ss.getSheetByName('REM_28');
     if (!hoja) hoja = ss.insertSheet('REM_28');
-    hoja.clearContents();
+    hoja.clear();   // contenido Y formatos (una regeneración no arrastra colores viejos)
     if (hoja.getMaxColumns() < anchoA) hoja.insertColumnsAfter(hoja.getMaxColumns(), anchoA - hoja.getMaxColumns());
     hoja.getRange(1, 1, filas.length, anchoA).setValues(filas);
     hoja.setFrozenRows(0);
+
+    // Aplicar la paleta por tipo de fila (una llamada por estilo vía RangeList).
+    const zonas = {};   // clave de estilo → lista de rangos A1
+    const zona = (k, a1) => { (zonas[k] = zonas[k] || []).push(a1); };
+    const colFin = _remColLetra(anchoA);
+    tags.forEach((tag, i) => {
+      const r = i + 1;
+      if (tag === 'titulo') zona('titulo', 'A' + r + ':' + colFin + r);
+      else if (tag === 'sub') zona('sub', 'A' + r + ':' + colFin + r);
+      else if (tag === 'seccion') zona('seccion', 'A' + r + ':' + colFin + r);
+      else if (tag === 'cab') zona('cab', 'A' + r + ':' + colFin + r);
+      else if (tag === 'codcab') zona('codcab', 'A' + r + ':D' + r);
+      else if (tag === 'dato') { zona('etiqueta', 'A' + r); zona('datos', 'B' + r + ':' + colFin + r); }
+      else if (tag === 'total') zona('totalFila', 'A' + r + ':' + colFin + r);
+      else if (tag === 'codigo') { zona('codNum', 'A' + r); zona('codDesc', 'B' + r); zona('codVal', 'C' + r + ':D' + r); }
+    });
+    const pinta = (k, fondo, opts) => {
+      if (!zonas[k]) return;
+      const rl = hoja.getRangeList(zonas[k]);
+      if (fondo) rl.setBackground(fondo);
+      if (opts && opts.negrita) rl.setFontWeight('bold');
+      if (opts && opts.letra) rl.setFontColor(opts.letra);
+    };
+    pinta('titulo', '#2f5496', { negrita: true, letra: '#ffffff' });
+    pinta('sub', '#dce6f4', {});
+    pinta('seccion', '#b4c6e7', { negrita: true });
+    pinta('cab', '#fff2cc', { negrita: true });
+    pinta('etiqueta', '#ffe599', {});
+    pinta('datos', '#ffffcc', {});
+    pinta('totalFila', '#ffe599', { negrita: true });
+    pinta('codcab', '#ccffff', { negrita: true });
+    pinta('codNum', '#d9d9d9', {});
+    pinta('codDesc', '#ffffcc', {});
+    pinta('codVal', '#ddebf7', {});
+    hoja.setColumnWidth(1, 330);
+    for (let c = 2; c <= anchoA; c++) hoja.setColumnWidth(c, 52);
 
     // ── Resumen de pantalla ──
     const L = [];

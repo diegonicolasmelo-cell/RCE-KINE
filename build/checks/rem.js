@@ -19,11 +19,13 @@ global.ahoraTS = () => '2026-08-01 08:00';
 global.ok = d => ({ ok: true, data: d });
 global.err = (m, c) => ({ ok: false, error: m, codigo: c });
 global.ERR = { VALIDACION: 'VALIDACION', INTERNO: 'INTERNO' };
-const escrituras = [];
+const escrituras = []; const formatos = [];
+const rangoStub = () => ({ setBackground(x){ formatos.push(x); return this; }, setFontWeight(){ return this; }, setFontColor(){ return this; } });
 global.SpreadsheetApp = { getActiveSpreadsheet: () => ({
   getSheetByName: () => null,
   insertSheet: () => ({
-    clearContents(){}, getMaxColumns: () => 40, insertColumnsAfter(){}, setFrozenRows(){},
+    clear(){}, clearContents(){}, getMaxColumns: () => 40, insertColumnsAfter(){}, setFrozenRows(){},
+    setColumnWidth(){}, getRangeList: a1s => { const r = rangoStub(); r._n = a1s.length; return r; },
     getRange: (r, c, nr, nc) => ({ setValues: v => escrituras.push({ nr, nc, v }) }),
   }),
 })};
