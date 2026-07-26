@@ -318,7 +318,8 @@ function generarTextoEvolucion(d) {
   const contra = v('KTM_CONTRA_RAZON') || v('KTM_CONTRA_MANUAL');
   const uma = v('KTM_UMA');
   if (ktmR) {
-    let ktmStr = `Se realiza KTM nivel ${nivel || '?'}`;
+    const ktmCant = Math.min(9, Math.max(1, parseInt(v('KTM_CANT')) || 1));
+    let ktmStr = ktmCant > 1 ? `Se realizan ${ktmCant} sesiones de KTM nivel ${nivel || '?'}` : `Se realiza KTM nivel ${nivel || '?'}`;
     if (v('KTM_ASISTENCIA')) ktmStr += ` con asistencia ${v('KTM_ASISTENCIA').toLowerCase()}`;
     if (tiempo) ktmStr += ` durante ${tiempo} minutos`;
     if (uma) ktmStr += `. UMA ${uma}`;
@@ -355,6 +356,7 @@ function generarTextoEvolucion(d) {
   if (esVerdadero(d.KTM_ALERTA)) {
     txt.push(`KTM suspendida durante la sesión por señal de alerta ${(v('KTM_ALERTA_CAT') || '').toLowerCase()}: ${v('KTM_ALERTA_RAZ') || 'sin especificar'}.`);
   }
+  if (esVerdadero(d.EDU_REALIZADA)) txt.push('Se realiza educación a usuario/cuidador/familia.');
 
   // 9. Procedimientos: NO se imprimen como lista cruda (van narrados en el texto);
   // PROC_JSON/PROC_RESUMEN quedan solo para la BD y la estadística.

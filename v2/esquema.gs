@@ -182,6 +182,9 @@ const _COLS_EVOLUCIONES = [
   // IMS — ICU Mobility Scale 0-10 (reemplaza al hito motor 1-6; EVAL_NIVEL_MOTOR queda legacy)
   ['EVAL_IMS','texto'],
   ['VENT_PAFI','decimal'],  // PaFiO2 (PaO2/FiO2) del turno
+  // REM 28 (jul-2026): sesiones individuales y educación
+  ['KTM_CANT','entero'],    // N° de sesiones KTM del turno (REM B.4; por defecto 1 si KTM realizada)
+  ['EDU_REALIZADA','bool'], // educación a usuario/cuidador/familia (REM B.6; cuenta 1 por turno)
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -607,7 +610,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 300) errs.push('EVOLUCIONES != 300 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 302) errs.push('EVOLUCIONES != 302 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

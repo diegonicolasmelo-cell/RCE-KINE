@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="2.2-blindado">
+<meta name="rce-version" content="2.4-rem">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -961,12 +961,12 @@ table.rhb2 .rl{width:128px;text-align:left;}
     </div>
     <!-- REM mensual (informe de texto para estadística) -->
     <details id="remBox" class="no-print" style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
-      <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">📄 REM mensual — informe para estadística</summary>
+      <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">📄 REM 28 — informe mensual para estadística</summary>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;">
         <input type="month" id="remMes" class="datein dashin">
         <button class="dpset" onclick="generarREMui()">⚙️ Generar</button>
         <button class="dpset" onclick="copiarREM()" id="remCopy" disabled>📋 Copiar texto</button>
-        <span style="font-size:.72rem;color:#94a3b8;">El informe queda guardado por mes en la hoja ESTADISTICAS_REM.</span>
+        <span style="font-size:.72rem;color:#94a3b8;">Genera la hoja «REM_28» en la planilla (detalle por sexo, edad y diagnóstico) y guarda el resumen del mes.</span>
       </div>
       <pre id="remOut" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:14px 16px;font-size:.8rem;line-height:1.6;overflow-x:auto;white-space:pre-wrap;">Elige un mes y pulsa Generar.</pre>
     </details>
@@ -1412,7 +1412,7 @@ table.rhb2 .rl{width:128px;text-align:left;}
                 <option>COVID-19</option><option>Enfermedades respiratorias</option>
                 <option>Enfermedades cardíacas</option><option>Otras reumatológicas</option>
                 <option>Traumatológicos</option><option>Otros pre y post quirúrgicos</option>
-                <option>Oncológicos</option><option>Otros</option>
+                <option>Oncológicos</option><option>Genitourinarias</option><option>Quemados</option><option>Otros</option>
               </select>
             </div>
           </div>
@@ -2365,6 +2365,10 @@ table.rhb2 .rl{width:128px;text-align:left;}
               </div>
               <div id="dKTMaetMsg" class="hidden" style="color:#dc2626;font-size:.8rem;margin-top:4px;"></div>
               <input type="hidden" id="cKTMr"><input type="hidden" id="cKTMs">
+              <!-- REM B.6: educación al usuario/cuidador — visible siempre, independiente del estado KTM -->
+              <label style="display:inline-flex;align-items:center;gap:7px;margin:0 0 9px;padding:6px 12px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;font-size:.8rem;font-weight:600;color:#1d4ed8;cursor:pointer;">
+                <input type="checkbox" id="cEduReal"> 📚 Educación a usuario / cuidador / familia
+              </label>
 
               <!-- REALIZADA -->
               <div id="dKTMr" class="fade">
@@ -2381,6 +2385,10 @@ table.rhb2 .rl{width:128px;text-align:left;}
                         <button type="button" class="ktm-niv-btn" data-niv="4" onclick="setKTMniv('4')">4</button>
                         <button type="button" class="ktm-niv-btn" data-niv="5" onclick="setKTMniv('5')">5</button>
                       </div>
+                    </div>
+                    <div>
+                      <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:5px;" title="Cantidad de atenciones KTM del turno (para el REM). El nivel no es cantidad.">N° sesiones</label>
+                      <input type="number" id="fKtmCant" min="1" max="9" step="1" value="1" style="width:64px;height:30px;text-align:center;font-size:.85rem;border:1px solid #e2e8f0;border-radius:6px;">
                     </div>
                     <div style="position:relative;">
                       <label style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:block;margin-bottom:5px;">🦵 IMS — Escala de Movilidad UCI</label>
@@ -2914,7 +2922,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.2-blindado]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.4-rem]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3724,6 +3732,7 @@ function fillForm(s) {
   }
 
   chk('cKTMr',s.KTM_REALIZADA); chk('cKTMs',s.KTM_SUSPENDIDA);
+  set('fKtmCant', s.KTM_CANT||'1'); chk('cEduReal', s.EDU_REALIZADA);
   set('fKTMct',s.KTM_CONTRA_TIPO); set('fKTMraz',s.KTM_CONTRA_RAZON); set('fKTMman',s.KTM_CONTRA_MANUAL);
   const _fcS=$('fKTMcontra'); if(_fcS) _fcS.value=s.KTM_CONTRA_RAZON||'';
 
@@ -3946,6 +3955,8 @@ function fillFormReplica(s) {
   set('fKTMct',s.KTM_CONTRA_TIPO); set('fKTMraz',s.KTM_CONTRA_RAZON); set('fKTMman',s.KTM_CONTRA_MANUAL);
   if(s.KTM_NIVEL_KTR) setKTMniv(String(s.KTM_NIVEL_KTR));
   if(s.KTM_ASISTENCIA) setKTMasis(s.KTM_ASISTENCIA);
+  // REM: sesiones y educación son ACCIÓN DIARIA — no se heredan del turno previo
+  set('fKtmCant','1'); chk('cEduReal',false);
   set('fKTMt',s.KTM_TIEMPO_MIN);
   chk('cIMT',s.KTM_IMT); if(s.KTM_IMT===true||s.KTM_IMT==='TRUE') show('dIMT');
   chk('cEMS',s.KTM_EMS); if(s.KTM_EMS===true||s.KTM_EMS==='TRUE') show('dEMS');
@@ -4377,6 +4388,8 @@ function guardar() {
     KTM_CONTRA_RAZON:v('fKTMraz'), KTM_CONTRA_MANUAL:v('fKTMman'),
     KTM_NIVEL_KTR:v('fKTMniv'), KTM_ASISTENCIA:v('fKTMasis'), KTM_TIEMPO_MIN:v('fKTMt'),
     KTM_BORG:v('fBorg'),
+    KTM_CANT: bv('cKTMr') ? String(Math.min(9,Math.max(1,parseInt(v('fKtmCant'))||1))) : '',
+    EDU_REALIZADA: bv('cEduReal'),
     KTM_IMT:bv('cIMT'), KTM_IMT_FREQ:v('fIMTfreq'), KTM_IMT_INT:v('fIMTint'), KTM_IMT_T:v('fIMTt'), KTM_IMT_DES:v('fIMTdes'),
     KTM_EMS:bv('cEMS'),
     KTM_EMS_FREQ:v('fEMSfreq'), KTM_EMS_INT:v('fEMSint'), KTM_EMS_PULSO:v('fEMSpulso'),
@@ -5586,7 +5599,8 @@ function genTexto() {
   const kR=$('bKTMr')?.classList.contains('on'), kS=$('bKTMs')?.classList.contains('on'), kN=$('bKTMn')?.classList.contains('on');
   if(kR){
     const _niv=gv('fKTMniv')||'?', _asis=gv('fKTMasis'), _t=gv('fKTMt');
-    let k=`Se realiza KTM nivel ${_niv}`;
+    const _kcant=Math.min(9,Math.max(1,parseInt(gv('fKtmCant'))||1));
+    let k=_kcant>1?`Se realizan ${_kcant} sesiones de KTM nivel ${_niv}`:`Se realiza KTM nivel ${_niv}`;
     if(_asis) k+=` con asistencia ${_asis.toLowerCase()}`;
     if(_t) k+=` (${_t} min)`;
     L.push(k+'.');
@@ -5620,6 +5634,7 @@ function genTexto() {
     if(_nc) _ktmn+=`. ${_nc}`;
     L.push(_ktmn+'.');
   }
+  if($('cEduReal')?.checked) L.push('Se realiza educación a usuario/cuidador/familia.');
   // Evaluaciones funcionales del turno — se narran si tienen valor registrado
   {
     const ev=[];
