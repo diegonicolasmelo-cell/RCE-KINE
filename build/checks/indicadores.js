@@ -1,0 +1,75 @@
+/**
+ * indicadores.js — Guardia del tablero de indicadores (svc_indicadores.gs).
+ * Fixture calculado a mano: fracaso precoz (<24h) y tardío (24-48h) con y sin
+ * hora, autoextubaciones fuera del denominador, motivos por turno, mediana de
+ * VM pre-TQT, VM prolongada por episodio, reingresos por RUT y tendencia con
+ * histórico sembrado.
+ */
+const fs = require('fs');
+const path = require('path');
+const v2 = path.join(__dirname, '..', '..', 'v2');
+
+const DB = {};
+global.repoLeerTodos = h => (DB[h] || []).slice();
+global.esVerdadero = v => v === true || v === 'TRUE' || v === 'true';
+global.leerConfig = (k, d) => d;
+global.ok = d => ({ ok: true, data: d });
+global.err = (m, c) => ({ ok: false, error: m, codigo: c });
+global.ERR = { VALIDACION: 'VALIDACION', INTERNO: 'INTERNO' };
+global._rutNormal = rut => { const s = String(rut||'').toUpperCase().replace(/[^0-9K]/g,''); return s.length<2?'':s.slice(0,-1)+'-'+s.slice(-1); };
+
+eval(['svc_stats.gs', 'svc_indicadores.gs'].map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
+
+const P1='p1', P2='p2', P3='p3';
+DB.EVOLUCIONES = [
+  // P1: VM 3 días; extubación c/protocolo el 03 a las 10:00 → reintub 04 a las 08:00 (22h = PRECOZ)
+  { PATIENT_ID:P1, FECHA:'2026-07-01', TURNO_KEY:'2026-07-01-Dia', VENT_SOPORTE:'VM', RESP_KTR_CANT:2 },
+  { PATIENT_ID:P1, FECHA:'2026-07-02', TURNO_KEY:'2026-07-02-Dia', VENT_SOPORTE:'VM', PVE_VAL:'si', PVE_RESULTADO:'superada', RESP_KTR_CANT:3 },
+  { PATIENT_ID:P1, FECHA:'2026-07-03', TURNO_KEY:'2026-07-03-Dia', VENT_SOPORTE:'VM', EXT_OCURRIO:true, EXT_TIPO:'protocolo', EXT_HORA:'10:00', KTM_REALIZADA:true, KTM_CANT:'2' },
+  // P2: extubación fuera de protocolo (sin_protocolo, agitación, turno NOCHE) el 10 sin hora → reintub el 12 (48h = TARDÍO)
+  { PATIENT_ID:P2, FECHA:'2026-07-09', TURNO_KEY:'2026-07-09-Dia', VENT_SOPORTE:'VM' },
+  { PATIENT_ID:P2, FECHA:'2026-07-10', TURNO_KEY:'2026-07-10-Noche', VENT_SOPORTE:'VM', EXT_OCURRIO:true, EXT_TIPO:'sin_protocolo', EXT_MOTIVO:'Agitación psicomotora' },
+  // P2: autoextubación posterior el 20 (no cuenta en denominador programadas)
+  { PATIENT_ID:P2, FECHA:'2026-07-20', TURNO_KEY:'2026-07-20-Dia', VENT_SOPORTE:'VM', EXT_OCURRIO:true, EXT_TIPO:'autoextubacion' },
+  // P3: TQT el 05 con 9 días de VM previos (jun 27 - jul 05) → VM prolongada
+  { PATIENT_ID:P3, FECHA:'2026-07-05', TURNO_KEY:'2026-07-05-Dia', VENT_SOPORTE:'VM', TQT_OCURRIO:true },
+];
+DB.EVOLUCIONES_ARCHIVO = [];
+for (let d = 27; d <= 30; d++) DB.EVOLUCIONES_ARCHIVO.push({ PATIENT_ID:P3, FECHA:'2026-06-'+d, TURNO_KEY:'2026-06-'+d+'-Dia', VENT_SOPORTE:'VM' });
+for (let d = 1; d <= 4; d++) DB.EVOLUCIONES.push({ PATIENT_ID:P3, FECHA:'2026-07-0'+d, TURNO_KEY:'2026-07-0'+d+'-Dia', VENT_SOPORTE:'VM' });
+DB.REINTUBACIONES = [
+  { PATIENT_ID:P1, FECHA:'2026-07-04', HORA_REINTUBACION:'08:00' },
+  { PATIENT_ID:P2, FECHA:'2026-07-12', HORA_REINTUBACION:'' },
+];
+DB.ARCHIVO_PACIENTES = [
+  { PATIENT_ID:P1, RUT:'12.345.678-5', FECHA_EGRESO:'2026-07-15', MOTIVO_EGRESO:'Traslado a sala' },
+  { PATIENT_ID:'p0', RUT:'12345678-5', FECHA_EGRESO:'2026-03-01', MOTIVO_EGRESO:'Alta' },   // mismo RUT → reingreso
+  { PATIENT_ID:P2, RUT:'9.876.543-3', FECHA_EGRESO:'2026-07-25', MOTIVO_EGRESO:'Fallecimiento' },
+];
+DB.CAMAS_ESTADO = [{ PATIENT_ID:P3, OCUPADA:true, RUT:'' }];
+DB.INDICADORES_HISTORICO = [
+  { MES:'2026-05', FUENTE:'planilla', EXTUBACIONES:20, REINTUB_48H:4 },
+];
+
+const r = calcularIndicadores('2026-07-01', '2026-07-31');
+const fails=[]; const eq=(l,g,w)=>{const okk=String(g)===String(w);console.log((okk?'✅':'❌')+' '+l+': '+g+(okk?'':' (esperado '+w+')'));if(!okk)fails.push(l);};
+eq('calcula ok', r.ok, true);
+const d = r.data || {};
+eq('extubaciones programadas (protocolo + fuera; autoext NO)', d.extubaciones, 2);
+eq('fracaso total ≤48h', d.fracaso, 2);
+eq('fracaso precoz <24h (P1: 22h con horas reales)', d.fracasoPrecoz, 1);
+eq('fracaso tardío 24-48h (P2: 2 días sin hora)', d.fracasoTardio, 1);
+eq('autoextubaciones', d.autoextubaciones, 1);
+eq('fuera de protocolo', d.fueraProtocolo, 1);
+eq('motivo agitación en turno noche', d.motivosFuera['Agitación psicomotora'] && d.motivosFuera['Agitación psicomotora'].noche, 1);
+eq('PVE del rango', d.pve, 1);
+eq('mediana días-VM antes de TQT (4 jun archivadas + 5 jul = 9)', d.medianaVMpreTQT, 9);
+eq('VM prolongada (solo P3 con 9 días de episodio)', d.vmProlongada, 1);
+eq('atenciones (KTR 2+3 + KTM 2)', d.atenciones, 7);
+eq('reingresos por RUT (12345678-5 con 2 episodios, formatos distintos)', d.reingresos, 1);
+eq('egresos del rango', d.egresos, 2);
+eq('mortalidad 50%', d.mortalidadPct, 50);
+eq('tendencia incluye histórico sembrado (2026-05 = 20%)', JSON.stringify(d.tendencia[0]), JSON.stringify({mes:'2026-05',fuente:'planilla',fracasoPct:20}));
+eq('tendencia incluye mes RCE (2026-07 = 100%)', d.tendencia.some(t=>t.mes==='2026-07'&&t.fuente==='rce'&&t.fracasoPct===100), true);
+console.log(fails.length?('❌ '+fails.length+' FALLOS'):'✅ TODO OK');
+process.exit(fails.length?1:0);

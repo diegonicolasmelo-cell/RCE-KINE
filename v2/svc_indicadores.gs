@@ -1,0 +1,178 @@
+/**
+ * svc_indicadores.gs — Tablero de indicadores centinela (jul-2026).
+ *
+ * Calcula desde el registro diario (EVOLUCIONES + EVOLUCIONES_ARCHIVO +
+ * REINTUBACIONES + ARCHIVO_PACIENTES), con numerador y denominador visibles.
+ * Definiciones acordadas con la coordinación (alineadas al análisis M. Fuentes):
+ *  - Fracaso de extubación = reintubación ≤48 h tras extubación programada
+ *    (precoz <24 h, tardío 24–48 h). Denominador: extubaciones programadas
+ *    (protocolo + fuera de protocolo); autoextubación/accidental van aparte.
+ *  - Autoextubaciones por 100 días-VM (meta 1–2; días-VM = paciente-días con VM).
+ *  - Fuera de protocolo = EXT_TIPO sin_protocolo o sin_condiciones (meta <25%).
+ *  - PVE por 100 paciente-día (PVE_VAL='si').
+ *  - Mortalidad SIN ajuste por gravedad (el ajuste se hace fuera, por RUT).
+ * La tendencia mensual mezcla los meses de la plataforma con la hoja
+ * INDICADORES_HISTORICO (sembrada desde el análisis histórico), marcando fuente.
+ */
+
+function calcularIndicadores(desde, hasta) {
+  try {
+    desde = String(desde || '').slice(0, 10);
+    hasta = String(hasta || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(desde) || !/^\d{4}-\d{2}-\d{2}$/.test(hasta) || desde > hasta) {
+      return err('Rango de fechas inválido.', ERR.VALIDACION);
+    }
+    const enR = f => { const s = _statISO(f); return s >= desde && s <= hasta; };
+
+    const todasEvos = repoLeerTodos('EVOLUCIONES').concat(repoLeerTodos('EVOLUCIONES_ARCHIVO'));
+    const evosR = todasEvos.filter(e => enR(e.FECHA));
+    const archivo = repoLeerTodos('ARCHIVO_PACIENTES');
+    const camas = repoLeerTodos('CAMAS_ESTADO');
+
+    // ── Denominadores base ──
+    const pacDias = {}, vmDias = {};
+    evosR.forEach(e => {
+      const k = String(e.PATIENT_ID) + '|' + _statISO(e.FECHA);
+      pacDias[k] = true;
+      if (String(e.VENT_SOPORTE) === 'VM') vmDias[k] = true;
+    });
+    const nPacDias = Object.keys(pacDias).length;
+    const nVmDias = Object.keys(vmDias).length;
+    const diasRango = Math.round((new Date(hasta) - new Date(desde)) / 864e5) + 1;
+
+    // ── Extubaciones del rango ──
+    const PROGRAMADAS = { protocolo: 1, sin_protocolo: 1, sin_condiciones: 1 };
+    const FUERA = { sin_protocolo: 1, sin_condiciones: 1 };
+    const ACCIDENTALES = { autoextubacion: 1, accidental: 1 };
+    const extProg = [];
+    let nFuera = 0, nAutoext = 0;
+    const motivosFuera = {};   // motivo → {total, noche}
+    evosR.forEach(e => {
+      if (!esVerdadero(e.EXT_OCURRIO)) return;
+      const tipo = String(e.EXT_TIPO || '');
+      const esNoche = /Noche$/i.test(String(e.TURNO_KEY || ''));
+      if (ACCIDENTALES[tipo]) { nAutoext++; return; }
+      if (!PROGRAMADAS[tipo]) return;
+      extProg.push({ pid: String(e.PATIENT_ID), fecha: _statISO(e.FECHA), hora: String(e.EXT_HORA || '') });
+      if (FUERA[tipo]) {
+        nFuera++;
+        const mot = tipo === 'sin_condiciones' ? '≤24 h de VM' : (String(e.EXT_MOTIVO || '').trim() || 'Sin motivo registrado');
+        const m = motivosFuera[mot] = motivosFuera[mot] || { total: 0, noche: 0 };
+        m.total++; if (esNoche) m.noche++;
+      }
+    });
+
+    // ── Fracaso: reintubación ≤48 h tras la extubación programada ──
+    const reintubs = repoLeerTodos('REINTUBACIONES');
+    const reintubPorPid = {};
+    reintubs.forEach(r => {
+      const pid = String(r.PATIENT_ID || '');
+      (reintubPorPid[pid] = reintubPorPid[pid] || []).push({ fecha: _statISO(r.FECHA), hora: String(r.HORA_REINTUBACION || '') });
+    });
+    const horasEntre = (f1, h1, f2, h2) => {
+      const dias = Math.round((new Date(f2) - new Date(f1)) / 864e5);
+      const m1 = /^\d{1,2}:\d{2}/.test(h1) ? parseInt(h1) * 60 + parseInt(h1.split(':')[1]) : null;
+      const m2 = /^\d{1,2}:\d{2}/.test(h2) ? parseInt(h2) * 60 + parseInt(h2.split(':')[1]) : null;
+      if (m1 !== null && m2 !== null) return dias * 24 + (m2 - m1) / 60;
+      return dias * 24;   // sin horas: aproximación por días (0=mismo día→precoz, 1→24h, 2→48h)
+    };
+    let nPrecoz = 0, nTardio = 0;
+    extProg.forEach(x => {
+      const cand = (reintubPorPid[x.pid] || []).filter(r => r.fecha >= x.fecha);
+      let mejor = null;
+      cand.forEach(r => {
+        const h = horasEntre(x.fecha, x.hora, r.fecha, r.hora);
+        if (h >= 0 && h <= 48 && (mejor === null || h < mejor)) mejor = h;
+      });
+      if (mejor === null) return;
+      if (mejor < 24) nPrecoz++; else nTardio++;
+    });
+    const nFracaso = nPrecoz + nTardio;
+
+    // ── PVE, TQT, VM prolongada, atenciones ──
+    const nPVE = evosR.filter(e => String(e.PVE_VAL) === 'si').length;
+
+    const vmDiasEpisodio = {};   // pid → Set de días con VM (episodio completo)
+    todasEvos.forEach(e => {
+      if (String(e.VENT_SOPORTE) !== 'VM') return;
+      const pid = String(e.PATIENT_ID);
+      (vmDiasEpisodio[pid] = vmDiasEpisodio[pid] || {})[_statISO(e.FECHA)] = true;
+    });
+    const diasVMpreTQT = [];
+    evosR.forEach(e => {
+      if (!esVerdadero(e.TQT_OCURRIO)) return;
+      const dias = Object.keys(vmDiasEpisodio[String(e.PATIENT_ID)] || {}).filter(d => d <= _statISO(e.FECHA)).length;
+      diasVMpreTQT.push(dias);
+    });
+    diasVMpreTQT.sort((a, b) => a - b);
+    const medianaTQT = diasVMpreTQT.length
+      ? (diasVMpreTQT.length % 2 ? diasVMpreTQT[(diasVMpreTQT.length - 1) / 2]
+        : (diasVMpreTQT[diasVMpreTQT.length / 2 - 1] + diasVMpreTQT[diasVMpreTQT.length / 2]) / 2)
+      : null;
+
+    const pidsVMenRango = {};
+    Object.keys(vmDias).forEach(k => { pidsVMenRango[k.split('|')[0]] = true; });
+    const nVentilados = Object.keys(pidsVMenRango).length;
+    const nVMProlongada = Object.keys(pidsVMenRango)
+      .filter(pid => Object.keys(vmDiasEpisodio[pid] || {}).length > 7).length;
+
+    let atenciones = 0;
+    evosR.forEach(e => {
+      atenciones += Math.max(0, parseInt(e.RESP_KTR_CANT) || 0);
+      if (esVerdadero(e.KTM_REALIZADA)) atenciones += Math.min(9, Math.max(1, parseInt(e.KTM_CANT) || 1));
+    });
+
+    // ── Reingresos por RUT (histórico completo, no depende del rango) ──
+    const episodiosPorRutMap = {};
+    archivo.forEach(a => { const r = _rutNormal(a.RUT); if (r) (episodiosPorRutMap[r] = episodiosPorRutMap[r] || []).push(1); });
+    camas.forEach(c => { if (esVerdadero(c.OCUPADA)) { const r = _rutNormal(c.RUT); if (r) (episodiosPorRutMap[r] = episodiosPorRutMap[r] || []).push(1); } });
+    const ruts = Object.keys(episodiosPorRutMap);
+    const nReingresos = ruts.filter(r => episodiosPorRutMap[r].length > 1).length;
+
+    // ── Egresos y mortalidad (sin ajuste) ──
+    const egresosR = archivo.filter(a => enR(a.FECHA_EGRESO));
+    const nFallecidos = egresosR.filter(a => /fallec/i.test(String(a.MOTIVO_EGRESO || ''))).length;
+
+    // ── Tendencia mensual (histórico sembrado + meses de la plataforma) ──
+    const tendencia = [];
+    repoLeerTodos('INDICADORES_HISTORICO').forEach(h => {
+      const ext = parseInt(h.EXTUBACIONES) || 0;
+      tendencia.push({ mes: String(h.MES || ''), fuente: String(h.FUENTE || 'planilla'),
+        fracasoPct: ext ? Math.round(1000 * (parseInt(h.REINTUB_48H) || 0) / ext) / 10 : null });
+    });
+    const porMes = {};
+    extProg.forEach(x => { const m = x.fecha.slice(0, 7); (porMes[m] = porMes[m] || { ext: 0, fra: 0 }).ext++; });
+    extProg.forEach(x => {
+      const cand = (reintubPorPid[x.pid] || []).filter(r => r.fecha >= x.fecha);
+      const hit = cand.some(r => { const h = horasEntre(x.fecha, x.hora, r.fecha, r.hora); return h >= 0 && h <= 48; });
+      if (hit) porMes[x.fecha.slice(0, 7)].fra++;
+    });
+    Object.keys(porMes).sort().forEach(m => {
+      tendencia.push({ mes: m, fuente: 'rce', fracasoPct: porMes[m].ext ? Math.round(1000 * porMes[m].fra / porMes[m].ext) / 10 : null });
+    });
+    tendencia.sort((a, b) => a.mes.localeCompare(b.mes));
+
+    return ok({
+      desde, hasta, diasRango,
+      pacienteDias: nPacDias, diasVM: nVmDias,
+      extubaciones: extProg.length, fracaso: nFracaso, fracasoPrecoz: nPrecoz, fracasoTardio: nTardio,
+      fracasoPct: extProg.length ? Math.round(1000 * nFracaso / extProg.length) / 10 : null,
+      autoextubaciones: nAutoext,
+      autoextPor100VM: nVmDias ? Math.round(100 * 100 * nAutoext / nVmDias) / 100 : null,
+      fueraProtocolo: nFuera,
+      fueraPct: extProg.length ? Math.round(1000 * nFuera / extProg.length) / 10 : null,
+      motivosFuera: motivosFuera,
+      pve: nPVE, pvePor100PacDia: nPacDias ? Math.round(100 * 100 * nPVE / nPacDias) / 100 : null,
+      tqt: diasVMpreTQT.length, medianaVMpreTQT: medianaTQT,
+      ventilados: nVentilados, vmProlongada: nVMProlongada,
+      vmProlongadaPct: nVentilados ? Math.round(1000 * nVMProlongada / nVentilados) / 10 : null,
+      atenciones: atenciones,
+      atencionesPorPacDia: nPacDias ? Math.round(100 * atenciones / nPacDias) / 100 : null,
+      ocupacionProm: diasRango ? Math.round(10 * nPacDias / diasRango) / 10 : null,
+      personasConRut: ruts.length, reingresos: nReingresos,
+      egresos: egresosR.length, fallecidos: nFallecidos,
+      mortalidadPct: egresosR.length ? Math.round(1000 * nFallecidos / egresosR.length) / 10 : null,
+      tendencia: tendencia,
+    });
+  } catch (e) { return err('calcularIndicadores: ' + e.message, ERR.INTERNO, e); }
+}

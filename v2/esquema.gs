@@ -231,6 +231,10 @@ const ESQUEMA = {
     // Tamizaje de candidato a PVE con los parámetros del último turno guardado
     // (FiO2≤50, PEEP≤8, SpO2≥90, hemodinamia estable sin DVA altas, sin BNM)
     ['WEAN_CAND_PVE','bool'],
+    // Identidad de PERSONA (jul-2026, autorizado uso interno): habilita
+    // detección de reingresos y el cruce con la estadística médica. NUNCA
+    // sale en REM, tablero ni exportaciones anonimizadas.
+    ['RUT','texto'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -262,6 +266,7 @@ const ESQUEMA = {
     // Interpretación de egreso (cortes configurables en CONFIG)
     ['DAUCI','bool'],['MRC_INTERP','texto'],['FSS_INTERP','texto'],['DINAMO_INTERP','texto'],
     ['DINAMO_EGRESO','decimal'],['CPAX_EGRESO','entero'],
+    ['RUT','texto'],   // identidad de persona (jul-2026) — reingresos y cruce interno
   ]},
   // ── Ventiladores de la unidad: inventario vivo + trazabilidad de movimientos ──
   VENTILADORES: { headerRows: 1, cols: [
@@ -289,6 +294,16 @@ const ESQUEMA = {
   ]},
   TURNOS: { headerRows: 1, cols: [
     ['KEY','texto'],['DATA','json'],['TIMESTAMP','ts'],
+  ]},
+  // Serie mensual para la tendencia del tablero de indicadores. Los meses
+  // previos a la marcha blanca se siembran a mano con los agregados validados
+  // del análisis de M. Fuentes (FUENTE='planilla'); los meses de la plataforma
+  // se calculan solos (no se escriben aquí). Solo cifras agregadas, sin pacientes.
+  INDICADORES_HISTORICO: { headerRows: 1, cols: [
+    ['MES','texto'],['FUENTE','texto'],['PACIENTE_DIAS','entero'],['DIAS_VM','entero'],
+    ['EXTUBACIONES','entero'],['REINTUB_48H','entero'],['REINTUB_24H','entero'],
+    ['AUTOEXTUBACIONES','entero'],['FUERA_PROTOCOLO','entero'],['PVE','entero'],
+    ['TQT','entero'],['ATENCIONES','entero'],['EGRESOS','entero'],['FALLECIDOS','entero'],['NOTAS','texto'],
   ]},
   REINTUBACIONES: { headerRows: 1, cols: [
     ['ID_REINTUB','texto'],['PATIENT_ID','uuid'],['TIMESTAMP','ts'],['FECHA','fecha'],['TURNO','texto'],

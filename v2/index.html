@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="2.4-rem">
+<meta name="rce-version" content="2.5-tablero">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -959,6 +959,18 @@ table.rhb2 .rl{width:128px;text-align:left;}
         </div>
       </div>
     </div>
+    <!-- Tablero de indicadores centinela -->
+    <details id="indBox" class="no-print" open style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
+      <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">📈 Indicadores centinela — calidad y seguridad</summary>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;">
+        <input type="month" id="indMes" class="datein dashin">
+        <button class="dpset" onclick="indCalcular('mes')">Mes</button>
+        <button class="dpset" onclick="indCalcular('anio')">Año</button>
+        <button class="dpset" onclick="indCalcular('12m')">12 meses</button>
+        <span style="font-size:.72rem;color:#94a3b8;">Cada tarjeta muestra numerador/denominador y su definición. Mortalidad sin ajuste por gravedad.</span>
+      </div>
+      <div id="indOut" style="font-size:.85rem;color:var(--muted);">Elige un mes y el alcance (mes / año / 12 meses).</div>
+    </details>
     <!-- REM mensual (informe de texto para estadística) -->
     <details id="remBox" class="no-print" style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
       <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">📄 REM 28 — informe mensual para estadística</summary>
@@ -1378,6 +1390,12 @@ table.rhb2 .rl{width:128px;text-align:left;}
                 <button type="button" onclick="confirmarReingreso()" style="padding:2px 9px;background:#f59e0b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.73rem;font-weight:700;">Sí, es reingreso</button>
                 <button type="button" onclick="hide('dNombreAlert')" style="padding:2px 9px;background:#fff;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:.73rem;">Paciente nuevo</button>
               </div>
+            </div>
+            <div class="col ws" style="min-width:150px;">
+              <label>RUT <span style="font-weight:400;text-transform:none;">(opcional)</span></label>
+              <input type="text" id="fRut" placeholder="12.345.678-5" autocomplete="off" onblur="chkRut()">
+              <span id="rutHint" style="font-size:.68rem;min-height:1em;"></span>
+              <div id="dRutAlert" class="hidden" style="margin-top:2px;padding:5px 9px;border:1px solid #fca5a5;background:#fef2f2;border-radius:5px;font-size:.75rem;color:#b91c1c;"></div>
             </div>
             <div class="col ws"><label>Edad</label><input type="number" id="fEdad" min="0" max="120"></div>
             <div class="col ws"><label>Sexo</label><select id="fSexo" onchange="calcPI()"><option value="" disabled selected>-</option><option value="M">M</option><option value="F">F</option></select></div>
@@ -2922,7 +2940,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.4-rem]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.5-tablero]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3614,7 +3632,7 @@ document.addEventListener('keydown', e=>{
 
 function fillCama(c, fecha) {
   const s=(id,val)=>{ const e=$(id); if(e&&val!==undefined&&val!==null&&val!=='') e.value=String(val); };
-  s('fNombre',c.NOMBRE); s('fEdad',c.EDAD); if(c.NOMBRE) actualizarTituloPanel(c.NOMBRE);
+  s('fNombre',c.NOMBRE); s('fEdad',c.EDAD); s('fRut',c.RUT||''); if(c.NOMBRE) actualizarTituloPanel(c.NOMBRE);
   if(c.SEXO) { $('fSexo').value=c.SEXO; calcPI(); }
   s('fTalla',c.TALLA_CM); s('fBarthel',c.BARTHEL); s('fEcf',c.ECF);
   updBarthelLbl('fBarthel','lblBarthel'); updEcfLbl('fEcf','lblEcf');
@@ -4290,7 +4308,7 @@ function guardar() {
   }
   const datos={
     ID_CAMA:id, TURNO_KEY:tkey, ES_INGRESO:v('cIng')==='true',
-    PAC_NOMBRE:v('fNombre'), PAC_EDAD:v('fEdad'),
+    PAC_NOMBRE:v('fNombre'), PAC_EDAD:v('fEdad'), PAC_RUT:v('fRut'),
     PAC_SEXO:v('fSexo'), PAC_TALLA:v('fTalla'), PAC_BARTHEL:v('fBarthel'),
     PAC_ECF:v('fEcf'), PAC_DIAGNOSTICO:v('fDx'), PAC_DIAG_REM:v('fRem'),
     PAC_CHARLSON:v('fCharlson'), PAC_INGRESO_TIPO:v('fIngTipo'),
@@ -6353,6 +6371,37 @@ function confirmarReingreso(){
   const cb=$('cReing'); if(cb){cb.checked=true;}
   hide('dNombreAlert');
 }
+
+/* ── RUT: dígito verificador + aviso de reingreso (episodios previos) ── */
+function _rutNorm(rut){ const s=String(rut||'').toUpperCase().replace(/[^0-9K]/g,''); return s.length<2?'':s.slice(0,-1)+'-'+s.slice(-1); }
+function _rutOk(rut){
+  const s=String(rut||'').toUpperCase().replace(/[^0-9K]/g,'');
+  if(!s) return true;
+  if(s.length<2||!/^\d+$/.test(s.slice(0,-1))) return false;
+  let suma=0,mult=2;
+  for(let i=s.length-2;i>=0;i--){ suma+=parseInt(s[i])*mult; mult=mult===7?2:mult+1; }
+  const r=11-(suma%11), esp=r===11?'0':(r===10?'K':String(r));
+  return s.slice(-1)===esp;
+}
+function chkRut(){
+  const el=$('fRut'), h=$('rutHint'); if(!el||!h) return;
+  const crudo=el.value.trim();
+  hide('dRutAlert');
+  if(!crudo){ h.textContent=''; return; }
+  const norm=_rutNorm(crudo);
+  if(!_rutOk(crudo)){ h.textContent='✗ dígito verificador no calza — revisa'; h.style.color='#b91c1c'; return; }
+  el.value=norm; h.textContent='✓ RUT válido'; h.style.color='#2f7a4c';
+  if(v('cIng')!=='true') return;   // el aviso de reingreso solo aporta al INGRESAR
+  gs('GET_RUT_PREVIO',{rut:norm}, d=>{
+    const eps=(d&&d.episodios)||[];
+    if(!eps.length) return;
+    const e=eps[0];
+    const cuando=e.tipo==='activo' ? ('AHORA en cama '+e.idCama) : ('egresado el '+(e.fechaEgreso||'?')+(e.idCama?' (cama '+e.idCama+')':''));
+    $('dRutAlert').innerHTML='⚠️ Posible <b>reingreso</b>: este RUT registra '+eps.length+' episodio'+(eps.length>1?'s':'')+' previo'+(eps.length>1?'s':'')+' — último: '+cuando+'.';
+    show('dRutAlert');
+    const cb=$('cReing'); if(cb) cb.checked=true;
+  }, ()=>{});
+}
 // ── Tag Input genérico (Enter para agregar, Backspace para borrar último) ──
 const _tiState={};
 function tiKeydown(e,tagsId,hiddenId,colorClass){
@@ -7762,6 +7811,7 @@ function setTab(t){
   const _bar=document.querySelector('.tabs'), _bt=$('tab'+t);
   if(_bar&&_bt){ _bar.scrollTo({left: _bt.offsetLeft-(_bar.clientWidth-_bt.offsetWidth)/2, behavior:'smooth'}); }
   if(t==='D' && !window._statsLoaded) dashPreset('mes', document.querySelector('.dpset'));
+  if(t==='D' && $('indMes') && !$('indMes').value){ const _h=new Date().toISOString().slice(0,7); $('indMes').value=_h; if($('remMes')&&!$('remMes').value) $('remMes').value=_h; }
   if(t==='E') initEntrega();
   if(t==='A') initArchivados();
   if(t==='P') renderTabla();
@@ -9100,6 +9150,83 @@ function imprimirHojaRHB(){
   window.print();
   setTimeout(limpiar,1500);
 }
+/* ── Tablero de indicadores centinela (pestaña Estadísticas) ── */
+function indCalcular(alcance){
+  const m=v('indMes'); if(!m){ toast('Elige el mes de referencia.'); return; }
+  const [a,mm]=m.split('-').map(Number);
+  const fin=new Date(a, mm, 0);   // último día del mes elegido
+  let desde;
+  if(alcance==='anio') desde=a+'-01-01';
+  else if(alcance==='12m'){ const d0=new Date(a, mm-12, 1); desde=d0.toISOString().slice(0,10); }
+  else desde=m+'-01';
+  const hasta=fin.toISOString().slice(0,10);
+  $('indOut').innerHTML='⏳ Calculando indicadores…';
+  gs('GET_INDICADORES',{desde,hasta}, d=>indRender(d), e=>{ $('indOut').innerHTML='❌ '+e; });
+}
+function indRender(d){
+  const sem=(estado)=>`<span style="position:absolute;top:12px;right:13px;width:11px;height:11px;border-radius:50%;background:${estado==='ok'?'#3f9e63':estado==='bad'?'#cf5a4e':estado==='warn'?'#d9a13b':'#b7b3a9'};"></span>`;
+  const vc=(estado)=>estado==='ok'?'#2f7a4c':estado==='bad'?'#b34437':estado==='warn'?'#b07e21':'var(--txt)';
+  const card=(nom,val,unidad,meta,frac,estado,extra)=>`
+    <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:13px 15px;position:relative;">
+      ${sem(estado)}
+      <div style="font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px;">${nom}</div>
+      <div style="font-size:1.7rem;font-weight:800;line-height:1;color:${vc(estado)};">${val==null?'—':val}${unidad||''}</div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:4px;">${meta||''}</div>
+      <div style="font-size:.68rem;color:#a6a299;margin-top:2px;">${frac||''}</div>
+      ${extra?`<div style="font-size:.66rem;color:#a6a299;margin-top:5px;border-top:1px dashed var(--border);padding-top:4px;">${extra}</div>`:''}
+    </div>`;
+  const eFra = d.fracasoPct==null?'neu':(d.fracasoPct<=20?'ok':'bad');
+  const eAut = d.autoextPor100VM==null?'neu':(d.autoextPor100VM<=2?'ok':'bad');
+  const eFue = d.fueraPct==null?'neu':(d.fueraPct<=25?'ok':'bad');
+  let h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px;margin-bottom:12px;">';
+  h+=card('Fracaso de extubación (≤48 h)', d.fracasoPct, '%', 'meta &lt;20% · banda 10-20%',
+    `${d.fracaso} reintubados / ${d.extubaciones} extubaciones`, eFra,
+    `precoz &lt;24 h: <b>${d.fracasoPrecoz}</b> · tardío 24-48 h: <b>${d.fracasoTardio}</b>`);
+  h+=card('Autoextubación / 100 días-VM', d.autoextPor100VM, '', 'meta 1-2', `${d.autoextubaciones} eventos / ${d.diasVM} días-VM`, eAut);
+  h+=card('Extubación fuera de protocolo', d.fueraPct, '%', 'meta &lt;25%', `${d.fueraProtocolo} / ${d.extubaciones} extubaciones`, eFue);
+  h+=card('PVE / 100 paciente-día', d.pvePor100PacDia, '', 'tendencia', `${d.pve} PVE / ${d.pacienteDias} paciente-días`, 'neu');
+  h+=card('Días de VM antes de TQT', d.medianaVMpreTQT, d.medianaVMpreTQT==null?'':' d', 'mediana', `${d.tqt} traqueostomías del período`, 'neu');
+  h+=card('VM prolongada (&gt;7 días)', d.vmProlongadaPct, '%', 'referencial', `${d.vmProlongada} / ${d.ventilados} ventilados`, 'neu');
+  h+=card('Atenciones / paciente-día', d.atencionesPorPacDia, '', 'KTR + KTM', `${d.atenciones} atenciones / ${d.pacienteDias} pac-días`, 'neu');
+  h+=card('Ocupación promedio', d.ocupacionProm, '', 'camas ocupadas por día', `${d.pacienteDias} pac-días / ${d.diasRango} días`, 'neu');
+  h+=card('Reingresos a UPC', d.reingresos, '', 'personas con &gt;1 episodio (por RUT)', `${d.personasConRut} personas con RUT registrado`, 'neu');
+  h+='</div>';
+  // motivos fuera de protocolo por turno
+  const mots=Object.keys(d.motivosFuera||{}).sort((x,y)=>d.motivosFuera[y].total-d.motivosFuera[x].total);
+  if(mots.length){
+    const max=d.motivosFuera[mots[0]].total;
+    h+='<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:12px;">';
+    h+='<div style="font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Motivos de extubación fuera de protocolo · por turno</div>';
+    mots.forEach(mo=>{ const x=d.motivosFuera[mo]; const dia=x.total-x.noche;
+      h+=`<div style="display:flex;align-items:center;gap:8px;font-size:.75rem;margin:5px 0;">
+        <span style="width:190px;color:var(--txt);">${mo}</span>
+        <span style="flex:1;background:#f1efe9;border-radius:4px;height:15px;display:flex;overflow:hidden;">
+          <span style="background:#8ea7c2;width:${max?Math.round(88*dia/max):0}%;"></span>
+          <span style="background:#4a5d78;width:${max?Math.round(88*x.noche/max):0}%;"></span>
+        </span>
+        <span style="width:100px;text-align:right;color:var(--muted);font-size:.68rem;">${x.total} · ${x.total?Math.round(100*x.noche/x.total):0}% noche</span></div>`;
+    });
+    h+='<div style="font-size:.66rem;color:var(--muted);margin-top:6px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#8ea7c2;margin-right:4px;"></span>turno día <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#4a5d78;margin:0 4px 0 10px;"></span>turno noche</div></div>';
+  }
+  // tendencia mensual del fracaso (histórico + plataforma)
+  const tend=(d.tendencia||[]).filter(t=>t.fracasoPct!=null);
+  if(tend.length){
+    const maxV=Math.max.apply(null, tend.map(t=>t.fracasoPct).concat([25]));
+    h+='<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:12px;">';
+    h+='<div style="font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Fracaso de extubación · tendencia mensual</div>';
+    h+='<div style="display:flex;align-items:flex-end;gap:5px;height:86px;">';
+    tend.slice(-18).forEach(t=>{
+      h+=`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.58rem;color:#a6a299;" title="${t.mes} · ${t.fracasoPct}% (${t.fuente==='rce'?'RCE-KINE':'histórico planilla'})">
+        <div style="width:100%;border-radius:3px 3px 0 0;background:${t.fuente==='rce'?'#7fa08c':'#d8d4c9'};height:${Math.max(3,Math.round(70*t.fracasoPct/maxV))}px;"></div>${t.mes.slice(2).replace('-','/')}</div>`;
+    });
+    h+='</div><div style="font-size:.66rem;color:var(--muted);margin-top:6px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#d8d4c9;margin-right:4px;"></span>histórico (planilla) <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#7fa08c;margin:0 4px 0 10px;"></span>RCE-KINE</div></div>';
+  }
+  // mortalidad sin ajuste
+  h+=`<div style="background:#fbf3e4;border:1px solid #efdcb2;border-radius:8px;padding:8px 12px;font-size:.74rem;color:#7a5c1e;">⚖️ <b>Mortalidad de egresos: ${d.mortalidadPct==null?'—':d.mortalidadPct+'%'}</b> (${d.fallecidos}/${d.egresos}) — cifra <b>no ajustada por gravedad</b>: no compara desempeño entre períodos ni con otros centros. El ajuste (APACHE II) se realiza en el análisis externo anonimizado, cruzado por RUT dentro del hospital.</div>`;
+  h+=`<div style="font-size:.66rem;color:var(--muted);margin-top:8px;">Período ${d.desde} → ${d.hasta} · definiciones: fracaso = reintubación ≤48 h tras extubación programada (precoz &lt;24 h, tardío 24-48 h); autoextubación y accidental no cuentan como programadas; fuera de protocolo = sin protocolo o &lt;24 h de VM; PVE = registrada con resultado.</div>`;
+  $('indOut').innerHTML=h;
+}
+
 /* ── REM mensual (pestaña Estadísticas) ── */
 function generarREMui(){
   const m=v('remMes');

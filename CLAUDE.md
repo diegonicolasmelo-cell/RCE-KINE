@@ -25,9 +25,14 @@ navegador del hospital o de su casa.
   viajan fusionados como `servicios.gs` (`build/fusionar_servicios.js`).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 18 hojas; **EVOLUCIONES tiene 300 columnas** y `testEsquema`
-  las asserta — al agregar columnas, actualizar ambos y avisar que hay que
-  correr `crearORepararEstructura()`.
+- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 302 columnas** y `testEsquema`
+  las asserta — al agregar columnas, SIEMPRE al final de la lista (la
+  reparación reescribe encabezados: insertar al medio desalinea los datos)
+  y avisar que hay que correr `crearORepararEstructura()`.
+- **RUT** (uso interno autorizado): identidad de PERSONA en CAMAS_ESTADO y
+  ARCHIVO_PACIENTES; PATIENT_ID sigue siendo el episodio. PAC_RUT viaja
+  transitorio en el guardado (no se persiste en EVOLUCIONES). El RUT jamás
+  sale en REM, tablero ni exportaciones.
 - Identidad de paciente = `PATIENT_ID` (episodio); los traslados re-estampan
   EVOLUCIONES y TIMELINE (`_reetiquetarEpisodioACama`).
 - `AUTH_DEV_MODE=TRUE` en CONFIG: acceso abierto intencional (marcha
@@ -75,6 +80,16 @@ o commitear. Un bug que costó más de un intercambio merece guardia nueva.
   tras semanas de uso, comparar y refinar el motor con los patrones de
   edición reales.
 - **Versión móvil**: pendiente; mockups antes de código.
+- **Tablero de indicadores centinela** (jul-2026): en Estadísticas; fracaso
+  de extubación ≤48 h (precoz <24 h / tardío 24-48 h, meta <20%),
+  autoextubaciones/100 días-VM (1-2), fuera de protocolo (<25%) con motivos
+  por turno, PVE/100 pac-día, mediana VM pre-TQT, reingresos por RUT,
+  mortalidad SIN ajuste (el ajuste por APACHE II se hace fuera, cruzado por
+  RUT, anonimizado). `svc_indicadores.gs` + guardia `checks/indicadores.js`.
+- **En el tintero** (iniciativa de Klgo. Manuel Fuentes, coordinar y sumar):
+  sembrar INDICADORES_HISTORICO con su tabla mensual 2025-2026 (solo
+  agregados) cuando la envíe, y la exportación anonimizada paciente-día
+  para su pipeline de análisis (sin nombre ni RUT).
 - **Stock de cánulas TQT** (aprobado en concepto, NO implementar aún):
   descuento automático por número+tipo al guardar TQT instalada o cambio de
   cánula (paciente que llega traqueostomizado NO descuenta), libro de

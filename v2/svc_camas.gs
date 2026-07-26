@@ -71,6 +71,7 @@ function ingresarPaciente(datos, ctx) {
       repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, {
         OCUPADA: true, STATUS_CAMA: 'Ocupada', PATIENT_ID: patientId, COD_PACIENTE: cod,
         NOMBRE: nombre, EDAD: edad, SEXO: sexo, TALLA_CM: talla,
+        RUT: _rutNormal(datos.rut || ''),
         PESO_IDEAL_KG: calcularPI(sexo, talla) || '',
         BARTHEL: datos.barthel || '', ECF: datos.ecf || '',
         DIAGNOSTICO: datos.diagnostico || '', DIAG_REM: datos.diagRem || '',
@@ -168,7 +169,7 @@ function darAltaPaciente(datos, ctx) {
         ID_ARCHIVO: uid('ARCH'), PATIENT_ID: pid, CAMA_ORIGEN: idCama, COD_PACIENTE: cama.COD_PACIENTE,
         FECHA_INGRESO: cama.FECHA_INGRESO, FECHA_EGRESO: fechaEgreso,
         DIAS_TOTAL: cama.DIA_ESTADIA, DIAS_VM_TOTAL: cama.DIAS_VM, DIAS_VA_TOTAL: cama.DIAS_VA,
-        NOMBRE: cama.NOMBRE, EDAD: cama.EDAD, SEXO: cama.SEXO,
+        NOMBRE: cama.NOMBRE, EDAD: cama.EDAD, SEXO: cama.SEXO, RUT: cama.RUT || '',
         DIAGNOSTICO: cama.DIAGNOSTICO, DIAG_REM: cama.DIAG_REM,
         MOTIVO_EGRESO: datos.motivoEgreso || '', DESTINO_EGRESO: datos.destinoEgreso || '',
         KTR_TOTAL: ktrTotal, TURNOS_VM: turnosVM, TURNOS_KTM: turnosKTM, TURNOS_KTMC: turnosKTMC,
@@ -283,7 +284,7 @@ function limpiarCama(idCama) {
 function _limpiarCamaInterno(idCama) {
   const vacio = {
     OCUPADA: false, STATUS_CAMA: 'Libre', PATIENT_ID: '', COD_PACIENTE: '',
-    NOMBRE: '', EDAD: '', SEXO: '', TALLA_CM: '', PESO_IDEAL_KG: '', BARTHEL: '', ECF: '',
+    NOMBRE: '', EDAD: '', SEXO: '', TALLA_CM: '', PESO_IDEAL_KG: '', BARTHEL: '', ECF: '', RUT: '',
     DIAGNOSTICO: '', DIAG_REM: '', AISLAMIENTO: false, AISL_MICRO: '',
     VIA_AEREA: 'Natural', TOT_NUMERO: '', TOT_CM_LABIO: '', TQT_TIPO: '',
     SOPORTE: 'Ambiente', MODO: 'Sin soporte',
@@ -416,4 +417,52 @@ function buscarPacientes(q) {
     egresados.sort(function (a, b) { return String(b.fEgreso).localeCompare(String(a.fEgreso)); });
     return ok(activos.concat(egresados).slice(0, 20));
   } catch (e) { return err('buscarPacientes: ' + e.message, ERR.INTERNO, e); }
+}
+
+// ── RUT: identidad de PERSONA (jul-2026, uso interno autorizado) ──────────────
+// El PATIENT_ID sigue siendo la llave del EPISODIO; el RUT conecta episodios de
+// la misma persona (reingresos, cruce interno con la estadística médica).
+
+/** Normaliza: sin puntos ni espacios, guion antes del dígito, K mayúscula. */
+function _rutNormal(rut) {
+  const s = String(rut || '').toUpperCase().replace(/[^0-9K]/g, '');
+  if (s.length < 2) return '';
+  return s.slice(0, -1) + '-' + s.slice(-1);
+}
+
+/** Dígito verificador (módulo 11). Vacío se considera válido (RUT es opcional). */
+function rutValido(rut) {
+  const s = String(rut || '').toUpperCase().replace(/[^0-9K]/g, '');
+  if (!s) return true;
+  if (s.length < 2) return false;
+  const cuerpo = s.slice(0, -1), dv = s.slice(-1);
+  if (!/^\d+$/.test(cuerpo)) return false;
+  let suma = 0, mult = 2;
+  for (let i = cuerpo.length - 1; i >= 0; i--) {
+    suma += parseInt(cuerpo[i]) * mult;
+    mult = mult === 7 ? 2 : mult + 1;
+  }
+  const resto = 11 - (suma % 11);
+  const esperado = resto === 11 ? '0' : (resto === 10 ? 'K' : String(resto));
+  return dv === esperado;
+}
+
+/** Episodios previos de un RUT (cama activa + archivo), para el aviso de reingreso. */
+function episodiosPorRut(rut) {
+  const r = _rutNormal(rut);
+  if (!r) return ok({ episodios: [] });
+  const eps = [];
+  repoLeerTodos('CAMAS_ESTADO').forEach(c => {
+    if (esVerdadero(c.OCUPADA) && _rutNormal(c.RUT) === r) {
+      eps.push({ tipo: 'activo', idCama: String(c.ID_CAMA), fechaIngreso: String(c.FECHA_INGRESO || ''), nombre: String(c.NOMBRE || '') });
+    }
+  });
+  repoLeerTodos('ARCHIVO_PACIENTES').forEach(a => {
+    if (_rutNormal(a.RUT) === r) {
+      eps.push({ tipo: 'egresado', idCama: String(a.CAMA_ORIGEN || ''), fechaIngreso: String(a.FECHA_INGRESO || ''),
+        fechaEgreso: String(a.FECHA_EGRESO || ''), motivo: String(a.MOTIVO_EGRESO || ''), nombre: String(a.NOMBRE || '') });
+    }
+  });
+  eps.sort((a, b) => String(b.fechaIngreso).localeCompare(String(a.fechaIngreso)));
+  return ok({ episodios: eps });
 }
