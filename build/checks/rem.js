@@ -19,19 +19,25 @@ global.ahoraTS = () => '2026-08-01 08:00';
 global.ok = d => ({ ok: true, data: d });
 global.err = (m, c) => ({ ok: false, error: m, codigo: c });
 global.ERR = { VALIDACION: 'VALIDACION', INTERNO: 'INTERNO' };
-const escrituras = []; let matrizEscrita = null, fondosEscritos = null, mergesHechos = 0;
+const escrituras = []; let matrizEscrita = null, fondosEscritos = null, fuentesEscritas = null,
+  tamanosEscritos = null, coloresLetra = null, mergesHechos = 0, bordesAplicados = 0, tramosAltura = 0;
 const rangoStub = (fila, col) => ({
   setValues(v){ escrituras.push({ fila, col, v }); if (v.length > 100) matrizEscrita = { fila, col, v }; return this; },
-  setValue(){ return this; }, setBackgrounds(m){ fondosEscritos = m; return this; }, setFontWeights(){ return this; },
+  setValue(){ return this; }, setBackgrounds(m){ fondosEscritos = m; return this; },
+  setFontWeights(){ return this; }, setFontColors(m){ coloresLetra = m; return this; },
+  setFontFamilies(m){ fuentesEscritas = m; return this; }, setFontSizes(m){ tamanosEscritos = m; return this; },
+  setHorizontalAlignments(){ return this; }, setWraps(){ return this; },
   setBackground(){ return this; }, setFontWeight(){ return this; }, setFontColor(){ return this; },
   breakApart(){ return this; }, merge(){ mergesHechos++; return this; },
+  setBorder(){ bordesAplicados++; return this; },
 });
-global.SpreadsheetApp = { getActiveSpreadsheet: () => ({
+global.SpreadsheetApp = { BorderStyle: { SOLID_MEDIUM: 'SM', DOUBLE: 'DBL' },
+  getActiveSpreadsheet: () => ({
   getSheetByName: () => null,
   insertSheet: () => ({
     clear(){}, clearContents(){}, getMaxColumns: () => 40, getMaxRows: () => 1000,
     insertColumnsAfter(){}, insertRowsAfter(){}, setFrozenRows(){}, setColumnWidth(){},
-    getRange: (r, c) => rangoStub(r, c),
+    setRowHeights(){ tramosAltura++; }, getRange: (r, c) => rangoStub(r, c),
   }),
 })};
 
@@ -84,9 +90,9 @@ eq('B.6 educación', d.turnosEdu, 1);
 eq('turnos IMT', d.turnosIMT, 1);
 eq('PTO: solo P1 (la 1ª bipedestación de P2 fue en junio)', d.pto, 1);
 eq('asistencias VA (1 IOT + 1 reintub + 1 inicio VMNI + 1 cánula)', d.asistenciasVA, 4);
-// ── Copia exacta del formulario: valores en las MISMAS celdas del original ──
-eq('plantilla escrita desde la fila 24', matrizEscrita && matrizEscrita.fila, 24);
-const celda = (fila, col) => matrizEscrita.v[fila - 24][col - 1];
+// ── Copia exacta del formulario, desplazada para comenzar en la fila 4 ──
+eq('el informe comienza en la fila 4', matrizEscrita && matrizEscrita.fila, 4);
+const celda = (fila, col) => matrizEscrita.v[fila - 24][col - 1];   // fila = numeración del Excel original
 eq('D27 Total ingresos', celda(27, 4), 1);
 eq('D28 Ingresos con PTI (= total, atención cerrada)', celda(28, 4), 1);
 eq('fila ACV (29): D=1 y rango 45-49 Hombres (col 19)', celda(29, 4) + '/' + celda(29, 19), '1/1');
@@ -104,6 +110,12 @@ eq('código 102501 fila 174: E=turnos IMT, F=pacientes', celda(174,5) + '/' + ce
 eq('código 601171 fila 170: E=4 asistencias VA', celda(170, 5), 4);
 eq('texto de una casilla del formulario intacto (C30 TEC)', celda(30, 3), 'Traumatismo encéfalo craneano (TEC)');
 eq('fondos aplicados (matriz misma dimensión)', fondosEscritos && fondosEscritos.length === matrizEscrita.v.length, true);
+eq('tipografías por celda aplicadas', fuentesEscritas && fuentesEscritas.length === matrizEscrita.v.length, true);
+eq('tamaños de letra aplicados', tamanosEscritos && tamanosEscritos[0].length === 37, true);
+eq('color de letra azul del original presente', coloresLetra && coloresLetra.some(f => f.some(c => c === '#0070c0')), true);
+eq('tipografía del original (Verdana en etiquetas)', fuentesEscritas && fuentesEscritas.some(f => f.indexOf('Verdana') >= 0), true);
+eq('bordes aplicados (147 rectángulos del original)', bordesAplicados, 147);
+eq('alturas de fila aplicadas por tramos', tramosAltura > 0, true);
 eq('merges del original aplicados (43)', mergesHechos, 43);
 eq('upsert mensual guardado', global._upsert && global._upsert.v, '2026-07');
 

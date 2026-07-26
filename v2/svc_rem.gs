@@ -243,19 +243,49 @@ function generarREM(anio, mes, ctx) {
     hoja.clear();
     hoja.getRange(1, 1, hoja.getMaxRows(), hoja.getMaxColumns()).breakApart();
     if (hoja.getMaxColumns() < _REM_TPL_NCOLS) hoja.insertColumnsAfter(hoja.getMaxColumns(), _REM_TPL_NCOLS - hoja.getMaxColumns());
-    const filaFin = F0 + M.length - 1;
+    const D = _REM_TPL_DESTINO;   // el informe comienza en la fila 4
+    const filaFin = D + M.length - 1;
     if (hoja.getMaxRows() < filaFin) hoja.insertRowsAfter(hoja.getMaxRows(), filaFin - hoja.getMaxRows());
 
-    hoja.getRange(F0, 1, M.length, _REM_TPL_NCOLS).setValues(M);
-    const fondos = _REM_TPL_FONDOS.map(s => s.split('').map(ch => _REM_TPL_PALETA[parseInt(ch, 16)] || null));
-    hoja.getRange(F0, 1, M.length, _REM_TPL_NCOLS).setBackgrounds(fondos);
-    const pesos = _REM_TPL_NEGRITAS.map(s => s.split('').map(b => b === '1' ? 'bold' : 'normal'));
-    hoja.getRange(F0, 1, M.length, _REM_TPL_NCOLS).setFontWeights(pesos);
-    _REM_TPL_MERGES.forEach(a1 => { try { hoja.getRange(a1).merge(); } catch (ig) {} });
+    // Contenido + formato celda a celda (matrices alineadas con la plantilla).
+    const zona = hoja.getRange(D, 1, M.length, _REM_TPL_NCOLS);
+    zona.setValues(M);
+    zona.setBackgrounds(_REM_TPL_FONDOS.map(s => s.split('').map(ch => _REM_TPL_PALETA[parseInt(ch, 16)] || null)));
+    zona.setFontWeights(_REM_TPL_NEGRITAS.map(s => s.split('').map(b => b === '1' ? 'bold' : 'normal')));
+    zona.setFontColors(_REM_TPL_LETRAS.map(s => s.split('').map(b => b === '1' ? _REM_TPL_LETRA_AZUL : null)));
+    const fam = _REM_TPL_FUENTES_PAL.map(x => x.split('|')[0]);
+    const tam = _REM_TPL_FUENTES_PAL.map(x => parseInt(x.split('|')[1]));
+    zona.setFontFamilies(_REM_TPL_FUENTES.map(s => s.split('').map(ch => fam[parseInt(ch, 16)])));
+    zona.setFontSizes(_REM_TPL_FUENTES.map(s => s.split('').map(ch => tam[parseInt(ch, 16)])));
+    zona.setHorizontalAlignments(_REM_TPL_ALINEA.map(s => s.split('').map(ch => ch === 'r' ? 'right' : (ch === 'c' ? 'center' : null))));
+    zona.setWraps(_REM_TPL_WRAPS.map(s => s.split('').map(b => b === '1')));
+
+    // Celdas combinadas y bordes (rectángulos relativos extraídos del original).
+    _REM_TPL_MERGES.forEach(m => { try { hoja.getRange(D + m[0], m[1] + 1, m[2] - m[0] + 1, m[3] - m[1] + 1).merge(); } catch (ig) {} });
+    const rango = m => hoja.getRange(D + m[0], m[1] + 1, m[2] - m[0] + 1, m[3] - m[1] + 1);
+    const SM = SpreadsheetApp.BorderStyle.SOLID_MEDIUM, DBL = SpreadsheetApp.BorderStyle.DOUBLE;
+    _REM_TPL_BORDES.gris.forEach(m => rango(m).setBorder(true, true, true, true, true, true, '#cccccc', SM));
+    const ladoNegro = { top: [true, null, null, null], left: [null, true, null, null], bottom: [null, null, true, null], right: [null, null, null, true] };
+    Object.keys(_REM_TPL_BORDES.negro).forEach(lado => {
+      const p = ladoNegro[lado];
+      _REM_TPL_BORDES.negro[lado].forEach(m => rango(m).setBorder(p[0], p[1], p[2], p[3], null, null, '#000000', SM));
+    });
+    Object.keys(_REM_TPL_BORDES.doble).forEach(lado => {
+      const p = ladoNegro[lado];
+      _REM_TPL_BORDES.doble[lado].forEach(m => rango(m).setBorder(p[0], p[1], p[2], p[3], null, null, '#000000', DBL));
+    });
+
+    // Anchos de columna y alturas de fila del original (alturas agrupadas por tramos).
     _REM_TPL_ANCHOS.forEach((w, i) => hoja.setColumnWidth(i + 1, w));
+    for (let i = 0; i < _REM_TPL_ALTURAS.length;) {
+      let j = i;
+      while (j + 1 < _REM_TPL_ALTURAS.length && _REM_TPL_ALTURAS[j + 1] === _REM_TPL_ALTURAS[i]) j++;
+      hoja.setRowHeights(D + i, j - i + 1, _REM_TPL_ALTURAS[i]);
+      i = j + 1;
+    }
     hoja.setFrozenRows(0);
 
-    // Cabecera informativa en la zona libre (filas 1-2, vacías también en el original).
+    // Cabecera informativa en la zona libre (filas 1-2; el informe parte en la 4).
     hoja.getRange(1, 1).setValue('REM 28 · KINESIOLOGÍA UCI · ' + nombreMes.toUpperCase()).setFontWeight('bold');
     hoja.getRange(2, 1).setValue('Generado ' + ahoraTS() + ' · copia del formulario oficial; las casillas sin actividad quedan en 0.');
 
