@@ -46,12 +46,16 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
   await p.waitForTimeout(600);
   const R = await p.evaluate(() => {
     const fondo = () => getComputedStyle(document.querySelector('.hdr')).backgroundColor;
+    const logoVisible = () => getComputedStyle(document.querySelector('.hlogo')).display !== 'none';
     const r = {};
     r.pielInicial = document.documentElement.getAttribute('data-piel');
     r.hdrInst = fondo();
+    r.logoInst = logoVisible();
+    r.logoIncrustado = document.querySelector('.hlogo').src.indexOf('data:image/png;base64,') === 0;
     pielToggle();
     r.pielTrasToggle = document.documentElement.getAttribute('data-piel');
     r.hdrNotion = fondo();
+    r.logoNotion = logoVisible();
     r.guardada = localStorage.getItem('RCE_PIEL');
     pielToggle();
     r.hdrVuelta = fondo();
@@ -59,6 +63,9 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
   });
   eq('piel por defecto: institucional', R.pielInicial, 'inst');
   eq('cromo institucional azul profundo', R.hdrInst, 'rgb(4, 52, 94)');
+  eq('logo visible en piel San Pablo', R.logoInst, true);
+  eq('logo incrustado (base64, sin red)', R.logoIncrustado, true);
+  eq('logo oculto en piel Notion', R.logoNotion === false, true);
   eq('toggle vuelve a Notion', R.pielTrasToggle, 'notion');
   eq('cromo Notion restaurado', R.hdrNotion, 'rgb(14, 58, 95)');
   eq('elección persistida (localStorage)', R.guardada, 'notion');
