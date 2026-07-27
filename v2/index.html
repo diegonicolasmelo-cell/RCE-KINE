@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="2.6-movil">
+<meta name="rce-version" content="2.7-piel">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -876,9 +876,47 @@ table.rhb2 .rl{width:128px;text-align:left;}
   .ktm-state,.ktm-niv-btn,.ktm-asis-btn{min-height:38px;}
   .bevo{min-height:38px;}
 }
+
+/* ── PIEL INSTITUCIONAL «San Pablo» (conmutable) ─────────────────────────────
+   Tema paralelo sobre los mismos tokens: html[data-piel="inst"] lo activa y
+   quitarlo devuelve la piel Notion intacta. Colores extraídos del logo oficial
+   (azul #0058A0 · dorado #F0A000 · profundo #04345E). El dorado es acento, no
+   superficie: filete del cromo, pestaña activa, foco y estados pendientes.
+   Los pares de texto cumplen contraste AA (guardia: build/checks/piel.js). */
+html[data-piel="inst"]{
+  --bg:#EEF3F9;--card:#fff;--txt:#0D2B4E;--muted:#5B7793;--border:#D7E3F1;
+  --primary:#0058A0;--pdark:#04345E;--ok:#0F8A5F;--danger:#C62828;--warn:#C47A09;
+  --pcard:#fef7e6;
+  --n-gray-bg:#eef2f7;--n-gray:#446180;
+  --n-orange-bg:#fdf3df;--n-orange:#8a5c00;
+  --n-yellow-bg:#fdf3df;--n-yellow:#8a5c00;
+  --n-green-bg:#e6f4ee;--n-green:#0F8A5F;
+  --n-blue-bg:#e3edf7;--n-blue:#0058A0;
+  --n-purple-bg:#e9e9f7;--n-purple:#4c4c9d;
+  --n-pink-bg:#f7e9f1;--n-pink:#a03d78;
+  --n-red-bg:#fbe9e7;--n-red:#C62828;
+}
+html[data-piel="inst"] .hdr{background:#04345E;border-bottom:3px solid #F0A000;box-shadow:none;}
+html[data-piel="inst"] .hbtn{background:#0d426f;border-color:#1c5d94;}
+html[data-piel="inst"] .hbtn:hover{background:#12507f;}
+html[data-piel="inst"] .tabs{background:#0058A0;top:56px;border-bottom:none;}
+html[data-piel="inst"] .tab{color:#cfe3f5;}
+html[data-piel="inst"] .tab:hover{color:#fff;}
+html[data-piel="inst"] .tab.on{color:#fff;border-bottom-color:#F0A000;}
+html[data-piel="inst"] .tbanner{display:none!important;}
+html[data-piel="inst"] #btnGuardar{background:linear-gradient(135deg,#0058A0,#04345E);box-shadow:0 5px 16px rgba(0,88,160,.32);}
+html[data-piel="inst"] #btnGuardar:hover{background:linear-gradient(135deg,#0d69b6,#0058A0);filter:none;}
+html[data-piel="inst"] .col input:focus,html[data-piel="inst"] .col select:focus{border-color:#0058A0;box-shadow:0 0 0 3px #f0a00055;}
+html[data-piel="inst"] .mnav button.on{color:#0058A0;}
+html[data-piel="inst"] .fase-chip.her{background:#fdf3df;border-color:#F0A000;color:#8a5c00;}
 </style>
 </head>
 <body>
+<script>
+/* Piel guardada del dispositivo, aplicada ANTES de pintar (evita parpadeo).
+   'inst' = San Pablo (por defecto en la prueba) · 'notion' = piel papel. */
+document.documentElement.setAttribute('data-piel', (function(){ try { return localStorage.getItem('RCE_PIEL') || 'inst'; } catch (e) { return 'inst'; } })());
+</script>
 
 <div id="devbar" class="devbar" style="display:none">⚙️ Modo desarrollo — identidad simulada, sin login (AUTH_DEV_MODE)</div>
 <div id="clkWarn" style="display:none;background:#fee2e2;color:#991b1b;font-size:.78rem;text-align:center;padding:6px 10px;border-bottom:1px solid #fecaca;font-weight:600;"></div>
@@ -913,6 +951,7 @@ table.rhb2 .rl{width:128px;text-align:left;}
     </div>
     <div class="hbar-actions">
       <button class="hbtn" onclick="recargar()">🔄 Actualizar</button>
+      <button class="hbtn" id="btnPiel" onclick="pielToggle()" title="Alternar entre la piel institucional San Pablo y la piel Notion">🎨</button>
     </div>
   </div>
 </div>
@@ -942,6 +981,7 @@ table.rhb2 .rl{width:128px;text-align:left;}
   <button type="button" class="mit" onclick="mSheet(false);setTab('A')">🗃️ Archivados</button>
   <button type="button" class="mit" onclick="mSheet(false);setTab('V')">🔧 Ventiladores</button>
   <button type="button" class="mit" onclick="mSheet(false);recargar()">🔄 Actualizar datos</button>
+  <button type="button" class="mit" id="mitPiel" onclick="pielToggle()">🎨 Cambiar piel</button>
 </div>
 
 <!-- BANNER RETROSPECTIVO (cuando la fecha seleccionada no es hoy) -->
@@ -2991,7 +3031,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.6-movil]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.7-piel]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -6423,6 +6463,21 @@ function confirmarReingreso(){
   const cb=$('cReing'); if(cb){cb.checked=true;}
   hide('dNombreAlert');
 }
+
+/* ── Piel conmutable: San Pablo (institucional) ↔ Notion (papel) ── */
+function pielAplicar(p){
+  p = p === 'inst' ? 'inst' : 'notion';
+  document.documentElement.setAttribute('data-piel', p);
+  try { localStorage.setItem('RCE_PIEL', p); } catch (e) {}
+  const b=$('btnPiel'); if(b) b.title = p==='inst' ? 'Piel San Pablo activa — tocar para volver a Notion' : 'Piel Notion activa — tocar para probar San Pablo';
+  const m=$('mitPiel'); if(m) m.textContent = p==='inst' ? '🎨 Piel: San Pablo (tocar para Notion)' : '🎨 Piel: Notion (tocar para San Pablo)';
+}
+function pielToggle(){
+  const nueva = document.documentElement.getAttribute('data-piel')==='inst' ? 'notion' : 'inst';
+  pielAplicar(nueva);
+  toast(nueva==='inst' ? '🎨 Piel institucional San Pablo' : '🎨 Piel Notion');
+}
+pielAplicar(document.documentElement.getAttribute('data-piel'));   // sincroniza etiquetas al arrancar
 
 /* ── Versión móvil: hoja «Más» y acordeón de módulos ── */
 const esMovil=()=>window.matchMedia('(max-width:740px)').matches;
