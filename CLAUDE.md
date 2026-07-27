@@ -36,7 +36,12 @@ navegador del hospital o de su casa.
 - Identidad de paciente = `PATIENT_ID` (episodio); los traslados re-estampan
   EVOLUCIONES y TIMELINE (`_reetiquetarEpisodioACama`).
 - `AUTH_DEV_MODE=TRUE` en CONFIG: acceso abierto intencional (marcha
-  blanca). El login GIS existe pero está dormido en modo demo.
+  blanca). **Login/demo RETIRADOS DE LA VISTA** (jul-2026, pedido de Diego):
+  `LOGIN_UI_ACTIVO=false` en index oculta la devbar y reemplaza el overlay
+  GIS por un mensaje neutro de reconexión. Para REINCORPORAR cuando Diego lo
+  pida: poner `LOGIN_UI_ACTIVO=true` (todo el mecanismo GIS + GET_LOGIN_INFO
+  sigue intacto detrás del flag) y, para exigir identidad real, además
+  AUTH_DEV_MODE=FALSE en CONFIG + OAUTH_CLIENT_ID configurado.
 - Frontend: `v2/index.html` único (~9.300 líneas fuente). Piel estilo
   Notion (variables `--n-*`, portadas `.tbanner` por pestaña). Convención
   **`uiConfirm`** (jamás `confirm()` nativo). Módulos heredados del turno
