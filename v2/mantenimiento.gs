@@ -96,3 +96,33 @@ function cuadrarEncabezados() {
   informe.forEach(function (l) { console.log(l); });
   return informe;
 }
+
+// ── Firmas contaminadas (bug jul-2026: texto de evolución colado en la firma) ──
+
+/** Muestra en el registro qué filas tienen PLAN_FIRMA_KINE inválida (texto
+ *  largo en vez de iniciales), sin modificar nada. Correr ANTES de reparar. */
+function diagnosticarFirmas() {
+  ['EVOLUCIONES', 'EVOLUCIONES_ARCHIVO'].forEach(hoja => {
+    const malas = repoLeerTodos(hoja).filter(e =>
+      String(e.PLAN_FIRMA_KINE || '').length > 15 || /\n/.test(String(e.PLAN_FIRMA_KINE || '')));
+    console.log(hoja + ': ' + malas.length + ' fila(s) con firma inválida');
+    malas.slice(0, 10).forEach(e => console.log('  · ' + e.ID_EVOLUCION + ' → "' +
+      String(e.PLAN_FIRMA_KINE).slice(0, 60) + '…" (' + String(e.PLAN_FIRMA_KINE).length + ' caracteres)'));
+  });
+  console.log('Si hay filas listadas, correr repararFirmas() para limpiarlas.');
+}
+
+/** Limpia las firmas inválidas (las deja vacías; el texto de la evolución no
+ *  se toca). Idempotente: correrla dos veces no cambia nada más. */
+function repararFirmas() {
+  let total = 0;
+  ['EVOLUCIONES', 'EVOLUCIONES_ARCHIVO'].forEach(hoja => {
+    const n = repoActualizarDonde(hoja,
+      e => String(e.PLAN_FIRMA_KINE || '').length > 15 || /\n/.test(String(e.PLAN_FIRMA_KINE || '')),
+      e => ({ PLAN_FIRMA_KINE: '' }));
+    console.log(hoja + ': ' + n + ' firma(s) limpiada(s)');
+    total += n;
+  });
+  console.log(total ? ('✅ ' + total + ' fila(s) reparada(s). Recarga la app.') : '✅ No había firmas inválidas.');
+  return total;
+}

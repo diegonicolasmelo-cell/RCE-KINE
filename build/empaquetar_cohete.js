@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = '2.9-sinlogin';
+const VERSION = '2.10-firma';
 const fuente = path.join(__dirname, '..', 'v2', 'index.html');
 const salida = process.argv[2] || path.join(__dirname, 'index_cohete.html');
 

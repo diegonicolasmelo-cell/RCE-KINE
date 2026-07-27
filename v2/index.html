@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="2.9-sinlogin">
+<meta name="rce-version" content="2.10-firma">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3036,7 +3036,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.9-sinlogin]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.10-firma]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -7400,8 +7400,11 @@ window.Turnos = (function () {
     const opts = ['<option value="">— Seleccionar firma —</option>']
       .concat(ROSTER.map(r => `<option value="${r.f}">${r.f} — ${r.n}${r.aux ? ' (apoyo)' : ''}</option>`));
     sel.innerHTML = opts.join('');
-    if (current) {
-      // si la firma actual no está en el roster, agregarla para no perderla
+    // Solo firmas plausibles: cortas y sin saltos de línea. Un dato corrupto
+    // (p. ej. el texto completo de la evolución colado en PLAN_FIRMA_KINE)
+    // NO debe convertirse en opción del selector.
+    const plausible = current && String(current).length <= 15 && !/\n/.test(String(current));
+    if (plausible) {
       if (!byFirma(current)) {
         const o = document.createElement('option'); o.value = current; o.textContent = current + ' (libre)';
         sel.appendChild(o);

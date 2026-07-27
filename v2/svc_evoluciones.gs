@@ -17,6 +17,13 @@ function guardarEvolucion(datos, ctx) {
       const turnoKey = String(datos.TURNO_KEY || datos.turnoKey || '');
       if (!idCama || !turnoKey) return err('Faltan ID_CAMA o TURNO_KEY.', ERR.VALIDACION);
 
+      // Guardia de firma: PLAN_FIRMA_KINE debe ser una firma corta (iniciales),
+      // jamás un texto largo — un dato corrupto aquí contamina el selector de
+      // firmas en la interfaz (bug visto en marcha blanca, jul-2026).
+      if (String(datos.PLAN_FIRMA_KINE || '').length > 15 || /\n/.test(String(datos.PLAN_FIRMA_KINE || ''))) {
+        datos.PLAN_FIRMA_KINE = '';   // mejor sin firma que con basura (la UI la exige de todos modos)
+      }
+
       const idEvolucion = 'CAMA_' + idCama + '_' + turnoKey;
       const p = turnoKey.split('-');
       const fecha = p[0] + '-' + p[1] + '-' + p[2];
