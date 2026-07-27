@@ -73,13 +73,35 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 ## Verificación (skill `verificar`)
 
 `build/checks/`: `convenciones.js` (estáticas), `arranque.js` (boot real en
-Chromium con puente simulado), `regresion_ui.js`. Correr antes de entregar
-o commitear. Un bug que costó más de un intercambio merece guardia nueva.
+Chromium con puente simulado; acepta ruta del cohete como argumento),
+`regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
+`eventos.js`, `eventos_ui.js`. Correr antes de entregar o commitear. Un bug
+que costó más de un intercambio merece guardia nueva.
 
 ## Estado y pendientes (julio 2026)
 
-- En marcha blanca con datos reales. Deployment estable: cohete v2.6-movil
-  (REM 28 celda a celda, tablero centinela, RUT, versión móvil instalable).
+- En marcha blanca con datos reales. Deployment estable: cohete v3.0-eventos
+  (REM 28 celda a celda, tablero centinela, RUT, versión móvil instalable,
+  eventos rápidos, firma clínica con tratamiento).
+- **Eventos rápidos + reloj de dispositivos** (jul-2026): botón ➕ en la
+  fila del Registro Diario y en la tarjeta de cama abre un popover (estilo
+  lista de Sheets) para anotar DESPUÉS de evolucionar: procedimiento del
+  catálogo (exige evolución guardada; suma a PROC_JSON y PROCEDIMIENTOS
+  como `TIPO_PROC:'anexo'`), cambio de HME/HEPA/sonda (resetea el reloj
+  con la FECHA EFECTIVA: turno Noche fecha al día siguiente), resultado de
+  cultivo (sin sugerir aislamiento) y otro. Nada toca el TEXTO: va a
+  timeline + estadística. Cualquier colega firma (select del roster).
+  Reloj: parte al conectar VM con `DISP_CONFIRMADO=false`; franja «✓
+  Aceptar» en el panel corrobora (o se ajustan las fechas y se guarda).
+  `svc_eventos.gs` (API `ANEXAR_EVENTO`/`CONFIRMAR_DISPOSITIVOS`) +
+  guardias `checks/eventos.js` (servicio) y `checks/eventos_ui.js` (UI).
+- **Firma en texto clínico** (jul-2026): «Klgo./Klga. Nombre Apellido» —
+  cliente `Turnos.firmaTexto()` (ROSTER con campo `t`), servidor
+  `_firmaTextoClinico()` (hoja KINESIOLOGOS, columna TRATAMIENTO nueva;
+  llenar «Klga.» para las colegas tras reparar estructura).
+- **Estadísticas**: centinelas protagonistas — `indBox` al tope de la
+  pestaña, desplegado y auto-calculado (año en curso) al entrar; REM y
+  auditoría quedan como secundarios (son para jefatura).
 - **REM 28**: `svc_rem.gs` agrega los totales; falta el formulario oficial
   de estadística (Diego lo enviará) para mapear la salida celda a celda.
 - **Motor de texto**: `TEXTO_AUTO` vs `TEXTO_MANUAL` se guardan por turno;

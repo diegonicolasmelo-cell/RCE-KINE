@@ -92,6 +92,10 @@ function api(accion, datos, token) {
         });
       case 'ANULAR_EVENTO':
         return _auditar(ctx, accion, () => anularEvento(datos, ctx));
+      case 'ANEXAR_EVENTO':
+        return _auditar(ctx, accion, () => anexarEventoRapido(datos, ctx));
+      case 'CONFIRMAR_DISPOSITIVOS':
+        return _auditar(ctx, accion, () => confirmarDispositivos(datos, ctx));
       case 'GUARDAR_ENTREGA_TURNO':
         return _auditar(ctx, accion, () => guardarEntregaTurno(datos, ctx));
       case 'GENERAR_REM':

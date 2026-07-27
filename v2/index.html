@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="2.10-firma">
+<meta name="rce-version" content="3.0-eventos">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -845,6 +845,14 @@ table.rhb2 .rl{width:128px;text-align:left;}
    El mismo index sirve escritorio y celular: bajo 740px se oculta la barra de
    pestañas clásica y aparece la navegación inferior (zona del pulgar). Los
    módulos del panel de evolución se vuelven acordeón (.mcol = colapsado). */
+/* Evento rápido: lista del popover y botón ➕ de la tabla */
+.ev-it{display:flex;align-items:center;gap:8px;width:100%;padding:9px 13px;border:none;border-bottom:1px solid #f0f4f9;background:#fff;font-size:.8rem;font-weight:600;color:var(--txt);cursor:pointer;text-align:left;}
+.ev-it:hover{background:var(--n-blue-bg);color:var(--primary);}
+.ev-it:last-child{border-bottom:none;}
+.ev-btn{border:1px solid var(--border);background:#fff;border-radius:5px;padding:2px 8px;font-size:.75rem;cursor:pointer;color:var(--primary);font-weight:800;}
+.ev-btn:hover{background:var(--n-blue-bg);}
+.tc-ev{text-align:center;}
+
 .mnav{display:none;}
 .msheet{display:none;}
 .mvelo{display:none;}
@@ -989,6 +997,35 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
   <button type="button" class="mit" id="mitPiel" onclick="pielToggle()">🎨 Cambiar piel</button>
 </div>
 
+<!-- EVENTO RÁPIDO POST-EVOLUCIÓN: lista desplegable estilo Sheets + mini-formulario -->
+<div id="evVelo" class="hidden" onclick="evCerrar()" style="position:fixed;inset:0;z-index:290;"></div>
+<div id="evPop" class="hidden" style="position:fixed;z-index:295;width:290px;background:#fff;border:1px solid var(--primary);border-radius:9px;box-shadow:0 14px 40px rgba(15,23,42,.28);overflow:hidden;font-size:.82rem;">
+  <div style="padding:8px 12px;background:var(--pdark);color:#fff;font-weight:800;font-size:.74rem;" id="evTitulo">➕ Evento posterior</div>
+  <div id="evLista">
+    <button type="button" class="ev-it" onclick="evTipo('procedimiento')">🔧 Procedimiento…</button>
+    <button type="button" class="ev-it" onclick="evTipo('hme')">🌫️ Cambio de HME</button>
+    <button type="button" class="ev-it" onclick="evTipo('hepa')">🛡️ Cambio de HEPA</button>
+    <button type="button" class="ev-it" onclick="evTipo('sonda')">➿ Cambio de sonda de aspiración</button>
+    <button type="button" class="ev-it" onclick="evTipo('cultivo')">🧫 Resultado de cultivo</button>
+    <button type="button" class="ev-it" onclick="evTipo('otro')">📌 Otro</button>
+  </div>
+  <div id="evForm" class="hidden" style="padding:10px 12px;flex-direction:column;gap:8px;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <label style="font-size:.64rem;font-weight:800;color:var(--muted);">HORA</label>
+      <input type="time" id="evHora" style="height:32px;border:1px solid var(--border);border-radius:6px;padding:0 8px;">
+    </div>
+    <input type="text" id="evProc" list="dlProc" placeholder="Procedimiento del catálogo…" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
+    <input type="text" id="evCultTipo" placeholder="Tipo de cultivo (ej: aspirado traqueal)" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
+    <input type="text" id="evCultHall" placeholder="Hallazgo (opcional, ej: Klebsiella BLEE+)" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
+    <input type="text" id="evDet" placeholder="Detalle (opcional)" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
+    <select id="evFirma" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 6px;"></select>
+    <div style="display:flex;gap:7px;">
+      <button type="button" onclick="evVolver()" style="flex:1;padding:9px 0;background:#f1f0ef;color:var(--muted);border:none;border-radius:7px;font-weight:700;cursor:pointer;">← Volver</button>
+      <button type="button" onclick="evGuardar()" id="evGo" style="flex:1.6;padding:9px 0;background:var(--ok);color:#fff;border:none;border-radius:7px;font-weight:800;cursor:pointer;">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- BANNER RETROSPECTIVO (cuando la fecha seleccionada no es hoy) -->
 <div id="retroBar">
   <span class="rb-ico">👁️</span>
@@ -1038,6 +1075,18 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
     <div class="tb-icon">📊</div>
     <button type="button" class="tb-btn no-print" onclick="bannerMenu('D')">🖼️ Portada</button>
   </div>
+    <!-- Tablero de indicadores centinela -->
+    <details id="indBox" class="no-print" open style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
+      <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">📈 Indicadores centinela — calidad y seguridad</summary>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;">
+        <input type="month" id="indMes" class="datein dashin">
+        <button class="dpset" onclick="indCalcular('mes')">Mes</button>
+        <button class="dpset" onclick="indCalcular('anio')">Año</button>
+        <button class="dpset" onclick="indCalcular('12m')">12 meses</button>
+        <span style="font-size:.72rem;color:#94a3b8;">Cada tarjeta muestra numerador/denominador y su definición. Mortalidad sin ajuste por gravedad.</span>
+      </div>
+      <div id="indOut" style="font-size:.85rem;color:var(--muted);">Elige un mes y el alcance (mes / año / 12 meses).</div>
+    </details>
   <div class="dash">
     <div class="dash-bar">
       <div class="dash-bar-title">📊 Estadísticas del período</div>
@@ -1055,18 +1104,6 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
         </div>
       </div>
     </div>
-    <!-- Tablero de indicadores centinela -->
-    <details id="indBox" class="no-print" open style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
-      <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">📈 Indicadores centinela — calidad y seguridad</summary>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;">
-        <input type="month" id="indMes" class="datein dashin">
-        <button class="dpset" onclick="indCalcular('mes')">Mes</button>
-        <button class="dpset" onclick="indCalcular('anio')">Año</button>
-        <button class="dpset" onclick="indCalcular('12m')">12 meses</button>
-        <span style="font-size:.72rem;color:#94a3b8;">Cada tarjeta muestra numerador/denominador y su definición. Mortalidad sin ajuste por gravedad.</span>
-      </div>
-      <div id="indOut" style="font-size:.85rem;color:var(--muted);">Elige un mes y el alcance (mes / año / 12 meses).</div>
-    </details>
     <!-- REM mensual (informe de texto para estadística) -->
     <details id="remBox" class="no-print" style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
       <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">📄 REM 28 — informe mensual para estadística</summary>
@@ -1898,6 +1935,11 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
             <div class="row" style="align-items:flex-end;">
               <div class="col wa"><label>Trach Care</label><input type="date" id="fFecSonda" onchange="calcInsumosDias()"></div>
               <span id="sSondaDias" class="disp-chip disp-none" style="align-self:flex-end;margin-bottom:8px;">—</span>
+            </div>
+            <div id="dispConfirm" class="hidden" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#eff6ff;border:1px solid #bfdbfe;border-radius:7px;padding:7px 11px;margin-bottom:8px;font-size:.76rem;">
+              <span>🔧 Dispositivos <b>asumidos instalados</b> al conectar a VM — corrobora:</span>
+              <button type="button" onclick="dispAceptar()" style="padding:4px 13px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-weight:800;font-size:.72rem;cursor:pointer;">✓ Aceptar</button>
+              <span style="color:var(--muted);font-size:.68rem;">o ajusta las fechas de arriba y guarda</span>
             </div>
             <div class="row" style="align-items:flex-end;">
               <div class="check cr wa"><input type="checkbox" id="cHAct" onchange="syncHumidFecha(this.checked)"><label for="cHAct">🌡️ Humidificación Activa</label></div>
@@ -3036,7 +3078,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.10-firma]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 3.0-eventos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3354,6 +3396,7 @@ function renderGrid() {
         <div class="bfoot">
           <button class="bevo" onclick="abrirPanel('${c.ID_CAMA}',false)">${btn}</button>
           <button class="btl" onclick="abrirTL('${c.ID_CAMA}')">⏱️ Hist.</button>
+          <button class="btl" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${c.ID_CAMA}',this)">➕</button>
           <button class="balt" onclick="egreso('${c.ID_CAMA}')">🏠 Egr.</button>
         </div>`;
     } else {
@@ -3516,6 +3559,7 @@ function abrirPanel(id, esIng) {
   $('ovl').classList.add('on');
   $('sp').classList.add('on');
   mAcordeonInit();
+  dispConfirmRender();
   document.body.style.overflow = 'hidden';
 
   // ★ FIX scroll: asegurar que el panel arranca al inicio del formulario.
@@ -5866,7 +5910,8 @@ function genTexto() {
     L.push('*Actualmente sin condiciones para realizar PVE. Por lo que mantiene soporte.');
   }
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
-  if(pl) L.push(`Plan: ${pl}`); if(no) L.push(`Nota: ${no}`); if(fi) L.push(`Kinesiólogo: ${fi}`);
+  if(pl) L.push(`Plan: ${pl}`); if(no) L.push(`Nota: ${no}`);
+  if(fi) L.push(window.Turnos && Turnos.firmaTexto ? Turnos.firmaTexto(fi) : `Kinesiólogo: ${fi}`);
   return L.filter(Boolean).join('\n');
 }
 
@@ -6483,6 +6528,78 @@ function pielToggle(){
   toast(nueva==='inst' ? '🎨 Piel institucional San Pablo' : '🎨 Piel Notion');
 }
 pielAplicar(document.documentElement.getAttribute('data-piel'));   // sincroniza etiquetas al arrancar
+
+/* ── Eventos rápidos post-evolución (popover estilo lista de Sheets) ── */
+let _evCama=null,_evTipo=null;
+function evAbrir(id,anchor){
+  _evCama=String(id); _evTipo=null;
+  const pop=$('evPop'); if(!pop) return;
+  $('evTitulo').textContent='➕ Evento posterior · Cama '+_evCama+' · '+(SHIFT==='Dia'?'DÍA':'NOCHE');
+  show('evLista'); hide('evForm');
+  // firma: parte con la asignación del tablero para esa cama (editable)
+  const sel=$('evFirma');
+  if(sel && window.Turnos){
+    sel.innerHTML='<option value="">— Firma de quien anota —</option>'+
+      Turnos.ROSTER.map(r=>`<option value="${r.f}">${r.f} — ${r.n}</option>`).join('');
+    sel.value=Turnos.firmaDeCama(_evCama)||'';
+  }
+  show('evVelo'); pop.classList.remove('hidden');
+  // anclado al botón; si no cabe abajo, se abre hacia arriba
+  const r=anchor?anchor.getBoundingClientRect():{left:innerWidth/2-145,bottom:innerHeight/2};
+  let x=Math.min(Math.max(8,r.left-10), innerWidth-300);
+  let y=r.bottom+6; if(y+330>innerHeight) y=Math.max(8,r.top-336);
+  pop.style.left=x+'px'; pop.style.top=y+'px';
+}
+function evCerrar(){ hide('evPop'); hide('evVelo'); _evCama=null; _evTipo=null; }
+function evVolver(){ show('evLista'); hide('evForm'); _evTipo=null; }
+function evTipo(t){
+  _evTipo=t;
+  hide('evLista'); const f=$('evForm'); f.classList.remove('hidden'); f.style.display='flex';
+  $('evHora').value=new Date().toTimeString().slice(0,5);
+  $('evProc').classList.toggle('hidden', t!=='procedimiento');
+  $('evCultTipo').classList.toggle('hidden', t!=='cultivo');
+  $('evCultHall').classList.toggle('hidden', t!=='cultivo');
+  ['evProc','evCultTipo','evCultHall','evDet'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
+  $('evDet').placeholder = t==='otro' ? 'Describe el evento *' : 'Detalle (opcional)';
+  const foco = t==='procedimiento' ? 'evProc' : (t==='cultivo' ? 'evCultTipo' : 'evDet');
+  setTimeout(()=>$(foco)?.focus(),50);
+}
+function evGuardar(){
+  if(!_evCama||!_evTipo) return;
+  const firma=v('evFirma');
+  if(!firma){ toast('⚠️ Selecciona la firma de quien anota.'); return; }
+  const datos={ idCama:_evCama, turnoKey:`${v('gDate')||hoy()}-${SHIFT}`, tipo:_evTipo,
+    hora:v('evHora'), detalle:v('evDet'), proc:v('evProc'),
+    cultTipo:v('evCultTipo'), cultHallazgo:v('evCultHall'), firmaKine:firma };
+  const b=$('evGo'); b.disabled=true; b.textContent='⏳…';
+  gs('ANEXAR_EVENTO', datos, r=>{
+    b.disabled=false; b.textContent='💾 Guardar';
+    toast('✅ '+((r&&r.texto)||'Evento anotado'));
+    const camaEv=_evCama; evCerrar();
+    // si el panel de esa cama está abierto, refrescar los relojes visibles
+    if(window._camaEvo===camaEv && r && r.dispositivos){
+      const M={hme:'fFecHME',hepa:'fFecHEPA',sonda:'fFecSonda'};
+      r.dispositivos.forEach(d=>{ const e=$(M[d.k]); if(e&&d.fecha) e.value=d.fecha; });
+      if(typeof calcInsumosDias==='function') calcInsumosDias();
+    }
+  }, e=>{ b.disabled=false; b.textContent='💾 Guardar'; toast('❌ '+e); });
+}
+
+/* ── Confirmación de instalación de dispositivos (chip «Aceptar») ── */
+function dispConfirmRender(){
+  const d=$('dispConfirm'); if(!d) return;
+  const c=typeof _camaPanel==='function' ? (_camaPanel()||{}) : {};
+  const enVM=String(c.SOPORTE)==='VM';
+  const tiene=!!(c.DISP_HME_FECHA||c.DISP_HEPA_FECHA||c.DISP_TC_FECHA);
+  const conf=(c.DISP_CONFIRMADO===true||c.DISP_CONFIRMADO==='TRUE');
+  d.classList.toggle('hidden', !(enVM&&tiene&&!conf));
+}
+function dispAceptar(){
+  gs('CONFIRMAR_DISPOSITIVOS',{idCama:v('cBed')}, ()=>{
+    hide('dispConfirm'); toast('✅ Dispositivos confirmados');
+    const c=typeof _camaPanel==='function' ? _camaPanel() : null; if(c) c.DISP_CONFIRMADO=true;
+  }, e=>toast('❌ '+e));
+}
 
 /* ── Versión móvil: hoja «Más» y acordeón de módulos ── */
 const esMovil=()=>window.matchMedia('(max-width:740px)').matches;
@@ -7114,23 +7231,29 @@ window.Turnos = (function () {
   'use strict';
 
   // aux:true → no hace turnos habitualmente, pero puede evolucionar.
+  // t = tratamiento profesional para el texto clínico (Klgo./Klga.)
   const ROSTER = [
-    { n: 'Mauricio Ortega Wanders',     f: 'MOW' },
-    { n: 'Felipe Guerrero Espinoza',    f: 'FGE' },
-    { n: 'Natalia Parra Rojas',         f: 'NPR' },
-    { n: 'Sergio Ortiz Gómez',          f: 'SOG' },
-    { n: 'María Vega Astudillo',        f: 'MVA' },
-    { n: 'Álvaro Wilson Espinoza',      f: 'AWE' },
-    { n: 'Eduardo González Tapia',      f: 'EGT' },
-    { n: 'Diego Melo Villagrán',        f: 'DMV' },
-    { n: 'Karen González Vásquez',      f: 'KGV' },
-    { n: 'Carlos Morales Flores',       f: 'CMF' },
-    { n: 'Andrés Ángel Gómez',          f: 'AAG' },
-    { n: 'Manuel Fuentes Blanco',       f: 'MFB' },
-    { n: 'Aline Campos Rivera',         f: 'ACR' },
-    { n: 'Rodrigo Caamaño',             f: 'RC'  },
-    { n: 'Magdalena Contando Cisternas', f: 'MCC', aux: true },
+    { n: 'Mauricio Ortega Wanders',     f: 'MOW', t: 'Klgo.' },
+    { n: 'Felipe Guerrero Espinoza',    f: 'FGE', t: 'Klgo.' },
+    { n: 'Natalia Parra Rojas',         f: 'NPR', t: 'Klga.' },
+    { n: 'Sergio Ortiz Gómez',          f: 'SOG', t: 'Klgo.' },
+    { n: 'María Vega Astudillo',        f: 'MVA', t: 'Klga.' },
+    { n: 'Álvaro Wilson Espinoza',      f: 'AWE', t: 'Klgo.' },
+    { n: 'Eduardo González Tapia',      f: 'EGT', t: 'Klgo.' },
+    { n: 'Diego Melo Villagrán',        f: 'DMV', t: 'Klgo.' },
+    { n: 'Karen González Vásquez',      f: 'KGV', t: 'Klga.' },
+    { n: 'Carlos Morales Flores',       f: 'CMF', t: 'Klgo.' },
+    { n: 'Andrés Ángel Gómez',          f: 'AAG', t: 'Klgo.' },
+    { n: 'Manuel Fuentes Blanco',       f: 'MFB', t: 'Klgo.' },
+    { n: 'Aline Campos Rivera',         f: 'ACR', t: 'Klga.' },
+    { n: 'Rodrigo Caamaño',             f: 'RC',  t: 'Klgo.' },
+    { n: 'Magdalena Contando Cisternas', f: 'MCC', t: 'Klga.', aux: true },
   ];
+  /** Firma → «Klgo./Klga. Nombre Apellido» para el texto clínico. */
+  function firmaTexto(f) {
+    const r = ROSTER.find(x => x.f === f);
+    return r ? ((r.t || 'Klgo.') + ' ' + r.n) : (f ? 'Klgo. ' + f : '');
+  }
 
   const PALETTE = [
     { bar: '#16a34a', tint: '#f0fdf4', text: '#15803d', chip: '#dcfce7', name: 'Verde'   },
@@ -7427,7 +7550,7 @@ window.Turnos = (function () {
   }
 
   return {
-    ROSTER, init, open, close, syncKey,
+    ROSTER, init, open, close, syncKey, firmaTexto,
     toggleTeam, setBrush, paintBed, paintSeccion, clearAll,
     decorateCard, repaint, renderLegend,
     firmaDeCama, firmaSugerida, fillFirmaSelect, currentKey,
@@ -7951,6 +8074,8 @@ function setTab(t){
   if(_bar&&_bt){ _bar.scrollTo({left: _bt.offsetLeft-(_bar.clientWidth-_bt.offsetWidth)/2, behavior:'smooth'}); }
   if(t==='D' && !window._statsLoaded) dashPreset('mes', document.querySelector('.dpset'));
   if(t==='D' && $('indMes') && !$('indMes').value){ const _h=new Date().toISOString().slice(0,7); $('indMes').value=_h; if($('remMes')&&!$('remMes').value) $('remMes').value=_h; }
+  // Indicadores centinela en tiempo real: se calculan solos al entrar (año en curso)
+  if(t==='D' && !window._indAuto){ window._indAuto=true; indCalcular('anio'); }
   if(t==='E') initEntrega();
   if(t==='A') initArchivados();
   if(t==='P') renderTabla();
@@ -8003,7 +8128,8 @@ function _regEgresosCama(tb,idCama,q){
         <td class="tc-p4">${dash}</td>
         <td class="tc-p4">${dash}</td>
         <td class="tc-ex">${dash}</td>
-        <td class="tc-kine">${dash}</td>`;
+        <td class="tc-kine">${dash}</td>
+        <td class="tc-ev">${dash}</td>`;
     });
 }
 
@@ -8019,13 +8145,13 @@ function renderTabla(){
   t.innerHTML='';
   const head=t.createTHead();
   const tr1=head.insertRow();
-  [{l:'DATOS',n:9,c:'d'},{l:'TURNO DÍA',n:8,c:'dia'},{l:'TURNO NOCHE',n:6,c:'noc'}]
+  [{l:'DATOS',n:9,c:'d'},{l:'TURNO DÍA',n:8,c:'dia'},{l:'TURNO NOCHE',n:7,c:'noc'}]
     .forEach(s=>{const th=document.createElement('th');th.className=`ths ${s.c}`;th.colSpan=s.n;th.textContent=s.l;tr1.appendChild(th);});
   const tr2=head.insertRow();
   [{l:'CAMA',c:'d'},{l:'PACIENTE',c:'d'},{l:'SEXO',c:'d'},{l:'EDAD',c:'d'},{l:'D.EST',c:'d'},
    {l:'D.VM',c:'d'},{l:'D.VNI',c:'d'},{l:'DX INGRESO',c:'d'},{l:'SOPORTE',c:'d'},
    {l:'KTR',c:'dia'},{l:'KTM',c:'dia'},{l:'PROC 1',c:'dia'},{l:'PROC 2',c:'dia'},{l:'PROC 3',c:'dia'},{l:'PROC 4',c:'dia'},{l:'EXTUB.',c:'dia'},{l:'KINE',c:'dia'},
-   {l:'KTR',c:'noc'},{l:'PROC 1',c:'noc'},{l:'PROC 2',c:'noc'},{l:'PROC 3',c:'noc'},{l:'EXTUB.',c:'noc'},{l:'KINE',c:'noc'}]
+   {l:'KTR',c:'noc'},{l:'PROC 1',c:'noc'},{l:'PROC 2',c:'noc'},{l:'PROC 3',c:'noc'},{l:'EXTUB.',c:'noc'},{l:'KINE',c:'noc'},{l:'＋',c:'noc'}]
     .forEach(h=>{const th=document.createElement('th');th.className=`thc ${h.c}`;th.textContent=h.l;tr2.appendChild(th);});
 
   const dash='<span style="color:#cbd5e1;">-</span>';
@@ -8106,11 +8232,12 @@ function renderTabla(){
         <td class="tc-p4">${cN[1]}</td>
         <td class="tc-p4">${cN[2]}</td>
         <td class="tc-ex">${extub(evoN)}</td>
-        <td class="tc-kine">${firmaCell(evoN)}</td>`;
+        <td class="tc-kine">${firmaCell(evoN)}</td>
+        <td class="tc-ev"><button type="button" class="ev-btn" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${id}',this)">➕</button></td>`;
     });
 
   const trT=tb.insertRow(); trT.className='r-tot';
-  trT.innerHTML=`<td colspan="22" class="tl">TOTAL KTR (DÍA + NOCHE)</td><td class="tv">${kD}</td>`;
+  trT.innerHTML=`<td colspan="23" class="tl">TOTAL KTR (DÍA + NOCHE)</td><td class="tv">${kD}</td>`;
 
   const ocupadas=DB.filter(c=>c.OCUPADA===true||c.OCUPADA==='TRUE').length;
   const enVM=DB.filter(c=>(c.OCUPADA===true||c.OCUPADA==='TRUE')&&c.SOPORTE==='VM').length;

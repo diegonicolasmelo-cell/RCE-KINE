@@ -235,6 +235,10 @@ const ESQUEMA = {
     // detección de reingresos y el cruce con la estadística médica. NUNCA
     // sale en REM, tablero ni exportaciones anonimizadas.
     ['RUT','texto'],
+    // Reloj de dispositivos (jul-2026): las fechas ya existen arriba
+    // (DISP_HME/HEPA/TC/HUMID_FECHA); aquí solo la confirmación de la
+    // instalación asumida al conectar a VM (chip «Aceptar» del panel).
+    ['DISP_CONFIRMADO','bool'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -286,6 +290,7 @@ const ESQUEMA = {
   ]},
   KINESIOLOGOS: { headerRows: 1, cols: [
     ['FIRMA','texto'],['NOMBRE','texto'],['EMAIL','email'],['APOYO','bool'],['ACTIVO','bool'],
+    ['TRATAMIENTO','texto'],   // Klgo. | Klga. — para la firma del texto clínico (vacío = Klgo.)
   ]},
   ESTADISTICAS_REM: { headerRows: 1, cols: [
     ['MES','texto'],['INGRESOS','entero'],['DIAS_CAMA','entero'],['TURNOS_VM','entero'],['TURNOS_KTM','entero'],
@@ -519,6 +524,9 @@ function _sembrar(ss) {
     ['CORTE_FSS_INDEP', '27'],      // FSS-ICU >= corte = independencia funcional
     ['EVAL_DIAS_ALERTA', '5'],      // días sin re-evaluar MRC/FSS (cooperador) antes de alertar
     ['PVE_TURNOS_ALERTA', '2'],     // turnos seguidos candidato a PVE sin PVE antes de alertar
+    ['FREC_HME_DIAS', '2'],         // días entre cambios de filtro HME
+    ['FREC_HEPA_DIAS', '3'],        // días entre cambios de filtro HEPA
+    ['FREC_SONDA_DIAS', '3'],       // días entre cambios de sonda de aspiración cerrada
     // TEMPORAL: permite editar el texto de la vista previa en pantalla (solo
     // demostración; NO se guarda). Poner en FALSE cuando termine el afinamiento.
     ['EDITOR_TEXTO_DEMO', 'TRUE'],

@@ -401,7 +401,7 @@ function generarTextoEvolucion(d) {
   const planes = v('PLAN_PLANES'), nota = v('PLAN_NOTA_TURNO'), firma = v('PLAN_FIRMA_KINE');
   if (planes) txt.push(`Plan: ${planes}`);
   if (nota)   txt.push(`Nota: ${nota}`);
-  if (firma)  txt.push(`Kinesiólogo: ${firma}`);
+  if (firma)  txt.push(_firmaTextoClinico(firma));
 
   return txt.filter(Boolean).join('\n');
 }
@@ -410,4 +410,25 @@ function _parseFases(faseJson) {
   if (!faseJson) return [];
   try { const a = JSON.parse(faseJson); return Array.isArray(a) ? a.filter(Boolean) : []; }
   catch (e) { return []; }
+}
+
+/**
+ * Firma → «Klgo./Klga. Nombre Apellido» para el texto clínico (jul-2026).
+ * Resuelve desde KINESIOLOGOS (NOMBRE + TRATAMIENTO, default Klgo.);
+ * si la firma no está en el roster, cae a «Klgo. <firma>».
+ */
+let _firmaCache = null;
+function _firmaTextoClinico(firma) {
+  const f = String(firma || '').trim();
+  if (!f) return '';
+  try {
+    if (!_firmaCache) {
+      _firmaCache = {};
+      repoLeerTodos('KINESIOLOGOS').forEach(k => {
+        if (k.FIRMA) _firmaCache[String(k.FIRMA).trim()] =
+          (String(k.TRATAMIENTO || '').trim() || 'Klgo.') + ' ' + String(k.NOMBRE || '').trim();
+      });
+    }
+    return _firmaCache[f] || ('Klgo. ' + f);
+  } catch (e) { return 'Klgo. ' + f; }
 }
