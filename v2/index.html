@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="2.5-tablero">
+<meta name="rce-version" content="2.6-movil">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -841,6 +841,41 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .fase-chip-conf:hover{background:#fef3c7;}
 .fase-chip-add{border-style:dashed;border-color:var(--primary);color:var(--primary);font-weight:700;padding:4px 10px;}
 
+/* ── VERSIÓN MÓVIL (≤740px): barra inferior, hoja «Más» y acordeón ───────────
+   El mismo index sirve escritorio y celular: bajo 740px se oculta la barra de
+   pestañas clásica y aparece la navegación inferior (zona del pulgar). Los
+   módulos del panel de evolución se vuelven acordeón (.mcol = colapsado). */
+.mnav{display:none;}
+.msheet{display:none;}
+.mvelo{display:none;}
+@media (max-width:740px){
+  .tabs{display:none;}
+  body{padding-bottom:64px;}
+  .grid{padding:10px 10px 84px;gap:10px 10px;}
+  .mnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:90;background:#fff;border-top:1px solid var(--border);padding:6px 2px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(15,23,42,.06);}
+  .mnav button{flex:1;background:none;border:none;font-size:.58rem;font-weight:700;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:2px 0;}
+  .mnav button .mi{font-size:20px;line-height:1.1;}
+  .mnav button.on{color:var(--primary);}
+  .mvelo{display:block;position:fixed;inset:0;background:rgba(20,20,18,.45);z-index:94;}
+  .mvelo.hidden{display:none;}
+  .msheet{display:block;position:fixed;left:0;right:0;bottom:0;z-index:95;background:#fff;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.2);padding:10px 14px calc(16px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .22s ease;}
+  .msheet.on{transform:translateY(0);}
+  .msheet .mit{display:flex;align-items:center;gap:12px;padding:13px 8px;font-size:.9rem;font-weight:600;color:var(--txt);border:none;border-bottom:1px solid #f1efe9;width:100%;background:none;cursor:pointer;text-align:left;}
+  .msheet .mit:last-child{border-bottom:none;}
+  /* Panel de evolución: acordeón + botonera de guardado fija */
+  .fcard-hdr{cursor:pointer;user-select:none;}
+  .fcard-hdr::after{content:'▾';margin-left:auto;color:#b7b3a9;font-size:.8rem;}
+  .fcard-hdr:has(.her-chip)::after{margin-left:6px;}
+  .fcard.mcol .fcard-hdr::after{content:'▸';}
+  .fcard.mcol .fcard-body{display:none;}
+  .fcard.mcol{margin-bottom:8px;}
+  #sp .pcontent{padding:8px 8px 0;}
+  .act-bar{position:sticky;bottom:0;background:#fff;padding:10px 10px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 18px rgba(15,23,42,.1);z-index:6;border-radius:12px 12px 0 0;}
+  /* Toques más generosos */
+  .col input,.col select{height:42px;}
+  .ktm-state,.ktm-niv-btn,.ktm-asis-btn{min-height:38px;}
+  .bevo{min-height:38px;}
+}
 </style>
 </head>
 <body>
@@ -891,6 +926,22 @@ table.rhb2 .rl{width:128px;text-align:left;}
   <button class="tab" id="tabE" onclick="setTab('E')">📑 ENTREGA</button>
   <button class="tab" id="tabA" onclick="setTab('A')">🗃️ ARCHIVADOS</button>
   <button class="tab" id="tabV" onclick="setTab('V')">🔧 VENTILADORES</button>
+</div>
+
+<!-- NAVEGACIÓN MÓVIL: barra inferior (4 pestañas diarias) + hoja «Más» -->
+<nav class="mnav no-print">
+  <button id="mnavG" class="on" onclick="setTab('G')"><span class="mi">🛏️</span>Camas</button>
+  <button id="mnavP" onclick="setTab('P')"><span class="mi">📋</span>Registro</button>
+  <button id="mnavD" onclick="setTab('D')"><span class="mi">📊</span>Estadíst.</button>
+  <button id="mnavE" onclick="setTab('E')"><span class="mi">📑</span>Entrega</button>
+  <button id="mnavMas" onclick="mSheet(true)"><span class="mi">⋯</span>Más</button>
+</nav>
+<div class="mvelo hidden no-print" id="mvelo" onclick="mSheet(false)"></div>
+<div class="msheet no-print" id="msheet">
+  <div style="width:36px;height:4px;background:#dcd8d0;border-radius:2px;margin:0 auto 8px;"></div>
+  <button type="button" class="mit" onclick="mSheet(false);setTab('A')">🗃️ Archivados</button>
+  <button type="button" class="mit" onclick="mSheet(false);setTab('V')">🔧 Ventiladores</button>
+  <button type="button" class="mit" onclick="mSheet(false);recargar()">🔄 Actualizar datos</button>
 </div>
 
 <!-- BANNER RETROSPECTIVO (cuando la fecha seleccionada no es hoy) -->
@@ -2940,7 +2991,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.5-tablero]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 2.6-movil]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3419,6 +3470,7 @@ function abrirPanel(id, esIng) {
   }
   $('ovl').classList.add('on');
   $('sp').classList.add('on');
+  mAcordeonInit();
   document.body.style.overflow = 'hidden';
 
   // ★ FIX scroll: asegurar que el panel arranca al inicio del formulario.
@@ -6372,6 +6424,27 @@ function confirmarReingreso(){
   hide('dNombreAlert');
 }
 
+/* ── Versión móvil: hoja «Más» y acordeón de módulos ── */
+const esMovil=()=>window.matchMedia('(max-width:740px)').matches;
+function mSheet(abrir){
+  $('msheet')?.classList.toggle('on', !!abrir);
+  $('mvelo')?.classList.toggle('hidden', !abrir);
+}
+function mAcordeonInit(){
+  const cards=document.querySelectorAll('#sp .fcard');
+  if(!esMovil()){ cards.forEach(f=>f.classList.remove('mcol')); return; }
+  cards.forEach(f=>f.classList.add('mcol'));
+  // En un INGRESO la identificación parte abierta (es lo primero que se llena)
+  if(v('cIng')==='true'){ $('fcId')?.classList.remove('mcol'); }
+}
+document.addEventListener('click', e=>{
+  if(!esMovil()) return;
+  const hdr=e.target.closest('#sp .fcard-hdr');
+  if(!hdr) return;
+  if(e.target.closest('.her-chip,button,input,select,label,a')) return;   // los controles del encabezado mandan
+  hdr.closest('.fcard')?.classList.toggle('mcol');
+});
+
 /* ── RUT: dígito verificador + aviso de reingreso (episodios previos) ── */
 function _rutNorm(rut){ const s=String(rut||'').toUpperCase().replace(/[^0-9K]/g,''); return s.length<2?'':s.slice(0,-1)+'-'+s.slice(-1); }
 function _rutOk(rut){
@@ -7806,6 +7879,9 @@ function setTab(t){
     $('tc'+k).classList.toggle('on', t===k);
     $('tab'+k).classList.toggle('on', t===k);
   });
+  // Barra móvil: refleja la pestaña activa («Más» cubre Archivados/Ventiladores)
+  ['G','P','D','E'].forEach(k=>{ const b=$('mnav'+k); if(b) b.classList.toggle('on', t===k); });
+  const _mm=$('mnavMas'); if(_mm) _mm.classList.toggle('on', t==='A'||t==='V');
   // En móvil la barra de pestañas es deslizable: centrar la activa por si
   // quedó fuera de vista (p. ej. Archivados/Ventiladores al final).
   const _bar=document.querySelector('.tabs'), _bt=$('tab'+t);
