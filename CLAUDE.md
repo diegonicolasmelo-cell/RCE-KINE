@@ -73,13 +73,16 @@ o commitear. Un bug que costó más de un intercambio merece guardia nueva.
 
 ## Estado y pendientes (julio 2026)
 
-- En marcha blanca con datos reales. Deployment estable: cohete v2.3.
+- En marcha blanca con datos reales. Deployment estable: cohete v2.6-movil
+  (REM 28 celda a celda, tablero centinela, RUT, versión móvil instalable).
 - **REM 28**: `svc_rem.gs` agrega los totales; falta el formulario oficial
   de estadística (Diego lo enviará) para mapear la salida celda a celda.
 - **Motor de texto**: `TEXTO_AUTO` vs `TEXTO_MANUAL` se guardan por turno;
   tras semanas de uso, comparar y refinar el motor con los patrones de
   edición reales.
-- **Versión móvil**: pendiente; mockups antes de código.
+- **Versión móvil**: LISTA (jul-2026): barra inferior + hoja «Más», acordeón
+  en evolución, web instalable; guardia `checks/movil.js`. Pulir con feedback
+  de uso real del equipo.
 - **Tablero de indicadores centinela** (jul-2026): en Estadísticas; fracaso
   de extubación ≤48 h (precoz <24 h / tardío 24-48 h, meta <20%),
   autoextubaciones/100 días-VM (1-2), fuera de protocolo (<25%) con motivos
