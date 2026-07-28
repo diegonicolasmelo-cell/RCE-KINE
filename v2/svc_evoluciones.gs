@@ -363,10 +363,17 @@ function obtenerEvolucionPrevia(idCama, turnoKey) {
     const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
     const objetivo = String(turnoKey);
     let mejor = null, mejorKey = '';
+    let mejorDia = null, mejorDiaKey = '';
     evos.forEach(e => {
       const k = String(e.TURNO_KEY || '');
-      if (k && k < objetivo && k > mejorKey) { mejor = e; mejorKey = k; }
+      if (!k || k >= objetivo) return;
+      if (k > mejorKey) { mejor = e; mejorKey = k; }
+      if (/-Dia$/.test(k) && k > mejorDiaKey) { mejorDia = e; mejorDiaKey = k; }
     });
+    // Terapia física (KTM/IMT/EMS) se replica DÍA→DÍA: la Noche intermedia no
+    // aporta ese bloque (de noche va oculto y limpio). Si la previa inmediata
+    // no es de día, viaja adjunta la última evolución de turno Día.
+    if (mejor && mejorDia && mejorDiaKey !== mejorKey) mejor._PREVIA_DIA = mejorDia;
     return ok(mejor);
   } catch (e) { return err('obtenerEvolucionPrevia: ' + e.message, ERR.INTERNO, e); }
 }

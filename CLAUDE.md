@@ -80,9 +80,22 @@ que costó más de un intercambio merece guardia nueva.
 
 ## Estado y pendientes (julio 2026)
 
-- En marcha blanca con datos reales. Deployment estable: cohete v3.0-eventos
-  (REM 28 celda a celda, tablero centinela, RUT, versión móvil instalable,
-  eventos rápidos, firma clínica con tratamiento).
+- En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
+  (ahí se afina el registro con uso real). Deployment estable: cohete
+  v3.2-ktmdia (REM 28 celda a celda, tablero centinela, RUT, versión móvil
+  instalable, eventos rápidos, firma clínica con tratamiento).
+- **Réplicas por turno** (reglas ganadas a punta de bugs, jul-2026):
+  los PROCEDIMIENTOS son del turno — la réplica parte SIEMPRE con la lista
+  manual vacía (el PROC_JSON guardado une manuales+automáticos; arrastrarlo
+  duplicaba INGRESO/IMT y sumaba doble en estadística). TERAPIA FÍSICA
+  (KTM/IMT/EMS) se replica **DÍA→DÍA**: de noche el bloque va oculto por el
+  gate y parte LIMPIO (si replicara se guardaban sesiones IMT fantasma que
+  nadie ve); el servidor adjunta `_PREVIA_DIA` en obtenerEvolucionPrevia y
+  el cliente usa esa fila para el bloque (`_tf` en fillFormReplica).
+  Guardias: BUG 4 y BUG 5 en `checks/regresion_ui.js`.
+  MEJORA EVENTUAL (pedir confirmación a Diego si surge la necesidad):
+  permitir anotar IMT/EMS nocturno — hoy es «jamás», pero él anticipa que
+  podría necesitarse; sería mostrar el bloque de noche desmarcado.
 - **Eventos rápidos + reloj de dispositivos** (jul-2026): botón ➕ en la
   fila del Registro Diario y en la tarjeta de cama abre un popover (estilo
   lista de Sheets) para anotar DESPUÉS de evolucionar: procedimiento del

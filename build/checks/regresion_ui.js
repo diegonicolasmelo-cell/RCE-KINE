@@ -69,6 +69,27 @@ const path = require('path');
   });
   eq('réplica: chips manuales parten vacíos (nada arrastrado)', PR.n, 0);
 
+  // ── BUG 5: terapia física replica DÍA→DÍA (la noche parte limpia) ──
+  const TF = await p.evaluate(()=>{
+    $('kf').reset(); $('cBed').value='3'; DB=[{ID_CAMA:'3',VIA_AEREA:'TOT',SOPORTE:'VM'}];
+    const r={};
+    // Noche: aunque la previa traiga IMT/EMS, el bloque parte limpio (sin fantasma)
+    SHIFT='Noche';
+    fillFormReplica({KTM_IMT:'TRUE',KTM_EMS:'TRUE',KTM_REALIZADA:'TRUE',KTM_NIVEL_KTR:'3',VENT_VIA_AEREA:'TOT',VENT_SOPORTE:'VM'});
+    r.nocheIMT=$('cIMT').checked; r.nocheEMS=$('cEMS').checked;
+    r.nocheKTMr=$('cKTMr').checked; r.nocheOculto=$('fcKtmCard').classList.contains('hidden');
+    // Día con previa Noche: la pauta llega desde la última evolución de DÍA adjunta
+    SHIFT='Dia'; $('kf').reset();
+    fillFormReplica({KTM_IMT:false,KTM_REALIZADA:false,VENT_VIA_AEREA:'TOT',VENT_SOPORTE:'VM',
+      _PREVIA_DIA:{KTM_IMT:'TRUE',KTM_IMT_FREQ:'3',KTM_REALIZADA:'TRUE',KTM_NIVEL_KTR:'2'}});
+    r.diaIMT=$('cIMT').checked; r.diaFreq=v('fIMTfreq'); r.diaKTMr=$('cKTMr').checked;
+    return r;
+  });
+  eq('noche: IMT/EMS NO se arrastran (sin sesión fantasma)', !TF.nocheIMT && !TF.nocheEMS, true);
+  eq('noche: KTM forzada a "no realizada" y tarjeta oculta', !TF.nocheKTMr && TF.nocheOculto, true);
+  eq('día: la pauta llega de la última evolución de DÍA', TF.diaIMT && TF.diaKTMr, true);
+  eq('día: pauta IMT heredada', TF.diaFreq, '3');
+
   // ── BUG 1: tablero VM con ids vacíos ──
   const VM = await p.evaluate(()=>{
     window.CFG={NUM_CAMAS:12,BANNERS:{}};
