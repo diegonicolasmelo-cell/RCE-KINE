@@ -129,6 +129,16 @@ que costó más de un intercambio merece guardia nueva.
   por turno, PVE/100 pac-día, mediana VM pre-TQT, reingresos por RUT,
   mortalidad SIN ajuste (el ajuste por APACHE II se hace fuera, cruzado por
   RUT, anonimizado). `svc_indicadores.gs` + guardia `checks/indicadores.js`.
+- **APACHE II — PENDIENTE DE CERRAR CON DIEGO** (jul-2026, pedido explícito:
+  «recuérdamelo cuando terminemos las otras tareas y lo cerramos»). Hallazgo de
+  Manuel: la gravedad al ingreso predice la mortalidad (OR 1,94 por cada 5
+  puntos, p<0,001; AUC 0,633→0,795) y los días de VM no ⇒ comparar meses o
+  turnos sin ajuste compara poblaciones, no desempeños. Hoy el dato NO se
+  captura. Recomendación entregada: campo numérico opcional (0-71) al ingreso,
+  editable después (lo calcula el médico, el kine lo copia); columna al final de
+  EVOLUCIONES ⇒ exige `crearORepararEstructura()`. Alternativa: cruce por RUT
+  con la planilla médica (depende de otro equipo). Probablemente Manuel trabaje
+  en ello; igual hay que decidir el lado RCE-KINE.
 - **En el tintero** (iniciativa de Klgo. Manuel Fuentes, coordinar y sumar):
   sembrar INDICADORES_HISTORICO con su tabla mensual 2025-2026 (solo
   agregados) cuando la envíe, y la exportación anonimizada paciente-día
