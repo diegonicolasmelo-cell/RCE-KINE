@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="3.0-eventos">
+<meta name="rce-version" content="3.1-procs">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3078,7 +3078,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 3.0-eventos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 3.1-procs]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4134,9 +4134,10 @@ function fillFormReplica(s) {
   // el timeline y el historial.
   const _mue=$('cMue'); if(_mue) _mue.checked=false; hMue();
 
-  // Procedimientos: los de cultivo no se replican (volverían a contarse
-  // como procedimiento nuevo en el turno siguiente)
-  if(s.PROC_JSON){ try{ PROCS=(JSON.parse(s.PROC_JSON)||[]).filter(p=>!/CULTIVO|PCR|HISOPADO|MINI ?LAB|CCAET/i.test(String(p))); }catch(e){} renderChips(); }
+  // Procedimientos: ACCIÓN PUNTUAL DEL TURNO — NUNCA se replican. El
+  // PROC_JSON guardado incluye también los automáticos (INGRESO, IMT…):
+  // arrastrarlos los contaría de nuevo en la estadística del turno siguiente.
+  PROCS=[]; renderChips();
 
   // Plan (copia planes estructurales, NO copia nota libre de turno ni firma)
   set('fPlanes',s.PLAN_PLANES);

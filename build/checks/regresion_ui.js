@@ -60,6 +60,15 @@ const path = require('path');
     toggleFase('Rehabilitación'); return { antes, despues:_faseHeredada, sel:FASES_SEL.has('Rehabilitación') }; });
   eq('cambiar una fase también confirma (quita heredada)', FT.antes && !FT.despues && FT.sel, true);
 
+  // ── BUG 4: los procedimientos son del turno — la réplica NO los arrastra ──
+  const PR = await p.evaluate(()=>{
+    $('kf').reset(); $('cBed').value='3'; DB=[{ID_CAMA:'3',VIA_AEREA:'TOT',SOPORTE:'VM'}];
+    PROCS=['VIEJO'];
+    fillFormReplica({PROC_JSON:'["IMT","INGRESO","ECOGRAFÍA"]',VENT_VIA_AEREA:'TOT',VENT_SOPORTE:'VM'});
+    return { n:PROCS.length, chips:document.querySelectorAll('#procChips .chip, #procChips .proc-chip').length };
+  });
+  eq('réplica: chips manuales parten vacíos (nada arrastrado)', PR.n, 0);
+
   // ── BUG 1: tablero VM con ids vacíos ──
   const VM = await p.evaluate(()=>{
     window.CFG={NUM_CAMAS:12,BANNERS:{}};
