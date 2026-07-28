@@ -185,6 +185,12 @@ const _COLS_EVOLUCIONES = [
   // REM 28 (jul-2026): sesiones individuales y educación
   ['KTM_CANT','entero'],    // N° de sesiones KTM del turno (REM B.4; por defecto 1 si KTM realizada)
   ['EDU_REALIZADA','bool'], // educación a usuario/cuidador/familia (REM B.6; cuenta 1 por turno)
+  // Presión de cuff — verificación 1 vez por turno (protocolo de la unidad).
+  // Medida del paquete de prevención de NAVM: bajo el mínimo hay microaspiración
+  // de secreciones subglóticas; sobre el máximo, isquemia de la mucosa traqueal
+  // (IDSA: 20-30 cmH2O). Estado en un toque; el valor solo se pide si hubo ajuste.
+  ['VENT_CUFF_EST','texto'],     // '' | 'rango' | 'ajuste' | 'desinflado'
+  ['VENT_CUFF_CMH2O','decimal'], // valor encontrado (solo cuando EST='ajuste')
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -527,6 +533,16 @@ function _sembrar(ss) {
     ['FREC_HME_DIAS', '2'],         // días entre cambios de filtro HME
     ['FREC_HEPA_DIAS', '3'],        // días entre cambios de filtro HEPA
     ['FREC_SONDA_DIAS', '3'],       // días entre cambios de sonda de aspiración cerrada
+    // Presión de cuff (IDSA 20-30 cmH2O): bajo el mínimo hay microaspiración
+    // subglótica —vía principal de la NAVM—; sobre el máximo, isquemia de la
+    // mucosa traqueal. Ajustar aquí si el protocolo de la unidad usa otro rango.
+    ['CUFF_MIN', '20'],
+    ['CUFF_MAX', '30'],
+    // Presión transtraqueal con válvula de fonación: ≤PTT_OK vía aérea permeable
+    // (la literatura reporta 86% de tolerancia a la válvula con ≤9 cmH2O y 93%
+    // con ≤5); sobre PTT_ALERTA sugiere obstrucción alta o cánula sobredimensionada.
+    ['PTT_OK', '10'],
+    ['PTT_ALERTA', '12'],
     // TEMPORAL: permite editar el texto de la vista previa en pantalla (solo
     // demostración; NO se guarda). Poner en FALSE cuando termine el afinamiento.
     ['EDITOR_TEXTO_DEMO', 'TRUE'],
@@ -633,7 +649,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 302) errs.push('EVOLUCIONES != 302 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 304) errs.push('EVOLUCIONES != 304 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

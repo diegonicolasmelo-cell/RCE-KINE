@@ -45,6 +45,10 @@ function api(accion, datos, token) {
         TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
         EDITOR_TEXTO_DEMO: leerConfig('EDITOR_TEXTO_DEMO', 'FALSE') === 'TRUE',
         EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
+        CUFF_MIN: parseInt(leerConfig('CUFF_MIN', '20')) || 20,
+        CUFF_MAX: parseInt(leerConfig('CUFF_MAX', '30')) || 30,
+        PTT_OK: parseFloat(leerConfig('PTT_OK', '10')) || 10,
+        PTT_ALERTA: parseFloat(leerConfig('PTT_ALERTA', '12')) || 12,
         BANNERS: {
           G: leerConfig('BANNER_G', ''), P: leerConfig('BANNER_P', ''), D: leerConfig('BANNER_D', ''),
           E: leerConfig('BANNER_E', ''), A: leerConfig('BANNER_A', ''), V: leerConfig('BANNER_V', ''),

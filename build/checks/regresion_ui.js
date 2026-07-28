@@ -90,6 +90,42 @@ const path = require('path');
   eq('día: la pauta llega de la última evolución de DÍA', TF.diaIMT && TF.diaKTMr, true);
   eq('día: pauta IMT heredada', TF.diaFreq, '3');
 
+  // ── CUFF: verificación por turno, sin roce y sin réplica ──
+  const CU = await p.evaluate(()=>{
+    $('kf').reset(); $('cBed').value='3'; DB=[{ID_CAMA:'3',VIA_AEREA:'TOT',SOPORTE:'VM'}];
+    window.CFG={NUM_CAMAS:12,BANNERS:{},CUFF_MIN:20,CUFF_MAX:30,PTT_OK:10,PTT_ALERTA:12};
+    const r={};
+    // Gate: sin vía aérea artificial no existe la fila
+    $('fVA').value='Natural'; cuffGate(); r.natural=$('dCuff').classList.contains('hidden');
+    $('fVA').value='TOT'; cuffGate(); r.tot=!$('dCuff').classList.contains('hidden');
+    r.meta=$('cuffMeta').textContent;
+    // Un toque marca; solo «ajusté» pide número
+    setCuff('rango');
+    r.estRango=$('fCuffEst').value; r.pideValor=!$('dCuffVal').classList.contains('hidden');
+    setCuff('ajuste');
+    r.estAjuste=$('fCuffEst').value; r.pideAjuste=!$('dCuffVal').classList.contains('hidden');
+    $('fCuffVal').value='16';
+    setCuff('rango'); r.limpiaValor=$('fCuffVal').value;
+    // No se replica del turno anterior
+    setCuff('rango');
+    fillFormReplica({VENT_CUFF_EST:'rango',VENT_CUFF_CMH2O:'24',VENT_VIA_AEREA:'TOT',VENT_SOPORTE:'VM'});
+    r.trasReplica=$('fCuffEst').value;
+    // Semáforo de la presión transtraqueal
+    const ptt=x=>{ $('fPVA').value=x; interpPTT(); return $('pttChip').className.replace('disp-chip ',''); };
+    r.ptt8=ptt(8); r.ptt11=ptt(11); r.ptt18=ptt(18);
+    return r;
+  });
+  eq('cuff: oculto sin vía aérea artificial', CU.natural, true);
+  eq('cuff: visible con TOT', CU.tot, true);
+  eq('cuff: rango leído de CONFIG', CU.meta, '20-30 cmH₂O');
+  eq('cuff: «en rango» NO pide número (cero roce)', CU.estRango==='rango' && !CU.pideValor, true);
+  eq('cuff: solo «ajusté» pide el valor', CU.estAjuste==='ajuste' && CU.pideAjuste, true);
+  eq('cuff: al volver a «en rango» se limpia el valor', CU.limpiaValor, '');
+  eq('cuff: NO se replica del turno anterior', CU.trasReplica, '');
+  eq('P. transtraqueal ≤10 → permeable', CU.ptt8, 'disp-ok');
+  eq('P. transtraqueal 11-12 → límite', CU.ptt11, 'disp-warn');
+  eq('P. transtraqueal >12 → sugiere obstrucción', CU.ptt18, 'disp-bad');
+
   // ── BUG 1: tablero VM con ids vacíos ──
   const VM = await p.evaluate(()=>{
     window.CFG={NUM_CAMAS:12,BANNERS:{}};

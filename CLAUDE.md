@@ -115,6 +115,20 @@ que costó más de un intercambio merece guardia nueva.
 - **Estadísticas**: centinelas protagonistas — `indBox` al tope de la
   pestaña, desplegado y auto-calculado (año en curso) al entrar; REM y
   auditoría quedan como secundarios (son para jefatura).
+- **Cuff y presión transtraqueal** (jul-2026): el cuff se verifica **1 vez
+  por turno** (protocolo de la unidad) con chips de UN TOQUE
+  (`✓ En rango · ⚠ Ajusté · ○ Desinflado`) que solo aparecen con VA
+  artificial; el número se pide SOLO al ajustar (Diego: «que no agregue más
+  roce a evolucionar»). No se replica: heredarlo daría por hecha una
+  medición que nadie hizo. Columnas `VENT_CUFF_EST`/`VENT_CUFF_CMH2O`;
+  rango en CONFIG (`CUFF_MIN`/`CUFF_MAX`, IDSA 20-30). Indicador nuevo en el
+  tablero: adherencia = verificados/turnos con VA artificial (los
+  «desinflado» salen del denominador: con válvula de fonación no
+  corresponde medir). **`EVAL_T_PMANT_VA` NO es cuff**: es la presión
+  transtraqueal con válvula de fonación (permeabilidad de vía aérea /
+  cánula sobredimensionada); semáforo con cortes `PTT_OK`=10 y
+  `PTT_ALERTA`=12 en CONFIG — Diego los revisará contra el protocolo de la
+  unidad (literatura: ≤10 permeable; 86% de tolerancia con ≤9, 93% con ≤5).
 - **REM 28**: `svc_rem.gs` agrega los totales; falta el formulario oficial
   de estadística (Diego lo enviará) para mapear la salida celda a celda.
 - **Motor de texto**: `TEXTO_AUTO` vs `TEXTO_MANUAL` se guardan por turno;

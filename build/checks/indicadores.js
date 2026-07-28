@@ -33,6 +33,12 @@ DB.EVOLUCIONES = [
   { PATIENT_ID:P2, FECHA:'2026-07-20', TURNO_KEY:'2026-07-20-Dia', VENT_SOPORTE:'VM', EXT_OCURRIO:true, EXT_TIPO:'autoextubacion' },
   // P3: TQT el 05 con 9 días de VM previos (jun 27 - jul 05) → VM prolongada
   { PATIENT_ID:P3, FECHA:'2026-07-05', TURNO_KEY:'2026-07-05-Dia', VENT_SOPORTE:'VM', TQT_OCURRIO:true },
+  // Cuff (verificación por turno, solo con vía aérea artificial):
+  { PATIENT_ID:P1, FECHA:'2026-07-06', TURNO_KEY:'2026-07-06-Dia',   VENT_VIA_AEREA:'TOT', VENT_CUFF_EST:'rango' },
+  { PATIENT_ID:P1, FECHA:'2026-07-06', TURNO_KEY:'2026-07-06-Noche', VENT_VIA_AEREA:'TOT', VENT_CUFF_EST:'ajuste', VENT_CUFF_CMH2O:16 },
+  { PATIENT_ID:P1, FECHA:'2026-07-07', TURNO_KEY:'2026-07-07-Dia',   VENT_VIA_AEREA:'TQT', VENT_CUFF_EST:'' },        // sin verificar → baja adherencia
+  { PATIENT_ID:P1, FECHA:'2026-07-07', TURNO_KEY:'2026-07-07-Noche', VENT_VIA_AEREA:'TQT', VENT_CUFF_EST:'desinflado' }, // válvula de fonación → fuera del denominador
+  { PATIENT_ID:P1, FECHA:'2026-07-08', TURNO_KEY:'2026-07-08-Dia',   VENT_VIA_AEREA:'Natural', VENT_CUFF_EST:'' },   // sin VA artificial → no aplica
 ];
 DB.EVOLUCIONES_ARCHIVO = [];
 for (let d = 27; d <= 30; d++) DB.EVOLUCIONES_ARCHIVO.push({ PATIENT_ID:P3, FECHA:'2026-06-'+d, TURNO_KEY:'2026-06-'+d+'-Dia', VENT_SOPORTE:'VM' });
@@ -66,6 +72,10 @@ eq('PVE del rango', d.pve, 1);
 eq('mediana días-VM antes de TQT (4 jun archivadas + 5 jul = 9)', d.medianaVMpreTQT, 9);
 eq('VM prolongada (solo P3 con 9 días de episodio)', d.vmProlongada, 1);
 eq('atenciones (KTR 2+3 + KTM 2)', d.atenciones, 7);
+eq('cuff: denominador = turnos con VA artificial, sin los desinflados', d.cuffTurnos, 3);
+eq('cuff: verificados = en rango + ajustados', d.cuffVerificados, 2);
+eq('cuff: ajustes contados aparte', d.cuffAjustes, 1);
+eq('cuff: adherencia 2/3 = 67%', d.cuffAdherenciaPct, 67);
 eq('reingresos por RUT (12345678-5 con 2 episodios, formatos distintos)', d.reingresos, 1);
 eq('egresos del rango', d.egresos, 2);
 eq('mortalidad 50%', d.mortalidadPct, 50);

@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="3.2-ktmdia">
+<meta name="rce-version" content="3.3-cuff">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -701,6 +701,13 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .interp-pill{font-size:.7rem;font-weight:600;padding:3px 9px;border-radius:99px;display:inline-block;}
 /* chips de vencimiento de dispositivos de circuito VM */
 .disp-chip{font-size:.72rem;padding:4px 9px;border-radius:6px;font-weight:700;white-space:nowrap;display:inline-block;}
+/* Cuff: chips de un toque (sin teclado ni desplegable) */
+.cuff-b{border:1px solid var(--border);background:#fff;color:var(--muted);border-radius:14px;
+  padding:4px 11px;font-size:.71rem;font-weight:700;cursor:pointer;line-height:1.2;}
+.cuff-b:hover{border-color:var(--primary);color:var(--primary);}
+.cuff-b.on{background:var(--n-blue-bg);border-color:var(--primary);color:var(--pdark);font-weight:800;}
+#cuffB1.on{background:var(--n-green-bg);border-color:var(--ok);color:var(--n-green);}
+#cuffB2.on{background:var(--n-yellow-bg);border-color:var(--warn);color:var(--n-yellow);}
 .disp-ok{background:#e0f2fe;color:#0369a1;}
 .disp-warn{background:#fef3c7;color:#92400e;}
 .disp-bad{background:#fee2e2;color:#b91c1c;}
@@ -1749,6 +1756,20 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                 <div class="col wa hidden" id="dCambioTQTdet"><label>Detalle</label>
                   <input type="text" id="fCambioTQTdet" placeholder="Motivo..." style="min-width:160px;"></div>
               </div>
+              <!-- CUFF: verificación 1 vez por turno (protocolo de la unidad).
+                   Un toque; el número solo se pide cuando hubo que ajustar. -->
+              <div id="dCuff" class="row hidden" style="margin-bottom:2px;align-items:center;gap:7px;">
+                <span style="font-size:.72rem;font-weight:800;color:var(--pdark);">🎈 Cuff</span>
+                <span id="cuffMeta" style="font-size:.66rem;color:var(--muted);">20-30 cmH₂O</span>
+                <span style="display:inline-flex;gap:7px;flex-wrap:nowrap;">
+                  <button type="button" class="cuff-b" id="cuffB1" onclick="setCuff('rango')">✓ En rango</button>
+                  <button type="button" class="cuff-b" id="cuffB2" onclick="setCuff('ajuste')">⚠ Ajusté</button>
+                  <button type="button" class="cuff-b" id="cuffB3" onclick="setCuff('desinflado')">○ Desinflado</button>
+                </span>
+                <div class="col wa hidden" id="dCuffVal" style="margin:0;"><label style="font-size:.62rem;">Encontrado (cmH₂O)</label>
+                  <input type="number" id="fCuffVal" min="0" max="120" style="height:30px;width:88px;text-align:center;"></div>
+                <input type="hidden" id="fCuffEst">
+              </div>
             </div>
           </div>
         </div>
@@ -2710,7 +2731,11 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                   <select id="fDeglucion"><option value="">--</option><option>Adecuada</option><option>Alterada leve</option><option>Alterada severa</option><option>No evaluable</option></select></div>
                 <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="fBDTp"><label for="fBDTp">BDT +</label></div>
                 <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="fBDTn"><label for="fBDTn">BDT -</label></div>
-                <div class="col wa" id="dPmantVA" style="display:none;"><label>Pmant VA (cmH₂O)</label><input type="number" id="fPVA"></div>
+                <div class="col wa" id="dPmantVA" style="display:none;"><label>P. transtraqueal · válv. fonación (cmH₂O)</label>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <input type="number" id="fPVA" oninput="interpPTT()" style="width:82px;">
+                    <span id="pttChip" class="disp-chip disp-none">—</span>
+                  </div></div>
               </div>
             </details>
           </div>
@@ -3078,7 +3103,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 3.2-ktmdia]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 3.3-cuff]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3973,6 +3998,8 @@ function fillForm(s) {
   }
   _vaAnterior=v('fVA');
   actualizarContadores(); updateVAUI();
+  // Cuff del turno guardado (es verificación del turno: no se replica)
+  cuffGate(); setCuff(_ex.VENT_CUFF_EST||''); set('fCuffVal',_ex.VENT_CUFF_CMH2O); interpPTT();
   // S2: reingreso + AET
   chk('cReing',_ex.ES_REINGRESO);
   chk('cAET',_ex.AET_ACTIVA); hAET();
@@ -4140,6 +4167,10 @@ function fillFormReplica(s) {
   // el timeline y el historial.
   const _mue=$('cMue'); if(_mue) _mue.checked=false; hMue();
 
+  // Cuff — VERIFICACIÓN DEL TURNO (protocolo: 1 vez por turno): jamás se
+  // replica; heredar el «✓ En rango» del turno anterior sería dar por
+  // verificada una medición que nadie hizo.
+  cuffGate(); setCuff('');
   // Procedimientos: ACCIÓN PUNTUAL DEL TURNO — NUNCA se replican. El
   // PROC_JSON guardado incluye también los automáticos (INGRESO, IMT…):
   // arrastrarlos los contaría de nuevo en la estadística del turno siguiente.
@@ -4604,6 +4635,9 @@ function guardar() {
     EVAL_T_BDT_POS:   bv('fBDTp'),
     EVAL_T_BDT_NEG:   bv('fBDTn'),
     EVAL_T_PMANT_VA:  v('fPVA'),
+    // Cuff: verificación del turno (vacío si la vía aérea no es artificial)
+    VENT_CUFF_EST:    (v('fVA')==='TOT'||v('fVA')==='TQT') ? v('fCuffEst') : '',
+    VENT_CUFF_CMH2O:  v('fCuffEst')==='ajuste' ? v('fCuffVal') : '',
     EVAL_T_CUAD_D:n(v('fCuadD')), EVAL_T_CUAD_I:n(v('fCuadI')), EVAL_T_HECKMATT:v('fHeckmatt'),
     EVAL_T_FED_D:n(v('fFedD')), EVAL_T_FED_I:n(v('fFedI')), EVAL_T_EXC_D:n(v('fExcD')), EVAL_T_EXC_I:n(v('fExcI')),
     EVAL_FSS_IT1:v('fFssIt1'), EVAL_FSS_IT2:v('fFssIt2'), EVAL_FSS_IT3:v('fFssIt3'), EVAL_FSS_IT4:v('fFssIt4'), EVAL_FSS_IT5:v('fFssIt5'),
@@ -6101,8 +6135,52 @@ function cascadeVA(preSop) {
   }
   _vaAnterior=va;
   updateVAUI(); calcGCS();
-  // Pmant VA: solo visible si TQT
+  // P. transtraqueal (válvula de fonación): solo TQT
   const _pm=$('dPmantVA'); if(_pm) _pm.style.display=(va==='TQT'?'':'none');
+  // Cuff: solo con vía aérea artificial (TOT o TQT)
+  cuffGate();
+}
+
+/* ── Cuff: verificación 1 vez por turno (paquete de prevención de NAVM) ──
+   Solo se muestra con vía aérea artificial. Un toque basta; el valor
+   encontrado se pide únicamente cuando hubo que ajustar, que es el caso
+   en que el número aporta. Nunca bloquea el guardado. */
+function cuffGate(){
+  const d=$('dCuff'); if(!d) return;
+  const va=v('fVA'), aplica=(va==='TOT'||va==='TQT');
+  d.classList.toggle('hidden', !aplica);
+  if(!aplica) setCuff('');
+  const m=$('cuffMeta');
+  if(m) m.textContent=`${_cuffMin()}-${_cuffMax()} cmH₂O`;
+}
+const _cuffMin=()=>parseInt((window.CFG&&CFG.CUFF_MIN))||20;
+const _cuffMax=()=>parseInt((window.CFG&&CFG.CUFF_MAX))||30;
+function setCuff(est){
+  const e=String(est||'');
+  const h=$('fCuffEst'); if(h) h.value=e;
+  [['cuffB1','rango'],['cuffB2','ajuste'],['cuffB3','desinflado']].forEach(([id,val])=>{
+    const b=$(id); if(b) b.classList.toggle('on', e===val);
+  });
+  const dv=$('dCuffVal');
+  if(dv){
+    const pide=(e==='ajuste');
+    dv.classList.toggle('hidden', !pide);
+    if(!pide){ const f=$('fCuffVal'); if(f) f.value=''; }
+    else setTimeout(()=>$('fCuffVal')?.focus(),40);
+  }
+}
+/* Semáforo de la presión transtraqueal con válvula de fonación: ≤ tope verde
+   (vía aérea permeable), hasta el límite ámbar, sobre el límite rojo (sugiere
+   obstrucción alta o cánula grande para el paciente). Cortes en CONFIG. */
+function interpPTT(){
+  const c=$('pttChip'); if(!c) return;
+  const n=parseFloat(v('fPVA'));
+  const ok=parseFloat((window.CFG&&CFG.PTT_OK))||10;
+  const al=parseFloat((window.CFG&&CFG.PTT_ALERTA))||12;
+  if(!isFinite(n)){ c.className='disp-chip disp-none'; c.textContent='—'; return; }
+  if(n<=ok){ c.className='disp-chip disp-ok'; c.textContent='✓ Permeable'; }
+  else if(n<=al){ c.className='disp-chip disp-warn'; c.textContent='⚠ Límite'; }
+  else { c.className='disp-chip disp-bad'; c.textContent='✕ Sugiere obstrucción / cánula grande'; }
 }
 function cascadeSop(preModo) {
   const va=v('fVA'), sop=v('fSop'); const r=VMAPS[va]||VMAPS[''];
@@ -9458,6 +9536,10 @@ function indRender(d){
   h+=card('Autoextubación / 100 días-VM', d.autoextPor100VM, '', 'meta 1-2', `${d.autoextubaciones} eventos / ${d.diasVM} días-VM`, eAut);
   h+=card('Extubación fuera de protocolo', d.fueraPct, '%', 'meta &lt;25%', `${d.fueraProtocolo} / ${d.extubaciones} extubaciones`, eFue);
   h+=card('PVE / 100 paciente-día', d.pvePor100PacDia, '', 'tendencia', `${d.pve} PVE / ${d.pacienteDias} paciente-días`, 'neu');
+  const eCuff = d.cuffAdherenciaPct==null?'neu':(d.cuffAdherenciaPct>=90?'ok':(d.cuffAdherenciaPct>=70?'warn':'bad'));
+  h+=card('Cuff verificado por turno', d.cuffAdherenciaPct, '%', 'prevención NAVM · meta &gt;90%',
+    `${d.cuffVerificados} / ${d.cuffTurnos} turnos con vía aérea artificial`, eCuff,
+    `requirió ajuste: <b>${d.cuffAjustes}</b>`);
   h+=card('Días de VM antes de TQT', d.medianaVMpreTQT, d.medianaVMpreTQT==null?'':' d', 'mediana', `${d.tqt} traqueostomías del período`, 'neu');
   h+=card('VM prolongada (&gt;7 días)', d.vmProlongadaPct, '%', 'referencial', `${d.vmProlongada} / ${d.ventilados} ventilados`, 'neu');
   h+=card('Atenciones / paciente-día', d.atencionesPorPacDia, '', 'KTR + KTM', `${d.atenciones} atenciones / ${d.pacienteDias} pac-días`, 'neu');

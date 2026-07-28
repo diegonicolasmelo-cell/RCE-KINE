@@ -122,6 +122,22 @@ function calcularIndicadores(desde, hasta) {
       if (esVerdadero(e.KTM_REALIZADA)) atenciones += Math.min(9, Math.max(1, parseInt(e.KTM_CANT) || 1));
     });
 
+    // ── Adherencia a la verificación de cuff (paquete de prevención de NAVM) ──
+    // Denominador: turnos con vía aérea artificial (donde el protocolo pide
+    // verificar 1 vez por turno). Numerador: turnos con el cuff verificado —
+    // en rango o ajustado; ambos son verificación efectiva. «Desinflado» sale
+    // del denominador: con válvula de fonación no corresponde medir presión.
+    let cuffTurnos = 0, cuffVerif = 0, cuffAjuste = 0;
+    evosR.forEach(e => {
+      const va = String(e.VENT_VIA_AEREA || '');
+      if (va !== 'TOT' && va !== 'TQT') return;
+      const est = String(e.VENT_CUFF_EST || '');
+      if (est === 'desinflado') return;
+      cuffTurnos++;
+      if (est === 'rango' || est === 'ajuste') cuffVerif++;
+      if (est === 'ajuste') cuffAjuste++;
+    });
+
     // ── Reingresos por RUT (histórico completo, no depende del rango) ──
     const episodiosPorRutMap = {};
     archivo.forEach(a => { const r = _rutNormal(a.RUT); if (r) (episodiosPorRutMap[r] = episodiosPorRutMap[r] || []).push(1); });
@@ -167,6 +183,8 @@ function calcularIndicadores(desde, hasta) {
       ventilados: nVentilados, vmProlongada: nVMProlongada,
       vmProlongadaPct: nVentilados ? Math.round(1000 * nVMProlongada / nVentilados) / 10 : null,
       atenciones: atenciones,
+      cuffTurnos: cuffTurnos, cuffVerificados: cuffVerif, cuffAjustes: cuffAjuste,
+      cuffAdherenciaPct: cuffTurnos ? Math.round(100 * cuffVerif / cuffTurnos) : null,
       atencionesPorPacDia: nPacDias ? Math.round(100 * atenciones / nPacDias) / 100 : null,
       ocupacionProm: diasRango ? Math.round(10 * nPacDias / diasRango) / 10 : null,
       personasConRut: ruts.length, reingresos: nReingresos,
