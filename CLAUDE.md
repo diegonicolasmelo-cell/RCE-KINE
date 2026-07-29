@@ -175,6 +175,55 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   EVOLUCIONES ⇒ exige `crearORepararEstructura()`. Alternativa: cruce por RUT
   con la planilla médica (depende de otro equipo). Probablemente Manuel trabaje
   en ello; igual hay que decidir el lado RCE-KINE.
+- **PAQUETE v4 — ideas acumuladas por Diego (jul-2026), APLICAR EN UNA SOLA
+  CREACIÓN DE CÓDIGO cuando él lo apruebe.** Orden propuesto: primero el bug
+  clínico (8), después historial (1-4), registro (5), estadísticas (6),
+  ventiladores/camas (7). Detalle:
+  1. HISTORIAL: pestañas en orden **Resumen → Hoja UCI** (Resumen es la hoja
+     con la que se recibe; queda como pestaña inicial). La pestaña
+     «Seguimiento» SE ELIMINA de la vista (la reemplaza la Hoja UCI) pero su
+     diseño se conserva como PLANTILLA DE IMPRESIÓN/descarga (botón
+     Imprimir/Descargar). El modal pasa a PANTALLA COMPLETA (fixed, inset 0)
+     y se cierra SOLO con la X (no backdrop) para ver mejor las tendencias.
+  2. HISTORIAL-Resumen: evoluciones PLEGADAS (acordeón); solo la última
+     desplegada; cabecera = fecha + turno + firma.
+  3. HISTORIAL: eliminar el toggle «tendencia por día» (redundante con el
+     detalle por día); limpiar handler y CSS huérfanos.
+  4. (liberado)
+  5. REGISTRO DIARIO: el botón ➕ de eventos va AL LADO DERECHO DEL NOMBRE
+     del paciente (no en columna final); el popover permite elegir turno
+     Día/Noche (preseleccionado por hora) y el motivo queda a la vista.
+  6. ESTADÍSTICAS: reordenar a **Indicadores → Estadística general → REM →
+     Control de calidad** (REM y auditoría son secundarios: solo coordinación
+     — Magdalena y colaboradores). NUEVA pestaña «Tabla dinámica» con campos
+     seleccionables para cruzar variables en la plataforma (evaluar pivot
+     propio en vanilla JS — el cohete no puede depender de CDN externos;
+     fechas normalizadas AAAA-MM-DD; límite de filas para no colgar el
+     navegador; SIN nombre/RUT en la salida).
+  7. VENTILADORES: historial de FALLAS por equipo — descripción OBLIGATORIA
+     + foto OPCIONAL (comprimir en cliente con canvas antes de subir;
+     guardar en Drive vía DriveApp con carpeta en CONFIG, URL en hoja nueva
+     MOVIMIENTOS/FALLAS; todo-o-nada: si falla Drive no se escribe la fila;
+     requiere scope Drive ⇒ re-autorizar). Sirve a equipos médicos: saber
+     por qué falla y cada cuánto. CAMAS: tag dinámico del ventilador
+     asignado en la esquina superior derecha de la tarjeta, con
+     retroalimentación bidireccional con la sección Ventiladores (cruce en
+     servidor, no N llamadas).
+  8. BUG CLÍNICO (PRIORIDAD 1): paciente que ingresa con vía aérea Natural y
+     se intuba EL MISMO TURNO — no aparece la sección de intubación/VM en el
+     ingreso. El formulario de INGRESO bloquea la lógica de transición
+     (comentario en VMAPS: «evita que un ingreso que llega con tubo pase por
+     Natural y dispare intubación»). Debe permitir registrar ingreso +
+     intubación como hito del turno: texto tipo «ingresa por shock séptico,
+     ventila espontáneo con O2… FR 35, FiO2 60% ⇒ se realiza IOT con TOT…,
+     se conecta a VM modo ACVC…», y registrar AMBOS eventos (ingreso e
+     intubación). Casos de prueba: natural todo el turno / natural→IOT mismo
+     turno / ya intubado al ingreso / IOT→extubación mismo turno / IOT doble
+     por error.
+  PREGUNTAS FASE 0 PENDIENTES DE DIEGO: carpeta Drive y visibilidad de las
+  fotos de fallas; ¿impresión del seguimiento = ventana de impresión o PDF
+  descargable?; ¿migrar registros históricos del bug de vía aérea o solo
+  corregir hacia adelante?
 - **En el tintero** (iniciativa de Klgo. Manuel Fuentes, coordinar y sumar):
   sembrar INDICADORES_HISTORICO con su tabla mensual 2025-2026 (solo
   agregados) cuando la envíe, y la exportación anonimizada paciente-día
