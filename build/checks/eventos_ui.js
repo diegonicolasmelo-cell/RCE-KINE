@@ -39,30 +39,32 @@ const path = require('path');
       grupos: [...t.tHead.rows[0].cells].reduce((s, c) => s + c.colSpan, 0),
       cols: t.tHead.rows[1].cells.length,
       celdas: t.tBodies[0].rows[0].cells.length,
-      btn: !!t.querySelector('tbody .ev-btn'),
+      btn: !!t.querySelector('tbody .tc-n .ev-btn'),
       totalCells: [...t.querySelector('.r-tot').cells].reduce((s, c) => s + c.colSpan, 0),
     };
   });
-  eq('cabecera de grupos suma 24 columnas', REG.grupos, 24);
-  eq('cabecera de detalle: 24 columnas', REG.cols, 24);
-  eq('fila de cama: 24 celdas (incluye «＋»)', REG.celdas, 24);
-  eq('botón ➕ presente en la fila', REG.btn, true);
-  eq('fila TOTAL cuadra (23+1)', REG.totalCells, 24);
+  eq('cabecera de grupos suma 23 columnas', REG.grupos, 23);
+  eq('cabecera de detalle: 23 columnas', REG.cols, 23);
+  eq('fila de cama: 23 celdas (el ➕ vive junto al nombre)', REG.celdas, 23);
+  eq('botón ➕ junto al nombre del paciente', REG.btn, true);
+  eq('fila TOTAL cuadra (22+1)', REG.totalCells, 23);
 
   // ── Popover: abrir desde el botón, tipos y payload ──
   const POP = await p.evaluate(() => {
-    document.querySelector('#notionTable tbody .ev-btn').click();
+    document.querySelector('#notionTable tbody .tc-n .ev-btn').click();
     return {
       visible: !$('evPop').classList.contains('hidden') && !$('evVelo').classList.contains('hidden'),
       titulo: $('evTitulo').textContent,
       lista: document.querySelectorAll('#evLista .ev-it').length,
       firmas: $('evFirma').options.length,
+      turnoPre: (typeof SHIFT!=='undefined' && SHIFT==='Noche') ? $('evTurnoN').classList.contains('on') : $('evTurnoD').classList.contains('on'),
     };
   });
   eq('popover visible al tocar ➕', POP.visible, true);
   eq('título con la cama', POP.titulo.indexOf('Cama 3') > -1, true);
   eq('6 tipos de evento', POP.lista, 6);
   eq('select de firma poblado (roster 15 + placeholder)', POP.firmas, 16);
+  eq('turno preseleccionado según la hora', POP.turnoPre, true);
 
   const TIP = await p.evaluate(() => {
     evTipo('cultivo');
@@ -82,6 +84,7 @@ const path = require('path');
     evGuardar();                                   // sin firma → no debe llamar
     $('evFirma').value = 'DMV';
     $('evCultTipo').value = 'Aspirado traqueal'; $('evCultHall').value = 'BLEE+'; $('evHora').value = '16:30';
+    evSetTurno('Noche');   // el turno elegido A LA VISTA manda sobre la hora actual
     evGuardar();
     await new Promise(r => setTimeout(r, 60));
     const calls = _ll.filter(x => x.a === 'ANEXAR_EVENTO');
@@ -93,6 +96,7 @@ const path = require('path');
   eq('payload idCama', PAY.d && PAY.d.idCama, '3');
   eq('payload tipo cultivo', PAY.d && PAY.d.tipo, 'cultivo');
   eq('payload turnoKey AAAA-MM-DD-Turno', /^\d{4}-\d{2}-\d{2}-(Dia|Noche)$/.test(PAY.d && PAY.d.turnoKey), true);
+  eq('el turno elegido en el popover manda en el payload', /-Noche$/.test(PAY.d && PAY.d.turnoKey), true);
   eq('payload firma y hallazgo', PAY.d && PAY.d.firmaKine === 'DMV' && PAY.d.cultHallazgo === 'BLEE+' && PAY.d.hora === '16:30', true);
   eq('popover se cierra tras guardar', PAY.cerrado, true);
 

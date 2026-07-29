@@ -103,9 +103,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment estable: cohete
-  v3.2-ktmdia (REM 28 celda a celda, tablero centinela, RUT, versión móvil
-  instalable, eventos rápidos, firma clínica con tratamiento).
+  (ahí se afina el registro con uso real). Deployment: cohete **v4.0-paquete**
+  (paquete v4 completo; antes v3.4-hoja). La entrega v4.0 exige
+  `crearORepararEstructura()` (hoja FALLAS_VM + seed FALLAS_FOTOS_FOLDER).
 - **Réplicas por turno** (reglas ganadas a punta de bugs, jul-2026):
   los PROCEDIMIENTOS son del turno — la réplica parte SIEMPRE con la lista
   manual vacía (el PROC_JSON guardado une manuales+automáticos; arrastrarlo
@@ -175,55 +175,44 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   EVOLUCIONES ⇒ exige `crearORepararEstructura()`. Alternativa: cruce por RUT
   con la planilla médica (depende de otro equipo). Probablemente Manuel trabaje
   en ello; igual hay que decidir el lado RCE-KINE.
-- **PAQUETE v4 — ideas acumuladas por Diego (jul-2026), APLICAR EN UNA SOLA
-  CREACIÓN DE CÓDIGO cuando él lo apruebe.** Orden propuesto: primero el bug
-  clínico (8), después historial (1-4), registro (5), estadísticas (6),
-  ventiladores/camas (7). Detalle:
-  1. HISTORIAL: pestañas en orden **Resumen → Hoja UCI** (Resumen es la hoja
-     con la que se recibe; queda como pestaña inicial). La pestaña
-     «Seguimiento» SE ELIMINA de la vista (la reemplaza la Hoja UCI) pero su
-     diseño se conserva como PLANTILLA DE IMPRESIÓN/descarga (botón
-     Imprimir/Descargar). El modal pasa a PANTALLA COMPLETA (fixed, inset 0)
-     y se cierra SOLO con la X (no backdrop) para ver mejor las tendencias.
-  2. HISTORIAL-Resumen: evoluciones PLEGADAS (acordeón); solo la última
-     desplegada; cabecera = fecha + turno + firma.
-  3. HISTORIAL: eliminar el toggle «tendencia por día» (redundante con el
-     detalle por día); limpiar handler y CSS huérfanos.
-  4. (liberado)
-  5. REGISTRO DIARIO: el botón ➕ de eventos va AL LADO DERECHO DEL NOMBRE
-     del paciente (no en columna final); el popover permite elegir turno
-     Día/Noche (preseleccionado por hora) y el motivo queda a la vista.
-  6. ESTADÍSTICAS: reordenar a **Indicadores → Estadística general → REM →
-     Control de calidad** (REM y auditoría son secundarios: solo coordinación
-     — Magdalena y colaboradores). NUEVA pestaña «Tabla dinámica» con campos
-     seleccionables para cruzar variables en la plataforma (evaluar pivot
-     propio en vanilla JS — el cohete no puede depender de CDN externos;
-     fechas normalizadas AAAA-MM-DD; límite de filas para no colgar el
-     navegador; SIN nombre/RUT en la salida).
-  7. VENTILADORES: historial de FALLAS por equipo — descripción OBLIGATORIA
-     + foto OPCIONAL (comprimir en cliente con canvas antes de subir;
-     guardar en Drive vía DriveApp con carpeta en CONFIG, URL en hoja nueva
-     MOVIMIENTOS/FALLAS; todo-o-nada: si falla Drive no se escribe la fila;
-     requiere scope Drive ⇒ re-autorizar). Sirve a equipos médicos: saber
-     por qué falla y cada cuánto. CAMAS: tag dinámico del ventilador
-     asignado en la esquina superior derecha de la tarjeta, con
-     retroalimentación bidireccional con la sección Ventiladores (cruce en
-     servidor, no N llamadas).
-  8. BUG CLÍNICO (PRIORIDAD 1): paciente que ingresa con vía aérea Natural y
-     se intuba EL MISMO TURNO — no aparece la sección de intubación/VM en el
-     ingreso. El formulario de INGRESO bloquea la lógica de transición
-     (comentario en VMAPS: «evita que un ingreso que llega con tubo pase por
-     Natural y dispare intubación»). Debe permitir registrar ingreso +
-     intubación como hito del turno: texto tipo «ingresa por shock séptico,
-     ventila espontáneo con O2… FR 35, FiO2 60% ⇒ se realiza IOT con TOT…,
-     se conecta a VM modo ACVC…», y registrar AMBOS eventos (ingreso e
-     intubación). Casos de prueba: natural todo el turno / natural→IOT mismo
-     turno / ya intubado al ingreso / IOT→extubación mismo turno / IOT doble
-     por error.
-  PREGUNTAS FASE 0 PENDIENTES DE DIEGO: carpeta Drive y visibilidad de las
-  fotos de fallas; ¿impresión del seguimiento = ventana de impresión o PDF
-  descargable?; ¿migrar registros históricos del bug de vía aérea o solo
-  corregir hacia adelante?
+- **PAQUETE v4 — APLICADO (jul-2026, cohete v4.0-paquete).** Lo que quedó:
+  1. BUG ingreso Natural→IOT mismo turno CORREGIDO: el gate del ingreso ya
+     no oculta `dIntubSec` (solo reintub/ext/decan/tqt); texto cliente con
+     «Previo en …» (paridad con servidor); `_autoProcs` registra INGRESO +
+     INTUBACIÓN. Guardia: BUG 6 en `checks/regresion_ui.js` (ojo: el arnés
+     arrastra contadores VM entre tests — resetear `_vmHistFlag` etc.).
+  2. HISTORIAL: pestañas **Resumen (inicial) → Hoja UCI**; Seguimiento
+     eliminado de la vista pero su diseño vive en `tlImprimir()` (#tlPrint +
+     `@media print`, botón 🖨️ — ventana de impresión del navegador, permite
+     guardar PDF). Modal `#tlp` a PANTALLA COMPLETA (overrides solo en #tlp,
+     NO en `.tlmodal`: la clase la comparten ~12 modales) y cierra SOLO con
+     la X (ni backdrop ni Escape). Resumen con evoluciones PLEGADAS
+     (`<details class="tlr-fold">`, solo la última open; cabecera fecha +
+     turno + fase + firma). Toggle «tendencia por día» eliminado.
+     Guardia: bloque v4 en `checks/hoja_uci.js`.
+  3. REGISTRO DIARIO: ➕ junto al nombre del paciente (celda `.tc-n`); el
+     popover elige turno Día/Noche (`evSetTurno`, preselección por SHIFT) y
+     el motivo queda a la vista. Guardia: `checks/eventos_ui.js`.
+  4. ESTADÍSTICAS en orden Indicadores → General → **Tabla dinámica** → REM
+     → Control de calidad. Pivot 100% vanilla: servidor `datosPivot()` en
+     svc_stats.gs (LISTA BLANCA sin nombre/RUT/PATIENT_ID, tope 2.500,
+     MES derivado) + API `GET_PIVOT`; cliente pivCargar/pivRender
+     (conteo/suma/promedio, coma decimal, límite 80×32). Guardia:
+     `checks/pivot.js`.
+  5. VENTILADORES: fallas por equipo — `registrarFallaVM`/`obtenerFallasVM`
+     en svc_equipos.gs (descripción OBLIGATORIA, foto opcional base64→Drive
+     TODO-O-NADA, mime validado en servidor, deja ESTADO='Con falla'), hoja
+     FALLAS_VM + seed `FALLAS_FOTOS_FOLDER` (la carpeta se crea sola al
+     primer uso y persiste su ID; el scope Drive YA estaba en
+     appsscript.json ⇒ no exigió re-autorización). Foto comprimida en
+     cliente (canvas 1280 px JPEG 0,8). CAMAS: tag `.vmtag` del ventilador
+     asignado (cruce en servidor en obtenerTodasLasCamas, una sola lectura),
+     rojo si «Con falla», clic → pestaña Ventiladores. Guardia:
+     `checks/fallas_vm.js`.
+  DECISIONES POR DEFECTO (avisadas a Diego, puede pedir cambio): impresión =
+  ventana del navegador (sirve como PDF); fotos de fallas en carpeta Drive
+  auto-creada del dueño, sin compartir público; sin migración de registros
+  históricos del bug de vía aérea (eran datos de prueba).
 - **En el tintero** (iniciativa de Klgo. Manuel Fuentes, coordinar y sumar):
   sembrar INDICADORES_HISTORICO con su tabla mensual 2025-2026 (solo
   agregados) cuando la envíe, y la exportación anonimizada paciente-día

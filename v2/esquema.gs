@@ -294,6 +294,12 @@ const ESQUEMA = {
     ['ID_MOV','texto'],['ID_VM','texto'],['TIMESTAMP','ts'],['FECHA','texto'],
     ['DESDE','texto'],['HACIA','texto'],['MOTIVO','texto'],['FIRMA','texto'],['AUTOR_EMAIL','email'],
   ]},
+  // Historial de FALLAS por equipo (v4): descripción obligatoria + foto opcional
+  // en Drive (URL). Sirve a equipos médicos: saber por qué falla y cada cuánto.
+  FALLAS_VM: { headerRows: 1, cols: [
+    ['ID_FALLA','texto'],['ID_VM','texto'],['NOMBRE_VM','texto'],['TIMESTAMP','ts'],['FECHA','fecha'],
+    ['DESCRIPCION','texto'],['FOTO_URL','texto'],['FIRMA','texto'],['AUTOR_EMAIL','email'],
+  ]},
   KINESIOLOGOS: { headerRows: 1, cols: [
     ['FIRMA','texto'],['NOMBRE','texto'],['EMAIL','email'],['APOYO','bool'],['ACTIVO','bool'],
     ['TRATAMIENTO','texto'],   // Klgo. | Klga. — para la firma del texto clínico (vacío = Klgo.)
@@ -543,6 +549,11 @@ function _sembrar(ss) {
     // con ≤5); sobre PTT_ALERTA sugiere obstrucción alta o cánula sobredimensionada.
     ['PTT_OK', '10'],
     ['PTT_ALERTA', '12'],
+    // Carpeta de Drive para las fotos de fallas de ventiladores. Vacío = la
+    // app crea «RCE-KINE — Fallas de ventiladores» al primer uso y guarda su
+    // ID aquí. Las fotos NO se comparten públicamente: heredan los permisos
+    // de la carpeta (visibles para quien tenga acceso al Drive del dueño).
+    ['FALLAS_FOTOS_FOLDER', ''],
     // TEMPORAL: permite editar el texto de la vista previa en pantalla (solo
     // demostración; NO se guarda). Poner en FALSE cuando termine el afinamiento.
     ['EDITOR_TEXTO_DEMO', 'TRUE'],

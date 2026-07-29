@@ -180,3 +180,40 @@ function obtenerStats(desde, hasta) {
     },
   });
 }
+
+/**
+ * Datos crudos ANONIMIZADOS para la tabla dinámica (pestaña Estadísticas).
+ * Una fila por turno registrado, SOLO campos de lista blanca — jamás nombre
+ * ni RUT (regla dura del proyecto). Fechas normalizadas AAAA-MM-DD y tope de
+ * filas para no colgar el navegador del hospital.
+ */
+function datosPivot(desde, hasta) {
+  try {
+    const d0 = String(desde || '').slice(0, 10), d1 = String(hasta || '').slice(0, 10);
+    const LIM = 2500;
+    const todas = repoLeerTodos('EVOLUCIONES').concat(repoLeerTodos('EVOLUCIONES_ARCHIVO'))
+      .filter(e => { const f = _statISO(e.FECHA); return f && (!d0 || f >= d0) && (!d1 || f <= d1); })
+      .sort((a, b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
+    const esT = v => v === true || v === 'TRUE';
+    const filas = todas.slice(0, LIM).map(e => {
+      const f = _statISO(e.FECHA);
+      let fase = ''; try { fase = (JSON.parse(e.FASE_JSON || '[]') || [])[0] || ''; } catch (err) { fase = ''; }
+      return {
+        FECHA: f, MES: f.slice(0, 7), TURNO: String(e.TURNO || ''), CAMA: String(e.ID_CAMA || ''),
+        SEXO: String(e.PAC_SEXO || ''), EDAD: e.PAC_EDAD || '', DIAG_REM: String(e.PAC_DIAG_REM || ''),
+        FASE: fase, VIA_AEREA: String(e.VENT_VIA_AEREA || ''), SOPORTE: String(e.VENT_SOPORTE || ''),
+        MODO: String(e.VENT_MODO || ''), DIA_ESTADIA: e.DIA_ESTADIA || '',
+        KTR: parseInt(e.RESP_KTR_CANT) || 0,
+        KTM: esT(e.KTM_REALIZADA) ? 'Sí' : (esT(e.KTM_SUSPENDIDA) ? 'Suspendida' : 'No'),
+        NIVEL_KTM: String(e.KTM_NIVEL_KTR || ''), IMT: esT(e.KTM_IMT) ? 'Sí' : 'No',
+        EMS: esT(e.KTM_EMS) ? 'Sí' : 'No', IMS: e.EVAL_IMS !== '' && e.EVAL_IMS != null ? String(e.EVAL_IMS) : '',
+        PVE: String(e.PVE_VAL || ''), PVE_RESULTADO: String(e.PVE_RESULTADO || ''),
+        EXTUBACION: esT(e.EXT_OCURRIO) ? String(e.EXT_TIPO || 'sí') : '',
+        CUFF: String(e.VENT_CUFF_EST || ''),
+        FIO2: e.VENT_FIO2 || '', PEEP: e.VENT_PEEP || '', PAFI: e.VENT_PAFI || '',
+        MRC: e.EVAL_T_MRC || '', CPAX: e.CPAX_TOTAL || '',
+      };
+    });
+    return ok({ filas: filas, total: todas.length, truncado: todas.length > LIM });
+  } catch (e) { return err('datosPivot: ' + e.message, ERR.INTERNO, e); }
+}

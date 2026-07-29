@@ -66,6 +66,8 @@ function api(accion, datos, token) {
       case 'GET_ENTREGAS_TURNO': return obtenerEntregasTurno(datos.limite || 30);
       case 'GET_INDICADORES':    return calcularIndicadores(datos.desde, datos.hasta);
       case 'GET_RUT_PREVIO':     return episodiosPorRut(datos.rut || '');
+      case 'GET_PIVOT':          return datosPivot(datos.desde, datos.hasta);
+      case 'GET_FALLAS_VM':      return obtenerFallasVM(datos.idVm || '', datos.limite || 30);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
       // ── Escrituras (auditadas) ──
@@ -110,6 +112,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => moverVentilador(datos, ctx));
       case 'BAJA_VENTILADOR':
         return _auditar(ctx, accion, () => bajaVentilador(datos, ctx));
+      case 'REGISTRAR_FALLA_VM':
+        return _auditar(ctx, accion, () => registrarFallaVM(datos, ctx));
 
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);

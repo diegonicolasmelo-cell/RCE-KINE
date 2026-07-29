@@ -256,3 +256,67 @@ function importarDispositivosUCI() {
   console.log(msg);
   return msg;
 }
+
+/* ══ Historial de FALLAS por equipo (v4) ══
+   Descripción OBLIGATORIA + foto OPCIONAL. La foto se comprime en el cliente
+   (canvas) y llega en base64; se guarda en Drive (carpeta en CONFIG, creada
+   al primer uso) y en la hoja va la URL. TODO-O-NADA: si Drive falla, no se
+   escribe la fila. Las fotos no se comparten públicamente. */
+function _fallasCarpeta() {
+  const id = leerConfig('FALLAS_FOTOS_FOLDER', '');
+  if (id) {
+    try { return DriveApp.getFolderById(id); }
+    catch (e) { /* carpeta borrada o sin acceso: se crea una nueva abajo */ }
+  }
+  const f = DriveApp.createFolder('RCE-KINE — Fallas de ventiladores');
+  escribirConfig('FALLAS_FOTOS_FOLDER', f.getId());
+  return f;
+}
+function registrarFallaVM(d, ctx) {
+  ctx = ctx || {};
+  return conLock(function () {
+    try {
+      const idVm = String(d.idVm || '');
+      const desc = String(d.descripcion || '').trim();
+      if (!idVm) return err('Falta el ventilador.', ERR.VALIDACION);
+      if (!desc) return err('La descripción de la falla es obligatoria.', ERR.VALIDACION);
+      const vmx = repoBuscarPorId('VENTILADORES', 'ID_VM', idVm);
+      if (!vmx) return err('Ventilador no encontrado.', ERR.VALIDACION);
+
+      // Foto: validar en el SERVIDOR (no basta el accept del input)
+      let fotoUrl = '';
+      if (d.fotoB64) {
+        const mime = String(d.fotoMime || '');
+        if (mime.indexOf('image/') !== 0) return err('El archivo debe ser una imagen.', ERR.VALIDACION);
+        if (String(d.fotoB64).length > 6000000) return err('La foto es demasiado grande incluso comprimida (máx ~4 MB).', ERR.VALIDACION);
+        const nombre = 'falla_' + String(vmx.NOMBRE || idVm).replace(/[^\w.-]+/g, '_') + '_' + hoyISO() + '_' + uid('F').slice(-6) + '.jpg';
+        const blob = Utilities.newBlob(Utilities.base64Decode(d.fotoB64), mime, nombre);
+        fotoUrl = _fallasCarpeta().createFile(blob).getUrl();   // si esto lanza, NO se escribe la fila
+      }
+
+      const fila = {
+        ID_FALLA: uid('FALLA'), ID_VM: idVm, NOMBRE_VM: String(vmx.NOMBRE || ''),
+        TIMESTAMP: ahoraTS(), FECHA: hoyISO(), DESCRIPCION: desc, FOTO_URL: fotoUrl,
+        FIRMA: String(ctx.firma || d.firmaKine || ''), AUTOR_EMAIL: String(ctx.email || ''),
+      };
+      repoInsertar('FALLAS_VM', fila);
+      // El equipo queda marcado con falla (estado visible en el inventario y
+      // en el tag de la cama); se normaliza a mano al repararlo.
+      repoActualizar('VENTILADORES', 'ID_VM', idVm, { ESTADO: 'Con falla' });
+      SpreadsheetApp.flush();
+      return ok({ entidad: 'FALLAS_VM', id: fila.ID_FALLA, idVm: idVm, fotoUrl: fotoUrl,
+        accion: 'falla registrada: ' + String(vmx.NOMBRE || idVm) });
+    } catch (e) { return err('registrarFallaVM: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+function obtenerFallasVM(idVm, limite) {
+  try {
+    const lim = parseInt(limite) || 30;
+    const filas = repoLeerTodos('FALLAS_VM', 'ID_VM', String(idVm || ''))
+      .sort(function (a, b) { return String(b.TIMESTAMP).localeCompare(String(a.TIMESTAMP)); })
+      .slice(0, lim)
+      .map(function (x) { return { id: x.ID_FALLA, fecha: _statISO(x.FECHA), desc: String(x.DESCRIPCION || ''),
+        foto: String(x.FOTO_URL || ''), firma: String(x.FIRMA || '') }; });
+    return ok({ fallas: filas, total: filas.length });
+  } catch (e) { return err('obtenerFallasVM: ' + e.message, ERR.INTERNO, e); }
+}

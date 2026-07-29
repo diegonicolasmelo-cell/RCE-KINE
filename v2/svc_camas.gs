@@ -20,6 +20,20 @@ function obtenerTodasLasCamas() {
         c.OCUPADA = false; c.DIA_ESTADIA = 0; c.DIAS_VM = 0; c.DIAS_VA = 0; c.TIMELINE = [];
       }
     });
+    // Tag del ventilador asignado a cada cama (v4): el cruce se hace AQUÍ, en
+    // una sola lectura de VENTILADORES — nunca N llamadas desde el cliente.
+    try {
+      const vmPorCama = {};
+      repoLeerTodos('VENTILADORES').forEach(x => {
+        if (esVerdadero(x.ACTIVO) && x.UBIC_TIPO === 'CAMA' && x.UBIC_DETALLE) {
+          vmPorCama[String(x.UBIC_DETALLE)] = { n: String(x.NOMBRE || ''), e: String(x.ESTADO || '') };
+        }
+      });
+      camas.forEach(c => {
+        const t = vmPorCama[String(c.ID_CAMA)];
+        c.VM_TAG = t ? t.n : ''; c.VM_TAG_ESTADO = t ? t.e : '';
+      });
+    } catch (e) { camas.forEach(c => { c.VM_TAG = ''; c.VM_TAG_ESTADO = ''; }); }
     return ok(camas);
   } catch (e) { return err('obtenerTodasLasCamas: ' + e.message, ERR.INTERNO, e); }
 }

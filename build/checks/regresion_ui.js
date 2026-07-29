@@ -126,6 +126,44 @@ const path = require('path');
   eq('P. transtraqueal 11-12 → límite', CU.ptt11, 'disp-warn');
   eq('P. transtraqueal >12 → sugiere obstrucción', CU.ptt18, 'disp-bad');
 
+  // ── BUG 6 (v4): ingreso con VA Natural que se intuba EL MISMO TURNO ──
+  const IN = await p.evaluate(()=>{
+    $('kf').reset(); $('cBed').value='5'; $('cIng').value='true';
+    DB=[{ID_CAMA:'5',OCUPADA:true}];
+    // estado limpio de episodio (en la app lo hace abrirPanel)
+    _vmHistFlag=false; _diasVMPrevios=0; _diasVMEpisodio=0; _nReintub=0;
+    _diasTOTBase=0; _diasTQTBase=0; _vaAnterior=''; _vaAntesIntub='';
+    const r={};
+    // (i) natural todo el turno: la sección de intubación está DISPONIBLE
+    $('fVA').value='Natural'; cascadeVA(); updateVAUI();
+    r.natural={ intub:!$('dIntubSec').classList.contains('hidden'),
+      ext:$('dExtSec').classList.contains('hidden'), rein:$('dReintubSec').classList.contains('hidden'),
+      decan:$('dDecanSec').classList.contains('hidden'), tqt:$('dTqtSec').classList.contains('hidden') };
+    // (ii) natural → IOT el mismo turno
+    $('cIntubO').checked=true; hIntub();
+    $('fIntubHora').value='14:20'; $('fIntubDet').value='shock séptico';
+    const spv=$('fIntubSopPrevio'); if(spv){ const op=document.createElement('option'); op.value=op.textContent='CNAF'; spv.appendChild(op); spv.value='CNAF'; }
+    r.iot={ va:v('fVA'), sop:v('fSop'), det:!$('dIntubDet').classList.contains('hidden') };
+    r.procs=_autoProcs();
+    r.texto=(genTexto()||'').replace(/\s+/g,' ');
+    // (v) doble IOT por error → desmarcar restaura la llegada
+    $('cIntubO').checked=false; hIntub();
+    r.desmarca={ va:v('fVA'), procs:_autoProcs() };
+    // (iii) ya intubado al ingreso: sin sección de intubación
+    $('fVA').value='TOT'; cascadeVA(); updateVAUI();
+    r.llegaTubo=$('dIntubSec').classList.contains('hidden');
+    $('cIng').value='false';
+    return r;
+  });
+  eq('ingreso natural: sección intubación DISPONIBLE', IN.natural.intub, true);
+  eq('ingreso: ext/reintub/decan/TQT siguen ocultas', IN.natural.ext && IN.natural.rein && IN.natural.decan && IN.natural.tqt, true);
+  eq('marcar IOT en el ingreso → VA pasa a TOT con VM', IN.iot.va==='TOT' && IN.iot.sop==='VM' && IN.iot.det, true);
+  eq('se registran AMBOS eventos (INGRESO + INTUBACIÓN)', IN.procs.includes('INGRESO') && IN.procs.includes('INTUBACIÓN'), true);
+  eq('el texto narra la transición con el soporte previo',
+     /INGRESO/.test(IN.texto) && /Previo en cnaf, paciente requiere intubación orotraqueal a las 14:20 hrs en contexto de shock séptico/.test(IN.texto), true);
+  eq('desmarcar IOT restaura la llegada (VA Natural, sin evento)', IN.desmarca.va==='Natural' && !IN.desmarca.procs.includes('INTUBACIÓN'), true);
+  eq('llega YA intubado → sin sección de intubación', IN.llegaTubo, true);
+
   // ── BUG 1: tablero VM con ids vacíos ──
   const VM = await p.evaluate(()=>{
     window.CFG={NUM_CAMAS:12,BANNERS:{}};

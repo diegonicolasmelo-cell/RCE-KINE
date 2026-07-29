@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="3.4-hoja">
+<meta name="rce-version" content="4.0-paquete">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -397,6 +397,14 @@ table.rhb2 .rl{width:128px;text-align:left;}
    al estar evolucionado el turno asoma una hoja blanca desde el interior */
 .grid{padding:20px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:22px 14px;max-width:1400px;margin:0 auto;}
 .bcard{background:transparent;border:none;box-shadow:none;display:flex;flex-direction:column;overflow:visible;position:relative;transition:transform .18s;}
+/* Tag dinámico del ventilador asignado (v4): esquina superior derecha, con
+   retroalimentación bidireccional con la sección Ventiladores (clic → va allá) */
+.vmtag{position:absolute;top:2px;right:6px;z-index:4;display:inline-flex;align-items:center;gap:4px;
+  background:var(--n-blue-bg);color:var(--n-blue);border:1px solid #b9d3ea;border-radius:11px;
+  padding:1px 8px;font-size:.62rem;font-weight:800;cursor:pointer;max-width:46%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.vmtag.falla{background:var(--n-red-bg);color:var(--n-red);border-color:#ecb4ae;}
+.vmtag.mant{background:var(--n-yellow-bg);color:var(--n-yellow);border-color:#e4d391;}
 .bcard:hover{transform:translateY(-2px);}
 .bcard:hover .bbody,.bcard:hover .bfoot{box-shadow:0 5px 14px rgba(120,90,20,.10);}
 .bcard.sel{outline:2px dashed #3b82f6;outline-offset:4px;border-radius:12px;transform:scale(1.02);}
@@ -558,6 +566,11 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .tlmodal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.95);width:min(820px,94vw);max-height:88vh;background:#fff;z-index:102;border-radius:12px;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .22s,transform .22s cubic-bezier(.4,0,.2,1);overflow:hidden;}
 .tlmodal.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
 .tlmodal .phdr{border-radius:12px 12px 0 0;}
+/* SOLO el historial (#tlp) va a pantalla completa: mejor lectura de tendencias.
+   Los demás modales que comparten .tlmodal conservan el tamaño flotante. */
+#tlp{top:0;left:0;transform:none;width:100%;height:100%;max-height:none;border-radius:0;box-shadow:none;transition:opacity .22s;}
+#tlp.on{transform:none;}
+#tlp .phdr{border-radius:0;}
 .tl-tabs{display:flex;gap:0;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:0 16px;}
 .tl-mtab{background:transparent;color:#64748b;border:none;border-bottom:2px solid transparent;padding:10px 14px;font-size:.78rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.4px;}
 .tl-mtab:hover{color:#334155;}
@@ -569,7 +582,7 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .tl-filters .seg button.on{background:#fff;color:#0f172a;box-shadow:0 1px 2px rgba(0,0,0,.06);}
 .tl-body{flex:1;overflow:auto;padding:10px 12px;background:#fafafa;}
 /* Historial: más ancho en computador (es la pantalla más densa) … */
-#tlp{width:min(1020px,96vw);}
+/* (ancho flotante retirado: #tlp es pantalla completa desde la v4) */
 /* … y hoja a pantalla completa en celular (máxima lectura, el pulgar llega a todo) */
 @media (max-width:640px){
   #tlp{width:100vw;max-width:100vw;height:100vh;height:100dvh;max-height:100dvh;
@@ -611,6 +624,28 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .tlr-txt.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;}
 .tlr-sign{font-size:.7rem;color:#94a3b8;}
 @media (prefers-reduced-motion:reduce){.tlr-det>summary .cv{transition:none;}}
+/* Feed del Resumen: evoluciones plegadas (solo la última abierta) */
+.tlr-fold{border:1px solid #e2e8f0;border-radius:10px;margin:0 0 8px;background:#fff;overflow:hidden;}
+.tlr-fold>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:9px;padding:8px 12px;user-select:none;background:#fbfaf9;}
+.tlr-fold>summary::-webkit-details-marker{display:none;}
+.tlr-fold>summary .day{font-weight:800;font-size:.78rem;color:#0f172a;}
+.tlr-fold>summary .fe{font-size:.72rem;color:#64748b;}
+.tlr-fold>summary .fa{font-size:.68rem;background:#f1f5f9;border-radius:10px;padding:1px 8px;color:#475569;}
+.tlr-fold>summary .sg{margin-left:auto;font-size:.72rem;font-weight:800;color:var(--kine);}
+.tlr-fold>summary .cv{color:#94a3b8;font-size:.7rem;transition:transform .18s;}
+.tlr-fold[open]>summary .cv{transform:rotate(180deg);}
+.tlr-fold[open]>summary{border-bottom:1px solid #eef2f6;}
+.tlr-fold .tlr-card{border:none;margin:0;border-radius:0;}
+/* Hoja de seguimiento: SOLO existe al imprimir (plantilla) */
+#tlPrint{display:none;}
+@media print{
+  body.tl-printing > *:not(#tlPrint){display:none!important;}
+  body.tl-printing #tlPrint{display:block!important;background:#fff;color:#000;}
+  #tlPrint table{page-break-inside:auto;width:100%;}
+  #tlPrint tr{page-break-inside:avoid;}
+  .tlpr-head{font-size:12px;text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:6px;}
+  .tlpr-sec{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 4px;}
+}
 .tl-ev{display:flex;gap:9px;padding:9px 10px;border:1px solid #f1f5f9;border-radius:7px;background:#fff;margin-bottom:6px;align-items:flex-start;}
 .tl-ev:hover{border-color:#cbd5e1;}
 .tl-dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex-shrink:0;}
@@ -1058,6 +1093,11 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
 <div id="evVelo" class="hidden" onclick="evCerrar()" style="position:fixed;inset:0;z-index:290;"></div>
 <div id="evPop" class="hidden" style="position:fixed;z-index:295;width:290px;background:#fff;border:1px solid var(--primary);border-radius:9px;box-shadow:0 14px 40px rgba(15,23,42,.28);overflow:hidden;font-size:.82rem;">
   <div style="padding:8px 12px;background:var(--pdark);color:#fff;font-weight:800;font-size:.74rem;" id="evTitulo">➕ Evento posterior</div>
+  <div style="display:flex;gap:7px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--border);background:#fbfaf9;">
+    <span style="font-size:.62rem;font-weight:800;color:var(--muted);">TURNO</span>
+    <button type="button" class="cuff-b" id="evTurnoD" onclick="evSetTurno('Dia')">☀ Día</button>
+    <button type="button" class="cuff-b" id="evTurnoN" onclick="evSetTurno('Noche')">🌙 Noche</button>
+  </div>
   <div id="evLista">
     <button type="button" class="ev-it" onclick="evTipo('procedimiento')">🔧 Procedimiento…</button>
     <button type="button" class="ev-it" onclick="evTipo('hme')">🌫️ Cambio de HME</button>
@@ -1161,6 +1201,24 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
         </div>
       </div>
     </div>
+    <div id="dashBody"><div class="pivot-empty">Selecciona un rango de fechas.</div></div>
+
+    <!-- Tabla dinámica: cruzar variables en la propia plataforma -->
+    <details id="pivBox" class="no-print" style="margin:14px 0;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
+      <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">🧮 Tabla dinámica — cruza variables del registro</summary>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:10px 0;">
+        <div class="col" style="flex-grow:0;"><label>Desde</label><input type="date" id="pivDesde" class="datein dashin"></div>
+        <div class="col" style="flex-grow:0;"><label>Hasta</label><input type="date" id="pivHasta" class="datein dashin"></div>
+        <button class="dpset" onclick="pivCargar()" id="pivGo">⚙️ Cargar datos</button>
+        <span id="pivInfo" style="font-size:.72rem;color:#94a3b8;">Datos por turno, sin nombre ni RUT. Máx. 2.500 filas por consulta.</span>
+      </div>
+      <div id="pivCtrl" class="hidden" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:0 0 10px;">
+        <div class="col" style="flex-grow:0;"><label>Filas</label><select id="pivF" onchange="pivRender()"></select></div>
+        <div class="col" style="flex-grow:0;"><label>Columnas</label><select id="pivC" onchange="pivRender()"></select></div>
+        <div class="col" style="flex-grow:0;"><label>Valor</label><select id="pivV" onchange="pivRender()"></select></div>
+      </div>
+      <div id="pivOut" style="overflow-x:auto;font-size:.78rem;color:var(--muted);">Carga un rango de fechas para empezar a cruzar.</div>
+    </details>
     <!-- REM mensual (informe de texto para estadística) -->
     <details id="remBox" class="no-print" style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
       <summary style="font-size:.85rem;font-weight:800;color:var(--pdark);cursor:pointer;">📄 REM 28 — informe mensual para estadística</summary>
@@ -1181,7 +1239,6 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
       </div>
       <div id="audBody"><div class="pivot-empty">Pulsa «Auditar ahora».</div></div>
     </details>
-    <div id="dashBody"><div class="pivot-empty">Selecciona un rango de fechas.</div></div>
   </div>
 </div>
 
@@ -1334,6 +1391,18 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
     <div class="row">
       <div class="col wa"><label>Última mantención</label><input type="date" id="vmfMant" style="height:36px;"></div>
       <div class="col wa"><label>Próxima mantención</label><input type="date" id="vmfMantProx" style="height:36px;"></div>
+    </div>
+    <!-- Historial de FALLAS del equipo (v4): descripción obligatoria + foto opcional -->
+    <div id="vmFallaSec" class="hidden" style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;">
+      <div style="font-size:.72rem;font-weight:800;color:var(--danger);letter-spacing:.4px;margin-bottom:7px;">⚠️ REGISTRAR FALLA</div>
+      <textarea id="vmFallaDesc" rows="2" placeholder="Descripción de la falla (obligatoria): qué pasó, en qué modo, alarma mostrada…" style="width:100%;border:1px solid var(--border);border-radius:7px;padding:7px 9px;font-size:.8rem;font-family:inherit;resize:vertical;"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap;">
+        <label class="dpset" style="cursor:pointer;">📷 Foto (opcional)<input type="file" id="vmFallaFoto" accept="image/*" style="display:none;" onchange="vmFallaFotoLbl()"></label>
+        <span id="vmFallaFotoNom" style="font-size:.7rem;color:var(--muted);">sin foto</span>
+        <span style="flex:1;"></span>
+        <button type="button" class="dpset" id="vmFallaBtn" onclick="vmFallaRegistrar()" style="background:var(--danger);color:#fff;border-color:var(--danger);">⚠️ Registrar falla</button>
+      </div>
+      <div id="vmFallasLista" style="margin-top:9px;font-size:.75rem;color:var(--muted);"></div>
     </div>
     <div style="display:flex;gap:9px;padding-top:12px;border-top:1px solid #e2e8f0;">
       <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMod()">Cancelar</button>
@@ -1514,6 +1583,8 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
 
 <!-- OVERLAY --><!-- OVERLAY -->
 <div class="ovl" id="ovl" onclick="cerrarTodo(event)"></div>
+<!-- Plantilla de impresión del seguimiento (diseño conservado; solo visible al imprimir) -->
+<div id="tlPrint"></div>
 <!-- PASTILLA MINIMIZADO -->
 <div id="minTray"></div>
 <!-- HOJA RHB imprimible (formato oficial) — solo visible al imprimir -->
@@ -2921,9 +2992,10 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
   </div>
 
   <div class="tl-tabs">
-    <button class="tl-mtab on" id="tlMt-hoja" onclick="setTLtab('hoja')">📄 Hoja UCI</button>
-    <button class="tl-mtab"    id="tlMt-res" onclick="setTLtab('res')">📊 Resumen</button>
-    <button class="tl-mtab"    id="tlMt-seg" onclick="setTLtab('seg')">📈 Seguimiento</button>
+    <button class="tl-mtab on" id="tlMt-res" onclick="setTLtab('res')">📊 Resumen</button>
+    <button class="tl-mtab"    id="tlMt-hoja" onclick="setTLtab('hoja')">📄 Hoja UCI</button>
+    <span style="flex:1;"></span>
+    <button class="tl-mtab" onclick="tlImprimir()" title="Imprime (o guarda como PDF) la hoja de seguimiento del episodio">🖨️ Imprimir</button>
   </div>
 
   <!-- Filtros (cambian según tab) -->
@@ -3154,7 +3226,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 3.4-hoja]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.0-paquete]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3203,7 +3275,7 @@ let EVOS_DIA = [];   // evoluciones (día+noche) de la fecha visualizada
 let TLC      = null;        // ID cama actualmente abierta
 let TL_HITOS = [];          // array de hitos
 let TL_EVOS  = [];          // array de evoluciones (subset graficable)
-let TL_TAB   = 'hoja';      // 'hoja' | 'res' | 'seg'
+let TL_TAB   = 'res';       // 'res' (recepción) | 'hoja'
 let TL_TURNO = 'all';       // 'all' | 'Dia' | 'Noche'
 let TL_VARS_SEL = new Set(); // variables seleccionadas para el gráfico (multi)
 let TL_NOMBRE= '';
@@ -3452,7 +3524,8 @@ function renderGrid() {
         al += _evalBadge('FSS', c.ULT_FSS, c.ULT_FSS_FECHA);
       }
 
-      el.innerHTML=`
+      const _vmt=c.VM_TAG?`<span class="vmtag${/falla/i.test(c.VM_TAG_ESTADO||'')?' falla':(/manten/i.test(c.VM_TAG_ESTADO||'')?' mant':'')}" onclick="setTab('V')" title="Ventilador asignado a esta cama${c.VM_TAG_ESTADO?' · '+c.VM_TAG_ESTADO:''} — clic para ir a Ventiladores">🔧 ${c.VM_TAG}</span>`:'';
+      el.innerHTML=`${_vmt}
         <div class="bhdr">
           <span class="bnum"><div class="bdot ${dot}"></div>Cama ${c.ID_CAMA}</span>
           <button class="bmov" onclick="mover('${c.ID_CAMA}')" title="Intercambiar cama">
@@ -3476,7 +3549,8 @@ function renderGrid() {
           <button class="balt" onclick="egreso('${c.ID_CAMA}')">🏠 Egr.</button>
         </div>`;
     } else {
-      el.innerHTML=`
+      const _vmtL=c.VM_TAG?`<span class="vmtag${/falla/i.test(c.VM_TAG_ESTADO||'')?' falla':(/manten/i.test(c.VM_TAG_ESTADO||'')?' mant':'')}" onclick="setTab('V')" title="Ventilador en esta cama${c.VM_TAG_ESTADO?' · '+c.VM_TAG_ESTADO:''} — clic para ir a Ventiladores">🔧 ${c.VM_TAG}</span>`:'';
+      el.innerHTML=`${_vmtL}
         <div class="bhdr"><span class="bnum" style="color:var(--muted);"><div class="bdot d-empty"></div>Cama ${c.ID_CAMA}</span></div>
         <div class="bbody"><div class="empty-txt">Disponible</div></div>
         <div class="bfoot"><button class="bevo" style="background:#e2e8f0;color:#475569;" onclick="abrirPanel('${c.ID_CAMA}',true)">+ Ingresar Paciente</button></div>`;
@@ -3823,7 +3897,7 @@ function cerrarTodo(e) {
       } else cerrarEgreso();
       return;
     }
-    cerrarTL(); cerrarEgreso();
+    cerrarEgreso();   // el historial (pantalla completa) cierra SOLO con su X
     if(typeof arcCerrar==='function'&&$('arcMod')?.classList.contains('on')) arcCerrar();
     // H11: coherencia — clic afuera también cierra los modales de ventiladores
     // y el aviso de revisión (antes quedaban flotando sin telón)
@@ -3840,7 +3914,8 @@ document.addEventListener('keydown', e=>{
   if(e.key!=='Escape') return;
   if($('ucOvl')?.classList.contains('on')) return;              // lo maneja uiConfirm
   if($('transAviso')?.classList.contains('on')){ transAvisoCerrar(); return; }
-  if($('tlp')?.classList.contains('on')){ cerrarTL(); return; }
+  // el historial a pantalla completa cierra SOLO con la X (pedido de Diego)
+  if($('tlp')?.classList.contains('on')) return;
   if(typeof arcCerrar==='function'&&$('arcMod')?.classList.contains('on')){ arcCerrar(); return; }
   if($('vmMove')?.classList.contains('on')){ vmCerrarMove(); return; }
   if($('bnMod')?.classList.contains('on')){ bnCerrar(); return; }
@@ -4978,7 +5053,7 @@ function abrirTL(id) {
   $('tlNombre').textContent = TL_NOMBRE;
 
   // Abre en Resumen (vista sin clics) + filtros
-  TL_TAB = 'hoja'; TL_TURNO = 'all';
+  TL_TAB = 'res'; TL_TURNO = 'all';
   _updateTLTabsUI(); _updateTLFiltersUI();
   $('tlBody').innerHTML = '<div style="padding:30px;text-align:center;color:#94a3b8;">Cargando historial...</div>';
 
@@ -5007,7 +5082,7 @@ function abrirTLPaciente(patientId, nombre, idCama){
   TLC = idCama || '';
   TL_NOMBRE = nombre || 'Paciente';
   $('tlNombre').textContent = TL_NOMBRE;
-  TL_TAB='hoja'; TL_TURNO='all';
+  TL_TAB='res'; TL_TURNO='all';
   _updateTLTabsUI(); _updateTLFiltersUI();
   $('tlBody').innerHTML='<div style="padding:30px;text-align:center;color:#94a3b8;">Cargando historial...</div>';
   $('tlp').classList.add('on'); $('ovl').classList.add('on');
@@ -5137,7 +5212,7 @@ function setTLturno(t) {
   renderTL();
 }
 function _updateTLTabsUI() {
-  ['hoja','res','seg'].forEach(t => {
+  ['res','hoja'].forEach(t => {
     const b = $('tlMt-' + t); if (b) b.classList.toggle('on', t === TL_TAB);
   });
 }
@@ -5516,6 +5591,28 @@ function hjVer(tipo, fecha){
   show('hjVelo'); show('hjDet');
 }
 function hjCerrar(){ hide('hjVelo'); hide('hjDet'); }
+/* «Imprimir hoja»: el diseño de la antigua pestaña Seguimiento vive aquí como
+   plantilla — se arma al momento, se imprime (o se guarda como PDF desde el
+   diálogo del navegador) y desaparece. */
+function tlImprimir(){
+  const nom=($('tlNombre')?.textContent||'').trim();
+  const TODAS=[...VENT_VARS,...REH_VARS];
+  const secc=(tit,keys)=>{
+    const sel=TODAS.filter(vd=>keys.includes(vd.key));
+    return sel.length?`<div class="tlpr-sec">${tit}</div>`+_tlTablaHTML(sel,true):'';
+  };
+  let h=`<div class="tlpr-head"><b>HOSPITAL SAN PABLO DE COQUIMBO — UNIDAD DE PACIENTE CRÍTICO ADULTO</b><br>`+
+        `Hoja de seguimiento kinésico · ${nom} · impresa el ${hoy()}</div>`;
+  h+=secc('Oxigenación',['VENT_FIO2','VENT_SPO2']);
+  h+=secc('Soporte ventilatorio',['VENT_PEEP','VENT_PS','CALC_DP']);
+  h+=secc('Rehabilitación',['KTM_NIVEL_KTR','EVAL_IMS','EVAL_T_MRC','EVAL_T_FSS']);
+  $('tlPrint').innerHTML=h;
+  document.body.classList.add('tl-printing');
+  const fin=()=>{ document.body.classList.remove('tl-printing'); window.removeEventListener('afterprint',fin); };
+  window.addEventListener('afterprint',fin);
+  window.print();
+  setTimeout(fin,2000);   // respaldo por si afterprint no dispara en el iframe
+}
 function hjSetSeg(s){ HJ_SEG=s; renderTL(); }
 function hjSetRango(r){ HJ_RANGO=r; renderTL(); }
 function hjToggleVacias(){ HJ_VACIAS=!HJ_VACIAS; renderTL(); }
@@ -5538,8 +5635,8 @@ function _hjEnganchar(){
 function renderTL() {
   if (!$('tlBody')) return;
   if (TL_TAB === 'hoja') { $('tlBody').innerHTML = hojaUCI(); _hjEnganchar(); return; }
-  if (TL_TAB === 'res') _renderTLResumen();
-  else                  _renderTLChart(SEG_VARS);
+  _renderTLResumen();   // el Seguimiento interactivo fue reemplazado por la Hoja UCI
+                        // (su diseño vive como plantilla de impresión: tlImprimir)
 }
 
 // ── Eventos únicos del turno → marcadores para la fila 📌 de las tablas ──
@@ -5591,40 +5688,12 @@ function _renderTLResumen(){
     h+='</div>';
   }
 
-  // ── 2) TENDENCIA (plegable): KPIs + heatmaps curados ──
-  const pveN=evos.filter(e=>e.PVE_VAL==='si').length;
-  const pveUlt=[...evos].reverse().find(e=>e.PVE_RESULTADO);
-  const reintubs=evos.filter(e=>esT(e.EXT_REINTUB)).length;
-  const nivMax=Math.max(0,...evos.map(e=>parseInt(e.KTM_NIVEL_KTR)||0));
-  const ultCon=k=>{ const e=[...evos].reverse().find(x=>x[k]!==''&&x[k]!==null&&x[k]!==undefined); return e?{v:e[k],f:String(e.TURNO_KEY).slice(5,10)}:null; };
-  const mrc=ultCon('EVAL_T_MRC'), fss=ultCon('EVAL_T_FSS'), cpax=ultCon('CPAX_TOTAL');
-  const pill=(lbl,val,color)=>`<div style="background:#fff;border:1px solid #e2e8f0;border-left:4px solid ${color||'#94a3b8'};border-radius:9px;padding:6px 12px;min-width:104px;"><div style="font-size:.6rem;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.03em;">${lbl}</div><div style="font-size:1rem;font-weight:800;color:#0f172a;">${val}</div></div>`;
-  let tend='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">';
-  tend+=pill('Día estadía', (ult.DIA_ESTADIA!==''&&ult.DIA_ESTADIA!==undefined)?ult.DIA_ESTADIA:'—', '#1d6fc4');
-  tend+=pill('Días VM', (ult.DIAS_VM!==''&&ult.DIAS_VM!==undefined)?ult.DIAS_VM:'—', '#0284c7');
-  tend+=pill('PVE', pveN?`${pveN}${pveUlt?` · últ. ${pveUlt.PVE_RESULTADO}`:''}`:'—', pveUlt?(pveUlt.PVE_RESULTADO==='superada'?'#16a34a':'#dc2626'):'#7c3aed');
-  tend+=pill('Reintubaciones', String(reintubs), reintubs?'#b91c1c':'#94a3b8');
-  tend+=pill('Mejor nivel KTM', nivMax?`Nivel ${nivMax}`:'—', '#d97706');
-  const ktrTot=evos.reduce((a,e)=>a+(parseInt(e.RESP_KTR_CANT)||0),0);
-  tend+=pill('Sesiones KTR', ktrTot?String(ktrTot):'—', '#0891b2');
-  if(mrc) tend+=pill('MRC últ.', `${mrc.v} <span style="font-size:.62rem;color:#94a3b8;">${mrc.f}</span>`, '#d97706');
-  if(fss) tend+=pill('FSS últ.', `${fss.v} <span style="font-size:.62rem;color:#94a3b8;">${fss.f}</span>`, '#0891b2');
-  if(cpax) tend+=pill('CPAx últ.', `${cpax.v} <span style="font-size:.62rem;color:#94a3b8;">${cpax.f}</span>`, '#7c3aed');
-  tend+='</div>';
-  const TODAS=[...VENT_VARS,...REH_VARS];
-  const secc=(tit,keys)=>{
-    const sel=TODAS.filter(vd=>keys.includes(vd.key));
-    return `<div style="margin-bottom:16px;"><div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin-bottom:6px;">${tit}</div>${_tlTablaHTML(sel,true)}</div>`;
-  };
-  const hayPS=evos.some(e=>{const n=_parseNum(e.VENT_PS);return n!==null&&n>0;});
-  tend+=secc('🫧 Oxigenación',['VENT_FIO2','VENT_SPO2']);
-  tend+=secc('⚙️ Soporte',['VENT_PEEP',hayPS?'VENT_PS':'CALC_DP']);
-  tend+=secc('🏃 Rehabilitación',['KTM_NIVEL_KTR','EVAL_IMS']);
-  h+=`<details class="tlr-det" open><summary><span class="cv">▸</span> 📈 Tendencia por día <span style="font-weight:500;color:#94a3b8;font-size:.75rem;">(FiO₂, PEEP, MRC…)</span></summary><div class="in">${tend}</div></details>`;
+  // (el plegable «Tendencia por día» se eliminó: era redundante con la
+  //  Hoja UCI, que muestra el detalle día a día con tendencia por fila)
 
   // ── 3) FEED de turnos (detalle, más reciente arriba) ──
-  h+='<div class="tlr-sec">🗒️ Detalle por turno</div><div class="tlr-feed">';
-  h+=[...evos].reverse().map(e=>{
+  h+='<div class="tlr-sec">🗒️ Detalle por turno <span style="font-weight:500;color:#94a3b8;font-size:.72rem;">— solo el último turno abierto; toca una cabecera para desplegar</span></div><div class="tlr-feed">';
+  h+=[...evos].reverse().map((e,_i)=>{
     const evs=_tlEventosSlot(e);
     const tone=evs.length?evs[0][2]:'#1d6fc4';
     const chips=evs.map(ev=>`<span class="tlr-chip" style="color:${ev[2]};background:${ev[2]}18;border:1px solid ${ev[2]}55;">${ev[0]} ${_tlEscHtml(ev[1])}</span>`).join('');
@@ -5637,16 +5706,21 @@ function _renderTLResumen(){
     addp('FiO₂', e.VENT_FIO2,'%'); addp('SpO₂', e.VENT_SPO2,'%');
     const fase=_tlFaseTxt(e);
     const txt=String(e.TEXTO_GENERADO||'').trim();
-    return `<div class="tlr-card" style="--tone:${tone}"><div class="rail"></div><div class="in">
-      <div class="tlr-h"><span class="day">Día ${e.DIA_ESTADIA!==''&&e.DIA_ESTADIA!=null?e.DIA_ESTADIA:'—'}</span>
+    // Acordeón: solo la evolución MÁS RECIENTE (_i===0) parte desplegada —
+    // con estadías largas, todas abiertas era un scroll infinito.
+    return `<details class="tlr-fold"${_i===0?' open':''}><summary>
+        <span class="day">Día ${e.DIA_ESTADIA!==''&&e.DIA_ESTADIA!=null?e.DIA_ESTADIA:'—'}</span>
         <span class="fe">${String(e.FECHA||'').slice(5)}</span>
         <span style="font-size:.7rem;font-weight:700;color:${e.TURNO==='Dia'?'#d97706':'#1d6fc4'};">${e.TURNO==='Dia'?'☀ DÍA':'🌙 NOCHE'}</span>
-        ${fase?`<span class="fa">${_tlEscHtml(fase)}</span>`:''}</div>
+        ${fase?`<span class="fa">${_tlEscHtml(fase)}</span>`:''}
+        ${e.PLAN_FIRMA_KINE?`<span class="sg">✍ ${_tlEscHtml(e.PLAN_FIRMA_KINE)}</span>`:''}
+        <span class="cv">▾</span></summary>
+      <div class="tlr-card" style="--tone:${tone}"><div class="rail"></div><div class="in">
       ${(chips||evChips.length)?`<div class="tlr-chips">${chips}${evChips.join('')}</div>`:''}
       ${vp.length?`<div class="tlr-params">${vp.join('')}</div>`:''}
       ${txt?`<div class="tlr-txt" onclick="this.classList.toggle('clamp')" title="Clic para plegar/expandir">${_tlEscHtml(txt)}</div>`:''}
-      ${e.PLAN_FIRMA_KINE?`<div class="tlr-sign">✍ ${_tlEscHtml(e.PLAN_FIRMA_KINE)}${(e.TEXTO_MANUAL===true||e.TEXTO_MANUAL==='TRUE')?' <span style="color:#b45309;font-weight:700;" title="El texto de este turno fue retocado a mano sobre el generado">· ✍️ texto editado</span>':''}</div>`:''}
-    </div></div>`;
+      ${(e.TEXTO_MANUAL===true||e.TEXTO_MANUAL==='TRUE')?`<div class="tlr-sign"><span style="color:#b45309;font-weight:700;" title="El texto de este turno fue retocado a mano sobre el generado">✍️ texto editado</span></div>`:''}
+    </div></div></details>`;
   }).join('');
   h+='</div>';
 
@@ -5981,10 +6055,12 @@ function genTexto() {
     const _rh=v('fReintubHoraT'), _rz=_extReintubRaz();
     L.push(`Paciente requirió reintubación${_rh?' a las '+_rh+' hrs':''}${_rz?' por '+_rz.toLowerCase():''}${_reintubEquipoTxt()}.`);
   }
-  // Intubación NUEVA este turno (paciente sin historial de VM)
+  // Intubación NUEVA este turno (paciente sin historial de VM). En un INGRESO
+  // narra la transición: llegó ventilando con el soporte previo y se intubó.
   if($('cIntubO')?.checked){
-    const _ih=v('fIntubHora'), _idt=v('fIntubDet');
-    L.push(`Paciente requiere intubación orotraqueal${_ih?' a las '+_ih+' hrs':''}${_idt?' en contexto de '+_idt:''}.`);
+    const _ih=v('fIntubHora'), _idt=v('fIntubDet'), _isp=v('fIntubSopPrevio');
+    const _pv=_isp?`Previo en ${_isp.toLowerCase()}, p`:'P';
+    L.push(`${_pv}aciente requiere intubación orotraqueal${_ih?' a las '+_ih+' hrs':''}${_idt?' en contexto de '+_idt:''}.`);
   }
   // "Por…"/"Para…" ya traen su preposición; el resto se une con "por"
   const _conMotivo=m=>{ m=String(m||'').trim(); if(!m) return ''; const ml=m.toLowerCase(); return (ml.startsWith('por ')||ml.startsWith('para '))?' '+ml:' por '+ml; };
@@ -6594,9 +6670,13 @@ function updateVAUI() {
   const noInv=!esInv && va!==''; // sin VA registrada aún no se ofrecen eventos de vía aérea
   if((noInv && !histVM) || $('cIntubO')?.checked || (_transIntubEsteTurno && !histVM)) show('dIntubSec'); else hide('dIntubSec');
   if((noInv && histVM) || $('cReintubT')?.checked || (_transIntubEsteTurno && histVM)) show('dReintubSec'); else hide('dReintubSec');
-  // INGRESO = registro del estado de llegada: sin eventos de vía aérea
-  // (intubación/reintubación/PVE-extubación/decanulación van en las evoluciones).
-  if(v('cIng')==='true'){ hide('dIntubSec'); hide('dReintubSec'); hide('dExtSec'); hide('dDecanSec'); hide('dTqtSec'); }
+  // INGRESO = registro del estado de llegada, PERO un paciente puede llegar
+  // con vía aérea natural e intubarse EN EL MISMO TURNO (bug clínico v4):
+  // la sección de intubación queda disponible (misma condición de arriba) y
+  // al marcarla se registran AMBOS eventos (ingreso + intubación) y el texto
+  // narra la transición («ingresa… ventila espontáneo… ⇒ se realiza IOT…»).
+  // Reintubación/PVE-extubación/decanulación siguen fuera del ingreso.
+  if(v('cIng')==='true'){ hide('dReintubSec'); hide('dExtSec'); hide('dDecanSec'); hide('dTqtSec'); }
   _updateSinKTR();
 }
 
@@ -6975,11 +7055,12 @@ function pielToggle(){
 pielAplicar(document.documentElement.getAttribute('data-piel'));   // sincroniza etiquetas al arrancar
 
 /* ── Eventos rápidos post-evolución (popover estilo lista de Sheets) ── */
-let _evCama=null,_evTipo=null;
+let _evCama=null,_evTipo=null,_evTurno='Dia';
 function evAbrir(id,anchor){
   _evCama=String(id); _evTipo=null;
   const pop=$('evPop'); if(!pop) return;
-  $('evTitulo').textContent='➕ Evento posterior · Cama '+_evCama+' · '+(SHIFT==='Dia'?'DÍA':'NOCHE');
+  $('evTitulo').textContent='➕ Evento posterior · Cama '+_evCama;
+  evSetTurno(SHIFT);   // preseleccionado según la hora; editable a la vista
   show('evLista'); hide('evForm');
   // firma: parte con la asignación del tablero para esa cama (editable)
   const sel=$('evFirma');
@@ -6994,6 +7075,11 @@ function evAbrir(id,anchor){
   let x=Math.min(Math.max(8,r.left-10), innerWidth-300);
   let y=r.bottom+6; if(y+330>innerHeight) y=Math.max(8,r.top-336);
   pop.style.left=x+'px'; pop.style.top=y+'px';
+}
+function evSetTurno(t){
+  _evTurno=(t==='Noche')?'Noche':'Dia';
+  $('evTurnoD')?.classList.toggle('on',_evTurno==='Dia');
+  $('evTurnoN')?.classList.toggle('on',_evTurno==='Noche');
 }
 function evCerrar(){ hide('evPop'); hide('evVelo'); _evCama=null; _evTipo=null; }
 function evVolver(){ show('evLista'); hide('evForm'); _evTipo=null; }
@@ -7013,7 +7099,7 @@ function evGuardar(){
   if(!_evCama||!_evTipo) return;
   const firma=v('evFirma');
   if(!firma){ toast('⚠️ Selecciona la firma de quien anota.'); return; }
-  const datos={ idCama:_evCama, turnoKey:`${v('gDate')||hoy()}-${SHIFT}`, tipo:_evTipo,
+  const datos={ idCama:_evCama, turnoKey:`${v('gDate')||hoy()}-${_evTurno}`, tipo:_evTipo,
     hora:v('evHora'), detalle:v('evDet'), proc:v('evProc'),
     cultTipo:v('evCultTipo'), cultHallazgo:v('evCultHall'), firmaKine:firma };
   const b=$('evGo'); b.disabled=true; b.textContent='⏳…';
@@ -8573,8 +8659,7 @@ function _regEgresosCama(tb,idCama,q){
         <td class="tc-p4">${dash}</td>
         <td class="tc-p4">${dash}</td>
         <td class="tc-ex">${dash}</td>
-        <td class="tc-kine">${dash}</td>
-        <td class="tc-ev">${dash}</td>`;
+        <td class="tc-kine">${dash}</td>`;
     });
 }
 
@@ -8590,13 +8675,13 @@ function renderTabla(){
   t.innerHTML='';
   const head=t.createTHead();
   const tr1=head.insertRow();
-  [{l:'DATOS',n:9,c:'d'},{l:'TURNO DÍA',n:8,c:'dia'},{l:'TURNO NOCHE',n:7,c:'noc'}]
+  [{l:'DATOS',n:9,c:'d'},{l:'TURNO DÍA',n:8,c:'dia'},{l:'TURNO NOCHE',n:6,c:'noc'}]
     .forEach(s=>{const th=document.createElement('th');th.className=`ths ${s.c}`;th.colSpan=s.n;th.textContent=s.l;tr1.appendChild(th);});
   const tr2=head.insertRow();
   [{l:'CAMA',c:'d'},{l:'PACIENTE',c:'d'},{l:'SEXO',c:'d'},{l:'EDAD',c:'d'},{l:'D.EST',c:'d'},
    {l:'D.VM',c:'d'},{l:'D.VNI',c:'d'},{l:'DX INGRESO',c:'d'},{l:'SOPORTE',c:'d'},
    {l:'KTR',c:'dia'},{l:'KTM',c:'dia'},{l:'PROC 1',c:'dia'},{l:'PROC 2',c:'dia'},{l:'PROC 3',c:'dia'},{l:'PROC 4',c:'dia'},{l:'EXTUB.',c:'dia'},{l:'KINE',c:'dia'},
-   {l:'KTR',c:'noc'},{l:'PROC 1',c:'noc'},{l:'PROC 2',c:'noc'},{l:'PROC 3',c:'noc'},{l:'EXTUB.',c:'noc'},{l:'KINE',c:'noc'},{l:'＋',c:'noc'}]
+   {l:'KTR',c:'noc'},{l:'PROC 1',c:'noc'},{l:'PROC 2',c:'noc'},{l:'PROC 3',c:'noc'},{l:'EXTUB.',c:'noc'},{l:'KINE',c:'noc'}]
     .forEach(h=>{const th=document.createElement('th');th.className=`thc ${h.c}`;th.textContent=h.l;tr2.appendChild(th);});
 
   const dash='<span style="color:#cbd5e1;">-</span>';
@@ -8656,7 +8741,10 @@ function renderTabla(){
 
       tr.innerHTML=`
         <td class="tc-c">${id}</td>
-        <td class="tc-n">${nomHtml}</td>
+        <td class="tc-n"><span style="display:flex;align-items:center;gap:6px;">
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;">${nomHtml}</span>
+          ${(ocu||evoRef)?`<button type="button" class="ev-btn" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${id}',this)">➕</button>`:''}
+        </span></td>
         <td class="tc-num" style="color:var(--muted);">${sexo||'-'}</td>
         <td class="tc-num">${edad||'-'}</td>
         <td class="tc-num" style="color:${parseInt(dEst)>7?'var(--danger)':'inherit'};font-weight:${parseInt(dEst)>7?800:600};">${dEst!==''?dEst:'-'}</td>
@@ -8677,12 +8765,11 @@ function renderTabla(){
         <td class="tc-p4">${cN[1]}</td>
         <td class="tc-p4">${cN[2]}</td>
         <td class="tc-ex">${extub(evoN)}</td>
-        <td class="tc-kine">${firmaCell(evoN)}</td>
-        <td class="tc-ev"><button type="button" class="ev-btn" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${id}',this)">➕</button></td>`;
+        <td class="tc-kine">${firmaCell(evoN)}</td>`;
     });
 
   const trT=tb.insertRow(); trT.className='r-tot';
-  trT.innerHTML=`<td colspan="23" class="tl">TOTAL KTR (DÍA + NOCHE)</td><td class="tv">${kD}</td>`;
+  trT.innerHTML=`<td colspan="22" class="tl">TOTAL KTR (DÍA + NOCHE)</td><td class="tv">${kD}</td>`;
 
   const ocupadas=DB.filter(c=>c.OCUPADA===true||c.OCUPADA==='TRUE').length;
   const enVM=DB.filter(c=>(c.OCUPADA===true||c.OCUPADA==='TRUE')&&c.SOPORTE==='VM').length;
@@ -9012,6 +9099,7 @@ function vmNuevo(){
   $('vmfUbicTipo').value='BODEGA'; _vmFillCamas($('vmfCama')); vmfUbicUI();
   $('vmfFecha').value=v('gDate')||hoy();
   show('vmfUbicRow');
+  hide('vmFallaSec');
   $('vmMod').classList.add('on'); $('ovl').classList.add('on');
 }
 function vmEditar(id){
@@ -9022,7 +9110,74 @@ function vmEditar(id){
   $('vmfAnio').value=x.anio||''; $('vmfObs').value=x.obs||''; $('vmfEstado').value=x.estado||'Operativo';
   $('vmfMant').value=x.fechaMant||''; $('vmfMantProx').value=x.fechaMantProx||'';
   hide('vmfUbicRow'); // la ubicación se cambia con 🔁 Mover (queda trazada)
+  show('vmFallaSec'); vmFallaReset(); vmFallasCargar(x.id);
   $('vmMod').classList.add('on'); $('ovl').classList.add('on');
+}
+
+/* ══ Fallas del equipo (v4): descripción obligatoria + foto opcional ══
+   La foto se COMPRIME EN EL CLIENTE con canvas (máx 1280 px, JPEG 0,8) antes
+   de viajar en base64 — google.script.run no acepta payloads grandes. */
+function vmFallaReset(){
+  const d=$('vmFallaDesc'); if(d) d.value='';
+  const f=$('vmFallaFoto'); if(f) f.value='';
+  const n=$('vmFallaFotoNom'); if(n) n.textContent='sin foto';
+  const l=$('vmFallasLista'); if(l) l.innerHTML='';
+}
+function vmFallaFotoLbl(){
+  const f=$('vmFallaFoto').files[0];
+  $('vmFallaFotoNom').textContent=f?(f.name+' · '+Math.round(f.size/1024)+' KB'):'sin foto';
+}
+function _vmFotoComprimir(file){
+  return new Promise((res,rej)=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const MAX=1280, esc=Math.min(1, MAX/Math.max(img.width,img.height));
+      const cv=document.createElement('canvas');
+      cv.width=Math.round(img.width*esc); cv.height=Math.round(img.height*esc);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      const dataUrl=cv.toDataURL('image/jpeg',0.8);
+      res({ b64:dataUrl.split(',')[1], mime:'image/jpeg' });
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('No se pudo leer la imagen.')); };
+    img.src=url;
+  });
+}
+async function vmFallaRegistrar(){
+  const idVm=v('vmfId'); if(!idVm) return;
+  const desc=v('vmFallaDesc').trim();
+  if(!desc){ toast('⚠️ La descripción de la falla es obligatoria.'); $('vmFallaDesc').focus(); return; }
+  const btn=$('vmFallaBtn'); btn.disabled=true; btn.textContent='⏳ Registrando…';
+  const fin=()=>{ btn.disabled=false; btn.textContent='⚠️ Registrar falla'; };
+  let foto=null;
+  const file=$('vmFallaFoto').files[0];
+  if(file){
+    if(!/^image\//.test(file.type)){ toast('⚠️ El archivo debe ser una imagen.'); fin(); return; }
+    try{ foto=await _vmFotoComprimir(file); }
+    catch(e){ toast('❌ '+e.message); fin(); return; }
+  }
+  const datos={ idVm:idVm, descripcion:desc };
+  if(foto){ datos.fotoB64=foto.b64; datos.fotoMime=foto.mime; }
+  gs('REGISTRAR_FALLA_VM', datos, r=>{
+    fin(); toast('⚠️ Falla registrada'+(r&&r.fotoUrl?' con foto':'')+'. El equipo queda «Con falla».');
+    $('vmFallaDesc').value=''; $('vmFallaFoto').value=''; $('vmFallaFotoNom').textContent='sin foto';
+    $('vmfEstado').value='Con falla';
+    vmFallasCargar(idVm); vmCargar&&vmCargar();
+  }, e=>{ fin(); toast('❌ '+e); });
+}
+function vmFallasCargar(idVm){
+  const l=$('vmFallasLista'); if(!l) return;
+  l.innerHTML='⏳ Cargando historial de fallas…';
+  gs('GET_FALLAS_VM',{idVm:idVm}, d=>{
+    const f=(d&&d.fallas)||[];
+    if(!f.length){ l.innerHTML='<span style="color:#94a3b8;font-style:italic;">Sin fallas registradas para este equipo.</span>'; return; }
+    l.innerHTML='<div style="font-size:.68rem;font-weight:800;color:var(--muted);margin-bottom:4px;">HISTORIAL DE FALLAS ('+f.length+')</div>'+
+      f.map(x=>`<div style="border-left:3px solid var(--danger);background:#fbfaf9;border-radius:0 7px 7px 0;padding:5px 9px;margin-bottom:5px;">
+        <b>${x.fecha||''}</b> · ${(x.desc||'').replace(/</g,'&lt;')}
+        ${x.foto?` · <a href="${x.foto}" target="_blank" rel="noopener" style="color:var(--primary);font-weight:700;">📷 ver foto</a>`:''}
+        ${x.firma?`<span style="color:var(--kine);font-weight:700;"> · ${x.firma}</span>`:''}
+      </div>`).join('');
+  }, e=>{ l.innerHTML='❌ '+e; });
 }
 function vmfUbicUI(){
   const t=v('vmfUbicTipo');
@@ -9940,6 +10095,79 @@ function indRender(d){
   h+=`<div style="background:#fbf3e4;border:1px solid #efdcb2;border-radius:8px;padding:8px 12px;font-size:.74rem;color:#7a5c1e;">⚖️ <b>Mortalidad de egresos: ${d.mortalidadPct==null?'—':d.mortalidadPct+'%'}</b> (${d.fallecidos}/${d.egresos}) — cifra <b>no ajustada por gravedad</b>: no compara desempeño entre períodos ni con otros centros. El ajuste (APACHE II) se realiza en el análisis externo anonimizado, cruzado por RUT dentro del hospital.</div>`;
   h+=`<div style="font-size:.66rem;color:var(--muted);margin-top:8px;">Período ${d.desde} → ${d.hasta} · definiciones: fracaso = reintubación ≤48 h tras extubación programada (precoz &lt;24 h, tardío 24-48 h); autoextubación y accidental no cuentan como programadas; fuera de protocolo = sin protocolo o &lt;24 h de VM; PVE = registrada con resultado.</div>`;
   $('indOut').innerHTML=h;
+}
+
+/* ══ Tabla dinámica (pestaña Estadísticas): pivot propio en vanilla JS ══
+   El cohete no puede depender de CDN externos, así que el cruce se hace
+   aquí: filas × columnas × valor (conteo / suma / promedio). Los datos
+   llegan ANONIMIZADOS del servidor (GET_PIVOT: lista blanca sin nombre/RUT). */
+let PIV_DATA=[];
+const PIV_DIM=[['FECHA','Fecha'],['MES','Mes'],['TURNO','Turno'],['CAMA','Cama'],['SEXO','Sexo'],
+  ['DIAG_REM','Diagnóstico REM'],['FASE','Fase clínica'],['VIA_AEREA','Vía aérea'],['SOPORTE','Soporte'],
+  ['MODO','Modo'],['KTM','KTM realizada'],['NIVEL_KTM','Nivel KTM'],['IMT','IMT'],['EMS','EMS'],
+  ['IMS','IMS'],['PVE','PVE'],['PVE_RESULTADO','Resultado PVE'],['EXTUBACION','Extubación'],['CUFF','Cuff']];
+const PIV_NUM=[['KTR','KTR (sesiones)'],['EDAD','Edad'],['DIA_ESTADIA','Día estadía'],
+  ['FIO2','FiO2'],['PEEP','PEEP'],['PAFI','PaFi'],['MRC','MRC-ss'],['CPAX','CPAx']];
+function pivCargar(){
+  const b=$('pivGo'); b.disabled=true; b.textContent='⏳…';
+  gs('GET_PIVOT',{desde:v('pivDesde'),hasta:v('pivHasta')}, d=>{
+    b.disabled=false; b.textContent='⚙️ Cargar datos';
+    PIV_DATA=(d&&d.filas)||[];
+    $('pivInfo').textContent=PIV_DATA.length+' turnos cargados'+((d&&d.truncado)?' (tope de 2.500 — acota las fechas)':'')+' · sin nombre ni RUT';
+    if(!PIV_DATA.length){ $('pivOut').innerHTML='<div class="pivot-empty">Sin registros en ese rango.</div>'; hide('pivCtrl'); return; }
+    const selF=$('pivF'), selC=$('pivC'), selV=$('pivV');
+    selF.innerHTML=PIV_DIM.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');
+    selC.innerHTML='<option value="">— (solo filas) —</option>'+PIV_DIM.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');
+    selV.innerHTML='<option value="">Conteo de turnos</option>'+
+      PIV_NUM.map(x=>`<option value="S:${x[0]}">Suma de ${x[1]}</option>`).join('')+
+      PIV_NUM.map(x=>`<option value="P:${x[0]}">Promedio de ${x[1]}</option>`).join('');
+    selF.value='MES'; selC.value='TURNO'; selV.value='';
+    const pc=$('pivCtrl'); pc.classList.remove('hidden'); pc.style.display='flex';
+    pivRender();
+  }, e=>{ b.disabled=false; b.textContent='⚙️ Cargar datos'; toast('❌ '+e); });
+}
+function pivRender(){
+  const out=$('pivOut'); if(!out||!PIV_DATA.length) return;
+  const fK=v('pivF'), cK=v('pivC'), vSel=v('pivV');
+  const modo=vSel?vSel.slice(0,1):'C', vK=vSel?vSel.slice(2):'';
+  const et=x=>(x===''||x==null)?'(vacío)':String(x);
+  const filas=[...new Set(PIV_DATA.map(r=>et(r[fK])))].sort();
+  const cols=cK?[...new Set(PIV_DATA.map(r=>et(r[cK])))].sort():['Total'];
+  if(filas.length>80||cols.length>32){ out.innerHTML='<div class="pivot-empty">⚠️ Demasiadas categorías ('+filas.length+'×'+cols.length+'). Elige campos con menos valores distintos.</div>'; return; }
+  const celda={},nCel={};
+  PIV_DATA.forEach(r=>{
+    const kf=et(r[fK]), kc=cK?et(r[cK]):'Total', k=kf+''+kc;
+    if(modo==='C'){ celda[k]=(celda[k]||0)+1; }
+    else { const n=parseFloat(String(r[vK]).replace(',','.')); if(isFinite(n)){ celda[k]=(celda[k]||0)+n; nCel[k]=(nCel[k]||0)+1; } }
+  });
+  const val=k=>{ if(celda[k]==null) return null;
+    if(modo==='P') return Math.round(10*celda[k]/nCel[k])/10;
+    return Math.round(10*celda[k])/10; };
+  const fmt=x=>x==null?'<span style="color:#cbd5e1;">—</span>':String(x).replace('.',',');
+  let h='<table style="border-collapse:collapse;font-size:.74rem;min-width:340px;"><tr><th style="border:1px solid var(--border);background:#f1efec;padding:3px 9px;text-align:left;">'+
+    (PIV_DIM.find(x=>x[0]===fK)||['',''])[1]+'</th>'+
+    cols.map(c=>`<th style="border:1px solid var(--border);background:#f1efec;padding:3px 9px;">${c}</th>`).join('')+
+    '<th style="border:1px solid var(--border);background:#e4e1da;padding:3px 9px;">TOTAL</th></tr>';
+  const totCol={}; let totGral=0, nGral=0;
+  filas.forEach(f=>{
+    let totFila=0,nFila=0;
+    h+='<tr><td style="border:1px solid var(--border);padding:3px 9px;font-weight:700;background:#fbfaf9;">'+f+'</td>';
+    cols.forEach(c=>{
+      const k=f+''+c, x=val(k);
+      if(x!=null){ totFila+=celda[k]; nFila+=(modo==='P'?nCel[k]:1); totCol[c]=(totCol[c]||0)+celda[k]; totGral+=celda[k];
+        if(modo==='P'){ nGral+=nCel[k]; totCol['n'+c]=(totCol['n'+c]||0)+nCel[k]; } }
+      h+='<td style="border:1px solid var(--border);padding:3px 9px;text-align:center;">'+fmt(x)+'</td>';
+    });
+    const tf=modo==='P'?(nFila?Math.round(10*totFila/nFila)/10:null):Math.round(10*totFila)/10;
+    h+='<td style="border:1px solid var(--border);padding:3px 9px;text-align:center;font-weight:800;background:#fbfaf9;">'+fmt(tf)+'</td></tr>';
+  });
+  h+='<tr><td style="border:1px solid var(--border);padding:3px 9px;font-weight:800;background:#e4e1da;">TOTAL</td>';
+  cols.forEach(c=>{ const t=totCol[c];
+    const x=t==null?null:(modo==='P'?Math.round(10*t/(totCol['n'+c]||1))/10:Math.round(10*t)/10);
+    h+='<td style="border:1px solid var(--border);padding:3px 9px;text-align:center;font-weight:800;background:#f1efec;">'+fmt(x)+'</td>'; });
+  const tg=modo==='P'?(nGral?Math.round(10*totGral/nGral)/10:null):Math.round(10*totGral)/10;
+  h+='<td style="border:1px solid var(--border);padding:3px 9px;text-align:center;font-weight:800;background:#e4e1da;">'+fmt(tg)+'</td></tr></table>';
+  out.innerHTML=h;
 }
 
 /* ── REM mensual (pestaña Estadísticas) ── */

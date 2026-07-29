@@ -185,6 +185,54 @@ const EVOS = [
   eq('y toda su columna', C.col > 1, true);
   eq('al salir se limpia', C.limpia, 0);
 
+
+  // ── v4: reestructura del historial ──
+  const H4 = await p.evaluate(async () => {
+    const r = {};
+    r.sinSeg = !document.getElementById('tlMt-seg');
+    r.primeraTab = document.querySelector('.tl-tabs .tl-mtab').id;
+    // Resumen: evoluciones plegadas, solo la última (más reciente) abierta
+    setTLtab('res');
+    const folds = [...document.querySelectorAll('#tlBody details.tlr-fold')];
+    r.folds = folds.length;
+    r.abiertas = folds.filter(f => f.open).length;
+    r.primeraAbierta = folds[0] ? folds[0].open : false;
+    r.cabecera = folds[0] ? folds[0].querySelector('summary').textContent.replace(/\s+/g, ' ').trim() : '';
+    r.sinTendencia = !document.querySelector('#tlBody details.tlr-det');
+    // Pantalla completa
+    document.getElementById('tlp').classList.add('on');
+    const rc = document.getElementById('tlp').getBoundingClientRect();
+    r.fullW = Math.abs(rc.width - window.innerWidth) < 2;
+    r.fullH = Math.abs(rc.height - window.innerHeight) < 2;
+    // Cierra SOLO con la X: ni clic en el telón ni Escape
+    cerrarTodo({ target: document.getElementById('ovl') });
+    r.trasVelo = document.getElementById('tlp').classList.contains('on');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    r.trasEsc = document.getElementById('tlp').classList.contains('on');
+    cerrarTL();
+    r.trasX = document.getElementById('tlp').classList.contains('on');
+    // Plantilla de impresión del seguimiento
+    window.print = () => {};
+    document.getElementById('tlp').classList.add('on');
+    tlImprimir();
+    r.printHead = /HOSPITAL SAN PABLO/.test(document.getElementById('tlPrint').innerHTML);
+    r.printTablas = document.querySelectorAll('#tlPrint table').length;
+    r.printOculto = getComputedStyle(document.getElementById('tlPrint')).display === 'none';
+    return r;
+  });
+  eq('la pestaña Seguimiento ya no existe', H4.sinSeg, true);
+  eq('Resumen es la primera pestaña (hoja de recepción)', H4.primeraTab, 'tlMt-res');
+  eq('feed: una tarjeta plegable por evolución', H4.folds, 7);
+  eq('feed: SOLO la última evolución parte abierta', H4.abiertas === 1 && H4.primeraAbierta, true);
+  eq('la cabecera plegada identifica fecha + turno + firma', /Día 4/.test(H4.cabecera) && /DÍA/.test(H4.cabecera) && /DMV/.test(H4.cabecera), true);
+  eq('el plegable «Tendencia por día» se eliminó', H4.sinTendencia, true);
+  eq('el historial ocupa la pantalla completa', H4.fullW && H4.fullH, true);
+  eq('clic en el telón NO lo cierra', H4.trasVelo, true);
+  eq('Escape NO lo cierra', H4.trasEsc, true);
+  eq('la X sí lo cierra', H4.trasX, false);
+  eq('imprimir arma la hoja de seguimiento (plantilla)', H4.printHead && H4.printTablas >= 2, true);
+  eq('la plantilla no es visible en pantalla', H4.printOculto, true);
+
   console.log(errs.length ? ('\nERRORES JS:\n' + errs.join('\n')) : '\nsin errores JS');
   await b.close();
   console.log(fails.length ? ('❌ ' + fails.length + ' FALLOS') : '✅ TODO OK');
