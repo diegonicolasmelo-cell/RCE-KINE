@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="3.3-cuff">
+<meta name="rce-version" content="3.4-hoja">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -701,6 +701,53 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .interp-pill{font-size:.7rem;font-weight:600;padding:3px 9px;border-radius:99px;display:inline-block;}
 /* chips de vencimiento de dispositivos de circuito VM */
 .disp-chip{font-size:.72rem;padding:4px 9px;border-radius:6px;font-weight:700;white-space:nowrap;display:inline-block;}
+/* ── Hoja UCI (historial): la hoja de registro de la unidad, día a día ── */
+.hj-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px;}
+.hj-seg{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.hj-seg button{padding:5px 11px;font-size:.72rem;font-weight:700;color:var(--muted);background:#fff;border:none;border-right:1px solid var(--border);cursor:pointer;font-family:inherit;}
+.hj-seg button:last-child{border-right:none;}
+.hj-seg button:hover{background:#f4f2ef;}
+.hj-seg button.on{background:var(--pdark);color:#fff;}
+.hj-seg.rango button.on{background:var(--primary);}
+.hj-tgl{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;background:#fff;border:1px solid var(--border);border-radius:8px;padding:5px 11px;cursor:pointer;user-select:none;}
+.hj-tgl .sw{width:26px;height:14px;border-radius:8px;background:#cfcbc4;position:relative;transition:background .15s;}
+.hj-tgl .sw::after{content:"";position:absolute;left:2px;top:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .15s;}
+.hj-tgl.on .sw{background:var(--primary);} .hj-tgl.on .sw::after{left:14px;}
+.hj-scroll{position:relative;border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:62vh;}
+table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
+.hj th,.hj td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:3px 4px;text-align:center;white-space:nowrap;}
+.hj th.par{text-align:left;min-width:172px;width:172px;background:#fbfaf9;font-weight:700;font-size:.685rem;
+  position:sticky;left:0;z-index:3;box-shadow:2px 0 4px rgba(0,0,0,.06);}
+.hj thead th{background:#f1efec;color:var(--pdark);font-weight:800;position:sticky;top:0;z-index:2;}
+.hj thead th.par{z-index:5;}
+.hj thead th.fec{font-size:.7rem;line-height:1.25;padding:3px 4px;}
+.hj thead th.fec .d2{display:block;font-size:.58rem;color:var(--muted);font-weight:700;}
+.hj thead th.fec .pin{display:block;font-size:.62rem;line-height:1.1;min-height:12px;}
+.hj thead th.hoy{background:#e2edf7;box-shadow:inset 0 3px 0 var(--primary);}
+.hj thead th.dn{font-size:.575rem;color:var(--muted);font-weight:700;padding:1px 2px;}
+.hj thead th.tend{min-width:112px;font-size:.6rem;}
+.hj td.noc{background:#f7f8fa;} .hj td.na{color:#c9c5bf;}
+.hj td.hoyc{background:#f2f8fd;} .hj td.hoyc.noc{background:#eef4fa;}
+.hj tr.hov td{background:#fdf6e6!important;} .hj tr.hov th.par{background:#fbf1dc!important;}
+.hj td.hovc{box-shadow:inset 0 0 0 1px #9dc0e0;}
+.hj .band td{background:var(--pdark);color:#fff;text-align:left;font-size:.64rem;font-weight:800;letter-spacing:.7px;padding:4px 9px;position:sticky;left:0;}
+.hj .band.hjb-nm td{background:var(--neuro);} .hj .band.hjb-ev td{background:var(--kine);}
+.hj .band.hjb-navm td{background:var(--fisico);} .hj .band.hjb-wean td{background:#0b6b78;}
+.hj .band small{font-weight:600;opacity:.75;letter-spacing:0;margin-left:6px;}
+.hj .vacias td{background:#faf9f7;color:var(--muted);font-size:.66rem;text-align:left;padding:4px 9px;font-style:italic;position:sticky;left:0;}
+.hj .vacias b{color:var(--primary);font-style:normal;cursor:pointer;text-decoration:underline;}
+.hj .fkine{color:var(--kine);font-weight:800;}
+.hj .val{font-weight:800;}
+.hjc{display:inline-block;border-radius:11px;padding:1px 7px;font-size:.63rem;font-weight:800;}
+.hjc-ok{background:var(--n-green-bg);color:var(--n-green);} .hjc-warn{background:var(--n-yellow-bg);color:var(--n-yellow);}
+.hjc-bad{background:var(--n-red-bg);color:var(--n-red);} .hjc-gray{background:var(--n-gray-bg);color:var(--n-gray);}
+.hjc-blue{background:var(--n-blue-bg);color:var(--n-blue);} .hjc-pur{background:var(--n-purple-bg);color:var(--n-purple);}
+.hjc-org{background:var(--n-orange-bg);color:var(--n-orange);}
+.hj-ver{display:inline-block;border:1px solid var(--primary);color:var(--primary);background:#fff;border-radius:9px;padding:0 6px;font-size:.6rem;font-weight:800;margin-left:3px;cursor:pointer;}
+.hj-ver:hover{background:var(--n-blue-bg);}
+#hjTip{position:fixed;background:#2b2a27;color:#fff;font-size:.68rem;padding:6px 10px;border-radius:6px;z-index:320;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.32);pointer-events:none;}
+#hjTip b{color:#ffd479;}
+.hj-ley{display:flex;gap:13px;font-size:.63rem;color:var(--muted);margin-top:9px;flex-wrap:wrap;align-items:center;}
 /* Cuff: chips de un toque (sin teclado ni desplegable) */
 .cuff-b{border:1px solid var(--border);background:#fff;color:var(--muted);border-radius:14px;
   padding:4px 11px;font-size:.71rem;font-weight:700;cursor:pointer;line-height:1.2;}
@@ -1005,6 +1052,9 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
 </div>
 
 <!-- EVENTO RÁPIDO POST-EVOLUCIÓN: lista desplegable estilo Sheets + mini-formulario -->
+<!-- Hoja UCI: desglose de una evaluación (MRC-ss / FSS-ICU) -->
+<div id="hjVelo" class="hidden" onclick="hjCerrar()" style="position:fixed;inset:0;background:rgba(20,18,16,.45);z-index:320;"></div>
+<div id="hjDet" class="hidden" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:325;background:#fff;border-radius:10px;padding:15px 19px;max-width:560px;width:92%;max-height:82vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.32);"></div>
 <div id="evVelo" class="hidden" onclick="evCerrar()" style="position:fixed;inset:0;z-index:290;"></div>
 <div id="evPop" class="hidden" style="position:fixed;z-index:295;width:290px;background:#fff;border:1px solid var(--primary);border-radius:9px;box-shadow:0 14px 40px rgba(15,23,42,.28);overflow:hidden;font-size:.82rem;">
   <div style="padding:8px 12px;background:var(--pdark);color:#fff;font-weight:800;font-size:.74rem;" id="evTitulo">➕ Evento posterior</div>
@@ -2871,7 +2921,8 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
   </div>
 
   <div class="tl-tabs">
-    <button class="tl-mtab on" id="tlMt-res" onclick="setTLtab('res')">📊 Resumen</button>
+    <button class="tl-mtab on" id="tlMt-hoja" onclick="setTLtab('hoja')">📄 Hoja UCI</button>
+    <button class="tl-mtab"    id="tlMt-res" onclick="setTLtab('res')">📊 Resumen</button>
     <button class="tl-mtab"    id="tlMt-seg" onclick="setTLtab('seg')">📈 Seguimiento</button>
   </div>
 
@@ -3103,7 +3154,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 3.3-cuff]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 3.4-hoja]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3152,7 +3203,7 @@ let EVOS_DIA = [];   // evoluciones (día+noche) de la fecha visualizada
 let TLC      = null;        // ID cama actualmente abierta
 let TL_HITOS = [];          // array de hitos
 let TL_EVOS  = [];          // array de evoluciones (subset graficable)
-let TL_TAB   = 'res';       // 'res' | 'ev' | 'vent' | 'reh'
+let TL_TAB   = 'hoja';      // 'hoja' | 'res' | 'seg'
 let TL_TURNO = 'all';       // 'all' | 'Dia' | 'Noche'
 let TL_VARS_SEL = new Set(); // variables seleccionadas para el gráfico (multi)
 let TL_NOMBRE= '';
@@ -4927,7 +4978,7 @@ function abrirTL(id) {
   $('tlNombre').textContent = TL_NOMBRE;
 
   // Abre en Resumen (vista sin clics) + filtros
-  TL_TAB = 'res'; TL_TURNO = 'all';
+  TL_TAB = 'hoja'; TL_TURNO = 'all';
   _updateTLTabsUI(); _updateTLFiltersUI();
   $('tlBody').innerHTML = '<div style="padding:30px;text-align:center;color:#94a3b8;">Cargando historial...</div>';
 
@@ -4956,7 +5007,7 @@ function abrirTLPaciente(patientId, nombre, idCama){
   TLC = idCama || '';
   TL_NOMBRE = nombre || 'Paciente';
   $('tlNombre').textContent = TL_NOMBRE;
-  TL_TAB='res'; TL_TURNO='all';
+  TL_TAB='hoja'; TL_TURNO='all';
   _updateTLTabsUI(); _updateTLFiltersUI();
   $('tlBody').innerHTML='<div style="padding:30px;text-align:center;color:#94a3b8;">Cargando historial...</div>';
   $('tlp').classList.add('on'); $('ovl').classList.add('on');
@@ -5086,11 +5137,13 @@ function setTLturno(t) {
   renderTL();
 }
 function _updateTLTabsUI() {
-  ['res','seg'].forEach(t => {
+  ['hoja','res','seg'].forEach(t => {
     const b = $('tlMt-' + t); if (b) b.classList.toggle('on', t === TL_TAB);
   });
 }
 function _updateTLFiltersUI() {
+  // La Hoja UCI trae su propia barra (segmentos, rango, filas vacías)
+  const _fl=$('tlFiltros'); if(_fl) _fl.classList.toggle('hidden', TL_TAB==='hoja');
   // El filtro por tipo (era exclusivo del tab Eventos) ya no aplica
   $('tlTipoLbl').classList.add('hidden');
   $('tlTipoSel').classList.add('hidden');
@@ -5176,8 +5229,315 @@ function toggleTLVar(key) {
   renderTL();
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   HOJA UCI — la hoja de registro kinésico de la unidad, día a día.
+   Misma estructura, orden y nombres del papel que el equipo lee hace años;
+   columnas = fechas divididas en DÍA | NOCHE. Se arma en el cliente desde
+   las evoluciones que ya trae el historial (vivas + archivadas).
+   ══════════════════════════════════════════════════════════════════════ */
+let HJ_SEG='todo', HJ_RANGO=7, HJ_VACIAS=true;
+const HJ_SEGS=[['todo','Todo'],['vent','Ventilatorio'],['wean','Weaning'],
+  ['nm','Neuromuscular'],['navm','Dispositivos y NAVM'],['ev','Eventos']];
+const HJ_RANGOS=[[7,'Últimos 7 días'],[14,'14 días'],[999,'Toda la estadía']];
+
+const _hjT   = x => x===true||x==='TRUE';
+const _hjNum = x => { if(x===''||x==null) return null;
+  const n=parseFloat(String(x).replace(',','.')); return isFinite(n)?n:null; };
+const _hjChip= (t,c) => `<span class="hjc hjc-${c}">${t}</span>`;
+const _hjJson= s => { try{ return JSON.parse(s||'[]')||[]; }catch(e){ return []; } };
+/** Día n de la vida de un dispositivo respecto de la fecha de la columna. */
+function _hjDisp(fechaCol, fechaDisp, frec, icono){
+  const f=_isoDia(fechaDisp); if(!f) return '';
+  const d=Math.round((new Date(fechaCol)-new Date(f))/864e5);
+  if(d<0) return '';
+  if(d===0) return _hjChip('✓ Cambiado','ok');
+  if(d>=frec) return _hjChip('✕ Día '+d+'/'+frec+' vencido','bad');
+  if(d===frec-1) return _hjChip('⚠ Día '+d+'/'+frec,'warn');
+  return _hjChip('Día '+d+'/'+frec,'gray');
+}
+
+/* Definición de cada fila: cómo se lee desde una evolución.
+   per:'t' → un valor por turno · per:'d' → un valor por día (usa el turno día). */
+const HJ_F = {
+  fase:  {l:'Fase clínica', per:'d', f:e=>{ const a=_hjJson(e.FASE_JSON); return a.length?_hjChip(a.join(' · '),'gray'):''; }},
+  sop:   {l:'Sop. ventilatorio / O2', per:'t', f:e=>{
+            const s=e.VENT_SOPORTE||'', fin=e.VENT_SOPORTE_FINAL||'';
+            if(!s) return '';
+            return _hjChip(fin&&fin!==s ? s+'→'+fin : s, s==='VM'?'blue':(s==='VNI'?'pur':'gray')); }},
+  va:    {l:'Vía aérea', per:'t', f:e=>{ const v=e.VENT_VIA_AEREA||''; if(!v) return '';
+            const fin=e.VENT_VIA_AEREA_FINAL||''; return (fin&&fin!==v)?(v+'→'+fin):v; }},
+  hdn:   {l:'HDN', per:'t', f:e=>{ const h=String(e.HEMO_ESTADO||''); if(!h) return '';
+            return /inest/i.test(h)?_hjChip('✕ '+h,'bad'):_hjChip('✓ '+h,'ok'); }},
+  dva:   {l:'DVA', per:'t', f:e=>{ const d=e.HEMO_DVA||''; if(!d||/^no$/i.test(d)) return '';
+            const n=parseInt(e.HEMO_NUM_DVA)||0; return d+(n>1?' ×'+n:''); }},
+  gcs:   {l:'Glasgow', per:'t', f:e=>e.SED_GCS_TOT||'', spark:e=>_hjNum(e.SED_GCS_TOT)},
+  s5q:   {l:'S5Q', per:'t', f:e=>e.SED_S5Q?e.SED_S5Q+'/5':''},
+  sas:   {l:'SAS', per:'t', f:e=>e.SED_SAS||'', spark:e=>_hjNum(e.SED_SAS)},
+  pos:   {l:'Posicionamiento', per:'t', f:e=>{
+            const p=[];
+            if(_hjT(e.RESP_POS_PRONO)) p.push('Prono'+(e.RESP_PRONO_HORA?' '+e.RESP_PRONO_HORA:''));
+            if(_hjT(e.RESP_POS_SUPINO)) p.push('Supino'+(e.RESP_SUPINO_HORA?' '+e.RESP_SUPINO_HORA:''));
+            if(_hjT(e.RESP_POS_SED)) p.push('Sedente');
+            if(_hjT(e.RESP_POS_DCLD)) p.push('DCL der.');
+            if(_hjT(e.RESP_POS_DCLI)) p.push('DCL izq.');
+            if(e.RESP_POS_LIBRE) p.push(e.RESP_POS_LIBRE);
+            return p.length?_hjChip(p.join(' · '),/Prono/.test(p[0])?'pur':'gray'):''; }},
+  modo:  {l:'Modo', per:'t', f:e=>e.VENT_MODO||''},
+  vt:    {l:'Vol. Tidal · ml/kg', per:'t', f:e=>{ const v=e.VENT_VT||''; if(!v) return '';
+            return v+(e.CALC_ML_KG?' · <b>'+e.CALC_ML_KG+'</b>':''); }, spark:e=>_hjNum(e.CALC_ML_KG)},
+  flujo: {l:'Flujo / T. insp', per:'t', f:e=>e.VENT_FLUJO?(e.VENT_FLUJO+' L'):(e.VENT_TI?(e.VENT_TI+' s'):'')},
+  fr:    {l:'Frecuencia', per:'t', f:e=>e.VENT_FR||'', spark:e=>_hjNum(e.VENT_FR)},
+  peep:  {l:'PEEP / EPAP', per:'t', f:e=>e.VENT_PEEP||e.VENT_EPAP||'', spark:e=>_hjNum(e.VENT_PEEP||e.VENT_EPAP)},
+  ps:    {l:'P. Soporte / IPAP', per:'t', f:e=>e.VENT_PS||e.VENT_IPAP||'', spark:e=>_hjNum(e.VENT_PS||e.VENT_IPAP)},
+  pmax:  {l:'P. Máxima', per:'t', f:e=>e.VENT_PMAX||''},
+  pmed:  {l:'P. Media', per:'t', f:e=>e.VENT_PMEDIA||''},
+  pplat: {l:'P. Plateau', per:'t', f:e=>e.VENT_PPL||''},
+  dp:    {l:'P. Distensión', per:'t', f:e=>{ const n=_hjNum(e.CALC_DP); if(n==null) return '';
+            return n<=15?_hjChip('✓ '+e.CALC_DP,'ok'):_hjChip('⚠ '+e.CALC_DP,'warn'); }, spark:e=>_hjNum(e.CALC_DP)},
+  compl: {l:'Compliance', per:'t', f:e=>e.CALC_CESR||''},
+  apeep: {l:'Auto PEEP', per:'t', f:e=>e.VENT_AUTOPEEP||''},
+  ie:    {l:'Relación I:E', per:'t', f:e=>e.CALC_IE||''},
+  tobin: {l:'Índice de Tobin', per:'t', f:e=>{ const n=_hjNum(e.CALC_TOBIN); if(n==null) return '';
+            return n<105?_hjChip('✓ '+e.CALC_TOBIN,'ok'):_hjChip('⚠ '+e.CALC_TOBIN,'warn'); }, spark:e=>_hjNum(e.CALC_TOBIN)},
+  vmin:  {l:'Vol. Minuto', per:'t', f:e=>e.CALC_VOL_MIN||''},
+  fio2:  {l:'FiO2', per:'t', f:e=>e.VENT_FIO2||'', spark:e=>_hjNum(e.VENT_FIO2)},
+  spo2:  {l:'SpO2', per:'t', f:e=>e.VENT_SPO2||'', spark:e=>_hjNum(e.VENT_SPO2)},
+  pafi:  {l:'PaFi', per:'d', f:e=>{ const n=_hjNum(e.VENT_PAFI); if(n==null) return '';
+            return n<150?_hjChip('✕ '+n,'bad'):(n<250?_hjChip('⚠ '+n,'warn'):_hjChip('✓ '+n,'ok')); }, spark:e=>_hjNum(e.VENT_PAFI)},
+  secr:  {l:'Sec. bronquiales', per:'t', f:e=>[e.RESP_SECR_QTY,e.RESP_SECR_CAR].filter(Boolean).join(' ')},
+  ktr:   {l:'KTR (sesiones)', per:'t', f:e=>{ const n=parseInt(e.RESP_KTR_CANT)||0; return n?'<b>'+n+'</b>':''; },
+          spark:e=>parseInt(e.RESP_KTR_CANT)||null},
+  firma: {l:'Firma', per:'t', f:e=>e.PLAN_FIRMA_KINE?('<span class="fkine">'+e.PLAN_FIRMA_KINE+'</span>'):''},
+  // Dispositivos y prevención de NAVM
+  dvm:   {l:'Días de VM', per:'d', f:e=>{ const n=(parseInt(e.DIAS_VM_PREVIOS)||0)+(parseInt(e.DIAS_VM)||0); return n||''; },
+          spark:e=>((parseInt(e.DIAS_VM_PREVIOS)||0)+(parseInt(e.DIAS_VM)||0))||null},
+  cuff:  {l:'🎈 Cuff', per:'t', f:e=>{ const s=String(e.VENT_CUFF_EST||''); if(!s) return '';
+            if(s==='rango') return _hjChip('✓ En rango','ok');
+            if(s==='ajuste') return _hjChip('⚠ Ajusté'+(e.VENT_CUFF_CMH2O?' '+e.VENT_CUFF_CMH2O:''),'warn');
+            return _hjChip('○ Desinflado','gray'); }},
+  cab:   {l:'🛏️ Cabecera', per:'t', f:e=>{ const c=e.VENT_CAB_RSS||''; if(!c) return '';
+            return /30|45/.test(c)?_hjChip('✓ '+c,'ok'):_hjChip('⚠ '+c,'warn'); }},
+  tc:    {l:'🌀 Trachcare', per:'d', dispo:['DISP_TC_FECHA','FREC_SONDA_DIAS',3]},
+  hepa:  {l:'🛡️ Filtro HEPA', per:'d', dispo:['DISP_HEPA_FECHA','FREC_HEPA_DIAS',3]},
+  hme:   {l:'🌫️ Filtro HME', per:'d', dispo:['DISP_HME_FECHA','FREC_HME_DIAS',2]},
+  humid: {l:'💧 Humidificación', per:'d', f:e=>_hjT(e.VENT_H_ACTIVA)?_hjChip('Activa','blue'):''},
+  cult:  {l:'🧫 Cultivo', per:'d', f:e=>{ const r=e.EX_CULT_RESULTADO||'';
+            if(r) return _hjChip('✕ '+r,'bad');
+            return _hjT(e.MUE_REALIZADAS)?_hjChip('Tomado','pur'):''; }},
+  // Weaning
+  pveVal:{l:'PVE del turno', per:'t', f:e=>{ const v=String(e.PVE_VAL||''); if(!v) return '';
+            return v==='si'?_hjChip('✓ Realizada','ok'):_hjChip('No','gray'); }},
+  pveRes:{l:'Resultado PVE', per:'t', f:e=>{ const r=String(e.PVE_RESULTADO||''); if(!r) return '';
+            return /super/i.test(r)?_hjChip('✓ '+r,'ok'):_hjChip('✕ '+r,'bad'); }},
+  pveMot:{l:'Motivo (fracaso / no PVE)', per:'t', f:e=>{
+            const m=_hjJson(e.PVE_FR_MOTIVOS); if(m.length) return m.join(' · ');
+            return e.PVE_SC_RAZON||''; }},
+  ext:   {l:'Extubación', per:'t', f:e=>{ if(!_hjT(e.EXT_OCURRIO)) return '';
+            const t=String(e.EXT_TIPO||''), h=e.EXT_HORA?' '+e.EXT_HORA:'';
+            const et=t==='protocolo'?'c/protocolo':(t==='sin_protocolo'?'s/protocolo':(t==='sin_condiciones'?'≤24 h de VM':t));
+            return _hjChip((t==='protocolo'?'✓ ':'⚠ ')+'Extubación '+et+h, t==='protocolo'?'ok':'warn'); }},
+  // Neuromuscular
+  ktmC:  {l:'Contraindicación KTM', per:'d', f:e=>{ const t=String(e.KTM_CONTRA_TIPO||'');
+            if(/absol/i.test(t)) return _hjChip('✕ Absoluta','bad');
+            if(/relat/i.test(t)) return _hjChip('⚠ Relativa','warn');
+            if(_hjT(e.KTM_REALIZADA)) return _hjChip('✓ Sin contraind.','ok');
+            return e.KTM_NO_RAZON?_hjChip('No realizada: '+e.KTM_NO_RAZON,'gray'):''; }},
+  mrc:   {l:'MRC-ss ( /60)', per:'d', ver:'mrc', f:e=>e.EVAL_T_MRC||'', spark:e=>_hjNum(e.EVAL_T_MRC)},
+  dauci: {l:'Debilidad UCI (≤48)', per:'d', f:e=>{ const n=_hjNum(e.EVAL_T_MRC); if(n==null) return '';
+            return n<=48?_hjChip('✕ SÍ','bad'):_hjChip('✓ NO','ok'); }},
+  fss:   {l:'FSS-ICU ( /35)', per:'d', ver:'fss', f:e=>e.EVAL_T_FSS||'', spark:e=>_hjNum(e.EVAL_T_FSS)},
+  cpax:  {l:'CPAx ( /50)', per:'d', f:e=>e.CPAX_TOTAL||'', spark:e=>_hjNum(e.CPAX_TOTAL)},
+  ims:   {l:'IMS (0-10)', per:'d', f:e=>{ const v=e.EVAL_IMS; if(v===''||v==null) return '';
+            const it=(typeof IMS_NIVELES!=='undefined')?IMS_NIVELES.find(x=>String(x[0])===String(v)):null;
+            return _hjChip(v+(it?' · '+it[2].split('—')[0].trim():''), parseInt(v)>=5?'ok':(parseInt(v)>=3?'blue':'gray')); },
+          spark:e=>_hjNum(e.EVAL_IMS)},
+  dina:  {l:'Dinamometría', per:'d', f:e=>e.EVAL_T_DINAMO?e.EVAL_T_DINAMO+' kg':''},
+  pimpem:{l:'PIM / PEM / FEM', per:'d', f:e=>{ const a=[e.EVAL_T_PIM,e.EVAL_T_PEM,e.EVAL_T_FEM];
+            return a.some(x=>x!==''&&x!=null)?a.map(x=>x||'—').join(' / '):''; }},
+  eco:   {l:'Eco diafragma', per:'d', f:e=>{ const g=e.EVAL_T_GROSOR, fd=e.EVAL_T_FED_D;
+            if(!g&&!fd) return ''; return [g?g+' mm':'', fd?'FED '+fd+'%':''].filter(Boolean).join(' · '); }},
+  degl:  {l:'Deglución', per:'d', f:e=>{ const d=e.EVAL_DEGLUCION||''; if(!d) return '';
+            return /adecuada/i.test(d)?_hjChip('✓ '+d,'ok'):_hjChip('⚠ '+d,'warn'); }},
+  ptt:   {l:'P. transtraqueal (VF)', per:'d', f:e=>{ const n=_hjNum(e.EVAL_T_PMANT_VA); if(n==null) return '';
+            const ok=parseFloat((window.CFG&&CFG.PTT_OK))||10, al=parseFloat((window.CFG&&CFG.PTT_ALERTA))||12;
+            return n<=ok?_hjChip('✓ '+n,'ok'):(n<=al?_hjChip('⚠ '+n,'warn'):_hjChip('✕ '+n,'bad')); }},
+  // Eventos
+  procs: {l:'Procedimientos', per:'t', f:e=>{ const p=String(e.PROC_RESUMEN||'').split(', ').filter(Boolean);
+            return p.length?p.map(x=>_hjChip(x,'gray')).join(' '):''; }},
+  vaEv:  {l:'Vía aérea (eventos)', per:'t', f:e=>{ const o=[];
+            if(_hjT(e.INTUB_OCURRIO)) o.push(_hjChip('Intubación'+(e.INTUB_HORA?' '+e.INTUB_HORA:''),'blue'));
+            if(_hjT(e.TQT_OCURRIO)) o.push(_hjChip('Traqueostomía','pur'));
+            if(_hjT(e.DECAN_OCURRIO)) o.push(_hjChip('Decanulación','ok'));
+            if(_hjT(e.EXT_REINTUB)) o.push(_hjChip('✕ Reintubación','bad'));
+            return o.join(' '); }},
+};
+const HJ_BLOQUES=[
+  {seg:'anchor', keys:['fase','sop']},
+  {seg:'mon',  band:'MONITORIZACIÓN', keys:['hdn','dva','gcs','s5q','sas','pos']},
+  {seg:'vent', band:'TERAPIA VENTILATORIA', keys:['va','modo','vt','flujo','fr','peep','ps','pmax','pmed','pplat','dp','compl','apeep','ie','tobin','vmin','fio2','spo2','pafi','secr','ktr','pveVal','pveRes','ext']},
+  {seg:'wean', band:'PROTOCOLO DE WEANING', sub:'— criterios y desenlace de la desvinculación',
+   keys:['va','modo','ps','peep','fio2','sas','gcs','hdn','dva','pveVal','pveRes','pveMot','ext','ptt']},
+  {seg:'navm', band:'DISPOSITIVOS Y PREVENCIÓN DE NAVM', sub:'— medidas para mitigar la NAVM',
+   keys:['dvm','cuff','cab','tc','hepa','hme','humid','cult']},
+  {seg:'nm',   band:'CUIDADOS NEUROMUSCULARES', sub:'— evaluaciones de turno día',
+   keys:['ktmC','mrc','dauci','fss','cpax','ims','dina','pimpem','eco','degl','ptt']},
+  {seg:'ev',   band:'EVENTOS DEL TURNO', keys:['procs','vaEv','cult']},
+  {seg:'anchor', keys:['firma']},
+];
+
+/** Agrupa las evoluciones del episodio por fecha y turno. */
+function _hjDias(){
+  const map={};
+  (TL_EVOS||[]).forEach(e=>{
+    const k=String(e.TURNO_KEY||''); const m=k.match(/^(\d{4}-\d{2}-\d{2})-(Dia|Noche)$/);
+    const f=m?m[1]:_isoDia(e.FECHA), t=m?m[2]:(String(e.TURNO||'Dia'));
+    if(!f) return;
+    (map[f]=map[f]||{})[t]=e;
+  });
+  return Object.keys(map).sort().map(f=>({fecha:f, Dia:map[f].Dia||null, Noche:map[f].Noche||null}));
+}
+function _hjValor(fila, e, fecha){
+  if(!e) return '';
+  if(fila.dispo){
+    const [campo,cfgKey,def]=fila.dispo;
+    const frec=parseInt((window.CFG&&CFG[cfgKey]))||def;
+    return _hjDisp(fecha, e[campo], frec);
+  }
+  return fila.f(e)||'';
+}
+function hojaUCI(){
+  const dias=_hjDias();
+  if(!dias.length) return '<div style="padding:22px;text-align:center;color:var(--muted);font-size:.8rem;">Sin evoluciones registradas para este episodio.</div>';
+  const ini=Math.max(0, dias.length-HJ_RANGO), vis=dias.slice(ini), nC=vis.length*2;
+  const _hoyISO=hoy(), idxHoy=vis.findIndex(d=>d.fecha===_hoyISO);
+  const dow=f=>{ const [y,m,d]=f.split('-'); return new Date(+y,+m-1,+d).toLocaleDateString('es-CL',{weekday:'short'}); };
+  const fCorta=f=>{ const [,m,d]=f.split('-'); return d+'-'+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][+m-1]; };
+
+  let h='<div class="hj-tools">';
+  h+='<div class="hj-seg" id="hjSegSel">'+HJ_SEGS.map(s=>`<button onclick="hjSetSeg('${s[0]}')"${s[0]===HJ_SEG?' class="on"':''}>${s[1]}</button>`).join('')+'</div>';
+  h+='<div class="hj-seg rango">'+HJ_RANGOS.map(r=>`<button onclick="hjSetRango(${r[0]})"${r[0]===HJ_RANGO?' class="on"':''}>${r[1]}</button>`).join('')+'</div>';
+  h+=`<div class="hj-tgl${HJ_VACIAS?' on':''}" onclick="hjToggleVacias()"><span class="sw"></span> Ocultar filas sin datos</div>`;
+  h+=`<span style="flex:1"></span><span style="font-size:.67rem;color:var(--muted);">${dias.length} día${dias.length>1?'s':''} de estadía · la columna de parámetros queda fija al desplazar</span>`;
+  h+='</div><div class="hj-scroll"><table class="hj"><thead><tr><th class="par" rowspan="2">PARÁMETRO</th>';
+  vis.forEach((d,i)=>{
+    const ev=d.Dia||d.Noche;
+    const dEst=ev?(ev.DIA_ESTADIA||''):'', dVM=ev?((parseInt(ev.DIAS_VM_PREVIOS)||0)+(parseInt(ev.DIAS_VM)||0)):0;
+    const pins=[];
+    [d.Dia,d.Noche].forEach(x=>{ if(!x) return;
+      if(_hjT(x.EXT_OCURRIO)) pins.push('🔻'); if(_hjT(x.INTUB_OCURRIO)) pins.push('🫁');
+      if(_hjT(x.TQT_OCURRIO)) pins.push('🔪'); if(x.EX_CULT_RESULTADO||_hjT(x.MUE_REALIZADAS)) pins.push('🧫'); });
+    h+=`<th class="fec${i===idxHoy?' hoy':''}" colspan="2">${dow(d.fecha)} ${fCorta(d.fecha)}${i===idxHoy?' · HOY':''}`+
+       `<span class="d2">${dEst?'d'+dEst:''}${dVM?' · VM'+dVM:''}</span><span class="pin">${[...new Set(pins)].join('')||'&nbsp;'}</span></th>`;
+  });
+  h+='<th class="tend" rowspan="2">TENDENCIA</th></tr><tr>';
+  vis.forEach((d,i)=>{ const c=i===idxHoy?' hoy':''; h+=`<th class="dn${c}">DÍA</th><th class="dn${c}">NOCHE</th>`; });
+  h+='</tr></thead><tbody>';
+
+  HJ_BLOQUES.forEach(b=>{
+    if(!(HJ_SEG==='todo'||b.seg===HJ_SEG||b.seg==='anchor')) return;
+    if(HJ_SEG==='todo'&&b.seg==='wean') return;   // en «Todo» el weaning ya va dentro de Ventilatorio
+    if(b.band) h+=`<tr class="band hjb-${b.seg}"><td colspan="${nC+2}">${b.band}${b.sub?'<small>'+b.sub+'</small>':''}</td></tr>`;
+    const vacias=[];
+    b.keys.forEach(k=>{
+      const fila=HJ_F[k]; if(!fila) return;
+      const celdas=[]; let hayDato=false;
+      vis.forEach((d,i)=>{
+        const cls=(i===idxHoy?' hoyc':'')+' hjc'+i;
+        if(fila.per==='d'){
+          const val=_hjValor(fila,d.Dia||d.Noche,d.fecha); if(val) hayDato=true;
+          const ver=(val&&fila.ver)?` <span class="hj-ver" onclick="hjVer('${fila.ver}','${d.fecha}')">▸ ver</span>`:'';
+          celdas.push(`<td colspan="2" class="${val?'':'na'}${cls}">${val?('<span class="val">'+val+'</span>'+ver):'—'}</td>`);
+        } else {
+          const vD=_hjValor(fila,d.Dia,d.fecha), vN=_hjValor(fila,d.Noche,d.fecha);
+          if(vD||vN) hayDato=true;
+          celdas.push(`<td class="${vD?'':'na'}${cls}">${vD||'—'}</td><td class="noc ${vN?'':'na'}${cls}">${vN||'—'}</td>`);
+        }
+      });
+      if(HJ_VACIAS&&!hayDato){ vacias.push(fila.l); return; }
+      // Columna de tendencia (una serie por fila, solo si la fila tiene curva)
+      let tend='<td class="na">—</td>';
+      if(fila.spark){
+        const serie=[]; dias.forEach(d=>{ [d.Dia,d.Noche].forEach(x=>{ if(!x) return; const n=fila.spark(x); if(n!=null) serie.push(n); }); });
+        if(serie.length>1) tend=`<td style="padding:1px 3px;"><div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;">`+
+          `${_hjSpark(serie)}<span style="font-size:.66rem;font-weight:800;">${serie[serie.length-1]}</span></div></td>`;
+      }
+      h+=`<tr data-hjf="1"><th class="par">${fila.l}</th>${celdas.join('')}${tend}</tr>`;
+    });
+    if(vacias.length) h+=`<tr class="vacias"><td colspan="${nC+2}">▸ ${vacias.length} fila${vacias.length>1?'s':''} sin datos en este rango: ${vacias.join(' · ')} — <b onclick="hjToggleVacias()">mostrarlas</b></td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  h+='<div class="hj-ley"><b style="color:var(--txt);">Señalética:</b>'+
+     _hjChip('✓ en meta','ok')+_hjChip('⚠ atención','warn')+_hjChip('✕ alerta','bad')+_hjChip('dato','gray')+
+     '<span>· 🔻 extubación · 🫁 intubación · 🔪 TQT · 🧫 cultivo</span><span>· fondo gris = turno noche · «—» = sin registro</span></div>';
+  return h;
+}
+function _hjSpark(v){
+  const W=90,H=20,P=3, mn=Math.min(...v), mx=Math.max(...v), rg=(mx-mn)||1;
+  const x=i=>P+i*(W-2*P)/((v.length-1)||1), y=n=>H-P-((n-mn)/rg)*(H-2*P);
+  return '<svg width="'+W+'" height="'+H+'" style="display:block;"><polyline points="'+
+    v.map((n,i)=>x(i).toFixed(1)+','+y(n).toFixed(1)).join(' ')+
+    '" fill="none" stroke="#9a938a" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<circle cx="'+x(v.length-1).toFixed(1)+'" cy="'+y(v[v.length-1]).toFixed(1)+'" r="3" fill="#2f7a4c" stroke="#fff" stroke-width="1.5"/></svg>';
+}
+/* Desglose de una evaluación (MRC-ss / FSS-ICU) del día pedido. */
+const _HJ_MRC_MOV=['Abducción de hombro','Flexión de codo','Extensión de muñeca','Flexión de cadera','Extensión de rodilla','Dorsiflexión de tobillo'];
+const _HJ_FSS_ACT=['Girar en la cama','Transferencia supino a sedente','Sedente al borde de la cama','Transferencia sedente a bípedo','Marcha'];
+function hjVer(tipo, fecha){
+  const dia=_hjDias().find(d=>d.fecha===fecha); if(!dia) return;
+  const e=dia.Dia||dia.Noche; if(!e) return;
+  let h='', tot='';
+  if(tipo==='mrc'){
+    let sD=0,sI=0;
+    h='<table style="width:100%;border-collapse:collapse;font-size:.74rem;">'+
+      '<tr><th style="text-align:left;">MOVIMIENTO</th><th>DERECHO</th><th>IZQUIERDO</th></tr>';
+    _HJ_MRC_MOV.forEach((m,i)=>{
+      const d=e['EVAL_MRC_D'+(i+1)]||'', iz=e['EVAL_MRC_I'+(i+1)]||'';
+      sD+=parseInt(d)||0; sI+=parseInt(iz)||0;
+      h+=`<tr><td style="text-align:left;">${i+1}. ${m}</td><td>${d||'—'}</td><td>${iz||'—'}</td></tr>`;
+    });
+    h+=`<tr class="tot"><td style="text-align:left;"><b>Fuerza subtotal</b></td><td><b>${sD} / 30</b></td><td><b>${sI} / 30</b></td></tr></table>`;
+    const t=_hjNum(e.EVAL_T_MRC);
+    tot=`MRC SUM SCORE TOTAL: <b>${e.EVAL_T_MRC||sD+sI} / 60</b> · Debilidad adquirida en UCI (≤48): `+
+        (t!=null?(t<=48?_hjChip('✕ SÍ','bad'):_hjChip('✓ NO','ok')):'—');
+  } else {
+    h='<table style="width:100%;border-collapse:collapse;font-size:.74rem;">'+
+      '<tr><th style="text-align:left;">ACTIVIDAD</th><th>PUNTAJE (0-7)</th></tr>';
+    _HJ_FSS_ACT.forEach((a,i)=>{
+      h+=`<tr><td style="text-align:left;">${i+1}. ${a}</td><td>${e['EVAL_FSS_IT'+(i+1)]||'—'}</td></tr>`;
+    });
+    h+='</table>';
+    tot=`TOTAL: <b>${e.EVAL_T_FSS||'—'} / 35</b>`;
+  }
+  const [y,m,d]=fecha.split('-');
+  $('hjDet').innerHTML=`<div style="font-size:.85rem;font-weight:800;color:var(--pdark);margin-bottom:9px;">🔍 `+
+    (tipo==='mrc'?'MRC-ss':'FSS-ICU')+` · ${d}-${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][+m-1]}-${y}</div>`+
+    h+`<div style="font-size:.74rem;color:var(--txt);margin-top:9px;border-top:1px dashed var(--border);padding-top:7px;">${tot}</div>`+
+    `<div style="text-align:right;margin-top:11px;"><button type="button" onclick="hjCerrar()" style="background:var(--primary);color:#fff;border:none;border-radius:7px;padding:6px 16px;font-weight:700;font-size:.74rem;cursor:pointer;">Cerrar</button></div>`;
+  show('hjVelo'); show('hjDet');
+}
+function hjCerrar(){ hide('hjVelo'); hide('hjDet'); }
+function hjSetSeg(s){ HJ_SEG=s; renderTL(); }
+function hjSetRango(r){ HJ_RANGO=r; renderTL(); }
+function hjToggleVacias(){ HJ_VACIAS=!HJ_VACIAS; renderTL(); }
+/* Cruz de lectura: al pasar el cursor se ilumina la fila y la columna. */
+function _hjEnganchar(){
+  const cont=$('tlBody'); if(!cont) return;
+  cont.querySelectorAll('tr[data-hjf] td').forEach(td=>{
+    td.addEventListener('mouseenter',()=>{
+      td.closest('tr').classList.add('hov');
+      const c=[...td.classList].find(x=>/^hjc\d+$/.test(x));
+      if(c) cont.querySelectorAll('td.'+c).forEach(o=>o.classList.add('hovc'));
+    });
+    td.addEventListener('mouseleave',()=>{
+      td.closest('tr').classList.remove('hov');
+      cont.querySelectorAll('td.hovc').forEach(o=>o.classList.remove('hovc'));
+    });
+  });
+}
+
 function renderTL() {
   if (!$('tlBody')) return;
+  if (TL_TAB === 'hoja') { $('tlBody').innerHTML = hojaUCI(); _hjEnganchar(); return; }
   if (TL_TAB === 'res') _renderTLResumen();
   else                  _renderTLChart(SEG_VARS);
 }

@@ -78,6 +78,28 @@ Chromium con puente simulado; acepta ruta del cohete como argumento),
 `eventos.js`, `eventos_ui.js`. Correr antes de entregar o commitear. Un bug
 que costó más de un intercambio merece guardia nueva.
 
+## Hoja UCI (historial · jul-2026)
+
+Primera pestaña del historial: reproduce **la hoja de registro kinésico de la
+unidad** (el papel que el equipo lee hace años) día a día, con columnas
+`fecha → DÍA | NOCHE`. Se arma **en el cliente** desde `TL_EVOS` (el historial
+ya trae vivas + archivadas); no hubo cambios de servidor.
+
+- **Segmentos** (`hjSetSeg`): Todo · Ventilatorio · **Weaning** · Neuromuscular ·
+  Dispositivos y NAVM · Eventos. El weaning va **dentro de Ventilatorio** y
+  además como bloque propio (en «Todo» no se duplica). Las filas **ancla**
+  (fase, soporte, firma) sobreviven a todos los filtros.
+- Rango 7/14/toda la estadía, colapso de filas sin datos, columna de
+  TENDENCIA con curva, cruz de lectura al pasar el cursor y «▸ ver» que abre
+  el desglose de MRC-ss y FSS-ICU.
+- El bloque **NAVM** reúne el paquete de prevención: días de VM, cuff,
+  cabecera, Trachcare, HEPA, HME, humidificación y cultivo.
+- Filas definidas en `HJ_F` (cómo se lee cada dato) y bloques en `HJ_BLOQUES`.
+- **Trampas ya pagadas**: las clases de franja necesitan prefijo `hjb-` porque
+  `.mon`, `.nm`, `.ev` YA existen en la app y pisaban el estilo; y los
+  decimales se guardan con coma («5,9»), así que `parseFloat` directo los
+  truncaba — usar `_hjNum`. Guardia: `checks/hoja_uci.js`.
+
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
