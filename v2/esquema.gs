@@ -245,6 +245,11 @@ const ESQUEMA = {
     // (DISP_HME/HEPA/TC/HUMID_FECHA); aquí solo la confirmación de la
     // instalación asumida al conectar a VM (chip «Aceptar» del panel).
     ['DISP_CONFIRMADO','bool'],
+    // APACHE II al ingreso (jul-2026, decisión de Diego): lo calcula el médico
+    // y el kine lo COPIA de la evolución médica. Opcional (0-71); si no se pudo
+    // anotar antes, el egreso lo vuelve a ofrecer. Ajuste por gravedad: hallazgo
+    // de M. Fuentes (OR 1,94 por cada 5 puntos). SIEMPRE AL FINAL de la lista.
+    ['APACHE2','entero'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -277,6 +282,7 @@ const ESQUEMA = {
     ['DAUCI','bool'],['MRC_INTERP','texto'],['FSS_INTERP','texto'],['DINAMO_INTERP','texto'],
     ['DINAMO_EGRESO','decimal'],['CPAX_EGRESO','entero'],
     ['RUT','texto'],   // identidad de persona (jul-2026) — reingresos y cruce interno
+    ['APACHE2','entero'],  // gravedad al ingreso (0-71) — habilita el ajuste por gravedad del análisis externo
   ]},
   // ── Ventiladores de la unidad: inventario vivo + trazabilidad de movimientos ──
   VENTILADORES: { headerRows: 1, cols: [

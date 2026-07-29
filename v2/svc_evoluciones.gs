@@ -253,6 +253,8 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     BARTHEL: val(evo.PAC_BARTHEL, cama.BARTHEL), ECF: val(evo.PAC_ECF, cama.ECF),
     DIAGNOSTICO: val(evo.PAC_DIAGNOSTICO, cama.DIAGNOSTICO), DIAG_REM: val(evo.PAC_DIAG_REM, cama.DIAG_REM),
     CHARLSON: val(evo.PAC_CHARLSON, cama.CHARLSON), INGRESO_TIPO: val(evo.PAC_INGRESO_TIPO, cama.INGRESO_TIPO),
+    // PAC_APACHE2 viaja transitorio (como PAC_RUT): persiste en la CAMA, no en EVOLUCIONES
+    APACHE2: _apacheNorm(val(evo.PAC_APACHE2, cama.APACHE2)),
     AISLAMIENTO: esVerdadero(evo.PAC_AISLAMIENTO), AISL_MICRO: val(evo.PAC_AISL_MICRO, cama.AISL_MICRO),
     VIA_AEREA: val(evo.VENT_VIA_AEREA, cama.VIA_AEREA) || 'Natural',
     TOT_NUMERO: val(evo.VENT_TOT_NUM, cama.TOT_NUMERO), TOT_CM_LABIO: val(evo.VENT_TOT_CM, cama.TOT_CM_LABIO),

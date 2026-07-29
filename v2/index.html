@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="4.0-paquete">
+<meta name="rce-version" content="4.1-apache">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1550,6 +1550,18 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
       <span style="font-weight:700;">Motivo:</span> <span id="egMotivoLbl"></span>
     </div>
 
+    <!-- APACHE II: última oportunidad de anotarlo si quedó vacío durante la estadía -->
+    <div id="egApacheBox" class="col hidden" style="margin-bottom:14px;">
+      <label>APACHE II de ingreso (opcional — quedó sin anotar)</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="number" id="egApache" min="0" max="71" placeholder="—" style="width:80px;height:38px;">
+        <span style="font-size:.72rem;color:var(--muted);">Cópialo de la evolución médica; habilita el ajuste por gravedad de la estadística.</span>
+      </div>
+    </div>
+    <div id="egApacheInfo" class="hidden" style="padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:.78rem;color:#166534;margin-bottom:14px;">
+      <span style="font-weight:700;">APACHE II de ingreso:</span> <span id="egApacheVal"></span> (ya registrado)
+    </div>
+
     <div class="row" style="margin-bottom:14px;">
       <div class="col grow"><label>Barthel egreso (opcional)</label>
         <div style="display:flex;align-items:center;gap:5px;">
@@ -1735,6 +1747,9 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                   <input type="number" id="fCharlson" min="0" max="37" style="width:64px;">
                   <button type="button" onclick="abrirEscala('charlson','fCharlson')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
                 </div>
+              </div>
+              <div class="col wa" style="margin-right:34px;" title="Lo calcula el médico al ingreso — cópialo de la evolución médica. Opcional; habilita el ajuste por gravedad de la estadística."><label>APACHE II</label>
+                <input type="number" id="fApache" min="0" max="71" placeholder="—" style="width:64px;">
               </div>
               <div class="col wa" style="margin-right:34px;"><label>ECF</label>
                 <div style="display:flex;align-items:center;gap:5px;">
@@ -3226,7 +3241,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.0-paquete]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.1-apache]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3929,7 +3944,7 @@ function fillCama(c, fecha) {
   s('fTalla',c.TALLA_CM); s('fBarthel',c.BARTHEL); s('fEcf',c.ECF);
   updBarthelLbl('fBarthel','lblBarthel'); updEcfLbl('fEcf','lblEcf');
   s('fDx',c.DIAGNOSTICO); s('fRem',c.DIAG_REM);
-  s('fCharlson',c.CHARLSON); s('fIngTipo',c.INGRESO_TIPO);
+  s('fCharlson',c.CHARLSON); s('fIngTipo',c.INGRESO_TIPO); s('fApache',c.APACHE2);
   $('fDias').value = dias(c.FECHA_INGRESO,fecha);
   _fechaInicioVA=_isoDia(c.FECHA_INICIO_VA)||'';
   const _cCod=$('spCod'); if(_cCod) _cCod.textContent=c.COD_PACIENTE||'';
@@ -4596,6 +4611,14 @@ function guardar() {
     if(va){ va.focus(); va.style.outline='2px solid var(--danger)'; setTimeout(()=>{va.style.outline='';},2500); }
     return;
   }
+  // ★ APACHE II: opcional, pero si viene debe ser entero 0-71 ★
+  const _apv=v('fApache');
+  if(_apv!=='' && (!/^\d+$/.test(String(_apv).trim()) || +_apv>71)){
+    toast('⚠️ APACHE II fuera de rango: entero entre 0 y 71 (o déjalo vacío)');
+    const ap=$('fApache');
+    if(ap){ ap.focus(); ap.style.outline='2px solid var(--danger)'; setTimeout(()=>{ap.style.outline='';},2500); }
+    return;
+  }
   // ★ H4: rangos fisiológicos en el CLIENTE (misma tabla que el servidor,
   //   dominio_validacion.gs) — el dedazo se detecta al instante, sin round-trip ★
   const _errsR=_validarRangosCliente();
@@ -4617,6 +4640,7 @@ function guardar() {
     PAC_SEXO:v('fSexo'), PAC_TALLA:v('fTalla'), PAC_BARTHEL:v('fBarthel'),
     PAC_ECF:v('fEcf'), PAC_DIAGNOSTICO:v('fDx'), PAC_DIAG_REM:v('fRem'),
     PAC_CHARLSON:v('fCharlson'), PAC_INGRESO_TIPO:v('fIngTipo'),
+    PAC_APACHE2:v('fApache'),   // transitorio como PAC_RUT: persiste en la cama, no en EVOLUCIONES
     BARTHEL_JSON:(function(){ const a=[]; let any=false; for(let i=0;i<10;i++){ const x=v('bar'+i); a.push(x); if(x!=='') any=true; } return any?JSON.stringify(a):''; })(),
     CHARLSON_JSON:(function(){ const a=[]; for(let i=0;i<CHARLSON_ITEMS.length;i++){ if($('ch'+i)?.checked) a.push(i); } const ed=$('chEdad')?.checked; return (a.length||ed)?JSON.stringify({it:a,edad:!!ed}):''; })(),
     // S1 extras
@@ -4870,6 +4894,11 @@ function egreso(id) {
   $('egOtroVal').value = '';
   $('egBarthel').value = c.BARTHEL || '';
   updBarthelLbl('egBarthel','lblEgBarthel');
+  // APACHE II: si el episodio ya lo tiene, se informa; si no, última oportunidad
+  const _apc = (c.APACHE2 !== '' && c.APACHE2 !== undefined && c.APACHE2 !== null) ? String(c.APACHE2) : '';
+  $('egApache').value = '';
+  if (_apc) { $('egApacheVal').textContent = _apc; show('egApacheInfo'); hide('egApacheBox'); }
+  else { hide('egApacheInfo'); show('egApacheBox'); }
   $('egFirma').value = v('fFirma') || '';
   $('egObs').value = '';
   $('egConfBtn').disabled = false;
@@ -4928,6 +4957,12 @@ function confirmarEgreso() {
     if(sel){ sel.focus(); sel.style.outline='2px solid var(--danger)'; setTimeout(()=>{sel.style.outline='';},2500); }
     return;
   }
+  // APACHE II del egreso: opcional, pero si viene debe ser entero 0-71
+  const _egAp = v('egApache');
+  if (_egAp !== '' && (!/^\d+$/.test(String(_egAp).trim()) || +_egAp > 71)) {
+    toast('⚠️ APACHE II fuera de rango: entero entre 0 y 71 (o déjalo vacío)');
+    $('egApache').focus(); return;
+  }
   const motivo = DEST_TO_MOTIVO[destino] || destino;
   const c = DB.find(x => String(x.ID_CAMA) === String(EG_IDCAMA));
   uiConfirm({
@@ -4946,6 +4981,7 @@ function _ejecutarEgreso(destino, motivo) {
     motivoEgreso:   motivo,
     destinoEgreso:  destino,
     barthelEgreso:  v('egBarthel') || '',
+    apache2:        v('egApache') || '',
     observaciones:  v('egObs') || '',
     firmaKine:      v('egFirma') || '',
     turno:          SHIFT,

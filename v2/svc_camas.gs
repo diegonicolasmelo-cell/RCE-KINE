@@ -55,6 +55,14 @@ function obtenerCama(idCama) {
 }
 
 // ── INGRESO ────────────────────────────────────────────────
+// APACHE II: entero 0-71 o vacío. Valor inválido → vacío (el dato honesto
+// vale más que un dedazo; el egreso vuelve a ofrecerlo si quedó en blanco).
+function _apacheNorm(x) {
+  if (x === undefined || x === null || String(x).trim() === '') return '';
+  const n = parseInt(x, 10);
+  return (!isNaN(n) && n >= 0 && n <= 71 && String(n) === String(x).trim()) ? n : '';
+}
+
 function ingresarPaciente(datos, ctx) {
   const errores = validarPayloadIngreso(datos);
   if (errores.length) return err('Validación: ' + errores.join('; '), ERR.VALIDACION);
@@ -94,6 +102,7 @@ function ingresarPaciente(datos, ctx) {
         TOT_CM_LABIO: esTOT ? (datos.totCm || '') : '', TQT_TIPO: esTQT ? (datos.tqtTipo || '') : '',
         SOPORTE: sop, MODO: datos.modo || 'Sin soporte',
         FECHA_INGRESO: fecha, FECHA_INICIO_VA: tieneVA ? fecha : '', FECHA_INICIO_SOPORTE: tieneVM ? fecha : '',
+        APACHE2: _apacheNorm(datos.apache2),
         FASE_JSON: datos.faseJson || '', KTM_NIVEL: datos.ktmNivel || '', KTM_SUSP: false,
         FIRMA_KINE: ctx.firma || datos.firmaKine || '', AUTOR_EMAIL: ctx.email || '',
         ULTIMO_TURNO_KEY: '',
@@ -196,6 +205,10 @@ function darAltaPaciente(datos, ctx) {
         FIRMA_RESPONSABLE: ctx.firma || datos.firmaKine || '', AUTOR_EMAIL: ctx.email || '',
         OBSERVACIONES: datos.observaciones || '', TIMELINE_JSON: cama.TIMELINE_JSON || '[]',
         APNEA_JSON: datos.apneaJson || '', BDT_JSON: datos.bdtJson || '', FASE_FINAL: datos.faseFinal || '',
+        // APACHE II del episodio; si no se anotó durante la estadía, el egreso
+        // lo ofrece como última oportunidad (datos.apache2).
+        APACHE2: (cama.APACHE2 !== '' && cama.APACHE2 !== undefined && cama.APACHE2 !== null)
+          ? cama.APACHE2 : _apacheNorm(datos.apache2),
       });
 
       _agregarHitoInterno({
