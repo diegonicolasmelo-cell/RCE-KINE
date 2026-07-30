@@ -179,10 +179,14 @@ function generarTextoEvolucion(d) {
     ].filter(Boolean).join(', ');
     if (pb) txt.push(`TV: ${pb}.`);
   } else if (sop === 'Oxigenoterapia/OAF' || sop === 'Oxigenoterapia') {
-    // Naricera/MMV/Mascarilla — y HME/Tubo T en TOT/TQT sin VM
+    // Naricera/MMV/Mascarilla — y HME/Tubo T/válvula de fonación en TQT sin VM
     const litros = vn('VENT_LITROS'), umaO = v('KTM_UMA');
     const dev = (modo && modo !== 'Sin soporte') ? modo : '';
-    txt.push(`Ventila espontáneo con FiO2 adicional${dev ? ' por ' + dev : ''}.`);
+    if (modo === 'Válvula de fonación') {
+      txt.push(`Ventila espontáneo con válvula de fonación${(litros > 0 || fio2 > 0) ? ' y O2 adicional' : ''}.`);
+    } else {
+      txt.push(`Ventila espontáneo con FiO2 adicional${dev ? ' por ' + dev : ''}.`);
+    }
     const pb = [
       litros > 0 ? `${litros} Lpm` : null,
       fio2 > 0 ? `FiO2 ${fio2}%` : null,
@@ -193,12 +197,13 @@ function generarTextoEvolucion(d) {
     if (pb) txt.push(`Oxigenoterapia: ${pb}.`);
   } else {
     const umaA = v('KTM_UMA');
+    const vfon = (modo === 'Válvula de fonación') ? ' con válvula de fonación' : '';
     const partes = [
       fr > 0 ? `FR ${fr} rpm` : null,
       umaA ? `UMA ${umaA}` : null,
       spo2 > 0 ? `SpO2 ${spo2}%` : null,
     ].filter(Boolean);
-    txt.push(`Ventila espontáneo sin O2 adicional${partes.length ? ', ' + partes.join(', ') : ''}.`);
+    txt.push(`Ventila espontáneo${vfon} sin O2 adicional${partes.length ? ', ' + partes.join(', ') : ''}.`);
   }
 
   // PVE / extubación — narrativa clínica (paridad con el preview del cliente)
@@ -236,6 +241,36 @@ function generarTextoEvolucion(d) {
       } else queda();
     }
   })();
+
+  // Desvinculación de VM (TQT) — paridad con el preview del cliente
+  if (esVerdadero(d.DESVINC_OCURRIO)) {
+    const dh = v('DESVINC_HORA'), da = v('DESVINC_A'), dm = v('DESVINC_MOTIVO');
+    let t1 = `Se desvincula de ventilación mecánica${dh ? ' a las ' + dh + ' hrs' : ''}${da ? ', quedando con ' + da.toLowerCase() : ''}`;
+    if (dm) t1 += ` (${dm.toLowerCase()})`;
+    txt.push(t1 + '.');
+    if (esVerdadero(d.DESVINC_RECONEXION)) {
+      const hrs = String(d.DESVINC_HORAS || '').replace('.', ',');
+      txt.push(`Se reconecta a VM${v('DESVINC_HORA_RECON') ? ' a las ' + v('DESVINC_HORA_RECON') + ' hrs' : ''}${hrs ? `, completando ${hrs} h de desvinculación` : ''}.`);
+    } else {
+      txt.push('Continúa desvinculado de VM al término del turno.');
+    }
+    if (v('DESVINC_DET')) txt.push(v('DESVINC_DET') + '.');
+  }
+  // Válvula de fonación — uso del turno (Rehabilitación)
+  if (esVerdadero(d.VFON_USADA)) {
+    let t2 = `Se instala válvula de fonación${v('VFON_MIN') ? ' por ' + v('VFON_MIN') + ' minutos' : ''}`;
+    if (v('VFON_TOL')) t2 += `, con tolerancia ${v('VFON_TOL').toLowerCase()}`;
+    if (v('VFON_DET')) t2 += `. ${v('VFON_DET')}`;
+    txt.push(t2 + '.');
+  }
+  // Gases arteriales del turno (bloque opcional)
+  if (esVerdadero(d.GSA_TOMADA)) {
+    const g = (k, lbl, u) => { const x = v(k); return x ? `${lbl} ${String(x).replace('.', ',')}${u || ''}` : null; };
+    const gp = [g('GSA_PH', 'pH'), g('GSA_PAO2', 'PaO2', ' mmHg'), g('GSA_PACO2', 'PaCO2', ' mmHg'),
+                g('GSA_HCO3', 'HCO3', ' mEq/L'), g('GSA_EB', 'EB'), g('GSA_LACTATO', 'lactato', ' mmol/L'),
+                g('GSA_SAO2', 'SaO2', '%')].filter(Boolean).join(', ');
+    if (gp) txt.push(`GSA${v('GSA_HORA') ? ' de las ' + v('GSA_HORA') + ' hrs' : ''}: ${gp}.${v('GSA_INTERP') ? ' ' + v('GSA_INTERP') + '.' : ''}`);
+  }
 
   // Decanulación (evento del turno, VA=TQT)
   if (esVerdadero(d.DECAN_OCURRIO)) {

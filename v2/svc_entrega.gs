@@ -90,6 +90,12 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     if (esVerdadero(ev.EXT_REINTUB)) eventos.push('⚠️ Reintubación ' + f);
     if (esVerdadero(ev.TQT_OCURRIO)) eventos.push('🔪 TQT ' + f + (ev.TQT_HORA ? ' ' + ev.TQT_HORA : '') + (ev.TQT_TECNICA ? ' (' + String(ev.TQT_TECNICA).toLowerCase() + ')' : ''));
     if (esVerdadero(ev.DECAN_OCURRIO)) eventos.push('⭕ Decanulación ' + f + (ev.DECAN_HORA ? ' ' + ev.DECAN_HORA : '') + (esVerdadero(ev.DECAN_RECANUL) ? ' → recanulado' : ''));
+    if (esVerdadero(ev.DESVINC_OCURRIO)) {
+      const hrs = String(ev.DESVINC_HORAS || '').replace('.', ',');
+      eventos.push('🔌 Desvinculación de VM ' + f + (ev.DESVINC_HORA ? ' ' + ev.DESVINC_HORA : '') +
+        (ev.DESVINC_A ? ' → ' + ev.DESVINC_A : '') +
+        (esVerdadero(ev.DESVINC_RECONEXION) ? (' · reconectado' + (hrs ? ' tras ' + hrs + ' h' : '')) : ' · SIN reconexión registrada'));
+    }
     if (esVerdadero(ev.TOT_CAMBIO)) eventos.push('🔄 Cambio de tubo ' + f);
     if (esVerdadero(ev.TQT_CAMBIO)) eventos.push('🔄 Cambio de cánula ' + f);
     if (esVerdadero(ev.RESP_POS_PRONO)) eventos.push('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));

@@ -168,12 +168,31 @@ function darAltaPaciente(datos, ctx) {
       // Estadísticas del episodio (por PATIENT_ID, no por cama)
       const evos = pid ? repoLeerTodos('EVOLUCIONES', 'PATIENT_ID', pid) : [];
       let ktrTotal = 0, turnosVM = 0, turnosKTM = 0, turnosKTMC = 0;
+      // Días de VM y de vía aérea artificial: se DERIVAN de las evoluciones del
+      // episodio (días calendario distintos), no del contador del censo — ese
+      // solo vale mientras el paciente SIGUE ventilado, y quien egresa
+      // desvinculado archivaba 0 aunque hubiera estado semanas en VM.
+      const diasVMset = {}, diasVAset = {};
+      let huboExtProg = false, huboReintub = false;
       evos.forEach(e => {
         ktrTotal += parseInt(e.RESP_KTR_CANT) || 0;
         if (e.VENT_SOPORTE === 'VM') turnosVM++;
         if (esVerdadero(e.KTM_REALIZADA))  turnosKTM++;
         if (esVerdadero(e.KTM_SUSPENDIDA)) turnosKTMC++;
+        const f = _statISO(e.FECHA);
+        if (!f) return;
+        if (e.VENT_SOPORTE === 'VM' || e.VENT_SOPORTE_FINAL === 'VM') diasVMset[f] = true;
+        const va = String(e.VENT_VIA_AEREA || ''), vaF = String(e.VENT_VIA_AEREA_FINAL || '');
+        if (va === 'TOT' || va === 'TQT' || vaF === 'TOT' || vaF === 'TQT') diasVAset[f] = true;
+        // Desenlace de vía aérea del episodio (columnas del archivo)
+        if (esVerdadero(e.EXT_OCURRIO) && ['protocolo', 'sin_protocolo'].indexOf(String(e.EXT_TIPO || '')) !== -1) huboExtProg = true;
+        if (esVerdadero(e.EXT_REINTUB)) huboReintub = true;
       });
+      if (pid && repoLeerTodos('REINTUBACIONES', 'PATIENT_ID', pid).length) huboReintub = true;
+      // El contador del censo sigue mandando si es mayor (episodio que egresa
+      // ventilado, o días previos plegados por vía aérea externa).
+      const diasVMTot = Math.max(Object.keys(diasVMset).length, parseInt(cama.DIAS_VM) || 0);
+      const diasVATot = Math.max(Object.keys(diasVAset).length, parseInt(cama.DIAS_VA) || 0);
 
       // Últimas evaluaciones registradas del episodio (si el egreso no las trae)
       const ult = {};
@@ -191,12 +210,15 @@ function darAltaPaciente(datos, ctx) {
       repoInsertar('ARCHIVO_PACIENTES', {
         ID_ARCHIVO: uid('ARCH'), PATIENT_ID: pid, CAMA_ORIGEN: idCama, COD_PACIENTE: cama.COD_PACIENTE,
         FECHA_INGRESO: cama.FECHA_INGRESO, FECHA_EGRESO: fechaEgreso,
-        DIAS_TOTAL: cama.DIA_ESTADIA, DIAS_VM_TOTAL: cama.DIAS_VM, DIAS_VA_TOTAL: cama.DIAS_VA,
+        DIAS_TOTAL: cama.DIA_ESTADIA, DIAS_VM_TOTAL: diasVMTot, DIAS_VA_TOTAL: diasVATot,
         NOMBRE: cama.NOMBRE, EDAD: cama.EDAD, SEXO: cama.SEXO, RUT: cama.RUT || '',
         DIAGNOSTICO: cama.DIAGNOSTICO, DIAG_REM: cama.DIAG_REM,
         MOTIVO_EGRESO: datos.motivoEgreso || '', DESTINO_EGRESO: datos.destinoEgreso || '',
         KTR_TOTAL: ktrTotal, TURNOS_VM: turnosVM, TURNOS_KTM: turnosKTM, TURNOS_KTMC: turnosKTMC,
-        EXTUBACION_OK: esVerdadero(datos.extubacionOk), REINTUBACION: esVerdadero(datos.reintubacion),
+        // Desenlace de vía aérea DERIVADO del episodio (antes nadie los llenaba
+        // y quedaban siempre en falso). El egreso puede forzarlos si los envía.
+        EXTUBACION_OK: datos.extubacionOk !== undefined ? esVerdadero(datos.extubacionOk) : (huboExtProg && !huboReintub),
+        REINTUBACION: datos.reintubacion !== undefined ? esVerdadero(datos.reintubacion) : huboReintub,
         BARTHEL_INGRESO: cama.BARTHEL, BARTHEL_EGRESO: datos.barthelEgreso || '',
         FSS_EGRESO: fssEgr, MRC_SS_EGRESO: mrcEgr,
         DINAMO_EGRESO: dinEgr, CPAX_EGRESO: cpaxEgr,

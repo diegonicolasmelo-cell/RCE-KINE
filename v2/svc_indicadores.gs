@@ -41,8 +41,13 @@ function calcularIndicadores(desde, hasta) {
     const diasRango = Math.round((new Date(hasta) - new Date(desde)) / 864e5) + 1;
 
     // ── Extubaciones del rango ──
-    const PROGRAMADAS = { protocolo: 1, sin_protocolo: 1, sin_condiciones: 1 };
-    const FUERA = { sin_protocolo: 1, sin_condiciones: 1 };
+    const PROGRAMADAS = { protocolo: 1, sin_protocolo: 1 };
+    const FUERA = { sin_protocolo: 1 };
+    // «sin_condiciones» era, hasta v4.1, un tipo dentro de «tipo de extubación».
+    // Decisión clínica (jul-2026): NO es una extubación — significa que ese turno
+    // no se realizó PVE, y ahora se registra con su razón (PVE_SC_RAZON). Se
+    // ignora aquí para que ninguna fila histórica lo cuente como extubación.
+    const NO_ES_EXTUBACION = { sin_condiciones: 1 };
     const ACCIDENTALES = { autoextubacion: 1, accidental: 1 };
     const extProg = [];
     let nFuera = 0, nAutoext = 0;
@@ -51,12 +56,13 @@ function calcularIndicadores(desde, hasta) {
       if (!esVerdadero(e.EXT_OCURRIO)) return;
       const tipo = String(e.EXT_TIPO || '');
       const esNoche = /Noche$/i.test(String(e.TURNO_KEY || ''));
+      if (NO_ES_EXTUBACION[tipo]) return;
       if (ACCIDENTALES[tipo]) { nAutoext++; return; }
       if (!PROGRAMADAS[tipo]) return;
       extProg.push({ pid: String(e.PATIENT_ID), fecha: _statISO(e.FECHA), hora: String(e.EXT_HORA || '') });
       if (FUERA[tipo]) {
         nFuera++;
-        const mot = tipo === 'sin_condiciones' ? '≤24 h de VM' : (String(e.EXT_MOTIVO || '').trim() || 'Sin motivo registrado');
+        const mot = String(e.EXT_MOTIVO || '').trim() || 'Sin motivo registrado';
         const m = motivosFuera[mot] = motivosFuera[mot] || { total: 0, noche: 0 };
         m.total++; if (esNoche) m.noche++;
       }
@@ -122,6 +128,33 @@ function calcularIndicadores(desde, hasta) {
       if (esVerdadero(e.KTM_REALIZADA)) atenciones += Math.min(9, Math.max(1, parseInt(e.KTM_CANT) || 1));
     });
 
+    // ── Desvinculación de VM del paciente traqueostomizado (weaning de TQT) ──
+    // Ventanas registradas en el turno: cuántas, cuántas terminaron en
+    // reconexión y cuántas horas se acumularon fuera del ventilador.
+    let desvincN = 0, desvincRecon = 0, desvincHoras = 0;
+    const desvincPacs = {}, desvincDur = [];
+    evosR.forEach(e => {
+      if (!esVerdadero(e.DESVINC_OCURRIO)) return;
+      desvincN++;
+      desvincPacs[String(e.PATIENT_ID)] = true;
+      if (esVerdadero(e.DESVINC_RECONEXION)) desvincRecon++;
+      const h = parseFloat(String(e.DESVINC_HORAS || '').replace(',', '.'));
+      if (!isNaN(h) && h > 0) { desvincHoras += h; desvincDur.push(h); }
+    });
+    desvincDur.sort((a, b) => a - b);
+    const desvincMediana = desvincDur.length
+      ? (desvincDur.length % 2 ? desvincDur[(desvincDur.length - 1) / 2]
+        : Math.round(((desvincDur[desvincDur.length / 2 - 1] + desvincDur[desvincDur.length / 2]) / 2) * 10) / 10)
+      : null;
+
+    // Uso de válvula de fonación (intervención de rehabilitación en TQT)
+    let vfonTurnos = 0, vfonMin = 0;
+    evosR.forEach(e => {
+      if (!esVerdadero(e.VFON_USADA)) return;
+      vfonTurnos++;
+      vfonMin += Math.max(0, parseInt(e.VFON_MIN) || 0);
+    });
+
     // ── Adherencia a la verificación de cuff (paquete de prevención de NAVM) ──
     // Denominador: turnos con vía aérea artificial (donde el protocolo pide
     // verificar 1 vez por turno). Numerador: turnos con el cuff verificado —
@@ -183,6 +216,10 @@ function calcularIndicadores(desde, hasta) {
       ventilados: nVentilados, vmProlongada: nVMProlongada,
       vmProlongadaPct: nVentilados ? Math.round(1000 * nVMProlongada / nVentilados) / 10 : null,
       atenciones: atenciones,
+      desvinculaciones: desvincN, desvincPacientes: Object.keys(desvincPacs).length,
+      desvincReconexiones: desvincRecon,
+      desvincHorasTotal: Math.round(desvincHoras * 10) / 10, desvincMedianaHoras: desvincMediana,
+      vfonTurnos: vfonTurnos, vfonMinutos: vfonMin,
       cuffTurnos: cuffTurnos, cuffVerificados: cuffVerif, cuffAjustes: cuffAjuste,
       cuffAdherenciaPct: cuffTurnos ? Math.round(100 * cuffVerif / cuffTurnos) : null,
       atencionesPorPacDia: nPacDias ? Math.round(100 * atenciones / nPacDias) / 100 : null,

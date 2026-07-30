@@ -151,7 +151,7 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
     const arch = S.DB.ARCHIVO_PACIENTES[S.DB.ARCHIVO_PACIENTES.length - 1];
     LOG.egresos.push({ pac: o.pac, cama: o.cama, fecha: o.fecha, ok: r.egreso, toasts: r.toasts, apacheUI: r.apacheUI,
       archivo: arch ? { MOTIVO: arch.MOTIVO_EGRESO, DESTINO: arch.DESTINO_EGRESO, DIAS: arch.DIAS_TOTAL,
-        DIAS_VM: arch.DIAS_VM_TOTAL, APACHE2: arch.APACHE2, EXTUB_OK: arch.EXTUBACION_OK, REINTUB: arch.REINTUBACION,
+        DIAS_VM: arch.DIAS_VM_TOTAL, DIAS_VA: arch.DIAS_VA_TOTAL, APACHE2: arch.APACHE2, EXTUB_OK: arch.EXTUBACION_OK, REINTUB: arch.REINTUBACION,
         MRC: arch.MRC_SS_EGRESO, DAUCI: arch.DAUCI, FASE_FINAL: arch.FASE_FINAL } : null });
     console.log((r.egreso ? '✅' : '❌') + ` [${o.pac}] EGRESO cama ${o.cama} → ${o.destino || o.destinoOtro}` +
       (r.egreso ? '' : ' · ' + r.toasts.join(' | ')));
@@ -228,7 +228,10 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
   await turno({ pac: 'P2', cama: 2, fecha: '2026-07-04', t: 'Noche', campos: [
     ...base, ['fVA', 'TOT'], ['fSop', 'VM'], ['fModo', 'CPAP/PS'], ['r_ps', 12], ['r_peep', 6], ['r_fio2', 40], ['r_spo2', 95],
     ['fSed', 'Sedación superficial'], ['fSAS', 5], ['fPVEval', 'no'], ['fCuffEst', 'rango'],
-  ], radios: [['extTipo', 'autoextubacion']], js: `
+  ], js: `
+    $('fPveSCraz').value='Sedación profunda / BNM';
+    $('cExtSinPve').click();
+    document.querySelector('input[name="extTipo"][value="autoextubacion"]').click();
     $('fExtHoraNo').value='03:20'; $('cReintubNo')?.click();
     setTimeout(()=>{ const h=$('fReintubHoraN2'); if(h) h.value='03:50'; },50);
   ` });
@@ -281,11 +284,29 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
     ['fVA', 'TQT'], ['fSop', 'VM'], ['fModo', 'CPAP/PS'], ['r_ps', 8], ['r_peep', 5], ['r_fio2', 30], ['r_spo2', 97],
     ['fCoop', 'Cooperador'], ['fCuffEst', 'rango'],
   ], checks: [['cVAExtPrev', true]], js: `$('fVAExtDias').value='21'; $('fVAExtDias').dispatchEvent(new Event('change'))` });
+  // Desvinculación de VM con reconexión (weaning de cánula) + GSA del turno
+  await turno({ pac: 'P4', cama: 4, fecha: '2026-07-06', t: 'Dia', campos: [
+    ...base, ['fVA', 'TQT'], ['fSop', 'VM'], ['fModo', 'CPAP/PS'], ['r_ps', 8], ['r_peep', 5],
+    ['r_fio2', 28], ['r_spo2', 97], ['fCuffEst', 'rango'], ['fKTRcnt', 2],
+  ], checks: [['cDesvinc', true]], js: `
+    $('fDesvincHora').value='09:00'; $('fDesvincA').value='Tubo T';
+    $('fDesvincMotivo').value='Entrenamiento de weaning programado';
+    $('cDesvincRecon').click(); $('fDesvincHoraRecon').value='15:30'; calcDesvinc();
+    $('fDesvincDet').value='Buena tolerancia, sin taquipnea';
+    $('cGSA').click(); $('fGsaHora').value='14:00'; $('fGsaPh').value='7.41';
+    $('fGsaPao2').value='92'; $('fGsaPaco2').value='42'; $('fGsaHco3').value='25';
+    $('fGsaFio2').value='28'; interpGSA();
+  ` });
+  // Válvula de fonación: modo ventilatorio + uso como intervención de rehabilitación
   await turno({ pac: 'P4', cama: 4, fecha: '2026-07-07', t: 'Dia', campos: [
     ...base, ['fVA', 'TQT'], ['fSop', 'Oxigenoterapia/OAF'], ['fModo', 'Válvula de fonación'],
     ['r_fio2', 26], ['r_spo2', 96], ['fCuffEst', 'desinflado'], ['fPVA', 12],
     ['fMRC', 40], ['fFSS', 22], ['fKTRcnt', 1],
-  ], checks: [['cKTMr', true], ['cIMT', true]], js: `$('fIMTfreq').value='2x30'; $('fKTMniv').value='3'` });
+  ], checks: [['cKTMr', true], ['cIMT', true], ['cVfon', true]], js: `
+    $('fIMTfreq').value='2x30'; $('fKTMniv').value='3';
+    $('fVfonMin').value='45'; $('fVfonTol').value='Buena';
+    $('fVfonDet').value='Fonación audible, sin desaturación';
+  ` });
   await turno({ pac: 'P4', cama: 4, fecha: '2026-07-09', t: 'Dia', campos: [
     ...base, ['fVA', 'TQT'], ['fSop', 'Oxigenoterapia/OAF'], ['fModo', 'Válvula de fonación'],
     ['r_fio2', 26], ['r_spo2', 97], ['fCuffEst', 'desinflado'], ['fPVA', 9],
@@ -325,8 +346,12 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
   ], js: `toggleFase('Postoperatorio inmediato')` });
   await turno({ pac: 'P6', cama: 6, fecha: '2026-07-10', t: 'Noche', campos: [
     ...base, ['fPVEval', 'no'], ['fCuffEst', 'rango'],
-  ], radios: [['extTipo', 'sin_condiciones']], js: `
+  ], js: `
+    $('fPveSCraz').value='Menos de 24 h de VM';
+    $('cExtSinPve').click();
+    document.querySelector('input[name="extTipo"][value="sin_protocolo"]').click();
     const h=$('fExtHoraNo'); if(h) h.value='22:30';
+    $('fExtMotivoCat').value='≤ 24 h de VM'; $('fExtMotivoCat').dispatchEvent(new Event('change'));
     $('peModoNo').value='Naricera-NRC'; $('peModoNo').dispatchEvent(new Event('change'));
   ` });
   await egresar({ pac: 'P6', cama: 6, fecha: '2026-07-11', destino: 'Cirugía' });
@@ -373,7 +398,10 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
   evento('P8', 'REGISTRAR_FALLA_VM', { idVm: 'vm1', descripcion: 'Alarma de presión alta persistente en ACVC', firmaKine: F });
   await turno({ pac: 'P8', cama: 8, fecha: '2026-07-15', t: 'Noche', campos: [
     ...base, ['fCuffEst', 'rango'], ['fKTRcnt', 1],
-  ] });
+  ], js: `
+    hPVEtoggle('no'); $('fPveSCraz').value='Sedación profunda / BNM';
+    $('fPveSCdet').value='En BNM por SDRA severo';
+  ` });
 
   /* ════ CIERRE: estadísticas, indicadores, auditoría, pivot, hoja UCI ════ */
   console.log('\n── Lecturas de cierre (servicios reales) ──');

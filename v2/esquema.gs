@@ -190,7 +190,20 @@ const _COLS_EVOLUCIONES = [
   // de secreciones subglóticas; sobre el máximo, isquemia de la mucosa traqueal
   // (IDSA: 20-30 cmH2O). Estado en un toque; el valor solo se pide si hubo ajuste.
   ['VENT_CUFF_EST','texto'],     // '' | 'rango' | 'ajuste' | 'desinflado'
-  ['VENT_CUFF_CMH2O','decimal'], // valor encontrado (solo cuando EST='ajuste')
+  ['VENT_CUFF_CMH2O','decimal'], // valor encontrado (solo cuando EST='ajuste'),
+  // ── v4.2 (jul-2026) — SIEMPRE AL FINAL ──
+  // Razón por la que NO se realizó PVE (detalle libre; la categoría va en PVE_SC_RAZON)
+  ['PVE_SC_DET','texto'],
+  // Gases arteriales del turno (bloque opcional, se despliega con GSA_TOMADA)
+  ['GSA_TOMADA','bool'],['GSA_HORA','texto'],['GSA_PH','decimal'],['GSA_PAO2','decimal'],
+  ['GSA_PACO2','decimal'],['GSA_HCO3','decimal'],['GSA_EB','decimal'],['GSA_LACTATO','decimal'],
+  ['GSA_SAO2','decimal'],['GSA_FIO2','decimal'],['GSA_INTERP','texto'],
+  // Desvinculación de VM del paciente traqueostomizado (ventana del turno)
+  ['DESVINC_OCURRIO','bool'],['DESVINC_HORA','texto'],['DESVINC_A','texto'],
+  ['DESVINC_RECONEXION','bool'],['DESVINC_HORA_RECON','texto'],['DESVINC_HORAS','decimal'],
+  ['DESVINC_MOTIVO','texto'],['DESVINC_DET','texto'],
+  // Uso de válvula de fonación como intervención de rehabilitación (VA = TQT)
+  ['VFON_USADA','bool'],['VFON_MIN','entero'],['VFON_TOL','texto'],['VFON_DET','texto']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -666,7 +679,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 304) errs.push('EVOLUCIONES != 304 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 328) errs.push('EVOLUCIONES != 328 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

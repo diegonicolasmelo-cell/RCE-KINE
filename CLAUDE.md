@@ -25,7 +25,7 @@ navegador del hospital o de su casa.
   viajan fusionados como `servicios.gs` (`build/fusionar_servicios.js`).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 302 columnas** y `testEsquema`
+- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 328 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -103,9 +103,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v4.0-paquete**
-  (paquete v4 completo; antes v3.4-hoja). La entrega v4.0 exige
-  `crearORepararEstructura()` (hoja FALLAS_VM + seed FALLAS_FOTOS_FOLDER).
+  (ahí se afina el registro con uso real). Deployment: cohete **v4.2-clinico**
+  (antes v4.1-apache, v4.0-paquete, v3.4-hoja). Exige
+  `crearORepararEstructura()` (EVOLUCIONES 328 columnas + APACHE2).
 - **Réplicas por turno** (reglas ganadas a punta de bugs, jul-2026):
   los PROCEDIMIENTOS son del turno — la réplica parte SIEMPRE con la lista
   manual vacía (el PROC_JSON guardado une manuales+automáticos; arrastrarlo
@@ -174,6 +174,39 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   vacío (si existe, lo informa); el valor de la cama manda sobre el tardío.
   `_apacheNorm` en svc_camas: entero 0-71 o vacío (inválido → vacío, jamás
   basura). Exigió `crearORepararEstructura()`. Guardia: `checks/apache.js`.
+- **PAQUETE v4.2 — APLICADO (jul-2026, cohete v4.2-clinico).** Decisiones de
+  Diego sobre los hallazgos de la simulación (EVOLUCIONES pasa a **328 col**;
+  exige `crearORepararEstructura()`). Guardia: `checks/v42.js`.
+  1. A1 CORREGIDO: `DIAS_VM_TOTAL`/`DIAS_VA_TOTAL` del archivo se DERIVAN de las
+     evoluciones del episodio (días calendario distintos con VM / con TOT-TQT);
+     el contador del censo solo gana si es mayor (egresa ventilado).
+  2. A3 CORREGIDO: `EXTUBACION_OK`/`REINTUBACION` se derivan del episodio
+     (extubación programada sin reintubación / alguna reintubación). El egreso
+     puede forzarlos si los envía.
+  3. **A2 — «sin condiciones de PVE» JAMÁS es extubación** (regla dura): salió
+     de los tipos de extubación y ahora es «no se realizó PVE» **con razón
+     obligatoria de catálogo** (`PVE_SC_RAZON` + `PVE_SC_DET`). La extubación
+     sin PVE se declara aparte (`cExtSinPve`) y solo entonces se elige tipo
+     (sin protocolo / autoextubación / accidental). Indicadores: `sin_condiciones`
+     se ignora siempre; una extubación con <24 h de VM se registra como «sin
+     protocolo» con motivo «≤ 24 h de VM». **AVISAR A MANUEL**: su serie
+     histórica contaba `sin_condiciones` como programada — hay que recalcular.
+  4. A4 SIN CAMBIO (decisión de Diego): PVE superada ⇒ extubación automática.
+  5. Módulo «TERAPIA FÍSICA» renombrado a **REHABILITACIÓN**; dentro, uso de
+     **válvula de fonación** (minutos + tolerancia + observación, gate TQT →
+     `VFON_*`). Además es MODO ventilatorio de TQT en Oxigenoterapia **y en
+     Ambiente** (TQT ahora admite soporte Ambiente). Tubo T/HME aceptan FiO2.
+  6. **GSA** opcional (casilla que despliega, patrón SmartEvo): pH, PaO2, PaCO2,
+     HCO3, EB, lactato, SaO2, FiO2 + hora; interpreta el trastorno ácido-base y
+     calcula PaFi (rellena `r_pafi` si está vacío). No se replica.
+  7. **DESVINCULACIÓN de VM (TQT)** en Terapia ventilatoria, después de la
+     terapia: hora + a qué queda + motivo, casilla de reconexión con hora y
+     **delta de horas** (cruza medianoche). Genera hito `DESVINCULACIÓN`, va a
+     la entrega de turno, a la Hoja UCI y a indicadores (`desvinculaciones`,
+     `desvincReconexiones`, `desvincHorasTotal`, `desvincMedianaHoras`).
+     Anulable como evento (`desvinc`).
+  Trampa reconfirmada: `fPVEval` es hidden ⇒ `form.reset()` NO lo limpia (lo
+  limpia abrirPanel); en arneses hay que vaciarlo antes de togglear.
 - **SIMULACIÓN E2E (jul-2026)** — arnés `build/sim/`: cliente real (index en
   Chromium) + servidor real (.gs en Node, hojas en memoria, reloj simulado
   `SIM.fecha`); `node build/sim/sim_e2e.js` corre 8 pacientes ingreso→egreso.
@@ -184,7 +217,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   superada fuerza extubación (A4), modo «Válvula de fonación» inexistente
   (B1), Tubo T/HME sin FiO2 (B2), la cama no refleja el estado *_FINAL tras
   extubar/decanular (C1), TOT 8.0/22 preseleccionados (D3), EVAL_FECHA en UTC
-  real (D4). NO corregidos aún.
+  real (D4). **A1, A2, A3, B1, B2 y B3 ya CORREGIDOS en v4.2**; quedan
+  PENDIENTES: C1 (la cama no refleja *_FINAL), D1-D5 (pulidos de texto y
+  formulario) y A4 cerrado sin cambio.
 - **PAQUETE v4 — APLICADO (jul-2026, cohete v4.0-paquete).** Lo que quedó:
   1. BUG ingreso Natural→IOT mismo turno CORREGIDO: el gate del ingreso ya
      no oculta `dIntubSec` (solo reintub/ext/decan/tqt); texto cliente con
