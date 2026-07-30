@@ -165,16 +165,26 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   por turno, PVE/100 pac-día, mediana VM pre-TQT, reingresos por RUT,
   mortalidad SIN ajuste (el ajuste por APACHE II se hace fuera, cruzado por
   RUT, anonimizado). `svc_indicadores.gs` + guardia `checks/indicadores.js`.
-- **APACHE II — PENDIENTE DE CERRAR CON DIEGO** (jul-2026, pedido explícito:
-  «recuérdamelo cuando terminemos las otras tareas y lo cerramos»). Hallazgo de
-  Manuel: la gravedad al ingreso predice la mortalidad (OR 1,94 por cada 5
-  puntos, p<0,001; AUC 0,633→0,795) y los días de VM no ⇒ comparar meses o
-  turnos sin ajuste compara poblaciones, no desempeños. Hoy el dato NO se
-  captura. Recomendación entregada: campo numérico opcional (0-71) al ingreso,
-  editable después (lo calcula el médico, el kine lo copia); columna al final de
-  EVOLUCIONES ⇒ exige `crearORepararEstructura()`. Alternativa: cruce por RUT
-  con la planilla médica (depende de otro equipo). Probablemente Manuel trabaje
-  en ello; igual hay que decidir el lado RCE-KINE.
+- **APACHE II — CERRADO (jul-2026, cohete v4.1-apache).** Decisión de Diego:
+  «lo robaremos de la evolución médica; agrégalo al egreso como opción si no
+  se pudo anotar antes». Campo opcional 0-71 junto a Charlson (datos del
+  paciente); viaja TRANSITORIO como PAC_APACHE2 (patrón PAC_RUT — NO es
+  columna de EVOLUCIONES) y persiste en CAMAS_ESTADO.APACHE2 →
+  ARCHIVO_PACIENTES.APACHE2 al egresar. El egreso lo ofrece SOLO si está
+  vacío (si existe, lo informa); el valor de la cama manda sobre el tardío.
+  `_apacheNorm` en svc_camas: entero 0-71 o vacío (inválido → vacío, jamás
+  basura). Exigió `crearORepararEstructura()`. Guardia: `checks/apache.js`.
+- **SIMULACIÓN E2E (jul-2026)** — arnés `build/sim/`: cliente real (index en
+  Chromium) + servidor real (.gs en Node, hojas en memoria, reloj simulado
+  `SIM.fecha`); `node build/sim/sim_e2e.js` corre 8 pacientes ingreso→egreso.
+  Hallazgos en `INFORME_SIMULACION.md` (13, PENDIENTES DE DECISIÓN de Diego);
+  los graves: DIAS_VM_TOTAL/DIAS_VA_TOTAL=0 en ARCHIVO si no egresa ventilado
+  (A1), doble semántica de `sin_condiciones` formulario vs indicadores/Manuel
+  (A2), EXTUBACION_OK/REINTUBACION del archivo siempre false (A3), PVE
+  superada fuerza extubación (A4), modo «Válvula de fonación» inexistente
+  (B1), Tubo T/HME sin FiO2 (B2), la cama no refleja el estado *_FINAL tras
+  extubar/decanular (C1), TOT 8.0/22 preseleccionados (D3), EVAL_FECHA en UTC
+  real (D4). NO corregidos aún.
 - **PAQUETE v4 — APLICADO (jul-2026, cohete v4.0-paquete).** Lo que quedó:
   1. BUG ingreso Natural→IOT mismo turno CORREGIDO: el gate del ingreso ya
      no oculta `dIntubSec` (solo reintub/ext/decan/tqt); texto cliente con
