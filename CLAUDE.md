@@ -25,7 +25,7 @@ navegador del hospital o de su casa.
   viajan fusionados como `servicios.gs` (`build/fusionar_servicios.js`).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 359 columnas** y `testEsquema`
+- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 379 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -103,9 +103,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v4.4-modulo**
-  (antes v4.3-viaaerea, v4.2-clinico, v4.1-apache). Exige
-  `crearORepararEstructura()` (EVOLUCIONES 359 columnas).
+  (ahí se afina el registro con uso real). Deployment: cohete **v4.5-transiciones**
+  (antes v4.4-modulo, v4.3-viaaerea, v4.2-clinico). Exige
+  `crearORepararEstructura()` (EVOLUCIONES 379 columnas).
 - **Réplicas por turno** (reglas ganadas a punta de bugs, jul-2026):
   los PROCEDIMIENTOS son del turno — la réplica parte SIEMPRE con la lista
   manual vacía (el PROC_JSON guardado une manuales+automáticos; arrastrarlo
@@ -255,6 +255,27 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      SALIERON de la lista manual: ya se derivan de sus casillas
      (`cEMS`, `cEduReal` → «EDUCACIÓN A USUARIO/FAMILIA»).
   Guardia: `checks/via_aerea_previo.js` (extendida).
+- **v4.5 · MÓDULO COMPLETO EN TODAS LAS TRANSICIONES (jul-2026, cohete
+  v4.5-transiciones).** EVOLUCIONES **379 columnas**.
+  - **Reintubación**: los 3 juegos de campos en texto libre (sufijos N1/N2/T)
+    se reemplazaron por UN panel «Queda con» (`dReintubQueda`, prefijo `pr_`)
+    que se **mueve por DOM** a la rama activa (`_panelReintub(destinoId)`).
+    Columnas `REINTUB_SOP_POST` + VT/FR/PEEP/FIO2/SPO2/PMAX/PPL/AUTOPEEP/PS/PAFI.
+  - **TQT**: el campo de parámetros en texto libre pasó a módulo completo
+    (`pt_`), con columnas TQT_VT/FR/PEEP/FIO2/SPO2/PMAX/PPL/PS/PAFI, y el texto
+    narra «Queda conectado a VM en modo …» (cliente y servidor).
+  - `renderParams(o)` conoce los 3 paneles posteriores por prefijo
+    (`pi_`/`pr_`/`pt_`); `calcResp(el)` deduce el suyo del input.
+  - `_paramsTxt(P,L)` arma el resumen legible (incluye derivados) y lo usan
+    intubación, reintubación y TQT.
+  - BUG DE TEXTO CORREGIDO: `_vmReintTxt()` describía el equipo de la
+    reintubación leyendo los parámetros de ARRIBA (estado previo) y quedaba
+    DUPLICADO con el panel nuevo → función eliminada.
+  - Orden clínico en el texto: la reintubación también se narra DESPUÉS del
+    bloque ventilatorio (como la intubación).
+  - Extubación y decanulación conservan sus paneles (post no invasivo, ya
+    tenían parámetros por modo).
+  - `TEXTOS_MUESTRARIO.md`: los 26 textos de la simulación, para revisión.
 - **SIMULACIÓN E2E (jul-2026)** — arnés `build/sim/`: cliente real (index en
   Chromium) + servidor real (.gs en Node, hojas en memoria, reloj simulado
   `SIM.fecha`); `node build/sim/sim_e2e.js` corre 8 pacientes ingreso→egreso.

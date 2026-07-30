@@ -219,7 +219,15 @@ const _COLS_EVOLUCIONES = [
   ['INTUB_FLUJO','decimal'],['INTUB_TI','decimal'],['INTUB_PAFI','decimal'],
   // Eventos del turno NO derivables (no se arrastran; van a la entrega)
   ['PROC_IMAGEN','bool'],['PROC_PABELLON','bool'],['PROC_ASIST_MED','bool'],
-  ['PROC_RCP','bool'],['PROC_RCP_CICLOS','entero'],['PROC_RCP_HORA','texto'],['PROC_RCP_DET','texto']
+  ['PROC_RCP','bool'],['PROC_RCP_CICLOS','entero'],['PROC_RCP_HORA','texto'],['PROC_RCP_DET','texto'],
+  // v4.5 — el módulo ventilatorio completo también en reintubación y TQT
+  // (misma regla: el estado previo vive en VENT_*, el posterior aquí)
+  ['REINTUB_SOP_POST','texto'],
+  ['REINTUB_VT','decimal'],['REINTUB_FR','decimal'],['REINTUB_PEEP','decimal'],['REINTUB_FIO2','decimal'],
+  ['REINTUB_SPO2','decimal'],['REINTUB_PMAX','decimal'],['REINTUB_PPL','decimal'],['REINTUB_AUTOPEEP','decimal'],
+  ['REINTUB_PS','decimal'],['REINTUB_PAFI','decimal'],
+  ['TQT_VT','decimal'],['TQT_FR','decimal'],['TQT_PEEP','decimal'],['TQT_FIO2','decimal'],
+  ['TQT_SPO2','decimal'],['TQT_PMAX','decimal'],['TQT_PPL','decimal'],['TQT_PS','decimal'],['TQT_PAFI','decimal']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -695,7 +703,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 359) errs.push('EVOLUCIONES != 359 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 379) errs.push('EVOLUCIONES != 379 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

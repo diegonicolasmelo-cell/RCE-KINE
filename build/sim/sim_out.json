@@ -118,12 +118,11 @@
       "guardo": true,
       "toasts": [
         "🫁 Intubación marcada — arriba queda el estado PREVIO; completa abajo cómo quedó el paciente.",
-        "SIM⚠ js: Cannot set properties of null (setting 'value')",
         "💾 Guardando en servidor...",
         "✅ Evolución guardada correctamente"
       ],
       "avisos": "",
-      "texto": "KINESIOLOGÍA TURNO DÍA — INGRESO\nPaciente ingresa a UCI con diagnóstico de Insuficiencia respiratoria aguda por NAC.\nSin sedación. GCS 15/15(O:4, V:5, M:6).\nHDN estable, sin requerimientos de DVA.\nVentila espontáneo con FiO2 adicional.\nPrevio en naricera-NRC, paciente requiere intubación orotraqueal a las 13:40 hrs en contexto de hipoxemia refractaria.\nQueda con TOT N° 7.5 fijado a 21 cm, conectado a VM en modo ACVC.\nKTM no realizada por Motivo ingreso.\nKlgo. Diego Melo Villagrán",
+      "texto": "KINESIOLOGÍA TURNO DÍA — INGRESO\nPaciente ingresa a UCI con diagnóstico de Insuficiencia respiratoria aguda por NAC.\nSin sedación. GCS 15/15(O:4, V:5, M:6).\nHDN estable, sin requerimientos de DVA.\nVentila espontáneo con FiO2 adicional.\nPrevio en naricera-NRC, paciente requiere intubación orotraqueal a las 13:40 hrs en contexto de hipoxemia refractaria.\nQueda con TOT N° 7.5 fijado a 21 cm, conectado a VM en modo ACVC. Vt 380 ml (7.5 ml/kg), FR 18 rpm, VM 6.8 L/m, Ppl 22 cmH2O, DP 14 cmH2O, PEEP 8 cmH2O, FiO2 50%, SpO2 95%.\nKTM no realizada por Motivo ingreso.\nKlgo. Diego Melo Villagrán",
       "camaSnap": {
         "VA": "TOT",
         "SOP": "VM",
@@ -145,7 +144,7 @@
         "✅ Evolución guardada correctamente"
       ],
       "avisos": "Quedan 6 valores heredados del turno anterior sin revisar (en ámbar). Corrígelos si cambiaron, tócalos para confirmarlos, o usa «✓ Sin cambios» en cada módulo.",
-      "texto": "KINESIOLOGÍA TURNO NOCHE\nPaciente en 2do día de estadía en UCI en contexto de Insuficiencia respiratoria aguda por NAC.\nSin sedación. GCS 11T(O:4, V:1T, M:6).\nHDN estable, sin requerimientos de DVA.\nVAA mediante TOT N° 8.0 fijado a 22 cm a nivel de comisura labial (día 2).\nVentila espontáneo en modo CPAP/PS (día 2 de VM).\nTV: PS 12 cmH2O.\nPEEP 6 cmH2O.\nFiO2 40%, SpO2 95%.\nKTM no realizada.\nPaciente se autoextuba a las 03:20 hrs.\nEvolucionando con falla respiratoria por lo que se reintuba a las 03:50 hrs. Se reintuba con TOT N° 8.0 fijado a 22 cm a nivel de comisura labial.  Se ventila en modo CPAP/PS, PS 12 cmH2O, PEEP 6 cmH2O, FiO2 40%, SpO2 95%.\nKlgo. Diego Melo Villagrán",
+      "texto": "KINESIOLOGÍA TURNO NOCHE\nPaciente en 2do día de estadía en UCI en contexto de Insuficiencia respiratoria aguda por NAC.\nSin sedación. GCS 11T(O:4, V:1T, M:6).\nHDN estable, sin requerimientos de DVA.\nVAA mediante TOT N° 8.0 fijado a 22 cm a nivel de comisura labial (día 2).\nVentila espontáneo en modo CPAP/PS (día 2 de VM).\nTV: PS 12 cmH2O.\nPEEP 6 cmH2O.\nFiO2 40%, SpO2 95%.\nKTM no realizada.\nPaciente se autoextuba a las 03:20 hrs.\nEvolucionando con falla respiratoria post extubación por lo que se reintuba a las 03:50 hrs con TOT N° 8.0 a 22 cm, quedando en modo ACVC (Vt 400 ml (7.9 ml/kg), FR 20 rpm, VM 8.0 L/m, PEEP 8 cmH2O, FiO2 60%).\nKlgo. Diego Melo Villagrán",
       "camaSnap": {
         "VA": "TOT",
         "SOP": "VM",
@@ -167,7 +166,7 @@
         "✅ Evolución guardada correctamente"
       ],
       "avisos": "Quedan 7 valores heredados del turno anterior sin revisar (en ámbar). Corrígelos si cambiaron, tócalos para confirmarlos, o usa «✓ Sin cambios» en cada módulo.",
-      "texto": "KINESIOLOGÍA TURNO DÍA\nPaciente en 8vo día de estadía en UCI en contexto de Insuficiencia respiratoria aguda por NAC.\nSin sedación. GCS 11T(O:4, V:1T, M:6).\nHDN estable, sin requerimientos de DVA.\nVAA mediante TOT N° 8.0 fijado a 22 cm a nivel de comisura labial (día 8).\nVentila espontáneo en modo CPAP/PS (día 8 de VM).\nTV: PS 10 cmH2O.\nPEEP 6 cmH2O.\nFiO2 35%, SpO2 96%.\nSe realiza KTM nivel ?.\nKlgo. Diego Melo Villagrán",
+      "texto": "KINESIOLOGÍA TURNO DÍA\nPaciente en 8vo día de estadía en UCI en contexto de Insuficiencia respiratoria aguda por NAC.\nSin sedación. GCS 11T(O:4, V:1T, M:6).\nHDN estable, sin requerimientos de DVA.\nVAA mediante TOT N° 8.0 fijado a 22 cm a nivel de comisura labial (día 8).\nVentila espontáneo en modo CPAP/PS (día 8 de VM).\nTV: PS 10 cmH2O.\nPEEP 6 cmH2O.\nFiO2 35%, SpO2 96%.\nQueda conectado a VM en modo CPAP/PS. PS 10 cmH2O, PEEP 6 cmH2O, FiO2 35%, SpO2 96%.\nSe realiza KTM nivel ?.\nKlgo. Diego Melo Villagrán",
       "camaSnap": {
         "VA": "TQT",
         "SOP": "VM",
@@ -230,12 +229,11 @@
       "guardo": true,
       "toasts": [
         "🫁 Intubación marcada — arriba queda el estado PREVIO; completa abajo cómo quedó el paciente.",
-        "SIM⚠ js: Cannot set properties of null (setting 'value')",
         "💾 Guardando en servidor...",
         "✅ Evolución guardada correctamente"
       ],
       "avisos": "Quedan 11 valores heredados del turno anterior sin revisar (en ámbar). Corrígelos si cambiaron, tócalos para confirmarlos, o usa «✓ Sin cambios» en cada módulo.",
-      "texto": "KINESIOLOGÍA TURNO NOCHE\nPaciente en 1er día de estadía en UCI en contexto de EPOC exacerbado, acidosis respiratoria.\nSin sedación. GCS 15/15(O:4, V:5, M:6).\nHDN estable, sin requerimientos de DVA.\nEn VNI, modo S/T.\nTV: IPAP 16 cmH2O, EPAP 6 cmH2O, PS 10 cmH2O, FiO2 40%, SpO2 90%.\nPrevio en VNI, paciente requiere intubación orotraqueal a las 02:10 hrs en contexto de acidosis respiratoria refractaria a VNI.\nQueda con TOT N° 8.0 fijado a 22 cm, conectado a VM en modo ACVC.\nKTM no realizada.\nKlgo. Diego Melo Villagrán",
+      "texto": "KINESIOLOGÍA TURNO NOCHE\nPaciente en 1er día de estadía en UCI en contexto de EPOC exacerbado, acidosis respiratoria.\nSin sedación. GCS 15/15(O:4, V:5, M:6).\nHDN estable, sin requerimientos de DVA.\nEn VNI, modo S/T.\nTV: IPAP 16 cmH2O, EPAP 6 cmH2O, PS 10 cmH2O, FiO2 40%, SpO2 90%.\nPrevio en VNI, paciente requiere intubación orotraqueal a las 02:10 hrs en contexto de acidosis respiratoria refractaria a VNI.\nQueda con TOT N° 8.0 fijado a 22 cm, conectado a VM en modo ACVC. Vt 400 ml (6.5 ml/kg), FR 20 rpm, VM 8.0 L/m, Ppl 26 cmH2O, DP 18 cmH2O, PEEP 8 cmH2O, FiO2 60%, SpO2 91%.\nKTM no realizada.\nKlgo. Diego Melo Villagrán",
       "camaSnap": {
         "VA": "TOT",
         "SOP": "VM",
@@ -990,7 +988,7 @@
       "err": "",
       "data": {
         "entidad": "FALLAS_VM",
-        "id": "FALLA_1785389087037_OLDH5",
+        "id": "FALLA_1785390253991_8BDC5",
         "idVm": "vm1",
         "fotoUrl": "",
         "accion": "falla registrada: AVEA-01"

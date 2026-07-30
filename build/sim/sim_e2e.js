@@ -219,9 +219,11 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
     ['fVA', 'Natural'], ['fSop', 'Oxigenoterapia/OAF'], ['fModo', 'Mascarilla de recirculación'],
   ], checks: [['cIntubO', true]], js: `
     $('fIntubHora').value='13:40'; $('fIntubDet').value='hipoxemia refractaria';
-    $('poIntubModo').value='ACVC'; $('poIntubTotN').value='7.5'; $('poIntubTotCm').value='21';
-    $('poIntubVt').value='380'; $('poIntubFr').value='18'; $('poIntubPeep').value='8';
-    $('poIntubFio2').value='50'; $('poIntubSpo2').value='95';
+    $('poIntubTotN').value='7.5'; $('poIntubTotCm').value='21';
+    $('poIntubModo').value='ACVC'; renderParams({P:'pi_',L:'pl_',box:'paramsBoxIntub'});
+    $('pi_vt').value='380'; $('pi_fr').value='18'; $('pi_peep').value='8';
+    $('pi_ppl').value='22'; $('pi_fio2').value='50'; $('pi_spo2').value='95';
+    calcResp({id:'pi_vt'});
   ` });
   await turno({ pac: 'P2', cama: 2, fecha: '2026-07-04', t: 'Noche', campos: [
     ...base, ['fVA', 'TOT'], ['fSop', 'VM'], ['fModo', 'CPAP/PS'], ['r_ps', 12], ['r_peep', 6], ['r_fio2', 40], ['r_spo2', 95],
@@ -231,7 +233,19 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
     $('cExtSinPve').click();
     document.querySelector('input[name="extTipo"][value="autoextubacion"]').click();
     $('fExtHoraNo').value='03:20'; $('cReintubNo')?.click();
-    setTimeout(()=>{ const h=$('fReintubHoraN2'); if(h) h.value='03:50'; },50);
+    setTimeout(()=>{
+      if(typeof _mrResolver==='function') _mrResolver(true);
+      setTimeout(()=>{
+        const h=$('fReintubHoraN2'); if(h) h.value='03:50';
+        const rz=$('fReintubRazNo'); if(rz) rz.value='Falla respiratoria post extubación';
+        if($('poReintubTotN')){
+          $('poReintubTotN').value='8.0'; $('poReintubTotCm').value='22';
+          $('poReintubModo').value='ACVC'; renderParams({P:'pr_',L:'prl_',box:'paramsBoxReintub'});
+          $('pr_vt').value='400'; $('pr_fr').value='20'; $('pr_peep').value='8'; $('pr_fio2').value='60';
+          calcResp({id:'pr_vt'});
+        }
+      },60);
+    },40);
   ` });
   await turno({ pac: 'P2', cama: 2, fecha: '2026-07-10', t: 'Dia', campos: [
     ...base, ['fVA', 'TOT'], ['fSop', 'VM'], ['fModo', 'CPAP/PS'], ['r_ps', 10], ['r_peep', 6], ['r_fio2', 35], ['r_spo2', 96],
@@ -240,7 +254,9 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
     $('fTqtHora').value='10:30'; $('fTqtTec').value='Percutánea';
     $('fTQTn').value='8'; $('fTQTt').value='Con balón';
     $('poTqtSop').value='VM'; renderParamsTqt(); $('poTqtModo').value='CPAP/PS';
-    $('poTqtParams').value='PS 10 · PEEP 6 · FiO₂ 35% · SpO₂ 96%';
+    renderParams({P:'pt_',L:'ptl_',box:'paramsBoxTqt'});
+    $('pt_ps').value='10'; $('pt_peep').value='6'; $('pt_fio2').value='35'; $('pt_spo2').value='96';
+    calcResp({id:'pt_ps'});
   ` });
   await turno({ pac: 'P2', cama: 2, fecha: '2026-07-12', t: 'Dia', campos: [
     ...base, ['fVA', 'TQT'], ['fSop', 'Oxigenoterapia/OAF'], ['fModo', 'Tubo T'],
@@ -261,9 +277,11 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
     ...base,
   ], checks: [['cIntubO', true]], js: `
     $('fIntubHora').value='02:10'; $('fIntubDet').value='acidosis respiratoria refractaria a VNI';
-    $('poIntubModo').value='ACVC'; $('poIntubTotN').value='8.0'; $('poIntubTotCm').value='22';
-    $('poIntubVt').value='400'; $('poIntubFr').value='20'; $('poIntubPeep').value='8';
-    $('poIntubFio2').value='60'; $('poIntubSpo2').value='91';
+    $('poIntubTotN').value='8.0'; $('poIntubTotCm').value='22';
+    $('poIntubModo').value='ACVC'; renderParams({P:'pi_',L:'pl_',box:'paramsBoxIntub'});
+    $('pi_vt').value='400'; $('pi_fr').value='20'; $('pi_peep').value='8';
+    $('pi_ppl').value='26'; $('pi_fio2').value='60'; $('pi_spo2').value='91';
+    calcResp({id:'pi_vt'});
     $('fSed').value='Sedación profunda'; $('fSAS').value='1';
   ` });
   await turno({ pac: 'P3', cama: 3, fecha: '2026-07-06', t: 'Dia', campos: [

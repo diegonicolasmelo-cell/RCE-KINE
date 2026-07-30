@@ -103,6 +103,13 @@ function generarTextoEvolucion(d) {
     const hq = v('TQT_HORA');
     const det = String(v('TQT_DET') || '').trim();
     txt.push(`VAA mediante TQT${tec ? ' ' + tec : ''} N°${tqtN || '?'}${tqtT ? ' ' + String(tqtT).toLowerCase() : ''} realizada hoy${hq ? ' a las ' + hq + ' hrs' : ''}${det ? ' (' + det + ')' : ''}.`);
+    // Cómo QUEDA tras la traqueostomía (panel propio; el previo vive arriba)
+    const tSop = v('TQT_SOP_POST'), tModo = v('TQT_MODO_POST'), tPar = v('TQT_PARAMS');
+    if (tSop || tModo) {
+      let q = tSop === 'VM' ? `Queda conectado a VM${tModo ? ' en modo ' + tModo : ''}`
+            : `Queda en ${tSop || 'oxigenoterapia'}${tModo ? ', ' + _lcIni(tModo) : ''}`;
+      txt.push(q + (tPar ? `. ${tPar}` : '') + '.');
+    }
   } else if (va === 'TQT') {
     const tqtN = v('VENT_TQT_CALIBRE');
     const desc = (tqtN ? ` N° ${tqtN}` : '') + (tqtT ? ` tipo ${tqtT}` : '');

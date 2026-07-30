@@ -223,6 +223,71 @@ const { chromium } = require('playwright-core');
      /EDUCACIÓN A USUARIO\/FAMILIA/.test(EV.eduDerivada), true);
   eq('desmarcar RCP limpia los ciclos', EV.rcpLimpio, true);
 
+  // ── v4.5: reintubación y TQT también con módulo completo ──
+  const RT = await p.evaluate(async () => {
+    $('kf').reset(); $('cBed').value = '3'; DB = [{ ID_CAMA: '3' }];
+    _nReintub = 0; _diasVMPrevios = 2; _diasVMEpisodio = 0; _vmHistFlag = true;
+    const r = {};
+    // paciente extubado (VA no invasiva) con historial de VM → reintubación standalone
+    $('fVA').value = 'Natural'; cascadeVA();
+    $('fSop').value = 'Oxigenoterapia/OAF'; cascadeSop();
+    $('fModo').value = 'CNAF'; renderParams();
+    $('r_flujo').value = '50'; $('r_fio2').value = '70'; $('r_spo2').value = '86';
+    updateVAUI();
+    r.panelViejo = !!$('fReintubTotT');   // los campos de texto libre ya no existen
+    $('cReintubT').click();
+    // la reintubación se confirma con su propio modal (no uiConfirm)
+    await new Promise(r2 => setTimeout(r2, 60));
+    if (typeof _mrResolver === 'function') _mrResolver(true);
+    await new Promise(r2 => setTimeout(r2, 120));
+    r.panelEnRama = $('dReintubQueda').closest('#dReintubDetT') !== null;
+    r.visible = !$('dReintubQueda').classList.contains('hidden');
+    r.modulo = ['pr_vt','pr_fr','pr_peep','pr_ppl','pr_autopeep','pr_fio2','pr_spo2'].every(id => !!$(id));
+    r.previoIntacto = { sop: v('fSop'), modo: v('fModo'), flujo: v('r_flujo'), spo2: v('r_spo2') };
+    $('poReintubTotN').value = '7.5'; $('poReintubTotCm').value = '21';
+    $('poReintubModo').value = 'ACVC'; renderParams({P:'pr_',L:'prl_',box:'paramsBoxReintub'});
+    $('pr_vt').value = '400'; $('pr_fr').value = '20'; $('pr_peep').value = '10'; $('pr_fio2').value = '80';
+    calcResp({ id: 'pr_vt' });
+    $('fReintubHoraT').value = '05:30'; $('fReintubRazT').value = 'Falla respiratoria post extubación';
+    r.texto = genTexto();
+    r.vmDerivado = $('prl_vm').textContent;
+    return r;
+  });
+  eq('reintubación · los campos de texto libre desaparecieron', RT.panelViejo, false);
+  eq('reintubación · el panel único se inserta en la rama activa', RT.panelEnRama && RT.visible, true);
+  eq('reintubación · con módulo ventilatorio completo', RT.modulo, true);
+  eq('reintubación · el estado previo (CNAF) no se toca',
+     RT.previoIntacto.sop === 'Oxigenoterapia/OAF' && RT.previoIntacto.modo === 'CNAF' &&
+     RT.previoIntacto.flujo === '50' && RT.previoIntacto.spo2 === '86', true);
+  eq('reintubación · sus derivados se calculan (VM 8 L/m)', /8\.0 L\/m/.test(RT.vmDerivado), true);
+  eq('reintubación · el texto narra el equipo y los parámetros',
+     /reintubación a las 05:30 hrs por falla respiratoria post extubación con TOT N° 7\.5 a 21 cm, quedando en modo ACVC/.test(RT.texto) &&
+     /Vt 400 ml/.test(RT.texto) && /PEEP 10 cmH2O/.test(RT.texto) && /FiO2 80%/.test(RT.texto), true);
+
+  const TQ = await p.evaluate(() => {
+    $('kf').reset(); $('cBed').value = '3'; DB = [{ ID_CAMA: '3' }];
+    $('fVA').value = 'TQT'; cascadeVA(); $('fSop').value = 'VM'; cascadeSop();
+    $('fModo').value = 'CPAP/PS'; renderParams();
+    $('r_ps').value = '10'; $('r_peep').value = '6';
+    updateVAUI();
+    const r = { paramsViejos: !!$('poTqtParams') };
+    $('cTqtO').click();
+    $('fTqtHora').value = '10:30'; $('fTqtTec').value = 'Percutánea';
+    $('poTqtSop').value = 'VM'; renderParamsTqt(); $('poTqtModo').value = 'ACVC';
+    renderParams({P:'pt_',L:'ptl_',box:'paramsBoxTqt'});
+    r.modulo = ['pt_vt','pt_fr','pt_peep','pt_ppl','pt_fio2'].every(id => !!$(id));
+    $('pt_vt').value = '420'; $('pt_fr').value = '16'; $('pt_peep').value = '6'; $('pt_fio2').value = '35';
+    calcResp({ id: 'pt_vt' });
+    r.previoIntacto = { modo: v('fModo'), ps: v('r_ps') };
+    r.dispositivos = !$('fcDisp').classList.contains('hidden');
+    return r;
+  });
+  eq('TQT · el campo de parámetros en texto libre desapareció', TQ.paramsViejos, false);
+  eq('TQT · panel «queda con» con módulo completo', TQ.modulo, true);
+  eq('TQT · el estado previo (CPAP/PS con PS 10) no se toca',
+     TQ.previoIntacto.modo === 'CPAP/PS' && TQ.previoIntacto.ps === '10', true);
+  eq('TQT · los dispositivos siguen visibles al quedar en VM', TQ.dispositivos, true);
+
   // FilmArray disponible como técnica de cultivo
   const FA = await p.evaluate(() => !!document.querySelector('input[name="mtest"][value="FilmArray"]'));
   eq('FilmArray está entre las técnicas de cultivo', FA, true);
