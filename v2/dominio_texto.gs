@@ -4,6 +4,15 @@
  *   EX_RUIDOS_MAN→EX_RUIDOS_LOC · EX_SECR_CANT/TIPO→RESP_SECR_QTY/CAR ·
  *   VENT_POST_EXT(_VAL)→EXT_OCURRIO/EXT_POST_DET. Se agrega la fase clínica (FASE_JSON).
  */
+/** Minúscula SOLO en la inicial: conserva siglas («BNM», «VNI») y nombres propios. */
+function _lcIni(s) {
+  s = String(s || ''); if (!s) return '';
+  // Las siglas se respetan: «VNI», «CNAF», «Naricera-NRC» no pasan a «vNI»
+  const t = s.split(/[\s\/-]/)[0];
+  if (t.length > 1 && t === t.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(t)) return s;
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
+
 function generarTextoEvolucion(d) {
   const v  = k => (d[k] !== undefined && d[k] !== null && d[k] !== '') ? String(d[k]) : null;
   const vn = k => parseFloat(d[k]) || 0;
@@ -245,8 +254,8 @@ function generarTextoEvolucion(d) {
   // Desvinculación de VM (TQT) — paridad con el preview del cliente
   if (esVerdadero(d.DESVINC_OCURRIO)) {
     const dh = v('DESVINC_HORA'), da = v('DESVINC_A'), dm = v('DESVINC_MOTIVO');
-    let t1 = `Se desvincula de ventilación mecánica${dh ? ' a las ' + dh + ' hrs' : ''}${da ? ', quedando con ' + da.toLowerCase() : ''}`;
-    if (dm) t1 += ` (${dm.toLowerCase()})`;
+    let t1 = `Se desvincula de ventilación mecánica${dh ? ' a las ' + dh + ' hrs' : ''}${da ? ', quedando con ' + da : ''}`;
+    if (dm) t1 += ` (${_lcIni(dm)})`;
     txt.push(t1 + '.');
     if (esVerdadero(d.DESVINC_RECONEXION)) {
       const hrs = String(d.DESVINC_HORAS || '').replace('.', ',');
@@ -259,7 +268,7 @@ function generarTextoEvolucion(d) {
   // Válvula de fonación — uso del turno (Rehabilitación)
   if (esVerdadero(d.VFON_USADA)) {
     let t2 = `Se instala válvula de fonación${v('VFON_MIN') ? ' por ' + v('VFON_MIN') + ' minutos' : ''}`;
-    if (v('VFON_TOL')) t2 += `, con tolerancia ${v('VFON_TOL').toLowerCase()}`;
+    if (v('VFON_TOL')) t2 += `, con tolerancia ${_lcIni(v('VFON_TOL'))}`;
     if (v('VFON_DET')) t2 += `. ${v('VFON_DET')}`;
     txt.push(t2 + '.');
   }
@@ -296,8 +305,19 @@ function generarTextoEvolucion(d) {
   // Intubación nueva este turno (sin historial de VM)
   if (esVerdadero(d.INTUB_OCURRIO)) {
     const ih = v('INTUB_HORA'), idt = v('INTUB_DET'), isp = v('INTUB_SOP_PREVIO');
-    const prevTxt = isp ? `Previo en ${isp.toLowerCase()}, p` : 'P';
+    const prevTxt = isp ? `Previo en ${_lcIni(isp)}, p` : 'P';
     txt.push(`${prevTxt}aciente requiere intubación orotraqueal${ih ? ' a las ' + ih + ' hrs' : ''}${idt ? ' en contexto de ' + idt : ''}.`);
+    // Cómo QUEDA tras el procedimiento (el estado previo vive en las VENT_*)
+    const pva = v('INTUB_VA_POST') || 'TOT', psop = v('INTUB_SOP_POST') || 'VM', pmodo = v('INTUB_MODO_POST');
+    const ptn = v('INTUB_TOT_N'), ptc = v('INTUB_TOT_CM');
+    if (pva || psop || pmodo) {
+      let q = `Queda con ${pva === 'TQT' ? 'TQT' : 'TOT'}${ptn ? ' N° ' + ptn : ''}${ptc ? ' fijado a ' + ptc + ' cm' : ''}`;
+      q += psop === 'VM' ? `, conectado a VM${pmodo ? ' en modo ' + pmodo : ''}` : (pmodo ? ', en ' + pmodo : '');
+      const pp = [v('INTUB_VT') ? `Vt ${v('INTUB_VT')} ml` : null, v('INTUB_FR') ? `FR ${v('INTUB_FR')} rpm` : null,
+                  v('INTUB_PEEP') ? `PEEP ${v('INTUB_PEEP')} cmH2O` : null, v('INTUB_FIO2') ? `FiO2 ${v('INTUB_FIO2')}%` : null,
+                  v('INTUB_SPO2') ? `SpO2 ${v('INTUB_SPO2')}%` : null].filter(Boolean).join(', ');
+      txt.push(q + (pp ? `. ${pp}` : '') + '.');
+    }
   }
 
   // 7. Auscultación (las secreciones van en la línea de KTR, como el preview)

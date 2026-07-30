@@ -93,8 +93,12 @@ function guardarEvolucion(datos, ctx) {
       }
       if (cama.FECHA_INGRESO) {
         datos.DIA_ESTADIA = diasEntre(cama.FECHA_INGRESO, fecha);
-        datos.DIAS_VM = (datos.VENT_SOPORTE === 'VM') ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : 0;
-        datos.DIAS_VA = (datos.VENT_VIA_AEREA && datos.VENT_VIA_AEREA !== 'Natural') ? diasEntre(cama.FECHA_INICIO_VA, fecha) : 0;
+        // Un turno que intuba TERMINA en VM aunque haya empezado en oxigenoterapia:
+        // los contadores usan el estado final (el previo queda en VENT_*).
+        const _sopT = datos.VENT_SOPORTE_FINAL || datos.VENT_SOPORTE;
+        const _vaT  = datos.VENT_VIA_AEREA_FINAL || datos.VENT_VIA_AEREA;
+        datos.DIAS_VM = (_sopT === 'VM') ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : 0;
+        datos.DIAS_VA = (_vaT && _vaT !== 'Natural') ? diasEntre(cama.FECHA_INICIO_VA, fecha) : 0;
       }
 
       // BDT (test de azul) — repetible: cada resultado marcado en el turno se
@@ -189,8 +193,14 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   const esIngreso = esVerdadero(evo.ES_INGRESO);
   const val = (a, b) => (a !== undefined && a !== null && a !== '') ? a : (b || '');
 
+  // Estado con el que TERMINA el turno: si hubo un evento de vía aérea, la cama
+  // (y el turno siguiente) deben partir de ahí, no del estado previo con el que
+  // el paciente llegó al turno. El previo queda guardado en las columnas VENT_*.
+  const vaFin  = evo.VENT_VIA_AEREA_FINAL || evo.VENT_VIA_AEREA || '';
+  const sopFin = evo.VENT_SOPORTE_FINAL || evo.VENT_SOPORTE || '';
+  const modoFin = evo.VENT_MODO_FINAL || evo.VENT_MODO || '';
   // Fecha de inicio de soporte: se reinicia si cambia el tipo (Ambiente↔VM↔VNI).
-  const sopNew = evo.VENT_SOPORTE || cama.SOPORTE || 'Ambiente';
+  const sopNew = sopFin || cama.SOPORTE || 'Ambiente';
   const sopAnt = cama.SOPORTE || '';
   const esVent = (sopNew === 'VM' || sopNew === 'VNI');
   let fechaSoporte;
@@ -232,7 +242,7 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
       !esVerdadero(evo.SED_BNM);
   }
 
-  const vaNew = evo.VENT_VIA_AEREA || cama.VIA_AEREA || 'Natural';
+  const vaNew = vaFin || cama.VIA_AEREA || 'Natural';
   const vaAnt = cama.VIA_AEREA || '';
   const esVA = (vaNew !== 'Natural');
   let fechaVA;
@@ -256,9 +266,10 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     // PAC_APACHE2 viaja transitorio (como PAC_RUT): persiste en la CAMA, no en EVOLUCIONES
     APACHE2: _apacheNorm(val(evo.PAC_APACHE2, cama.APACHE2)),
     AISLAMIENTO: esVerdadero(evo.PAC_AISLAMIENTO), AISL_MICRO: val(evo.PAC_AISL_MICRO, cama.AISL_MICRO),
-    VIA_AEREA: val(evo.VENT_VIA_AEREA, cama.VIA_AEREA) || 'Natural',
-    TOT_NUMERO: val(evo.VENT_TOT_NUM, cama.TOT_NUMERO), TOT_CM_LABIO: val(evo.VENT_TOT_CM, cama.TOT_CM_LABIO),
-    TQT_TIPO: val(evo.VENT_TQT_TIPO, cama.TQT_TIPO), SOPORTE: sopNew, MODO: val(evo.VENT_MODO, cama.MODO),
+    VIA_AEREA: val(vaFin, cama.VIA_AEREA) || 'Natural',
+    TOT_NUMERO: val(evo.INTUB_TOT_N, val(evo.VENT_TOT_NUM, cama.TOT_NUMERO)),
+    TOT_CM_LABIO: val(evo.INTUB_TOT_CM, val(evo.VENT_TOT_CM, cama.TOT_CM_LABIO)),
+    TQT_TIPO: val(evo.VENT_TQT_TIPO, cama.TQT_TIPO), SOPORTE: sopNew, MODO: val(modoFin, cama.MODO),
     FASE_JSON: val(evo.FASE_JSON, cama.FASE_JSON),
     KTM_NIVEL: esVerdadero(evo.KTM_REALIZADA) ? (evo.KTM_NIVEL_KTR || '') : (turno === 'Noche' ? (cama.KTM_NIVEL || '') : ''),
     KTM_SUSP: esVerdadero(evo.KTM_SUSPENDIDA),
@@ -489,7 +500,7 @@ function anularEvento(datos, ctx) {
   const GRUPOS = {
     pve_ext: ['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_SC_DET','PVE_VAL','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO'],
     reintub: ['REINTUB_TOT_N','REINTUB_TOT_CM','REINTUB_MODO','REINTUB_PARAMS','REINTUB_HORA','REINTUB_SOP_PREV','EXT_REINTUB','EXT_REINTUB_RAZ'],
-    intub:   ['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO'],
+    intub:   ['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO','INTUB_VA_PREVIA','INTUB_MODO_PREVIO','INTUB_VA_POST','INTUB_SOP_POST','INTUB_MODO_POST','INTUB_TOT_N','INTUB_TOT_CM','INTUB_VT','INTUB_FR','INTUB_PEEP','INTUB_FIO2','INTUB_SPO2'],
     decan:   ['DECAN_OCURRIO','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL'],
     desvinc: ['DESVINC_OCURRIO','DESVINC_HORA','DESVINC_A','DESVINC_MOTIVO','DESVINC_RECONEXION','DESVINC_HORA_RECON','DESVINC_HORAS','DESVINC_DET'],
     cambio_tot: ['TOT_CAMBIO','TOT_CAMBIO_MOTIVO'],

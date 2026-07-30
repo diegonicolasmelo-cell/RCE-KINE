@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="4.2-clinico">
+<meta name="rce-version" content="4.3-viaaerea">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -2226,7 +2226,25 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                     <div class="col grow"><label>Detalle (opcional)</label>
                       <input type="text" id="fTqtDet" placeholder="Operador, complicaciones…" style="height:30px;"></div>
                   </div>
-                  <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;">
+                  <!-- ESTADO PREVIO (no se toca) + ESTADO POSTERIOR de la TQT -->
+                  <div style="margin-bottom:8px;padding:7px 9px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:7px;">
+                    <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;color:#64748b;letter-spacing:.04em;margin-bottom:3px;">📍 Estado previo (de Terapia ventilatoria ↑)</div>
+                    <div id="lblTqtPrevio" style="font-size:.78rem;color:#334155;font-weight:600;">—</div>
+                  </div>
+                  <div style="padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
+                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:7px;letter-spacing:.04em;">✅ Queda con (post-traqueostomía)</div>
+                    <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0;">
+                      <div class="col wa"><label style="font-size:.66rem;">Soporte</label>
+                        <select id="poTqtSop" onchange="renderParamsTqt()" style="height:28px;font-size:.78rem;">
+                          <option value="VM">VM</option><option value="Oxigenoterapia/OAF">Oxigenoterapia/OAF</option><option value="Ambiente">Ambiente</option>
+                        </select></div>
+                      <div class="col wa"><label style="font-size:.66rem;">Modo</label>
+                        <select id="poTqtModo" style="height:28px;font-size:.78rem;"></select></div>
+                      <div class="col grow"><label style="font-size:.66rem;">Parámetros</label>
+                        <input type="text" id="poTqtParams" placeholder="VT 420 · FR 16 · PEEP 6 · FiO₂ 35% · SpO₂ 96%" style="height:28px;font-size:.76rem;"></div>
+                    </div>
+                  </div>
+                  <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;margin-top:6px;">
                     💡 El calibre y tipo de cánula se registran arriba (campos TQT) — el texto dirá cómo quedó: «VAA mediante TQT percutánea N°8.5 con puerto subglótico realizada hoy a las 14:00 hrs.»
                   </div>
                 </div>
@@ -2579,27 +2597,54 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                    estado en VM (historial = 0): primera intubación del episodio. -->
               <div id="dIntubSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">
                 <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#1d4ed8;margin-bottom:7px;letter-spacing:.04em;">🫁 Intubación</div>
-                <!-- Paso 1: soporte previo (línea de tiempo del evento) -->
-                <div class="row" style="margin-bottom:6px;">
-                  <div class="col wa"><label style="font-size:.68rem;">1. Soporte respiratorio previo</label>
-                    <select id="fIntubSopPrevio" style="height:30px;">
-                      <option value="">--</option><option>Ambiente</option><option>Naricera/NRC</option><option>CNAF</option><option>VNI</option>
-                    </select></div>
-                </div>
                 <div class="check wa" style="margin-bottom:6px;">
                   <input type="checkbox" id="cIntubO" onchange="hIntub()">
-                  <label for="cIntubO" style="font-weight:700;color:var(--primary);">2. Ocurrió intubación este turno</label>
+                  <label for="cIntubO" style="font-weight:700;color:var(--primary);">Ocurrió intubación este turno</label>
                 </div>
                 <div id="dIntubDet" class="hidden" style="background:#fff;border:1px solid #bfdbfe;border-radius:7px;padding:8px 10px;">
-                  <div class="row" style="align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                  <div class="row" style="align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
                     <label style="font-size:.72rem;font-weight:700;color:#1d4ed8;white-space:nowrap;">Hora:</label>
                     <input type="time" id="fIntubHora" style="height:28px;font-size:.78rem;border:1px solid #bfdbfe;border-radius:5px;padding:0 6px;">
                     <label style="font-size:.72rem;font-weight:700;color:#1d4ed8;white-space:nowrap;">Contexto:</label>
                     <input type="text" id="fIntubDet" placeholder="Motivo / circunstancias..." style="height:28px;font-size:.78rem;border:1px solid #bfdbfe;border-radius:5px;padding:0 8px;flex:1;min-width:170px;">
                   </div>
-                  <div style="font-size:.72rem;color:#1e40af;background:#dbeafe;border-radius:5px;padding:6px 8px;line-height:1.5;">
-                    ✅ Vía Aérea cambiada a TOT automáticamente. <b>3.</b> Completa el N° de tubo y fijación arriba ↑ (General).
-                    <b>4.</b> Configura el modo ventilatorio en Terapia Ventilatoria ↑.
+                  <!-- ESTADO PREVIO: se toma solo de Terapia Ventilatoria (arriba),
+                       que NO se toca — describir cómo estaba el paciente para ser
+                       intubado es parte esencial del registro. -->
+                  <div style="margin-bottom:8px;padding:7px 9px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:7px;">
+                    <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;color:#64748b;letter-spacing:.04em;margin-bottom:3px;">📍 Estado previo (de Terapia ventilatoria ↑)</div>
+                    <div id="lblIntubPrevio" style="font-size:.78rem;color:#334155;font-weight:600;">—</div>
+                    <input type="hidden" id="fIntubSopPrevio">
+                  </div>
+                  <!-- ESTADO POSTERIOR: panel nuevo, no reemplaza nada de arriba -->
+                  <div style="padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
+                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:7px;letter-spacing:.04em;">✅ Queda con (post-intubación)</div>
+                    <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:6px;">
+                      <div class="col wa"><label style="font-size:.66rem;">Vía aérea</label>
+                        <select id="poIntubVA" onchange="renderParamsIntub()" style="height:28px;font-size:.78rem;">
+                          <option value="TOT">TOT</option><option value="TQT">TQT</option>
+                        </select></div>
+                      <div class="col ws"><label style="font-size:.66rem;">N° tubo</label>
+                        <select id="poIntubTotN" style="height:28px;font-size:.78rem;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
+                      <div class="col ws"><label style="font-size:.66rem;">Fijación cm</label>
+                        <input type="number" id="poIntubTotCm" style="height:28px;width:70px;font-size:.78rem;"></div>
+                      <div class="col wa"><label style="font-size:.66rem;">Soporte</label>
+                        <select id="poIntubSop" onchange="renderParamsIntub()" style="height:28px;font-size:.78rem;">
+                          <option value="VM">VM</option><option value="Oxigenoterapia/OAF">Oxigenoterapia/OAF</option>
+                        </select></div>
+                      <div class="col wa"><label style="font-size:.66rem;">Modo</label>
+                        <select id="poIntubModo" onchange="renderParamsIntub()" style="height:28px;font-size:.78rem;"></select></div>
+                    </div>
+                    <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0;">
+                      <div class="col ws"><label style="font-size:.66rem;">VT ml</label><input type="number" id="poIntubVt" style="height:28px;width:78px;font-size:.78rem;"></div>
+                      <div class="col ws"><label style="font-size:.66rem;">FR rpm</label><input type="number" id="poIntubFr" style="height:28px;width:70px;font-size:.78rem;"></div>
+                      <div class="col ws"><label style="font-size:.66rem;">PEEP</label><input type="number" id="poIntubPeep" style="height:28px;width:70px;font-size:.78rem;"></div>
+                      <div class="col ws"><label style="font-size:.66rem;">FiO₂ %</label><input type="number" id="poIntubFio2" style="height:28px;width:74px;font-size:.78rem;"></div>
+                      <div class="col ws"><label style="font-size:.66rem;">SpO₂ %</label><input type="number" id="poIntubSpo2" style="height:28px;width:74px;font-size:.78rem;"></div>
+                    </div>
+                    <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;margin-top:6px;">
+                      💡 Arriba queda registrado cómo estaba el paciente; aquí, cómo quedó. El siguiente turno evoluciona desde este estado.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3369,7 +3414,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.2-clinico]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.3-viaaerea]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4565,7 +4610,8 @@ function _podarEventosPayload(p){
   if(!decanActivo) del(['DECAN_OCURRIO','DECAN_HORA','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL']);
   const tqtActivo=(va==='TQT') && !!$('cTqtO')?.checked;
   if(!tqtActivo) del(['TQT_OCURRIO','TQT_HORA','TQT_TECNICA','TQT_DET']);
-  if(!$('cIntubO')?.checked) del(['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO']);
+  if(!$('cIntubO')?.checked) del(['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO','INTUB_VA_PREVIA','INTUB_MODO_PREVIO','INTUB_VA_POST','INTUB_SOP_POST','INTUB_MODO_POST','INTUB_TOT_N','INTUB_TOT_CM','INTUB_VT','INTUB_FR','INTUB_PEEP','INTUB_FIO2','INTUB_SPO2']);
+  if(!$('cTqtO')?.checked) del(['TQT_SOP_POST','TQT_MODO_POST','TQT_PARAMS']);
   // EXT_REINTUB va con el grupo reintubación (la ruta standalone ocurre con VA
   // no invasiva, donde el grupo PVE está inactivo — el servidor gatilla el
   // registro de reintubación con esta clave).
@@ -4985,7 +5031,9 @@ function guardar() {
     INTUB_OCURRIO:   bv('cIntubO'),
     INTUB_HORA:      v('fIntubHora'),
     INTUB_DET:       v('fIntubDet'),
-    INTUB_SOP_PREVIO: v('fIntubSopPrevio'),
+    INTUB_SOP_PREVIO: bv('cIntubO') ? (v('fIntubSopPrevio')||_sopPrevioAuto()) : '',
+    INTUB_VA_PREVIA:  bv('cIntubO') ? v('fVA') : '',
+    INTUB_MODO_PREVIO: bv('cIntubO') ? v('fModo') : '',
     TOT_CAMBIO:      bv('cCambioTOT'),
     TOT_CAMBIO_MOTIVO: v('fCambioTOTmot')==='Otro' ? (v('fCambioTOTdet')||'Otro') : v('fCambioTOTmot'),
     TQT_CAMBIO:      bv('cCambioTQT'),
@@ -4995,15 +5043,35 @@ function guardar() {
     EXT_PE_SOP:      peSopext(),
     EXT_PE_MODO:     _extPeModo(),
     // ★ Estado FINAL de VA: extubación o decanulación sin re-intubación/re-canulación
-    VENT_VIA_AEREA_FINAL: (_extOcurrio() && !_extReintub()) ? peVAext()
+    VENT_VIA_AEREA_FINAL: $('cIntubO')?.checked ? (v('poIntubVA')||'TOT')
+                        : $('cTqtO')?.checked ? 'TQT'
+                        : (_extOcurrio() && !_extReintub()) ? peVAext()
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'Natural')
                         : v('fVA'),
-    VENT_SOPORTE_FINAL:   (_extOcurrio() && !_extReintub()) ? peSopext()
+    VENT_SOPORTE_FINAL:   $('cIntubO')?.checked ? (v('poIntubSop')||'VM')
+                        : $('cTqtO')?.checked ? (v('poTqtSop')||'VM')
+                        : (_extOcurrio() && !_extReintub()) ? peSopext()
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? 'Oxigenoterapia/OAF'
                         : v('fSop'),
-    VENT_MODO_FINAL:      (_extOcurrio() && !_extReintub()) ? (_extPeModo()||'')
+    VENT_MODO_FINAL:      $('cIntubO')?.checked ? (v('poIntubModo')||'')
+                        : $('cTqtO')?.checked ? (v('poTqtModo')||'')
+                        : (_extOcurrio() && !_extReintub()) ? (_extPeModo()||'')
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'')
                         : v('fModo'),
+    // Estado POSTERIOR del evento de vía aérea (el previo vive en VENT_*)
+    INTUB_VA_POST:   bv('cIntubO') ? (v('poIntubVA')||'TOT') : '',
+    INTUB_SOP_POST:  bv('cIntubO') ? (v('poIntubSop')||'VM') : '',
+    INTUB_MODO_POST: bv('cIntubO') ? v('poIntubModo') : '',
+    INTUB_TOT_N:     bv('cIntubO') ? v('poIntubTotN') : '',
+    INTUB_TOT_CM:    bv('cIntubO') ? v('poIntubTotCm') : '',
+    INTUB_VT:        bv('cIntubO') ? n(v('poIntubVt')) : '',
+    INTUB_FR:        bv('cIntubO') ? n(v('poIntubFr')) : '',
+    INTUB_PEEP:      bv('cIntubO') ? n(v('poIntubPeep')) : '',
+    INTUB_FIO2:      bv('cIntubO') ? n(v('poIntubFio2')) : '',
+    INTUB_SPO2:      bv('cIntubO') ? n(v('poIntubSpo2')) : '',
+    TQT_SOP_POST:    bv('cTqtO') ? (v('poTqtSop')||'') : '',
+    TQT_MODO_POST:   bv('cTqtO') ? v('poTqtModo') : '',
+    TQT_PARAMS:      bv('cTqtO') ? v('poTqtParams') : '',
     PROC_JSON: JSON.stringify(Array.from(new Set([...(PROCS||[]), ..._autoProcs()]))),
     PROC_RESUMEN: Array.from(new Set([...(PROCS||[]), ..._autoProcs()])).join(', '),
     PROC_CANTIDAD: new Set([...(PROCS||[]), ..._autoProcs()]).size,
@@ -6196,6 +6264,14 @@ function _rtxtLive(ev){
     $('rtxt').value=genTexto(); _rtxtGen=$('rtxt').value;
   },250);
 }
+// Minúscula SOLO en la inicial: conserva siglas y nombres propios («BNM», «Tubo T»)
+function _lcIni(x){
+  x=String(x||''); if(!x) return '';
+  // Las siglas se respetan: «VNI», «CNAF», «Naricera-NRC» no se convierten en «vNI»
+  const t=x.split(/[\s\/-]/)[0];
+  if(t.length>1 && t===t.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(t)) return x;
+  return x.charAt(0).toLowerCase()+x.slice(1);
+}
 function genTexto() {
   const gv=id=>{ const e=$(id); return e&&e.value?e.value:null; };
   const esIng=v('cIng')==='true';
@@ -6267,13 +6343,6 @@ function genTexto() {
     const _rh=v('fReintubHoraT'), _rz=_extReintubRaz();
     L.push(`Paciente requirió reintubación${_rh?' a las '+_rh+' hrs':''}${_rz?' por '+_rz.toLowerCase():''}${_reintubEquipoTxt()}.`);
   }
-  // Intubación NUEVA este turno (paciente sin historial de VM). En un INGRESO
-  // narra la transición: llegó ventilando con el soporte previo y se intubó.
-  if($('cIntubO')?.checked){
-    const _ih=v('fIntubHora'), _idt=v('fIntubDet'), _isp=v('fIntubSopPrevio');
-    const _pv=_isp?`Previo en ${_isp.toLowerCase()}, p`:'P';
-    L.push(`${_pv}aciente requiere intubación orotraqueal${_ih?' a las '+_ih+' hrs':''}${_idt?' en contexto de '+_idt:''}.`);
-  }
   // "Por…"/"Para…" ya traen su preposición; el resto se une con "por"
   const _conMotivo=m=>{ m=String(m||'').trim(); if(!m) return ''; const ml=m.toLowerCase(); return (ml.startsWith('por ')||ml.startsWith('para '))?' '+ml:' por '+ml; };
   if(va==='TOT' && $('cCambioTOT')?.checked){
@@ -6297,8 +6366,6 @@ function genTexto() {
   const _mon=id=>{ const e=$(id); return e?(e.textContent||'').trim():''; };
   const _numTxt=id=>_mon(id).replace(/[^0-9.]/g,'');
   const _pjoin=arr=>arr.filter(Boolean).join(', ');
-  // Minúscula SOLO en la inicial: conserva siglas y nombres propios («BNM», «Tubo T»)
-  const _lcIni=x=>{ x=String(x||''); return x?x.charAt(0).toLowerCase()+x.slice(1):''; };
   const _humid=$('cHAct')?.checked;
   const _interac=$('sAdapt')?(v('sAdapt')==='Sincrónico'?'adecuada':'inadecuada'):null;
   const _CTRL=['ACVC','ACPC'];
@@ -6379,6 +6446,22 @@ function genTexto() {
     const _parts=[fr?`FR ${fr} rpm`:null, _umaAmb?`UMA ${_umaAmb}`:null, spo2?`SpO2 ${spo2}%`:null].filter(Boolean);
     const _vf = modo==='Válvula de fonación' ? ' con válvula de fonación' : '';
     L.push(`Ventila espontáneo${_vf} sin O2 adicional${_parts.length?', '+_parts.join(', '):''}.`);
+  }
+  // Intubación NUEVA este turno (paciente sin historial de VM). En un INGRESO
+  // narra la transición: llegó ventilando con el soporte previo y se intubó.
+  if($('cIntubO')?.checked){
+    const _ih=v('fIntubHora'), _idt=v('fIntubDet'), _isp=v('fIntubSopPrevio')||_sopPrevioAuto();
+    const _pv=_isp?`Previo en ${_lcIni(_isp)}, p`:'P';
+    L.push(`${_pv}aciente requiere intubación orotraqueal${_ih?' a las '+_ih+' hrs':''}${_idt?' en contexto de '+_idt:''}.`);
+    // Cómo QUEDA tras el procedimiento (panel propio; el estado previo quedó arriba)
+    const _pva=v('poIntubVA')||'TOT', _psop=v('poIntubSop')||'VM', _pmodo=v('poIntubModo');
+    const _ptn=v('poIntubTotN'), _ptc=v('poIntubTotCm');
+    let _q=`Queda con ${_pva==='TOT'?'TOT':'TQT'}${_ptn?` N° ${_ptn}`:''}${_ptc?` fijado a ${_ptc} cm`:''}`;
+    _q+=_psop==='VM'?`, conectado a VM${_pmodo?` en modo ${_pmodo}`:''}`:`${_pmodo?`, en ${_pmodo}`:''}`;
+    const _pp=[v('poIntubVt')?`Vt ${v('poIntubVt')} ml`:null, v('poIntubFr')?`FR ${v('poIntubFr')} rpm`:null,
+               v('poIntubPeep')?`PEEP ${v('poIntubPeep')} cmH2O`:null, v('poIntubFio2')?`FiO2 ${v('poIntubFio2')}%`:null,
+               v('poIntubSpo2')?`SpO2 ${v('poIntubSpo2')}%`:null].filter(Boolean).join(', ');
+    L.push(_q+(_pp?`. ${_pp}`:'')+'.');
   }
   // Desvinculación de VM (TQT): ventana del turno con su delta de horas
   if(v('fVA')==='TQT' && $('cDesvinc')?.checked){
@@ -7028,6 +7111,7 @@ function renderParams() {
     h+=`<div class="row">${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
   }
   b.innerHTML=h; calcResp(); hUMA();
+  if(typeof _pintarPrevios==='function') _pintarPrevios();
   // Dispositivos de circuito: visibles solo en VM; al quedar en VM se fechan solos
   const _dc=$('fcDisp'); if(_dc) _dc.classList.toggle('hidden', sop!=='VM');
   if(sop==='VM') autoFechasDispositivos(false);
@@ -7635,7 +7719,12 @@ function interpGSA(){
   l.textContent = partes.length ? partes.join(' · ') : '—';
 }
 function hTqtO(){
-  if($('cTqtO')?.checked) show('dTqtDet'); else hide('dTqtDet');
+  if($('cTqtO')?.checked){
+    show('dTqtDet'); _pintarPrevios(); renderParamsTqt();
+  } else {
+    hide('dTqtDet');
+    ['fTqtHora','fTqtTec','fTqtDet','poTqtParams'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
+  }
   if(typeof _renderAutoProcs==='function') _renderAutoProcs();
 }
 function hAET(){
@@ -7753,21 +7842,68 @@ function hReintubCheckT(){
 // ── Intubación NUEVA (VA no invasiva + sin historial VM) ──
 let _vaAntesIntub='';
 let _dispSnapshot=null;
+/* ══ Estado PREVIO → evento → estado POSTERIOR (jul-2026) ══
+   Regla clínica: un procedimiento que cambia la vía aérea NO puede pisar la
+   terapia ventilatoria de arriba — describir cómo estaba el paciente para ser
+   intubado (o traqueostomizado) es parte esencial del registro. El bloque de
+   arriba queda como ESTADO PREVIO y el evento despliega su propio panel con el
+   estado en que QUEDA. El soporte previo ya no se escribe a mano: se deduce. */
+function _resumenPrevio(){
+  const va=v('fVA')||'—', sop=v('fSop')||'', modo=v('fModo')||'';
+  const _n=id=>{ const x=v(id); return x!==''&&x!=null?x:null; };
+  const par=[_n('r_flujo')?`Flujo ${v('r_flujo')} L/min`:null, _n('r_litros')?`${v('r_litros')} Lpm`:null,
+             _n('r_fio2')?`FiO₂ ${v('r_fio2')}%`:null, _n('r_fr')?`FR ${v('r_fr')} rpm`:null,
+             _n('r_spo2')?`SpO₂ ${v('r_spo2')}%`:null].filter(Boolean).join(' · ');
+  const cab=[va, sop, modo&&modo!=='Sin soporte'?modo:''].filter(Boolean).join(' · ');
+  return cab+(par?' — '+par:'');
+}
+/** Soporte previo normalizado para la estadística (VNI, CNAF, naricera, ambiente…) */
+function _sopPrevioAuto(){
+  const sop=v('fSop'), modo=v('fModo');
+  if(sop==='VNI') return 'VNI';
+  if(sop==='Ambiente'||modo==='Sin soporte'||!sop) return 'Ambiente';
+  if(modo==='CNAF'||modo==='OAF/CTAF') return 'CNAF';
+  if(sop==='Oxigenoterapia/OAF') return 'Naricera-NRC';
+  return sop||'Ambiente';
+}
+function _pintarPrevios(){
+  const t=_resumenPrevio();
+  ['lblIntubPrevio','lblTqtPrevio'].forEach(id=>{ const e=$(id); if(e) e.textContent=t; });
+  const h=$('fIntubSopPrevio'); if(h) h.value=_sopPrevioAuto();
+}
+// Modos disponibles en el panel «queda con» (mismo catálogo que la matriz VMAPS)
+function renderParamsIntub(){
+  const va=v('poIntubVA')||'TOT', sop=v('poIntubSop')||'VM';
+  const modos=((VMAPS[va]||{}).modos||{})[sop]||[];
+  const sel=$('poIntubModo'); if(!sel) return;
+  const prev=sel.value;
+  sel.innerHTML=modos.map(m=>`<option${m===prev?' selected':''}>${m}</option>`).join('');
+  // El N° de tubo solo aplica a TOT
+  const cajaTot=$('poIntubTotN')?.closest('.col');
+  if(cajaTot) cajaTot.style.display = va==='TOT' ? '' : 'none';
+  const cajaCm=$('poIntubTotCm')?.closest('.col');
+  if(cajaCm) cajaCm.style.display = va==='TOT' ? '' : 'none';
+}
+function renderParamsTqt(){
+  const sop=v('poTqtSop')||'VM';
+  const modos=((VMAPS['TQT']||{}).modos||{})[sop]||[];
+  const sel=$('poTqtModo'); if(!sel) return;
+  const prev=sel.value;
+  sel.innerHTML=modos.map(m=>`<option${m===prev?' selected':''}>${m}</option>`).join('');
+}
 function hIntub(){
   if($('cIntubO')?.checked){
-    if(v('fVA')!=='TOT') _vaAntesIntub=v('fVA');
     show('dIntubDet');
-    $('fVA').value='TOT';
-    cascadeVA();
-    poblar('fSop',['VM'],'VM'); cascadeSop(); // recién intubado: solo tiene lógica VM
+    _pintarPrevios();
+    renderParamsIntub();
+    // Circuito nuevo: los dispositivos se fechan hoy (el previo no tenía VM)
     _dispSnapshot={hme:v('fFecHME'),hepa:v('fFecHEPA'),tc:v('fFecSonda')};
     autoFechasDispositivos(true,true);
-    toast('🫁 Intubación marcada — VA a TOT y dispositivos (HME/HEPA/Trach Care) fechados hoy. Completa TOT arriba ↑ y modo en Terapia Ventilatoria ↑.', 5500);
+    toast('🫁 Intubación marcada — arriba queda el estado PREVIO; completa abajo cómo quedó el paciente.', 5000);
   } else {
     hide('dIntubDet');
-    const h=$('fIntubHora'); if(h) h.value='';
-    const d=$('fIntubDet'); if(d) d.value='';
-    if(_vaAntesIntub){ $('fVA').value=_vaAntesIntub; cascadeVA(); _vaAntesIntub=''; }
+    ['fIntubHora','fIntubDet','poIntubTotN','poIntubTotCm','poIntubVt','poIntubFr','poIntubPeep','poIntubFio2','poIntubSpo2']
+      .forEach(id=>{ const e=$(id); if(e) e.value=''; });
     if(_dispSnapshot){
       const _ds=_dispSnapshot; _dispSnapshot=null;
       [['fFecHME',_ds.hme],['fFecHEPA',_ds.hepa],['fFecSonda',_ds.tc]].forEach(([id,val])=>{ const e=$(id); if(e) e.value=val; });
@@ -7775,6 +7911,7 @@ function hIntub(){
     }
   }
   updateVAUI();
+  if(typeof _renderAutoProcs==='function') _renderAutoProcs();
 }
 // ── Reintubación ANIDADA en el flujo PVE/Extubación (mismo turno, VA=TOT) ──
 function hReintubCheck(){

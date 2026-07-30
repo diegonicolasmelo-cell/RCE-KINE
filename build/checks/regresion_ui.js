@@ -139,16 +139,22 @@ const path = require('path');
     r.natural={ intub:!$('dIntubSec').classList.contains('hidden'),
       ext:$('dExtSec').classList.contains('hidden'), rein:$('dReintubSec').classList.contains('hidden'),
       decan:$('dDecanSec').classList.contains('hidden'), tqt:$('dTqtSec').classList.contains('hidden') };
-    // (ii) natural → IOT el mismo turno
+    // (ii) natural → IOT el mismo turno. v4.3: la intubación YA NO pisa la
+    // terapia ventilatoria de arriba (ese estado previo es lo que justifica el
+    // procedimiento); el evento trae su propio panel «queda con».
+    $('fSop').value='Oxigenoterapia/OAF'; cascadeSop();
+    $('fModo').value='CNAF'; renderParams();
     $('cIntubO').checked=true; hIntub();
     $('fIntubHora').value='14:20'; $('fIntubDet').value='shock séptico';
-    const spv=$('fIntubSopPrevio'); if(spv){ const op=document.createElement('option'); op.value=op.textContent='CNAF'; spv.appendChild(op); spv.value='CNAF'; }
-    r.iot={ va:v('fVA'), sop:v('fSop'), det:!$('dIntubDet').classList.contains('hidden') };
+    $('poIntubModo').value='ACVC';
+    r.iot={ va:v('fVA'), sop:v('fSop'), det:!$('dIntubDet').classList.contains('hidden'),
+            vaFin:(v('poIntubVA')||'TOT'), sopFin:(v('poIntubSop')||'VM'), sopPrev:v('fIntubSopPrevio') };
     r.procs=_autoProcs();
     r.texto=(genTexto()||'').replace(/\s+/g,' ');
     // (v) doble IOT por error → desmarcar restaura la llegada
     $('cIntubO').checked=false; hIntub();
     r.desmarca={ va:v('fVA'), procs:_autoProcs() };
+    $('fSop').value='Ambiente'; cascadeSop();
     // (iii) ya intubado al ingreso: sin sección de intubación
     $('fVA').value='TOT'; cascadeVA(); updateVAUI();
     r.llegaTubo=$('dIntubSec').classList.contains('hidden');
@@ -157,10 +163,13 @@ const path = require('path');
   });
   eq('ingreso natural: sección intubación DISPONIBLE', IN.natural.intub, true);
   eq('ingreso: ext/reintub/decan/TQT siguen ocultas', IN.natural.ext && IN.natural.rein && IN.natural.decan && IN.natural.tqt, true);
-  eq('marcar IOT en el ingreso → VA pasa a TOT con VM', IN.iot.va==='TOT' && IN.iot.sop==='VM' && IN.iot.det, true);
+  eq('marcar IOT NO pisa la terapia ventilatoria previa (Natural + O2)',
+     IN.iot.va==='Natural' && IN.iot.sop==='Oxigenoterapia/OAF' && IN.iot.det, true);
+  eq('…y el estado posterior del evento es TOT + VM', IN.iot.vaFin==='TOT' && IN.iot.sopFin==='VM', true);
+  eq('el soporte previo se deduce del bloque de arriba', IN.iot.sopPrev, 'CNAF');
   eq('se registran AMBOS eventos (INGRESO + INTUBACIÓN)', IN.procs.includes('INGRESO') && IN.procs.includes('INTUBACIÓN'), true);
   eq('el texto narra la transición con el soporte previo',
-     /INGRESO/.test(IN.texto) && /Previo en cnaf, paciente requiere intubación orotraqueal a las 14:20 hrs en contexto de shock séptico/.test(IN.texto), true);
+     /INGRESO/.test(IN.texto) && /Previo en CNAF, paciente requiere intubación orotraqueal a las 14:20 hrs en contexto de shock séptico/.test(IN.texto), true);
   eq('desmarcar IOT restaura la llegada (VA Natural, sin evento)', IN.desmarca.va==='Natural' && !IN.desmarca.procs.includes('INTUBACIÓN'), true);
   eq('llega YA intubado → sin sección de intubación', IN.llegaTubo, true);
 

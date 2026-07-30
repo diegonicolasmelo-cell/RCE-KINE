@@ -100,7 +100,7 @@ function calcularIndicadores(desde, hasta) {
 
     const vmDiasEpisodio = {};   // pid → Set de días con VM (episodio completo)
     todasEvos.forEach(e => {
-      if (String(e.VENT_SOPORTE) !== 'VM') return;
+      if (String(e.VENT_SOPORTE) !== 'VM' && String(e.VENT_SOPORTE_FINAL) !== 'VM') return;
       const pid = String(e.PATIENT_ID);
       (vmDiasEpisodio[pid] = vmDiasEpisodio[pid] || {})[_statISO(e.FECHA)] = true;
     });

@@ -25,7 +25,7 @@ navegador del hospital o de su casa.
   viajan fusionados como `servicios.gs` (`build/fusionar_servicios.js`).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 328 columnas** y `testEsquema`
+- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 343 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -103,9 +103,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v4.2-clinico**
-  (antes v4.1-apache, v4.0-paquete, v3.4-hoja). Exige
-  `crearORepararEstructura()` (EVOLUCIONES 328 columnas + APACHE2).
+  (ahí se afina el registro con uso real). Deployment: cohete **v4.3-viaaerea**
+  (antes v4.2-clinico, v4.1-apache, v4.0-paquete). Exige
+  `crearORepararEstructura()` (EVOLUCIONES 343 columnas).
 - **Réplicas por turno** (reglas ganadas a punta de bugs, jul-2026):
   los PROCEDIMIENTOS son del turno — la réplica parte SIEMPRE con la lista
   manual vacía (el PROC_JSON guardado une manuales+automáticos; arrastrarlo
@@ -207,6 +207,32 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      Anulable como evento (`desvinc`).
   Trampa reconfirmada: `fPVEval` es hidden ⇒ `form.reset()` NO lo limpia (lo
   limpia abrirPanel); en arneses hay que vaciarlo antes de togglear.
+- **v4.3 · ESTADO PREVIO → EVENTO → ESTADO POSTERIOR (jul-2026, cohete
+  v4.3-viaaerea).** REGLA CLÍNICA DURA pedida por Diego: un procedimiento que
+  cambia la vía aérea **jamás pisa la Terapia ventilatoria de arriba** —
+  describir cómo estaba el paciente para ser intubado es parte esencial del
+  registro. El bloque superior queda como PREVIO y el evento despliega su
+  propio panel «Queda con» (VA + soporte + modo + N° tubo/fijación +
+  VT/FR/PEEP/FiO2/SpO2 + hora). Aplica a INTUBACIÓN y TQT (extubación y
+  decanulación ya lo tenían con «Soporte PE» / «Queda con»).
+  - `hIntub()` YA NO cambia `fVA`/`fSop` (antes sí: era el error).
+  - El **soporte previo se deduce** (`_sopPrevioAuto`): VNI / CNAF /
+    Naricera-NRC / Ambiente. `fIntubSopPrevio` pasó a hidden.
+  - Columnas nuevas (EVOLUCIONES **343**): `INTUB_VA_PREVIA`,
+    `INTUB_MODO_PREVIO`, `INTUB_VA_POST`, `INTUB_SOP_POST`, `INTUB_MODO_POST`,
+    `INTUB_TOT_N/CM`, `INTUB_VT/FR/PEEP/FIO2/SPO2`, `TQT_SOP_POST`,
+    `TQT_MODO_POST`, `TQT_PARAMS`.
+  - **C1 CERRADO**: `_syncCamaDesdeEvolucion` sincroniza la cama con el estado
+    FINAL (vía aérea, soporte, modo, N° de tubo y fechas de inicio), y
+    `DIAS_VM`/`DIAS_VA` del turno se calculan con el final (un turno que
+    intuba cuenta como día de VM). Indicadores idem (`VENT_SOPORTE_FINAL`).
+  - Texto en orden clínico: cómo estaba → «Previo en VNI, paciente requiere
+    intubación orotraqueal a las 02:10 hrs…» → «Queda con TOT N° 8.0 fijado a
+    22 cm, conectado a VM en modo ACVC. Vt 400 ml…».
+  - `_lcIni` (cliente y servidor) baja SOLO la inicial y **respeta siglas**
+    (VNI, CNAF, NRC no se convierten en «vNI»).
+  - Guardia: `checks/via_aerea_previo.js`; BUG 6 de `regresion_ui.js`
+    actualizado a la regla nueva.
 - **SIMULACIÓN E2E (jul-2026)** — arnés `build/sim/`: cliente real (index en
   Chromium) + servidor real (.gs en Node, hojas en memoria, reloj simulado
   `SIM.fecha`); `node build/sim/sim_e2e.js` corre 8 pacientes ingreso→egreso.
@@ -218,8 +244,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   (B1), Tubo T/HME sin FiO2 (B2), la cama no refleja el estado *_FINAL tras
   extubar/decanular (C1), TOT 8.0/22 preseleccionados (D3), EVAL_FECHA en UTC
   real (D4). **A1, A2, A3, B1, B2 y B3 ya CORREGIDOS en v4.2**; quedan
-  PENDIENTES: C1 (la cama no refleja *_FINAL), D1-D5 (pulidos de texto y
-  formulario) y A4 cerrado sin cambio.
+  PENDIENTES: D1-D5 (pulidos de texto y formulario) y A4 cerrado sin cambio.
+  **C1 CERRADO en v4.3** junto con la regla de estado previo → posterior.
 - **PAQUETE v4 — APLICADO (jul-2026, cohete v4.0-paquete).** Lo que quedó:
   1. BUG ingreso Natural→IOT mismo turno CORREGIDO: el gate del ingreso ya
      no oculta `dIntubSec` (solo reintub/ext/decan/tqt); texto cliente con

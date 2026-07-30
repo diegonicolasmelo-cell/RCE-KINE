@@ -203,7 +203,15 @@ const _COLS_EVOLUCIONES = [
   ['DESVINC_RECONEXION','bool'],['DESVINC_HORA_RECON','texto'],['DESVINC_HORAS','decimal'],
   ['DESVINC_MOTIVO','texto'],['DESVINC_DET','texto'],
   // Uso de válvula de fonación como intervención de rehabilitación (VA = TQT)
-  ['VFON_USADA','bool'],['VFON_MIN','entero'],['VFON_TOL','texto'],['VFON_DET','texto']
+  ['VFON_USADA','bool'],['VFON_MIN','entero'],['VFON_TOL','texto'],['VFON_DET','texto'],
+  // ── v4.3 · Estado PREVIO → evento → estado POSTERIOR (cambios de vía aérea) ──
+  // El estado previo vive en las columnas VENT_* del turno (no se pisa); aquí
+  // queda cómo terminó el paciente tras la intubación / traqueostomía.
+  ['INTUB_VA_PREVIA','texto'],['INTUB_MODO_PREVIO','texto'],
+  ['INTUB_VA_POST','texto'],['INTUB_SOP_POST','texto'],['INTUB_MODO_POST','texto'],
+  ['INTUB_TOT_N','texto'],['INTUB_TOT_CM','texto'],['INTUB_VT','decimal'],['INTUB_FR','decimal'],
+  ['INTUB_PEEP','decimal'],['INTUB_FIO2','decimal'],['INTUB_SPO2','decimal'],
+  ['TQT_SOP_POST','texto'],['TQT_MODO_POST','texto'],['TQT_PARAMS','texto']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -679,7 +687,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 328) errs.push('EVOLUCIONES != 328 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 343) errs.push('EVOLUCIONES != 343 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }
