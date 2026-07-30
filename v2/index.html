@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="4.7-docs">
+<meta name="rce-version" content="4.8-tutorial">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1010,6 +1010,24 @@ html[data-piel="inst"] #btnGuardar:hover{background:linear-gradient(135deg,#0d69
 html[data-piel="inst"] .col input:focus,html[data-piel="inst"] .col select:focus{border-color:#0058A0;box-shadow:0 0 0 3px #f0a00055;}
 html[data-piel="inst"] .mnav button.on{color:#0058A0;}
 html[data-piel="inst"] .fase-chip.her{background:#fdf3df;border-color:#F0A000;color:#8a5c00;}
+/* ── ❓ Tutorial anclado: botón flotante + recorrido de globos ── */
+#tutBtn{position:fixed;right:16px;bottom:16px;z-index:60;width:44px;height:44px;border-radius:50%;
+  background:var(--card,#fff);border:1px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,.16);
+  font-size:1.12rem;cursor:pointer;line-height:1;color:var(--pdark);}
+#tutBtn:hover{transform:scale(1.06);}
+@media (max-width:740px){ #tutBtn{bottom:calc(72px + env(safe-area-inset-bottom,0px));} }
+#tutVelo{position:fixed;inset:0;z-index:400;background:transparent;}
+#tutVelo.dim{background:rgba(15,23,42,.45);}
+#tutRing{position:fixed;z-index:401;border:3px solid #f59e0b;border-radius:10px;pointer-events:none;
+  box-shadow:0 0 0 6px rgba(245,158,11,.22), 0 0 0 9999px rgba(15,23,42,.45);transition:all .25s ease;}
+#tutGlobo{position:fixed;z-index:402;width:min(320px,88vw);background:var(--pdark,#032c47);color:#fff;
+  border-radius:12px;padding:13px 15px;font-size:.82rem;line-height:1.5;box-shadow:0 10px 32px rgba(0,0,0,.35);}
+#tutGlobo .tg-t{font-weight:800;font-size:.85rem;margin-bottom:5px;}
+#tutGlobo .tg-acts{display:flex;justify-content:space-between;align-items:center;margin-top:11px;gap:8px;}
+#tutGlobo .tg-salir{background:none;border:none;color:#b9c8d6;font-size:.72rem;cursor:pointer;padding:4px 0;}
+#tutGlobo .tg-n{font-size:.68rem;color:#b9c8d6;}
+#tutGlobo .tg-sig{background:#f59e0b;border:none;color:#3a2a00;font-weight:800;font-size:.78rem;
+  border-radius:8px;padding:7px 14px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -1084,6 +1102,21 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
   <button type="button" class="mit" onclick="mSheet(false);setTab('V')">🔧 Ventiladores</button>
   <button type="button" class="mit" onclick="mSheet(false);recargar()">🔄 Actualizar datos</button>
   <button type="button" class="mit" id="mitPiel" onclick="pielToggle()">🎨 Cambiar piel</button>
+  <button type="button" class="mit" onclick="mSheet(false);tutAbrir()">❓ Tutorial</button>
+</div>
+
+<!-- ❓ TUTORIAL ANCLADO: botón flotante + recorrido de globos sobre la pantalla real -->
+<button type="button" id="tutBtn" class="no-print" onclick="tutAbrir()" title="Tutorial: recorrido por lo esencial de la app">❓</button>
+<div id="tutVelo" class="hidden no-print"></div>
+<div id="tutRing" class="hidden no-print"></div>
+<div id="tutGlobo" class="hidden no-print" role="dialog" aria-modal="true">
+  <div class="tg-t" id="tutTit"></div>
+  <div id="tutTxt"></div>
+  <div class="tg-acts">
+    <button type="button" class="tg-salir" onclick="tutCerrar()">Salir del tutorial</button>
+    <span class="tg-n" id="tutN"></span>
+    <button type="button" class="tg-sig" id="tutSig" onclick="tutSiguiente()">Siguiente →</button>
+  </div>
 </div>
 
 <!-- EVENTO RÁPIDO POST-EVOLUCIÓN: lista desplegable estilo Sheets + mini-formulario -->
@@ -1156,7 +1189,7 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
       <div class="tbl-title">📋 Registro Diario — <span id="tblFecha" style="color:var(--pdark);font-weight:700;"></span></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" class="datein dashin" id="tblSearch" placeholder="🔍 Buscar paciente…" style="min-width:200px;" oninput="renderTabla()">
-        <button class="dpset" onclick="docsAbrir()">📂 Documentos</button>
+        <button class="dpset" id="btnDocs" onclick="docsAbrir()">📂 Documentos</button>
         <button class="dpset" onclick="regCSV()">⬇️ CSV</button>
       </div>
     </div>
@@ -3447,7 +3480,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.7-docs]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.8-tutorial]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5537,6 +5570,69 @@ function docsRender(d){
     h+=g.archivos.map(a=>`<a href="${_docsEsc(a.url)}" target="_blank" rel="noopener" style="display:flex;gap:9px;align-items:center;padding:7px 9px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;text-decoration:none;color:var(--txt);font-size:.83rem;">${_docsIco(a.mime)} <span style="flex:1;">${_docsEsc(a.nombre)}</span><span style="font-size:.68rem;color:var(--muted);">${_docsEsc(a.actualizado)}</span></a>`).join('');
   });
   $('docsLista').innerHTML=h;
+}
+
+/* ── ❓ Tutorial anclado: recorrido de globos sobre la pantalla real.
+   Solo lee la interfaz (no toca datos); cada paso encuadra una zona con un
+   anillo-foco y la explica. Si el ancla no existe (p.ej. sin pacientes), el
+   globo sale centrado sin anillo. ── */
+const TUT_PASOS=[
+  {tab:'G', sel:'.tabs', t:'🗂️ Las pestañas', d:'CAMAS es la portada: el estado vivo de la unidad. REGISTRO es la tabla del día, ESTADÍSTICAS los indicadores, ENTREGA el resumen de turno, ARCHIVADOS los egresados y VENTILADORES el inventario de equipos.'},
+  {tab:'G', sel:'#gDate', sel2:'#sTgl', t:'📅 Fecha y turno', d:'Aquí eliges qué día y qué turno estás mirando; todo lo que abras respeta esa elección. Con ◀ ▶ viajas a días anteriores y «Volver a hoy» te regresa.'},
+  {tab:'G', sel:'#bedGrid', t:'🛏️ Las camas', d:'Cada tarjeta es una cama: paciente, vía aérea, soporte y días. Desde aquí se ingresa, se evoluciona el turno y se abre el historial. El color de la tarjeta avisa si el turno ya fue evolucionado.'},
+  {tab:'G', sel:'.hsearch', t:'🔍 El buscador', d:'¿No recuerdas en qué cama está? Busca por nombre: encuentra pacientes actuales y también archivados.'},
+  {tab:'P', sel:'#tcP .tbl-bar', t:'📋 El Registro Diario', d:'La misma unidad pero en tabla: una fila por cama con lo esencial del turno. De una mirada ves qué falta por evolucionar, y con ⬇️ CSV exportas la tabla.'},
+  {tab:'P', sel:'#notionTable', t:'➕ Eventos posteriores', d:'El ➕ junto al nombre del paciente anota cosas que pasan DESPUÉS de evolucionar: un procedimiento, cambio de HME o sonda, un resultado de cultivo. Va al historial y a la estadística sin tocar el texto.'},
+  {tab:'P', sel:'#btnDocs', t:'📂 Documentos de la unidad', d:'Los imprimibles frecuentes y los protocolos viven aquí: es una carpeta de Drive compartida — lo que se sube allá aparece acá solo.'},
+  {tab:'G', sel:'#tutBtn', t:'❓ Y esto queda aquí', d:'Eso es lo esencial. Este botón queda siempre visible: repite el recorrido cuando quieras o muéstraselo a un colega que recién llega. Lo demás se aprende usándola.'},
+];
+let _tutI=-1;
+function tutAbrir(){ _tutI=-1; document.addEventListener('keydown',_tutEsc); tutSiguiente(); }
+function _tutEsc(e){ if(e.key==='Escape') tutCerrar(); }
+function tutCerrar(){
+  _tutI=-1; document.removeEventListener('keydown',_tutEsc);
+  hide('tutVelo'); hide('tutRing'); hide('tutGlobo');
+  if(typeof ATAB!=='undefined'&&ATAB!=='G') setTab('G');
+}
+function tutSiguiente(){
+  _tutI++;
+  if(_tutI>=TUT_PASOS.length){ tutCerrar(); return; }
+  const p=TUT_PASOS[_tutI];
+  if(typeof ATAB!=='undefined'&&p.tab&&ATAB!==p.tab) setTab(p.tab);
+  show('tutVelo');
+  // espera el cambio de pestaña/reflow antes de medir el ancla
+  setTimeout(()=>_tutColocar(p),120);
+}
+function _tutColocar(p){
+  const el=document.querySelector(p.sel);
+  let r=el?el.getBoundingClientRect():null;
+  if(r&&p.sel2){ const e2=document.querySelector(p.sel2); if(e2){ const r2=e2.getBoundingClientRect();
+    r={left:Math.min(r.left,r2.left),top:Math.min(r.top,r2.top),
+       right:Math.max(r.right,r2.right),bottom:Math.max(r.bottom,r2.bottom)};
+    r.width=r.right-r.left; r.height=r.bottom-r.top; } }
+  const visible=r&&r.width>4&&r.height>4;
+  if(visible&&el&&el.scrollIntoView&&(r.top<0||r.bottom>innerHeight)){
+    el.scrollIntoView({block:'center'}); r=el.getBoundingClientRect();
+  }
+  const ring=$('tutRing'), velo=$('tutVelo');
+  if(visible){
+    velo.classList.remove('dim');
+    ring.style.left=(r.left-6)+'px'; ring.style.top=(r.top-6)+'px';
+    ring.style.width=(r.width+12)+'px'; ring.style.height=(r.height+12)+'px';
+    show('tutRing');
+  } else { hide('tutRing'); velo.classList.add('dim'); }
+  const p_=TUT_PASOS[_tutI];
+  $('tutTit').textContent=p_.t; $('tutTxt').textContent=p_.d;
+  $('tutN').textContent=(_tutI+1)+' de '+TUT_PASOS.length;
+  $('tutSig').textContent=(_tutI===TUT_PASOS.length-1)?'Terminar ✓':'Siguiente →';
+  const g=$('tutGlobo'); show('tutGlobo');
+  const gw=g.offsetWidth||320, gh=g.offsetHeight||140;
+  let gl, gt;
+  if(visible){
+    gl=Math.max(10,Math.min(innerWidth-gw-10,r.left));
+    gt=r.bottom+14; if(gt+gh>innerHeight-10) gt=Math.max(10,r.top-gh-14);
+  } else { gl=(innerWidth-gw)/2; gt=(innerHeight-gh)/2; }
+  g.style.left=gl+'px'; g.style.top=gt+'px';
 }
 
 function bannerMenu(tab){
