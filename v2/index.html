@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="4.6-narrativa">
+<meta name="rce-version" content="4.7-docs">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1156,6 +1156,7 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
       <div class="tbl-title">📋 Registro Diario — <span id="tblFecha" style="color:var(--pdark);font-weight:700;"></span></div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" class="datein dashin" id="tblSearch" placeholder="🔍 Buscar paciente…" style="min-width:200px;" oninput="renderTabla()">
+        <button class="dpset" onclick="docsAbrir()">📂 Documentos</button>
         <button class="dpset" onclick="regCSV()">⬇️ CSV</button>
       </div>
     </div>
@@ -1468,6 +1469,22 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
     <div style="display:flex;gap:9px;padding-top:14px;margin-top:12px;border-top:1px solid var(--border);">
       <button type="button" class="btn btn-r" style="width:auto;padding:0 16px;" onclick="bnCerrar()">Cancelar</button>
       <button type="button" class="btn btn-p" style="flex:1;" onclick="bnGuardar()">💾 Guardar portada</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DOCUMENTOS DE LA UNIDAD: lista la carpeta de Drive (imprimibles + protocolos) -->
+<div class="tlmodal" id="docsMod" role="dialog" aria-modal="true" style="width:min(560px,94vw);max-height:88vh;">
+  <div class="phdr">
+    <div class="ptitle">📂 Documentos de la unidad</div>
+    <button class="xbtn" onclick="docsCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:14px 22px;overflow-y:auto;">
+    <div id="docsLista"></div>
+    <div style="font-size:.68rem;color:var(--muted);margin-top:10px;">Los archivos viven en una carpeta de Drive: lo que subas o quites allá aparece aquí (la lista se refresca cada 5 minutos).</div>
+    <div style="display:flex;gap:9px;padding-top:14px;margin-top:12px;border-top:1px solid var(--border);">
+      <button type="button" class="btn btn-r" style="width:auto;padding:0 14px;" onclick="docsCargar(true)">🔄 Actualizar</button>
+      <button type="button" class="btn btn-p" style="flex:1;" onclick="docsAbrirCarpeta()">📁 Abrir carpeta en Drive</button>
     </div>
   </div>
 </div>
@@ -3430,7 +3447,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.6-narrativa]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.7-docs]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5496,6 +5513,32 @@ function aplicarBanners(){
     }
   });
 }
+/* ── 📂 Documentos de la unidad: carpeta de Drive anclada al Registro Diario.
+   La app solo LISTA y enlaza (subir/quitar archivos se hace en Drive). ── */
+let _docsData=null;
+function docsAbrir(){ $('docsMod').classList.add('on'); $('ovl').classList.add('on'); if(_docsData) docsRender(_docsData); else docsCargar(false); }
+function docsCerrar(){ $('docsMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function docsAbrirCarpeta(){ if(_docsData&&_docsData.carpetaUrl) window.open(_docsData.carpetaUrl,'_blank','noopener'); else toast('⏳ Aún se está cargando la carpeta…'); }
+function _docsIco(m){ m=String(m||''); if(m.indexOf('pdf')>-1)return '📄'; if(m.indexOf('spreadsheet')>-1)return '📊'; if(m.indexOf('presentation')>-1)return '📽️'; if(m.indexOf('document')>-1)return '📝'; if(m.indexOf('image/')===0)return '🖼️'; return '📎'; }
+function _docsEsc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function docsCargar(refrescar){
+  $('docsLista').innerHTML='<div style="padding:18px 0;color:var(--muted);font-size:.8rem;">⏳ Cargando documentos…</div>';
+  gs('GET_DOCUMENTOS',{refrescar:!!refrescar}, d=>{ _docsData=d; docsRender(d); },
+    ()=>{ $('docsLista').innerHTML='<div style="padding:18px 0;color:#b91c1c;font-size:.8rem;">No se pudo cargar la carpeta. Reintenta con 🔄 Actualizar.</div>'; });
+}
+function docsRender(d){
+  const grupos=(d&&d.grupos)||[];
+  const tot=grupos.reduce((a,g)=>a+((g.archivos||[]).length),0);
+  if(!tot){ $('docsLista').innerHTML='<div style="padding:18px 0;color:var(--muted);font-size:.82rem;">La carpeta está vacía. Ábrela en Drive con el botón de abajo y sube los imprimibles y protocolos: aparecerán aquí solos.</div>'; return; }
+  let h='';
+  grupos.forEach(g=>{
+    if(!(g.archivos||[]).length) return;
+    h+=`<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin:12px 0 6px;">${_docsEsc(g.nombre)}</div>`;
+    h+=g.archivos.map(a=>`<a href="${_docsEsc(a.url)}" target="_blank" rel="noopener" style="display:flex;gap:9px;align-items:center;padding:7px 9px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;text-decoration:none;color:var(--txt);font-size:.83rem;">${_docsIco(a.mime)} <span style="flex:1;">${_docsEsc(a.nombre)}</span><span style="font-size:.68rem;color:var(--muted);">${_docsEsc(a.actualizado)}</span></a>`).join('');
+  });
+  $('docsLista').innerHTML=h;
+}
+
 function bannerMenu(tab){
   $('bnTab').value=tab;
   const val=_bnValor(tab);

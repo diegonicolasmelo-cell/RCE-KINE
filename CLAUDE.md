@@ -75,7 +75,8 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 `build/checks/`: `convenciones.js` (estáticas), `arranque.js` (boot real en
 Chromium con puente simulado; acepta ruta del cohete como argumento),
 `regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
-`eventos.js`, `eventos_ui.js`. Correr antes de entregar o commitear. Un bug
+`eventos.js`, `eventos_ui.js`, `docs.js`. Correr antes de entregar o
+commitear. Un bug
 que costó más de un intercambio merece guardia nueva.
 
 ## Hoja UCI (historial · jul-2026)
@@ -103,10 +104,36 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v4.6-narrativa**
-  (antes v4.5-transiciones, v4.4-modulo, v4.3-viaaerea, v4.2-clinico). Exige
-  `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO con
-  `TQT_CALIBRE`).
+  (ahí se afina el registro con uso real). Deployment: cohete **v4.7-docs**
+  (antes v4.6-narrativa, v4.5-transiciones, v4.4-modulo, v4.3-viaaerea).
+  Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
+  con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
+- **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
+  v4.7-docs).**
+  1. **📂 Documentos**: botón en la barra del Registro Diario → modal que
+     lista una carpeta de Drive («RCE-KINE — Documentos de la unidad»,
+     auto-creada con subcarpetas Imprimibles y Protocolos; ID en
+     `CONFIG.DOCS_FOLDER`). La app solo LISTA y enlaza (subir/quitar se hace
+     en Drive); cache servidor 5 min + botón 🔄. `svc_docs.gs` + API
+     `GET_DOCUMENTOS` (lectura). Guardia: `checks/docs.js`.
+  2. **Respaldo automático DESBLOQUEADO**: `svc_backup.gs` ya existía
+     (diario 03:00, rotación `BACKUP_MAX_DIARIOS`=30, restauración por
+     copia) pero el manifiesto no traía el scope `script.scriptapp` y el
+     instalador fallaba. Scope agregado a `appsscript.json` ⇒ el próximo
+     pegado EXIGE RE-AUTORIZAR y correr `instalarTriggerBackup()` UNA VEZ
+     desde el editor (y otra vez tras migrar de cuenta).
+  3. **Tutorial anclado**: mockup entregado (botón ❓ flotante + bienvenida
+     primer ingreso + recorrido de ~8 globos). ESPERANDO decisiones de Diego
+     (alcance formulario/móvil) antes de programar.
+- **MIGRACIÓN AL CORREO DE KINESIOLOGÍA (pedida jul-2026, pendiente)**:
+  hacerla JUNTO con la limpieza pre-1-ago (sin datos que migrar): desde la
+  cuenta de la unidad crear planilla nueva → Apps Script → pegar los 9
+  archivos + manifiesto → `crearORepararEstructura()` → autorizar →
+  implementar como app web (nueva URL /exec para el equipo) → cargar
+  ventiladores reales → `instalarTriggerBackup()`. Las carpetas de Drive
+  (respaldos, documentos, fotos de fallas) se auto-crean bajo la cuenta
+  nueva. La implementación vieja de Diego no se traslada: se avisa la URL
+  nueva.
 - **ANTES DEL 1-AGO (pedido de Diego, jul-2026)**: (1) LIMPIAR todos los
   archivados y los pacientes actuales — son datos INVENTADOS de la marcha
   blanca; el período de prueba real parte de cero. (2) Ordenar la hoja

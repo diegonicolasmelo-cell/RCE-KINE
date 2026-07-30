@@ -598,6 +598,11 @@ function _sembrar(ss) {
     // ID aquí. Las fotos NO se comparten públicamente: heredan los permisos
     // de la carpeta (visibles para quien tenga acceso al Drive del dueño).
     ['FALLAS_FOTOS_FOLDER', ''],
+    // Carpeta de Drive con los documentos de la unidad (imprimibles y
+    // protocolos) que lista el modal 📂 Documentos. Vacío = la app crea
+    // «RCE-KINE — Documentos de la unidad» (con subcarpetas Imprimibles y
+    // Protocolos) al primer uso y guarda su ID aquí.
+    ['DOCS_FOLDER', ''],
     // TEMPORAL: permite editar el texto de la vista previa en pantalla (solo
     // demostración; NO se guarda). Poner en FALSE cuando termine el afinamiento.
     ['EDITOR_TEXTO_DEMO', 'TRUE'],
