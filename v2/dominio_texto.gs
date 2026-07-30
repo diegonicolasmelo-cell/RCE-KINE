@@ -251,6 +251,11 @@ function generarTextoEvolucion(d) {
     }
   })();
 
+  // RCP del turno (evento no derivable): va al texto, a la entrega y al timeline
+  if (esVerdadero(d.PROC_RCP)) {
+    const ciclos = v('PROC_RCP_CICLOS'), hr = v('PROC_RCP_HORA'), det = v('PROC_RCP_DET');
+    txt.push(`Se realiza reanimación cardiopulmonar${hr ? ' a las ' + hr + ' hrs' : ''}${ciclos ? `, ${ciclos} ciclo${ciclos === '1' ? '' : 's'}` : ''}${det ? '. ' + det : ''}.`);
+  }
   // Desvinculación de VM (TQT) — paridad con el preview del cliente
   if (esVerdadero(d.DESVINC_OCURRIO)) {
     const dh = v('DESVINC_HORA'), da = v('DESVINC_A'), dm = v('DESVINC_MOTIVO');
@@ -314,8 +319,15 @@ function generarTextoEvolucion(d) {
       let q = `Queda con ${pva === 'TQT' ? 'TQT' : 'TOT'}${ptn ? ' N° ' + ptn : ''}${ptc ? ' fijado a ' + ptc + ' cm' : ''}`;
       q += psop === 'VM' ? `, conectado a VM${pmodo ? ' en modo ' + pmodo : ''}` : (pmodo ? ', en ' + pmodo : '');
       const pp = [v('INTUB_VT') ? `Vt ${v('INTUB_VT')} ml` : null, v('INTUB_FR') ? `FR ${v('INTUB_FR')} rpm` : null,
-                  v('INTUB_PEEP') ? `PEEP ${v('INTUB_PEEP')} cmH2O` : null, v('INTUB_FIO2') ? `FiO2 ${v('INTUB_FIO2')}%` : null,
-                  v('INTUB_SPO2') ? `SpO2 ${v('INTUB_SPO2')}%` : null].filter(Boolean).join(', ');
+                  v('INTUB_PINSP') ? `Pinsp ${v('INTUB_PINSP')} cmH2O` : null,
+                  v('INTUB_PS') ? `PS ${v('INTUB_PS')} cmH2O` : null,
+                  v('INTUB_PMAX') ? `Pmax ${v('INTUB_PMAX')} cmH2O` : null,
+                  v('INTUB_PPL') ? `Ppl ${v('INTUB_PPL')} cmH2O` : null,
+                  v('INTUB_PEEP') ? `PEEP ${v('INTUB_PEEP')} cmH2O` : null,
+                  v('INTUB_AUTOPEEP') ? `AutoPEEP ${v('INTUB_AUTOPEEP')} cmH2O` : null,
+                  v('INTUB_FIO2') ? `FiO2 ${v('INTUB_FIO2')}%` : null,
+                  v('INTUB_SPO2') ? `SpO2 ${v('INTUB_SPO2')}%` : null,
+                  v('INTUB_PAFI') ? `PaFiO2 ${v('INTUB_PAFI')}` : null].filter(Boolean).join(', ');
       txt.push(q + (pp ? `. ${pp}` : '') + '.');
     }
   }

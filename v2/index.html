@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="4.3-viaaerea">
+<meta name="rce-version" content="4.4-modulo">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -2629,19 +2629,15 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                       <div class="col ws"><label style="font-size:.66rem;">Fijación cm</label>
                         <input type="number" id="poIntubTotCm" style="height:28px;width:70px;font-size:.78rem;"></div>
                       <div class="col wa"><label style="font-size:.66rem;">Soporte</label>
-                        <select id="poIntubSop" onchange="renderParamsIntub()" style="height:28px;font-size:.78rem;">
+                        <select id="poIntubSop" onchange="renderParamsIntub();_gateDispositivos()" style="height:28px;font-size:.78rem;">
                           <option value="VM">VM</option><option value="Oxigenoterapia/OAF">Oxigenoterapia/OAF</option>
                         </select></div>
                       <div class="col wa"><label style="font-size:.66rem;">Modo</label>
-                        <select id="poIntubModo" onchange="renderParamsIntub()" style="height:28px;font-size:.78rem;"></select></div>
+                        <select id="poIntubModo" onchange="renderParams({P:'pi_',L:'pl_',box:'paramsBoxIntub'})" style="height:28px;font-size:.78rem;"></select></div>
                     </div>
-                    <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0;">
-                      <div class="col ws"><label style="font-size:.66rem;">VT ml</label><input type="number" id="poIntubVt" style="height:28px;width:78px;font-size:.78rem;"></div>
-                      <div class="col ws"><label style="font-size:.66rem;">FR rpm</label><input type="number" id="poIntubFr" style="height:28px;width:70px;font-size:.78rem;"></div>
-                      <div class="col ws"><label style="font-size:.66rem;">PEEP</label><input type="number" id="poIntubPeep" style="height:28px;width:70px;font-size:.78rem;"></div>
-                      <div class="col ws"><label style="font-size:.66rem;">FiO₂ %</label><input type="number" id="poIntubFio2" style="height:28px;width:74px;font-size:.78rem;"></div>
-                      <div class="col ws"><label style="font-size:.66rem;">SpO₂ %</label><input type="number" id="poIntubSpo2" style="height:28px;width:74px;font-size:.78rem;"></div>
-                    </div>
+                    <!-- Módulo ventilatorio COMPLETO del estado posterior: las
+                         mismas variables y derivados del bloque de arriba. -->
+                    <div id="paramsBoxIntub"></div>
                     <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;margin-top:6px;">
                       💡 Arriba queda registrado cómo estaba el paciente; aquí, cómo quedó. El siguiente turno evoluciona desde este estado.
                     </div>
@@ -2740,6 +2736,7 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                       <div class="check wa"><input type="checkbox" name="mtest" value="CCAET" onchange="hCultTec(this)"><label title="Cultivo corriente aspirado endotraqueal">CCAET</label></div>
                       <div class="check wa"><input type="checkbox" name="mtest" value="Mini Lab" onchange="hCultTec(this)"><label>Mini Lab</label></div>
                       <div class="check wa"><input type="checkbox" name="mtest" value="Hisopado" onchange="hCultTec(this)"><label>Hisopado</label></div>
+                      <div class="check wa"><input type="checkbox" name="mtest" value="FilmArray" onchange="hCultTec(this)"><label title="Panel molecular sindrómico (FilmArray)">FilmArray</label></div>
                     </div>
                     <div style="display:flex;gap:10px;align-items:center;margin-bottom:7px;flex-wrap:wrap;">
                       <label style="font-size:.68rem;font-weight:700;color:#7c3aed;">Hora toma:</label>
@@ -3102,23 +3099,37 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
           <div class="fcard-body">
             <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#15803d;margin-bottom:6px;">✅ Se registran solos con la evolución</div>
             <div id="autoProcs" style="display:flex;flex-wrap:wrap;gap:5px;min-height:24px;margin-bottom:10px;"></div>
-            <details style="border-top:1px solid #eef2f6;padding-top:8px;">
-              <summary style="font-size:.78rem;font-weight:700;color:#475569;cursor:pointer;">➕ Agregar manual (olvidados o no derivables)</summary>
-              <div id="chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:26px;margin:8px 0;"></div>
-              <div style="display:flex;gap:8px;">
-                <input type="text" id="inProc" placeholder="Escribir o seleccionar procedimiento..." list="dlProc"
-                  style="flex-grow:1;height:35px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;font-size:.84rem;">
-                <datalist id="dlProc">
-                  <option>PABELLÓN</option>
-                  <option>ASISTENCIA EN PROCEDIMIENTO MÉDICO</option>
-                  <option>IMAGENOLOGÍA</option>
-                  <option>RCP</option>
-                  <option>EMS</option>
-                  <option>Educación al usuario / cuidador o familia</option>
-                </datalist>
-                <button type="button" class="btn btn-p" style="width:auto;padding:0 15px;height:35px;" onclick="addProc()">+ Agregar</button>
+            <!-- NO derivables: eventos del día que ningún otro campo puede
+                 deducir. Un toque, sin arrastre al turno siguiente. -->
+            <div style="border-top:1px solid #eef2f6;padding-top:8px;">
+              <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#b45309;margin-bottom:6px;">⚠️ Eventos del turno (no derivables)</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <div class="check wa"><input type="checkbox" id="cProcImagen" onchange="_renderAutoProcs()"><label for="cProcImagen">🩻 Traslado a imagenología</label></div>
+                <div class="check wa"><input type="checkbox" id="cProcPabellon" onchange="_renderAutoProcs()"><label for="cProcPabellon">🏥 Traslado a pabellón</label></div>
+                <div class="check wa"><input type="checkbox" id="cProcAsistMed" onchange="_renderAutoProcs()"><label for="cProcAsistMed">🤝 Asistencia en procedimiento médico</label></div>
+                <div class="check wa"><input type="checkbox" id="cProcRCP" onchange="hRCP()"><label for="cProcRCP" style="font-weight:700;color:var(--danger);">🚨 RCP</label></div>
               </div>
-            </details>
+              <div id="dRCPdet" class="hidden" style="padding:7px 9px;background:#fff5f5;border:1px solid #fecaca;border-radius:7px;margin-bottom:8px;">
+                <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0;">
+                  <div class="col ws"><label style="font-size:.66rem;">N° de ciclos</label>
+                    <input type="number" id="fRCPciclos" min="1" max="60" placeholder="3" style="height:30px;width:82px;"></div>
+                  <div class="col ws"><label style="font-size:.66rem;">Hora</label>
+                    <input type="time" id="fRCPhora" style="height:30px;"></div>
+                  <div class="col grow"><label style="font-size:.66rem;">Detalle (opcional)</label>
+                    <input type="text" id="fRCPdet" placeholder="Ritmo, desenlace, equipo…" style="height:30px;"></div>
+                </div>
+              </div>
+              <details>
+                <summary style="font-size:.78rem;font-weight:700;color:#475569;cursor:pointer;">➕ Otro procedimiento (olvidado o fuera de lista)</summary>
+                <div id="chips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:26px;margin:8px 0;"></div>
+                <div style="display:flex;gap:8px;">
+                  <input type="text" id="inProc" placeholder="Escribir procedimiento..." list="dlProc"
+                    style="flex-grow:1;height:35px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;font-size:.84rem;">
+                  <datalist id="dlProc"></datalist>
+                  <button type="button" class="btn btn-p" style="width:auto;padding:0 15px;height:35px;" onclick="addProc()">+ Agregar</button>
+                </div>
+              </details>
+            </div>
           </div>
         </div>
 
@@ -3414,7 +3425,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.3-viaaerea]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.4-modulo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3830,6 +3841,8 @@ function abrirPanel(id, esIng) {
   _vmHistFlag=false; _transIntubEsteTurno=false;
   const _cct=$('cCambioTOT'); if(_cct) _cct.checked=false; _totSnapshot=null; _lockTOT(false);
   hide('dCambioTOTmot'); hide('dCambioTOTdet');
+  ['cProcImagen','cProcPabellon','cProcAsistMed'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
+  const _crcp=$('cProcRCP'); if(_crcp){ _crcp.checked=false; hRCP(); }
   const _cdv=$('cDesvinc'); if(_cdv){ _cdv.checked=false; hDesvinc(); }
   const _cgs=$('cGSA'); if(_cgs){ _cgs.checked=false; hGSA(); }
   const _cvf=$('cVfon'); if(_cvf){ _cvf.checked=false; hVfon(); }
@@ -4573,6 +4586,11 @@ function _autoProcs(){
   if(['fGrosor','fDiaf','fHeckmatt','fCuadD','fCuadI','fFedD','fFedI','fExcD','fExcI'].some(id=>v(id))) auto.push('ECOGRAFÍA');
   if($('cIMT')?.checked) auto.push('IMT');
   if($('cEMS')?.checked) auto.push('EMS');
+  if($('cProcImagen')?.checked) auto.push('IMAGENOLOGÍA');
+  if($('cProcPabellon')?.checked) auto.push('PABELLÓN');
+  if($('cProcAsistMed')?.checked) auto.push('ASISTENCIA EN PROCEDIMIENTO MÉDICO');
+  if($('cProcRCP')?.checked){ const _c=v('fRCPciclos'); auto.push(_c?`RCP ${_c} CICLOS`:'RCP'); }
+  if($('cEduReal')?.checked) auto.push('EDUCACIÓN A USUARIO/FAMILIA');
   if(v('cIng')==='true') auto.push('INGRESO');
   // TQT instalada: por el evento (🔪) o por la transición TOT→TQT del turno.
   // 'TQT' (no 'TQT (INSTALACIÓN)') para que genere el hito Traqueostomía.
@@ -5003,6 +5021,14 @@ function guardar() {
     VFON_MIN:    bv('cVfon') ? v('fVfonMin') : '',
     VFON_TOL:    bv('cVfon') ? v('fVfonTol') : '',
     VFON_DET:    bv('cVfon') ? v('fVfonDet') : '',
+    // ★ Eventos del turno no derivables (no se arrastran al turno siguiente)
+    PROC_IMAGEN:     bv('cProcImagen'),
+    PROC_PABELLON:   bv('cProcPabellon'),
+    PROC_ASIST_MED:  bv('cProcAsistMed'),
+    PROC_RCP:        bv('cProcRCP'),
+    PROC_RCP_CICLOS: bv('cProcRCP') ? v('fRCPciclos') : '',
+    PROC_RCP_HORA:   bv('cProcRCP') ? v('fRCPhora') : '',
+    PROC_RCP_DET:    bv('cProcRCP') ? v('fRCPdet') : '',
     // ★ PVE diaria
     PVE_RESULTADO:   (document.querySelector('input[name="pveRes"]:checked')?.value)||'',
     PVE_FR_MOTIVOS:  JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
@@ -5064,11 +5090,20 @@ function guardar() {
     INTUB_MODO_POST: bv('cIntubO') ? v('poIntubModo') : '',
     INTUB_TOT_N:     bv('cIntubO') ? v('poIntubTotN') : '',
     INTUB_TOT_CM:    bv('cIntubO') ? v('poIntubTotCm') : '',
-    INTUB_VT:        bv('cIntubO') ? n(v('poIntubVt')) : '',
-    INTUB_FR:        bv('cIntubO') ? n(v('poIntubFr')) : '',
-    INTUB_PEEP:      bv('cIntubO') ? n(v('poIntubPeep')) : '',
-    INTUB_FIO2:      bv('cIntubO') ? n(v('poIntubFio2')) : '',
-    INTUB_SPO2:      bv('cIntubO') ? n(v('poIntubSpo2')) : '',
+    INTUB_VT:        bv('cIntubO') ? n(v('pi_vt')) : '',
+    INTUB_FR:        bv('cIntubO') ? n(v('pi_fr')) : '',
+    INTUB_PEEP:      bv('cIntubO') ? n(v('pi_peep')) : '',
+    INTUB_FIO2:      bv('cIntubO') ? n(v('pi_fio2')) : '',
+    INTUB_SPO2:      bv('cIntubO') ? n(v('pi_spo2')) : '',
+    INTUB_PMAX:      bv('cIntubO') ? n(v('pi_pmax')) : '',
+    INTUB_PPL:       bv('cIntubO') ? n(v('pi_ppl')) : '',
+    INTUB_PMEDIA:    bv('cIntubO') ? n(v('pi_pmedia')) : '',
+    INTUB_AUTOPEEP:  bv('cIntubO') ? n(v('pi_autopeep')) : '',
+    INTUB_PS:        bv('cIntubO') ? n(v('pi_ps')) : '',
+    INTUB_PINSP:     bv('cIntubO') ? n(v('pi_pinsp')) : '',
+    INTUB_FLUJO:     bv('cIntubO') ? n(v('pi_flujo')) : '',
+    INTUB_TI:        bv('cIntubO') ? n(v('pi_ti')) : '',
+    INTUB_PAFI:      bv('cIntubO') ? n(v('pi_pafi')) : '',
     TQT_SOP_POST:    bv('cTqtO') ? (v('poTqtSop')||'') : '',
     TQT_MODO_POST:   bv('cTqtO') ? v('poTqtModo') : '',
     TQT_PARAMS:      bv('cTqtO') ? v('poTqtParams') : '',
@@ -6458,9 +6493,17 @@ function genTexto() {
     const _ptn=v('poIntubTotN'), _ptc=v('poIntubTotCm');
     let _q=`Queda con ${_pva==='TOT'?'TOT':'TQT'}${_ptn?` N° ${_ptn}`:''}${_ptc?` fijado a ${_ptc} cm`:''}`;
     _q+=_psop==='VM'?`, conectado a VM${_pmodo?` en modo ${_pmodo}`:''}`:`${_pmodo?`, en ${_pmodo}`:''}`;
-    const _pp=[v('poIntubVt')?`Vt ${v('poIntubVt')} ml`:null, v('poIntubFr')?`FR ${v('poIntubFr')} rpm`:null,
-               v('poIntubPeep')?`PEEP ${v('poIntubPeep')} cmH2O`:null, v('poIntubFio2')?`FiO2 ${v('poIntubFio2')}%`:null,
-               v('poIntubSpo2')?`SpO2 ${v('poIntubSpo2')}%`:null].filter(Boolean).join(', ');
+    const _mk=($('pl_mlkg')?.textContent||'').replace('--','').trim();
+    const _vm=($('pl_vm')?.textContent||'').replace('--','').trim();
+    const _dp=($('pl_dp')?.textContent||'').replace('--','').trim();
+    const _pp=[v('pi_vt')?`Vt ${v('pi_vt')} ml${_mk?` (${_mk})`:''}`:null, v('pi_fr')?`FR ${v('pi_fr')} rpm`:null,
+               _vm?`VM ${_vm}`:null, v('pi_pinsp')?`Pinsp ${v('pi_pinsp')} cmH2O`:null,
+               v('pi_ps')?`PS ${v('pi_ps')} cmH2O`:null, v('pi_pmax')?`Pmax ${v('pi_pmax')} cmH2O`:null,
+               v('pi_ppl')?`Ppl ${v('pi_ppl')} cmH2O`:null, _dp?_dp.replace('DP:','DP')+' cmH2O':null,
+               v('pi_peep')?`PEEP ${v('pi_peep')} cmH2O`:null,
+               v('pi_autopeep')?`AutoPEEP ${v('pi_autopeep')} cmH2O`:null,
+               v('pi_fio2')?`FiO2 ${v('pi_fio2')}%`:null, v('pi_spo2')?`SpO2 ${v('pi_spo2')}%`:null,
+               v('pi_pafi')?`PaFiO2 ${v('pi_pafi')}`:null].filter(Boolean).join(', ');
     L.push(_q+(_pp?`. ${_pp}`:'')+'.');
   }
   // Desvinculación de VM (TQT): ventana del turno con su delta de horas
@@ -6778,28 +6821,32 @@ function calcGCS() {
   const o=parseInt(v('fGCSO'))||0, m=parseInt(v('fGCSM'))||0, vv=parseInt(v('fGCSV'))||1;
   $('lblGCS').textContent=(va==='TOT'||va==='TQT')?`${o+vv+m}T`:(o+vv+m);
 }
-function calcResp() {
+// calcResp(el) — sirve al bloque principal (ids r_*/l_*) y al panel «Queda con»
+// de la intubación (ids pi_*/pl_*): el prefijo se deduce del input que dispara.
+function calcResp(el) {
+  const P=(el&&String(el.id||'').indexOf('pi_')===0)?'pi_':'r_';
+  const L=(P==='pi_')?'pl_':'l_';
   const pi=parseFloat($('lblPI')?.textContent?.replace(/[^0-9.]/g,''))||0;
-  const vt=parseFloat(v('r_vt'))||0, fr=parseFloat(v('r_fr'))||0;
-  const peep=parseFloat(v('r_peep'))||0, ppl=parseFloat(v('r_ppl'))||0;
-  const fl=parseFloat(v('r_flujo'))||0, ti=parseFloat(v('r_ti'))||0;
-  const fio2=parseFloat(v('r_fio2'))||0, spo2=parseFloat(v('r_spo2'))||0;
-  const modo=v('fModo');
+  const vt=parseFloat(v(P+'vt'))||0, fr=parseFloat(v(P+'fr'))||0;
+  const peep=parseFloat(v(P+'peep'))||0, ppl=parseFloat(v(P+'ppl'))||0;
+  const fl=parseFloat(v(P+'flujo'))||0, ti=parseFloat(v(P+'ti'))||0;
+  const fio2=parseFloat(v(P+'fio2'))||0, spo2=parseFloat(v(P+'spo2'))||0;
+  const modo=(P==='pi_')?v('poIntubModo'):v('fModo');
   const set=(id,val)=>{ const e=$(id); if(e) e.textContent=val; };
-  if(vt&&pi>0) set('l_mlkg',`${(vt/pi).toFixed(1)} ml/kg`);
-  if(vt&&fr) set('l_vm',`${(vt*fr/1000).toFixed(1)} L/m`);
-  if(fr>0&&ti>0){const te=60/fr-ti;if(te>0)set('l_ie',`1:${(te/ti).toFixed(1)}`);else set('l_ie','!');}
-  else{const eie=$('l_ie');if(eie&&eie.textContent!=='--')eie.textContent='--';}
+  if(vt&&pi>0) set(L+'mlkg',`${(vt/pi).toFixed(1)} ml/kg`);
+  if(vt&&fr) set(L+'vm',`${(vt*fr/1000).toFixed(1)} L/m`);
+  if(fr>0&&ti>0){const te=60/fr-ti;if(te>0)set(L+'ie',`1:${(te/ti).toFixed(1)}`);else set(L+'ie','!');}
+  else{const eie=$(L+'ie');if(eie&&eie.textContent!=='--')eie.textContent='--';}
   // Mecánica con PEEP total (PEEP + AutoPEEP): DP = Ppl − PEEPtot; Cest = VT/DP
-  const peepTot=peep+(parseFloat(v('r_autopeep'))||0);
-  if(ppl>0) set('l_dp',`DP: ${(ppl-peepTot).toFixed(0)}`);
-  if(vt>0&&(ppl-peepTot)>0) set('l_cesr',`${(vt/(ppl-peepTot)).toFixed(0)}`);
-  if(['CPAP/PS','CFLEX'].includes(modo)&&fr>0&&vt>0) set('l_tobin',`${(fr/(vt/1000)).toFixed(0)}`);
-  if(['CNAF','OAF/CTAF'].includes(modo)&&spo2>0&&fio2>0&&fr>0) set('l_irox',`${((spo2/(fio2/100))/fr).toFixed(2)}`);
-  const ip=parseFloat(v('r_ipap'))||0, ep=parseFloat(v('r_epap'))||0;
-  if(ip>0&&ep>0) set('l_pscalc',`${ip-ep}`);
-  const lit=parseFloat(v('r_litros'))||0;
-  if(modo==='NRC'&&lit>0) set('l_fio2nrc',`~${Math.min(100,21+4*lit)}%`);
+  const peepTot=peep+(parseFloat(v(P+'autopeep'))||0);
+  if(ppl>0) set(L+'dp',`DP: ${(ppl-peepTot).toFixed(0)}`);
+  if(vt>0&&(ppl-peepTot)>0) set(L+'cesr',`${(vt/(ppl-peepTot)).toFixed(0)}`);
+  if(['CPAP/PS','CFLEX'].includes(modo)&&fr>0&&vt>0) set(L+'tobin',`${(fr/(vt/1000)).toFixed(0)}`);
+  if(['CNAF','OAF/CTAF'].includes(modo)&&spo2>0&&fio2>0&&fr>0) set(L+'irox',`${((spo2/(fio2/100))/fr).toFixed(2)}`);
+  const ip=parseFloat(v(P+'ipap'))||0, ep=parseFloat(v(P+'epap'))||0;
+  if(ip>0&&ep>0) set(L+'pscalc',`${ip-ep}`);
+  const lit=parseFloat(v(P+'litros'))||0;
+  if(modo==='NRC'&&lit>0) set(L+'fio2nrc',`~${Math.min(100,21+4*lit)}%`);
 }
 function autoCoopera(){
   const bnm=$('cBNM')?.checked;
@@ -7028,7 +7075,7 @@ function _hayHistorialVM(){
 }
 
 //  PARÁMETROS VENTILATORIOS
-const fld=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><label>${lbl}</label><input type="number" id="${id}" oninput="calcResp()" style="height:35px;"></div>`;
+const fld=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><label>${lbl}</label><input type="number" id="${id}" oninput="calcResp(this)" style="height:35px;"></div>`;
 const mon=(id,lbl,y=false)=>`<div class="mon${y?' mon-y':''}" style="height:35px;min-width:68px;"><span style="font-size:.58rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.82rem;">--</span></div>`;
 const lbl=txt=>`<div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--resp);margin:8px 0 4px;padding-bottom:2px;border-bottom:1px solid #bae6fd;">${txt}</div>`;
 
@@ -7062,59 +7109,82 @@ const _humChk=(haAdapt)=>{
     </select></span>
   </div>`;
 };
-function renderParams() {
-  const modo=v('fModo'), va=v('fVA'), sop=v('fSop');
-  const b=$('paramsBox'); if(!b) return;
+/* Los dispositivos del circuito dependen del estado con el que TERMINA el turno:
+   si el paciente se intuba (o traqueostomiza) y queda en VM, hay circuito nuevo
+   que fechar aunque arriba siga el estado previo. Vive aparte de renderParams
+   para poder refrescarlo SIN re-dibujar (y borrar) los parámetros de arriba. */
+function _gateDispositivos(){
+  const sopFin = $('cIntubO')?.checked ? (v('poIntubSop')||'VM')
+               : $('cTqtO')?.checked ? (v('poTqtSop')||'VM') : v('fSop');
+  const dc=$('fcDisp'); if(dc) dc.classList.toggle('hidden', sopFin!=='VM');
+  if(sopFin==='VM' && typeof autoFechasDispositivos==='function') autoFechasDispositivos(false);
+}
+
+/* renderParams(o) — genera el módulo ventilatorio COMPLETO (todas las variables
+   y sus derivados). Sin argumentos trabaja sobre el bloque del turno; con
+   {P:'pi_',L:'pl_',box:'paramsBoxIntub',...} genera el mismo módulo dentro del
+   panel «Queda con» de la intubación, para que el estado posterior se registre
+   con la misma riqueza (Ppl, DP, Cest, AutoPEEP, vol. min, I:E…). */
+function renderParams(o) {
+  o=o||{};
+  const P=o.P||'r_', L=o.L||'l_', esPost=(P==='pi_');
+  const modo=esPost?(v('poIntubModo')||''):v('fModo');
+  const va=esPost?(v('poIntubVA')||'TOT'):v('fVA');
+  const sop=esPost?(v('poIntubSop')||'VM'):v('fSop');
+  const b=$(o.box||'paramsBox'); if(!b) return;
   let h='';
   const ctrl=['ACVC','ACPC'].includes(modo);
   const esVM=sop==='VM'||va==='TOT'||va==='TQT';
-  if(esVM) h+=_humChk(ctrl);
+  if(esVM && !esPost) h+=_humChk(ctrl);
 
   if(modo==='ACVC'){
-    h+=`<div class="row">${fld('r_vt','VT ml',80)}<div class="col" style="width:60px;flex-grow:0;"><label></label><span id="l_mlkg" style="font-size:.68rem;font-weight:700;color:#64748b;display:block;margin-top:24px;">--</span></div>${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_flujo','Flujo L/m',78)}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}</div>`;
-    h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_pmedia','Pmedia',70)}${fld('r_peep','PEEP',70)}${fld('r_ppl','Ppl',70)}${fld('r_autopeep','AutoPEEP',80)}${mon('l_dp','DP',true)}${mon('l_cesr','Cesr',true)}</div>`;
-    h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;
+    h+=`<div class="row">${fld(P+'vt','VT ml',80)}<div class="col" style="width:60px;flex-grow:0;"><label></label><span id="${L}mlkg" style="font-size:.68rem;font-weight:700;color:#64748b;display:block;margin-top:24px;">--</span></div>${fld(P+'fr','FR rpm',75)}${mon(L+'vm','Vol.min')}${fld(P+'flujo','Flujo L/m',78)}${fld(P+'ti','Ti seg',68)}${mon(L+'ie','I:E')}</div>`;
+    h+=`<div class="row">${fld(P+'pmax','Pmax',70)}${fld(P+'pmedia','Pmedia',70)}${fld(P+'peep','PEEP',70)}${fld(P+'ppl','Ppl',70)}${fld(P+'autopeep','AutoPEEP',80)}${mon(L+'dp','DP',true)}${mon(L+'cesr','Cesr',true)}</div>`;
+    h+=`<div class="row">${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}</div>`;
   } else if(modo==='ACPC'){
-    h+=`<div class="row">${fld('r_pinsp','Pinsp',80)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}</div>`;
-    h+=`<div class="row">${fld('r_peep','PEEP',70)}${fld('r_pmax','Pmax',70)}${fld('r_autopeep','AutoPEEP',80)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;
+    h+=`<div class="row">${fld(P+'pinsp','Pinsp',80)}${fld(P+'vt','VT ml',80)}${fld(P+'fr','FR rpm',75)}${mon(L+'vm','Vol.min')}${fld(P+'ti','Ti seg',68)}${mon(L+'ie','I:E')}</div>`;
+    h+=`<div class="row">${fld(P+'peep','PEEP',70)}${fld(P+'pmax','Pmax',70)}${fld(P+'autopeep','AutoPEEP',80)}${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}</div>`;
   } else if(modo==='CPAP/PS'){
-    h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${mon('l_tobin','I.Tobin',true)}${_umaFld()}</div>`;
-    h+=`<div class="row">${fld('r_pmax','Pmax',70)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;
+    h+=`<div class="row">${fld(P+'ps','PS',70)}${fld(P+'peep','PEEP',70)}${fld(P+'vt','VT ml',80)}${fld(P+'fr','FR rpm',75)}${mon(L+'vm','Vol.min')}${mon(L+'tobin','I.Tobin',true)}${esPost?'':_umaFld()}</div>`;
+    h+=`<div class="row">${fld(P+'pmax','Pmax',70)}${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}</div>`;
     h+=`<details style="margin-top:6px;border:1px solid #e2e8f0;border-radius:7px;padding:6px 10px;background:#f8fafc;">
       <summary style="font-size:.75rem;font-weight:700;color:#475569;cursor:pointer;" title="Índices de esfuerzo inspiratorio en ventilación espontánea: P0.1 (drive), ΔPocc (presión de oclusión) y Pmusc estimada. Útiles para evaluar sobre/sub-asistencia en CPAP/PS.">📈 Monitoreo avanzado (P0.1 · ΔPocc · Pmusc) ⓘ</summary>
-      <div class="row" style="margin-top:6px;">${fld('r_p01','P0.1',70)}${fld('r_dpocc','ΔPocc',70)}${fld('r_pmusc','Pmusc',70)}</div>
+      <div class="row" style="margin-top:6px;">${fld(P+'p01','P0.1',70)}${fld(P+'dpocc','ΔPocc',70)}${fld(P+'pmusc','Pmusc',70)}</div>
     </details>`;
   } else if(modo==='S/T'){
-    h+=`<div class="row">${fld('r_ipap','IPAP',80)}${fld('r_epap','EPAP',80)}${mon('l_pscalc','PS calc.',true)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}${fld('r_ti','Ti seg',68)}${mon('l_ie','I:E')}${_umaFld()}</div>`;
-    if(sop==='VNI'){h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;}
+    h+=`<div class="row">${fld(P+'ipap','IPAP',80)}${fld(P+'epap','EPAP',80)}${mon(L+'pscalc','PS calc.',true)}${fld(P+'vt','VT ml',80)}${fld(P+'fr','FR rpm',75)}${mon(L+'vm','Vol.min')}${fld(P+'ti','Ti seg',68)}${mon(L+'ie','I:E')}${esPost?'':_umaFld()}</div>`;
+    if(sop==='VNI'){h+=`<div class="row">${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}</div>`;}
   } else if(modo==='AVAPS'){
-    h+=`<div class="row">${fld('r_ipap','IPAP min',88)}${fld('r_ipapmax','IPAP max',88)}${fld('r_epap','EPAP',80)}${_umaFld()}</div>`;
-    h+=`<div class="row">${fld('r_vt','VT med.',80)}${fld('r_fr','FR rpm',75)}${mon('l_vm','Vol.min')}</div>`;
-    h+=`<div class="row">${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}</div>`;
+    h+=`<div class="row">${fld(P+'ipap','IPAP min',88)}${fld(P+'ipapmax','IPAP max',88)}${fld(P+'epap','EPAP',80)}${esPost?'':_umaFld()}</div>`;
+    h+=`<div class="row">${fld(P+'vt','VT med.',80)}${fld(P+'fr','FR rpm',75)}${mon(L+'vm','Vol.min')}</div>`;
+    h+=`<div class="row">${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}</div>`;
   } else if(modo==='CPAP'){
-    h+=`<div class="row">${fld('r_peep','CPAP',80)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld(P+'peep','CPAP',80)}${fld(P+'vt','VT ml',80)}${fld(P+'fr','FR rpm',75)}${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}${esPost?'':_umaFld()}</div>`;
   } else if(modo==='CFLEX'){
-    h+=`<div class="row">${fld('r_ps','PS',70)}${fld('r_peep','PEEP',70)}${fld('r_vt','VT ml',80)}${fld('r_fr','FR rpm',75)}${mon('l_tobin','I.Tobin',true)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld(P+'ps','PS',70)}${fld(P+'peep','PEEP',70)}${fld(P+'vt','VT ml',80)}${fld(P+'fr','FR rpm',75)}${mon(L+'tobin','I.Tobin',true)}${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}${esPost?'':_umaFld()}</div>`;
   } else if(['CNAF','OAF/CTAF'].includes(modo)){
-    h+=`<div class="row">${fld('r_flujo','Flujo L/m',80)}${fld('r_temp','T° °C',70)}${fld('r_fr','FR rpm',75)}${fld('r_fio2','FiO₂ %',80)}${fld('r_spo2','SpO₂ %',80)}${fld('r_pafi','PaFiO₂',80)}${mon('l_irox','IROX',true)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld(P+'flujo','Flujo L/m',80)}${fld(P+'temp','T° °C',70)}${fld(P+'fr','FR rpm',75)}${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}${mon(L+'irox','IROX',true)}${esPost?'':_umaFld()}</div>`;
   } else if(modo==='NRC'){
-    h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${mon('l_fio2nrc','FiO₂~')}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld(P+'litros','Litros L/m',88)}${fld(P+'fr','FR rpm',75)}${fld(P+'spo2','SpO₂ %',80)}${mon(L+'fio2nrc','FiO₂~')}${esPost?'':_umaFld()}</div>`;
   } else if(['HME','Tubo T'].includes(modo)){
     // Pueden ir SIN oxígeno adicional: litros y FiO2 quedan opcionales (venturi
     // o mezclador entregan FiO2 conocida y antes no había dónde anotarla).
-    h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fio2','FiO₂ %',80)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld(P+'litros','Litros L/m',88)}${fld(P+'fio2','FiO₂ %',80)}${fld(P+'fr','FR rpm',75)}${fld(P+'spo2','SpO₂ %',80)}${esPost?'':_umaFld()}</div>`;
   } else if(modo==='Válvula de fonación'){
     // Válvula de fonación (TQT): con o sin O2 adicional. La presión transtraqueal
     // se registra en Evaluaciones (EVAL_T_PMANT_VA) y el USO/tolerancia en Rehabilitación.
-    h+=`<div class="row">${fld('r_litros','Litros L/m',88)}${fld('r_fio2','FiO₂ %',80)}${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld(P+'litros','Litros L/m',88)}${fld(P+'fio2','FiO₂ %',80)}${fld(P+'fr','FR rpm',75)}${fld(P+'spo2','SpO₂ %',80)}${esPost?'':_umaFld()}</div>`;
   } else {
-    h+=`<div class="row">${fld('r_fr','FR rpm',75)}${fld('r_spo2','SpO₂ %',80)}${_umaFld()}</div>`;
+    h+=`<div class="row">${fld(P+'fr','FR rpm',75)}${fld(P+'spo2','SpO₂ %',80)}${esPost?'':_umaFld()}</div>`;
   }
-  b.innerHTML=h; calcResp(); hUMA();
-  if(typeof _pintarPrevios==='function') _pintarPrevios();
+  b.innerHTML=h;
+  calcResp(esPost?{id:'pi_'}:undefined);
+  if(!esPost){
+    hUMA();
+    if(typeof _pintarPrevios==='function') _pintarPrevios();
+  }
   // Dispositivos de circuito: visibles solo en VM; al quedar en VM se fechan solos
-  const _dc=$('fcDisp'); if(_dc) _dc.classList.toggle('hidden', sop!=='VM');
-  if(sop==='VM') autoFechasDispositivos(false);
+  if(!esPost) _gateDispositivos();
 }
 
 //  HANDLERS UI
@@ -7676,6 +7746,12 @@ function calcDesvinc(){
   l.textContent = hrs===null ? '—' : `⏱️ ${String(hrs).replace('.',',')} h desvinculado`;
 }
 // ── Válvula de fonación: uso del turno (módulo Rehabilitación) ──
+function hRCP(){
+  const on=!!$('cProcRCP')?.checked;
+  if(on) show('dRCPdet');
+  else { hide('dRCPdet'); ['fRCPciclos','fRCPhora','fRCPdet'].forEach(id=>{ const e=$(id); if(e) e.value=''; }); }
+  if(typeof _renderAutoProcs==='function') _renderAutoProcs();
+}
 function hVfon(){
   const on=!!$('cVfon')?.checked;
   if(on) show('dVfonDet');
@@ -7725,6 +7801,7 @@ function hTqtO(){
     hide('dTqtDet');
     ['fTqtHora','fTqtTec','fTqtDet','poTqtParams'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
   }
+  _gateDispositivos();
   if(typeof _renderAutoProcs==='function') _renderAutoProcs();
 }
 function hAET(){
@@ -7878,6 +7955,10 @@ function renderParamsIntub(){
   const sel=$('poIntubModo'); if(!sel) return;
   const prev=sel.value;
   sel.innerHTML=modos.map(m=>`<option${m===prev?' selected':''}>${m}</option>`).join('');
+  // Módulo ventilatorio COMPLETO del estado posterior (mismas variables que arriba)
+  renderParams({P:'pi_',L:'pl_',box:'paramsBoxIntub'});
+  // Los dispositivos reaparecen si queda en VM — sin tocar el bloque de arriba
+  _gateDispositivos();
   // El N° de tubo solo aplica a TOT
   const cajaTot=$('poIntubTotN')?.closest('.col');
   if(cajaTot) cajaTot.style.display = va==='TOT' ? '' : 'none';
@@ -7902,8 +7983,8 @@ function hIntub(){
     toast('🫁 Intubación marcada — arriba queda el estado PREVIO; completa abajo cómo quedó el paciente.', 5000);
   } else {
     hide('dIntubDet');
-    ['fIntubHora','fIntubDet','poIntubTotN','poIntubTotCm','poIntubVt','poIntubFr','poIntubPeep','poIntubFio2','poIntubSpo2']
-      .forEach(id=>{ const e=$(id); if(e) e.value=''; });
+    ['fIntubHora','fIntubDet','poIntubTotN','poIntubTotCm'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
+    const _pb=$('paramsBoxIntub'); if(_pb) _pb.innerHTML='';
     if(_dispSnapshot){
       const _ds=_dispSnapshot; _dispSnapshot=null;
       [['fFecHME',_ds.hme],['fFecHEPA',_ds.hepa],['fFecSonda',_ds.tc]].forEach(([id,val])=>{ const e=$(id); if(e) e.value=val; });

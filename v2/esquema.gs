@@ -211,7 +211,15 @@ const _COLS_EVOLUCIONES = [
   ['INTUB_VA_POST','texto'],['INTUB_SOP_POST','texto'],['INTUB_MODO_POST','texto'],
   ['INTUB_TOT_N','texto'],['INTUB_TOT_CM','texto'],['INTUB_VT','decimal'],['INTUB_FR','decimal'],
   ['INTUB_PEEP','decimal'],['INTUB_FIO2','decimal'],['INTUB_SPO2','decimal'],
-  ['TQT_SOP_POST','texto'],['TQT_MODO_POST','texto'],['TQT_PARAMS','texto']
+  ['TQT_SOP_POST','texto'],['TQT_MODO_POST','texto'],['TQT_PARAMS','texto'],
+  // Parámetros ventilatorios COMPLETOS del estado posterior a la intubación
+  // (el panel «Queda con» genera el mismo módulo que el bloque del turno)
+  ['INTUB_PMAX','decimal'],['INTUB_PPL','decimal'],['INTUB_PMEDIA','decimal'],
+  ['INTUB_AUTOPEEP','decimal'],['INTUB_PS','decimal'],['INTUB_PINSP','decimal'],
+  ['INTUB_FLUJO','decimal'],['INTUB_TI','decimal'],['INTUB_PAFI','decimal'],
+  // Eventos del turno NO derivables (no se arrastran; van a la entrega)
+  ['PROC_IMAGEN','bool'],['PROC_PABELLON','bool'],['PROC_ASIST_MED','bool'],
+  ['PROC_RCP','bool'],['PROC_RCP_CICLOS','entero'],['PROC_RCP_HORA','texto'],['PROC_RCP_DET','texto']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -687,7 +695,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 343) errs.push('EVOLUCIONES != 343 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 359) errs.push('EVOLUCIONES != 359 columnas: ' + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

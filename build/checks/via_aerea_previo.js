@@ -115,9 +115,21 @@ const { chromium } = require('playwright-core');
     r.modosVM = [...$('poIntubModo').options].map(o => o.value).join('|');
     $('fIntubHora').value = '13:40'; $('fIntubDet').value = 'insuficiencia respiratoria';
     $('poIntubTotN').value = '8.0'; $('poIntubTotCm').value = '22';
-    $('poIntubModo').value = 'ACVC';
-    $('poIntubVt').value = '420'; $('poIntubFr').value = '18'; $('poIntubPeep').value = '8';
-    $('poIntubFio2').value = '60'; $('poIntubSpo2').value = '95';
+    $('poIntubModo').value = 'ACVC'; renderParams({P:'pi_',L:'pl_',box:'paramsBoxIntub'});
+    // v4.3b: el panel posterior es el MÓDULO COMPLETO (todas las variables)
+    r.moduloCompleto = ['pi_vt','pi_fr','pi_peep','pi_pmax','pi_ppl','pi_pmedia','pi_autopeep',
+                        'pi_flujo','pi_ti','pi_fio2','pi_spo2','pi_pafi'].every(id => !!$(id));
+    r.derivados = ['pl_vm','pl_ie','pl_dp','pl_cesr','pl_mlkg'].every(id => !!$(id));
+    $('pi_vt').value = '420'; $('pi_fr').value = '18'; $('pi_peep').value = '8';
+    $('pi_ppl').value = '24'; $('pi_autopeep').value = '2';
+    $('pi_fio2').value = '60'; $('pi_spo2').value = '95';
+    $('pi_vt').dispatchEvent(new Event('input'));
+    calcResp({ id: 'pi_vt' });
+    r.calcPost = { vm: $('pl_vm').textContent, dp: $('pl_dp').textContent };
+    r.calcPrincipalIntacto = ($('l_vm')?.textContent || '--');
+    // los dispositivos del circuito reaparecen al quedar en VM
+    renderParams();
+    r.dispositivos = !$('fcDisp').classList.contains('hidden');
     r.texto = genTexto();
     r.autoProc = _autoProcs().indexOf('INTUBACIÓN') !== -1;
     // desmarcar deja todo limpio y el previo intacto
@@ -138,9 +150,17 @@ const { chromium } = require('playwright-core');
   eq('el texto narra previo → intubación → cómo queda',
      /Previo en naricera-NRC/.test(I.texto) && /a las 13:40 hrs/.test(I.texto) &&
      /Queda con TOT N° 8\.0 fijado a 22 cm, conectado a VM en modo ACVC/.test(I.texto) &&
-     /Vt 420 ml, FR 18 rpm, PEEP 8 cmH2O, FiO2 60%, SpO2 95%/.test(I.texto), true);
+     /Vt 420 ml/.test(I.texto) && /FR 18 rpm/.test(I.texto) && /VM 7\.6 L\/m/.test(I.texto) &&
+     /Ppl 24 cmH2O/.test(I.texto) && /DP 14 cmH2O/.test(I.texto) && /AutoPEEP 2 cmH2O/.test(I.texto) &&
+     /FiO2 60%/.test(I.texto) && /SpO2 95%/.test(I.texto), true);
   eq('el texto conserva el estado previo del paciente',
      /Ventila espontáneo con FiO2 adicional por NRC/.test(I.texto), true);
+  eq('el panel posterior es el MÓDULO VENTILATORIO COMPLETO (Ppl, AutoPEEP, flujo, Ti, PaFi…)', I.moduloCompleto, true);
+  eq('…con sus derivados (vol. minuto, I:E, DP, Cest, ml/kg)', I.derivados, true);
+  eq('los derivados del panel se calculan solos (VM 7,6 L/m · DP 14 = Ppl − PEEP total)',
+     /7\.6 L\/m/.test(I.calcPost.vm) && /DP: 14/.test(I.calcPost.dp), true);
+  eq('…sin contaminar los derivados del bloque de arriba', I.calcPrincipalIntacto, '--');
+  eq('los dispositivos del circuito reaparecen al quedar en VM', I.dispositivos, true);
   eq('genera el procedimiento INTUBACIÓN (→ hito)', I.autoProc, true);
   eq('desmarcar limpia el evento sin tocar el estado previo',
      I.trasDesmarcar.va === 'Natural' && I.trasDesmarcar.sop === 'Oxigenoterapia/OAF' &&
@@ -158,7 +178,9 @@ const { chromium } = require('playwright-core');
     $('r_flujo').value = '50'; $('r_fio2').value = '80'; $('r_spo2').value = '89';
     updateVAUI();
     $('cIntubO').click();
-    $('fIntubHora').value = '02:10'; $('poIntubModo').value = 'ACPC'; $('poIntubTotN').value = '7.5';
+    $('fIntubHora').value = '02:10'; $('poIntubModo').value = 'ACVC'; $('poIntubTotN').value = '7.5';
+    renderParams({P:'pi_',L:'pl_',box:'paramsBoxIntub'});
+    $('pi_vt').value = '400'; $('pi_ppl').value = '26'; $('pi_peep').value = '10';
     _transAvisoOk = true; window._ll.length = 0;
     guardar();
     await new Promise(r2 => setTimeout(r2, 250));
@@ -168,9 +190,42 @@ const { chromium } = require('playwright-core');
   eq('payload · el turno guarda el PREVIO en VENT_*',
      P && P.VENT_VIA_AEREA === 'Natural' && P.VENT_SOPORTE === 'Oxigenoterapia/OAF' && P.VENT_MODO === 'CNAF', true);
   eq('payload · el estado FINAL es el posterior a la intubación',
-     P && P.VENT_VIA_AEREA_FINAL === 'TOT' && P.VENT_SOPORTE_FINAL === 'VM' && P.VENT_MODO_FINAL === 'ACPC', true);
+     P && P.VENT_VIA_AEREA_FINAL === 'TOT' && P.VENT_SOPORTE_FINAL === 'VM' && P.VENT_MODO_FINAL === 'ACVC', true);
   eq('payload · el soporte previo viaja deducido (CNAF)', P && P.INTUB_SOP_PREVIO, 'CNAF');
   eq('payload · los datos del tubo van en el bloque del evento', P && P.INTUB_TOT_N, '7.5');
+  eq('payload · viajan TODAS las variables del posterior (VT, Ppl, PEEP)',
+     P && String(P.INTUB_VT) === '400' && String(P.INTUB_PPL) === '26' && String(P.INTUB_PEEP) === '10', true);
+
+  // ── Eventos del turno no derivables + RCP con ciclos ──
+  const EV = await p.evaluate(() => {
+    $('kf').reset(); $('cBed').value = '3';
+    const r = {};
+    r.checkboxes = ['cProcImagen','cProcPabellon','cProcAsistMed','cProcRCP'].every(id => !!$(id));
+    r.listaVieja = [...document.querySelectorAll('#dlProc option')].map(o => o.textContent).join('|');
+    r.rcpOculto = $('dRCPdet').classList.contains('hidden');
+    $('cProcRCP').click();
+    r.rcpAbierto = !$('dRCPdet').classList.contains('hidden');
+    $('fRCPciclos').value = '3'; $('fRCPhora').value = '04:15';
+    $('cProcPabellon').click(); $('cProcImagen').click();
+    r.procs = _autoProcs().join('|');
+    r.eduDerivada = (() => { $('cEduReal').click(); const a = _autoProcs(); $('cEduReal').click(); return a.join('|'); })();
+    $('cProcRCP').click();
+    r.rcpLimpio = $('dRCPdet').classList.contains('hidden') && $('fRCPciclos').value === '';
+    return r;
+  });
+  eq('los no derivables son casillas de un toque', EV.checkboxes, true);
+  eq('la lista manual ya no ofrece EMS ni educación (son derivables)',
+     !/EMS/.test(EV.listaVieja) && !/Educaci/.test(EV.listaVieja), true);
+  eq('RCP despliega los ciclos', EV.rcpOculto && EV.rcpAbierto, true);
+  eq('los eventos entran como procedimientos del turno (RCP con sus ciclos)',
+     /RCP 3 CICLOS/.test(EV.procs) && /PABELLÓN/.test(EV.procs) && /IMAGENOLOGÍA/.test(EV.procs), true);
+  eq('la educación al familiar se deriva sola de su casilla',
+     /EDUCACIÓN A USUARIO\/FAMILIA/.test(EV.eduDerivada), true);
+  eq('desmarcar RCP limpia los ciclos', EV.rcpLimpio, true);
+
+  // FilmArray disponible como técnica de cultivo
+  const FA = await p.evaluate(() => !!document.querySelector('input[name="mtest"][value="FilmArray"]'));
+  eq('FilmArray está entre las técnicas de cultivo', FA, true);
 
   console.log(errs.length ? ('\nERRORES JS:\n' + errs.join('\n')) : '\nsin errores JS');
   await b.close();

@@ -90,6 +90,14 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
     if (esVerdadero(ev.EXT_REINTUB)) eventos.push('⚠️ Reintubación ' + f);
     if (esVerdadero(ev.TQT_OCURRIO)) eventos.push('🔪 TQT ' + f + (ev.TQT_HORA ? ' ' + ev.TQT_HORA : '') + (ev.TQT_TECNICA ? ' (' + String(ev.TQT_TECNICA).toLowerCase() + ')' : ''));
     if (esVerdadero(ev.DECAN_OCURRIO)) eventos.push('⭕ Decanulación ' + f + (ev.DECAN_HORA ? ' ' + ev.DECAN_HORA : '') + (esVerdadero(ev.DECAN_RECANUL) ? ' → recanulado' : ''));
+    if (esVerdadero(ev.PROC_RCP)) {
+      const ciclos = String(ev.PROC_RCP_CICLOS || '').trim();
+      eventos.push('🚨 RCP ' + f + (ev.PROC_RCP_HORA ? ' ' + ev.PROC_RCP_HORA : '') +
+        (ciclos ? ' · ' + ciclos + ' ciclo' + (ciclos === '1' ? '' : 's') : '') +
+        (ev.PROC_RCP_DET ? ' — ' + ev.PROC_RCP_DET : ''));
+    }
+    if (esVerdadero(ev.PROC_PABELLON)) eventos.push('🏥 Traslado a pabellón ' + f);
+    if (esVerdadero(ev.PROC_IMAGEN)) eventos.push('🩻 Traslado a imagenología ' + f);
     if (esVerdadero(ev.DESVINC_OCURRIO)) {
       const hrs = String(ev.DESVINC_HORAS || '').replace('.', ',');
       eventos.push('🔌 Desvinculación de VM ' + f + (ev.DESVINC_HORA ? ' ' + ev.DESVINC_HORA : '') +

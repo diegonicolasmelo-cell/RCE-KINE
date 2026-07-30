@@ -25,7 +25,7 @@ navegador del hospital o de su casa.
   viajan fusionados como `servicios.gs` (`build/fusionar_servicios.js`).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 343 columnas** y `testEsquema`
+- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 359 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -103,9 +103,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v4.3-viaaerea**
-  (antes v4.2-clinico, v4.1-apache, v4.0-paquete). Exige
-  `crearORepararEstructura()` (EVOLUCIONES 343 columnas).
+  (ahí se afina el registro con uso real). Deployment: cohete **v4.4-modulo**
+  (antes v4.3-viaaerea, v4.2-clinico, v4.1-apache). Exige
+  `crearORepararEstructura()` (EVOLUCIONES 359 columnas).
 - **Réplicas por turno** (reglas ganadas a punta de bugs, jul-2026):
   los PROCEDIMIENTOS son del turno — la réplica parte SIEMPRE con la lista
   manual vacía (el PROC_JSON guardado une manuales+automáticos; arrastrarlo
@@ -233,6 +233,28 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     (VNI, CNAF, NRC no se convierten en «vNI»).
   - Guardia: `checks/via_aerea_previo.js`; BUG 6 de `regresion_ui.js`
     actualizado a la regla nueva.
+- **v4.4 · MÓDULO COMPLETO EN EL EVENTO + EVENTOS NO DERIVABLES (jul-2026,
+  cohete v4.4-modulo).** EVOLUCIONES **359 columnas**.
+  1. El panel «Queda con» de la intubación despliega el **módulo ventilatorio
+     COMPLETO** (Ppl, Pmedia, AutoPEEP, flujo, Ti, PaFi + derivados vol.min,
+     I:E, DP, Cest, ml/kg). `renderParams(o)` y `calcResp(el)` quedaron
+     PARAMETRIZADOS por prefijo: bloque del turno `r_`/`l_`, panel posterior
+     `pi_`/`pl_` (el prefijo se deduce del input que dispara el cálculo).
+     Columnas `INTUB_PMAX/PPL/PMEDIA/AUTOPEEP/PS/PINSP/FLUJO/TI/PAFI`.
+  2. **Los dispositivos reaparecen** al quedar en VM: `_gateDispositivos()`
+     mira el estado FINAL. TRAMPA PAGADA: refrescar el gate llamando a
+     `renderParams()` completo BORRABA los parámetros previos de arriba (el
+     innerHTML se reconstruye) — por eso el gate vive en su propia función.
+  3. **FilmArray** sumado a las técnicas de cultivo (`name="mtest"`).
+  4. **Procedimientos no derivables** = casillas de un toque: traslado a
+     imagenología, traslado a pabellón, asistencia en procedimiento médico y
+     **RCP con n° de ciclos + hora + detalle** (`PROC_IMAGEN`, `PROC_PABELLON`,
+     `PROC_ASIST_MED`, `PROC_RCP`, `PROC_RCP_CICLOS/HORA/DET`). Son eventos del
+     día: NO se arrastran. El RCP va al texto, al timeline y **a la entrega de
+     turno** (también pabellón e imagenología). EMS y educación al usuario
+     SALIERON de la lista manual: ya se derivan de sus casillas
+     (`cEMS`, `cEduReal` → «EDUCACIÓN A USUARIO/FAMILIA»).
+  Guardia: `checks/via_aerea_previo.js` (extendida).
 - **SIMULACIÓN E2E (jul-2026)** — arnés `build/sim/`: cliente real (index en
   Chromium) + servidor real (.gs en Node, hojas en memoria, reloj simulado
   `SIM.fecha`); `node build/sim/sim_e2e.js` corre 8 pacientes ingreso→egreso.
