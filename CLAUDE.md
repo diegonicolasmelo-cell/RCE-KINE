@@ -103,9 +103,16 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v4.5-transiciones**
-  (antes v4.4-modulo, v4.3-viaaerea, v4.2-clinico). Exige
-  `crearORepararEstructura()` (EVOLUCIONES 379 columnas).
+  (ahí se afina el registro con uso real). Deployment: cohete **v4.6-narrativa**
+  (antes v4.5-transiciones, v4.4-modulo, v4.3-viaaerea, v4.2-clinico). Exige
+  `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO con
+  `TQT_CALIBRE`).
+- **ANTES DEL 1-AGO (pedido de Diego, jul-2026)**: (1) LIMPIAR todos los
+  archivados y los pacientes actuales — son datos INVENTADOS de la marcha
+  blanca; el período de prueba real parte de cero. (2) Ordenar la hoja
+  VENTILADORES dejando SOLO los equipos que realmente existen en la unidad.
+  (3) Evaluar un TUTORIAL anclado a la página principal (idea aprobada en
+  concepto; proponer mockup antes de código).
 - **Réplicas por turno** (reglas ganadas a punta de bugs, jul-2026):
   los PROCEDIMIENTOS son del turno — la réplica parte SIEMPRE con la lista
   manual vacía (el PROC_JSON guardado une manuales+automáticos; arrastrarlo
@@ -276,6 +283,35 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - Extubación y decanulación conservan sus paneles (post no invasivo, ya
     tenían parámetros por modo).
   - `TEXTOS_MUESTRARIO.md`: los 26 textos de la simulación, para revisión.
+- **v4.6 · NARRATIVA DE TRANSICIONES + PULIDOS (jul-2026, cohete
+  v4.6-narrativa).** Decisiones de Diego tras revisar los textos:
+  - **TQT es evento, no estado** (`cTqtO`/`TQT_OCURRIO`): con la VA en TOT se
+    muestra `dTqtSec`; el panel «Queda con» suma cánula (`poTqtN`/`poTqtTipo`).
+    El texto OMITE el estado ventilatorio previo (a diferencia de
+    intubación/extubación/decanulación, donde el previo importa): «Tras N días
+    de VM, se realiza traqueostomía … con cánula N° X …, queda en VM/HME».
+    TRAMPA: `_podarEventosPayload` consideraba activo el evento TQT solo con
+    `fVA==='TQT'` — con la regla del previo la VA sigue en TOT y podaba
+    `TQT_OCURRIO` (el indicador de TQT daba 0). Corregido: TOT o TQT.
+  - **Decanulación con racha de válvula**: `_VFON_HORAS` transitorio (12 h por
+    turno consecutivo con válvula de fonación; servidor lo adjunta en
+    `obtenerEvolucionPrevia` y lo recalcula al guardar con `DECAN_OCURRIO`;
+    cliente `window._vfonHoras`). Texto: «Cumple ~X h con válvula de fonación,
+    por lo que se realiza decanulación…» («registra tolerancia por turnos»).
+  - **UMA negativa registrable**: opción `(-)` («sin uso de musculaturas
+    accesorias, evaluado») — distinta de no registrado.
+  - **Sin preselecciones**: `fTOTn`/`fTQTn` parten en «--» y `fTOTcm` en
+    placeholder (antes 8.0/22 preseleccionados = D3). Para que la réplica no
+    quede vacía, `fillCama` baja el tubo/cánula VIGENTE de la cama
+    (`TOT_NUMERO`/`TOT_CM_LABIO`/`TQT_CALIBRE`/`TQT_TIPO`); columna nueva
+    `TQT_CALIBRE` en CAMAS_ESTADO (al final) sincronizada desde
+    `VENT_TQT_CALIBRE`. `EVAL_FECHA` usa la fecha del turno (D4).
+  - **Pulidos de redacción** (cliente y servidor a la par): «fallido por …»
+    (antes «desde lo»), razones de KTM narradas natural («por ingreso
+    reciente», «por falta de equipo o tiempo disponible»), espacio en
+    «GCS X (O:…», cláusula de no-PVE al FINAL de la frase de VMI, «Parámetros:»
+    en vez de «TV:», KTM sin «nivel ?», PaFiO2 en ASCII en el texto del cliente
+    (la guardia v42 asserta la grafía).
 - **SIMULACIÓN E2E (jul-2026)** — arnés `build/sim/`: cliente real (index en
   Chromium) + servidor real (.gs en Node, hojas en memoria, reloj simulado
   `SIM.fecha`); `node build/sim/sim_e2e.js` corre 8 pacientes ingreso→egreso.

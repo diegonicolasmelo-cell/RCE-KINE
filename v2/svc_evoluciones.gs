@@ -136,6 +136,15 @@ function guardarEvolucion(datos, ctx) {
         datos.APNEA_ULTIMO = apRes + ' (' + fecha + ')';
       }
 
+      // Horas con válvula de fonación (para la frase de la decanulación):
+      // racha consecutiva de turnos previos + el propio turno si va con válvula.
+      if (esVerdadero(datos.DECAN_OCURRIO)) {
+        const rp2 = obtenerEvolucionPrevia(idCama, turnoKey);
+        let hrs = (rp2.ok && rp2.data && rp2.data._VFON_HORAS) ? rp2.data._VFON_HORAS : 0;
+        if (String(datos.VENT_MODO) === 'Válvula de fonación' || esVerdadero(datos.VFON_USADA)) hrs += 12;
+        datos._VFON_HORAS = hrs;   // transitorio: no es columna
+      }
+
       // Texto clínico: el de la PANTALLA (cliente) si vino; si no, se genera.
       datos.TEXTO_GENERADO = _textoCliente || generarTextoEvolucion(datos);
       // Respaldo del motor: si el cliente no lo trae (API sin navegador) y no
@@ -269,7 +278,8 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     VIA_AEREA: val(vaFin, cama.VIA_AEREA) || 'Natural',
     TOT_NUMERO: val(evo.INTUB_TOT_N, val(evo.VENT_TOT_NUM, cama.TOT_NUMERO)),
     TOT_CM_LABIO: val(evo.INTUB_TOT_CM, val(evo.VENT_TOT_CM, cama.TOT_CM_LABIO)),
-    TQT_TIPO: val(evo.VENT_TQT_TIPO, cama.TQT_TIPO), SOPORTE: sopNew, MODO: val(modoFin, cama.MODO),
+    TQT_TIPO: val(evo.VENT_TQT_TIPO, cama.TQT_TIPO),
+    TQT_CALIBRE: val(evo.VENT_TQT_CALIBRE, cama.TQT_CALIBRE), SOPORTE: sopNew, MODO: val(modoFin, cama.MODO),
     FASE_JSON: val(evo.FASE_JSON, cama.FASE_JSON),
     KTM_NIVEL: esVerdadero(evo.KTM_REALIZADA) ? (evo.KTM_NIVEL_KTR || '') : (turno === 'Noche' ? (cama.KTM_NIVEL || '') : ''),
     KTM_SUSP: esVerdadero(evo.KTM_SUSPENDIDA),
@@ -387,6 +397,20 @@ function obtenerEvolucionPrevia(idCama, turnoKey) {
     // aporta ese bloque (de noche va oculto y limpio). Si la previa inmediata
     // no es de día, viaja adjunta la última evolución de turno Día.
     if (mejor && mejorDia && mejorDiaKey !== mejorKey) mejor._PREVIA_DIA = mejorDia;
+    // Racha de válvula de fonación: turnos CONSECUTIVOS hacia atrás con la
+    // válvula como modo (o con uso registrado). ~12 h por turno — alimenta la
+    // frase de la decanulación («Cumple ~24 h con válvula de fonación…»).
+    if (mejor) {
+      const orden = evos.map(e => String(e.TURNO_KEY || '')).filter(k => k && k < objetivo).sort().reverse();
+      const porKey = {}; evos.forEach(e => { porKey[String(e.TURNO_KEY || '')] = e; });
+      let racha = 0;
+      for (let i = 0; i < orden.length; i++) {
+        const e2 = porKey[orden[i]];
+        if (e2 && (String(e2.VENT_MODO) === 'Válvula de fonación' || String(e2.VENT_MODO_FINAL) === 'Válvula de fonación' || esVerdadero(e2.VFON_USADA))) racha++;
+        else break;
+      }
+      mejor._VFON_HORAS = racha * 12;
+    }
     return ok(mejor);
   } catch (e) { return err('obtenerEvolucionPrevia: ' + e.message, ERR.INTERNO, e); }
 }

@@ -252,7 +252,7 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
     ['fCuffEst', 'rango'],
   ], checks: [['cTqtO', true]], js: `
     $('fTqtHora').value='10:30'; $('fTqtTec').value='Percutánea';
-    $('fTQTn').value='8'; $('fTQTt').value='Con balón';
+    $('poTqtN').value='8.0'; $('poTqtTipo').value='Con balón';
     $('poTqtSop').value='VM'; renderParamsTqt(); $('poTqtModo').value='CPAP/PS';
     renderParams({P:'pt_',L:'ptl_',box:'paramsBoxTqt'});
     $('pt_ps').value='10'; $('pt_peep').value='6'; $('pt_fio2').value='35'; $('pt_spo2').value='96';
@@ -296,7 +296,7 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
     ...base, ['fNombre', 'Rosa Milla Paz'], ['fEdad', 63], ['fSexo', 'F'], ['fTalla', 160],
     ['fRut', '6.444.444-4'], ['fDx', 'Polineuropatía del paciente crítico, TQT prolongada'], ['fRem', 'ENM agudas'],
     ['fIngTipo', 'Electivo'], ['fApache', 12],
-    ['fVA', 'TQT'], ['fSop', 'VM'], ['fModo', 'CPAP/PS'], ['r_ps', 8], ['r_peep', 5], ['r_fio2', 30], ['r_spo2', 97],
+    ['fVA', 'TQT'], ['fTQTn', '7.5'], ['fSop', 'VM'], ['fModo', 'CPAP/PS'], ['r_ps', 8], ['r_peep', 5], ['r_fio2', 30], ['r_spo2', 97],
     ['fCoop', 'Cooperador'], ['fCuffEst', 'rango'],
   ], checks: [['cVAExtPrev', true]], js: `$('fVAExtDias').value='21'; $('fVAExtDias').dispatchEvent(new Event('change'))` });
   // Desvinculación de VM con reconexión (weaning de cánula) + GSA del turno
@@ -324,7 +324,7 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
   ` });
   await turno({ pac: 'P4', cama: 4, fecha: '2026-07-09', t: 'Dia', campos: [
     ...base, ['fVA', 'TQT'], ['fSop', 'Oxigenoterapia/OAF'], ['fModo', 'Válvula de fonación'],
-    ['r_fio2', 26], ['r_spo2', 97], ['fCuffEst', 'desinflado'], ['fPVA', 9],
+    ['r_fio2', 26], ['r_spo2', 97], ['r_fr', 20], ['r_uma', '(-)'], ['fCuffEst', 'desinflado'], ['fPVA', 9],
   ], checks: [['cDecanOcurrio', true]], js: `
     $('fDecanHora').value='11:00';
     document.querySelector('input[name="decanTipo"][value="programada"]')?.click();
@@ -357,7 +357,8 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
     ...base, ['fNombre', 'Elena Ruiz Bravo'], ['fEdad', 52], ['fSexo', 'F'], ['fTalla', 162],
     ['fRut', '8.666.666-6'], ['fDx', 'Postoperatorio laparotomía electiva'], ['fRem', 'Quirúrgicas'],
     ['fIngTipo', 'Electivo'], ['fApache', 10],
-    ...vmDia(400, 40, 5, 98), ['fSed', 'Sedación superficial'], ['fSAS', 3], ['fCuffEst', 'rango'],
+    ...vmDia(400, 40, 5, 98), ['fTOTn', '7.5'], ['fTOTcm', 21],
+    ['fSed', 'Sedación superficial'], ['fSAS', 3], ['fCuffEst', 'rango'],
   ], js: `toggleFase('Postoperatorio inmediato')` });
   await turno({ pac: 'P6', cama: 6, fecha: '2026-07-10', t: 'Noche', campos: [
     ...base, ['fPVEval', 'no'], ['fCuffEst', 'rango'],
@@ -376,7 +377,7 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
   await turno({ pac: 'P7', cama: 7, fecha: '2026-07-12', t: 'Dia', ingreso: true, campos: [
     ...base, ['fNombre', 'Ana Prado Soto'], ['fEdad', 68], ['fSexo', 'F'], ['fTalla', 155],
     ['fRut', '4.777.777-7'], ['fDx', 'ACV isquémico extenso'], ['fRem', 'ACV'],
-    ['fIngTipo', 'Urgencia'], ['fApache', 22], ...vmDia(360, 45, 8, 96),
+    ['fIngTipo', 'Urgencia'], ['fApache', 22], ...vmDia(360, 45, 8, 96), ['fTOTn', '7.5'], ['fTOTcm', 21],
     ['fSed', 'Sedación moderada'], ['fSAS', 3], ['fCuffEst', 'rango'],
   ], js: `toggleFase('Neuroprotección')` });
   evento('P7', 'MOVER_A_CAMA_VACIA', { idOrigen: '7', idDestino: '12' });
@@ -400,7 +401,7 @@ const nota = (tag, msg) => { LOG.notas.push({ tag, msg }); console.log('  📝 '
   await turno({ pac: 'P8', cama: 8, fecha: '2026-07-15', t: 'Dia', ingreso: true, campos: [
     ...base, ['fNombre', 'Iván Leiva Cruz'], ['fEdad', 44], ['fSexo', 'M'], ['fTalla', 180],
     ['fRut', '11.888.888-8'], ['fDx', 'SDRA por influenza'], ['fRem', 'Otras respiratorias'],
-    ['fIngTipo', 'Urgencia'], ['fApache', 28], ...vmDia(440, 70, 12, 90),
+    ['fIngTipo', 'Urgencia'], ['fApache', 28], ...vmDia(440, 70, 12, 90), ['fTOTn', '8.0'], ['fTOTcm', 23],
     ['fSed', 'Sedación profunda'], ['fSAS', 1], ['fCuffEst', 'rango'],
     ['fSecrReol', 'Fluidas'], ['fSecrCar', 'Mucopurulentas'], ['fSecrQty', 'Moderadas'],
   ], checks: [['cAisl', true], ['cBNM', true]], js: `

@@ -287,6 +287,7 @@ const ESQUEMA = {
     // anotar antes, el egreso lo vuelve a ofrecer. Ajuste por gravedad: hallazgo
     // de M. Fuentes (OR 1,94 por cada 5 puntos). SIEMPRE AL FINAL de la lista.
     ['APACHE2','entero'],
+    ['TQT_CALIBRE','texto'],  // calibre de la cánula vigente (v4.6) — SIEMPRE AL FINAL
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },

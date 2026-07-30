@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="4.5-transiciones">
+<meta name="rce-version" content="4.6-narrativa">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1842,8 +1842,8 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
               <!-- TOT -->
               <div id="dTOT" class="row hidden" style="margin-bottom:6px;align-items:flex-end;">
                 <div class="col wa"><label>TOT N°</label>
-                  <select id="fTOTn" class="bold tc" style="height:34px;"><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option selected>8.0</option><option>8.5</option></select></div>
-                <div class="col ws"><label>Fijación</label><input type="number" id="fTOTcm" class="tc bold" value="22" style="height:34px;"></div>
+                  <select id="fTOTn" class="bold tc" style="height:34px;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
+                <div class="col ws"><label>Fijación</label><input type="number" id="fTOTcm" class="tc bold" placeholder="22" style="height:34px;"></div>
                 <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="cCambioTOT" onchange="toggleCambioTOT()"><label for="cCambioTOT" style="font-weight:700;color:#1d4ed8;">🔄 Cambio de tubo</label></div>
                 <div class="col wa hidden" id="dCambioTOTmot"><label>Motivo del cambio</label>
                   <select id="fCambioTOTmot" onchange="if(this.value==='Otro')show('dCambioTOTdet');else{hide('dCambioTOTdet');const e=$('fCambioTOTdet');if(e)e.value='';}" style="min-width:200px;">
@@ -1869,7 +1869,7 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
               <!-- TQT -->
               <div id="dTQT" class="row hidden" style="margin-bottom:6px;align-items:flex-end;">
                 <div class="col wa"><label>Calibre</label>
-                  <select id="fTQTn" class="bold tc" style="height:34px;"><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option selected>8.0</option><option>8.5</option></select></div>
+                  <select id="fTQTn" class="bold tc" style="height:34px;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
                 <div class="col grow"><label>Tipo</label>
                   <select id="fTQTt" style="height:34px;">
                     <option value="">-- seleccionar --</option>
@@ -2234,6 +2234,13 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                   <div style="padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
                     <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:7px;letter-spacing:.04em;">✅ Queda con (post-traqueostomía)</div>
                     <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0;">
+                      <div class="col ws"><label style="font-size:.66rem;">Cánula N°</label>
+                        <select id="poTqtN" style="height:28px;font-size:.78rem;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
+                      <div class="col wa"><label style="font-size:.66rem;">Tipo</label>
+                        <select id="poTqtTipo" style="height:28px;font-size:.78rem;">
+                          <option value="">--</option><option>Con balón</option><option>Sin balón</option>
+                          <option>Con puerto subglótico</option><option>Fenestrada</option>
+                        </select></div>
                       <div class="col wa"><label style="font-size:.66rem;">Soporte</label>
                         <select id="poTqtSop" onchange="renderParamsTqt()" style="height:28px;font-size:.78rem;">
                           <option value="VM">VM</option><option value="Oxigenoterapia/OAF">Oxigenoterapia/OAF</option><option value="Ambiente">Ambiente</option>
@@ -3423,7 +3430,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.5-transiciones]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 4.6-narrativa]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3836,7 +3843,7 @@ function abrirPanel(id, esIng) {
   PEND_SEL=new Set(); renderPend();
   const _spCod=$('spCod'); if(_spCod) _spCod.textContent='';
   hide('dReintubDetT'); hide('dIntubDet');
-  _vmHistFlag=false; _transIntubEsteTurno=false;
+  _vmHistFlag=false; _transIntubEsteTurno=false; window._vfonHoras=0;
   const _cct=$('cCambioTOT'); if(_cct) _cct.checked=false; _totSnapshot=null; _lockTOT(false);
   hide('dCambioTOTmot'); hide('dCambioTOTdet');
   ['cProcImagen','cProcPabellon','cProcAsistMed'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
@@ -4155,11 +4162,16 @@ function fillCama(c, fecha) {
   actualizarContadores();
   if(c.VIA_AEREA) { $('fVA').value=c.VIA_AEREA; cascadeVA(c.SOPORTE); }
   if(c.SOPORTE) cascadeSop(c.MODO);
+  // El tubo/cánula vigente viene de la cama (sincronizado al intubar/TQT);
+  // los selects parten en "--" y la réplica solo pisa valores no vacíos.
+  if(c.VIA_AEREA==='TOT'){ s('fTOTn',c.TOT_NUMERO); s('fTOTcm',c.TOT_CM_LABIO); }
+  if(c.VIA_AEREA==='TQT'){ s('fTQTn',c.TQT_CALIBRE); s('fTQTt',c.TQT_TIPO); }
   if(c.KTM_NIVEL) $('fKTMniv').value=c.KTM_NIVEL;
   aplicarFirmaTurno(c.FIRMA_KINE);
 }
 
 function fillForm(s) {
+  window._vfonHoras = parseInt(s && s._VFON_HORAS) || 0;
   const set=(id,val)=>{ const e=$(id); if(e&&val!==undefined&&val!=='') e.value=String(val); };
   const chk=(id,val)=>{ const e=$(id); if(e) e.checked=(val===true||val==='TRUE'); };
   set('fNombre',s.PAC_NOMBRE); set('fEdad',s.PAC_EDAD); set('fTalla',s.PAC_TALLA);
@@ -4396,6 +4408,8 @@ function fillForm(s) {
  * NO copia firma, texto libre de nota de turno, ni ID de evolución.
  */
 function fillFormReplica(s) {
+  // Racha de válvula de fonación del episodio (para la frase de decanulación)
+  window._vfonHoras = parseInt(s && s._VFON_HORAS) || 0;
   // set() omite valores que Sheets devuelve como fecha ISO (columna con formato fecha)
   // p.ej. VENT_TQT_TIPO guardado en col con formato fecha llega como "2026-06-12"
   const set=(id,val)=>{ const e=$(id); if(e&&val!==undefined&&val!==null&&val!==''){
@@ -4624,7 +4638,9 @@ function _podarEventosPayload(p){
   if(!pveActivo) del(['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_SC_DET','PVE_VAL','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO']);
   const decanActivo=(va==='TQT') && !!$('cDecanOcurrio')?.checked;
   if(!decanActivo) del(['DECAN_OCURRIO','DECAN_HORA','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL']);
-  const tqtActivo=(va==='TQT') && !!$('cTqtO')?.checked;
+  // v4.6: la TQT se anota con la VA previa en TOT (estado previo → evento);
+  // también se acepta TQT (paciente que ya llegó traqueostomizado y se recanula).
+  const tqtActivo=(va==='TOT'||va==='TQT') && !!$('cTqtO')?.checked;
   if(!tqtActivo) del(['TQT_OCURRIO','TQT_HORA','TQT_TECNICA','TQT_DET']);
   if(!$('cIntubO')?.checked) del(['INTUB_OCURRIO','INTUB_HORA','INTUB_DET','INTUB_SOP_PREVIO','INTUB_VA_PREVIA','INTUB_MODO_PREVIO','INTUB_VA_POST','INTUB_SOP_POST','INTUB_MODO_POST','INTUB_TOT_N','INTUB_TOT_CM','INTUB_VT','INTUB_FR','INTUB_PEEP','INTUB_FIO2','INTUB_SPO2']);
   if(!$('cTqtO')?.checked) del(['TQT_SOP_POST','TQT_MODO_POST','TQT_PARAMS','TQT_VT','TQT_FR','TQT_PEEP','TQT_FIO2','TQT_SPO2','TQT_PMAX','TQT_PPL','TQT_PS','TQT_PAFI']);
@@ -4907,7 +4923,8 @@ function guardar() {
     EX_RUIDOS: v('fRuidosVal'), EX_RUIDOS_LOC: v('fRuidosLoc'),
     EX_CULT_RESULTADO: v('fCultVal'),
     VENT_VIA_AEREA:v('fVA'), VENT_TOT_NUM:v('fTOTn'), VENT_TOT_CM:v('fTOTcm'),
-    VENT_TQT_CALIBRE:v('fTQTn'), VENT_TQT_TIPO:v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
+    VENT_TQT_CALIBRE: bv('cTqtO') ? (v('poTqtN')||v('fTQTn')) : v('fTQTn'),
+    VENT_TQT_TIPO:    bv('cTqtO') ? (v('poTqtTipo')||v('fTQTt')) : v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
     VENT_H_ACTIVA:bv('cHAct'), KTM_UMA:v('r_uma')||'',
     VENT_ADAPTADO: $('sAdapt') ? (v('sAdapt')==='Sincrónico') : '',
     VENT_VT:n(v('r_vt')), VENT_FR:n(v('r_fr')), VENT_PEEP:n(v('r_peep')),
@@ -4976,7 +4993,7 @@ function guardar() {
     RESP_CULT_FECHAS:v('fCultFechas'),
     RESP_CULT_OBJ:  v('fCultObj'),
     // ★ Evaluaciones funcionales por turno
-    EVAL_FECHA:       new Date().toISOString().slice(0,10),
+    EVAL_FECHA:       v('gDate')||hoy(),   // fecha del TURNO (la del computador en UTC fechaba al día siguiente pasadas las ~20 h)
     EVAL_T_REALIZAR:  bv('cEgr'),
     EVAL_T_MRC:       v('fMRC'),
     EVAL_T_DINAMO:    v('fPrension'),
@@ -6375,7 +6392,7 @@ function genTexto() {
   else s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
   // GCS: en intubado el total ("11T") y la verbal ("1T") ya vienen con "T"
   // desde calcGCS; el sufijo /15 solo aplica a paciente sin vía aérea artificial.
-  s+=` GCS ${gcsT}${intub?'':'/15'}(O:${gv('fGCSO')||'?'}, V:${gv('fGCSV')||'?'}, M:${gv('fGCSM')||'?'})`;
+  s+=` GCS ${gcsT}${intub?'':'/15'} (O:${gv('fGCSO')||'?'}, V:${gv('fGCSV')||'?'}, M:${gv('fGCSM')||'?'})`;
   // Cooperación: solo se informa si el paciente NO está profundamente sedado
   // (SAS distinto de 1-2, o GCS total > 7). En sedación profunda no aplica.
   { const _sasN=parseInt(sas,10), _gcsN=parseInt(gcsT,10);
@@ -6407,13 +6424,19 @@ function genTexto() {
     L.push(`Se realiza cambio de cánula de TQT${_conMotivo(_cq)}.`);
   }
   if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()} (día ${dVA})${$('cCambioTOT')?.checked?' (tubo nuevo)':''}.`); }
-  else if(va==='TQT'&&$('cTqtO')?.checked){
-    // TQT instalada ESTE turno: importa cómo quedó (técnica + cánula + hora)
+  else if(va==='TQT'&&!$('cTqtO')?.checked) L.push(`VAA mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''} (día ${dVA})${$('cCambioTQT')?.checked?' (cánula nueva)':''}.`);
+  // TQT instalada ESTE turno (regla de Diego): puede venir de TOT o Natural —
+  // lo que llevó a traqueostomizar son los DÍAS DE VM, no el estado del
+  // momento. El texto justifica con los días, narra el procedimiento y el
+  // «Queda con» describe la ventilación (el previo se guarda, no se narra).
+  if($('cTqtO')?.checked){
     const _tec=(gv('fTqtTec')||'').toLowerCase();
     const _hq=gv('fTqtHora'), _det=(gv('fTqtDet')||'').trim();
-    L.push(`VAA mediante TQT${_tec?' '+_tec:''} N°${gv('fTQTn')||'?'}${gv('fTQTt')?' '+String(gv('fTQTt')).toLowerCase():''} realizada hoy${_hq?' a las '+_hq+' hrs':''}${_det?' ('+_det+')':''}.`);
+    const _cn=gv('poTqtN')||gv('fTQTn'), _ct=gv('poTqtTipo')||gv('fTQTt');
+    const _dvmN=parseInt(dVM);
+    const _tras=(!isNaN(_dvmN)&&_dvmN>0)?`Tras ${_dvmN} día${_dvmN===1?'':'s'} de VM, se`:'Se';
+    L.push(`${_tras} realiza traqueostomía${_tec?' '+_tec:''}${_hq?' a las '+_hq+' hrs':''}, con cánula N° ${_cn||'?'}${_ct?' '+String(_ct).toLowerCase():''}${_det?' ('+_det+')':''}.`);
   }
-  else if(va==='TQT') L.push(`VAA mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''} (día ${dVA})${$('cCambioTQT')?.checked?' (cánula nueva)':''}.`);
   // — Helpers de soporte ventilatorio —
   const _np=id=>{ const x=parseFloat(gv(id)); return isNaN(x)?0:x; };
   const _mon=id=>{ const e=$(id); return e?(e.textContent||'').trim():''; };
@@ -6427,17 +6450,21 @@ function genTexto() {
   const _pveNoCond = v('fPVEval')==='no' && !$('cExtSinPve')?.checked;
   const _pveNoRaz  = _pveNoCond ? (v('fPveSCraz')||'') : '';
   const _pveNoDet  = _pveNoCond ? (v('fPveSCdet')||'') : '';
-  if(sop==='VM'){
+  if($('cTqtO')?.checked){
+    // TQT este turno: el estado ventilatorio previo se omite del texto (queda
+    // guardado en la base); la ventilación actual la narra el «Queda con».
+  } else if(sop==='VM'){
     const _mlkg=_numTxt('l_mlkg');
     let vs;
     if(_espontaneo){
       vs=`Ventila espontáneo en modo ${modo} (día ${dVM} de VM)`;
     } else {
       vs=`En VMI${_humid?' más humidificación activa':''}, modo ${modo} (día ${dVM} de VM)`;
-      // PVE sin_condiciones integrado solo en modo controlado
-      if(_pveNoCond) vs+=`, sin realización de PVE en este turno${_pveNoRaz?' por '+_lcIni(_pveNoRaz):''}`;
     }
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
+    // PVE no realizada (solo en modo controlado): cierra la frase, después de
+    // la interacción P-VM — antes quedaba incrustada al medio y se leía mal.
+    if(!_espontaneo && _pveNoCond) vs+=`, sin realización de PVE en este turno${_pveNoRaz?' por '+_lcIni(_pveNoRaz):''}`;
     L.push(vs+'.');
     // Parámetros en 3 líneas: volúmenes/frecuencia · presiones/mecánica · oxigenación
     const _l1=_pjoin([
@@ -6461,7 +6488,7 @@ function genTexto() {
       _numTxt('l_cesr')?`Cesr ${_numTxt('l_cesr')} ml/cmH2O`:null,
     ]);
     const _l3=_pjoin([fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null, _np('r_pafi')?`PaFiO2 ${_np('r_pafi')}`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null]);
-    if(_l1) L.push(`TV: ${_l1}.`);
+    if(_l1) L.push(`Parámetros: ${_l1}.`);
     if(_l2) L.push(`${_l2}.`);
     if(_l3) L.push(`${_l3}.`);
   } else if(sop==='VNI'){
@@ -6471,18 +6498,18 @@ function genTexto() {
     L.push(vs+'.');
     const _psVni=(ip>0&&ep>0)?Math.round((ip-ep)*10)/10:0;
     const _pb=_pjoin([ip?`IPAP ${ip}${ipmax?'–'+ipmax:''} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null, _np('r_pafi')?`PaFiO2 ${_np('r_pafi')}`:null]);
-    if(_pb) L.push(`TV: ${_pb}.`);
+    if(_pb) L.push(`Parámetros: ${_pb}.`);
   } else if(sop==='CNAF'){
     const fl=_np('r_flujo');
     L.push(`Ventila espontáneo con apoyo de CNAF${_humid?' con humidificación activa':''}.`);
     const _pb=_pjoin([fl?`Flujo ${fl} L/min`:null, fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null, _numTxt('l_irox')?`índice ROX ${_numTxt('l_irox')}`:null]);
-    if(_pb) L.push(`TV: ${_pb}.`);
+    if(_pb) L.push(`Parámetros: ${_pb}.`);
   } else if(sop==='Oxigenoterapia/OAF'){
     if(['CNAF','OAF/CTAF'].includes(modo)){
       const _fl=_np('r_flujo'), _tmp=gv('r_temp');
       L.push(`Ventila espontáneo con apoyo de ${modo}${_humid?' con humidificación activa':''}.`);
       const _pb=_pjoin([_fl?`Flujo ${_fl} L/min`:null, _tmp?`T° ${_tmp}°C`:null, fio2?`FiO2 ${fio2}%`:null, fr?`FR ${fr} rpm`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null, _numTxt('l_irox')?`índice ROX ${_numTxt('l_irox')}`:null]);
-      if(_pb) L.push(`TV: ${_pb}.`);
+      if(_pb) L.push(`Parámetros: ${_pb}.`);
     } else if(modo==='Válvula de fonación'){
       const _lit=_np('r_litros');
       L.push(`Ventila espontáneo con válvula de fonación${_lit||fio2?' y O2 adicional':''}.`);
@@ -6564,7 +6591,9 @@ function genTexto() {
   if(v('fVA')==='TQT' && $('cDecanOcurrio')?.checked){
     const _dt=document.querySelector('input[name="decanTipo"]:checked')?.value||'';
     const _dtTxt=_dt==='protocolo'?' según protocolo':_dt==='sin_protocolo'?' sin protocolo':_dt==='accidental'?' accidental':'';
-    let _t=`Se realiza decanulación${_dtTxt}${v('fDecanHora')?' a las '+v('fDecanHora')+' hrs':''}`;
+    const _vfh=(window._vfonHoras||0)+((v('fModo')==='Válvula de fonación'||$('cVfon')?.checked)?12:0);
+    const _cumple=_vfh>=12?`Cumple ~${_vfh} h con válvula de fonación, por lo que se`:`Se`;
+    let _t=`${_cumple} realiza decanulación${_dtTxt}${v('fDecanHora')?' a las '+v('fDecanHora')+' hrs':''}`;
     if($('cRecanul')?.checked){ _t+=', sin embargo paciente requiere recanulación'; }
     else if(v('fDecanQueda')){ _t+=`, quedando con ${v('fDecanQueda')}${v('fDecanFlujo')?' '+v('fDecanFlujo'):''}${v('fDecanSpo2')?`, SpO2 ${v('fDecanSpo2')}%`:''}`; }
     if(v('fDecanDet')) _t+=`. ${v('fDecanDet')}`;
@@ -6636,9 +6665,10 @@ function genTexto() {
   // ── KTM (después de KTR) ──
   const kR=$('bKTMr')?.classList.contains('on'), kS=$('bKTMs')?.classList.contains('on'), kN=$('bKTMn')?.classList.contains('on');
   if(kR){
-    const _niv=gv('fKTMniv')||'?', _asis=gv('fKTMasis'), _t=gv('fKTMt');
+    const _niv=gv('fKTMniv'), _asis=gv('fKTMasis'), _t=gv('fKTMt');
     const _kcant=Math.min(9,Math.max(1,parseInt(gv('fKtmCant'))||1));
-    let k=_kcant>1?`Se realizan ${_kcant} sesiones de KTM nivel ${_niv}`:`Se realiza KTM nivel ${_niv}`;
+    const _nivTxt=_niv?` nivel ${_niv}`:'';
+    let k=_kcant>1?`Se realizan ${_kcant} sesiones de KTM${_nivTxt}`:`Se realiza KTM${_nivTxt}`;
     if(_asis) k+=` con asistencia ${_asis.toLowerCase()}`;
     if(_t) k+=` (${_t} min)`;
     L.push(k+'.');
@@ -6668,7 +6698,8 @@ function genTexto() {
   } else if(kN){
     const _nr=gv('fKTMnoRaz')||'', _nc=gv('fKTMnoCom')||'';
     let _ktmn='KTM no realizada';
-    if(_nr) _ktmn+=` por ${_nr}`;
+    // Las razones son etiquetas del catálogo; en el texto se narran natural
+    if(_nr) _ktmn+=` por ${({'Motivo ingreso':'ingreso reciente','Sin equipo o tiempo disponible':'falta de equipo o tiempo disponible'})[_nr]||_nr.toLowerCase()}`;
     if(_nc) _ktmn+=`. ${_nc}`;
     L.push(_ktmn+'.');
   }
@@ -6734,7 +6765,7 @@ function genTexto() {
           L.push(_rt);
         } else if(_peModo){ L.push(_peTxt()); }
       } else if(_res==='frustra'){
-        L.push(`Se realiza PVE según protocolo con resultado fallido desde lo ${_mstr}. Paciente continúa con soporte ventilatorio.`);
+        L.push(`Se realiza PVE según protocolo con resultado fallido por ${_mstr}. Paciente continúa con soporte ventilatorio.`);
       } else {
         L.push('Se realiza PVE según protocolo.');
       }
@@ -7032,7 +7063,7 @@ function updateVAUI() {
   const esInv=va==='TOT'||va==='TQT';
   const esVNI=va==='Full Face'||va==='Oronasal';
   if(va==='TOT'){
-    show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');hide('dTqtSec');
+    show('dVADet');show('dTOT');hide('dTQT');show('dExtSec');hide('dDecanSec');show('dTqtSec');
     _showCol('colDiasTOT'); _hideCol('colDiasTQT'); _showCol('colDiasVAA');
   } else if(va==='TQT'){
     show('dVADet');hide('dTOT');show('dTQT');hide('dExtSec');show('dDecanSec');show('dTqtSec');
@@ -7081,8 +7112,8 @@ const fld=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><la
 const mon=(id,lbl,y=false)=>`<div class="mon${y?' mon-y':''}" style="height:35px;min-width:68px;"><span style="font-size:.58rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.82rem;">--</span></div>`;
 const lbl=txt=>`<div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--resp);margin:8px 0 4px;padding-bottom:2px;border-bottom:1px solid #bae6fd;">${txt}</div>`;
 
-const _UMA_TIPS={'':'Sin uso de musculaturas accesorias','+':'Tiraje subcostal','++':'Tiraje supraesternal','+++':'Tiraje supraesternal + espiración forzada'};
-const _UMA_CLS={'':'interp-ok','+':'interp-leve','++':'interp-mod','+++':'interp-sev'};
+const _UMA_TIPS={'':'No registrado','(-)':'Sin uso de musculaturas accesorias (evaluado)','+':'Tiraje subcostal','++':'Tiraje supraesternal','+++':'Tiraje supraesternal + espiración forzada'};
+const _UMA_CLS={'':'interp-ok','(-)':'interp-ok','+':'interp-leve','++':'interp-mod','+++':'interp-sev'};
 function hUMA(){
   const sel=$('r_uma'); const tip=$('umatip'); if(!sel||!tip) return;
   const v=sel.value;
@@ -7097,7 +7128,7 @@ function hPEUMA(){
   tip.classList.remove(..._INTERP_CLASSES);
   tip.classList.add(_UMA_CLS[v]||'interp-ok');
 }
-const _umaFld=()=>`<div class="col" style="flex-grow:0;"><label>UMA</label><div style="display:flex;align-items:center;gap:4px;"><select id="r_uma" onchange="hUMA()" style="height:35px;width:60px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option><option>+</option><option>++</option><option>+++</option></select><span id="umatip" class="interp-tip interp-ok" data-tip="${_UMA_TIPS['']}" style="font-size:.75rem;">ⓘ</span></div></div>`;
+const _umaFld=()=>`<div class="col" style="flex-grow:0;"><label>UMA</label><div style="display:flex;align-items:center;gap:4px;"><select id="r_uma" onchange="hUMA()" style="height:35px;width:60px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option><option>(-)</option><option>+</option><option>++</option><option>+++</option></select><span id="umatip" class="interp-tip interp-ok" data-tip="${_UMA_TIPS['']}" style="font-size:.75rem;">ⓘ</span></div></div>`;
 // Humidificación Activa vive en el bloque Dispositivos (redundante repetirla
 // aquí); este helper solo arma el selector de interacción P-VM cuando aplica.
 const _humChk=(haAdapt)=>{
@@ -7795,7 +7826,7 @@ function interpGSA(){
   }
   if(!isNaN(po2)&&!isNaN(fio2)&&fio2>0){
     const pafi=Math.round(po2/(fio2/100));
-    partes.push(`PaFiO₂ ${pafi}`+(pafi<100?' (SDRA severo)':pafi<200?' (SDRA moderado)':pafi<300?' (SDRA leve)':''));
+    partes.push(`PaFiO2 ${pafi}`+(pafi<100?' (SDRA severo)':pafi<200?' (SDRA moderado)':pafi<300?' (SDRA leve)':''));
     // Si el campo PaFi del bloque ventilatorio está vacío, se completa solo
     const rp=$('r_pafi'); if(rp && !rp.value){ rp.value=String(pafi); if(typeof calcResp==='function') calcResp(); }
   }

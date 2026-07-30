@@ -244,7 +244,7 @@ const { chromium } = require('playwright-core');
   });
   eq('GSA parte oculto y se despliega con la casilla', G.oculto && G.visible, true);
   eq('interpreta acidosis respiratoria', /Acidosis respiratoria/.test(G.interp), true);
-  eq('calcula PaFiO₂ (80/0,5 = 160 → SDRA moderado)', /PaFiO₂ 160/.test(G.interp) && /moderado/.test(G.interp), true);
+  eq('calcula PaFiO2 (80/0,5 = 160 → SDRA moderado)', /PaFiO2 160/.test(G.interp) && /moderado/.test(G.interp), true);
   eq('desmarcar limpia el bloque', G.limpio, true);
 
   // ── Texto clínico: las tres piezas nuevas narradas ──

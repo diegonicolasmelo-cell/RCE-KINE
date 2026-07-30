@@ -52,7 +52,7 @@ function generarTextoEvolucion(d) {
              : `Sedado en ${sed.toLowerCase()}${sas ? ' para SAS ' + sas : ''}.`;
   // GCS: el total (SED_GCS_TOT="11T") y la verbal (SED_GCS_V="1T") ya vienen con
   // "T" desde el cliente en intubado; /15 solo para paciente sin VA artificial.
-  sedStr += ` GCS ${gcsTot}${intubado ? '' : '/15'}(O:${gcsO}, V:${gcsV}, M:${gcsM})`;
+  sedStr += ` GCS ${gcsTot}${intubado ? '' : '/15'} (O:${gcsO}, V:${gcsV}, M:${gcsM})`;
   const s5qTxt = s5q === 'lt3' ? '<3' : (s5q === 'gte3' ? '≥3' : s5q);
   if (s5q)  sedStr += `, S5Q ${s5qTxt}/5`;
   // Cooperación: solo si NO está profundamente sedado (SAS ≠ 1-2 o GCS > 7).
@@ -96,26 +96,30 @@ function generarTextoEvolucion(d) {
   if (va === 'TOT') {
     const desc = (totN || totCm) ? ` N° ${totN || '?'} fijado en ${totCm || '?'} cm` : '';
     txt.push(`VAA mediante TOT${desc} (día ${diasVA || '?'})${esVerdadero(d.TOT_CAMBIO) ? ' (tubo nuevo)' : ''}.`);
-  } else if (va === 'TQT' && esVerdadero(d.TQT_OCURRIO)) {
-    // TQT instalada ESTE turno: importa cómo quedó (técnica + cánula + hora)
+  } else if (va === 'TQT' && !esVerdadero(d.TQT_OCURRIO)) {
+    const tqtN = v('VENT_TQT_CALIBRE');
+    const desc = (tqtN ? ` N° ${tqtN}` : '') + (tqtT ? ` tipo ${tqtT}` : '');
+    txt.push(`VAA mediante TQT${desc} (día ${diasVA || '?'})${esVerdadero(d.TQT_CAMBIO) ? ' (cánula nueva)' : ''}.`);
+  } else if (va === 'Full Face' || va === 'Oronasal') {
+    txt.push(`Paciente con máscara ${va} de VNI.`);
+  }
+  // TQT instalada ESTE turno: puede venir de TOT o Natural. La justificación
+  // son los DÍAS DE VM; el previo se guarda pero no se narra, y la ventilación
+  // actual la describe el «Queda con».
+  if (esVerdadero(d.TQT_OCURRIO)) {
     const tqtN = v('VENT_TQT_CALIBRE');
     const tec = String(v('TQT_TECNICA') || '').toLowerCase();
     const hq = v('TQT_HORA');
     const det = String(v('TQT_DET') || '').trim();
-    txt.push(`VAA mediante TQT${tec ? ' ' + tec : ''} N°${tqtN || '?'}${tqtT ? ' ' + String(tqtT).toLowerCase() : ''} realizada hoy${hq ? ' a las ' + hq + ' hrs' : ''}${det ? ' (' + det + ')' : ''}.`);
-    // Cómo QUEDA tras la traqueostomía (panel propio; el previo vive arriba)
+    const dvmN = parseInt(d.DIAS_VM);
+    const tras = (!isNaN(dvmN) && dvmN > 0) ? `Tras ${dvmN} día${dvmN === 1 ? '' : 's'} de VM, se` : 'Se';
+    txt.push(`${tras} realiza traqueostomía${tec ? ' ' + tec : ''}${hq ? ' a las ' + hq + ' hrs' : ''}, con cánula N° ${tqtN || '?'}${tqtT ? ' ' + String(tqtT).toLowerCase() : ''}${det ? ' (' + det + ')' : ''}.`);
     const tSop = v('TQT_SOP_POST'), tModo = v('TQT_MODO_POST'), tPar = v('TQT_PARAMS');
     if (tSop || tModo) {
       let q = tSop === 'VM' ? `Queda conectado a VM${tModo ? ' en modo ' + tModo : ''}`
             : `Queda en ${tSop || 'oxigenoterapia'}${tModo ? ', ' + _lcIni(tModo) : ''}`;
       txt.push(q + (tPar ? `. ${tPar}` : '') + '.');
     }
-  } else if (va === 'TQT') {
-    const tqtN = v('VENT_TQT_CALIBRE');
-    const desc = (tqtN ? ` N° ${tqtN}` : '') + (tqtT ? ` tipo ${tqtT}` : '');
-    txt.push(`VAA mediante TQT${desc} (día ${diasVA || '?'})${esVerdadero(d.TQT_CAMBIO) ? ' (cánula nueva)' : ''}.`);
-  } else if (va === 'Full Face' || va === 'Oronasal') {
-    txt.push(`Paciente con máscara ${va} de VNI.`);
   }
 
   // 6. Parámetros ventilatorios
@@ -131,7 +135,9 @@ function generarTextoEvolucion(d) {
   const pafi = vn('VENT_PAFI');
 
   let ventStr = '';
-  if (sop === 'VM') {
+  if (esVerdadero(d.TQT_OCURRIO)) {
+    // TQT este turno: el estado ventilatorio previo se omite del texto
+  } else if (sop === 'VM') {
     // Intro + parámetros en 3 líneas: volúmenes/frecuencia · presiones/mecánica · oxigenación
     const pinsp = vn('VENT_PINSP'), pmedia = vn('VENT_PMEDIA'), ppl = vn('VENT_PPL');
     const autopeep = vn('VENT_AUTOPEEP'), cesr = vn('CALC_CESR'), ie = v('CALC_IE'), ti = vn('VENT_TI');
@@ -169,7 +175,7 @@ function generarTextoEvolucion(d) {
       pafi > 0 ? `PaFiO₂ ${pafi}` : null,
       umaVM ? `UMA ${umaVM}` : null,
     ]);
-    if (l1) txt.push(`TV: ${l1}.`);
+    if (l1) txt.push(`Parámetros: ${l1}.`);
     if (l2) txt.push(l2 + '.');
     if (l3) txt.push(l3 + '.');
   } else if (sop === 'VNI') {
@@ -193,7 +199,7 @@ function generarTextoEvolucion(d) {
       spo2 > 0 ? `SpO2 ${spo2}%` : null,
       irox > 0 ? `índice ROX ${irox}` : null,
     ].filter(Boolean).join(', ');
-    if (pb) txt.push(`TV: ${pb}.`);
+    if (pb) txt.push(`Parámetros: ${pb}.`);
   } else if (sop === 'Oxigenoterapia/OAF' || sop === 'Oxigenoterapia') {
     // Naricera/MMV/Mascarilla — y HME/Tubo T/válvula de fonación en TQT sin VM
     const litros = vn('VENT_LITROS'), umaO = v('KTM_UMA');
@@ -243,7 +249,7 @@ function generarTextoEvolucion(d) {
         let mots = [];
         try { mots = JSON.parse(d.PVE_FR_MOTIVOS || '[]') || []; } catch (e) {}
         const mstr = mots.length ? mots.join(', ') : 'aspectos clínicos';
-        txt.push(`Se realiza PVE según protocolo con resultado fallido desde lo ${mstr}. Paciente continúa con soporte ventilatorio.`);
+        txt.push(`Se realiza PVE según protocolo con resultado fallido por ${mstr}. Paciente continúa con soporte ventilatorio.`);
       } else txt.push('Se realiza PVE según protocolo.');
     } else if (esVerdadero(d.EXT_OCURRIO)) {
       let e2 = extTipo === 'autoextubacion' ? `Paciente se autoextuba${horaTxt}`
@@ -298,7 +304,9 @@ function generarTextoEvolucion(d) {
     const dt = v('DECAN_TIPO');
     const dtTxt = dt === 'protocolo' ? ' según protocolo' : dt === 'sin_protocolo' ? ' sin protocolo' : dt === 'accidental' ? ' accidental' : '';
     const dh = v('DECAN_HORA');
-    let t2 = `Se realiza decanulación${dtTxt}${dh ? ' a las ' + dh + ' hrs' : ''}`;
+    const vfh = parseInt(d._VFON_HORAS) || 0;
+    const cumple = vfh >= 12 ? `Cumple ~${vfh} h con válvula de fonación, por lo que se` : 'Se';
+    let t2 = `${cumple} realiza decanulación${dtTxt}${dh ? ' a las ' + dh + ' hrs' : ''}`;
     if (esVerdadero(d.DECAN_RECANUL)) t2 += ', sin embargo paciente requiere recanulación';
     else {
       const dq = v('DECAN_QUEDA_DISP'), df = v('DECAN_QUEDA_FLUJO'), ds = v('DECAN_QUEDA_SPO2');
@@ -393,7 +401,8 @@ function generarTextoEvolucion(d) {
   const uma = v('KTM_UMA');
   if (ktmR) {
     const ktmCant = Math.min(9, Math.max(1, parseInt(v('KTM_CANT')) || 1));
-    let ktmStr = ktmCant > 1 ? `Se realizan ${ktmCant} sesiones de KTM nivel ${nivel || '?'}` : `Se realiza KTM nivel ${nivel || '?'}`;
+    const nivTxt = nivel ? ` nivel ${nivel}` : '';
+    let ktmStr = ktmCant > 1 ? `Se realizan ${ktmCant} sesiones de KTM${nivTxt}` : `Se realiza KTM${nivTxt}`;
     if (v('KTM_ASISTENCIA')) ktmStr += ` con asistencia ${v('KTM_ASISTENCIA').toLowerCase()}`;
     if (tiempo) ktmStr += ` durante ${tiempo} minutos`;
     if (uma) ktmStr += `. UMA ${uma}`;
@@ -404,7 +413,8 @@ function generarTextoEvolucion(d) {
   } else if (esVerdadero(d.KTM_NO_REALIZADA)) {
     const nr = v('KTM_NO_RAZON'), nc = v('KTM_NO_COMENTARIO');
     let s2 = 'KTM no realizada';
-    if (nr) s2 += ` por ${nr.toLowerCase()}`;
+    // Las razones son etiquetas del catálogo; en el texto se narran natural
+    if (nr) s2 += ` por ${({ 'Motivo ingreso': 'ingreso reciente', 'Sin equipo o tiempo disponible': 'falta de equipo o tiempo disponible' })[nr] || nr.toLowerCase()}`;
     if (nc) s2 += `. ${nc}`;
     txt.push(s2 + '.');
   }
