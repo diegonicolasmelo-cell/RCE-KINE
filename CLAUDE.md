@@ -76,7 +76,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 Chromium con puente simulado; acepta ruta del cohete como argumento),
 `regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
 `eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`,
-`reset.js`, `mover_camas.js`.
+`reset.js`, `mover_camas.js`, `vm_lote.js`.
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
 
@@ -105,8 +105,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.4-compacto**
-  (antes v5.3-mascota, v5.2-servi, v5.1-tqt, v5.0-reinicio).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.5-lotevm**
+  (antes v5.4-compacto, v5.3-mascota, v5.2-servi, v5.1-tqt).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
@@ -170,6 +170,22 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   Guía paso a paso para Diego: `scratchpad/GUIA_MIGRACION.md` (11 pasos).
   TRAMPA propia: un comentario de bloque con `infra_*/` cierra el comentario
   antes de tiempo (`*/`) y rompe el archivo.
+- **v5.5 · MOVIMIENTOS DE VENTILADORES EN LOTE (ago-2026, cohete
+  v5.5-lotevm).** Diego: confirmar uno por uno era lento cuando hay mantención
+  y se reorganizan varios equipos.
+  - Cliente: `VM_COLA` acumula movimientos («➕ A la lista» en el modal, que
+    conserva «🔁 Mover ahora» para el caso simple); barra `#vmCola` fija abajo
+    con los pendientes, quitar uno, vaciar y «✅ Aplicar todos». Re-agregar el
+    mismo equipo ACTUALIZA su destino en vez de duplicarlo.
+  - Servidor `moverVentiladoresLote` + API `MOVER_VENTILADORES_LOTE`: **TODO O
+    NADA**, valida el lote completo antes de escribir (equipo existe/activo,
+    destino válido, detalle obligatorio en CAMA/PRÉSTAMO, sin repetidos) y el
+    choque de camas lo evalúa sobre el **estado FINAL** — por eso el lote
+    permite **INTERCAMBIAR ventiladores entre camas**, imposible de a uno
+    (obligaba a pasar por pasillo/bodega y ensuciaba el libro con 3 registros).
+    Cada movimiento sigue dejando su fila en MOVIMIENTOS_VM.
+  - Guardia: `checks/vm_lote.js` (servicio con repo simulado: lote válido,
+    intercambio, 7 casos de rechazo verificando que NO se movió nada; + UI).
 - **v5.4 · ENCABEZADO COMPACTO, PIEL ÚNICA Y MOVER A CAMA VACÍA (ago-2026,
   cohete v5.4-compacto).**
   1. **BUG CORREGIDO — mover un paciente a una cama VACÍA era imposible**: la

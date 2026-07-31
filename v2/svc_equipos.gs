@@ -130,6 +130,93 @@ function moverVentilador(d, ctx) {
   });
 }
 
+/**
+ * Mueve VARIOS ventiladores de una vez (reorganización de la unidad, mantención
+ * de equipos). Pedido de Diego (ago-2026): confirmar uno por uno era lento.
+ *
+ * TODO O NADA: primero valida el lote COMPLETO contra el estado FINAL y, si algo
+ * no cuadra, no escribe nada y devuelve la lista de problemas. Validar el estado
+ * final (y no movimiento a movimiento) permite además INTERCAMBIAR ventiladores
+ * entre camas, que uno por uno obligaba a pasar por bodega o pasillo.
+ * Cada movimiento deja igual su registro en MOVIMIENTOS_VM.
+ */
+function moverVentiladoresLote(d, ctx) {
+  return conLock(function () {
+    try {
+      const movs = (d && d.movimientos) || [];
+      if (!movs.length) return err('No hay movimientos que aplicar.', ERR.VALIDACION);
+
+      const equipos = repoLeerTodos('VENTILADORES');
+      const porId = {};
+      equipos.forEach(function (x) { porId[String(x.ID_VM)] = x; });
+
+      // ── 1. Validación previa: nada se escribe hasta que todo el lote cuadre ──
+      const problemas = [];
+      const vistos = {};
+      const normal = [];
+      movs.forEach(function (m, i) {
+        const n = i + 1;
+        const vmx = porId[String(m.idVm)];
+        const nom = (vmx && vmx.NOMBRE) || ('movimiento ' + n);
+        if (!vmx) { problemas.push('Movimiento ' + n + ': ventilador no encontrado.'); return; }
+        if (!esVerdadero(vmx.ACTIVO)) { problemas.push(nom + ': está dado de baja.'); return; }
+        if (vistos[String(m.idVm)]) { problemas.push(nom + ': aparece dos veces en la lista.'); return; }
+        vistos[String(m.idVm)] = true;
+        const tipo = m.tipo;
+        if (['CAMA', 'BODEGA', 'PRESTAMO', 'PASILLO', 'EQUIPOS'].indexOf(tipo) === -1) {
+          problemas.push(nom + ': destino inválido.'); return;
+        }
+        if (tipo === 'CAMA' && !m.detalle) { problemas.push(nom + ': falta el número de cama.'); return; }
+        if (tipo === 'PRESTAMO' && !m.detalle) { problemas.push(nom + ': falta la unidad del préstamo.'); return; }
+        normal.push({
+          idVm: String(m.idVm), vmx: vmx, tipo: tipo,
+          detalle: (tipo === 'CAMA' || tipo === 'PRESTAMO') ? String(m.detalle) : '',
+          motivo: m.motivo || '', fecha: _statISO(m.fecha) || hoyISO(), estado: m.estado || '',
+        });
+      });
+
+      // Estado FINAL de las camas: las que no se mueven + las del lote
+      if (!problemas.length) {
+        const camaFinal = {};
+        equipos.forEach(function (x) {
+          if (!esVerdadero(x.ACTIVO) || x.UBIC_TIPO !== 'CAMA') return;
+          if (vistos[String(x.ID_VM)]) return;          // este se mueve: su cama queda libre
+          camaFinal[String(x.UBIC_DETALLE)] = x.NOMBRE || x.ID_VM;
+        });
+        normal.forEach(function (m) {
+          if (m.tipo !== 'CAMA') return;
+          const ya = camaFinal[m.detalle];
+          if (ya) problemas.push('La cama ' + m.detalle + ' quedaría con dos ventiladores: ' + ya + ' y ' + (m.vmx.NOMBRE || m.idVm) + '.');
+          else camaFinal[m.detalle] = m.vmx.NOMBRE || m.idVm;
+        });
+      }
+
+      if (problemas.length) {
+        return err('No se aplicó ningún movimiento:\n· ' + problemas.join('\n· '), ERR.VALIDACION);
+      }
+
+      // ── 2. Aplicación: el lote ya está validado por completo ──
+      const resumen = [];
+      normal.forEach(function (m) {
+        const desde = _vmUbicLabel(m.vmx.UBIC_TIPO, m.vmx.UBIC_DETALLE);
+        const hacia = _vmUbicLabel(m.tipo, m.detalle);
+        repoActualizar('VENTILADORES', 'ID_VM', m.idVm, {
+          UBIC_TIPO: m.tipo, UBIC_DETALLE: m.detalle, FECHA_UBICACION: m.fecha,
+          ESTADO: m.estado || m.vmx.ESTADO || 'Operativo', TIMESTAMP: ahoraTS(),
+        });
+        repoInsertar('MOVIMIENTOS_VM', {
+          ID_MOV: uid('MOV'), ID_VM: m.idVm, TIMESTAMP: ahoraTS(), FECHA: m.fecha,
+          DESDE: desde, HACIA: hacia, MOTIVO: m.motivo,
+          FIRMA: (ctx && ctx.firma) || '', AUTOR_EMAIL: (ctx && ctx.email) || '',
+        });
+        resumen.push((m.vmx.NOMBRE || m.idVm) + ': ' + desde + ' → ' + hacia);
+      });
+      return ok({ entidad: 'VENTILADORES', accion: 'mover ' + normal.length + ' equipos',
+        total: normal.length, detalle: resumen });
+    } catch (e) { return err('moverVentiladoresLote: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
 /** Baja de inventario (no borra: conserva la trazabilidad). */
 function bajaVentilador(d, ctx) {
   return conLock(function () {

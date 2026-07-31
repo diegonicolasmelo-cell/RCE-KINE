@@ -111,6 +111,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => guardarVentilador(datos, ctx));
       case 'MOVER_VENTILADOR':
         return _auditar(ctx, accion, () => moverVentilador(datos, ctx));
+      case 'MOVER_VENTILADORES_LOTE':
+        return _auditar(ctx, accion, () => moverVentiladoresLote(datos, ctx));
       case 'BAJA_VENTILADOR':
         return _auditar(ctx, accion, () => bajaVentilador(datos, ctx));
       case 'REGISTRAR_FALLA_VM':

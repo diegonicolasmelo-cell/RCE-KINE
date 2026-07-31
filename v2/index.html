@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.4-compacto">
+<meta name="rce-version" content="5.5-lotevm">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1659,10 +1659,22 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer;"><input type="checkbox" id="vmmOper" checked> 🟢 Volver a <b>"Operativo"</b> al salir de mantención</label>
     </div>
     <div style="display:flex;gap:9px;padding-top:12px;border-top:1px solid #e2e8f0;">
-      <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMove()">Cancelar</button>
-      <button type="button" class="btn btn-p" onclick="vmMoverOk()">🔁 Mover</button>
+      <button type="button" class="btn btn-r" style="width:auto;padding:0 14px;" onclick="vmCerrarMove()">Cancelar</button>
+      <button type="button" class="btn" style="width:auto;padding:0 14px;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;font-weight:700;" onclick="vmColaAgregar()" title="Se acumula abajo y se aplica junto con los demás">➕ A la lista</button>
+      <button type="button" class="btn btn-p" style="flex:1;" onclick="vmMoverOk()">🔁 Mover ahora</button>
     </div>
   </div>
+</div>
+
+<!-- MOVIMIENTOS DE VENTILADORES PENDIENTES: se acumulan y se aplican juntos -->
+<div id="vmCola" class="hidden no-print" style="position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:70;width:min(620px,94vw);background:#fff;border:1px solid var(--border);border-radius:13px;box-shadow:0 12px 38px rgba(15,23,42,.26);overflow:hidden;">
+  <div style="display:flex;align-items:center;gap:9px;padding:9px 14px;background:var(--pdark);color:#fff;">
+    <span style="font-weight:800;font-size:.85rem;">📋 <span id="vmColaN">0</span> movimientos pendientes</span>
+    <span style="flex:1;"></span>
+    <button type="button" class="btn" style="width:auto;padding:5px 11px;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:.74rem;" onclick="vmColaVaciar()">Vaciar</button>
+    <button type="button" class="btn" style="width:auto;padding:5px 13px;background:#f59e0b;color:#3a2a00;border:none;font-weight:800;font-size:.76rem;" onclick="vmColaAplicar()">✅ Aplicar todos</button>
+  </div>
+  <div id="vmColaLista" style="max-height:34vh;overflow-y:auto;padding:8px 12px;font-size:.8rem;"></div>
 </div>
 
 <!-- MODAL PORTADA: elegir preset o URL propia para el banner de la pestaña -->
@@ -3666,7 +3678,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.4-compacto]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.5-lotevm]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -10284,6 +10296,70 @@ function vmmUI(){
   $('vmmOperRow')?.classList.toggle('hidden', !(t!=='EQUIPOS'&&VMZ_ESTADO==='En mantención'));
 }
 function vmCerrarMove(){ $('vmMove').classList.remove('on'); $('ovl').classList.remove('on'); }
+/* ── Movimientos de ventiladores EN LOTE (pedido de Diego, ago-2026):
+   confirmar uno por uno era lento cuando hay mantención y se reorganizan
+   varios equipos. Se acumulan aquí y se aplican juntos; el servidor valida
+   el lote completo antes de tocar nada (todo o nada) y así admite además
+   INTERCAMBIOS entre camas, imposibles moviendo de a uno. ── */
+let VM_COLA=[];
+function _vmMovDesdeModal(){
+  const t=v('vmmTipo');
+  const d={ idVm:v('vmmId'), tipo:t, detalle:t==='CAMA'?v('vmmCama'):(t==='PRESTAMO'?v('vmmUnidad'):''),
+    fecha:v('vmmFecha'), motivo:v('vmmMotivo') };
+  if(!$('vmmMantRow')?.classList.contains('hidden') && $('vmmMant')?.checked) d.estado='En mantención';
+  else if(!$('vmmOperRow')?.classList.contains('hidden') && $('vmmOper')?.checked) d.estado='Operativo';
+  return d;
+}
+function _vmNombre(id){ const x=(VM_ALL||[]).find(k=>k.id===id); return (x&&x.nombre)||id; }
+function _vmDestinoTxt(m){
+  if(m.tipo==='CAMA') return 'Cama '+m.detalle;
+  if(m.tipo==='PRESTAMO') return 'Préstamo: '+m.detalle;
+  if(m.tipo==='PASILLO') return 'Pasillo';
+  if(m.tipo==='EQUIPOS') return 'Equipos médicos';
+  return 'Bodega';
+}
+function vmColaAgregar(){
+  const m=_vmMovDesdeModal();
+  if(!m.idVm) return;
+  if(m.tipo==='CAMA' && !m.detalle){ toast('⚠️ Indica la cama de destino'); return; }
+  if(m.tipo==='PRESTAMO' && !m.detalle){ toast('⚠️ Indica la unidad del préstamo'); return; }
+  const i=VM_COLA.findIndex(x=>String(x.idVm)===String(m.idVm));
+  if(i>=0){ VM_COLA[i]=m; toast('✏️ Actualizado en la lista: '+_vmNombre(m.idVm)); }
+  else { VM_COLA.push(m); toast('➕ A la lista: '+_vmNombre(m.idVm)+' → '+_vmDestinoTxt(m)); }
+  vmCerrarMove(); VMZ_SEL=null; vmColaRender();
+}
+function vmColaQuitar(id){ VM_COLA=VM_COLA.filter(x=>String(x.idVm)!==String(id)); vmColaRender(); }
+function vmColaVaciar(){ VM_COLA=[]; vmColaRender(); toast('🗑️ Lista vaciada — no se movió nada.'); }
+function vmColaRender(){
+  const c=$('vmCola'); if(!c) return;
+  if(!VM_COLA.length){ hide('vmCola'); return; }
+  $('vmColaN').textContent=VM_COLA.length;
+  $('vmColaLista').innerHTML=VM_COLA.map(m=>{
+    const x=(VM_ALL||[]).find(k=>k.id===m.idVm);
+    const desde=x?(x.ubicTxt||x.ubicacion||''):'';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+      <span style="flex:1;"><b>${_docsEsc(_vmNombre(m.idVm))}</b> <span style="color:var(--muted);">${_docsEsc(desde)}</span> → <b>${_docsEsc(_vmDestinoTxt(m))}</b></span>
+      <button type="button" class="dpset" style="padding:2px 8px;" onclick="vmColaQuitar('${m.idVm}')" title="Quitar de la lista">✕</button>
+    </div>`;
+  }).join('');
+  show('vmCola');
+}
+function vmColaAplicar(){
+  if(!VM_COLA.length) return;
+  uiConfirm({ icono:'🔁', titulo:`Aplicar ${VM_COLA.length} movimientos`,
+    mensaje: VM_COLA.map(m=>`· <b>${_docsEsc(_vmNombre(m.idVm))}</b> → ${_docsEsc(_vmDestinoTxt(m))}`).join('<br>'),
+    detalle:'Se revisan todos antes de aplicar: si alguno no se puede, no se mueve ninguno.',
+    confirmar:'✅ Aplicar todos' }).then(okC=>{
+    if(!okC) return;
+    loading(true,'Aplicando movimientos…');
+    gs('MOVER_VENTILADORES_LOTE',{movimientos:VM_COLA}, r=>{
+      loading(false); VM_COLA=[]; vmColaRender();
+      toast('✅ '+((r&&r.total)||0)+' ventiladores movidos');
+      vmCargar();
+    }, ()=>{ loading(false); });
+  });
+}
+
 function vmMoverOk(){
   const t=v('vmmTipo');
   const d={ idVm:v('vmmId'), tipo:t, detalle:t==='CAMA'?v('vmmCama'):(t==='PRESTAMO'?v('vmmUnidad'):''),
