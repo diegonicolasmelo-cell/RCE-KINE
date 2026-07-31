@@ -105,8 +105,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.5-lotevm**
-  (antes v5.4-compacto, v5.3-mascota, v5.2-servi, v5.1-tqt).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.6-serviu**
+  (antes v5.5-lotevm, v5.4-compacto, v5.3-mascota, v5.2-servi).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
@@ -222,9 +222,12 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     en blanco y **fecha** a .98rem/38 px de alto.
   - Guardia: bloque v5.3 en `checks/tutorial.js` (incluye identidad visual).
 - **v5.2 · SERVI + FIJACIÓN DEL TOT LIBRE (ago-2026, cohete v5.2-servi).**
-  1. **Servi, el ventilador de la unidad**: segunda mascota, **dibujada en SVG
-     inline** (Diego mandó la ilustración pero llegó sin archivo adjunto dos
-     veces; el vector no depende de imágenes externas y pesa ~2 KB). Va
+  1. **Servi U, el ventilador de la unidad**: segunda mascota. En v5.6 el SVG
+     dibujado se reemplazó por **las ilustraciones de Diego** (llegaron al
+     tercer intento, como archivo): dos poses PNG incrustadas en base64
+     (~10 KB), SIN retocar — él pidió dejar la marca del equipo tal cual y
+     llamarla **«Servi U»** (`MASC_NOMBRE`). Quedan sin usar dos poses más
+     (duda y alerta) por si se necesitan. Va
      **QUIETO** (sin `tutBob`) a la izquierda del botón de la mascota, con dos
      poses: `#serviOn` (despierto) y `#serviOff` (dormido, con zZZ). **Duerme
      en turno NOCHE y tras 4 min sin actividad** (`serviEstado`, re-evaluado en

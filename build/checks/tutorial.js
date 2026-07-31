@@ -155,9 +155,11 @@ const { chromium } = require('playwright-core');
     const r = {};
     r.porDefecto = document.documentElement.dataset.masc;
     r.soloServi = vis('#tutBtn .masc-servi') && !vis('#tutBtn .masc-persona');
-    r.sinMarca = !/MAQUET|Servo-?u/i.test($('tutBtn').innerHTML);
-    r.llevaNombre = /Servi/.test($('tutBtn').innerHTML);
-    r.vectorial = !!$('tutBtn').querySelector('svg');
+    // la ilustración es la que aportó Diego: va incrustada, sin URL externa
+    r.incrustada = [...$('tutBtn').querySelectorAll('.masc-servi img')]
+      .every(i => i.src.indexOf('data:image/png;base64,') === 0);
+    r.dosPoses = !!$('serviOn') && !!$('serviOff');
+    r.nombre = MASC_NOMBRE;
     r.servikQuieto = getComputedStyle($('tutBtn')).animationName === 'none';
     r.haySelector = !!$('mascBtn');
     // cambiar a la persona
@@ -178,17 +180,17 @@ const { chromium } = require('playwright-core');
   });
   eq('la mascota por defecto es Servi', MASCSEL.porDefecto, 'servi');
   eq('se ve UNA sola mascota (Servi)', MASCSEL.soloServi, true);
-  eq('Servi es vectorial (no depende de archivos externos)', MASCSEL.vectorial, true);
-  eq('Servi lleva su nombre', MASCSEL.llevaNombre, true);
-  eq('sin marcas comerciales (MAQUET / Servo-u)', MASCSEL.sinMarca, true);
-  eq('Servi va quieto', MASCSEL.servikQuieto, true);
+  eq('la ilustración va incrustada (sin depender de internet)', MASCSEL.incrustada, true);
+  eq('tiene pose despierta y dormida', MASCSEL.dosPoses, true);
+  eq('la mascota se llama Servi U', MASCSEL.nombre, 'Servi U');
+  eq('Servi U va quieto', MASCSEL.servikQuieto, true);
   eq('hay control para cambiar de mascota', MASCSEL.haySelector, true);
   eq('al cambiar queda el kinesiólogo', MASCSEL.trasCambiar, 'persona');
   eq('y se ve solo él', MASCSEL.soloPersona, true);
   eq('el kinesiólogo sí flota', MASCSEL.personaFlota, true);
   eq('la elección se recuerda', MASCSEL.persistido, 'persona');
   eq('se puede volver a Servi', MASCSEL.vuelveAServi, true);
-  eq('Servi duerme en turno noche', MASCSEL.nocheDuerme, true);
+  eq('Servi U duerme en turno noche', MASCSEL.nocheDuerme, true);
   eq('y despierta en turno día', MASCSEL.diaDespierto, true);
 
   // Marca de agua protagónica al centro y logo grande
