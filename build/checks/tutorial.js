@@ -22,11 +22,15 @@ const { chromium } = require('playwright-core');
     fab: !!$('tutBtn') && !$('tutBtn').classList.contains('hidden'),
     enMas: [...document.querySelectorAll('#msheet .mit')].some(x => x.textContent.indexOf('Tutorial') > -1),
     pasos: TUT_PASOS.length,
+    recorridos: Object.keys(TUT_RECORRIDOS).length,
+    pasosEvo: TUT_RECORRIDOS.evolucion.pasos.length,
     cerrado: $('tutGlobo').classList.contains('hidden') && $('tutVelo').classList.contains('hidden'),
   }));
   eq('botón ❓ flotante visible', BASE.fab, true);
   eq('entrada «❓ Tutorial» en la hoja Más del móvil', BASE.enMas, true);
-  eq('recorrido de 8 pasos', BASE.pasos, 8);
+  eq('recorrido «Lo esencial» de 11 pasos', BASE.pasos, 11);
+  eq('hay DOS recorridos', BASE.recorridos, 2);
+  eq('el segundo recorrido tiene 8 pasos', BASE.pasosEvo, 8);
   eq('parte cerrado (sin globo ni velo)', BASE.cerrado, true);
 
   const P1 = await p.evaluate(async () => {
@@ -41,37 +45,39 @@ const { chromium } = require('playwright-core');
   });
   eq('paso 1 abre globo y velo', P1.abierto, true);
   eq('paso 1 apunta a las pestañas', P1.titulo.indexOf('pestañas') > -1, true);
-  eq('contador «1 de 8»', P1.contador, '1 de 8');
+  eq('contador «1 de 11»', P1.contador, '1 de 11');
   eq('anillo-foco dibujado sobre la barra de pestañas', P1.anillo, true);
   eq('botón dice Siguiente', P1.botonSig.indexOf('Siguiente') > -1, true);
 
   const P5 = await p.evaluate(async () => {
-    tutSiguiente(); tutSiguiente(); tutSiguiente(); tutSiguiente(); // pasos 2..5
+    tutSiguiente(); tutSiguiente(); tutSiguiente(); tutSiguiente(); tutSiguiente(); // pasos 2..6
     await new Promise(r => setTimeout(r, 220));
     return { tab: ATAB, titulo: $('tutTit').textContent };
   });
-  eq('paso 5 cambia a la pestaña REGISTRO', P5.tab, 'P');
-  eq('paso 5 presenta el Registro Diario', P5.titulo.indexOf('Registro Diario') > -1, true);
+  eq('paso 6 cambia a la pestaña REGISTRO', P5.tab, 'P');
+  eq('paso 6 presenta el Registro Diario', P5.titulo.indexOf('Registro Diario') > -1, true);
 
   const P7 = await p.evaluate(async () => {
-    tutSiguiente(); tutSiguiente(); // 6 y 7
+    tutSiguiente(); tutSiguiente(); // 7 y 8
     await new Promise(r => setTimeout(r, 220));
     // el anillo anima 0,25 s: se compara el destino (style), no el rect en tránsito
     const rl = parseFloat($('tutRing').style.left), b2 = $('btnDocs').getBoundingClientRect();
     return { titulo: $('tutTit').textContent, sobreDocs: Math.abs((rl + 6) - b2.left) < 3 };
   });
-  eq('paso 7 presenta 📂 Documentos', P7.titulo.indexOf('Documentos') > -1, true);
+  eq('paso 8 presenta 📂 Documentos', P7.titulo.indexOf('Documentos') > -1, true);
   eq('el anillo encuadra el botón de Documentos', P7.sobreDocs, true);
 
   const FIN = await p.evaluate(async () => {
-    tutSiguiente(); await new Promise(r => setTimeout(r, 220));
-    const t = { ultimoBtn: $('tutSig').textContent, tabFinal: ATAB };
+    tutSiguiente(); tutSiguiente(); tutSiguiente(); await new Promise(r => setTimeout(r, 260));
+    const t = { ultimoBtn: $('tutSig').textContent, tabFinal: ATAB,
+      ofreceSegundo: !$('tutMas').classList.contains('hidden') };
     tutSiguiente(); await new Promise(r => setTimeout(r, 60));
     t.cerrado = $('tutGlobo').classList.contains('hidden') && $('tutVelo').classList.contains('hidden') && $('tutRing').classList.contains('hidden');
     t.tabTrasCerrar = ATAB;
     return t;
   });
   eq('último paso ofrece «Terminar ✓»', FIN.ultimoBtn, 'Terminar ✓');
+  eq('y ofrece pasar al recorrido del formulario', FIN.ofreceSegundo, true);
   eq('el cierre regresa a CAMAS', FIN.tabTrasCerrar, 'G');
   eq('terminar limpia globo, velo y anillo', FIN.cerrado, true);
 
@@ -209,6 +215,44 @@ const { chromium } = require('playwright-core');
   eq('logo institucional grande (>= 46 px)', IDENT.logo >= 46, true);
   eq('la hora destaca (>= 17 px)', IDENT.reloj >= 17, true);
   eq('la fecha destaca (>= 15 px)', IDENT.fecha >= 15, true);
+
+  /* ── v5.7 · Segundo recorrido: abre una evolución de EJEMPLO y la cierra
+        sin guardar (nunca debe escribir en la ficha de un paciente) ── */
+  const EVO = await p.evaluate(async () => {
+    tutCerrar();
+    DB = [{ ID_CAMA: '1', OCUPADA: true, NOMBRE: 'Juan Pérez', EDAD: 64, SEXO: 'M',
+      DIAGNOSTICO: 'NAC', VIA_AEREA: 'TOT', SOPORTE: 'VM', MODO: 'ACVC',
+      FECHA_INGRESO: '2026-07-26', FECHA_INICIO_VA: '2026-07-26' }];
+    const o = {};
+    tutAbrir('evolucion');
+    await new Promise(r => setTimeout(r, 1100));
+    o.recorrido = TUT_REC;
+    o.abrioElFormulario = $('sp').classList.contains('on');
+    o.primerPaso = $('tutTit').textContent;
+    o.contador = $('tutN').textContent;
+    // recorrer hasta el final
+    for (let i = 0; i < TUT_PASOS.length; i++) { tutSiguiente(); await new Promise(r => setTimeout(r, 230)); }
+    o.cerroElFormulario = !$('sp').classList.contains('on');
+    o.vuelveAEsencial = TUT_REC === 'esencial';
+    return o;
+  });
+  eq('el segundo recorrido abre una evolución de ejemplo', EVO.abrioElFormulario, true);
+  eq('parte presentando el formulario', EVO.primerPaso.indexOf('formulario') > -1, true);
+  eq('contador propio del recorrido (1 de 8)', EVO.contador, '1 de 8');
+  eq('al terminar CIERRA el formulario (sin guardar)', EVO.cerroElFormulario, true);
+  eq('y vuelve al recorrido esencial', EVO.vuelveAEsencial, true);
+
+  const SIN_PAC = await p.evaluate(async () => {
+    tutCerrar();
+    DB = [{ ID_CAMA: '1', OCUPADA: false }];
+    tutAbrir('evolucion');
+    await new Promise(r => setTimeout(r, 350));
+    const r = { texto: $('tutTxt').textContent, panel: $('sp').classList.contains('on') };
+    tutCerrar();
+    return r;
+  });
+  eq('sin pacientes ingresados avisa en vez de fallar', /no hay ningún paciente/i.test(SIN_PAC.texto), true);
+  eq('y no abre ningún formulario', SIN_PAC.panel, false);
 
   const SIN = await p.evaluate(async () => {
     // ancla inexistente → globo centrado con velo oscuro, sin anillo

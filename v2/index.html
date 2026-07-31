@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.6-serviu">
+<meta name="rce-version" content="5.7-tutorial2">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1054,6 +1054,8 @@ html[data-piel="inst"] .fase-chip.her{background:#fdf3df;border-color:#F0A000;co
 #tutGlobo .tg-n{font-size:.68rem;color:#b9c8d6;}
 #tutGlobo .tg-sig{background:#f59e0b;border:none;color:#3a2a00;font-weight:800;font-size:.78rem;
   border-radius:8px;padding:7px 14px;cursor:pointer;}
+#tutGlobo .tg-mas{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;
+  font-weight:700;font-size:.72rem;border-radius:8px;padding:6px 10px;cursor:pointer;}
 /* En pantalla angosta la mascota cede el espacio al texto */
 @media (max-width:560px){ #tutGlobo .tg-masc{display:none;} #tutGlobo .tg-cont{width:min(320px,88vw);}
   #tutGlobo .tg-cont:after{display:none;} }
@@ -1186,6 +1188,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <div class="tg-acts">
       <button type="button" class="tg-salir" onclick="tutCerrar()">Salir del tutorial</button>
       <span class="tg-n" id="tutN"></span>
+      <button type="button" class="tg-mas hidden" id="tutMas" onclick="tutAbrir('evolucion')" title="Segundo recorrido: el formulario por dentro">📝 Ver cómo se evoluciona</button>
       <button type="button" class="tg-sig" id="tutSig" onclick="tutSiguiente()">Siguiente →</button>
     </div>
   </div>
@@ -3571,7 +3574,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.6-serviu]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.7-tutorial2]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5685,16 +5688,40 @@ function docsRender(d){
    Solo lee la interfaz (no toca datos); cada paso encuadra una zona con un
    anillo-foco y la explica. Si el ancla no existe (p.ej. sin pacientes), el
    globo sale centrado sin anillo. ── */
-const TUT_PASOS=[
+/* Dos recorridos: «Lo esencial» (la app por fuera, sin abrir formularios) y
+   «Evolucionar un paciente» (abre una cama de ejemplo y recorre el registro).
+   El segundo NO guarda nada: al terminar cierra el formulario descartando. */
+const TUT_RECORRIDOS={
+ esencial:{
+  titulo:'Lo esencial',
+  pasos:[
   {tab:'G', sel:'.tabs', t:'🗂️ Las pestañas', d:'CAMAS es la portada: el estado vivo de la unidad. REGISTRO es la tabla del día, ESTADÍSTICAS los indicadores, ENTREGA el resumen de turno, ARCHIVADOS los egresados y VENTILADORES el inventario de equipos.'},
   {tab:'G', sel:'#gDate', sel2:'#sTgl', t:'📅 Fecha y turno', d:'Aquí eliges qué día y qué turno estás mirando; todo lo que abras respeta esa elección. Con ◀ ▶ viajas a días anteriores y «Volver a hoy» te regresa.'},
   {tab:'G', sel:'#bedGrid', t:'🛏️ Las camas', d:'Cada tarjeta es una cama: paciente, vía aérea, soporte y días. Desde aquí se ingresa, se evoluciona el turno y se abre el historial. El color de la tarjeta avisa si el turno ya fue evolucionado.'},
   {tab:'G', sel:'.hsearch', t:'🔍 El buscador', d:'¿No recuerdas en qué cama está? Busca por nombre: encuentra pacientes actuales y también archivados.'},
+  {tab:'G', sel:'#bedGrid .bcard .btl', t:'⏱️ El historial del paciente', d:'El botón «Hist.» abre todo lo registrado del paciente: un resumen día a día y la HOJA UCI, que reproduce la hoja de papel de la unidad turno por turno. Desde ahí también se imprime o se guarda en PDF.'},
   {tab:'P', sel:'#tcP .tbl-bar', t:'📋 El Registro Diario', d:'La misma unidad pero en tabla: una fila por cama con lo esencial del turno. De una mirada ves qué falta por evolucionar, y con ⬇️ CSV exportas la tabla.'},
   {tab:'P', sel:'#notionTable', t:'➕ Eventos posteriores', d:'El ➕ junto al nombre del paciente anota cosas que pasan DESPUÉS de evolucionar: un procedimiento, cambio de HME o sonda, un resultado de cultivo. Va al historial y a la estadística sin tocar el texto.'},
   {tab:'P', sel:'#btnDocs', t:'📂 Documentos de la unidad', d:'Los imprimibles frecuentes y los protocolos viven aquí: es una carpeta de Drive compartida — lo que se sube allá aparece acá solo.'},
-  {tab:'G', sel:'#tutBtn', t:'❓ Y esto queda aquí', d:'Eso es lo esencial. Este botón queda siempre visible: repite el recorrido cuando quieras o muéstraselo a un colega que recién llega. Lo demás se aprende usándola.'},
-];
+  {tab:'E', sel:'#tcE', t:'📑 La entrega de turno', d:'Arma la ficha para entregar el turno: pacientes, eventos del día, alertas de dispositivos y pendientes. Se puede revisar en pantalla o imprimir para la reunión.'},
+  {tab:'V', sel:'#tcV', t:'🔧 Los ventiladores', d:'El inventario de la unidad: dónde está cada equipo, su historial de movimientos y las fallas registradas con foto. Para reorganizar varios de una vez, agrégalos a la lista y aplícalos todos juntos.'},
+  {tab:'G', sel:'#tutBtn', t:'👋 Y esto queda aquí', d:'Eso es la vuelta por la app. Este botón queda siempre visible: repite el recorrido cuando quieras o muéstraselo a un colega que recién llega.', fin:true},
+ ]},
+ evolucion:{
+  titulo:'Evolucionar un paciente',
+  pasos:[
+  {sel:'#sp .phdr', t:'📝 El formulario del turno', d:'Esto es una evolución. Se abre con «📝 Evolución» en la tarjeta de la cama y siempre corresponde al día y turno que tienes elegidos arriba.'},
+  {sel:'#spRepInfo', selAlt:'#sp .phdr', t:'🔁 Ya viene rellenado', d:'Lo importante: el turno anterior se replica solo. No partes de cero — revisas lo que cambió y corriges. Lo que viene heredado se marca para que sepas qué no has revisado todavía.'},
+  {sel:'#faseChips', t:'🏷️ Fase clínica', d:'En qué etapa está el paciente. Se puede marcar más de una y con el ➕ se agregan fases nuevas al catálogo de la unidad.'},
+  {sel:'#dVentBloque', t:'💨 Terapia ventilatoria', d:'El soporte y el modo mandan: según lo que elijas, aparecen solo los parámetros que corresponden. Los valores derivados (volumen minuto, driving pressure, PaFi) se calculan solos.'},
+  {sel:'#dIntubSec', selAlt:'#dVentBloque', t:'🫁 Cambios de vía aérea', d:'Intubación, traqueostomía, extubación y decanulación se anotan A MANO, cada una en su bloque. Regla de oro: lo de arriba queda como estaba (el estado previo es parte del registro) y en el evento anotas cómo QUEDÓ el paciente.'},
+  {sel:'#dKTMr', selAlt:'#sp', t:'💪 Rehabilitación', d:'Kinesiterapia motora, entrenamiento muscular, sedestación… Si no se pudo hacer, se registra el motivo: eso alimenta las estadísticas de la unidad.'},
+  {sel:'#rtxt', t:'📄 El texto se escribe solo', d:'Con lo que marcaste, la app redacta la evolución en lenguaje clínico. Puedes leerla, y si quieres ajustar algo, editarla a mano antes de guardar.'},
+  {sel:'#btnGuardar', t:'💾 Guardar', d:'Al guardar, la evolución queda en el historial del paciente, alimenta la entrega de turno y suma a las estadísticas. Si te interrumpen, «− Minimizar» conserva el borrador sin perder nada.', fin:true},
+ ]}
+};
+let TUT_PASOS=TUT_RECORRIDOS.esencial.pasos;
+let TUT_REC='esencial';
 let _tutI=-1;
 /* Saludo de la PRIMERA VEZ: una sola vez por navegador, sin velo ni ventana
    (no interrumpe: se puede seguir trabajando) y se cierra solo a los 14 s. */
@@ -5765,11 +5792,35 @@ function tutHolaCerrar(){
   hide('tutHola');
   try{ localStorage.setItem(TUT_HOLA_KEY,'1'); }catch(e){}
 }
-function tutAbrir(){ tutHolaCerrar(); _tutI=-1; document.addEventListener('keydown',_tutEsc); tutSiguiente(); }
+let _tutAbrioPanel=false;
+function tutAbrir(rec){
+  tutHolaCerrar();
+  TUT_REC=(rec==='evolucion')?'evolucion':'esencial';
+  TUT_PASOS=TUT_RECORRIDOS[TUT_REC].pasos;
+  _tutI=-1; document.addEventListener('keydown',_tutEsc);
+  if(TUT_REC==='evolucion') return _tutAbrirEvolucion();
+  tutSiguiente();
+}
+/* El recorrido del formulario necesita un paciente: abre el primero ocupado
+   SOLO para mostrarlo y lo cierra al terminar, descartando (nunca guarda). */
+function _tutAbrirEvolucion(){
+  if($('sp')?.classList.contains('on')){ _tutAbrioPanel=false; tutSiguiente(); return; }
+  const c=(DB||[]).find(x=>x.OCUPADA===true||x.OCUPADA==='TRUE');
+  if(!c){
+    TUT_PASOS=[{tab:'G', sel:'#noExiste', t:'🛏️ Sin pacientes en la unidad',
+      d:'Este recorrido abre una evolución de ejemplo, pero ahora mismo no hay ningún paciente ingresado. Ingresa uno y vuelve a tocarme: te muestro el formulario por dentro.', fin:true}];
+    tutSiguiente(); return;
+  }
+  _tutAbrioPanel=true;
+  abrirPanel(String(c.ID_CAMA), false);
+  setTimeout(()=>tutSiguiente(),650);   // espera a que cargue la evolución
+}
 function _tutEsc(e){ if(e.key==='Escape') tutCerrar(); }
 function tutCerrar(){
   _tutI=-1; document.removeEventListener('keydown',_tutEsc);
   hide('tutVelo'); hide('tutRing'); hide('tutGlobo');
+  if(_tutAbrioPanel){ _tutAbrioPanel=false; cerrarPanel(true); }   // descarta: era de muestra
+  TUT_PASOS=TUT_RECORRIDOS.esencial.pasos; TUT_REC='esencial';
   if(typeof ATAB!=='undefined'&&ATAB!=='G') setTab('G');
 }
 function tutSiguiente(){
@@ -5785,7 +5836,10 @@ function _tutColocar(p){
   // El recorrido pudo cerrarse (o avanzar) durante los 120 ms de espera:
   // si el paso ya no es el vigente, este posicionamiento quedó obsoleto.
   if(_tutI<0 || TUT_PASOS[_tutI]!==p) return;
-  const el=document.querySelector(p.sel);
+  let el=document.querySelector(p.sel);
+  // algunos bloques solo existen según el paciente (p. ej. la vía aérea):
+  // si no está visible, se usa el ancla alternativa del paso
+  if(p.selAlt && (!el || !el.offsetParent)) el=document.querySelector(p.selAlt);
   let r=el?el.getBoundingClientRect():null;
   if(r&&p.sel2){ const e2=document.querySelector(p.sel2); if(e2){ const r2=e2.getBoundingClientRect();
     r={left:Math.min(r.left,r2.left),top:Math.min(r.top,r2.top),
@@ -5805,7 +5859,10 @@ function _tutColocar(p){
   const p_=TUT_PASOS[_tutI];
   $('tutTit').textContent=p_.t; $('tutTxt').textContent=p_.d;
   $('tutN').textContent=(_tutI+1)+' de '+TUT_PASOS.length;
-  $('tutSig').textContent=(_tutI===TUT_PASOS.length-1)?'Terminar ✓':'Siguiente →';
+  const _ult=(_tutI===TUT_PASOS.length-1);
+  $('tutSig').textContent=_ult?'Terminar ✓':'Siguiente →';
+  const _mas=$('tutMas');
+  if(_mas) _mas.classList.toggle('hidden', !(_ult && TUT_REC==='esencial'));
   const g=$('tutGlobo'); show('tutGlobo');
   const gw=g.offsetWidth||320, gh=g.offsetHeight||140;
   let gl, gt;

@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = '5.6-serviu';
+const VERSION = '5.7-tutorial2';
 const fuente = path.join(__dirname, '..', 'v2', 'index.html');
 const salida = process.argv[2] || path.join(__dirname, 'index_cohete.html');
 
