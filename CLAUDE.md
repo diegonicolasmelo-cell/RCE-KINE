@@ -75,7 +75,8 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 `build/checks/`: `convenciones.js` (estáticas), `arranque.js` (boot real en
 Chromium con puente simulado; acepta ruta del cohete como argumento),
 `regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
-`eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`.
+`eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`,
+`reset.js`.
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
 
@@ -104,8 +105,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v4.9-mascota**
-  (antes v4.8-tutorial, v4.7-docs, v4.6-narrativa, v4.5-transiciones).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.0-reinicio**
+  (antes v4.9-mascota, v4.8-tutorial, v4.7-docs, v4.6-narrativa).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
@@ -169,7 +170,29 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   Guía paso a paso para Diego: `scratchpad/GUIA_MIGRACION.md` (11 pasos).
   TRAMPA propia: un comentario de bloque con `infra_*/` cierra el comentario
   antes de tiempo (`*/`) y rompe el archivo.
-- **MIGRACIÓN AL CORREO DE KINESIOLOGÍA (pedida jul-2026, pendiente)**:
+- **RESETEO PARA EL INICIO REAL — v5.0 (ago-2026, cohete v5.0-reinicio).**
+  Diego DESCARTÓ migrar de cuenta: se queda en su planilla y la deja en cero.
+  `mantenimiento.gs` trae dos funciones, a propósito separadas:
+  `resetearBaseDeDatos()` = SIMULACRO (informa filas por hoja, no toca nada) y
+  `resetearBaseDeDatosCONFIRMAR()` = borrado real. El borrado **respalda
+  primero** (`backupDiario`) y si el respaldo falla CANCELA (todo o nada);
+  al final limpia caché, re-siembra camas libres y deja constancia en
+  AUDIT_LOG (`RESETEO_INICIAL`).
+  - VACÍA (`_RESET_VACIAR`): EVOLUCIONES, EVOLUCIONES_ARCHIVO, PROCEDIMIENTOS,
+    TIMELINE, ENTREGAS_TURNO, ARCHIVO_PACIENTES, REINTUBACIONES, **VENTILADORES**
+    (decisión de Diego: carga el stock real), MOVIMIENTOS_VM, FALLAS_VM,
+    ESTADISTICAS_REM, TURNOS, AUDIT_LOG, IMPORTAR.
+  - CONSERVA (`_RESET_CONSERVAR`): CONFIG, CATALOGOS, CAT_MATRICES,
+    KINESIOLOGOS, INDICADORES_HISTORICO (serie de Manuel).
+  - Guardia `checks/reset.js`: el simulacro no toca nada, sin respaldo no
+    borra, encabezados intactos, idempotente y **toda hoja del esquema
+    clasificada** (si se agrega una hoja nueva y no se clasifica, falla).
+  - OJO: el esquema define `ENTREGAS_TURNO` DOS VECES (líneas ~304 y ~375);
+    la segunda pisa a la primera. Revisar cuál es la buena antes de tocarla.
+- **MIGRACIÓN AL CORREO DE KINESIOLOGÍA — DESCARTADA (ago-2026)**: Diego
+  decidió quedarse en su cuenta. El paquete y la guía siguen sirviendo si
+  algún día se retoma.
+- **(histórico) MIGRACIÓN AL CORREO DE KINESIOLOGÍA**:
   hacerla JUNTO con la limpieza pre-1-ago (sin datos que migrar): desde la
   cuenta de la unidad crear planilla nueva → Apps Script → pegar los 9
   archivos + manifiesto → `crearORepararEstructura()` → autorizar →

@@ -126,3 +126,125 @@ function repararFirmas() {
   console.log(total ? ('✅ ' + total + ' fila(s) reparada(s). Recarga la app.') : '✅ No había firmas inválidas.');
   return total;
 }
+
+
+/* ════════════════════════════════════════════════════════════════════════
+ * RESETEO PARA EL INICIO REAL
+ *
+ * Deja la base en cero para empezar a registrar de verdad: borra TODO lo
+ * que se cargó durante la marcha blanca (pacientes, evoluciones, historial,
+ * archivados, entregas, ventiladores y sus fallas, auditoría) y conserva la
+ * CONFIGURACIÓN de la unidad (parámetros clínicos, catálogos, matrices,
+ * roster de kinesiólogos y la serie histórica de indicadores).
+ *
+ * CÓMO SE USA — dos pasos, a propósito:
+ *   1. Ejecutar `resetearBaseDeDatos`  → NO borra nada. Muestra en el
+ *      registro cuántas filas tiene cada hoja y qué pasaría con ella.
+ *   2. Si el resumen es el esperado, ejecutar
+ *      `resetearBaseDeDatosCONFIRMAR` → borra de verdad.
+ *
+ * Antes de borrar SIEMPRE se genera un respaldo completo de la planilla en
+ * Drive; si el respaldo falla, el borrado se cancela (todo o nada).
+ * ════════════════════════════════════════════════════════════════════════ */
+
+// Hojas que quedan VACÍAS (datos de la marcha blanca).
+const _RESET_VACIAR = [
+  'EVOLUCIONES', 'EVOLUCIONES_ARCHIVO', 'PROCEDIMIENTOS', 'TIMELINE',
+  'ENTREGAS_TURNO', 'ARCHIVO_PACIENTES', 'REINTUBACIONES',
+  'VENTILADORES', 'MOVIMIENTOS_VM', 'FALLAS_VM',
+  'ESTADISTICAS_REM', 'TURNOS', 'AUDIT_LOG', 'IMPORTAR',
+];
+// Hojas que NO se tocan (configuración de la unidad).
+const _RESET_CONSERVAR = ['CONFIG', 'CATALOGOS', 'CAT_MATRICES', 'KINESIOLOGOS', 'INDICADORES_HISTORICO'];
+
+/** Paso 1 — SIMULACRO: informa qué se borraría. No modifica nada. */
+function resetearBaseDeDatos() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  console.log('🔎 SIMULACRO — no se ha borrado nada.\n');
+  let total = 0;
+  console.log('SE VACIARÍAN:');
+  _RESET_VACIAR.forEach(function (n) {
+    const f = _resetFilasDatos(ss, n);
+    total += f;
+    console.log('   · ' + n + ': ' + f + ' fila(s)');
+  });
+  const camas = _resetFilasDatos(ss, 'CAMAS_ESTADO');
+  console.log('   · CAMAS_ESTADO: ' + camas + ' cama(s) quedarían libres (las camas se conservan, vacías)');
+  console.log('\nSE CONSERVARÍAN (configuración de la unidad):');
+  _RESET_CONSERVAR.forEach(function (n) {
+    console.log('   · ' + n + ': ' + _resetFilasDatos(ss, n) + ' fila(s) intactas');
+  });
+  console.log('\n📦 Total de filas de datos a borrar: ' + total);
+  console.log('\n➡️  Si es lo que esperas, ejecuta ahora la función:');
+  console.log('    resetearBaseDeDatosCONFIRMAR');
+  console.log('    (antes de borrar hace un respaldo completo en Drive)');
+  return { ok: true, simulacro: true, filas: total };
+}
+
+/** Paso 2 — BORRADO REAL. Respalda primero; si el respaldo falla, cancela. */
+function resetearBaseDeDatosCONFIRMAR() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  console.log('💾 Generando respaldo previo...');
+  let respaldo;
+  try {
+    respaldo = backupDiario();
+  } catch (e) {
+    respaldo = { ok: false, error: e.message };
+  }
+  if (!respaldo || !respaldo.ok) {
+    const motivo = (respaldo && respaldo.error) || 'motivo desconocido';
+    console.error('❌ CANCELADO: no se pudo respaldar (' + motivo + '). No se borró nada.');
+    return { ok: false, error: 'Respaldo previo fallido: ' + motivo };
+  }
+  console.log('✅ Respaldo listo: ' + respaldo.data.url);
+
+  const borradas = {};
+  let total = 0;
+  _RESET_VACIAR.forEach(function (n) {
+    const f = _resetVaciarHoja(ss, n);
+    if (f) { borradas[n] = f; total += f; }
+  });
+
+  // CAMAS_ESTADO: se borran las filas y se vuelven a sembrar camas libres.
+  const camas = _resetVaciarHoja(ss, 'CAMAS_ESTADO');
+  _sembrar(ss);
+  SpreadsheetApp.flush();
+
+  // El caché del servidor puede tener listas ya calculadas (documentos, etc.)
+  try { CacheService.getScriptCache().removeAll(['DOCS_LISTA']); } catch (e) {}
+
+  // Queda constancia del reseteo como primer registro de la etapa real.
+  auditar({
+    email: '', firma: 'Mantenimiento', accion: 'RESETEO_INICIAL',
+    entidad: 'PLANILLA', resumen: total + ' filas borradas · respaldo ' + respaldo.data.nombre,
+  });
+
+  console.log('\n🧹 RESETEO COMPLETO');
+  Object.keys(borradas).forEach(function (n) { console.log('   · ' + n + ': ' + borradas[n] + ' fila(s) borradas'); });
+  console.log('   · CAMAS_ESTADO: ' + camas + ' cama(s) reiniciadas (libres)');
+  console.log('\nSe conservó: ' + _RESET_CONSERVAR.join(', '));
+  console.log('Respaldo por si acaso: ' + respaldo.data.url);
+  console.log('\n➡️  Recarga la app en el navegador (Ctrl+Shift+R).');
+  console.log('➡️  Carga los ventiladores reales en la pestaña 🔧 VENTILADORES.');
+  return { ok: true, borradas: borradas, camas: camas, respaldo: respaldo.data.url };
+}
+
+/** Cuántas filas de DATOS tiene una hoja (sin contar encabezados). */
+function _resetFilasDatos(ss, nombre) {
+  const h = ss.getSheetByName(nombre);
+  if (!h) return 0;
+  const desde = FILA_DATOS[nombre] || 2;
+  return Math.max(0, h.getLastRow() - desde + 1);
+}
+
+/** Borra las filas de datos de una hoja (respeta los encabezados). */
+function _resetVaciarHoja(ss, nombre) {
+  const h = ss.getSheetByName(nombre);
+  if (!h) return 0;
+  const desde = FILA_DATOS[nombre] || 2;
+  const n = h.getLastRow() - desde + 1;
+  if (n <= 0) return 0;
+  h.deleteRows(desde, n);
+  return n;
+}
