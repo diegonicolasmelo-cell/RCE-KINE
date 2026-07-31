@@ -75,9 +75,9 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 `build/checks/`: `convenciones.js` (estáticas), `arranque.js` (boot real en
 Chromium con puente simulado; acepta ruta del cohete como argumento),
 `regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
-`eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`. Correr antes de
-entregar o commitear. Un bug
-que costó más de un intercambio merece guardia nueva.
+`eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`.
+Correr antes de entregar o commitear. Un bug que costó más de un
+intercambio merece guardia nueva.
 
 ## Hoja UCI (historial · jul-2026)
 
@@ -158,6 +158,17 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - BUG CORREGIDO de v4.8: cerrar el recorrido dentro de los 120 ms del
     cambio de paso reventaba (`_tutColocar` leía `TUT_PASOS[-1]`); ahora
     descarta el posicionamiento obsoleto.
+- **PAQUETE DE MIGRACIÓN (jul-2026)**: `build/paquete_migracion.js` genera el
+  proyecto COMPLETO listo para pegar en un Apps Script nuevo — layout de
+  producción **9 .gs** (`esquema`, `repo`, `infra` = los 6 infra_*, `dominio`
+  = los 3 dominio_*, `servicios` = los 15 svc_*, `api`, `webapp`,
+  `mantenimiento`, `spike`) + `index` cohete + `spike_gis` + manifiesto.
+  Guardia `checks/paquete.js`: las 145 funciones del repo presentes, sin
+  duplicados, todos los .gs compilan, doGet/crearORepararEstructura/
+  instalarTriggerBackup/obtenerDocumentos presentes y scopes del manifiesto.
+  Guía paso a paso para Diego: `scratchpad/GUIA_MIGRACION.md` (11 pasos).
+  TRAMPA propia: un comentario de bloque con `infra_*/` cierra el comentario
+  antes de tiempo (`*/`) y rompe el archivo.
 - **MIGRACIÓN AL CORREO DE KINESIOLOGÍA (pedida jul-2026, pendiente)**:
   hacerla JUNTO con la limpieza pre-1-ago (sin datos que migrar): desde la
   cuenta de la unidad crear planilla nueva → Apps Script → pegar los 9
