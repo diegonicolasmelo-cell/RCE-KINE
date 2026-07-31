@@ -93,12 +93,13 @@ const { chromium } = require('playwright-core');
     // el display real solo se puede medir con el recorrido ya desplegado
     tutAbrir(); await new Promise(r => setTimeout(r, 220));
     const flex = getComputedStyle($('tutGlobo')).display === 'flex';
-    const altoMasc = $('tutGlobo').querySelector('.tg-masc').getBoundingClientRect().height;
+    const altoMasc = Math.max(...[...$('tutGlobo').querySelectorAll('.tg-masc')]
+      .map(e => e.getBoundingClientRect().height));
     tutCerrar();
     return {
       globoFlex: flex, mascVisible: altoMasc > 40,
       fabImg: !!fab && fab.src.indexOf('data:image/png;base64,') === 0,
-      fabSinTexto: $('tutBtn').textContent.trim() === '',
+      fabSinInterrogacion: $('tutBtn').textContent.indexOf('?') === -1,
       globoImg: !!glo && glo.src.indexOf('data:image/png;base64,') === 0,
       cargaImg: !!lov && lov.src.indexOf('data:image/png;base64,') === 0,
       marcaAgua: marca.indexOf('data:image/png;base64,') > -1,
@@ -106,7 +107,7 @@ const { chromium } = require('playwright-core');
     };
   });
   eq('mascota incrustada en el botón (sin depender de internet)', MASC.fabImg, true);
-  eq('el botón ya no muestra el signo de interrogación', MASC.fabSinTexto, true);
+  eq('el botón ya no muestra el signo de interrogación', MASC.fabSinInterrogacion, true);
   eq('mascota acompañando los globos del recorrido', MASC.globoImg, true);
   eq('mascota en la pantalla de carga', MASC.cargaImg, true);
   eq('marca de agua institucional incrustada', MASC.marcaAgua, true);
@@ -146,36 +147,66 @@ const { chromium } = require('playwright-core');
   eq('abrir el tutorial cierra el saludo', DESDE_HOLA.holaCerrado, true);
   eq('y arranca el recorrido', DESDE_HOLA.tourAbierto, true);
 
-  // ── v5.2 · Servi, el ventilador: estático junto a la mascota, duerme de noche ──
-  const SERVI = await p.evaluate(async () => {
-    const vis = id => { const e = $(id); return !!(e && e.offsetParent !== null); };
+  // ── v5.3 · Mascota SELECCIONABLE: Servi por defecto, el kinesiólogo opcional ──
+  const MASCSEL = await p.evaluate(async () => {
+    localStorage.removeItem('rce_mascota');
+    mascAplicar();
+    const vis = s => { const e = document.querySelector(s); return !!(e && e.offsetParent !== null); };
     const r = {};
-    r.existe = !!$('servi');
-    r.sinMarca = !/MAQUET|Servo-?u/i.test($('servi').innerHTML);
-    r.nombre = /Servi/.test($('servi').innerHTML);
-    r.vectorial = !!$('servi').querySelector('svg');   // no depende de imágenes externas
-    r.estatico = getComputedStyle($('servi')).animationName === 'none';
-    SHIFT = 'Dia'; serviEstado();
-    r.diaDespierto = vis('serviOn') && !vis('serviOff');
+    r.porDefecto = document.documentElement.dataset.masc;
+    r.soloServi = vis('#tutBtn .masc-servi') && !vis('#tutBtn .masc-persona');
+    r.sinMarca = !/MAQUET|Servo-?u/i.test($('tutBtn').innerHTML);
+    r.llevaNombre = /Servi/.test($('tutBtn').innerHTML);
+    r.vectorial = !!$('tutBtn').querySelector('svg');
+    r.servikQuieto = getComputedStyle($('tutBtn')).animationName === 'none';
+    r.haySelector = !!$('mascBtn');
+    // cambiar a la persona
+    mascToggle();
+    r.trasCambiar = document.documentElement.dataset.masc;
+    r.soloPersona = vis('#tutBtn .masc-persona') && !vis('#tutBtn .masc-servi');
+    r.personaFlota = getComputedStyle($('tutBtn')).animationName !== 'none';
+    r.persistido = localStorage.getItem('rce_mascota');
+    // y volver a Servi
+    mascToggle();
+    r.vuelveAServi = document.documentElement.dataset.masc === 'servi' && vis('#tutBtn .masc-servi');
+    // Servi duerme en turno noche
     SHIFT = 'Noche'; serviEstado();
-    r.nocheDuerme = vis('serviOff') && !vis('serviOn');
+    r.nocheDuerme = vis('#serviOff') && !vis('#serviOn');
     SHIFT = 'Dia'; serviEstado();
-    r.vuelve = vis('serviOn');
-    const s = $('servi').getBoundingClientRect(), m = $('tutBtn').getBoundingClientRect();
-    r.noTapaLaMascota = s.right <= m.left + 4;
-    r.mismaFranja = Math.abs(s.bottom - m.bottom) < 40;
+    r.diaDespierto = vis('#serviOn') && !vis('#serviOff');
     return r;
   });
-  eq('Servi está en la interfaz', SERVI.existe, true);
-  eq('Servi es vectorial (no depende de archivos externos)', SERVI.vectorial, true);
-  eq('Servi lleva su nombre', SERVI.nombre, true);
-  eq('sin marcas comerciales (MAQUET / Servo-u)', SERVI.sinMarca, true);
-  eq('Servi queda QUIETO (no flota como la mascota)', SERVI.estatico, true);
-  eq('de día está despierto', SERVI.diaDespierto, true);
-  eq('en turno noche duerme', SERVI.nocheDuerme, true);
-  eq('al volver a turno día despierta', SERVI.vuelve, true);
-  eq('Servi no tapa a la mascota', SERVI.noTapaLaMascota, true);
-  eq('ambos en la misma franja inferior', SERVI.mismaFranja, true);
+  eq('la mascota por defecto es Servi', MASCSEL.porDefecto, 'servi');
+  eq('se ve UNA sola mascota (Servi)', MASCSEL.soloServi, true);
+  eq('Servi es vectorial (no depende de archivos externos)', MASCSEL.vectorial, true);
+  eq('Servi lleva su nombre', MASCSEL.llevaNombre, true);
+  eq('sin marcas comerciales (MAQUET / Servo-u)', MASCSEL.sinMarca, true);
+  eq('Servi va quieto', MASCSEL.servikQuieto, true);
+  eq('hay control para cambiar de mascota', MASCSEL.haySelector, true);
+  eq('al cambiar queda el kinesiólogo', MASCSEL.trasCambiar, 'persona');
+  eq('y se ve solo él', MASCSEL.soloPersona, true);
+  eq('el kinesiólogo sí flota', MASCSEL.personaFlota, true);
+  eq('la elección se recuerda', MASCSEL.persistido, 'persona');
+  eq('se puede volver a Servi', MASCSEL.vuelveAServi, true);
+  eq('Servi duerme en turno noche', MASCSEL.nocheDuerme, true);
+  eq('y despierta en turno día', MASCSEL.diaDespierto, true);
+
+  // Marca de agua protagónica al centro y logo grande
+  const IDENT = await p.evaluate(() => {
+    const cs = getComputedStyle(document.querySelector('.tc-wrap'), ':before');
+    const logo = document.querySelector('.hlogo');
+    document.documentElement.dataset.piel = 'inst';
+    const hLogo = parseFloat(getComputedStyle(logo).height);
+    return { pos: cs.position, w: parseFloat(cs.width),
+      centrada: Math.abs(parseFloat(cs.left) - innerWidth / 2) < 2, logo: hLogo,
+      reloj: parseFloat(getComputedStyle($('clk')).fontSize),
+      fecha: parseFloat(getComputedStyle($('gDate')).fontSize) };
+  });
+  eq('marca de agua centrada en pantalla', IDENT.pos === 'fixed' && IDENT.centrada, true);
+  eq('marca de agua protagónica (ancho > 400 px)', IDENT.w > 400, true);
+  eq('logo institucional grande (>= 46 px)', IDENT.logo >= 46, true);
+  eq('la hora destaca (>= 17 px)', IDENT.reloj >= 17, true);
+  eq('la fecha destaca (>= 15 px)', IDENT.fecha >= 15, true);
 
   const SIN = await p.evaluate(async () => {
     // ancla inexistente → globo centrado con velo oscuro, sin anillo

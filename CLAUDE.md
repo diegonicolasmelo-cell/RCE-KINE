@@ -105,8 +105,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.2-servi**
-  (antes v5.1-tqt, v5.0-reinicio, v4.9-mascota, v4.8-tutorial).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.3-mascota**
+  (antes v5.2-servi, v5.1-tqt, v5.0-reinicio, v4.9-mascota).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
@@ -170,6 +170,22 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   Guía paso a paso para Diego: `scratchpad/GUIA_MIGRACION.md` (11 pasos).
   TRAMPA propia: un comentario de bloque con `infra_*/` cierra el comentario
   antes de tiempo (`*/`) y rompe el archivo.
+- **v5.3 · MASCOTA SELECCIONABLE + IDENTIDAD MÁS PRESENTE (ago-2026, cohete
+  v5.3-mascota).** Pedido de Diego: «es 1 o la otra», con **Servi por
+  defecto**.
+  - `html[data-masc]` («servi» | «persona») decide cuál se ve; se guarda en
+    `localStorage.rce_mascota` y se aplica ANTES del primer pintado (en
+    `window.onload`, para que no parpadee). Las dos viven dentro de `#tutBtn`
+    (clases `.masc-servi` / `.masc-persona`), y lo mismo en el globo del
+    recorrido y en la pantalla de carga. Servi va quieto; la persona flota.
+  - Se cambia con el botón **🤖/🧑** de la barra (junto a 🎨, ambos en una
+    fila) o desde la hoja «Más» del móvil.
+  - **Marca de agua PROTAGÓNICA**: `.tc-wrap:before` pasó a `position:fixed`
+    centrada en pantalla (`min(760px,64vw)`), opacidad .06 (.09 en piel
+    institucional). Antes iba chica y pegada a la derecha.
+  - **Logo** del encabezado 34 → **50 px** (38 en móvil); **reloj** a 1,22rem
+    en blanco y **fecha** a .98rem/38 px de alto.
+  - Guardia: bloque v5.3 en `checks/tutorial.js` (incluye identidad visual).
 - **v5.2 · SERVI + FIJACIÓN DEL TOT LIBRE (ago-2026, cohete v5.2-servi).**
   1. **Servi, el ventilador de la unidad**: segunda mascota, **dibujada en SVG
      inline** (Diego mandó la ilustración pero llegó sin archivo adjunto dos
