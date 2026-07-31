@@ -461,6 +461,12 @@ function obtenerEvosDelDia(fecha) {
           KTM_NIVEL_KTR: e.KTM_NIVEL_KTR,
           PROC_RESUMEN: e.PROC_RESUMEN, PLAN_FIRMA_KINE: e.PLAN_FIRMA_KINE,
           EXT_OCURRIO: e.EXT_OCURRIO, DECAN_OCURRIO: e.DECAN_OCURRIO,
+          // Vista retrospectiva de CAMAS: la tarjeta se reconstruye con lo que
+          // se registró ESE día, no con el ocupante actual de la cama.
+          PATIENT_ID: e.PATIENT_ID, COD_PACIENTE: e.COD_PACIENTE,
+          VENT_VIA_AEREA: e.VENT_VIA_AEREA_FINAL || e.VENT_VIA_AEREA || '',
+          VENT_MODO: e.VENT_MODO_FINAL || e.VENT_MODO || '',
+          KTM_NIVEL: e.KTM_NIVEL_KTR, FASE_JSON: e.FASE_JSON,
         };
       });
     return ok(evos);

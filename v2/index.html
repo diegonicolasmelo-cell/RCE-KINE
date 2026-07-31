@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.7-tutorial2">
+<meta name="rce-version" content="5.8-retro">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3574,7 +3574,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.7-tutorial2]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.8-retro]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3796,6 +3796,38 @@ function toggleShift() {
 }
 function onFechaChange() { $('gDate').classList.remove('turno-hoy'); refrescarVista(); }
 
+/* Tarjeta de una cama en vista retrospectiva, armada con lo registrado ese día. */
+function _camaDesdeEvo(c, e, fecha){
+  const dias=parseInt(e.DIA_ESTADIA);
+  return Object.assign({}, c, {
+    OCUPADA:true, NOMBRE:e.PAC_NOMBRE||'', EDAD:e.PAC_EDAD||'', SEXO:e.PAC_SEXO||'',
+    COD_PACIENTE:e.COD_PACIENTE||'', PATIENT_ID:e.PATIENT_ID||c.PATIENT_ID,
+    DIAGNOSTICO:e.PAC_DIAGNOSTICO||'', VIA_AEREA:e.VENT_VIA_AEREA||'',
+    SOPORTE:e.VENT_SOPORTE||'', MODO:e.VENT_MODO||'',
+    KTM_NIVEL:e.KTM_NIVEL||'', KTM_SUSP:e.KTM_SUSPENDIDA===true||e.KTM_SUSPENDIDA==='TRUE',
+    FASE_JSON:e.FASE_JSON||'', DIAS_VM:e.DIAS_VM||0,
+    // los contadores de la tarjeta se derivan de la fecha vista
+    FECHA_INGRESO: isNaN(dias) ? c.FECHA_INGRESO : _restarDiasISO(fecha, dias),
+    _RETRO:true, VM_TAG:'', CAT_RESP_PJE:'', CAT_MOTOR_PJE:'', WEAN_PVE_JSON:'',
+  });
+}
+function _restarDiasISO(fecha, n){
+  const [y,m,d]=String(fecha).split('-').map(Number);
+  const dt=new Date(y,m-1,d); dt.setDate(dt.getDate()-(parseInt(n)||0));
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+/* Cama sin ninguna evolución esa fecha: no se sabe quién estuvo, y no se ofrece
+   crear una evolución hacia atrás para el paciente de hoy. */
+function _camaSinRegistro(c){
+  const el=document.createElement('div');
+  el.className='bcard';
+  el.innerHTML=`
+    <div class="bhdr"><span class="bnum" style="color:var(--muted);"><div class="bdot d-empty"></div>Cama ${c.ID_CAMA}</span></div>
+    <div class="bbody"><div class="empty-txt" style="font-style:normal;">Sin registro ese día</div></div>
+    <div class="bfoot"><button class="bevo" style="background:#f1f0ef;color:#94a3b8;cursor:default;" disabled title="No hay evolución registrada en esta cama para la fecha elegida">— sin evolución —</button></div>`;
+  return el;
+}
+
 function renderGrid() {
   const fecha = v('gDate')||hoy();
   const tkey  = `${fecha}-${SHIFT}`;
@@ -3805,9 +3837,22 @@ function renderGrid() {
   const frag = document.createDocumentFragment();
   g.innerHTML='';
   let oc=0, vm=0;
+  /* VISTA RETROSPECTIVA: las tarjetas NO pueden mostrar al ocupante de hoy —
+     ese día podía haber otro paciente (bug reportado ago-2026). Se reconstruyen
+     desde lo REGISTRADO esa fecha; la cama sin evolución se marca «sin registro»
+     y no ofrece evolucionar (no se inventan pacientes hacia atrás). */
+  const _retro = !$('gDate').classList.contains('turno-hoy');
 
   DB.forEach(c => {
-    const ocu = c.OCUPADA===true||c.OCUPADA==='TRUE';
+    let ocu = c.OCUPADA===true||c.OCUPADA==='TRUE';
+    if(_retro){
+      const _id=String(c.ID_CAMA);
+      const _ev = EVOS_DIA.find(e=>String(e.ID_CAMA)===_id&&String(e.TURNO_KEY)===tkey)
+               || EVOS_DIA.find(e=>String(e.ID_CAMA)===_id);
+      if(!_ev){ frag.appendChild(_camaSinRegistro(c)); return; }
+      c = _camaDesdeEvo(c, _ev, fecha);
+      ocu = true;
+    }
     const el  = document.createElement('div');
     el.className = (String(MOVECAMA)===String(c.ID_CAMA)) ? 'bcard sel' : 'bcard';
 
@@ -3877,7 +3922,7 @@ function renderGrid() {
       el.innerHTML=`${_vmt}
         <div class="bhdr">
           <span class="bnum"><div class="bdot ${dot}"></div>Cama ${c.ID_CAMA}</span>
-          <button class="bmov" onclick="mover('${c.ID_CAMA}')" title="Mover este paciente a otra cama">
+          <button class="bmov${c._RETRO?' hidden':''}" onclick="mover('${c.ID_CAMA}')" title="Mover este paciente a otra cama">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/></svg>
           </button>
         </div>
@@ -3891,12 +3936,15 @@ function renderGrid() {
           </div>
           ${al?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;">${al}</div>`:''}
         </div>
-        <div class="bfoot">${_movPie(c, true)}
+        <div class="bfoot">${c._RETRO ? `
+          <button class="bevo" onclick="abrirPanel('${c.ID_CAMA}',false)">✏️ Ver / editar</button>
+          <button class="btl" onclick="abrirTL('${c.ID_CAMA}')">⏱️ Hist.</button>
+        ` : `${_movPie(c, true)}
           <button class="bevo" onclick="abrirPanel('${c.ID_CAMA}',false)">${btn}</button>
           <button class="btl" onclick="abrirTL('${c.ID_CAMA}')">⏱️ Hist.</button>
           <button class="btl" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${c.ID_CAMA}',this)">➕</button>
           <button class="balt" onclick="egreso('${c.ID_CAMA}')">🏠 Egr.</button>
-        </div>`;
+        `}</div>`;
     } else {
       const _vmtL=c.VM_TAG?`<span class="vmtag${/falla/i.test(c.VM_TAG_ESTADO||'')?' falla':(/manten/i.test(c.VM_TAG_ESTADO||'')?' mant':'')}" onclick="setTab('V')" title="Ventilador en esta cama${c.VM_TAG_ESTADO?' · '+c.VM_TAG_ESTADO:''} — clic para ir a Ventiladores">🔧 ${c.VM_TAG}</span>`:'';
       el.innerHTML=`${_vmtL}

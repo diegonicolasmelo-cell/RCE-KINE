@@ -76,7 +76,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 Chromium con puente simulado; acepta ruta del cohete como argumento),
 `regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
 `eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`,
-`reset.js`, `mover_camas.js`, `vm_lote.js`.
+`reset.js`, `mover_camas.js`, `vm_lote.js`, `retro_camas.js`.
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
 
@@ -105,8 +105,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.7-tutorial2**
-  (antes v5.6-serviu, v5.5-lotevm, v5.4-compacto, v5.3-mascota).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.8-retro**
+  (antes v5.7-tutorial2, v5.6-serviu, v5.5-lotevm, v5.4-compacto).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
