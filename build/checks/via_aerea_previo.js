@@ -327,6 +327,37 @@ const { chromium } = require('playwright-core');
   eq('TQT · al desmarcarla vuelve el módulo ventilatorio', ORD.vuelve, true);
   eq('TQT · si la vía aérea deja de admitirla, el módulo reaparece', ORD.vuelveSiNoAplica, true);
 
+  /* ── v5.2 · La FIJACIÓN del TOT se ajusta en cualquier turno (el tubo se
+        reposiciona sin ser tubo nuevo); el N° sigue bajo «cambio de tubo» ── */
+  const FIJ = await p.evaluate(async () => {
+    DB = [{ ID_CAMA: '1', OCUPADA: true, NOMBRE: 'Juan P', VIA_AEREA: 'TOT', SOPORTE: 'VM', MODO: 'ACVC',
+      TOT_NUMERO: '7.5', TOT_CM_LABIO: '21', FECHA_INGRESO: '2026-07-20', FECHA_INICIO_VA: '2026-07-20' }];
+    abrirPanel('1', false);
+    await new Promise(r => setTimeout(r, 350));
+    const o = {};
+    o.heredaDeLaCama = { n: v('fTOTn'), cm: v('fTOTcm') };
+    o.cmEditable = !$('fTOTcm').disabled;
+    o.numeroBloqueado = $('fTOTn').disabled;
+    // el colega reposiciona el tubo sin declarar cambio de tubo
+    $('fTOTcm').value = '23';
+    o.cmGuardado = v('fTOTcm');
+    // declarar cambio de tubo libera el número; deshacerlo restaura SOLO el número
+    $('cCambioTOT').checked = true; toggleCambioTOT();
+    o.numeroLibreTrasCambio = !$('fTOTn').disabled;
+    $('fTOTn').value = '8.0'; $('fTOTcm').value = '24';
+    $('cCambioTOT').checked = false; toggleCambioTOT();
+    o.numeroRestaurado = v('fTOTn');
+    o.fijacionNoSeDeshace = v('fTOTcm');
+    return o;
+  });
+  eq('TOT · hereda número y fijación de la cama', FIJ.heredaDeLaCama.n === '7.5' && FIJ.heredaDeLaCama.cm === '21', true);
+  eq('TOT · la FIJACIÓN se puede editar siempre', FIJ.cmEditable, true);
+  eq('TOT · el NÚMERO sigue bloqueado hasta declarar cambio de tubo', FIJ.numeroBloqueado, true);
+  eq('TOT · la fijación editada viaja en el guardado', FIJ.cmGuardado, '23');
+  eq('TOT · declarar cambio de tubo libera el número', FIJ.numeroLibreTrasCambio, true);
+  eq('TOT · deshacer el cambio restaura el número', FIJ.numeroRestaurado, '7.5');
+  eq('TOT · pero NO deshace la fijación ajustada', FIJ.fijacionNoSeDeshace, '24');
+
   console.log(errs.length ? ('\nERRORES JS:\n' + errs.join('\n')) : '\nsin errores JS');
   await b.close();
   console.log(fails.length ? ('❌ ' + fails.length + ' FALLOS') : '✅ TODO OK');

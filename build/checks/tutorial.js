@@ -146,6 +146,37 @@ const { chromium } = require('playwright-core');
   eq('abrir el tutorial cierra el saludo', DESDE_HOLA.holaCerrado, true);
   eq('y arranca el recorrido', DESDE_HOLA.tourAbierto, true);
 
+  // ── v5.2 · Servi, el ventilador: estático junto a la mascota, duerme de noche ──
+  const SERVI = await p.evaluate(async () => {
+    const vis = id => { const e = $(id); return !!(e && e.offsetParent !== null); };
+    const r = {};
+    r.existe = !!$('servi');
+    r.sinMarca = !/MAQUET|Servo-?u/i.test($('servi').innerHTML);
+    r.nombre = /Servi/.test($('servi').innerHTML);
+    r.vectorial = !!$('servi').querySelector('svg');   // no depende de imágenes externas
+    r.estatico = getComputedStyle($('servi')).animationName === 'none';
+    SHIFT = 'Dia'; serviEstado();
+    r.diaDespierto = vis('serviOn') && !vis('serviOff');
+    SHIFT = 'Noche'; serviEstado();
+    r.nocheDuerme = vis('serviOff') && !vis('serviOn');
+    SHIFT = 'Dia'; serviEstado();
+    r.vuelve = vis('serviOn');
+    const s = $('servi').getBoundingClientRect(), m = $('tutBtn').getBoundingClientRect();
+    r.noTapaLaMascota = s.right <= m.left + 4;
+    r.mismaFranja = Math.abs(s.bottom - m.bottom) < 40;
+    return r;
+  });
+  eq('Servi está en la interfaz', SERVI.existe, true);
+  eq('Servi es vectorial (no depende de archivos externos)', SERVI.vectorial, true);
+  eq('Servi lleva su nombre', SERVI.nombre, true);
+  eq('sin marcas comerciales (MAQUET / Servo-u)', SERVI.sinMarca, true);
+  eq('Servi queda QUIETO (no flota como la mascota)', SERVI.estatico, true);
+  eq('de día está despierto', SERVI.diaDespierto, true);
+  eq('en turno noche duerme', SERVI.nocheDuerme, true);
+  eq('al volver a turno día despierta', SERVI.vuelve, true);
+  eq('Servi no tapa a la mascota', SERVI.noTapaLaMascota, true);
+  eq('ambos en la misma franja inferior', SERVI.mismaFranja, true);
+
   const SIN = await p.evaluate(async () => {
     // ancla inexistente → globo centrado con velo oscuro, sin anillo
     TUT_PASOS.unshift({ tab: 'G', sel: '#noExiste', t: 'X', d: 'Y' });

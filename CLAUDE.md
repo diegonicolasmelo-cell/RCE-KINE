@@ -105,8 +105,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.1-tqt**
-  (antes v5.0-reinicio, v4.9-mascota, v4.8-tutorial, v4.7-docs).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.2-servi**
+  (antes v5.1-tqt, v5.0-reinicio, v4.9-mascota, v4.8-tutorial).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
@@ -170,6 +170,27 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   Guía paso a paso para Diego: `scratchpad/GUIA_MIGRACION.md` (11 pasos).
   TRAMPA propia: un comentario de bloque con `infra_*/` cierra el comentario
   antes de tiempo (`*/`) y rompe el archivo.
+- **v5.2 · SERVI + FIJACIÓN DEL TOT LIBRE (ago-2026, cohete v5.2-servi).**
+  1. **Servi, el ventilador de la unidad**: segunda mascota, **dibujada en SVG
+     inline** (Diego mandó la ilustración pero llegó sin archivo adjunto dos
+     veces; el vector no depende de imágenes externas y pesa ~2 KB). Va
+     **QUIETO** (sin `tutBob`) a la izquierda del botón de la mascota, con dos
+     poses: `#serviOn` (despierto) y `#serviOff` (dormido, con zZZ). **Duerme
+     en turno NOCHE y tras 4 min sin actividad** (`serviEstado`, re-evaluado en
+     `refrescarVista`); se oculta bajo 420 px. Sin marcas comerciales: dice
+     «Servi» en vez de Servo-u y no lleva MAQUET (decisión de Diego).
+  2. **La FIJACIÓN del TOT ya no se congela**: `_lockTOT` bloquea solo
+     `fTOTn` (otro calibre = tubo nuevo = procedimiento); `fTOTcm` queda
+     SIEMPRE editable porque el tubo se reposiciona en cualquier turno.
+     Deshacer «cambio de tubo» restaura solo el número, no la fijación.
+     `fillCama` ahora también bloquea el calibre heredado de la cama (antes
+     quedaba editable sin declarar el cambio). Guardia: bloque v5.2 en
+     `checks/via_aerea_previo.js` y de Servi en `checks/tutorial.js`.
+  - PENDIENTE: Diego reportó que «un paciente que llega con vía aérea natural
+    y requiere intubación no se puede agregar desde el ingreso». Reproducido
+    en Chromium y **el flujo funciona** (aparece `dIntubSec`, se marca, el
+    panel «Queda con» llena y el texto narra la transición). Falta que Diego
+    precise qué pasos hace y qué ve.
 - **v5.1 · LA TQT SE DECIDE ANTES DE LA TERAPIA VENTILATORIA (ago-2026,
   cohete v5.1-tqt).** Pedido de Diego: el día de la TQT había que llenar los
   parámetros DOS veces (el módulo de arriba y el «Queda con»). Ahora el bloque
