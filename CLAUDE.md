@@ -105,8 +105,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.0-reinicio**
-  (antes v4.9-mascota, v4.8-tutorial, v4.7-docs, v4.6-narrativa).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.1-tqt**
+  (antes v5.0-reinicio, v4.9-mascota, v4.8-tutorial, v4.7-docs).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
@@ -170,6 +170,18 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   Guía paso a paso para Diego: `scratchpad/GUIA_MIGRACION.md` (11 pasos).
   TRAMPA propia: un comentario de bloque con `infra_*/` cierra el comentario
   antes de tiempo (`*/`) y rompe el archivo.
+- **v5.1 · LA TQT SE DECIDE ANTES DE LA TERAPIA VENTILATORIA (ago-2026,
+  cohete v5.1-tqt).** Pedido de Diego: el día de la TQT había que llenar los
+  parámetros DOS veces (el módulo de arriba y el «Queda con»). Ahora el bloque
+  🔪 Traqueostomía va **primero** dentro de la sección y, al marcar «Ocurrió
+  TQT este turno», `_gateVentPorTqt()` oculta `#dVentBloque` (encabezado con
+  soporte/modo + `paramsBox`) y deja un aviso de dónde quedó registrada la
+  ventilación. Lo replicado del turno anterior NO se borra: se guarda como
+  estado previo, solo deja de pedirse (coherente con el texto de v4.6, que ya
+  omitía el previo en la TQT). El gate se re-evalúa en `updateVAUI` y en
+  `fillForm`, y si la vía aérea deja de admitir TQT el módulo reaparece
+  aunque el check siga marcado. Guardia: bloque v5.1 en
+  `checks/via_aerea_previo.js`.
 - **RESETEO PARA EL INICIO REAL — v5.0 (ago-2026, cohete v5.0-reinicio).**
   Diego DESCARTÓ migrar de cuenta: se queda en su planilla y la deja en cero.
   `mantenimiento.gs` trae dos funciones, a propósito separadas:

@@ -292,6 +292,41 @@ const { chromium } = require('playwright-core');
   const FA = await p.evaluate(() => !!document.querySelector('input[name="mtest"][value="FilmArray"]'));
   eq('FilmArray está entre las técnicas de cultivo', FA, true);
 
+  /* ── v5.1 · La TQT se decide ANTES de la terapia ventilatoria y la anula
+        (antes había que llenar los parámetros dos veces el día de la TQT) ── */
+  const ORD = await p.evaluate(async () => {
+    DB = [{ ID_CAMA: '1', OCUPADA: true, NOMBRE: 'Juan P', VIA_AEREA: 'TOT', SOPORTE: 'VM', MODO: 'CPAP/PS',
+      TOT_NUMERO: '7.5', TOT_CM_LABIO: '21', FECHA_INGRESO: '2026-07-20', FECHA_INICIO_VA: '2026-07-20' }];
+    abrirPanel('1', false);
+    await new Promise(r => setTimeout(r, 350));
+    const vis = id => { const e = $(id); return !!(e && e.offsetParent !== null); };
+    const o = {};
+    o.ordenTqtPrimero = !!($('dTqtSec').compareDocumentPosition($('dVentBloque')) & Node.DOCUMENT_POSITION_FOLLOWING);
+    o.ventVisible = vis('dVentBloque');
+    $('cTqtO').checked = true; hTqtO();
+    await new Promise(r => setTimeout(r, 150));
+    o.ventOculto = !vis('dVentBloque');
+    o.aviso = vis('avisoVentTqt');
+    o.quedaCon = vis('poTqtSop');
+    $('cTqtO').checked = false; hTqtO();
+    await new Promise(r => setTimeout(r, 150));
+    o.vuelve = vis('dVentBloque');
+    // si la vía aérea deja de admitir TQT, el módulo debe reaparecer aunque
+    // el check haya quedado marcado
+    $('cTqtO').checked = true; hTqtO();
+    $('fVA').value = 'Natural'; cascadeVA();
+    await new Promise(r => setTimeout(r, 200));
+    o.vuelveSiNoAplica = vis('dVentBloque');
+    return o;
+  });
+  eq('TQT · la casilla va ANTES del módulo ventilatorio', ORD.ordenTqtPrimero, true);
+  eq('TQT · con TOT el módulo ventilatorio se ve normal', ORD.ventVisible, true);
+  eq('TQT · al marcarla, el módulo ventilatorio se anula', ORD.ventOculto, true);
+  eq('TQT · avisa dónde quedó registrada la ventilación', ORD.aviso, true);
+  eq('TQT · el «Queda con» sigue disponible para llenarlo una sola vez', ORD.quedaCon, true);
+  eq('TQT · al desmarcarla vuelve el módulo ventilatorio', ORD.vuelve, true);
+  eq('TQT · si la vía aérea deja de admitirla, el módulo reaparece', ORD.vuelveSiNoAplica, true);
+
   console.log(errs.length ? ('\nERRORES JS:\n' + errs.join('\n')) : '\nsin errores JS');
   await b.close();
   console.log(fails.length ? ('❌ ' + fails.length + ' FALLOS') : '✅ TODO OK');

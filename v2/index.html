@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.0-reinicio">
+<meta name="rce-version" content="5.1-tqt">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -2216,6 +2216,58 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
 
             <!-- Terapia ventilatoria -->
             <div class="sub-sec" style="border-top:none;padding-top:0;">
+              <!-- TRAQUEOSTOMÍA — va ANTES del módulo ventilatorio: al marcarla, el
+                   estado ventilatorio de este turno se anota en «Queda con» y el
+                   módulo de abajo se oculta (no se llena dos veces). -->
+              <div id="dTqtSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
+                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:7px;letter-spacing:.04em;">🔪 Traqueostomía</div>
+                <div class="check wa" style="margin-bottom:8px;"><input type="checkbox" id="cTqtO" onchange="hTqtO()"><label for="cTqtO" style="font-weight:700;">Ocurrió TQT este turno</label></div>
+                <div id="dTqtDet" class="hidden">
+                  <div class="row" style="margin-bottom:8px;gap:8px;align-items:flex-end;">
+                    <div class="col wa"><label>Hora</label><input type="time" id="fTqtHora" style="height:30px;"></div>
+                    <div class="col wa"><label>Técnica</label>
+                      <select id="fTqtTec" style="height:30px;">
+                        <option value="">-- seleccionar --</option>
+                        <option>Percutánea</option>
+                        <option>Quirúrgica</option>
+                      </select></div>
+                    <div class="col grow"><label>Detalle (opcional)</label>
+                      <input type="text" id="fTqtDet" placeholder="Operador, complicaciones…" style="height:30px;"></div>
+                  </div>
+                  <!-- ESTADO PREVIO (no se toca) + ESTADO POSTERIOR de la TQT -->
+                  <div style="margin-bottom:8px;padding:7px 9px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:7px;">
+                    <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;color:#64748b;letter-spacing:.04em;margin-bottom:3px;">📍 Estado previo (queda registrado, no se vuelve a preguntar)</div>
+                    <div id="lblTqtPrevio" style="font-size:.78rem;color:#334155;font-weight:600;">—</div>
+                  </div>
+                  <div style="padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
+                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:7px;letter-spacing:.04em;">✅ Queda con (post-traqueostomía)</div>
+                    <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0;">
+                      <div class="col ws"><label style="font-size:.66rem;">Cánula N°</label>
+                        <select id="poTqtN" style="height:28px;font-size:.78rem;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
+                      <div class="col wa"><label style="font-size:.66rem;">Tipo</label>
+                        <select id="poTqtTipo" style="height:28px;font-size:.78rem;">
+                          <option value="">--</option><option>Con balón</option><option>Sin balón</option>
+                          <option>Con puerto subglótico</option><option>Fenestrada</option>
+                        </select></div>
+                      <div class="col wa"><label style="font-size:.66rem;">Soporte</label>
+                        <select id="poTqtSop" onchange="renderParamsTqt()" style="height:28px;font-size:.78rem;">
+                          <option value="VM">VM</option><option value="Oxigenoterapia/OAF">Oxigenoterapia/OAF</option><option value="Ambiente">Ambiente</option>
+                        </select></div>
+                      <div class="col wa"><label style="font-size:.66rem;">Modo</label>
+                        <select id="poTqtModo" onchange="renderParams({P:'pt_',L:'ptl_',box:'paramsBoxTqt'})" style="height:28px;font-size:.78rem;"></select></div>
+                    </div>
+                    <div id="paramsBoxTqt"></div>
+                  </div>
+                  <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;margin-top:6px;">
+                    💡 Con esto basta: el texto narrará «Tras N días de VM, se realiza traqueostomía… queda conectado a VM en modo…». No hace falta repetir los parámetros abajo.
+                  </div>
+                </div>
+              </div>
+              <div id="avisoVentTqt" class="hidden" style="margin:10px 0;padding:7px 10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:7px;font-size:.75rem;color:#64748b;">
+                💨 Terapia ventilatoria — <b>ya registrada arriba</b> en «Queda con (post-traqueostomía)». El estado previo del turno se guarda igual.
+              </div>
+
+              <div id="dVentBloque">
               <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
                 <div class="sub-sec-title" style="color:var(--resp);margin:0;">💨 Terapia ventilatoria</div>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -2230,6 +2282,7 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                 </div>
               </div>
               <div id="paramsBox"></div>
+              </div><!-- /dVentBloque -->
 
               <!-- GASES ARTERIALES — bloque OPCIONAL: la casilla despliega las
                    casillas (patrón SmartEvo). Corresponden a un momento puntual,
@@ -2304,52 +2357,6 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
                   <input type="text" id="fDesvincDet" placeholder="Tolerancia, trabajo respiratorio, motivo de reconexión…" style="height:30px;border:1px solid #bfdbfe;border-radius:6px;padding:0 10px;width:100%;font-size:.78rem;">
                   <div style="font-size:.68rem;color:#1e40af;background:#dbeafe;padding:4px 8px;border-radius:5px;margin-top:6px;">
                     💡 Sin reconexión, la ventana queda abierta: el texto dirá que continúa desvinculado al término del turno.
-                  </div>
-                </div>
-              </div>
-
-              <!-- TRAQUEOSTOMÍA — instalación (solo si VA = TQT) -->
-              <div id="dTqtSec" class="hidden" style="margin-top:10px;padding:10px 11px;background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;">
-                <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#7c3aed;margin-bottom:7px;letter-spacing:.04em;">🔪 Traqueostomía</div>
-                <div class="check wa" style="margin-bottom:8px;"><input type="checkbox" id="cTqtO" onchange="hTqtO()"><label for="cTqtO" style="font-weight:700;">Ocurrió TQT este turno</label></div>
-                <div id="dTqtDet" class="hidden">
-                  <div class="row" style="margin-bottom:8px;gap:8px;align-items:flex-end;">
-                    <div class="col wa"><label>Hora</label><input type="time" id="fTqtHora" style="height:30px;"></div>
-                    <div class="col wa"><label>Técnica</label>
-                      <select id="fTqtTec" style="height:30px;">
-                        <option value="">-- seleccionar --</option>
-                        <option>Percutánea</option>
-                        <option>Quirúrgica</option>
-                      </select></div>
-                    <div class="col grow"><label>Detalle (opcional)</label>
-                      <input type="text" id="fTqtDet" placeholder="Operador, complicaciones…" style="height:30px;"></div>
-                  </div>
-                  <!-- ESTADO PREVIO (no se toca) + ESTADO POSTERIOR de la TQT -->
-                  <div style="margin-bottom:8px;padding:7px 9px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:7px;">
-                    <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;color:#64748b;letter-spacing:.04em;margin-bottom:3px;">📍 Estado previo (de Terapia ventilatoria ↑)</div>
-                    <div id="lblTqtPrevio" style="font-size:.78rem;color:#334155;font-weight:600;">—</div>
-                  </div>
-                  <div style="padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;">
-                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;color:#15803d;margin-bottom:7px;letter-spacing:.04em;">✅ Queda con (post-traqueostomía)</div>
-                    <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:0;">
-                      <div class="col ws"><label style="font-size:.66rem;">Cánula N°</label>
-                        <select id="poTqtN" style="height:28px;font-size:.78rem;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
-                      <div class="col wa"><label style="font-size:.66rem;">Tipo</label>
-                        <select id="poTqtTipo" style="height:28px;font-size:.78rem;">
-                          <option value="">--</option><option>Con balón</option><option>Sin balón</option>
-                          <option>Con puerto subglótico</option><option>Fenestrada</option>
-                        </select></div>
-                      <div class="col wa"><label style="font-size:.66rem;">Soporte</label>
-                        <select id="poTqtSop" onchange="renderParamsTqt()" style="height:28px;font-size:.78rem;">
-                          <option value="VM">VM</option><option value="Oxigenoterapia/OAF">Oxigenoterapia/OAF</option><option value="Ambiente">Ambiente</option>
-                        </select></div>
-                      <div class="col wa"><label style="font-size:.66rem;">Modo</label>
-                        <select id="poTqtModo" onchange="renderParams({P:'pt_',L:'ptl_',box:'paramsBoxTqt'})" style="height:28px;font-size:.78rem;"></select></div>
-                    </div>
-                    <div id="paramsBoxTqt"></div>
-                  </div>
-                  <div style="font-size:.68rem;color:#166534;background:#dcfce7;padding:4px 8px;border-radius:5px;margin-top:6px;">
-                    💡 El calibre y tipo de cánula se registran arriba (campos TQT) — el texto dirá cómo quedó: «VAA mediante TQT percutánea N°8.5 con puerto subglótico realizada hoy a las 14:00 hrs.»
                   </div>
                 </div>
               </div>
@@ -3528,7 +3535,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.0-reinicio]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.1-tqt]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4323,7 +4330,7 @@ function fillForm(s) {
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM);
   chk('cIntubO',s.INTUB_OCURRIO); set('fIntubHora',s.INTUB_HORA); set('fIntubDet',s.INTUB_DET);
   chk('cTqtO',s.TQT_OCURRIO); set('fTqtHora',s.TQT_HORA); set('fTqtTec',s.TQT_TECNICA); set('fTqtDet',s.TQT_DET);
-  if(s.TQT_OCURRIO===true||s.TQT_OCURRIO==='TRUE') show('dTqtDet'); else hide('dTqtDet');
+  if(s.TQT_OCURRIO===true||s.TQT_OCURRIO==='TRUE'){ show('dTqtDet'); _gateVentPorTqt(); } else hide('dTqtDet');
   set('fIntubSopPrevio',s.INTUB_SOP_PREVIO);
   if(s.INTUB_OCURRIO===true||s.INTUB_OCURRIO==='TRUE') show('dIntubDet');
   chk('cCambioTOT',s.TOT_CAMBIO);
@@ -7308,6 +7315,7 @@ function updateVAUI() {
   const _desvOK = (va==='TQT') && (v('fSop')==='VM' || !!$('cDesvinc')?.checked) && v('cIng')!=='true';
   if(_desvOK) show('dDesvincSec'); else { hide('dDesvincSec'); }
   if(va==='TQT') show('dVfonSec'); else hide('dVfonSec');
+  _gateVentPorTqt();
   _updateSinKTR();
 }
 
@@ -8049,8 +8057,21 @@ function hTqtO(){
     hide('dTqtDet');
     ['fTqtHora','fTqtTec','fTqtDet','poTqtParams'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
   }
+  _gateVentPorTqt();
   _gateDispositivos();
   if(typeof _renderAutoProcs==='function') _renderAutoProcs();
+}
+/* El día de la TQT el estado ventilatorio que importa es el POSTERIOR: se anota
+   una sola vez en «Queda con» y el módulo de Terapia ventilatoria se oculta
+   (antes había que llenar los parámetros dos veces). Lo ya replicado del turno
+   anterior no se borra: queda guardado como estado previo, solo deja de pedirse. */
+function _gateVentPorTqt(){
+  // Solo anula si la sección de TQT está realmente en juego: si la vía aérea
+  // cambia y la sección se oculta, el módulo ventilatorio debe volver.
+  const secOn=$('dTqtSec') && !$('dTqtSec').classList.contains('hidden');
+  const tqt=!!$('cTqtO')?.checked && secOn;
+  if(tqt) hide('dVentBloque'); else show('dVentBloque');
+  const av=$('avisoVentTqt'); if(av) av.classList.toggle('hidden',!tqt);
 }
 function hAET(){
   if($('cAET')?.checked){show('dAETnivel');hAETtip();}
