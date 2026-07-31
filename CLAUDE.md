@@ -76,7 +76,8 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 Chromium con puente simulado; acepta ruta del cohete como argumento),
 `regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
 `eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`,
-`reset.js`, `mover_camas.js`, `vm_lote.js`, `retro_camas.js`.
+`reset.js`, `mover_camas.js`, `vm_lote.js`, `retro_camas.js`,
+`rendimiento.js` (bucles de repintado con la unidad llena).
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
 
