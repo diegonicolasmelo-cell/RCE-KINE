@@ -104,8 +104,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v4.8-tutorial**
-  (antes v4.7-docs, v4.6-narrativa, v4.5-transiciones, v4.4-modulo).
+  (ahí se afina el registro con uso real). Deployment: cohete **v4.9-mascota**
+  (antes v4.8-tutorial, v4.7-docs, v4.6-narrativa, v4.5-transiciones).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
@@ -132,6 +132,32 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      evolución (posible 2ª parte si Diego la pide). Guardia:
      `checks/tutorial.js` (ojo: el anillo anima 0,25 s — en arneses comparar
      `style.left`, no el rect en tránsito).
+- **v4.9 · MASCOTA + IDENTIDAD VISUAL (jul-2026, cohete v4.9-mascota).**
+  Diego mandó un personaje propio (dos poses) y el logo del hospital en alta.
+  Todas las imágenes viajan **incrustadas en base64 dentro del index** (nada
+  de URLs externas: la red del hospital no siempre deja salir).
+  - **La mascota reemplaza al ❓**: botón flotante SUELTO (sin círculo, con
+    sombra y flotación `tutBob`; respeta `prefers-reduced-motion`), la pose
+    con tablet acompaña los globos del recorrido (`#tutGlobo` pasó a flex:
+    `.tg-masc` + `.tg-cont`; bajo 560 px la mascota se oculta y el texto toma
+    todo el ancho) y también aparece en la pantalla de carga.
+  - **Saludo de la primera vez** (`#tutHola`, decisión de Diego): burbuja
+    junto a la mascota a los 1,8 s de cargar, SIN velo ni ventana (no
+    interrumpe), se cierra sola a los 14 s, con la ✕ o al abrir el tutorial;
+    `localStorage.rce_tut_saludo` evita que vuelva a salir.
+  - **`MASC_NOMBRE`** (constante en index, vacía por defecto): al escribir un
+    nombre, el saludo pasa a «Soy X y te muestro la app…». PENDIENTE: Diego
+    aún no bautiza la mascota.
+  - **Identidad**: logo del encabezado reemplazado por el HD (135×96, piel
+    institucional) y **marca de agua** `--marca-agua` en `.tc-wrap:before`
+    (opacidad .05, grayscale; .07 sin filtro en piel institucional). No se
+    imprime y se oculta bajo 740 px.
+  - Peso: +12 KB de imágenes (mascotas 9 KB, logo 2,7 KB, marca 8,8 KB) ⇒
+    cohete 897 KB. Las imágenes que llegan con damero pintado (PNG «falso
+    transparente») se limpian por saturación: `scratchpad/limpiar_logo.py`.
+  - BUG CORREGIDO de v4.8: cerrar el recorrido dentro de los 120 ms del
+    cambio de paso reventaba (`_tutColocar` leía `TUT_PASOS[-1]`); ahora
+    descarta el posicionamiento obsoleto.
 - **MIGRACIÓN AL CORREO DE KINESIOLOGÍA (pedida jul-2026, pendiente)**:
   hacerla JUNTO con la limpieza pre-1-ago (sin datos que migrar): desde la
   cuenta de la unidad crear planilla nueva → Apps Script → pegar los 9

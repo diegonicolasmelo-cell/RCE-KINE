@@ -83,6 +83,69 @@ const { chromium } = require('playwright-core');
   });
   eq('Escape cierra el recorrido', ESC, true);
 
+  // ── v4.9 · Mascota, saludo de la primera vez y marca de agua ──
+  const MASC = await p.evaluate(async () => {
+    const fab = $('tutBtn').querySelector('img');
+    const glo = $('tutGlobo').querySelector('.tg-masc');
+    const lov = document.querySelector('#lov .lov-masc');
+    const marca = getComputedStyle(document.documentElement).getPropertyValue('--marca-agua');
+    const logo = document.querySelector('.hlogo');
+    // el display real solo se puede medir con el recorrido ya desplegado
+    tutAbrir(); await new Promise(r => setTimeout(r, 220));
+    const flex = getComputedStyle($('tutGlobo')).display === 'flex';
+    const altoMasc = $('tutGlobo').querySelector('.tg-masc').getBoundingClientRect().height;
+    tutCerrar();
+    return {
+      globoFlex: flex, mascVisible: altoMasc > 40,
+      fabImg: !!fab && fab.src.indexOf('data:image/png;base64,') === 0,
+      fabSinTexto: $('tutBtn').textContent.trim() === '',
+      globoImg: !!glo && glo.src.indexOf('data:image/png;base64,') === 0,
+      cargaImg: !!lov && lov.src.indexOf('data:image/png;base64,') === 0,
+      marcaAgua: marca.indexOf('data:image/png;base64,') > -1,
+      logoIncrustado: !!logo && logo.src.indexOf('data:image/png;base64,') === 0,
+    };
+  });
+  eq('mascota incrustada en el botón (sin depender de internet)', MASC.fabImg, true);
+  eq('el botón ya no muestra el signo de interrogación', MASC.fabSinTexto, true);
+  eq('mascota acompañando los globos del recorrido', MASC.globoImg, true);
+  eq('mascota en la pantalla de carga', MASC.cargaImg, true);
+  eq('marca de agua institucional incrustada', MASC.marcaAgua, true);
+  eq('logo del encabezado incrustado', MASC.logoIncrustado, true);
+  eq('el globo es contenedor flex (mascota + texto)', MASC.globoFlex, true);
+  eq('la mascota se ve dentro del globo en escritorio', MASC.mascVisible, true);
+
+  const HOLA = await p.evaluate(async () => {
+    localStorage.removeItem('rce_tut_saludo');
+    tutHolaMostrar();
+    await new Promise(r => setTimeout(r, 2100));
+    const visible = !$('tutHola').classList.contains('hidden');
+    const sinVelo = $('tutVelo').classList.contains('hidden');   // no interrumpe
+    tutHolaCerrar();
+    const cerrado = $('tutHola').classList.contains('hidden');
+    const marcado = localStorage.getItem('rce_tut_saludo') === '1';
+    // segunda visita: ya no debe salir
+    tutHolaMostrar();
+    await new Promise(r => setTimeout(r, 2100));
+    const noRepite = $('tutHola').classList.contains('hidden');
+    return { visible, sinVelo, cerrado, marcado, noRepite };
+  });
+  eq('saludo de la primera vez aparece solo', HOLA.visible, true);
+  eq('el saludo NO bloquea la app (sin velo)', HOLA.sinVelo, true);
+  eq('la ✕ lo cierra', HOLA.cerrado, true);
+  eq('queda marcado como visto', HOLA.marcado, true);
+  eq('no vuelve a aparecer en la siguiente visita', HOLA.noRepite, true);
+
+  const DESDE_HOLA = await p.evaluate(async () => {
+    localStorage.removeItem('rce_tut_saludo');
+    tutHolaMostrar(); await new Promise(r => setTimeout(r, 2100));
+    tutAbrir(); await new Promise(r => setTimeout(r, 220));
+    const r = { holaCerrado: $('tutHola').classList.contains('hidden'), tourAbierto: !$('tutGlobo').classList.contains('hidden') };
+    tutCerrar();
+    return r;
+  });
+  eq('abrir el tutorial cierra el saludo', DESDE_HOLA.holaCerrado, true);
+  eq('y arranca el recorrido', DESDE_HOLA.tourAbierto, true);
+
   const SIN = await p.evaluate(async () => {
     // ancla inexistente → globo centrado con velo oscuro, sin anillo
     TUT_PASOS.unshift({ tab: 'G', sel: '#noExiste', t: 'X', d: 'Y' });
