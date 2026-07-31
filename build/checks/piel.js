@@ -1,9 +1,8 @@
 /**
- * piel.js — Guardia de la piel institucional San Pablo (conmutable).
+ * piel.js — Guardia de la piel institucional San Pablo (v5.4: piel ÚNICA).
  * 1. Contraste AA (≥4.5:1) calculado para los pares de texto clave del tema.
- * 2. En navegador: la piel por defecto es 'inst', el toggle vuelve a Notion
- *    (portadas .tbanner reaparecen), persiste en localStorage, y el cromo
- *    cambia de color de verdad.
+ * 2. En navegador: la piel institucional es la única (sin alternador), el
+ *    logo va incrustado y el encabezado es una sola franja compacta.
  */
 const path = require('path');
 const { chromium } = require('playwright-core');
@@ -45,31 +44,31 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
   await p.goto('file://' + path.resolve(__dirname, '..', '..', 'v2', 'index.html'));
   await p.waitForTimeout(600);
   const R = await p.evaluate(() => {
-    const fondo = () => getComputedStyle(document.querySelector('.hdr')).backgroundColor;
-    const logoVisible = () => getComputedStyle(document.querySelector('.hlogo')).display !== 'none';
     const r = {};
-    r.pielInicial = document.documentElement.getAttribute('data-piel');
-    r.hdrInst = fondo();
-    r.logoInst = logoVisible();
+    r.piel = document.documentElement.getAttribute('data-piel');
+    r.hdr = getComputedStyle(document.querySelector('.hdr')).backgroundColor;
+    r.logoVisible = getComputedStyle(document.querySelector('.hlogo')).display !== 'none';
     r.logoIncrustado = document.querySelector('.hlogo').src.indexOf('data:image/png;base64,') === 0;
-    pielToggle();
-    r.pielTrasToggle = document.documentElement.getAttribute('data-piel');
-    r.hdrNotion = fondo();
-    r.logoNotion = logoVisible();
-    r.guardada = localStorage.getItem('RCE_PIEL');
-    pielToggle();
-    r.hdrVuelta = fondo();
+    r.logoAlto = Math.round(document.querySelector('.hlogo').getBoundingClientRect().height);
+    r.sinAlternador = typeof pielToggle === 'undefined' && !document.getElementById('btnPiel')
+      && ![...document.querySelectorAll('#msheet .mit')].some(x => /piel/i.test(x.textContent));
+    // encabezado compacto: una sola franja
+    const h = document.querySelector('.hdr').getBoundingClientRect();
+    r.unaFranja = h.height <= 74;
+    // el logo y el reloj conviven en la misma línea
+    const lg = document.querySelector('.hlogo').getBoundingClientRect();
+    const ck = document.getElementById('clk').getBoundingClientRect();
+    r.mismaLinea = Math.abs(lg.top - ck.top) < 40 && ck.left > lg.right;
     return r;
   });
-  eq('piel por defecto: institucional', R.pielInicial, 'inst');
-  eq('cromo institucional azul profundo', R.hdrInst, 'rgb(4, 52, 94)');
-  eq('logo visible en piel San Pablo', R.logoInst, true);
+  eq('piel única: institucional', R.piel, 'inst');
+  eq('cromo institucional azul profundo', R.hdr, 'rgb(4, 52, 94)');
+  eq('logo visible', R.logoVisible, true);
   eq('logo incrustado (base64, sin red)', R.logoIncrustado, true);
-  eq('logo oculto en piel Notion', R.logoNotion === false, true);
-  eq('toggle vuelve a Notion', R.pielTrasToggle, 'notion');
-  eq('cromo Notion restaurado', R.hdrNotion, 'rgb(14, 58, 95)');
-  eq('elección persistida (localStorage)', R.guardada, 'notion');
-  eq('segundo toggle regresa a San Pablo', R.hdrVuelta, 'rgb(4, 52, 94)');
+  eq('logo grande (>= 44 px)', R.logoAlto >= 44, true);
+  eq('sin alternador de piel (Notion retirada de la app)', R.sinAlternador, true);
+  eq('encabezado en UNA sola franja (<= 74 px)', R.unaFranja, true);
+  eq('logo y reloj en la misma línea', R.mismaLinea, true);
   await b.close();
   console.log(fails.length ? ('❌ ' + fails.length + ' FALLOS') : '✅ TODO OK');
   process.exit(fails.length ? 1 : 0);

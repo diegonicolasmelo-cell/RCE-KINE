@@ -76,7 +76,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 Chromium con puente simulado; acepta ruta del cohete como argumento),
 `regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
 `eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`,
-`reset.js`.
+`reset.js`, `mover_camas.js`.
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
 
@@ -105,8 +105,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 ## Estado y pendientes (julio 2026)
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.3-mascota**
-  (antes v5.2-servi, v5.1-tqt, v5.0-reinicio, v4.9-mascota).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.4-compacto**
+  (antes v5.3-mascota, v5.2-servi, v5.1-tqt, v5.0-reinicio).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
@@ -170,6 +170,25 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   Guía paso a paso para Diego: `scratchpad/GUIA_MIGRACION.md` (11 pasos).
   TRAMPA propia: un comentario de bloque con `infra_*/` cierra el comentario
   antes de tiempo (`*/`) y rompe el archivo.
+- **v5.4 · ENCABEZADO COMPACTO, PIEL ÚNICA Y MOVER A CAMA VACÍA (ago-2026,
+  cohete v5.4-compacto).**
+  1. **BUG CORREGIDO — mover un paciente a una cama VACÍA era imposible**: la
+     tarjeta libre solo ofrecía «+ Ingresar Paciente», así que tras tocar ⇄ no
+     había dónde completar el movimiento (el cliente ya sabía elegir entre
+     `INTERCAMBIAR_CAMAS` y `MOVER_A_CAMA_VACIA`; faltaba el botón). Ahora,
+     con un movimiento en curso, CADA tarjeta ofrece su acción: origen =
+     «✕ Cancelar», libre = «🛏️ Mover aquí», ocupada = «⇄ Intercambiar».
+     Lenguaje unificado a «mover paciente» (para el equipo no son dos cosas
+     distintas). Guardia: `checks/mover_camas.js`.
+  2. **Encabezado en UNA sola franja** (~65 px, antes dos filas): logo a la
+     izquierda ocupando el alto (46-50 px) y a continuación reloj, camas,
+     fecha, turno, buscador y acciones. `.hdr` pasó a `flex-nowrap` con la
+     `.hbar` desplazable; bajo 900 px vuelve a envolver.
+  3. **PIEL ÚNICA — Notion RETIRADA de la app** (pedido de Diego): `data-piel`
+     se fija en `'inst'`, se eliminaron `pielToggle`, el botón 🎨 y la entrada
+     de la hoja «Más». El CSS de la piel Notion sigue en el index como base de
+     tokens: para volver a ofrecer las dos basta reponer el alternador y leer
+     `localStorage.RCE_PIEL`. Guardia `checks/piel.js` reescrita.
 - **v5.3 · MASCOTA SELECCIONABLE + IDENTIDAD MÁS PRESENTE (ago-2026, cohete
   v5.3-mascota).** Pedido de Diego: «es 1 o la otra», con **Servi por
   defecto**.
@@ -202,11 +221,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      `fillCama` ahora también bloquea el calibre heredado de la cama (antes
      quedaba editable sin declarar el cambio). Guardia: bloque v5.2 en
      `checks/via_aerea_previo.js` y de Servi en `checks/tutorial.js`.
-  - PENDIENTE: Diego reportó que «un paciente que llega con vía aérea natural
-    y requiere intubación no se puede agregar desde el ingreso». Reproducido
-    en Chromium y **el flujo funciona** (aparece `dIntubSec`, se marca, el
-    panel «Queda con» llena y el texto narra la transición). Falta que Diego
-    precise qué pasos hace y qué ve.
+  - CERRADO: el reporte de «no se puede intubar desde el ingreso» era un error
+    de uso — el flujo funciona (confirmado por Diego, ago-2026).
 - **v5.1 · LA TQT SE DECIDE ANTES DE LA TERAPIA VENTILATORIA (ago-2026,
   cohete v5.1-tqt).** Pedido de Diego: el día de la TQT había que llenar los
   parámetros DOS veces (el módulo de arriba y el «Queda con»). Ahora el bloque

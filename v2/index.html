@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.3-mascota">
+<meta name="rce-version" content="5.4-compacto">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -62,7 +62,10 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 #lmsg{color:#aeaeb2;font-size:.86rem;font-weight:500;letter-spacing:.1px;}
 
 /* HEADER */
-.hdr{background:#0e3a5f;color:#fff;padding:10px 22px;position:sticky;top:0;z-index:50;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 1px 0 rgba(255,255,255,.07);}
+.hdr{background:#0e3a5f;color:#fff;padding:6px 16px;position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;flex-wrap:nowrap;box-shadow:0 1px 0 rgba(255,255,255,.07);min-height:58px;}
+.hdr .htitle{flex-shrink:0;}
+.hdr .hbar{flex:1;min-width:0;overflow-x:auto;flex-wrap:nowrap;}
+@media (max-width:900px){ .hdr{flex-wrap:wrap;min-height:0;} .hdr .hbar{overflow-x:visible;flex-wrap:wrap;} }
 .htitle{font-size:.98rem;font-weight:700;display:flex;align-items:center;gap:8px;letter-spacing:-.015em;}
 .hbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:.82rem;color:#8e8e93;}
 .hbar b{color:#f2f2f7;}
@@ -77,7 +80,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .stgl[data-s="Noche"] .stgl-btn.n{color:#fff;font-weight:700;}
 .stgl[data-s="Dia"] .stgl-sl{transform:translateX(0);background:#ff9f0a;box-shadow:0 1px 8px rgba(255,159,10,.55);}
 .stgl[data-s="Noche"] .stgl-sl{transform:translateX(100%);background:#5856d6;box-shadow:0 1px 8px rgba(88,86,214,.55);}
-.hbar-actions{display:flex;flex-direction:column;gap:5px;align-items:stretch;}
+.hbar-actions{display:flex;flex-direction:row;gap:5px;align-items:center;flex-shrink:0;}
 .hbar-actions .hbtn{justify-content:center;}
 .hbtn{background:rgba(255,255,255,.1);color:#f2f2f7;border:1px solid rgba(255,255,255,.15);padding:5px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem;display:flex;align-items:center;gap:5px;transition:background .15s;}
 .hbtn:hover{background:rgba(255,255,255,.19);}
@@ -996,10 +999,10 @@ html[data-piel="inst"]{
   --n-pink-bg:#f7e9f1;--n-pink:#a03d78;
   --n-red-bg:#fbe9e7;--n-red:#C62828;
 }
-.hlogo{display:none;}
+.hlogo{display:block;height:46px;width:auto;background:#fff;border-radius:7px;padding:3px 5px;flex-shrink:0;}
 html[data-piel="inst"] .hlogo{display:block;height:50px;width:auto;background:#fff;border-radius:6px;padding:2px 4px;flex-shrink:0;}
-html[data-piel="inst"] .htitle{display:flex;align-items:center;gap:8px;}
-@media (max-width:740px){ html[data-piel="inst"] .hlogo{height:38px;} }
+
+@media (max-width:740px){ .hlogo{height:36px;} }
 html[data-piel="inst"] .hdr{background:#04345E;border-bottom:3px solid #F0A000;box-shadow:none;}
 html[data-piel="inst"] .hbtn{background:#0d426f;border-color:#1c5d94;}
 html[data-piel="inst"] .hbtn:hover{background:#12507f;}
@@ -1082,7 +1085,10 @@ html[data-masc="servi"] #tutBtn{animation:none;}   /* Servi va quieto */
 <script>
 /* Piel guardada del dispositivo, aplicada ANTES de pintar (evita parpadeo).
    'inst' = San Pablo (por defecto en la prueba) · 'notion' = piel papel. */
-document.documentElement.setAttribute('data-piel', (function(){ try { return localStorage.getItem('RCE_PIEL') || 'inst'; } catch (e) { return 'inst'; } })());
+/* Piel ÚNICA: institucional San Pablo (decisión de Diego, ago-2026). El CSS
+   de la piel Notion sigue debajo como base de tokens; para volver a ofrecer
+   las dos bastaría con reponer el alternador y leer localStorage.RCE_PIEL. */
+document.documentElement.setAttribute('data-piel', 'inst');
 </script>
 
 <div id="devbar" class="devbar" style="display:none">⚙️ Modo desarrollo — identidad simulada, sin login (AUTH_DEV_MODE)</div>
@@ -1127,7 +1133,7 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
 <!-- HEADER --><!-- HEADER -->
 <div class="hdr">
   <img class="hlogo" alt="Hospital San Pablo de Coquimbo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIcAAABgCAMAAAAAeJECAAAAwFBMVEUhbqA1cplci6jm4dRpkqf8tRmZq7NOhKbft2QoenxIe5vquE7j07VEfJ8BIXnsxnP7+3sA//93eXpSaaD/fwCsu8gAAP+3x87Xtqz/f3/yw10iZaP1rFk7dpv9tivhypa5uXP//wC8vDeJpLT/AACSkFl/f/9Wi6u/fzLYu3ntzYV///+ZtcbOu5P/wilmmcwAAD8+gKg7gKl/AABrhXt2jHh/rMDdu8wAAAAMZJv3rBMPaaMkapf+/vwmbJj4uCwNq9aRAAAAQHRSTlPpoFwWMP4fiZgDYt4TjwOUAgECEAIcARoaAtAFA3IEWQMBA1IB2ALTBGaIAkZO/wUEs+MCtMFaDwD+/f7rBdX9tcE5wgAACWdJREFUeNrNWoli4jgW1IUMPrgJdAghSWd7+pqZvVeOJfv//2rryZgr5nAyhFZIJMsmFE+vSiXZzJwuXRMyS4WFxjFqMmE65i8t7CwcPEupZMJIS80sC8zwujjyssmUGV0PR2BcnpZNju6r4UiMs6smu2Z+BKv8uD4Ol18PR+cXwfFrxOPTw/CVfnw4DvcwpurK8XB9/Im/tW//xtZ8qXB8nH64O2Pksl0UrdYGR/zh8SAUvahovby8tGri8UE43L2RbY+iVRS3/2FrPS1baZp/CA4kxjIqEIqiiNozt5WnH8qXmZHffSyiXjzY4cuH8vbBuNuCRqQncfQ0dNfh7Z2RtwhGES2Nue9fTU8fPIxW0Z56FPU+6PL6MTNxRJmx9NTdx7EVj8vi6CMaBGNm7t2r+ZZ4u2rmbnBJHG7sKDciWQVjb96vxiVNtfnzxhi8zKvqL8BxZ3qUor9vwajx635g3GHD4t6L484sQdhiafon/AdZdiGN88Wsfqsmwvo+HBiVqPVStHdg7OKodB1Hqc1rCwtlYyBsLxztAjn6486d8skrKBleNYXppsusHRyfHiUlxwzcPQ/HoQJ1abjuZP0xlefnx+fx+N6Ho2fufd/jM7r+NR5/6tbw9lRpGpC9/Ig8ZY+soza8PV6EUc1wtNu9Xrt9G0URVSALWrdt9KKKovZtm4S1hrcnSthwYFjU2i4v5L52yx9tU6tjxxNENMfxcry0dnBs8fajcfTeMC4XwFH0TGPeXgQHjUu65u3Z+aEugWPDW3YubxvHo6ACYpRLFSrlce24xJfi7TevH/Tq9Whu8Ue+p6jlS55eJh67akpfvjp6D47meXr39f7+6en+6evdfYx4tJ/uv1KPP3qVH8SXC+HYTLZm1qIv/3V1tMaxlx+XxuFoXIBjXNnloo4vFxuXdevR44icOYrj/Pn2zXk6Nm14wrg0Dhil94xLc95umt4FFcvHhxKHrOXL5fMUZnBJhClXDP0DOC6fH0hUCZGPSq/dN9fiLQ0M1lDF8vnBj4tuvW++VW/G8eAHJvKLl3q+nO3HUmW+vBnHo5lEnjF3x/LjvHWDa7pu2D54Mt98QDyOirdv8GPvXUe5Rx+Q3zFCG10/jOMQIsYbw9hbv8Rm+QcCMjV9jEt0Qk+tULqmKA2+Nb55t7fef6DdD4j7XXxS160++E/nc+XMsDPqUBmamw7dyht1muDwYSi+I0XqeJts+TFh5kQJ+uau3KIaDXdu2rxrH6ZfbYCMD823KxzW4ZuGoTJKhMaoxUJgOHTIQzUMw4XQZhSKcIFmaFQYQhvDUDfZH4OYFX6X7riuZ35fmzHVVYwZkTKWsamymWVcZRljTHP2W8rQzE2YpfrGWSuPpM0rHO7JkTMtvk+P8qXcP81TaXTGdZYKxTOeZIETI5FxFdCBQPUPrVzOGDfO4tpBg31L97zaxa2Z98U6P8p9yzzNc5YF+EhDHxRkKRcGOMzPlAcMTQDAccDthHC4H032cftmSoua1ssxvpTxYCmzFl8dH+mDI3KIh4CC2ExwhtBASuKc/TfAOykezfa1oR294tA6qsrTMj/KcfmM3HAiy7XCOisVKZJE4D1lPAQwW6Q1s1LKZvv8n4z5Hm3WUbPH7fselWj6/Mi0oTzlGcLC1IJZluWCBTj1zFfjkmdCIDhBngHNwWm4frvePZplBWQ7HmLtP2hcOibheq4SsFLwnIPCSZ7zCTr+Pp8PQ98RGs5BaMWDhKMoM4S6fTn/ftTWfBv97jY4/reFY10a73B3z8fxUOF4aRXRv9N6/TACSvZnB1o2MvMRxKs7CkemqyFhAtFAvzKdEcaFahF2uxAQVStop+OxfZ+Q8nSDY+gSxIUpaFRG/GRMGsqKLo4ZS+nhGdr9Vqk/mkLROh3HIW5p8kr2D+Hwq7tVguzcN92MS9fI1EqNAIRghIZOAA2xpIugCWGtVvhMYXTK3E9c6TdVQ+SxyNmrfD2MY+0/bnvb95F3cCAOCDI+9jO+osiQQEGJwzriNEc/Qzws5ymXWf7YgbZK45Wu2zhP28YlW/50k6dDozlmFKUyDngyzMDNf5bSigChM2WQE0QFugYcJDkOQoLpMH0TjvGOT97OU+UgX5hJaEITii00Iz+AeGB64zJMqR8A/G1fCo2jcXOgX3Iujp11Q7/CEe7mh7Y2x6wCeQoxKCvxJBwp3ZyRlvpJXzELpfYzvILNP1sveXr/hsTpeOyvGzbxcFIwi7TzswvmGB52jOCq04F2qc5c8ZCYjX6eww1oyBimG83zPNE3w8HcezXyaWTXjuA44E939OOEQJ00ZTfVO07zZWveT+l5hw2OgSGFgg9ToZeqOSyoDr0xU77CoaB6hHNDaF0ooHDOdLtKaFI3cK1Ll6qzcaT7+4WVHyMfpjXpln/WT/gWxouKNoElbya9DeFsypkknZs7XMzhGFKrjJdCHjfNjz1fCJYkWQ5KSjmBTdagi07IgcCfsZVPI6dIOLIpzyRmZigeziNvwLUF3AKIliVn6Uf983Tz0hcaomSGJKTnIZFB/rEELyI2WNUi5UTWCYe0gcjkHQQ0mOdW+0s1HMtBHLNWnS9c6SnptcehSxygJMPqYUGs3eD4LS39InDQ2E4oHuikH0GWBQj9f8Clh3HEx8YlS1xn4P0Ygmul1wtMGYjyFJOsyBj186rWmO7InxKOdGKzBIOyYD9h3nI4RufgqpvyFpKNNgucNx3MWz6BIFnGQiRgguxjNqYkzJCRHAY2tRPDvI2FNYNZdQsmF0wkGTSQcclI16w6Ix4bvoC3P0DRUExMt/Ply3y28liKlIqFo9HICQi6uPGVAi6BjwkWo0mQ54Gch9B6rMGxxuIqxHtokpQJ6dqxeb92v7DxY7iJZ+ebn1OqH5fAKFgsevnfrWpVb3qqA00KJ/a6fQm3/1FTHP75sfO2ppoU22xcQlgw5j2R/8tWB9XR+lxV+Ubmu9dnNyfKlr/AnqGnu/vJuW1UXl+e1l528Dm2A+PS0ZNZPJVxPJGxnsax1vFMS0k9qCboQXOq4zhGn9TUjRYuxtv0JJY4I1FN0IPzqKSe0aVn8vbtfHnnc339A/u4ncHQDZy7cWWFo5sBWkPomnODVUUnVg1UA2qV7xk4V12InsGNv2RgcK7ZPJdcIR5VfuzOtx+No/6+mLgCDvlL4KBx2X3ugp4F+vj8gH74h1Nuo9tvxoS8LOHFcPwfwt2dV3j4ubYAAAAASUVORK5CYII=">
-  <div class="htitle">🫁 RCE KINE UCIA <span style="font-size:.62rem;font-weight:400;color:#94a3b8;margin-left:4px;">v2</span></div>
+  <div class="htitle" style="font-size:.86rem;">RCE KINE <span style="font-size:.6rem;font-weight:400;color:#94a3b8;">v2</span></div>
   <div class="hbar">
     <span id="clk" style="font-family:monospace;font-size:1.22rem;font-weight:700;letter-spacing:.5px;color:#fff;">--:--</span>
     <span>|</span>
@@ -1147,11 +1153,8 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
       <div id="hSrchRes" class="hidden"></div>
     </div>
     <div class="hbar-actions">
-      <button class="hbtn" onclick="recargar()">🔄 Actualizar</button>
-      <div style="display:flex;gap:5px;">
-        <button class="hbtn" id="btnPiel" style="flex:1;" onclick="pielToggle()" title="Alternar entre la piel institucional San Pablo y la piel Notion">🎨</button>
-        <button class="hbtn" id="mascBtn" style="flex:1;" onclick="mascToggle()" title="Cambiar la mascota">🤖</button>
-      </div>
+      <button class="hbtn" onclick="recargar()" title="Actualizar datos">🔄</button>
+      <button class="hbtn" id="mascBtn" onclick="mascToggle()" title="Cambiar la mascota">🤖</button>
     </div>
   </div>
 </div>
@@ -1181,7 +1184,6 @@ document.documentElement.setAttribute('data-piel', (function(){ try { return loc
   <button type="button" class="mit" onclick="mSheet(false);setTab('A')">🗃️ Archivados</button>
   <button type="button" class="mit" onclick="mSheet(false);setTab('V')">🔧 Ventiladores</button>
   <button type="button" class="mit" onclick="mSheet(false);recargar()">🔄 Actualizar datos</button>
-  <button type="button" class="mit" id="mitPiel" onclick="pielToggle()">🎨 Cambiar piel</button>
   <button type="button" class="mit" id="mitMasc" onclick="mascToggle()">🧑 Cambiar a kinesiólogo</button>
   <button type="button" class="mit" onclick="mSheet(false);tutAbrir()">❓ Tutorial</button>
 </div>
@@ -3664,7 +3666,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.3-mascota]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.4-compacto]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3967,7 +3969,7 @@ function renderGrid() {
       el.innerHTML=`${_vmt}
         <div class="bhdr">
           <span class="bnum"><div class="bdot ${dot}"></div>Cama ${c.ID_CAMA}</span>
-          <button class="bmov" onclick="mover('${c.ID_CAMA}')" title="Intercambiar cama">
+          <button class="bmov" onclick="mover('${c.ID_CAMA}')" title="Mover este paciente a otra cama">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/></svg>
           </button>
         </div>
@@ -3981,7 +3983,7 @@ function renderGrid() {
           </div>
           ${al?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;">${al}</div>`:''}
         </div>
-        <div class="bfoot">
+        <div class="bfoot">${_movPie(c, true)}
           <button class="bevo" onclick="abrirPanel('${c.ID_CAMA}',false)">${btn}</button>
           <button class="btl" onclick="abrirTL('${c.ID_CAMA}')">⏱️ Hist.</button>
           <button class="btl" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${c.ID_CAMA}',this)">➕</button>
@@ -3992,7 +3994,7 @@ function renderGrid() {
       el.innerHTML=`${_vmtL}
         <div class="bhdr"><span class="bnum" style="color:var(--muted);"><div class="bdot d-empty"></div>Cama ${c.ID_CAMA}</span></div>
         <div class="bbody"><div class="empty-txt">Disponible</div></div>
-        <div class="bfoot"><button class="bevo" style="background:#e2e8f0;color:#475569;" onclick="abrirPanel('${c.ID_CAMA}',true)">+ Ingresar Paciente</button></div>`;
+        <div class="bfoot">${_movPie(c, false)}<button class="bevo" style="background:#e2e8f0;color:#475569;" onclick="abrirPanel('${c.ID_CAMA}',true)">+ Ingresar Paciente</button></div>`;
     }
     if(window.Turnos) Turnos.decorateCard(el, c);
     frag.appendChild(el);
@@ -5546,10 +5548,24 @@ function _ucFin(v){
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('ucOvl')?.classList.contains('on')) _ucFin(false); });
 $('ucOvl')?.addEventListener('click',e=>{ if(e.target===$('ucOvl')) _ucFin(false); });
 
-//  TRASLADO
+
+/* Durante un movimiento de cama, CADA tarjeta ofrece su acción: la cama de
+   origen se cancela, una cama libre recibe al paciente y una ocupada
+   intercambia. Antes la cama libre solo tenía «+ Ingresar Paciente», así que
+   el movimiento a cama vacía no se podía completar (bug reportado ago-2026). */
+function _movPie(c, ocupada){
+  if(MOVECAMA===null) return '';
+  if(String(MOVECAMA)===String(c.ID_CAMA))
+    return `<button class="bevo" style="background:#fee2e2;color:#b91c1c;" onclick="mover('${c.ID_CAMA}')">✕ Cancelar movimiento</button>`;
+  return ocupada
+    ? `<button class="bevo" style="background:var(--primary);color:#fff;" onclick="mover('${c.ID_CAMA}')">⇄ Intercambiar con esta cama</button>`
+    : `<button class="bevo" style="background:var(--ok);color:#fff;" onclick="mover('${c.ID_CAMA}')">🛏️ Mover aquí</button>`;
+}
+
+//  MOVER PACIENTE DE CAMA
 function mover(id) {
   if(MOVECAMA===null){
-    MOVECAMA=id; renderGrid(); toast('🛏️ Haz clic en otra cama (ocupada = intercambio, libre = traslado).');
+    MOVECAMA=id; renderGrid(); toast('🛏️ Elige la cama de destino: «Mover aquí» si está libre, «Intercambiar» si tiene paciente.', 5200);
   } else {
     if(String(MOVECAMA)===String(id)){MOVECAMA=null;renderGrid();toast('❌ Cancelado.');return;}
     const origen=DB.find(x=>String(x.ID_CAMA)===String(MOVECAMA));
@@ -7900,11 +7916,6 @@ function pielAplicar(p){
   try { localStorage.setItem('RCE_PIEL', p); } catch (e) {}
   const b=$('btnPiel'); if(b) b.title = p==='inst' ? 'Piel San Pablo activa — tocar para volver a Notion' : 'Piel Notion activa — tocar para probar San Pablo';
   const m=$('mitPiel'); if(m) m.textContent = p==='inst' ? '🎨 Piel: San Pablo (tocar para Notion)' : '🎨 Piel: Notion (tocar para San Pablo)';
-}
-function pielToggle(){
-  const nueva = document.documentElement.getAttribute('data-piel')==='inst' ? 'notion' : 'inst';
-  pielAplicar(nueva);
-  toast(nueva==='inst' ? '🎨 Piel institucional San Pablo' : '🎨 Piel Notion');
 }
 pielAplicar(document.documentElement.getAttribute('data-piel'));   // sincroniza etiquetas al arrancar
 
