@@ -69,14 +69,46 @@ eq('id inexistente se rechaza', r.ok, false);
 r = guardarStockEquipo({ id: idA, nombre: 'Aerogen Pro-X', obs: 'revisar en bodega' }, ctx);
 eq('editar sin mandar cantidad NO altera el stock', DB.STOCK_EQUIPOS.find(x => x.ID_STOCK === idA).CANTIDAD, 9);
 
+/* ── Reparto por cama (v5.18): los equipos sin número TAMBIÉN van a una cama
+      definida; no importa cuál de los 10, sino cuántos hay ahí. ── */
+r = asignarStockACama({ id: idA, idCama: '7', delta: 1 }, ctx);
+eq('asignar 1 a la cama 7', r.ok && r.data.enCama, 1);
+eq('…y baja el disponible', r.data.disponible, 8);
+r = asignarStockACama({ id: idA, idCama: '7', delta: 2 }, ctx);
+eq('se pueden asignar varios a la misma cama', r.data.enCama, 3);
+r = asignarStockACama({ id: idA, idCama: '4', delta: 1 }, ctx);
+eq('y repartir a otra cama', r.data.enCama, 1);
+const movAsig = DB.MOVIMIENTOS_STOCK[DB.MOVIMIENTOS_STOCK.length - 1];
+eq('el reparto queda trazado desde/hacia', movAsig.DESDE === 'Disponible' && movAsig.HACIA === 'Cama 4', true);
+eq('…sin alterar el total (delta 0)', movAsig.DELTA, 0);
+
+r = asignarStockACama({ id: idA, idCama: '9', delta: 99 }, ctx);
+eq('no se asigna más de lo disponible', r.ok, false);
+r = asignarStockACama({ id: idA, idCama: '9', delta: -1 }, ctx);
+eq('no se devuelve de una cama que no tiene', r.ok, false);
+r = asignarStockACama({ id: idA, idCama: '', delta: 1 }, ctx);
+eq('la cama es obligatoria', r.ok, false);
+
+// Con 4 en camas, sacar del inventario más de lo disponible se rechaza
+r = ajustarStockEquipo({ id: idA, delta: -7, motivo: 'Dado de baja / falla' }, ctx);
+eq('no se dan de baja unidades que están en una cama', r.ok, false);
+r = ajustarStockEquipo({ id: idA, delta: -5, motivo: 'Dado de baja / falla' }, ctx);
+eq('…pero sí las que están disponibles', r.ok, true);
+
+r = asignarStockACama({ id: idA, idCama: '7', delta: -3 }, ctx);
+eq('devolver deja la cama sin el equipo', r.data.enCama, 0);
+eq('y el reparto ya no la menciona', JSON.stringify(_stkAsig(DB.STOCK_EQUIPOS.find(x => x.ID_STOCK === idA))), '{"4":1}');
+
 const lista = obtenerStockEquipos();
 eq('la lectura devuelve los tipos activos', lista.data.length, 2);
 const aer = lista.data.find(x => x.id === idA);
-eq('…con su cantidad al día', aer.cantidad, 9);
-eq('…y el último ajuste para la tarjeta', aer.ultimo.motivo, 'Compra / reposición');
-const hist = obtenerMovimientosStock(idA, 10);
-eq('el historial trae los ajustes, lo más nuevo primero', hist.data.movs[0].motivo, 'Compra / reposición');
-eq('y cuenta todos los del ítem', hist.data.movs.length, 3);
+eq('…con su cantidad al día', aer.cantidad, 4);
+eq('…separando lo que está en camas de lo disponible', aer.enUso === 1 && aer.disponible === 3, true);
+eq('…y el reparto por cama', JSON.stringify(aer.asignacion), '{"4":1}');
+eq('…y el último ajuste para la tarjeta', aer.ultimo.motivo, 'Devuelto de cama');
+const hist = obtenerMovimientosStock(idA, 20);
+eq('el historial trae los ajustes, lo más nuevo primero', hist.data.movs[0].motivo, 'Devuelto de cama');
+eq('y cuenta todos los del ítem', hist.data.movs.length, 8);
 
 /* ── Parte 2 · UI ── */
 const { chromium } = require('playwright-core');
@@ -91,14 +123,20 @@ const { chromium } = require('playwright-core');
         window._envios.push({ a, d });
         const STK = [
           { id: 's1', nombre: 'Aerogen Pro-X', marca: 'Aerogen', modelo: 'Pro-X', categoria: 'Nebulización',
-            cantidad: 10, estado: 'Operativo', obs: 'Nebulizador de malla · sin numerar',
+            cantidad: 10, asignacion: { '3': 1, '7': 2 }, enUso: 3, disponible: 7,
+            estado: 'Operativo', obs: 'Nebulizador de malla · sin numerar',
             ultimo: { fecha: '2026-07-31', delta: 10, motivo: 'Carga inicial', firma: 'DMV' } },
           { id: 's2', nombre: 'Capnógrafo Nihon Kohden', marca: 'Nihon Kohden', categoria: 'Capnografía',
-            cantidad: 5, estado: 'Operativo', ultimo: null },
+            cantidad: 5, asignacion: {}, enUso: 0, disponible: 5, estado: 'Operativo', ultimo: null },
           { id: 's3', nombre: 'Capnógrafo Dräger', marca: 'Dräger', categoria: 'Capnografía',
-            cantidad: 4, estado: 'De baja', obs: 'No se ocupan', ultimo: null },
+            cantidad: 4, asignacion: {}, enUso: 0, disponible: 4, estado: 'De baja', obs: 'No se ocupan', ultimo: null },
         ];
-        const R = { GET_CONFIG_UI: { NUM_CAMAS: 12, BANNERS: {} }, GET_VENTILADORES: [], GET_TODAS_CAMAS: [],
+        const VMS = [
+          { id: 'v1', nombre: 'PB 1', activo: true, ubicTipo: 'CAMA', ubicDetalle: '3', estado: 'Operativo' },
+          { id: 'v2', nombre: 'V60 Nº1', activo: true, ubicTipo: 'CAMA', ubicDetalle: '3', estado: 'Operativo' },
+          { id: 'v3', nombre: 'Airvo2 Nº3', activo: true, ubicTipo: 'CAMA', ubicDetalle: '3', estado: 'Operativo' },
+        ];
+        const R = { GET_CONFIG_UI: { NUM_CAMAS: 12, BANNERS: {} }, GET_VENTILADORES: VMS, GET_TODAS_CAMAS: [],
           GET_STOCK: STK, AJUSTAR_STOCK: { cantidad: 9 },
           GET_MOVS_STOCK: { movs: [{ fecha: '2026-08-01', delta: -1, final: 9, motivo: 'Dado de baja / falla', detalle: 'membrana', firma: 'DMV' }] } };
         setTimeout(() => okF({ ok: true, data: R[a] !== undefined ? R[a] : null }), 5);
@@ -127,6 +165,57 @@ const { chromium } = require('playwright-core');
   eq('los Dräger se muestran DE BAJA', UI.drager, true);
   eq('la tarjeta informa el último ajuste', UI.ultimo, true);
   eq('una tarjeta por tipo', UI.tarjetas, 3);
+
+  /* ── v5.18 · el casillero de la cama muestra TODOS sus equipos (antes solo
+        uno) y también los de stock asignados a esa cama ── */
+  const CAMA = await p.evaluate(() => {
+    const slot = n => [...document.querySelectorAll('#vmBody .vmz-slot')].find(s => s.dataset.det === String(n));
+    const s3 = slot(3), s7 = slot(7);
+    return {
+      tresEquipos: [...s3.querySelectorAll('.vmz-chip:not(.vmz-stk)')].map(c => c.textContent.trim()),
+      stockEnCama3: [...s3.querySelectorAll('.vmz-chip.vmz-stk')].map(c => c.textContent.trim()),
+      stockEnCama7: [...s7.querySelectorAll('.vmz-chip.vmz-stk')].map(c => c.textContent.trim()),
+      stkNoArrastrable: ![...s3.querySelectorAll('.vmz-chip.vmz-stk')].some(c => c.getAttribute('draggable') === 'true'),
+      repartoEnTarjeta: /En camas/.test($('stkBody').textContent),
+      disponibles: /7\s*\/\s*10/.test($('stkBody').textContent.replace(/\s+/g, ' ')),
+    };
+  });
+  eq('la cama 3 muestra sus TRES equipos con nombre', CAMA.tresEquipos.length, 3);
+  eq('…y son los del inventario (VM + V60 + Airvo)', /PB 1/.test(CAMA.tresEquipos.join('|')) && /V60/.test(CAMA.tresEquipos.join('|')) && /Airvo/.test(CAMA.tresEquipos.join('|')), true);
+  eq('el stock asignado aparece en su cama', /Aerogen/.test(CAMA.stockEnCama3.join('')), true);
+  eq('…con la cantidad cuando hay más de uno', /×2/.test(CAMA.stockEnCama7.join('')), true);
+  eq('el chip de stock NO se arrastra (no hay unidad identificable)', CAMA.stkNoArrastrable, true);
+  eq('la tarjeta resume en qué camas está', CAMA.repartoEnTarjeta, true);
+  eq('…y muestra disponibles sobre el total', CAMA.disponibles, true);
+
+  const ASIG = await p.evaluate(async () => {
+    stkAbrirCama('s1', 5);
+    await new Promise(r => setTimeout(r, 60));
+    const o = { titulo: $('stkModTit').textContent,
+      camaVisible: !$('stkCamaRow').classList.contains('hidden'),
+      motivoOculto: $('stkMotivoRow').classList.contains('hidden'),
+      resumen: $('stkResumen').textContent };
+    window._envios = [];
+    stkAplicar();
+    await new Promise(r => setTimeout(r, 120));
+    o.envio = (window._envios.find(x => x.a === 'ASIGNAR_STOCK') || {}).d;
+    // devolver desde una cama que no tiene ⇒ bloqueado
+    stkAbrirCama('s1', 9);
+    $('stkDir').value = '-1'; stkDirCambio();
+    o.avisoVacia = $('stkResumen').textContent;
+    window._envios = [];
+    stkAplicar();
+    await new Promise(r => setTimeout(r, 60));
+    o.bloqueado = !window._envios.some(x => x.a === 'ASIGNAR_STOCK');
+    stkCerrar();
+    return o;
+  });
+  eq('tocar el chip abre el reparto de esa cama', /cama 5/i.test(ASIG.titulo) && ASIG.camaVisible, true);
+  eq('el reparto no pide motivo de baja', ASIG.motivoOculto, true);
+  eq('anticipa cómo queda la cama y el disponible', /cama 5/.test(ASIG.resumen) && /disponibles/.test(ASIG.resumen), true);
+  eq('asignar envía la cama y delta positivo', ASIG.envio && ASIG.envio.idCama === '5' && ASIG.envio.delta === 1, true);
+  eq('avisa si la cama no tiene unidades que devolver', /tiene 0/.test(ASIG.avisoVacia), true);
+  eq('…y no deja registrar esa devolución', ASIG.bloqueado, true);
 
   const MOD = await p.evaluate(async () => {
     stkAbrir('s1', -1);

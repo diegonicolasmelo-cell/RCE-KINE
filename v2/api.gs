@@ -111,6 +111,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => guardarStockEquipo(datos, ctx));
       case 'AJUSTAR_STOCK':
         return _auditar(ctx, accion, () => ajustarStockEquipo(datos, ctx));
+      case 'ASIGNAR_STOCK':
+        return _auditar(ctx, accion, () => asignarStockACama(datos, ctx));
 
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);

@@ -415,14 +415,35 @@ function obtenerFallasVM(idVm, limite) {
 //  MOVIMIENTOS_STOCK con motivo y firma: si mañana faltan dos, el libro dice
 //  por qué. No se asignan a camas (sería un dato imposible de verificar).
 // ═══════════════════════════════════════════════════════════════════════════
+/** Reparto por cama guardado como JSON: {"4":1,"7":2}. Tolera basura. */
+function _stkAsig(fila) {
+  try {
+    const o = typeof fila.ASIGNACION_JSON === 'string'
+      ? JSON.parse(fila.ASIGNACION_JSON || '{}') : (fila.ASIGNACION_JSON || {});
+    const limpio = {};
+    Object.keys(o || {}).forEach(function (k) {
+      const n = parseInt(o[k], 10) || 0;
+      if (n > 0) limpio[String(k)] = n;
+    });
+    return limpio;
+  } catch (e) { return {}; }
+}
+function _stkEnUso(asig) {
+  return Object.keys(asig).reduce(function (s, k) { return s + (parseInt(asig[k], 10) || 0); }, 0);
+}
+
 function obtenerStockEquipos() {
   try {
     const filas = repoLeerTodos('STOCK_EQUIPOS')
       .filter(function (x) { return esVerdadero(x.ACTIVO); })
       .map(function (x) {
+        const asig = _stkAsig(x);
+        const cant = parseInt(x.CANTIDAD, 10) || 0;
+        const enUso = _stkEnUso(asig);
         return { id: String(x.ID_STOCK || ''), nombre: String(x.NOMBRE || ''),
           marca: String(x.MARCA || ''), modelo: String(x.MODELO || ''),
-          categoria: String(x.CATEGORIA || ''), cantidad: parseInt(x.CANTIDAD, 10) || 0,
+          categoria: String(x.CATEGORIA || ''), cantidad: cant,
+          asignacion: asig, enUso: enUso, disponible: Math.max(0, cant - enUso),
           estado: String(x.ESTADO || 'Operativo'), obs: String(x.OBS || '') };
       });
     filas.sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }); });
@@ -490,6 +511,11 @@ function ajustarStockEquipo(d, ctx) {
       const antes = parseInt(item.CANTIDAD, 10) || 0;
       const final = antes + delta;
       if (final < 0) return err('No puedes sacar ' + Math.abs(delta) + ': solo hay ' + antes + '.', ERR.VALIDACION);
+      // Lo que está en una cama NO se puede dar de baja sin devolverlo antes.
+      const enUso = _stkEnUso(_stkAsig(item));
+      if (final < enUso) {
+        return err('Hay ' + enUso + ' en camas: devuélvelos antes de sacarlos del inventario (disponibles: ' + (antes - enUso) + ').', ERR.VALIDACION);
+      }
       repoActualizar('STOCK_EQUIPOS', 'ID_STOCK', item.ID_STOCK, { CANTIDAD: final, TIMESTAMP: ahoraTS() });
       repoInsertar('MOVIMIENTOS_STOCK', {
         ID_MOV: uid('MST'), ID_STOCK: item.ID_STOCK, NOMBRE: String(item.NOMBRE || ''), TIMESTAMP: ahoraTS(),
@@ -502,6 +528,54 @@ function ajustarStockEquipo(d, ctx) {
   });
 }
 
+/**
+ * Reparto por cama (ago-2026, pedido de Diego: «los que tienen stock igual
+ * van a una cama definida»). Sin número no importa CUÁL de los 10 Aerogen
+ * está en la cama 7, sino cuántos hay ahí: se mueven unidades entre el pool
+ * disponible y cada cama. delta > 0 asigna a la cama; delta < 0 devuelve.
+ */
+function asignarStockACama(d, ctx) {
+  return conLock(function () {
+    try {
+      const item = repoBuscarPorId('STOCK_EQUIPOS', 'ID_STOCK', String(d.id || ''));
+      if (!item) return err('Equipo de stock no encontrado.', ERR.VALIDACION);
+      const cama = String(d.idCama || '').trim();
+      if (!cama) return err('Indica a qué cama.', ERR.VALIDACION);
+      const delta = parseInt(d.delta, 10) || 0;
+      if (!delta) return err('Indica cuántas unidades mover.', ERR.VALIDACION);
+
+      const asig = _stkAsig(item);
+      const total = parseInt(item.CANTIDAD, 10) || 0;
+      const enCama = parseInt(asig[cama], 10) || 0;
+      const disponible = total - _stkEnUso(asig);
+
+      if (delta > 0 && delta > disponible) {
+        return err('Solo hay ' + disponible + ' disponible(s) para asignar.', ERR.VALIDACION);
+      }
+      if (delta < 0 && Math.abs(delta) > enCama) {
+        return err('La cama ' + cama + ' tiene ' + enCama + '.', ERR.VALIDACION);
+      }
+      const nuevo = enCama + delta;
+      if (nuevo > 0) asig[cama] = nuevo; else delete asig[cama];
+
+      repoActualizar('STOCK_EQUIPOS', 'ID_STOCK', item.ID_STOCK, {
+        ASIGNACION_JSON: JSON.stringify(asig), TIMESTAMP: ahoraTS(),
+      });
+      repoInsertar('MOVIMIENTOS_STOCK', {
+        ID_MOV: uid('MST'), ID_STOCK: item.ID_STOCK, NOMBRE: String(item.NOMBRE || ''), TIMESTAMP: ahoraTS(),
+        FECHA: _statISO(d.fecha) || hoyISO(), DELTA: 0, CANTIDAD_FINAL: total,
+        MOTIVO: delta > 0 ? 'Asignado a cama' : 'Devuelto de cama',
+        DETALLE: String(d.detalle || ''),
+        DESDE: delta > 0 ? 'Disponible' : ('Cama ' + cama),
+        HACIA: delta > 0 ? ('Cama ' + cama) : 'Disponible',
+        FIRMA: (ctx && ctx.firma) || '', AUTOR_EMAIL: (ctx && ctx.email) || '',
+      });
+      return ok({ id: item.ID_STOCK, cama: cama, enCama: nuevo,
+        disponible: total - _stkEnUso(asig), entidad: 'STOCK_EQUIPOS' });
+    } catch (e) { return err('asignarStockACama: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
 /** Historial de ajustes de un tipo de equipo (lo más reciente primero). */
 function obtenerMovimientosStock(idStock, limite) {
   try {
@@ -511,7 +585,8 @@ function obtenerMovimientosStock(idStock, limite) {
       .slice(0, lim)
       .map(function (x) { return { fecha: _statISO(x.FECHA), delta: parseInt(x.DELTA, 10) || 0,
         final: parseInt(x.CANTIDAD_FINAL, 10) || 0, motivo: String(x.MOTIVO || ''),
-        detalle: String(x.DETALLE || ''), firma: String(x.FIRMA || '') }; });
+        detalle: String(x.DETALLE || ''), firma: String(x.FIRMA || ''),
+        desde: String(x.DESDE || ''), hacia: String(x.HACIA || '') }; });
     return ok({ movs: filas, total: filas.length });
   } catch (e) { return err('obtenerMovimientosStock: ' + e.message, ERR.INTERNO, e); }
 }

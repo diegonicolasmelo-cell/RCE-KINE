@@ -106,6 +106,29 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.18 · EL STOCK TAMBIÉN VA A UNA CAMA + VARIOS EQUIPOS POR CASILLERO
+  (ago-2026, cohete v5.18-camas).** Corrección de Diego a mi supuesto: «los
+  dispositivos que tienen stock igual van a una cama definida». Sin número no
+  importa CUÁL de los 10 Aerogen, sino cuántos hay en esa cama:
+  1. `STOCK_EQUIPOS.ASIGNACION_JSON` (mapa cama→cantidad, al final) +
+     `MOVIMIENTOS_STOCK.DESDE/HACIA` (al final) ⇒ EXIGE
+     `crearORepararEstructura()`. `asignarStockACama` mueve unidades entre el
+     pool disponible y cada cama (delta ±), valida ambos extremos y deja fila
+     con DESDE/HACIA y DELTA 0 (el total no cambia). API `ASIGNAR_STOCK`.
+     `ajustarStockEquipo` ahora RECHAZA dar de baja lo que está en camas.
+  2. El casillero del tablero apila **TODOS** los equipos de la cama (antes
+     `porCama` guardaba uno solo y los demás desaparecían: con el inventario
+     real las camas 3, 5, 8, 10 y 12 tienen VM + V60/Airvo) y suma los chips
+     de stock (`.vmz-stk`, punteados, NO arrastrables — se tocan para
+     repartir). TRAMPA: `vmRender` corre antes de que llegue `GET_STOCK`, así
+     que `stkCargar` repinta el tablero al recibirlo (vmRender no vuelve a
+     pedir stock ⇒ sin ciclo).
+  3. Las tarjetas muestran **disponibles / total**, en qué camas está y
+     «🛏️ A una cama». Guardia `checks/stock.js` ampliada (53 asserts).
+  - PENDIENTE de la misma conversación: el rediseño del tablero que le
+    mockupeé (ficha del equipo plegada bajo el tablero + selección múltiple
+    para mover varios) sigue SIN confirmar por Diego.
+
 - **v5.17 · STOCK SIN NUMERAR (ago-2026, cohete v5.17-stock).** Aerogen Pro-X
   (10) y capnógrafos (5 Nihon Kohden en uso · 4 Dräger DE BAJA por decisión de
   Diego) NO tienen número: seguirlos uno por uno obligaría a inventar nombres

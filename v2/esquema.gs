@@ -353,11 +353,15 @@ const ESQUEMA = {
     ['CANTIDAD','entero'],
     ['ESTADO','texto'],      // Operativo | De baja | En mantención
     ['ACTIVO','bool'],['OBS','texto'],['TIMESTAMP','ts'],
+    // Reparto por cama: {"4":1,"7":2} — sin número no importa CUÁL, sino
+    // cuántos hay en cada cama. El resto del total queda disponible.
+    ['ASIGNACION_JSON','json'],
   ]},
   MOVIMIENTOS_STOCK: { headerRows: 1, cols: [
     ['ID_MOV','texto'],['ID_STOCK','texto'],['NOMBRE','texto'],['TIMESTAMP','ts'],['FECHA','texto'],
     ['DELTA','entero'],['CANTIDAD_FINAL','entero'],
     ['MOTIVO','texto'],['DETALLE','texto'],['FIRMA','texto'],['AUTOR_EMAIL','email'],
+    ['DESDE','texto'],['HACIA','texto'],   // reparto por cama (asignar/devolver)
   ]},
   KINESIOLOGOS: { headerRows: 1, cols: [
     ['FIRMA','texto'],['NOMBRE','texto'],['EMAIL','email'],['APOYO','bool'],['ACTIVO','bool'],

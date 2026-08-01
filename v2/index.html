@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.17-stock">
+<meta name="rce-version" content="5.18-camas">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -402,6 +402,9 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .vmz-slot.pac{border-color:#93c5fd;background:#eff6ff;}
 .vmz-slot.pac .n{color:#1d6fc4;}
 .vmz-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1.5px solid #94a3b8;border-radius:8px;padding:3px 8px;font-size:.68rem;font-weight:800;color:#0f172a;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:grab;margin:2px 4px 2px 0;user-select:none;}
+/* Equipos SIN número asignados a la cama (Aerogen, capnógrafos): no se
+   arrastran (no hay unidad identificable), se tocan para repartir. */
+.vmz-chip.vmz-stk{border-style:dashed;border-color:#c7b8e8;background:#faf8ff;color:#4c3d80;cursor:pointer;box-shadow:none;}
 .vmz-chip:active{cursor:grabbing;}
 .vmz-chip.sel{border-color:#2563eb;box-shadow:0 0 0 3px #2563eb33;background:#eff6ff;}
 .vmz-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
@@ -1559,7 +1562,12 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <button class="xbtn" onclick="stkCerrar()" aria-label="Cerrar">×</button>
   </div>
   <div style="padding:16px 22px;overflow-y:auto;">
-    <input type="hidden" id="stkId"><input type="hidden" id="stkSigno" value="-1">
+    <input type="hidden" id="stkId"><input type="hidden" id="stkSigno" value="-1"><input type="hidden" id="stkCama" value="">
+    <div class="row hidden" id="stkCamaRow"><div class="col grow"><label>Movimiento</label>
+      <select id="stkDir" onchange="stkDirCambio()" style="height:36px;">
+        <option value="1">🛏️ Asignar a la cama</option>
+        <option value="-1">↩️ Devolver a disponible</option>
+      </select></div></div>
     <div class="row" style="align-items:center;gap:14px;">
       <div class="col wa"><label>Cantidad</label>
         <div style="display:flex;align-items:center;gap:0;border:1px solid #cbd5e1;border-radius:9px;overflow:hidden;width:132px;">
@@ -1570,7 +1578,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
       </div>
       <div class="col grow"><label>&nbsp;</label><div id="stkResumen" style="font-size:.8rem;color:var(--muted);padding-top:9px;"></div></div>
     </div>
-    <div class="row"><div class="col grow"><label>Motivo *</label>
+    <div class="row" id="stkMotivoRow"><div class="col grow"><label>Motivo *</label>
       <select id="stkMotivo" style="height:36px;">
         <option>Dado de baja / falla</option>
         <option>Enviado a otro servicio</option>
@@ -3644,7 +3652,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.17-stock]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.18-camas]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -10137,7 +10145,11 @@ function vmCargar(){
    motivo y queda en el libro de movimientos. ── */
 let STOCK_ALL=null;
 function stkCargar(){
-  gs('GET_STOCK',{},r=>{ STOCK_ALL=r||[]; stkRender(); }, ()=>{ STOCK_ALL=[]; stkRender(); });
+  // El tablero se repinta al llegar el stock: los chips de las camas salen de
+  // aquí (vmRender ya corrió con STOCK_ALL vacío). vmRender NO vuelve a pedir
+  // stock, así que no hay ciclo.
+  const pintar=()=>{ stkRender(); if(VM_ALL) vmRender(); };
+  gs('GET_STOCK',{},r=>{ STOCK_ALL=r||[]; pintar(); }, ()=>{ STOCK_ALL=[]; pintar(); });
 }
 function stkRender(){
   const cont=$('stkBody'); if(!cont) return;
@@ -10149,14 +10161,21 @@ function stkRender(){
     const chip=baja?'<span class="pill" style="background:#f1f5f9;color:#94a3b8;">De baja</span>'
                    :'<span class="pill" style="background:#dcfce7;color:#15803d;border-color:#bbf7d0;">'+_escSt(x.estado||'Operativo')+'</span>';
     const ult=x.ultimo?`<div style="margin-top:7px;border-top:1px dashed var(--border);padding-top:5px;font-size:.68rem;color:var(--muted);">Último ajuste: ${_escSt(x.ultimo.fecha)} · ${x.ultimo.delta>0?'+':''}${x.ultimo.delta} · ${_escSt(x.ultimo.motivo)}${x.ultimo.firma?' ('+_escSt(x.ultimo.firma)+')':''}</div>`:'';
+    const camas=Object.keys(x.asignacion||{}).sort((a,b)=>(+a)-(+b));
+    const reparto=camas.length
+      ? `<div style="font-size:.72rem;color:var(--muted);margin-top:5px;">🛏️ En camas: ${camas.map(k=>`<b style="color:var(--pdark);">${k}${x.asignacion[k]>1?' (×'+x.asignacion[k]+')':''}</b>`).join(' · ')}</div>`
+      : '';
     return `<div class="card" style="background:#fff;border:1px solid var(--border);border-radius:11px;padding:11px 13px;">
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="font-weight:800;font-size:.88rem;color:var(--text);">${_escSt(x.nombre)}</span>
-        <span style="margin-left:auto;font-size:1.5rem;font-weight:900;color:${col};line-height:1;">${x.cantidad}</span>
+        <span style="margin-left:auto;font-size:1.5rem;font-weight:900;color:${col};line-height:1;">${x.disponible}<span style="font-size:.62rem;font-weight:700;color:var(--muted);"> / ${x.cantidad}</span></span>
       </div>
+      <div style="font-size:.68rem;color:var(--muted);text-align:right;margin-top:-2px;">disponibles / total</div>
       <div style="font-size:.74rem;color:var(--muted);margin-top:3px;">${_escSt([x.categoria,x.marca,x.modelo].filter(Boolean).join(' · '))} ${chip}</div>
       ${x.obs?`<div style="font-size:.72rem;color:var(--muted);margin-top:3px;font-style:italic;">${_escSt(x.obs)}</div>`:''}
+      ${reparto}
       <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;">
+        <button class="dpset" onclick="stkAsignarUI('${_escSt(x.id)}')">🛏️ A una cama</button>
         <button class="dpset" onclick="stkAbrir('${_escSt(x.id)}',-1)">➖ Sacar</button>
         <button class="dpset" onclick="stkAbrir('${_escSt(x.id)}',1)">➕ Reponer</button>
         <button class="dpset" onclick="stkHistorial('${_escSt(x.id)}')">📜 Historial</button>
@@ -10166,15 +10185,54 @@ function stkRender(){
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">${arr.map(card).join('')}</div>`;
 }
 function stkItem(id){ return (STOCK_ALL||[]).find(x=>x.id===id); }
-function stkAbrir(id,signo){
+/* Los equipos sin número TAMBIÉN van a una cama definida (Diego, ago-2026):
+   no importa CUÁL de los 10 Aerogen, sino cuántos hay en esa cama. El chip
+   del tablero abre el reparto de ese tipo. */
+const _STK_ICO={'Nebulización':'💨','Capnografía':'📈'};
+function _stkChipsCama(nCama){
+  return (STOCK_ALL||[]).map(x=>{
+    const k=(x.asignacion||{})[String(nCama)]||0;
+    if(!k) return '';
+    const ico=_STK_ICO[x.categoria]||'🧰';
+    const corto=String(x.nombre).replace(/^Capnógrafo\s+/i,'').replace(/^Aerogen\s+/i,'Aerogen ');
+    return `<span class="vmz-chip vmz-stk" onclick="event.stopPropagation();stkAbrirCama('${_escSt(x.id)}',${nCama})"
+      title="${_escSt(x.nombre)} en la cama ${nCama} — tocar para asignar o devolver">${ico} ${_escSt(corto)}${k>1?' ×'+k:''}</span>`;
+  }).join('');
+}
+/** Desde la tarjeta: primero se elige la cama y luego se reparte. */
+function stkAsignarUI(id){
   const x=stkItem(id); if(!x) return;
-  $('stkId').value=id; $('stkSigno').value=String(signo);
-  $('stkModTit').textContent=(signo<0?'➖ Sacar del stock — ':'➕ Reponer stock — ')+x.nombre;
+  const n=(window.CFG&&CFG.NUM_CAMAS)||18;
+  const ops=Array.from({length:n},(_,i)=>{
+    const k=(x.asignacion||{})[String(i+1)]||0;
+    return `<button class="dpset" style="margin:2px;" onclick="_ucFin(false);stkAbrirCama('${_escSt(id)}',${i+1})">Cama ${i+1}${k?` <b style="color:var(--pdark);">(${k})</b>`:''}</button>`;
+  }).join('');
+  uiConfirm({icono:'🛏️', titulo:x.nombre+' — ¿a qué cama?', confirmar:'Cancelar',
+    detalle:`<div style="display:flex;flex-wrap:wrap;max-height:44vh;overflow:auto;">${ops}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:6px;">Disponibles: <b>${x.disponible}</b> de ${x.cantidad}</div>`});
+}
+/** Reparto de un tipo hacia/desde una cama concreta. */
+function stkAbrirCama(id,nCama){
+  const x=stkItem(id); if(!x) return;
+  $('stkId').value=id; $('stkSigno').value='1'; $('stkCama').value=String(nCama||'');
+  $('stkModTit').textContent='🛏️ '+x.nombre+' — cama '+nCama;
   $('stkCant').value='1'; $('stkDet').value='';
-  $('stkMotivo').value=signo<0?'Dado de baja / falla':'Compra / reposición';
+  $('stkDir').value='1';   // por defecto asignar; el select permite devolver
+  show('stkCamaRow'); hide('stkMotivoRow');
   stkResumen();
   $('stkMod').classList.add('on'); $('ovl').classList.add('on');
 }
+function stkAbrir(id,signo){
+  const x=stkItem(id); if(!x) return;
+  $('stkId').value=id; $('stkSigno').value=String(signo); $('stkCama').value='';
+  $('stkModTit').textContent=(signo<0?'➖ Sacar del stock — ':'➕ Reponer stock — ')+x.nombre;
+  $('stkCant').value='1'; $('stkDet').value='';
+  $('stkMotivo').value=signo<0?'Dado de baja / falla':'Compra / reposición';
+  hide('stkCamaRow'); show('stkMotivoRow');
+  stkResumen();
+  $('stkMod').classList.add('on'); $('ovl').classList.add('on');
+}
+function stkDirCambio(){ $('stkSigno').value=v('stkDir'); stkResumen(); }
 function stkCerrar(){ $('stkMod').classList.remove('on'); $('ovl').classList.remove('on'); }
 function stkPaso(d){
   const e=$('stkCant'); e.value=Math.max(1,(parseInt(e.value,10)||1)+d); stkResumen();
@@ -10182,15 +10240,37 @@ function stkPaso(d){
 function stkResumen(){
   const x=stkItem(v('stkId')); if(!x) return;
   const n=Math.max(1,parseInt(v('stkCant'),10)||1), signo=parseInt(v('stkSigno'),10)||-1;
+  const cama=v('stkCama');
+  if(cama){   // reparto: se mueve entre el pool disponible y la cama
+    const enCama=(x.asignacion||{})[cama]||0;
+    const malo = signo>0 ? n>x.disponible : n>enCama;
+    $('stkResumen').innerHTML = malo
+      ? `<span style="color:var(--danger);">${signo>0?'Solo hay '+x.disponible+' disponible(s)':'La cama '+cama+' tiene '+enCama}</span>`
+      : `cama ${cama}: <b>${enCama+signo*n}</b> · disponibles: <b>${x.disponible-signo*n}</b>`;
+    return;
+  }
   const fin=x.cantidad+signo*n;
   $('stkResumen').innerHTML = fin<0
     ? `<span style="color:var(--danger);">Solo hay ${x.cantidad}</span>`
-    : `quedarán <b>${fin}</b> de ${x.cantidad}`;
+    : (signo<0 && fin<x.enUso
+        ? `<span style="color:var(--danger);">Hay ${x.enUso} en camas: devuélvelos primero</span>`
+        : `quedarán <b>${fin}</b> de ${x.cantidad}`);
 }
 function stkAplicar(){
   const x=stkItem(v('stkId')); if(!x) return;
   const n=Math.max(1,parseInt(v('stkCant'),10)||1), signo=parseInt(v('stkSigno'),10)||-1;
+  const cama=v('stkCama');
+  if(cama){
+    const enCama=(x.asignacion||{})[cama]||0;
+    if(signo>0 && n>x.disponible){ toast('Solo hay '+x.disponible+' disponible(s).'); return; }
+    if(signo<0 && n>enCama){ toast('La cama '+cama+' tiene '+enCama+'.'); return; }
+    gs('ASIGNAR_STOCK',{id:x.id,idCama:cama,delta:signo*n,detalle:v('stkDet'),fecha:v('gDate')||hoy()},
+      ()=>{ stkCerrar(); toast(signo>0?'✅ Asignado a la cama '+cama:'✅ Devuelto a disponible'); stkCargar(); },
+      msg=>toast('No se pudo registrar: '+(msg||'')));
+    return;
+  }
   if(x.cantidad+signo*n<0){ toast('No puedes sacar más de lo que hay ('+x.cantidad+').'); return; }
+  if(signo<0 && x.cantidad-n<x.enUso){ toast('Hay '+x.enUso+' en camas: devuélvelos antes.'); return; }
   gs('AJUSTAR_STOCK',{id:x.id,delta:signo*n,motivo:v('stkMotivo'),detalle:v('stkDet'),fecha:v('gDate')||hoy()},
     ()=>{ stkCerrar(); toast('✅ Stock actualizado'); stkCargar(); },
     msg=>toast('No se pudo registrar: '+(msg||'')));
@@ -10268,15 +10348,20 @@ function vmzTableroHTML(act){
       ondragstart="vmzDragStart(event)" onclick="vmzChipTap(event,'${_escSt(x.id||'')}')"
       title="${hasId?_escSt(x.estado||'')+' — arrastra o toca y elige destino':'⚠️ Este equipo no tiene ID — usa ✏️ Editar o corre repararIdsVentiladores()'}">
       <span class="vmz-dot" style="background:${col};"></span>${_escSt(x.nombre||'—')}${x.ubicTipo==='PRESTAMO'&&x.ubicDetalle?` <b style="color:#0d9488;">→ ${_escSt(x.ubicDetalle)}</b>`:''}</span>`; };
-  const porCama={}; act.filter(x=>x.ubicTipo==='CAMA').forEach(x=>porCama[String(x.ubicDetalle)]=x);
+  /* Una cama puede tener VARIOS equipos a la vez (VM + V60 + Airvo…), así que
+     el casillero los apila todos. Antes solo cabía uno y los demás quedaban
+     invisibles en el tablero (reporte de Diego con el inventario real). */
+  const porCama={};
+  act.filter(x=>x.ubicTipo==='CAMA').forEach(x=>{ const k=String(x.ubicDetalle); (porCama[k]=porCama[k]||[]).push(x); });
   let slots='';
   for(let i=1;i<=n;i++){
     const c=(DB||[]).find(k=>String(k.ID_CAMA)===String(i));
     const pacVM=!!(c&&(c.OCUPADA===true||c.OCUPADA==='TRUE')&&c.SOPORTE==='VM');
-    const x=porCama[String(i)];
-    slots+=`<div class="vmz-slot${x?' occ':''}${pacVM?' pac':''}" data-tipo="CAMA" data-det="${i}"
+    const xs=porCama[String(i)]||[];
+    const stk=_stkChipsCama(i);
+    slots+=`<div class="vmz-slot${(xs.length||stk)?' occ':''}${pacVM?' pac':''}" data-tipo="CAMA" data-det="${i}"
       ondragover="vmzOver(event)" ondragleave="vmzLeave(event)" ondrop="vmzDrop(event)" onclick="vmzZonaTap(this)">
-      <span class="n">Cama ${i}${pacVM?' · 🫁 VM':''}</span>${x?chip(x):''}</div>`;
+      <span class="n">Cama ${i}${pacVM?' · 🫁 VM':''}</span>${xs.map(chip).join('')}${stk}</div>`;
   }
   const zona=(tipo,icono,titulo,arr,extra)=>`<div class="vmz-zona" data-tipo="${tipo}"
       ondragover="vmzOver(event)" ondragleave="vmzLeave(event)" ondrop="vmzDrop(event)" onclick="vmzZonaTap(this)">
@@ -10288,7 +10373,7 @@ function vmzTableroHTML(act){
   const prest=act.filter(x=>x.ubicTipo==='PRESTAMO');
   return `<div class="vmz-hint">🖐️ <b>Arrastra</b> un ventilador a su destino — o <b>tócalo y luego toca la zona</b> (tablet). Nada se mueve sin confirmar.</div>
   <div class="vmz-board">
-    <div class="vmz-zona vmz-camas"><div class="vmz-zh">🛏️ Camas <span class="vmz-zc">${Object.keys(porCama).length} ventiladores</span></div>
+    <div class="vmz-zona vmz-camas"><div class="vmz-zh">🛏️ Camas <span class="vmz-zc">${act.filter(x=>x.ubicTipo==='CAMA').length} equipos en ${Object.keys(porCama).length} camas</span></div>
       <div class="vmz-camgrid">${slots}</div></div>
     <div class="vmz-col">
       ${zona('PASILLO','🚪','Pasillo',pasillo,'')}
