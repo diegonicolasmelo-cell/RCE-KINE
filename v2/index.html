@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.19-dias">
+<meta name="rce-version" content="5.20-disp">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3654,7 +3654,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.19-dias]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.20-disp]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -9490,8 +9490,18 @@ function _abrirDetailsEval(){
 //  (no horas): instalación = día 1. HME se cambia en su día 2; HEPA y Trach Care
 //  en su día 3. Humidificación activa no vence.
 const _DISP_DEFS=[['fFecHME','sHMEDias',2],['fFecHEPA','sHEPADias',3],['fFecSonda','sSondaDias',3],['fFecHumid','sHumidDias',0]];
+/* Fecha EFECTIVA del turno (ago-2026, pedido de Diego): el turno NOCHE
+   transcurre casi entero en el día siguiente, así que los relojes de
+   dispositivos (HME/HEPA/Trach Care) se fechan con el día siguiente. Es el
+   mismo criterio que ya usaban los eventos rápidos en el servidor. */
+function _fechaEfTurno(fecha, turno){
+  const f=_isoDia(fecha||hoy());
+  if((turno||SHIFT)!=='Noche') return f;
+  const d=new Date(f+'T12:00:00'); d.setDate(d.getDate()+1);
+  return d.toISOString().slice(0,10);
+}
 function calcInsumosDias(){
-  const ref=v('gDate')||hoy();
+  const ref=_fechaEfTurno(v('gDate')||hoy());
   _DISP_DEFS.forEach(([inp,lbl,dur])=>{
     const e=$(lbl); if(!e) return;
     const f=v(inp);
@@ -9509,7 +9519,7 @@ function calcInsumosDias(){
 //  aunSinVM=true permite fechar aunque el soporte principal aún no marque VM (reintubación).
 function autoFechasDispositivos(force, aunSinVM){
   if(!aunSinVM && v('fSop')!=='VM') return;
-  const f=v('gDate')||hoy();
+  const f=_fechaEfTurno(v('gDate')||hoy());   // turno Noche ⇒ el día siguiente
   // Campo vacío ≠ dispositivo nuevo: primero se arrastra la fecha del episodio
   // (cama.DISP_*); recién si la cama tampoco tiene (primera conexión a VM) se
   // fecha con el turno. Así visualizar otro día no re-fecha los dispositivos.
@@ -9529,7 +9539,7 @@ function autoFechasDispositivos(force, aunSinVM){
 //  vuelve a habilitar para registrar el filtro HME nuevo que se instale.
 function syncHumidFecha(on){
   const e=$('fFecHumid'); if(!e) return;
-  if(on && !e.value) e.value=_isoDia(_camaPanel().DISP_HUMID_FECHA)||v('gDate')||hoy();
+  if(on && !e.value) e.value=_isoDia(_camaPanel().DISP_HUMID_FECHA)||_fechaEfTurno(v('gDate')||hoy());
   if(!on) e.value='';
   const hme=$('fFecHME');
   if(hme){ hme.disabled=on; if(on) hme.value=''; }

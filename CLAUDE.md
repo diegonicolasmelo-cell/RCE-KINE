@@ -106,6 +106,22 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.20 · LOS RELOJES DE DISPOSITIVOS USAN LA FECHA EFECTIVA (ago-2026,
+  cohete v5.20-disp).** Reporte de Diego: «si es noche del 31 se anota con la
+  fecha del día siguiente (01), por lo que tendrían 1 día y no 2». La fecha
+  efectiva (turno Noche → día siguiente) YA existía en el servidor para los
+  eventos rápidos (`_fechaEfectivaTurno`), pero el FORMULARIO fechaba y
+  contaba con la fecha del turno. Ahora:
+  1. Cliente: `_fechaEfTurno(fecha, turno)` nuevo; lo usan
+     `autoFechasDispositivos` (al fechar HME/HEPA/Trach Care y la
+     humidificación activa) y `calcInsumosDias` (el «Día X/Y» de cada uno).
+  2. Servidor: `obtenerEntregaTurno` pasa la fecha efectiva a `_entFicha`
+     (parámetro nuevo `fechaEf`), así la alerta de recambio de la entrega
+     cuenta igual que el formulario.
+  3. Guardia `checks/disp_fecha.js` (13 asserts, servidor + cliente): el
+     circuito instalado la noche del 31 se fecha el 1-ago y esa misma noche
+     va en su día 1; la noche del 1-ago pasa a día 2 y avisa el cambio.
+
 - **v5.19 · EL NÚMERO QUE SE VE AFUERA ES EL REAL: DÍAS POR BLOQUES DE 24 h
   (ago-2026, cohete v5.19-dias).** Reclamo de Diego el día 2 de uso: «si en
   una reunión los médicos preguntan cuántos días lleva y decimos uno, pero

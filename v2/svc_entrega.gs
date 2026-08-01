@@ -55,7 +55,8 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
     });
 
     const fichas = sel.map(id => _entFicha(id, camaPorId[id] || {},
-      evoTurnoPorCama[id] || null, episodioPorCama[id] || [], cultivoPorCama[id] || null, fecha));
+      evoTurnoPorCama[id] || null, episodioPorCama[id] || [], cultivoPorCama[id] || null, fecha,
+      _fechaEfectivaTurno(fecha, turno)));
 
     const ocupadas = camas.filter(c => esVerdadero(c.OCUPADA)).length;
     const enVM = camas.filter(c => esVerdadero(c.OCUPADA) && String(c.SOPORTE) === 'VM').length;
@@ -70,7 +71,7 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
 }
 
 /** Ficha de entrega de una cama. */
-function _entFicha(id, c, e, episodio, cultivo, fecha) {
+function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf) {
   const val = (a, b) => (a !== undefined && a !== null && a !== '') ? a : (b !== undefined && b !== null ? b : '');
   const dd = x => { const s = _statISO(x); return s ? s.slice(8, 10) + '-' + s.slice(5, 7) : ''; };
 
@@ -131,7 +132,8 @@ function _entFicha(id, c, e, episodio, cultivo, fecha) {
   if (String(c.SOPORTE) === 'VM') {
     [['HME', c.DISP_HME_FECHA, 2], ['HEPA', c.DISP_HEPA_FECHA, 3], ['T.Care', c.DISP_TC_FECHA, 3]].forEach(function (d) {
       const iso = _statISO(d[1]); if (!iso) return;
-      const dia = diasEntre(iso, fecha) + 1;
+      // Turno Noche: el reloj se mide contra el día siguiente (fecha efectiva)
+      const dia = diasEntre(iso, fechaEf || fecha) + 1;
       disp.push({ n: d[0], dia: dia, dur: d[2], estado: dia < d[2] ? 'ok' : (dia === d[2] ? 'cambiar' : 'vencido') });
     });
   }
