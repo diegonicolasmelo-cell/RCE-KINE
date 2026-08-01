@@ -248,3 +248,73 @@ function _resetVaciarHoja(ss, nombre) {
   h.deleteRows(desde, n);
   return n;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CARGA INICIAL DEL INVENTARIO REAL (ago-2026)
+//  Traspaso del libro de VM en papel (entrega de turno del 31-07-2026):
+//  ventiladores mecánicos por cama + bodega, V60, Airvo2 (los «CNAF Nº» del
+//  papel), Carina y base calefactora MR850. Correr UNA VEZ desde el editor:
+//  es idempotente (si un nombre ya existe, lo salta) y cada alta queda
+//  trazada en MOVIMIENTOS_VM. Los datos pendientes (N° de serie, inventario,
+//  año) se completan después con ✏️ Editar en la pestaña Ventiladores.
+// ═══════════════════════════════════════════════════════════════════════════
+function cargarInventarioInicial() {
+  const F = '2026-07-31';   // estado del papel traspasado
+  const INVENTARIO = [
+    // ── Ventiladores mecánicos en cama (libro del 31-07) ──
+    { nombre: 'Avea 1',   marca: 'Vyaire',          modelo: 'Avea',    ubicTipo: 'CAMA', ubicDetalle: '1' },
+    { nombre: 'Vela 9',   marca: 'Vyaire',          modelo: 'Vela',    ubicTipo: 'CAMA', ubicDetalle: '2' },
+    { nombre: 'PB 1',     marca: 'Puritan Bennett', modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '3' },
+    { nombre: 'Mek 12',   marca: 'Mekics',          modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '4' },
+    { nombre: 'Avea 3',   marca: 'Vyaire',          modelo: 'Avea',    ubicTipo: 'CAMA', ubicDetalle: '5' },
+    { nombre: 'Mek 10',   marca: 'Mekics',          modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '6' },
+    { nombre: 'Savina 2', marca: 'Dräger',          modelo: 'Savina',  ubicTipo: 'CAMA', ubicDetalle: '7' },
+    { nombre: 'Savina 4', marca: 'Dräger',          modelo: 'Savina',  ubicTipo: 'CAMA', ubicDetalle: '8' },
+    { nombre: 'Savina 1', marca: 'Dräger',          modelo: 'Savina',  ubicTipo: 'CAMA', ubicDetalle: '9' },
+    { nombre: 'Mek 15',   marca: 'Mekics',          modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '10' },
+    { nombre: 'Servo U',  marca: 'Maquet',          modelo: 'Servo-u', ubicTipo: 'CAMA', ubicDetalle: '11' },
+    { nombre: 'PB 2',     marca: 'Puritan Bennett', modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '12' },
+    { nombre: 'Mek 4',    marca: 'Mekics',          modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '13' },
+    { nombre: 'Mek 16',   marca: 'Mekics',          modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '14' },
+    { nombre: 'Mek 6',    marca: 'Mekics',          modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '15' },
+    { nombre: 'Mek 9',    marca: 'Mekics',          modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '16' },
+    { nombre: 'Mek 5',    marca: 'Mekics',          modelo: '',        ubicTipo: 'CAMA', ubicDetalle: '17' },
+    { nombre: 'PB 980',   marca: 'Puritan Bennett', modelo: '980',     ubicTipo: 'CAMA', ubicDetalle: '18' },
+    // ── Bodega (nombres PROVISORIOS: corregir con el número real del equipo) ──
+    { nombre: 'Vela (bodega A)',   marca: 'Vyaire', modelo: 'Vela',   ubicTipo: 'BODEGA', obs: 'Nombre provisorio: completar número real, serie e inventario' },
+    { nombre: 'Vela (bodega B)',   marca: 'Vyaire', modelo: 'Vela',   ubicTipo: 'BODEGA', obs: 'Nombre provisorio: completar número real, serie e inventario' },
+    { nombre: 'Savina (bodega)',   marca: 'Dräger', modelo: 'Savina', ubicTipo: 'BODEGA', obs: 'Nombre provisorio: completar número real, serie e inventario' },
+    { nombre: 'Avea (bodega)',     marca: 'Vyaire', modelo: 'Avea',   ubicTipo: 'BODEGA', obs: 'Nombre provisorio: completar número real, serie e inventario' },
+    { nombre: 'Mekics (bodega)',   marca: 'Mekics', modelo: '',       ubicTipo: 'BODEGA', obs: 'Nombre provisorio: completar número real, serie e inventario' },
+    // ── VNI ──
+    { nombre: 'V60 Nº1', marca: 'Philips', modelo: 'V60', ubicTipo: 'CAMA', ubicDetalle: '3',  obs: 'VNI' },
+    { nombre: 'V60 Nº3', marca: 'Philips', modelo: 'V60', ubicTipo: 'CAMA', ubicDetalle: '8',  obs: 'VNI' },
+    { nombre: 'V60 Nº2', marca: 'Philips', modelo: 'V60', ubicTipo: 'BODEGA', obs: 'VNI · número por confirmar (el papel indica 2 V60 en bodega)' },
+    { nombre: 'V60 Nº4', marca: 'Philips', modelo: 'V60', ubicTipo: 'BODEGA', obs: 'VNI · número por confirmar (el papel indica 2 V60 en bodega)' },
+    { nombre: 'Carina',  marca: 'Dräger',  modelo: 'Carina', ubicTipo: 'BODEGA', obs: 'VNI' },
+    // ── CNAF (Airvo 2): 4 en total, 3 en la unidad y 1 en la UTI ──
+    { nombre: 'Airvo2 Nº2', marca: 'Fisher & Paykel', modelo: 'Airvo 2', ubicTipo: 'CAMA', ubicDetalle: '10', obs: 'CNAF' },
+    { nombre: 'Airvo2 Nº3', marca: 'Fisher & Paykel', modelo: 'Airvo 2', ubicTipo: 'CAMA', ubicDetalle: '3',  obs: 'CNAF' },
+    { nombre: 'Airvo2 Nº4', marca: 'Fisher & Paykel', modelo: 'Airvo 2', ubicTipo: 'CAMA', ubicDetalle: '5',  obs: 'CNAF' },
+    { nombre: 'Airvo2 Nº1', marca: 'Fisher & Paykel', modelo: 'Airvo 2', ubicTipo: 'PRESTAMO', ubicDetalle: 'UTI', obs: 'CNAF · número en UTI por confirmar' },
+    // ── Bases calefactoras ──
+    { nombre: 'MR850 (cama 12)', marca: 'Fisher & Paykel', modelo: 'MR850', ubicTipo: 'CAMA', ubicDetalle: '12', obs: 'Base calefactora · nombre provisorio' },
+  ];
+  const existentes = {};
+  repoLeerTodos('VENTILADORES').forEach(function (x) { existentes[String(x.NOMBRE).trim().toLowerCase()] = true; });
+  const ctx = { firma: 'Carga inicial', email: '' };
+  let altas = 0, saltados = 0;
+  INVENTARIO.forEach(function (eq) {
+    if (existentes[eq.nombre.trim().toLowerCase()]) { saltados++; return; }
+    const r = guardarVentilador({
+      nombre: eq.nombre, marca: eq.marca, modelo: eq.modelo || '',
+      ubicTipo: eq.ubicTipo, ubicDetalle: eq.ubicDetalle || '',
+      fecha: F, estado: 'Operativo', obs: eq.obs || '',
+      motivo: 'Carga inicial del inventario (libro de VM del 31-07-2026)',
+    }, ctx);
+    if (r && r.ok) altas++; else console.log('FALLÓ ' + eq.nombre + ': ' + (r && r.error));
+  });
+  console.log('Inventario inicial: ' + altas + ' equipos dados de alta, ' + saltados + ' ya existían (no se tocaron).');
+  console.log('Pendientes de completar con ✏️ Editar: números reales de los equipos de bodega, series, inventarios y años.');
+  return { altas: altas, saltados: saltados };
+}
