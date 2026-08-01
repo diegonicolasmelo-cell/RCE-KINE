@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.10-poses">
+<meta name="rce-version" content="5.11-asinc">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3579,7 +3579,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.10-poses]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.11-asinc]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4594,7 +4594,7 @@ function fillForm(s) {
   setFasesDesde(s.FASE_JSON||'');
   setPendDesde(s.PLAN_PENDIENTES||'');
   const _cod=$('spCod'); if(_cod) _cod.textContent=s.COD_PACIENTE||'';
-  const _ad=$('sAdapt'); if(_ad&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!=='') _ad.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico';
+  const _ad=$('sAdapt'); if(_ad&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!==''){ _ad.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico'; hAdapt(); }
   hSed(); hHTrend(); hMultiDVA(); calcGCS(); calcPI();
   if(s.KTM_UMA===true||s.KTM_UMA==='TRUE') show('dUMA');
   _vmHistFlag = _vmHistFlag || !!s.EXT_TS ||
@@ -4756,7 +4756,7 @@ function fillFormReplica(s) {
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
   chk('cUPOTmed',s.UPOT_MEDIDAS);
   const _fcR=$('fKTMcontra'); if(_fcR) _fcR.value=s.KTM_CONTRA_RAZON||'';
-  const _adR=$('sAdapt'); if(_adR&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!=='') _adR.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico';
+  const _adR=$('sAdapt'); if(_adR&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!==''){ _adR.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico'; hAdapt(); }
 
   // Egreso: NO se replica (es específico del turno de egreso)
 
@@ -7321,8 +7321,10 @@ function calcResp(el) {
   else{const eie=$(L+'ie');if(eie&&eie.textContent!=='--')eie.textContent='--';}
   // Mecánica con PEEP total (PEEP + AutoPEEP): DP = Ppl − PEEPtot; Cest = VT/DP
   const peepTot=peep+(parseFloat(v(P+'autopeep'))||0);
-  if(ppl>0) set(L+'dp',`DP: ${(ppl-peepTot).toFixed(0)}`);
-  if(vt>0&&(ppl-peepTot)>0) set(L+'cesr',`${(vt/(ppl-peepTot)).toFixed(0)}`);
+  // Sin Ppl no hay DP ni Cest: al borrarla (p. ej. paciente asincrónico)
+  // los derivados vuelven a '--' en vez de quedar pegados al valor viejo.
+  if(ppl>0) set(L+'dp',`DP: ${(ppl-peepTot).toFixed(0)}`); else set(L+'dp','--');
+  if(vt>0&&(ppl-peepTot)>0) set(L+'cesr',`${(vt/(ppl-peepTot)).toFixed(0)}`); else set(L+'cesr','--');
   if(['CPAP/PS','CFLEX'].includes(modo)&&fr>0&&vt>0) set(L+'tobin',`${(fr/(vt/1000)).toFixed(0)}`);
   if(['CNAF','OAF/CTAF'].includes(modo)&&spo2>0&&fio2>0&&fr>0) set(L+'irox',`${((spo2/(fio2/100))/fr).toFixed(2)}`);
   const ip=parseFloat(v(P+'ipap'))||0, ep=parseFloat(v(P+'epap'))||0;
@@ -7586,12 +7588,28 @@ const _humChk=(haAdapt)=>{
   const adaptVal=($('sAdapt')&&$('sAdapt').value)||'Sincrónico';
   return `<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
     <span style="display:inline-flex;align-items:center;gap:5px;font-size:.8rem;font-weight:600;">Interacción P-VM
-    <select id="sAdapt" style="height:28px;font-size:.8rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 6px;">
+    <select id="sAdapt" onchange="hAdapt(true)" style="height:28px;font-size:.8rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 6px;">
       <option${adaptVal==='Sincrónico'?' selected':''}>Sincrónico</option>
       <option${adaptVal==='Asincrónico'?' selected':''}>Asincrónico</option>
     </select></span>
+    <span id="adaptNota" class="hidden" style="font-size:.72rem;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;">⚠ Asincrónico: Ppl y DP no son medibles y el AutoPEEP no es fidedigno</span>
   </div>`;
 };
+/* Regla clínica (ago-2026): la Ppl y el AutoPEEP exigen un paciente pasivo.
+   Con interacción Asincrónica esos campos se inhabilitan (y DP/Cest quedan
+   sin calcular). limpiar=true solo cuando el USUARIO cambia el selector:
+   al re-aplicar por re-render o réplica no se borra lo ya escrito. */
+function hAdapt(limpiar){
+  const sel=$('sAdapt'); if(!sel) return;
+  const asinc = sel.value==='Asincrónico';
+  ['r_ppl','r_autopeep'].forEach(id=>{
+    const e=$(id); if(!e) return;
+    e.disabled=asinc;
+    e.title=asinc?'No medible con paciente asincrónico':'';
+    if(asinc && limpiar && e.value!==''){ e.value=''; calcResp(e); }
+  });
+  const n=$('adaptNota'); if(n) n.classList.toggle('hidden',!asinc);
+}
 /* Los dispositivos del circuito dependen del estado con el que TERMINA el turno:
    si el paciente se intuba (o traqueostomiza) y queda en VM, hay circuito nuevo
    que fechar aunque arriba siga el estado previo. Vive aparte de renderParams
@@ -7669,6 +7687,7 @@ function renderParams(o) {
   calcResp(esPost?{id:'pi_'}:undefined);
   if(!esPost){
     hUMA();
+    hAdapt();   // re-aplica la regla de asincronía sobre los campos recién dibujados
     if(typeof _pintarPrevios==='function') _pintarPrevios();
   }
   // Dispositivos de circuito: visibles solo en VM; al quedar en VM se fechan solos

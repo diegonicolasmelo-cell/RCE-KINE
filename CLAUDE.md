@@ -77,7 +77,8 @@ Chromium con puente simulado; acepta ruta del cohete como argumento),
 `regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
 `eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`,
 `reset.js`, `mover_camas.js`, `vm_lote.js`, `retro_camas.js`,
-`rendimiento.js` (bucles de repintado con la unidad llena).
+`rendimiento.js` (bucles de repintado con la unidad llena),
+`asincronia.js` (Ppl/AutoPEEP inhabilitados con paciente asincrónico).
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
 
@@ -105,6 +106,23 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.11 · ASINCRONÍA P-VM (ago-2026, cohete v5.11-asinc).** Regla clínica de
+  Diego: «si es asincrónico no se puede medir Ppl ni PD; AutoPEEP no es
+  fidedigno». Con `sAdapt='Asincrónico'` (solo existe en ACVC/ACPC), `hAdapt()`
+  inhabilita `r_ppl` y `r_autopeep` con nota ámbar explicativa; DP y Cest caen
+  solos (derivan de Ppl). Al cambiar el selector A MANO se limpian los campos;
+  la re-aplicación programática (réplica/carga, tras `renderParams`) inhabilita
+  SIN borrar. BUG preexistente corregido de paso: `calcResp` dejaba DP/Cest
+  PEGADOS al valor viejo al borrar la Ppl (ahora vuelven a '--').
+  Guardia: `checks/asincronia.js`.
+  PENDIENTE de esa ronda: Diego mandó DOS poses nuevas (celebración con
+  confeti para el final del tutorial y «idea» con ampolleta) pero llegaron
+  como vista previa, NO como archivo — pedidas de nuevo (misma trampa que
+  v5.2: al tercer intento llegan como archivo). Al recibirlas: limpieza de
+  `limpiar_servi2.py`, quitar los TEXTOS pegados de la de confeti (títulos
+  «¡Éxito!» etc., Diego pidió obviarlos), celebración en el paso final
+  (`fin:true`) de ambos recorridos y la de idea alternando en los globos.
+
 - **v5.10 · SERVI LIMPIO + POSES POR CONTEXTO + PASO ARCHIVADOS (ago-2026,
   cohete v5.10-poses).** Reclamo de Diego: «se le sigue viendo una zona blanca
   debajo de los corrugados» y «que el brillo se elimine».
@@ -130,8 +148,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.10-poses**
-  (antes v5.9-rapido, v5.8-retro, v5.7-tutorial2, v5.6-serviu, v5.5-lotevm).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.11-asinc**
+  (antes v5.10-poses, v5.9-rapido, v5.8-retro, v5.7-tutorial2, v5.6-serviu).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
