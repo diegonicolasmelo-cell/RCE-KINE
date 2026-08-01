@@ -8,13 +8,16 @@
 function obtenerTodasLasCamas() {
   try {
     const hoy = hoyISO();
+    const _ahora = _horaAhora();
     const camas = repoLeerTodos('CAMAS_ESTADO');
     camas.forEach(c => {
       if (esVerdadero(c.OCUPADA)) {
         c.OCUPADA = true;
-        c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
-        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
-        c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
+        // En vivo los días cuentan bloques de 24 h REALES contra el reloj: un
+        // paciente que llegó hace dos horas muestra Día 0, no Día 1 (ago-2026).
+        c.DIA_ESTADIA = diasBloques24(c.TS_INGRESO, c.FECHA_INGRESO, hoy, _ahora);
+        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasBloques24(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, hoy, _ahora) : 0;
+        c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasBloques24(c.TS_INICIO_VA, c.FECHA_INICIO_VA, hoy, _ahora) : 0;
         try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }
       } else {
         c.OCUPADA = false; c.DIA_ESTADIA = 0; c.DIAS_VM = 0; c.DIAS_VA = 0; c.TIMELINE = [];
@@ -45,9 +48,9 @@ function obtenerCama(idCama) {
     const hoy = hoyISO();
     if (esVerdadero(c.OCUPADA)) {
       c.OCUPADA = true;
-      c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
-      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
-      c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
+      c.DIA_ESTADIA = diasBloques24(c.TS_INGRESO, c.FECHA_INGRESO, hoy, _horaAhora());
+      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasBloques24(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, hoy, _horaAhora()) : 0;
+      c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasBloques24(c.TS_INICIO_VA, c.FECHA_INICIO_VA, hoy, _horaAhora()) : 0;
     } else { c.OCUPADA = false; }
     try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }
     return ok(c);
@@ -103,6 +106,11 @@ function ingresarPaciente(datos, ctx) {
         TQT_CALIBRE: esTQT ? (datos.tqtCal || '') : '',
         SOPORTE: sop, MODO: datos.modo || 'Sin soporte',
         FECHA_INGRESO: fecha, FECHA_INICIO_VA: tieneVA ? fecha : '', FECHA_INICIO_SOPORTE: tieneVM ? fecha : '',
+        // Momento REAL del ingreso (la hora del formulario o la del registro):
+        // con él los días cuentan bloques de 24 h reales (ago-2026).
+        TS_INGRESO: _tsDesdeHora(datos.horaIngreso) || _tsAhora(),
+        TS_INICIO_VA: tieneVA ? (_tsDesdeHora(datos.horaIngreso) || _tsAhora()) : '',
+        TS_INICIO_SOPORTE: tieneVM ? (_tsDesdeHora(datos.horaIngreso) || _tsAhora()) : '',
         APACHE2: _apacheNorm(datos.apache2),
         FASE_JSON: datos.faseJson || '', KTM_NIVEL: datos.ktmNivel || '', KTM_SUSP: false,
         FIRMA_KINE: ctx.firma || datos.firmaKine || '', AUTOR_EMAIL: ctx.email || '',
@@ -210,7 +218,7 @@ function darAltaPaciente(datos, ctx) {
 
       repoInsertar('ARCHIVO_PACIENTES', {
         ID_ARCHIVO: uid('ARCH'), PATIENT_ID: pid, CAMA_ORIGEN: idCama, COD_PACIENTE: cama.COD_PACIENTE,
-        FECHA_INGRESO: cama.FECHA_INGRESO, FECHA_EGRESO: fechaEgreso,
+        FECHA_INGRESO: cama.FECHA_INGRESO, TS_INGRESO: cama.TS_INGRESO || '', FECHA_EGRESO: fechaEgreso,
         DIAS_TOTAL: cama.DIA_ESTADIA, DIAS_VM_TOTAL: diasVMTot, DIAS_VA_TOTAL: diasVATot,
         NOMBRE: cama.NOMBRE, EDAD: cama.EDAD, SEXO: cama.SEXO, RUT: cama.RUT || '',
         DIAGNOSTICO: cama.DIAGNOSTICO, DIAG_REM: cama.DIAG_REM,

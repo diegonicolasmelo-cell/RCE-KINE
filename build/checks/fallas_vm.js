@@ -59,6 +59,18 @@ global.Utilities = {
 };
 
 // svc_stats.gs aporta _statISO; svc_camas.gs, el cruce del tag.
+/* Helpers de fecha/hora REALES (v5.19): se cargan del archivo de infraestructura
+   para que el arnés verifique la lógica de verdad, con reloj determinista. */
+global.Utilities = Object.assign(global.Utilities || {}, { getUuid: () => 'u1' });
+global._tz = () => 'America/Santiago';
+{
+  const _fx = require('fs').readFileSync(require('path').join(v2, 'infra_fechas.gs'), 'utf8');
+  eval(_fx.slice(_fx.indexOf('/** Hora actual')));
+  global._horaAhora = _horaAhora; global._horaValida = _horaValida;
+  global._tsAhora = _tsAhora; global._tsDesdeHora = _tsDesdeHora;
+  global._tsFecha = _tsFecha; global._tsHora = _tsHora;
+  global.diasBloques24 = diasBloques24; global.refTurno = refTurno;
+}
 eval(['svc_stats.gs', 'svc_equipos.gs', 'svc_camas.gs']
   .map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 

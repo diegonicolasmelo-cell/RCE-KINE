@@ -49,6 +49,18 @@ global.ok = d => ({ ok: true, data: d });
 global.err = (m, c) => ({ ok: false, error: m, codigo: c });
 global.ERR = { VALIDACION: 'VALIDACION', INTERNO: 'INTERNO', NO_ENCONTRADO: 'NO_ENCONTRADO' };
 
+/* Helpers de fecha/hora REALES (v5.19): se cargan del archivo de infraestructura
+   para que el arnés verifique la lógica de verdad, con reloj determinista. */
+global.Utilities = Object.assign(global.Utilities || {}, { getUuid: () => 'u1' });
+global._tz = () => 'America/Santiago';
+{
+  const _fx = require('fs').readFileSync(require('path').join(v2, 'infra_fechas.gs'), 'utf8');
+  eval(_fx.slice(_fx.indexOf('/** Hora actual')));
+  global._horaAhora = _horaAhora; global._horaValida = _horaValida;
+  global._tsAhora = _tsAhora; global._tsDesdeHora = _tsDesdeHora;
+  global._tsFecha = _tsFecha; global._tsHora = _tsHora;
+  global.diasBloques24 = diasBloques24; global.refTurno = refTurno;
+}
 eval(fs.readFileSync(path.join(v2, 'svc_camas.gs'), 'utf8'));
 
 const fails = [];

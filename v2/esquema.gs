@@ -287,7 +287,14 @@ const ESQUEMA = {
     // anotar antes, el egreso lo vuelve a ofrecer. Ajuste por gravedad: hallazgo
     // de M. Fuentes (OR 1,94 por cada 5 puntos). SIEMPRE AL FINAL de la lista.
     ['APACHE2','entero'],
-    ['TQT_CALIBRE','texto'],  // calibre de la cánula vigente (v4.6) — SIEMPRE AL FINAL
+    ['TQT_CALIBRE','texto'],  // calibre de la cánula vigente (v4.6)
+    // MOMENTO real del episodio (ago-2026) como 'yyyy-MM-dd HH:mm': el número
+    // visible («Día X», días de VM) cuenta BLOQUES DE 24 h desde aquí — un
+    // paciente que llegó hace dos horas debe decir Día 0, no Día 1. Va aparte
+    // de FECHA_INGRESO porque esa es la fecha del TURNO (la noche del 31
+    // pertenece al turno del 31 aunque el reloj marque el 1). Vacío = conteo
+    // por días calendario, como antes.  — SIEMPRE AL FINAL
+    ['TS_INGRESO','texto'],['TS_INICIO_VA','texto'],['TS_INICIO_SOPORTE','texto'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -321,6 +328,7 @@ const ESQUEMA = {
     ['DINAMO_EGRESO','decimal'],['CPAX_EGRESO','entero'],
     ['RUT','texto'],   // identidad de persona (jul-2026) — reingresos y cruce interno
     ['APACHE2','entero'],  // gravedad al ingreso (0-71) — habilita el ajuste por gravedad del análisis externo
+    ['TS_INGRESO','texto'],  // momento real del ingreso (ago-2026) — SIEMPRE AL FINAL
   ]},
   // ── Ventiladores de la unidad: inventario vivo + trazabilidad de movimientos ──
   VENTILADORES: { headerRows: 1, cols: [

@@ -782,7 +782,7 @@
       "archivo": {
         "MOTIVO": "Traslado a sala",
         "DESTINO": "Medicina",
-        "DIAS": 2,
+        "DIAS": 7,
         "DIAS_VM": 0,
         "DIAS_VA": 0,
         "APACHE2": 22,
@@ -988,7 +988,7 @@
       "err": "",
       "data": {
         "entidad": "FALLAS_VM",
-        "id": "FALLA_1785616678698_IX5NK",
+        "id": "FALLA_1785620344093_A2VGR",
         "idVm": "vm1",
         "fotoUrl": "",
         "accion": "falla registrada: AVEA-01"

@@ -106,6 +106,34 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.19 · EL NÚMERO QUE SE VE AFUERA ES EL REAL: DÍAS POR BLOQUES DE 24 h
+  (ago-2026, cohete v5.19-dias).** Reclamo de Diego el día 2 de uso: «si en
+  una reunión los médicos preguntan cuántos días lleva y decimos uno, pero
+  llegó hace un par de horas, no tiene concordancia con lo clínico».
+  1. Columnas nuevas `TS_INGRESO`, `TS_INICIO_VA`, `TS_INICIO_SOPORTE` en
+     CAMAS_ESTADO y `TS_INGRESO` en ARCHIVO_PACIENTES (⇒ EXIGE
+     `crearORepararEstructura()`): guardan el **momento real**
+     'yyyy-MM-dd HH:mm', APARTE de FECHA_INGRESO, que sigue siendo la fecha
+     del TURNO (la noche del 31 es turno del 31 aunque el reloj marque el 1)
+     — por eso el REM/estadística no se mueven.
+  2. `diasBloques24(ts, fechaCal, hasta, hora)` cuenta bloques de 24 h; SIN
+     ts cae al conteo por días calendario (episodios ya registrados intactos).
+     Las evoluciones usan `refTurno()` (Día→15:00, Noche→03:00 del día
+     siguiente): referencia determinista, re-editar NO cambia los días. El
+     tablero/registro/ficha recalculan EN VIVO contra el reloj (`dias24` en
+     el cliente).
+  3. `_tsDesdeHora` resuelve la hora escrita a mano como la ocurrencia MÁS
+     RECIENTE (anotar 02:00 a las 05:00 = hace 3 h). Campo **«Hora ingreso»**
+     junto a Día Estadía (viaja como `PAC_HORA_INGRESO`), editable.
+  4. TRAMPA: `_horaAhora` DEBE derivar de `ahoraTS()` — el arnés de simulación
+     prohíbe `Utilities.formatDate` (reloj simulado). Y los arneses que solo
+     stubean fechas necesitan cargar los helpers reales de `infra_fechas.gs`
+     (bloque agregado en apache/fallas_vm/v42/via_aerea_previo).
+  5. Guardia nueva `checks/dias24.js` (26 asserts, incluido el caso real del
+     ingreso de las 02:00 en el turno «31·Noche»). Los pacientes ya
+     ingresados SIN TS siguen contando por días calendario hasta que se les
+     escriba la hora en el formulario.
+
 - **v5.18 · EL STOCK TAMBIÉN VA A UNA CAMA + VARIOS EQUIPOS POR CASILLERO
   (ago-2026, cohete v5.18-camas).** Corrección de Diego a mi supuesto: «los
   dispositivos que tienen stock igual van a una cama definida». Sin número no

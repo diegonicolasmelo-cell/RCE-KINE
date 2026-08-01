@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.18-camas">
+<meta name="rce-version" content="5.19-dias">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1943,6 +1943,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
             <!-- Día estadía + Barthel + ECF + AET en la misma fila -->
             <div class="row" style="margin-bottom:6px;align-items:flex-end;flex-wrap:wrap;">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:64px;" disabled></div>
+              <div class="col wa" style="margin-right:18px;"><label>Hora ingreso</label>
+                <input type="time" id="fHoraIng" class="tc" style="width:96px;" title="Desde esta hora se cuentan los días (bloques de 24 h). Vacío = se cuenta por días calendario."></div>
               <div class="col wa" style="margin-right:34px;"><label>Barthel</label>
                 <div style="display:flex;align-items:center;gap:5px;">
                   <select id="fBarthel" onchange="updBarthelLbl('fBarthel','lblBarthel')" style="width:72px;">
@@ -3652,7 +3654,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.18-camas]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.19-dias]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3722,6 +3724,20 @@ const dias = (a,b) => {
   const ms = (new Date(_isoDia(b)+'T00:00:00')) - (new Date(_isoDia(a)+'T00:00:00'));
   return ms<0 ? 0 : Math.floor(ms/86400000);
 };
+/* Días por BLOQUES DE 24 h desde el momento real (ago-2026): el número que se
+   ve afuera debe ser el que lleva de verdad — llegó hace dos horas ⇒ Día 0.
+   `ts` es 'yyyy-MM-dd HH:mm'; sin él se cuenta por días calendario, como antes. */
+function dias24(ts, fechaCal, hastaISO){
+  const t = String(ts||'');
+  if(!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(t)) return dias(fechaCal, hastaISO);
+  const hoyISO_ = _isoDia(hastaISO||hoy());
+  const ahora = new Date();
+  const ref = (hoyISO_===_isoDia(hoy()))
+    ? ahora                                   // vista de HOY: contra el reloj
+    : new Date(hoyISO_+'T23:59:00');          // fecha pasada: fin de ese día
+  const ms = ref - new Date(t.slice(0,10)+'T'+t.slice(11,16)+':00');
+  return ms<0 ? 0 : Math.floor(ms/86400000);
+}
 
 // Clasificación del weaning (Boles 2007): difícil = ≥1 PVE frustro;
 // prolongado = ≥3 frustros o >7 días desde el primer PVE. Misma lógica que
@@ -3953,8 +3969,10 @@ function renderGrid() {
     if(ocu) {
       el.classList.add('occ');
       oc++; if(c.SOPORTE==='VM') vm++;
-      const d   = dias(c.FECHA_INGRESO, fecha);
-      const dvm = (c.SOPORTE==='VM'||c.SOPORTE==='VNI') ? dias(c.FECHA_INICIO_SOPORTE,fecha) : 0;
+      // Los días vienen del servidor contados por BLOQUES DE 24 h reales
+      // (ago-2026): un paciente que llegó hace dos horas muestra Día 0.
+      const d   = dias24(c.TS_INGRESO, c.FECHA_INGRESO, fecha);
+      const dvm = (c.SOPORTE==='VM'||c.SOPORTE==='VNI') ? dias24(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, fecha) : 0;
       const evo = EVO_SET.has(String(c.ID_CAMA));
       const dot = evo ? 'd-done' : 'd-busy';
       if(evo) el.classList.add('evo'); // carpeta con hoja blanca asomando
@@ -4426,7 +4444,8 @@ function fillCama(c, fecha) {
   updBarthelLbl('fBarthel','lblBarthel'); updEcfLbl('fEcf','lblEcf');
   s('fDx',c.DIAGNOSTICO); s('fRem',c.DIAG_REM);
   s('fCharlson',c.CHARLSON); s('fIngTipo',c.INGRESO_TIPO); s('fApache',c.APACHE2);
-  $('fDias').value = dias(c.FECHA_INGRESO,fecha);
+  $('fDias').value = dias24(c.TS_INGRESO, c.FECHA_INGRESO, fecha);
+  if($('fHoraIng')) $('fHoraIng').value = (String(c.TS_INGRESO||'').slice(11,16)) || '';
   _fechaInicioVA=_isoDia(c.FECHA_INICIO_VA)||'';
   const _cCod=$('spCod'); if(_cCod) _cCod.textContent=c.COD_PACIENTE||'';
   setFasesDesde(c.FASE_JSON||'');
@@ -5144,6 +5163,7 @@ function guardar() {
     PAC_SEXO:v('fSexo'), PAC_TALLA:v('fTalla'), PAC_BARTHEL:v('fBarthel'),
     PAC_ECF:v('fEcf'), PAC_DIAGNOSTICO:v('fDx'), PAC_DIAG_REM:v('fRem'),
     PAC_CHARLSON:v('fCharlson'), PAC_INGRESO_TIPO:v('fIngTipo'),
+    PAC_HORA_INGRESO:v('fHoraIng'),   // hora del ingreso: base de los bloques de 24 h
     PAC_APACHE2:v('fApache'),   // transitorio como PAC_RUT: persiste en la cama, no en EVOLUCIONES
     BARTHEL_JSON:(function(){ const a=[]; let any=false; for(let i=0;i<10;i++){ const x=v('bar'+i); a.push(x); if(x!=='') any=true; } return any?JSON.stringify(a):''; })(),
     CHARLSON_JSON:(function(){ const a=[]; for(let i=0;i<CHARLSON_ITEMS.length;i++){ if($('ch'+i)?.checked) a.push(i); } const ed=$('chEdad')?.checked; return (a.length||ed)?JSON.stringify({it:a,edad:!!ed}):''; })(),
@@ -9923,7 +9943,8 @@ function renderTabla(){
       else if(EVO_SET.has(id)) tr.className='rd';
       else tr.className='ro';
 
-      const dEst=(evoRef&&evoRef.DIA_ESTADIA!==''&&evoRef.DIA_ESTADIA!=null)?evoRef.DIA_ESTADIA:(ocu?dias(c.FECHA_INGRESO,fecha):'');
+      const dEst=(evoRef&&evoRef.DIA_ESTADIA!==''&&evoRef.DIA_ESTADIA!=null)?evoRef.DIA_ESTADIA
+                 :(ocu?dias24(c.TS_INGRESO, c.FECHA_INGRESO, fecha):'');
       const dvm=evoRef?((parseInt(evoRef.DIAS_VM_PREVIOS)||0)+(parseInt(evoRef.DIAS_VM)||0))
                       :(ocu&&c.SOPORTE==='VM'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
       const dvni=evoRef?((parseInt(evoRef.DIAS_VNI_PREVIOS)||0)+(evoRef.VENT_SOPORTE==='VNI'&&ocu&&c.SOPORTE==='VNI'?dias(c.FECHA_INICIO_SOPORTE,fecha):0))

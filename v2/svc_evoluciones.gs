@@ -96,14 +96,28 @@ function guardarEvolucion(datos, ctx) {
         cama.FECHA_INGRESO = fecha;
         repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { FECHA_INGRESO: fecha });
       }
+      // MOMENTO real del ingreso (ago-2026): lo fija la hora del formulario o,
+      // si no viene, la del registro. Con él los días cuentan bloques de 24 h.
+      const _hFormIng = _horaValida(datos.PAC_HORA_INGRESO);
+      if (!cama.TS_INGRESO) {
+        cama.TS_INGRESO = (_hFormIng ? _tsDesdeHora(_hFormIng) : '') || _tsAhora();
+        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { TS_INGRESO: cama.TS_INGRESO });
+      } else if (_hFormIng && _hFormIng !== _tsHora(cama.TS_INGRESO)) {
+        // Corrección a mano: se conserva el día del momento ya guardado.
+        cama.TS_INGRESO = _tsFecha(cama.TS_INGRESO) + ' ' + _hFormIng;
+        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { TS_INGRESO: cama.TS_INGRESO });
+      }
       if (cama.FECHA_INGRESO) {
-        datos.DIA_ESTADIA = diasEntre(cama.FECHA_INGRESO, fecha);
+        // Referencia determinista: la mitad del turno evolucionado (re-editar
+        // no cambia el número). El tablero en vivo usa la hora real.
+        const _ref = refTurno(fecha, turno);
+        datos.DIA_ESTADIA = diasBloques24(cama.TS_INGRESO, cama.FECHA_INGRESO, _ref.fecha, _ref.hora);
         // Un turno que intuba TERMINA en VM aunque haya empezado en oxigenoterapia:
         // los contadores usan el estado final (el previo queda en VENT_*).
         const _sopT = datos.VENT_SOPORTE_FINAL || datos.VENT_SOPORTE;
         const _vaT  = datos.VENT_VIA_AEREA_FINAL || datos.VENT_VIA_AEREA;
-        datos.DIAS_VM = (_sopT === 'VM') ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : 0;
-        datos.DIAS_VA = (_vaT && _vaT !== 'Natural') ? diasEntre(cama.FECHA_INICIO_VA, fecha) : 0;
+        datos.DIAS_VM = (_sopT === 'VM') ? diasBloques24(cama.TS_INICIO_SOPORTE, cama.FECHA_INICIO_SOPORTE, _ref.fecha, _ref.hora) : 0;
+        datos.DIAS_VA = (_vaT && _vaT !== 'Natural') ? diasBloques24(cama.TS_INICIO_VA, cama.FECHA_INICIO_VA, _ref.fecha, _ref.hora) : 0;
       }
 
       // BDT (test de azul) — repetible: cada resultado marcado en el turno se
@@ -217,10 +231,15 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   const sopNew = sopFin || cama.SOPORTE || 'Ambiente';
   const sopAnt = cama.SOPORTE || '';
   const esVent = (sopNew === 'VM' || sopNew === 'VNI');
-  let fechaSoporte;
-  if (!esVent) fechaSoporte = cama.FECHA_INICIO_SOPORTE || '';
-  else if (sopNew !== sopAnt || !cama.FECHA_INICIO_SOPORTE) fechaSoporte = fecha;
-  else fechaSoporte = cama.FECHA_INICIO_SOPORTE;
+  let fechaSoporte, horaSoporte;
+  if (!esVent) { fechaSoporte = cama.FECHA_INICIO_SOPORTE || ''; horaSoporte = cama.TS_INICIO_SOPORTE || ''; }
+  else if (sopNew !== sopAnt || !cama.FECHA_INICIO_SOPORTE) {
+    // Arranca (o se reinicia) el contador: se guarda también la HORA para que
+    // los días de VM cuenten bloques de 24 h reales. La hora del evento manda
+    // (intubación/reintubación/TQT); si no hay, la del registro.
+    fechaSoporte = fecha;
+    horaSoporte = _tsDesdeHora(_horaValida(evo.INTUB_HORA) || _horaValida(evo.REINTUB_HORA) || _horaValida(evo.TQT_HORA)) || _tsAhora();
+  } else { fechaSoporte = cama.FECHA_INICIO_SOPORTE; horaSoporte = cama.TS_INICIO_SOPORTE || ''; }
 
   // Fecha de inicio de vía aérea: se reinicia si cambia el TIPO de vía aérea
   // (condicionante v1 #2 — "cambio de vía aérea recalcula días"). "Vía externa
@@ -259,14 +278,15 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   const vaNew = vaFin || cama.VIA_AEREA || 'Natural';
   const vaAnt = cama.VIA_AEREA || '';
   const esVA = (vaNew !== 'Natural');
-  let fechaVA;
+  let fechaVA, horaVA;
   if (!esVA) {
-    fechaVA = '';
+    fechaVA = ''; horaVA = '';
   } else if (vaNew !== vaAnt || !cama.FECHA_INICIO_VA) {
     const diasPrev = parseInt(evo.VA_EXTERNO_DIAS) || 0;
     fechaVA = (esVerdadero(evo.VA_EXTERNO) && diasPrev > 0) ? _restarDias(fecha, diasPrev) : fecha;
+    horaVA = _tsDesdeHora(_horaValida(evo.INTUB_HORA) || _horaValida(evo.REINTUB_HORA) || _horaValida(evo.TQT_HORA)) || _tsAhora();
   } else {
-    fechaVA = cama.FECHA_INICIO_VA;
+    fechaVA = cama.FECHA_INICIO_VA; horaVA = cama.TS_INICIO_VA || '';
   }
 
   const campos = {
@@ -313,6 +333,9 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     FECHA_INGRESO: cama.FECHA_INGRESO || (esIngreso ? fecha : ''),
     FECHA_INICIO_VA: fechaVA,
     FECHA_INICIO_SOPORTE: fechaSoporte,
+    TS_INICIO_VA: horaVA,
+    TS_INICIO_SOPORTE: horaSoporte,
+    TS_INGRESO: cama.TS_INGRESO || '',
   };
 
   // Snapshot por turno (para la tabla de Registro Diario)
