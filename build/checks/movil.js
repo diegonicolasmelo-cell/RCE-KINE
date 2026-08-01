@@ -37,6 +37,45 @@ const archivo = path.resolve(process.argv[2] || path.join(__dirname, '..', '..',
   eq('móvil: hoja «Más» se despliega', await m.evaluate(() => $('msheet').classList.contains('on') && !$('mvelo').classList.contains('hidden')), true);
   await m.evaluate(() => { mSheet(false); setTab('A'); });
   eq('móvil: Archivados enciende «Más»', await m.evaluate(() => $('mnavMas').classList.contains('on')), true);
+  /* ── v5.13 · Encabezado móvil «barra mínima» (opción C de Diego): logo
+        chico EN LÍNEA con la marca y el reloj; ◀ fecha ▶ juntos en su propia
+        fila (jamás una flecha huérfana); turno solo con íconos; buscador a
+        todo el ancho. Y el aviso retrospectivo ahora es corto. ── */
+  const HDR = await m.evaluate(() => {
+    const r = {};
+    const fila = e => Math.round(e.getBoundingClientRect().top);
+    const lg = document.querySelector('.hlogo'), ck = $('clk');
+    r.logoChico = lg.getBoundingClientRect().height <= 32;
+    r.logoConReloj = Math.abs(fila(lg) - fila(ck)) < 20;
+    const bts = [...document.querySelectorAll('.hnav .hbtn')];
+    const gd = $('gDate'), tg = $('sTgl');
+    r.flechasConFecha = bts.length === 2 && bts.every(x => Math.abs(fila(x) - fila(gd)) < 8);
+    r.turnoEnLaFila = Math.abs(fila(tg) - fila(gd)) < 8;
+    r.fechaAncha = gd.getBoundingClientRect().width > innerWidth * 0.35;
+    r.turnoSoloIconos = [...document.querySelectorAll('.stxt')].every(x => getComputedStyle(x).display === 'none');
+    r.filaFechaBajoMarca = fila(gd) > fila(lg);
+    const bu = document.querySelector('.hsearch input');
+    r.buscadorAbajoYAncho = fila(bu) > fila(gd) && bu.getBoundingClientRect().width > innerWidth * 0.5;
+    // nada del encabezado se sale de la pantalla
+    r.sinDesborde = [lg, ck, gd, tg, bu, ...bts].every(x => Math.round(x.getBoundingClientRect().right) <= innerWidth)
+      && document.documentElement.scrollWidth <= innerWidth;
+    // aviso retrospectivo CORTO
+    $('gDate').value = '2026-07-28'; onFechaChange(); actualizarRetroBar();
+    r.retroCorto = $('retroTxt').textContent.trim();
+    volverAHoy();
+    return r;
+  });
+  eq('móvil: logo chico (≤32 px)', HDR.logoChico, true);
+  eq('móvil: logo en línea con el reloj', HDR.logoConReloj, true);
+  eq('móvil: ◀ y ▶ flanquean la fecha en UNA fila', HDR.flechasConFecha, true);
+  eq('móvil: el turno acompaña esa fila', HDR.turnoEnLaFila, true);
+  eq('móvil: la fecha respira (>35% del ancho)', HDR.fechaAncha, true);
+  eq('móvil: turno solo con íconos ☀️/🌙', HDR.turnoSoloIconos, true);
+  eq('móvil: la fila de fecha va bajo la marca', HDR.filaFechaBajoMarca, true);
+  eq('móvil: buscador abajo, a todo el ancho', HDR.buscadorAbajoYAncho, true);
+  eq('móvil: nada se desborda de la pantalla', HDR.sinDesborde, true);
+  eq('aviso retrospectivo corto («Estás viendo …»)', /^Estás viendo /.test(HDR.retroCorto) && HDR.retroCorto.length < 70, true);
+
   await m.evaluate(() => { setTab('G'); DB = [{ ID_CAMA: '3' }]; abrirPanel('3', false); });
   await m.waitForTimeout(200);
   const acc = await m.evaluate(() => {

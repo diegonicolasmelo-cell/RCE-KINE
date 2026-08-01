@@ -106,6 +106,22 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.13 · ENCABEZADO MÓVIL «BARRA MÍNIMA» + AVISO RETRO CORTO (ago-2026,
+  cohete v5.13-movil).** Diego mandó captura: en el celular el encabezado caía
+  en dos columnas chuecas con el ▶ huérfano en su propia fila. Le di 3
+  maquetas (`scratchpad/mockup_movil.html`) y eligió la **opción C**:
+  1. ≤740px: `.hbar` pasa a `display:contents` (sus hijos se ordenan junto al
+     logo dentro de `.hdr` en flex-wrap) ⇒ fila 1 = logo 28px EN LÍNEA + marca
+     + reloj + contadores; fila 2 = `.hnav` nuevo (◀ fecha ▶ + turno) a todo
+     el ancho; fila 3 = buscador + 🔄 + 🤖. El turno queda SOLO con íconos
+     (`.stxt` oculto; los textos «DÍA/NOCHE» ahora van en spans .stxt).
+     TRAMPA: la regla móvil vive ANTES de la `.stgl` base en el CSS ⇒ usar
+     `.hnav .stgl` (más especificidad) o pierde. El desktop no cambió.
+  2. Aviso retrospectivo CORTO (pedido de Diego): «Estás viendo {fecha} ·
+     Turno {X}» — se fue el «Vista retrospectiva — … lo que se evolucionó».
+  3. Guardia: bloque HDR en `checks/movil.js` (10 asserts, incluido
+     «nada se desborda de la pantalla»).
+
 - **v5.12 · CELEBRACIÓN E IDEA EN EL TUTORIAL (ago-2026, cohete
   v5.12-fiesta).** Las dos poses que faltaban llegaron como archivo (al
   SEGUNDO intento — la trampa de siempre: pegadas al chat NO llegan los
@@ -166,8 +182,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.12-fiesta**
-  (antes v5.11-asinc, v5.10-poses, v5.9-rapido, v5.8-retro, v5.7-tutorial2).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.13-movil**
+  (antes v5.12-fiesta, v5.11-asinc, v5.10-poses, v5.9-rapido, v5.8-retro).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
