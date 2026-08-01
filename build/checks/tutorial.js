@@ -124,7 +124,7 @@ const { chromium } = require('playwright-core');
   const HOLA = await p.evaluate(async () => {
     localStorage.removeItem('rce_tut_saludo');
     tutHolaMostrar();
-    await new Promise(r => setTimeout(r, 2100));
+    await new Promise(r => setTimeout(r, 2800));
     const visible = !$('tutHola').classList.contains('hidden');
     const sinVelo = $('tutVelo').classList.contains('hidden');   // no interrumpe
     tutHolaCerrar();
@@ -132,7 +132,7 @@ const { chromium } = require('playwright-core');
     const marcado = localStorage.getItem('rce_tut_saludo') === '1';
     // segunda visita: ya no debe salir
     tutHolaMostrar();
-    await new Promise(r => setTimeout(r, 2100));
+    await new Promise(r => setTimeout(r, 2800));
     const noRepite = $('tutHola').classList.contains('hidden');
     return { visible, sinVelo, cerrado, marcado, noRepite };
   });
@@ -144,7 +144,7 @@ const { chromium } = require('playwright-core');
 
   const DESDE_HOLA = await p.evaluate(async () => {
     localStorage.removeItem('rce_tut_saludo');
-    tutHolaMostrar(); await new Promise(r => setTimeout(r, 2100));
+    tutHolaMostrar(); await new Promise(r => setTimeout(r, 2800));
     tutAbrir(); await new Promise(r => setTimeout(r, 220));
     const r = { holaCerrado: $('tutHola').classList.contains('hidden'), tourAbierto: !$('tutGlobo').classList.contains('hidden') };
     tutCerrar();

@@ -38,23 +38,11 @@ function api(accion, datos, token) {
       case 'GET_CATALOGO':     return ok(catalogo(datos.tipo || ''));
       case 'GET_FECHA_HOY':    return ok({ fecha: hoyISO(), timestamp: ahoraTS() });
       case 'GET_EVOS_DEL_DIA': return obtenerEvosDelDia(datos.fecha);
-      case 'GET_CONFIG_UI':    return ok({
-        CPAX_ACTIVO: leerConfig('CPAX_ACTIVO', 'TRUE') !== 'FALSE',
-        NUM_CAMAS: parseInt(leerConfig('NUM_CAMAS', '18')) || 18,
-        TURNO_DIA_INICIO: parseInt(leerConfig('TURNO_DIA_INICIO', '9')) || 9,
-        TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
-        EDITOR_TEXTO_DEMO: leerConfig('EDITOR_TEXTO_DEMO', 'FALSE') === 'TRUE',
-        EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
-        CUFF_MIN: parseInt(leerConfig('CUFF_MIN', '20')) || 20,
-        CUFF_MAX: parseInt(leerConfig('CUFF_MAX', '30')) || 30,
-        PTT_OK: parseFloat(leerConfig('PTT_OK', '10')) || 10,
-        PTT_ALERTA: parseFloat(leerConfig('PTT_ALERTA', '12')) || 12,
-        BANNERS: {
-          G: leerConfig('BANNER_G', ''), P: leerConfig('BANNER_P', ''), D: leerConfig('BANNER_D', ''),
-          E: leerConfig('BANNER_E', ''), A: leerConfig('BANNER_A', ''), V: leerConfig('BANNER_V', ''),
-        },
-        CAT_DEF: catMatrices(),
-      });
+      case 'GET_CONFIG_UI':    return ok(_configUI());
+      // Arranque en UN solo viaje: identidad + config + catálogo + camas +
+      // evoluciones del día + asignación del turno. Antes eran 4 viajes en
+      // cadena (~4-6 s en Apps Script); ahora uno (~1-1,5 s).
+      case 'GET_BOOT':         return obtenerBoot(datos, ctx, auth);
       case 'GET_ASIGNACION_TURNO': return obtenerAsignacionTurno(datos.key);
       case 'GET_STATS':        return obtenerStats(datos.desde, datos.hasta);
       case 'GET_ARCHIVADOS':   return obtenerArchivados(datos);
@@ -124,6 +112,48 @@ function api(accion, datos, token) {
   } catch (e) {
     return err('Error en ' + accion + ': ' + e.message, ERR.INTERNO, e);
   }
+}
+
+/** Config de interfaz (compartida por GET_CONFIG_UI y GET_BOOT). */
+function _configUI() {
+  return {
+    CPAX_ACTIVO: leerConfig('CPAX_ACTIVO', 'TRUE') !== 'FALSE',
+    NUM_CAMAS: parseInt(leerConfig('NUM_CAMAS', '18')) || 18,
+    TURNO_DIA_INICIO: parseInt(leerConfig('TURNO_DIA_INICIO', '9')) || 9,
+    TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
+    EDITOR_TEXTO_DEMO: leerConfig('EDITOR_TEXTO_DEMO', 'FALSE') === 'TRUE',
+    EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
+    CUFF_MIN: parseInt(leerConfig('CUFF_MIN', '20')) || 20,
+    CUFF_MAX: parseInt(leerConfig('CUFF_MAX', '30')) || 30,
+    PTT_OK: parseFloat(leerConfig('PTT_OK', '10')) || 10,
+    PTT_ALERTA: parseFloat(leerConfig('PTT_ALERTA', '12')) || 12,
+    BANNERS: {
+      G: leerConfig('BANNER_G', ''), P: leerConfig('BANNER_P', ''), D: leerConfig('BANNER_D', ''),
+      E: leerConfig('BANNER_E', ''), A: leerConfig('BANNER_A', ''), V: leerConfig('BANNER_V', ''),
+    },
+    CAT_DEF: catMatrices(),
+  };
+}
+
+/** Todo lo que el arranque necesita, en una sola respuesta. */
+function obtenerBoot(datos, ctx, auth) {
+  try {
+    const rCamas = obtenerTodasLasCamas();
+    const rEvos = obtenerEvosDelDia((datos && datos.fecha) || hoyISO());
+    let asignacion = null;
+    if (datos && datos.key) {
+      const rA = obtenerAsignacionTurno(datos.key);
+      if (rA && rA.ok) asignacion = rA.data;
+    }
+    return ok({
+      yo: { email: ctx.email, firma: ctx.firma, dev: !!(auth && auth.dev) },
+      config: _configUI(),
+      fases: catalogo('FASE_CLINICA'),
+      camas: (rCamas && rCamas.ok) ? rCamas.data : [],
+      evos: (rEvos && rEvos.ok) ? rEvos.data : [],
+      asignacion: asignacion,
+    });
+  } catch (e) { return err('obtenerBoot: ' + e.message, ERR.INTERNO, e); }
 }
 
 /** Ejecuta fn y, si resultó ok, deja registro en AUDIT_LOG. */
