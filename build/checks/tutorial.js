@@ -272,23 +272,48 @@ const { chromium } = require('playwright-core');
   });
   eq('ancla inexistente: sin anillo y con velo oscuro (globo centrado)', !SIN.anillo && SIN.dim, true);
 
-  /* ── v5.10 · Servi cambia de pose según el recorrido: signo de pregunta en
-        el esencial y jeringa en el clínico (clase rec-evo del globo) ── */
+  /* ── v5.10/v5.12 · Servi cambia de pose según el contexto: duda (?) e idea
+        (💡) alternan en el esencial, jeringa en el clínico (rec-evo) y la
+        CELEBRACIÓN con confeti cierra el último paso de ambos (rec-fin);
+        el aviso «sin pacientes» NO celebra. ── */
   const POSES = await p.evaluate(async () => {
     const vis = s => { const e = document.querySelector(s); return !!(e && e.offsetParent !== null); };
+    const sólo = cual => ['sg-duda', 'sg-idea', 'sg-alerta', 'sg-exito']
+      .every(c => vis('#tutGlobo .' + c) === (c === cual));
     const r = {};
+    DB = [{ ID_CAMA: '1', OCUPADA: true, NOMBRE: 'Juan Pérez', EDAD: 64, SEXO: 'M',
+      DIAGNOSTICO: 'NAC', VIA_AEREA: 'TOT', SOPORTE: 'VM', MODO: 'ACVC',
+      FECHA_INGRESO: '2026-07-26', FECHA_INICIO_VA: '2026-07-26' }];
     tutAbrir(); await new Promise(res => setTimeout(res, 200));
-    r.esencialDuda = vis('#tutGlobo .sg-duda') && !vis('#tutGlobo .sg-alerta');
+    r.paso1Duda = sólo('sg-duda');
+    tutSiguiente(); await new Promise(res => setTimeout(res, 200));
+    r.paso2Idea = sólo('sg-idea');
+    tutSiguiente(); await new Promise(res => setTimeout(res, 200));
+    r.paso3Duda = sólo('sg-duda');
+    while (_tutI < TUT_PASOS.length - 1) { tutSiguiente(); await new Promise(res => setTimeout(res, 160)); }
+    r.finalExito = sólo('sg-exito');
     tutCerrar();
+    tutAbrir('evolucion'); await new Promise(res => setTimeout(res, 1100));
+    r.evoAlerta = sólo('sg-alerta');
+    while (_tutI < TUT_PASOS.length - 1) { tutSiguiente(); await new Promise(res => setTimeout(res, 160)); }
+    r.evoFinalExito = sólo('sg-exito');
+    tutCerrar();
+    r.limpio = ['rec-evo', 'rec-idea', 'rec-fin'].every(c => !$('tutGlobo').classList.contains(c));
+    // sin pacientes: el aviso es paso único y final, pero NO es un logro
+    DB = [{ ID_CAMA: '1', OCUPADA: false }];
     tutAbrir('evolucion'); await new Promise(res => setTimeout(res, 350));
-    r.evoAlerta = vis('#tutGlobo .sg-alerta') && !vis('#tutGlobo .sg-duda');
+    r.sinPacSinFiesta = sólo('sg-alerta');
     tutCerrar();
-    r.limpio = !$('tutGlobo').classList.contains('rec-evo');
     return r;
   });
-  eq('recorrido esencial: Servi con el signo de pregunta', POSES.esencialDuda, true);
+  eq('esencial paso 1: Servi con el signo de pregunta', POSES.paso1Duda, true);
+  eq('esencial paso 2: cambia a la pose de la idea', POSES.paso2Idea, true);
+  eq('esencial paso 3: vuelve la duda (alternan)', POSES.paso3Duda, true);
+  eq('último paso del esencial: celebración con confeti', POSES.finalExito, true);
   eq('recorrido clínico: Servi con la jeringa', POSES.evoAlerta, true);
-  eq('al cerrar, el globo vuelve a la pose de duda', POSES.limpio, true);
+  eq('último paso del clínico: también celebra', POSES.evoFinalExito, true);
+  eq('al cerrar, el globo queda sin clases de pose', POSES.limpio, true);
+  eq('el aviso «sin pacientes» no celebra (jeringa)', POSES.sinPacSinFiesta, true);
 
   await b.close();
   if (errs.length) { console.log('❌ errores JS:', errs.join(' | ')); fails.push('errores JS'); }

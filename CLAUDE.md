@@ -106,6 +106,24 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.12 · CELEBRACIÓN E IDEA EN EL TUTORIAL (ago-2026, cohete
+  v5.12-fiesta).** Las dos poses que faltaban llegaron como archivo (al
+  SEGUNDO intento — la trampa de siempre: pegadas al chat NO llegan los
+  píxeles, hay que pedirlas como adjunto).
+  1. **Celebración con confeti**: Diego la mandó con TEXTOS pegados
+     («Tutorial Paso 6: Éxito» etc.) y pidió obviarlos — se borran por cajas
+     (negro/gris neutro con dilatación; el confeti se protege por saturación,
+     y una pasada extra mata el halo de «Completado.»). Esa pose necesitó
+     además el criterio de fondo **gris neutro pálido** (lum>203, sat<16)
+     porque la sombra y la neblina de las estelas dejaban parches.
+  2. En el globo: `.sg-idea` y `.sg-exito` se suman a duda/alerta. Clases de
+     `#tutGlobo` puestas en `_tutColocar` (tras el guard de vigencia):
+     **rec-fin** = paso `fin` con `_tutI>0` (el aviso «sin pacientes» es paso
+     único final y NO celebra) → confeti al cerrar AMBOS recorridos;
+     **rec-idea** = esencial, paso impar, no final → duda/idea alternan.
+     `tutCerrar` limpia rec-evo/rec-idea/rec-fin.
+  3. Guardia: bloque POSES de `checks/tutorial.js` reescrito (8 asserts).
+
 - **v5.11 · ASINCRONÍA P-VM (ago-2026, cohete v5.11-asinc).** Regla clínica de
   Diego: «si es asincrónico no se puede medir Ppl ni PD; AutoPEEP no es
   fidedigno». Con `sAdapt='Asincrónico'` (solo existe en ACVC/ACPC), `hAdapt()`
@@ -148,8 +166,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.11-asinc**
-  (antes v5.10-poses, v5.9-rapido, v5.8-retro, v5.7-tutorial2, v5.6-serviu).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.12-fiesta**
+  (antes v5.11-asinc, v5.10-poses, v5.9-rapido, v5.8-retro, v5.7-tutorial2).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
