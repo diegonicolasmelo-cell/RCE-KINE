@@ -152,6 +152,7 @@ const _RESET_VACIAR = [
   'EVOLUCIONES', 'EVOLUCIONES_ARCHIVO', 'PROCEDIMIENTOS', 'TIMELINE',
   'ENTREGAS_TURNO', 'ARCHIVO_PACIENTES', 'REINTUBACIONES',
   'VENTILADORES', 'MOVIMIENTOS_VM', 'FALLAS_VM',
+  'STOCK_EQUIPOS', 'MOVIMIENTOS_STOCK',
   'ESTADISTICAS_REM', 'TURNOS', 'AUDIT_LOG', 'IMPORTAR',
 ];
 // Hojas que NO se tocan (configuración de la unidad).
@@ -314,7 +315,30 @@ function cargarInventarioInicial() {
     }, ctx);
     if (r && r.ok) altas++; else console.log('FALLÓ ' + eq.nombre + ': ' + (r && r.error));
   });
+  // ── Equipos SIN número: se llevan por cantidad (Diego, ago-2026) ──
+  const STOCK = [
+    { nombre: 'Aerogen Pro-X', marca: 'Aerogen', modelo: 'Pro-X', categoria: 'Nebulización',
+      cantidad: 10, estado: 'Operativo', obs: 'Nebulizador de malla · sin numerar' },
+    { nombre: 'Capnógrafo Nihon Kohden', marca: 'Nihon Kohden', modelo: '', categoria: 'Capnografía',
+      cantidad: 5, estado: 'Operativo', obs: 'En uso en la unidad' },
+    { nombre: 'Capnógrafo Dräger', marca: 'Dräger', modelo: '', categoria: 'Capnografía',
+      cantidad: 4, estado: 'De baja', obs: 'No se ocupan (decisión de la unidad)' },
+  ];
+  const existeStock = {};
+  repoLeerTodos('STOCK_EQUIPOS').forEach(function (x) { existeStock[String(x.NOMBRE).trim().toLowerCase()] = true; });
+  let stockAltas = 0;
+  STOCK.forEach(function (eq) {
+    if (existeStock[eq.nombre.trim().toLowerCase()]) return;
+    const r = guardarStockEquipo({
+      nombre: eq.nombre, marca: eq.marca, modelo: eq.modelo, categoria: eq.categoria,
+      cantidad: eq.cantidad, estado: eq.estado, obs: eq.obs, fecha: F,
+      motivo: 'Carga inicial del inventario (libro del 31-07-2026)',
+    }, ctx);
+    if (r && r.ok) stockAltas++; else console.log('FALLÓ ' + eq.nombre + ': ' + (r && r.error));
+  });
+
   console.log('Inventario inicial: ' + altas + ' equipos dados de alta, ' + saltados + ' ya existían (no se tocaron).');
+  console.log('Stock sin numerar: ' + stockAltas + ' tipos cargados (Aerogen y capnógrafos).');
   console.log('Pendientes de completar con ✏️ Editar: números reales de los equipos de bodega, series, inventarios y años.');
-  return { altas: altas, saltados: saltados };
+  return { altas: altas, saltados: saltados, stock: stockAltas };
 }

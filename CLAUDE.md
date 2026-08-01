@@ -106,6 +106,20 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.17 · STOCK SIN NUMERAR (ago-2026, cohete v5.17-stock).** Aerogen Pro-X
+  (10) y capnógrafos (5 Nihon Kohden en uso · 4 Dräger DE BAJA por decisión de
+  Diego) NO tienen número: seguirlos uno por uno obligaría a inventar nombres
+  falsos. Se llevan por **CANTIDAD** en hojas nuevas `STOCK_EQUIPOS` +
+  `MOVIMIENTOS_STOCK` (⇒ EXIGE `crearORepararEstructura()`), clasificadas en
+  `_RESET_VACIAR`. Servicios en svc_equipos.gs (obtener/guardar/ajustar/movs)
+  + API GET_STOCK · GET_MOVS_STOCK · GUARDAR_STOCK · AJUSTAR_STOCK. UI: sección
+  «🧮 Stock sin numerar» bajo el tablero de la pestaña Ventiladores, con
+  ➖ Sacar / ➕ Reponer (cantidad + motivo OBLIGATORIO + detalle; el cliente y
+  el servidor rechazan sacar más de lo que hay) y 📜 Historial. NO se asignan a
+  camas (dato imposible de verificar sin número). `cargarInventarioInicial()`
+  los siembra junto a los 33 equipos con nombre. Guardia: `checks/stock.js`
+  (33 asserts, servicio + UI).
+
 - **INVENTARIO REAL CARGABLE (ago-2026)**: `cargarInventarioInicial()` en
   `mantenimiento.gs` traspasa el libro de VM en papel del 31-07: 18 VM en
   cama (Avea 1/3, Vela 9, PB 1/2/980, Savina 1/2/4, Servo U, Mek

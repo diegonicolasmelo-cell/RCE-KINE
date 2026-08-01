@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.16-guante">
+<meta name="rce-version" content="5.17-stock">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1483,6 +1483,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
     </div>
     <div id="vmAlerta"></div>
     <div id="vmBody"><div class="pivot-empty">Cargando ventiladores…</div></div>
+    <div id="stkBody"></div>
   </div>
 </div>
 
@@ -1547,6 +1548,44 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <div style="display:flex;gap:9px;padding-top:12px;border-top:1px solid #e2e8f0;">
       <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMod()">Cancelar</button>
       <button type="button" id="vmfBtn" class="btn btn-p" onclick="vmGuardar()">💾 Guardar ventilador</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AJUSTE DE STOCK (equipos sin número: Aerogen, capnógrafos) -->
+<div class="tlmodal" id="stkMod" role="dialog" aria-modal="true" style="width:min(460px,94vw);max-height:86vh;">
+  <div class="phdr">
+    <div class="ptitle" id="stkModTit">Ajustar stock</div>
+    <button class="xbtn" onclick="stkCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:16px 22px;overflow-y:auto;">
+    <input type="hidden" id="stkId"><input type="hidden" id="stkSigno" value="-1">
+    <div class="row" style="align-items:center;gap:14px;">
+      <div class="col wa"><label>Cantidad</label>
+        <div style="display:flex;align-items:center;gap:0;border:1px solid #cbd5e1;border-radius:9px;overflow:hidden;width:132px;">
+          <button type="button" class="dpset" style="border:0;border-radius:0;padding:8px 14px;" onclick="stkPaso(-1)">−</button>
+          <input type="number" id="stkCant" value="1" min="1" style="border:0;text-align:center;width:44px;height:36px;font-size:1rem;font-weight:800;" oninput="stkResumen()">
+          <button type="button" class="dpset" style="border:0;border-radius:0;padding:8px 14px;" onclick="stkPaso(1)">+</button>
+        </div>
+      </div>
+      <div class="col grow"><label>&nbsp;</label><div id="stkResumen" style="font-size:.8rem;color:var(--muted);padding-top:9px;"></div></div>
+    </div>
+    <div class="row"><div class="col grow"><label>Motivo *</label>
+      <select id="stkMotivo" style="height:36px;">
+        <option>Dado de baja / falla</option>
+        <option>Enviado a otro servicio</option>
+        <option>Pérdida o extravío</option>
+        <option>Compra / reposición</option>
+        <option>Devuelto de reparación</option>
+        <option>Corrección de conteo</option>
+        <option>Otro</option>
+      </select></div></div>
+    <div class="row"><div class="col grow"><label>Detalle (opcional)</label>
+      <input type="text" id="stkDet" placeholder="ej.: falla en la membrana" style="height:36px;"></div></div>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:4px;">El ajuste queda con fecha, firma y motivo en el libro de movimientos.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+      <button class="dpset" onclick="stkCerrar()">Cancelar</button>
+      <button class="dpset" style="background:var(--ok);color:#fff;border-color:var(--ok);" onclick="stkAplicar()">✅ Registrar</button>
     </div>
   </div>
 </div>
@@ -3605,7 +3644,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.16-guante]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.17-stock]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -10089,8 +10128,86 @@ function initVentiladores(){ if(VM_ALL===null) vmCargar(); else vmRender(); }
 
 function vmCargar(){
   $('vmBody').innerHTML='<div class="pivot-empty">Cargando ventiladores…</div>';
-  gs('GET_VENTILADORES',{},r=>{ VM_ALL=r||[]; vmRender(); },
+  gs('GET_VENTILADORES',{},r=>{ VM_ALL=r||[]; vmRender(); stkCargar(); },
     msg=>{ $('vmBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'')+' <button class="dpset" onclick="vmCargar()">Reintentar</button></div>'; });
+}
+
+/* ── STOCK SIN NUMERAR (ago-2026): Aerogen y capnógrafos. No tienen número,
+   así que se llevan por CANTIDAD y no se asignan a camas. Cada ajuste pide
+   motivo y queda en el libro de movimientos. ── */
+let STOCK_ALL=null;
+function stkCargar(){
+  gs('GET_STOCK',{},r=>{ STOCK_ALL=r||[]; stkRender(); }, ()=>{ STOCK_ALL=[]; stkRender(); });
+}
+function stkRender(){
+  const cont=$('stkBody'); if(!cont) return;
+  const arr=STOCK_ALL||[];
+  if(!arr.length){ cont.innerHTML=''; return; }
+  const card=x=>{
+    const baja=/baja/i.test(x.estado);
+    const col=baja?'#94a3b8':'var(--pdark)';
+    const chip=baja?'<span class="pill" style="background:#f1f5f9;color:#94a3b8;">De baja</span>'
+                   :'<span class="pill" style="background:#dcfce7;color:#15803d;border-color:#bbf7d0;">'+_escSt(x.estado||'Operativo')+'</span>';
+    const ult=x.ultimo?`<div style="margin-top:7px;border-top:1px dashed var(--border);padding-top:5px;font-size:.68rem;color:var(--muted);">Último ajuste: ${_escSt(x.ultimo.fecha)} · ${x.ultimo.delta>0?'+':''}${x.ultimo.delta} · ${_escSt(x.ultimo.motivo)}${x.ultimo.firma?' ('+_escSt(x.ultimo.firma)+')':''}</div>`:'';
+    return `<div class="card" style="background:#fff;border:1px solid var(--border);border-radius:11px;padding:11px 13px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-weight:800;font-size:.88rem;color:var(--text);">${_escSt(x.nombre)}</span>
+        <span style="margin-left:auto;font-size:1.5rem;font-weight:900;color:${col};line-height:1;">${x.cantidad}</span>
+      </div>
+      <div style="font-size:.74rem;color:var(--muted);margin-top:3px;">${_escSt([x.categoria,x.marca,x.modelo].filter(Boolean).join(' · '))} ${chip}</div>
+      ${x.obs?`<div style="font-size:.72rem;color:var(--muted);margin-top:3px;font-style:italic;">${_escSt(x.obs)}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;">
+        <button class="dpset" onclick="stkAbrir('${_escSt(x.id)}',-1)">➖ Sacar</button>
+        <button class="dpset" onclick="stkAbrir('${_escSt(x.id)}',1)">➕ Reponer</button>
+        <button class="dpset" onclick="stkHistorial('${_escSt(x.id)}')">📜 Historial</button>
+      </div>${ult}</div>`;
+  };
+  cont.innerHTML=`<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#64748b;margin:16px 0 8px;">🧮 Stock sin numerar — se lleva por cantidad</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">${arr.map(card).join('')}</div>`;
+}
+function stkItem(id){ return (STOCK_ALL||[]).find(x=>x.id===id); }
+function stkAbrir(id,signo){
+  const x=stkItem(id); if(!x) return;
+  $('stkId').value=id; $('stkSigno').value=String(signo);
+  $('stkModTit').textContent=(signo<0?'➖ Sacar del stock — ':'➕ Reponer stock — ')+x.nombre;
+  $('stkCant').value='1'; $('stkDet').value='';
+  $('stkMotivo').value=signo<0?'Dado de baja / falla':'Compra / reposición';
+  stkResumen();
+  $('stkMod').classList.add('on'); $('ovl').classList.add('on');
+}
+function stkCerrar(){ $('stkMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function stkPaso(d){
+  const e=$('stkCant'); e.value=Math.max(1,(parseInt(e.value,10)||1)+d); stkResumen();
+}
+function stkResumen(){
+  const x=stkItem(v('stkId')); if(!x) return;
+  const n=Math.max(1,parseInt(v('stkCant'),10)||1), signo=parseInt(v('stkSigno'),10)||-1;
+  const fin=x.cantidad+signo*n;
+  $('stkResumen').innerHTML = fin<0
+    ? `<span style="color:var(--danger);">Solo hay ${x.cantidad}</span>`
+    : `quedarán <b>${fin}</b> de ${x.cantidad}`;
+}
+function stkAplicar(){
+  const x=stkItem(v('stkId')); if(!x) return;
+  const n=Math.max(1,parseInt(v('stkCant'),10)||1), signo=parseInt(v('stkSigno'),10)||-1;
+  if(x.cantidad+signo*n<0){ toast('No puedes sacar más de lo que hay ('+x.cantidad+').'); return; }
+  gs('AJUSTAR_STOCK',{id:x.id,delta:signo*n,motivo:v('stkMotivo'),detalle:v('stkDet'),fecha:v('gDate')||hoy()},
+    ()=>{ stkCerrar(); toast('✅ Stock actualizado'); stkCargar(); },
+    msg=>toast('No se pudo registrar: '+(msg||'')));
+}
+function stkHistorial(id){
+  const x=stkItem(id); if(!x) return;
+  gs('GET_MOVS_STOCK',{id:id,limite:30},r=>{
+    const ms=(r&&r.movs)||[];
+    uiConfirm({icono:'📜', titulo:x.nombre+' — ajustes', confirmar:'Cerrar',
+      detalle: ms.length
+        ? '<div style="max-height:50vh;overflow:auto;font-size:.8rem;">'+ms.map(m=>
+            `<div style="border-bottom:1px dashed var(--border);padding:6px 0;">
+              <b>${_escSt(m.fecha)}</b> · <span style="color:${m.delta>0?'#15803d':'#b91c1c'};font-weight:800;">${m.delta>0?'+':''}${m.delta}</span>
+              → quedan ${m.final} · ${_escSt(m.motivo)}${m.detalle?' — '+_escSt(m.detalle):''}
+              ${m.firma?`<span style="color:var(--muted);"> (${_escSt(m.firma)})</span>`:''}</div>`).join('')+'</div>'
+        : '<div style="font-size:.85rem;color:var(--muted);">Sin ajustes registrados todavía.</div>'});
+  }, msg=>toast('No se pudo abrir el historial: '+(msg||'')));
 }
 
 // Línea de mantención en la tarjeta: última + próxima, con alerta si vence pronto/vencida.

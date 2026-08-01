@@ -56,6 +56,8 @@ function api(accion, datos, token) {
       case 'GET_RUT_PREVIO':     return episodiosPorRut(datos.rut || '');
       case 'GET_PIVOT':          return datosPivot(datos.desde, datos.hasta);
       case 'GET_FALLAS_VM':      return obtenerFallasVM(datos.idVm || '', datos.limite || 30);
+      case 'GET_STOCK':          return obtenerStockEquipos();
+      case 'GET_MOVS_STOCK':     return obtenerMovimientosStock(datos.id || '', datos.limite || 20);
       case 'GET_DOCUMENTOS':     return obtenerDocumentos(!!datos.refrescar);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
@@ -105,6 +107,10 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => bajaVentilador(datos, ctx));
       case 'REGISTRAR_FALLA_VM':
         return _auditar(ctx, accion, () => registrarFallaVM(datos, ctx));
+      case 'GUARDAR_STOCK':
+        return _auditar(ctx, accion, () => guardarStockEquipo(datos, ctx));
+      case 'AJUSTAR_STOCK':
+        return _auditar(ctx, accion, () => ajustarStockEquipo(datos, ctx));
 
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);

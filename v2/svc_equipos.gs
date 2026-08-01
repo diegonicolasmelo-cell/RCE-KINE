@@ -407,3 +407,111 @@ function obtenerFallasVM(idVm, limite) {
     return ok({ fallas: filas, total: filas.length });
   } catch (e) { return err('obtenerFallasVM: ' + e.message, ERR.INTERNO, e); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STOCK SIN NUMERAR (ago-2026) — Aerogen Pro-X, capnógrafos.
+//  Equipos que la unidad NO puede seguir uno por uno (no tienen número), así
+//  que se llevan por CANTIDAD. Cada ajuste (sacar/reponer) deja su fila en
+//  MOVIMIENTOS_STOCK con motivo y firma: si mañana faltan dos, el libro dice
+//  por qué. No se asignan a camas (sería un dato imposible de verificar).
+// ═══════════════════════════════════════════════════════════════════════════
+function obtenerStockEquipos() {
+  try {
+    const filas = repoLeerTodos('STOCK_EQUIPOS')
+      .filter(function (x) { return esVerdadero(x.ACTIVO); })
+      .map(function (x) {
+        return { id: String(x.ID_STOCK || ''), nombre: String(x.NOMBRE || ''),
+          marca: String(x.MARCA || ''), modelo: String(x.MODELO || ''),
+          categoria: String(x.CATEGORIA || ''), cantidad: parseInt(x.CANTIDAD, 10) || 0,
+          estado: String(x.ESTADO || 'Operativo'), obs: String(x.OBS || '') };
+      });
+    filas.sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }); });
+    // Último ajuste por ítem (para mostrarlo en la tarjeta sin abrir el historial)
+    const ult = {};
+    repoLeerTodos('MOVIMIENTOS_STOCK').forEach(function (m) {
+      const k = String(m.ID_STOCK || '');
+      if (!ult[k] || String(m.TIMESTAMP) > String(ult[k].TIMESTAMP)) ult[k] = m;
+    });
+    filas.forEach(function (f) {
+      const m = ult[f.id];
+      f.ultimo = m ? { fecha: _statISO(m.FECHA), delta: parseInt(m.DELTA, 10) || 0,
+        motivo: String(m.MOTIVO || ''), firma: String(m.FIRMA || '') } : null;
+    });
+    return ok(filas);
+  } catch (e) { return err('obtenerStockEquipos: ' + e.message, ERR.INTERNO, e); }
+}
+
+/** Alta o edición de un tipo de equipo sin número (no toca la cantidad si no viene). */
+function guardarStockEquipo(d, ctx) {
+  return conLock(function () {
+    try {
+      if (!d.nombre) return err('El equipo necesita un nombre.', ERR.VALIDACION);
+      const esNuevo = !d.id;
+      const id = d.id || uid('STK');
+      const previo = esNuevo ? null : repoBuscarPorId('STOCK_EQUIPOS', 'ID_STOCK', id);
+      if (!esNuevo && !previo) return err('Equipo de stock no encontrado: ' + id, ERR.VALIDACION);
+      const cant = d.cantidad !== undefined && d.cantidad !== ''
+        ? Math.max(0, parseInt(d.cantidad, 10) || 0)
+        : (previo ? (parseInt(previo.CANTIDAD, 10) || 0) : 0);
+      const fila = {
+        ID_STOCK: id, NOMBRE: d.nombre,
+        MARCA: d.marca !== undefined ? d.marca : String((previo && previo.MARCA) || ''),
+        MODELO: d.modelo !== undefined ? d.modelo : String((previo && previo.MODELO) || ''),
+        CATEGORIA: d.categoria !== undefined ? d.categoria : String((previo && previo.CATEGORIA) || ''),
+        CANTIDAD: cant,
+        ESTADO: d.estado || (previo && previo.ESTADO) || 'Operativo',
+        ACTIVO: d.activo !== undefined ? !!d.activo : true,
+        OBS: d.obs !== undefined ? d.obs : String((previo && previo.OBS) || ''),
+        TIMESTAMP: ahoraTS(),
+      };
+      repoUpsert('STOCK_EQUIPOS', 'ID_STOCK', id, fila);
+      if (esNuevo && cant > 0) {
+        repoInsertar('MOVIMIENTOS_STOCK', {
+          ID_MOV: uid('MST'), ID_STOCK: id, NOMBRE: fila.NOMBRE, TIMESTAMP: ahoraTS(),
+          FECHA: _statISO(d.fecha) || hoyISO(), DELTA: cant, CANTIDAD_FINAL: cant,
+          MOTIVO: d.motivo || 'Carga inicial', DETALLE: d.detalle || '',
+          FIRMA: (ctx && ctx.firma) || '', AUTOR_EMAIL: (ctx && ctx.email) || '',
+        });
+      }
+      return ok({ id: id, accion: esNuevo ? 'alta' : 'editar', entidad: 'STOCK_EQUIPOS' });
+    } catch (e) { return err('guardarStockEquipo: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/** Saca (delta negativo) o repone (positivo) unidades, con motivo obligatorio. */
+function ajustarStockEquipo(d, ctx) {
+  return conLock(function () {
+    try {
+      const item = repoBuscarPorId('STOCK_EQUIPOS', 'ID_STOCK', String(d.id || ''));
+      if (!item) return err('Equipo de stock no encontrado.', ERR.VALIDACION);
+      const delta = parseInt(d.delta, 10) || 0;
+      if (!delta) return err('Indica cuántas unidades sacar o reponer.', ERR.VALIDACION);
+      if (!String(d.motivo || '').trim()) return err('El ajuste necesita un motivo.', ERR.VALIDACION);
+      const antes = parseInt(item.CANTIDAD, 10) || 0;
+      const final = antes + delta;
+      if (final < 0) return err('No puedes sacar ' + Math.abs(delta) + ': solo hay ' + antes + '.', ERR.VALIDACION);
+      repoActualizar('STOCK_EQUIPOS', 'ID_STOCK', item.ID_STOCK, { CANTIDAD: final, TIMESTAMP: ahoraTS() });
+      repoInsertar('MOVIMIENTOS_STOCK', {
+        ID_MOV: uid('MST'), ID_STOCK: item.ID_STOCK, NOMBRE: String(item.NOMBRE || ''), TIMESTAMP: ahoraTS(),
+        FECHA: _statISO(d.fecha) || hoyISO(), DELTA: delta, CANTIDAD_FINAL: final,
+        MOTIVO: String(d.motivo), DETALLE: String(d.detalle || ''),
+        FIRMA: (ctx && ctx.firma) || '', AUTOR_EMAIL: (ctx && ctx.email) || '',
+      });
+      return ok({ id: item.ID_STOCK, antes: antes, cantidad: final, entidad: 'STOCK_EQUIPOS' });
+    } catch (e) { return err('ajustarStockEquipo: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/** Historial de ajustes de un tipo de equipo (lo más reciente primero). */
+function obtenerMovimientosStock(idStock, limite) {
+  try {
+    const lim = Math.min(parseInt(limite, 10) || 20, 100);
+    const filas = repoLeerTodos('MOVIMIENTOS_STOCK', 'ID_STOCK', String(idStock || ''))
+      .sort(function (a, b) { return String(b.TIMESTAMP).localeCompare(String(a.TIMESTAMP)); })
+      .slice(0, lim)
+      .map(function (x) { return { fecha: _statISO(x.FECHA), delta: parseInt(x.DELTA, 10) || 0,
+        final: parseInt(x.CANTIDAD_FINAL, 10) || 0, motivo: String(x.MOTIVO || ''),
+        detalle: String(x.DETALLE || ''), firma: String(x.FIRMA || '') }; });
+    return ok({ movs: filas, total: filas.length });
+  } catch (e) { return err('obtenerMovimientosStock: ' + e.message, ERR.INTERNO, e); }
+}

@@ -344,6 +344,21 @@ const ESQUEMA = {
     ['ID_FALLA','texto'],['ID_VM','texto'],['NOMBRE_VM','texto'],['TIMESTAMP','ts'],['FECHA','fecha'],
     ['DESCRIPCION','texto'],['FOTO_URL','texto'],['FIRMA','texto'],['AUTOR_EMAIL','email'],
   ]},
+  // ── Equipos SIN número (ago-2026): Aerogen, capnógrafos. No se pueden
+  // seguir uno por uno (nadie distingue un Aerogen de otro), así que se
+  // llevan por CANTIDAD y cada ajuste queda trazado en MOVIMIENTOS_STOCK.
+  STOCK_EQUIPOS: { headerRows: 1, cols: [
+    ['ID_STOCK','texto'],['NOMBRE','texto'],['MARCA','texto'],['MODELO','texto'],
+    ['CATEGORIA','texto'],   // Nebulización | Capnografía | Otro
+    ['CANTIDAD','entero'],
+    ['ESTADO','texto'],      // Operativo | De baja | En mantención
+    ['ACTIVO','bool'],['OBS','texto'],['TIMESTAMP','ts'],
+  ]},
+  MOVIMIENTOS_STOCK: { headerRows: 1, cols: [
+    ['ID_MOV','texto'],['ID_STOCK','texto'],['NOMBRE','texto'],['TIMESTAMP','ts'],['FECHA','texto'],
+    ['DELTA','entero'],['CANTIDAD_FINAL','entero'],
+    ['MOTIVO','texto'],['DETALLE','texto'],['FIRMA','texto'],['AUTOR_EMAIL','email'],
+  ]},
   KINESIOLOGOS: { headerRows: 1, cols: [
     ['FIRMA','texto'],['NOMBRE','texto'],['EMAIL','email'],['APOYO','bool'],['ACTIVO','bool'],
     ['TRATAMIENTO','texto'],   // Klgo. | Klga. — para la firma del texto clínico (vacío = Klgo.)
