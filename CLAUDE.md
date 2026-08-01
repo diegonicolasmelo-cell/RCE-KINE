@@ -106,8 +106,11 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
-- **v5.15 · SERVI INFLA EL GUANTE EN LA CARGA (ago-2026, cohete
-  v5.15-guante).** Pose nueva de Diego (llegó como archivo al SEGUNDO
+- **v5.15/v5.16 · SERVI INFLA EL GUANTE EN LA CARGA (ago-2026, cohete
+  v5.16-guante — el v5.15 se re-emitió tras el reclamo «sin sombras y
+  recorte al mínimo»: la limpieza definitiva conserva SOLO la pieza
+  conectada más grande, que mata toda sombra suelta sin cajas de riesgo,
+  y la hebra oscura pegada a la rueda se borró por coordenadas).** Pose nueva de Diego (llegó como archivo al SEGUNDO
   intento) para la pantalla de carga, con texto «Cargando unidad…» (antes
   «Cargando la unidad...»). Limpieza con DOS trampas nuevas resueltas:
   el tope de tamaño en las bolsas encerradas (100–9000 px a escala 700)
@@ -211,7 +214,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.15-guante**
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.16-guante**
   (antes v5.14-ingreso, v5.13-movil, v5.12-fiesta, v5.11-asinc, v5.10-poses).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
