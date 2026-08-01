@@ -58,6 +58,11 @@ function guardarEvolucion(datos, ctx) {
       if (_prevR && _prevR.ok && _prevR.data) {
         const _prev = _prevR.data;
         Object.keys(_prev).forEach(function (k) { if (!(k in datos)) datos[k] = _prev[k]; });
+        // «Si se registró, quedó»: la marca de ingreso del turno JAMÁS se
+        // pierde al re-editar. El cliente reabre con el modo ingreso apagado
+        // y mandaba ES_INGRESO en falso — eso des-marcaba el ingreso ante el
+        // REM (ingresos del mes), la estadística y el hito del historial.
+        if (esVerdadero(_prev.ES_INGRESO)) datos.ES_INGRESO = true;
       }
 
       const rc = obtenerCama(idCama);

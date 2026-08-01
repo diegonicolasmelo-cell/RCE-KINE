@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.13-movil">
+<meta name="rce-version" content="5.14-ingreso">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3605,7 +3605,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.13-movil]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.14-ingreso]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -7577,7 +7577,12 @@ function updateVAUI() {
   // al marcarla se registran AMBOS eventos (ingreso + intubación) y el texto
   // narra la transición («ingresa… ventila espontáneo… ⇒ se realiza IOT…»).
   // Reintubación/PVE-extubación/decanulación siguen fuera del ingreso.
-  if(v('cIng')==='true'){ hide('dReintubSec'); hide('dExtSec'); hide('dDecanSec'); hide('dTqtSec'); }
+  /* v5.14 (pedido de Diego, lanzamiento ago-2026): el ingreso YA NO oculta
+     extubación/decanulación/TQT — un paciente que llega intubado puede
+     extubarse en el mismo formulario de ingreso. Las reglas por vía aérea
+     (arriba) deciden qué secciones aplican; la reintubación conserva su
+     propia condición (historial de VM del episodio). */
+  if(v('cIng')==='true'){ hide('dReintubSec'); }
   // Desvinculación de VM: solo con TQT (weaning de cánula) y en VM al inicio del
   // turno; el uso de válvula de fonación vive en Rehabilitación y basta con TQT.
   const _desvOK = (va==='TQT') && (v('fSop')==='VM' || !!$('cDesvinc')?.checked) && v('cIng')!=='true';

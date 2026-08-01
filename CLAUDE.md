@@ -106,6 +106,26 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.14 · EXTUBAR DESDE EL INGRESO + «SI SE REGISTRÓ, QUEDÓ» (ago-2026,
+  cohete v5.14-ingreso, DÍA DEL LANZAMIENTO).** Pedido de Diego: un paciente
+  que llega intubado debe poder extubarse en el MISMO formulario de ingreso
+  (reabrir para anotar «es roce que el equipo va a notar»).
+  1. El gate del ingreso ya NO oculta extubación/decanulación/TQT — deciden
+     las reglas por vía aérea, como en cualquier turno. La reintubación
+     conserva su condición propia (historial de VM del episodio).
+  2. BUG DE LANZAMIENTO corregido: al RE-EDITAR una evolución de ingreso, el
+     cliente (cIng=false) mandaba ES_INGRESO=false y el upsert lo pisaba ⇒ el
+     paciente dejaba de contar como ingreso en REM/estadística y perdía el
+     hito 🏥 del historial. Ahora `guardarEvolucion` preserva la marca desde
+     la fila previa (junto a la fusión de eventos ya existente). El
+     procedimiento INGRESO ya sobrevivía vía PROC_JSON→PROCS.
+  3. Guardias: bloque nuevo en `regresion_ui.js` (llega intubado ⇒ extubable
+     desde el ingreso; llega TQT ⇒ decanulable) y Parte 1b de
+     `via_aerea_previo.js` (re-edición conserva ES_INGRESO + extubación
+     agregada). CONTEXTO temporal decidido el 1-ago: día de ingreso = Día 0
+     (igual que el sistema del hospital, que cuenta bloques de 24 h) — regla
+     que sostiene la extubación «<24 h de VM» fuera de protocolo; NO cambiar.
+
 - **v5.13 · ENCABEZADO MÓVIL «BARRA MÍNIMA» + AVISO RETRO CORTO (ago-2026,
   cohete v5.13-movil).** Diego mandó captura: en el celular el encabezado caía
   en dos columnas chuecas con el ▶ huérfano en su propia fila. Le di 3
@@ -182,8 +202,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.13-movil**
-  (antes v5.12-fiesta, v5.11-asinc, v5.10-poses, v5.9-rapido, v5.8-retro).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.14-ingreso**
+  (antes v5.13-movil, v5.12-fiesta, v5.11-asinc, v5.10-poses, v5.9-rapido).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete

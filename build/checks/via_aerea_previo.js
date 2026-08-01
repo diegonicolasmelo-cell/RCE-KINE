@@ -80,6 +80,30 @@ eq('el texto del servidor narra previo → intubación → cómo queda',
    /requiere intubación orotraqueal a las 13:40 hrs/.test(evo.TEXTO_GENERADO) &&
    /Queda con TOT N° 8\.0 fijado a 22 cm, conectado a VM en modo ACVC/.test(evo.TEXTO_GENERADO), true);
 
+/* ── Parte 1b · «Si se registró, quedó» (v5.14): editar la evolución de
+      INGRESO jamás borra la marca ES_INGRESO — el cliente reabre con el modo
+      ingreso apagado y mandaba false, des-marcando el ingreso ante el REM,
+      la estadística y el hito del historial. ── */
+DB.CAMAS_ESTADO.push({ ID_CAMA: '7', OCUPADA: 'TRUE', PATIENT_ID: 'p7', NOMBRE: 'Llega Intubado',
+  FECHA_INGRESO: '2026-07-10', VIA_AEREA: 'TOT', SOPORTE: 'VM', MODO: 'ACVC' });
+let r7 = guardarEvolucion({ ID_CAMA: '7', TURNO_KEY: '2026-07-10-Dia', PLAN_FIRMA_KINE: 'DMV',
+  ES_INGRESO: true, PAC_NOMBRE: 'Llega Intubado', PAC_DIAGNOSTICO: 'PCR recuperado',
+  VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM', VENT_MODO: 'ACVC', PROC_JSON: '["INGRESO"]',
+}, { firma: 'DMV', email: 'x@y' });
+eq('ingreso del paciente que llega intubado se guarda', r7.ok, true);
+// Re-edición del MISMO turno (agrega la extubación; el cliente manda ES_INGRESO=false)
+r7 = guardarEvolucion({ ID_CAMA: '7', TURNO_KEY: '2026-07-10-Dia', PLAN_FIRMA_KINE: 'DMV',
+  ES_INGRESO: false, PAC_NOMBRE: 'Llega Intubado',
+  VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM', VENT_MODO: 'ACVC',
+  PVE_VAL: 'superada', EXT_OCURRIO: true, EXT_HORA: '19:10', EXT_TIPO: 'Programada',
+  PROC_JSON: '["INGRESO","EXTUBACIÓN"]',
+}, { firma: 'DMV', email: 'x@y' });
+eq('la re-edición del turno de ingreso guarda bien', r7.ok, true);
+const evo7 = DB.EVOLUCIONES.find(e => e.ID_CAMA === '7');
+eq('ES_INGRESO se CONSERVA aunque el cliente lo mande en falso', global.esVerdadero(evo7.ES_INGRESO), true);
+eq('y la extubación agregada quedó registrada', global.esVerdadero(evo7.EXT_OCURRIO) && evo7.EXT_HORA === '19:10', true);
+eq('el procedimiento INGRESO sigue en PROC_JSON', /INGRESO/.test(evo7.PROC_JSON), true);
+
 /* ── Parte 2 · UI ── */
 const { chromium } = require('playwright-core');
 (async () => {

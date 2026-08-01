@@ -155,14 +155,26 @@ const path = require('path');
     $('cIntubO').checked=false; hIntub();
     r.desmarca={ va:v('fVA'), procs:_autoProcs() };
     $('fSop').value='Ambiente'; cascadeSop();
-    // (iii) ya intubado al ingreso: sin sección de intubación
+    // (iii) ya intubado al ingreso: sin sección de intubación…
     $('fVA').value='TOT'; cascadeVA(); updateVAUI();
     r.llegaTubo=$('dIntubSec').classList.contains('hidden');
+    // (iv) …pero SÍ puede extubarse desde el MISMO formulario de ingreso
+    //      (v5.14, pedido de Diego) y también anotar TQT; reintubación sigue
+    //      fuera (exige historial de VM del episodio).
+    r.llegaTuboExt={ ext:!$('dExtSec').classList.contains('hidden'),
+      tqt:!$('dTqtSec').classList.contains('hidden'),
+      rein:$('dReintubSec').classList.contains('hidden') };
+    $('fVA').value='TQT'; cascadeVA(); updateVAUI();
+    r.llegaTqtDecan=!$('dDecanSec').classList.contains('hidden');
+    $('fVA').value='TOT'; cascadeVA(); updateVAUI();
     $('cIng').value='false';
     return r;
   });
   eq('ingreso natural: sección intubación DISPONIBLE', IN.natural.intub, true);
-  eq('ingreso: ext/reintub/decan/TQT siguen ocultas', IN.natural.ext && IN.natural.rein && IN.natural.decan && IN.natural.tqt, true);
+  eq('ingreso natural: ext/reintub/decan/TQT ocultas (no aplican a VA natural)', IN.natural.ext && IN.natural.rein && IN.natural.decan && IN.natural.tqt, true);
+  eq('llega intubado: puede EXTUBARSE desde el formulario de ingreso', IN.llegaTubo && IN.llegaTuboExt.ext, true);
+  eq('llega intubado: también puede anotar TQT; reintubación sigue oculta', IN.llegaTuboExt.tqt && IN.llegaTuboExt.rein, true);
+  eq('llega traqueostomizado: puede DECANULARSE desde el ingreso', IN.llegaTqtDecan, true);
   eq('marcar IOT NO pisa la terapia ventilatoria previa (Natural + O2)',
      IN.iot.va==='Natural' && IN.iot.sop==='Oxigenoterapia/OAF' && IN.iot.det, true);
   eq('…y el estado posterior del evento es TOT + VM', IN.iot.vaFin==='TOT' && IN.iot.sopFin==='VM', true);
