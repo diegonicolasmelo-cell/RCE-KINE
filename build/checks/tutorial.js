@@ -28,7 +28,7 @@ const { chromium } = require('playwright-core');
   }));
   eq('botón ❓ flotante visible', BASE.fab, true);
   eq('entrada «❓ Tutorial» en la hoja Más del móvil', BASE.enMas, true);
-  eq('recorrido «Lo esencial» de 11 pasos', BASE.pasos, 11);
+  eq('recorrido «Lo esencial» de 12 pasos', BASE.pasos, 12);
   eq('hay DOS recorridos', BASE.recorridos, 2);
   eq('el segundo recorrido tiene 8 pasos', BASE.pasosEvo, 8);
   eq('parte cerrado (sin globo ni velo)', BASE.cerrado, true);
@@ -45,7 +45,7 @@ const { chromium } = require('playwright-core');
   });
   eq('paso 1 abre globo y velo', P1.abierto, true);
   eq('paso 1 apunta a las pestañas', P1.titulo.indexOf('pestañas') > -1, true);
-  eq('contador «1 de 11»', P1.contador, '1 de 11');
+  eq('contador «1 de 12»', P1.contador, '1 de 12');
   eq('anillo-foco dibujado sobre la barra de pestañas', P1.anillo, true);
   eq('botón dice Siguiente', P1.botonSig.indexOf('Siguiente') > -1, true);
 
@@ -67,8 +67,16 @@ const { chromium } = require('playwright-core');
   eq('paso 8 presenta 📂 Documentos', P7.titulo.indexOf('Documentos') > -1, true);
   eq('el anillo encuadra el botón de Documentos', P7.sobreDocs, true);
 
+  const P10 = await p.evaluate(async () => {
+    tutSiguiente(); tutSiguiente(); // 9 (entrega) y 10 (archivados)
+    await new Promise(r => setTimeout(r, 220));
+    return { tab: ATAB, titulo: $('tutTit').textContent };
+  });
+  eq('paso 10 cambia a la pestaña ARCHIVADOS', P10.tab, 'A');
+  eq('y presenta a los pacientes egresados', P10.titulo.indexOf('archivados') > -1, true);
+
   const FIN = await p.evaluate(async () => {
-    tutSiguiente(); tutSiguiente(); tutSiguiente(); await new Promise(r => setTimeout(r, 260));
+    tutSiguiente(); tutSiguiente(); await new Promise(r => setTimeout(r, 260));
     const t = { ultimoBtn: $('tutSig').textContent, tabFinal: ATAB,
       ofreceSegundo: !$('tutMas').classList.contains('hidden') };
     tutSiguiente(); await new Promise(r => setTimeout(r, 60));
@@ -263,6 +271,24 @@ const { chromium } = require('playwright-core');
     return r;
   });
   eq('ancla inexistente: sin anillo y con velo oscuro (globo centrado)', !SIN.anillo && SIN.dim, true);
+
+  /* ── v5.10 · Servi cambia de pose según el recorrido: signo de pregunta en
+        el esencial y jeringa en el clínico (clase rec-evo del globo) ── */
+  const POSES = await p.evaluate(async () => {
+    const vis = s => { const e = document.querySelector(s); return !!(e && e.offsetParent !== null); };
+    const r = {};
+    tutAbrir(); await new Promise(res => setTimeout(res, 200));
+    r.esencialDuda = vis('#tutGlobo .sg-duda') && !vis('#tutGlobo .sg-alerta');
+    tutCerrar();
+    tutAbrir('evolucion'); await new Promise(res => setTimeout(res, 350));
+    r.evoAlerta = vis('#tutGlobo .sg-alerta') && !vis('#tutGlobo .sg-duda');
+    tutCerrar();
+    r.limpio = !$('tutGlobo').classList.contains('rec-evo');
+    return r;
+  });
+  eq('recorrido esencial: Servi con el signo de pregunta', POSES.esencialDuda, true);
+  eq('recorrido clínico: Servi con la jeringa', POSES.evoAlerta, true);
+  eq('al cerrar, el globo vuelve a la pose de duda', POSES.limpio, true);
 
   await b.close();
   if (errs.length) { console.log('❌ errores JS:', errs.join(' | ')); fails.push('errores JS'); }

@@ -105,9 +105,33 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.10 · SERVI LIMPIO + POSES POR CONTEXTO + PASO ARCHIVADOS (ago-2026,
+  cohete v5.10-poses).** Reclamo de Diego: «se le sigue viendo una zona blanca
+  debajo de los corrugados» y «que el brillo se elimine».
+  1. **Limpieza profunda** (`scratchpad/limpiar_servi2.py`): el fondo ahora
+     incluye el aura celeste pálida (se distingue de la sombra gris porque en
+     el aura azul > rojo) y se vacían las **bolsas blancas ENCERRADAS** (blanco
+     casi puro no conectado al borde, ≥60 px — el umbral respeta los reflejos
+     chicos del dibujo). Los globos de diálogo de las poses quedan con relleno
+     transparente (efecto aceptable). Cuantización 160 colores SIN dither
+     (el dither inflaba el PNG al triple): 4 poses ≈ 21 KB.
+  2. **Poses duda (?) y alerta (jeringa)** integradas al tutorial: el globo
+     lleva las DOS incrustadas (`.sg-duda` / `.sg-alerta`) y la clase
+     `rec-evo` de `#tutGlobo` (puesta en `tutAbrir`, limpiada en `tutCerrar`)
+     elige: **duda en el recorrido esencial, jeringa en el de evolución**
+     (también en el aviso «sin pacientes», que es del recorrido clínico).
+     Botón y carga siguen con ON/OFF de siempre.
+  3. **Paso 🗃️ Archivados** agregado al recorrido esencial (tab 'A', entre
+     entrega y ventiladores) ⇒ **12 pasos**. Guardia `checks/tutorial.js`
+     actualizada (12 pasos, paso 10 = Archivados, bloque POSES).
+  - El reporte de Diego «el tutorial no incluye ventiladores/evolución/
+    historial» era **index desactualizado en su deployment** (existen desde
+    v5.7): verificar el sello con Ctrl+F «5.10-poses» tras pegar y «Nueva
+    versión».
+
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.9-rapido**
-  (antes v5.8-retro, v5.7-tutorial2, v5.6-serviu, v5.5-lotevm).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.10-poses**
+  (antes v5.9-rapido, v5.8-retro, v5.7-tutorial2, v5.6-serviu, v5.5-lotevm).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
