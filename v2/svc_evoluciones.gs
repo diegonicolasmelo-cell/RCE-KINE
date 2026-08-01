@@ -474,8 +474,10 @@ function obtenerEvolucionesRecientes(idCama, limite) {
 function obtenerEvosDelDia(fecha) {
   try {
     const f = String(fecha || hoyISO()).slice(0, 10);
-    const evos = repoLeerTodos('EVOLUCIONES')
-      .filter(function (e) { return String(e.TURNO_KEY).indexOf(f) === 0; })
+    // Lectura acotada: solo las filas del día (antes bajaba la hoja completa,
+    // 379 columnas × todo el historial, en CADA arranque de la app).
+    const evos = repoLeerFiltrado('EVOLUCIONES', 'TURNO_KEY',
+      function (k) { return String(k).indexOf(f) === 0; })
       .map(function (e) {
         return {
           ID_CAMA: String(e.ID_CAMA), TURNO_KEY: String(e.TURNO_KEY),

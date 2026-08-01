@@ -23,7 +23,7 @@ const path = require('path');
       api(a, d) { window.__n.api++; window.__acciones.push(a);
         const R = { GET_CONFIG_UI:{NUM_CAMAS:18,BANNERS:{}}, GET_TODAS_CAMAS:CAMAS, GET_CATALOGO:['Weaning'],
           GET_EVOS_DEL_DIA:(d&&d.fecha==='2026-07-28')?EVOS:[], GET_ASIGNACION_TURNO:{team:[],assign:{}},
-          GET_BOOT:{ yo:{email:'',firma:'DEV',dev:true}, config:{NUM_CAMAS:18,BANNERS:{}},
+          GET_BOOT:{ ahora:'2026-07-28 10:00:00', yo:{email:'',firma:'DEV',dev:true}, config:{NUM_CAMAS:18,BANNERS:{}},
             fases:['Weaning'], camas:CAMAS, evos:[], asignacion:{team:[],assign:{}} } };
         setTimeout(() => ok({ ok: true, data: R[a] !== undefined ? R[a] : null }), 5); }
     }; } }; } } } };
@@ -79,6 +79,17 @@ const path = require('path');
   eq('ya en vista retrospectiva, la grilla queda quieta', retro2.grid - retro.grid, 0);
   eq('y no sigue llamando al servidor', retro2.api - retro.api, 0);
   eq('la página sigue respondiendo', await p.evaluate(() => 1 + 1), 2);
+  /* ── v5.21 · Arranque: sin llamadas de más y pintado instantáneo desde la
+        caché de sesión (recargar dentro del turno no espera al servidor) ── */
+  const BOOT = await p.evaluate(() => ({
+    sinFechaHoy: !(window.__acciones || []).includes('GET_FECHA_HOY'),
+    hayCache: !!sessionStorage.getItem('rce_boot_sesion'),
+    avisoOculto: $('bootAct') ? $('bootAct').classList.contains('hidden') : false,
+  }));
+  eq('el arranque ya no pide la fecha por separado (viaja en GET_BOOT)', BOOT.sinFechaHoy, true);
+  eq('el censo queda en la caché de SESIÓN (se borra al cerrar la pestaña)', BOOT.hayCache, true);
+  eq('con datos frescos no se muestra el aviso de «actualizando»', BOOT.avisoOculto, true);
+
   await b.close();
   fails.push(...fails0);
   if (errs.length) { console.log('❌ errores JS: ' + errs.slice(0, 3).join(' | ')); fails.push('js'); }

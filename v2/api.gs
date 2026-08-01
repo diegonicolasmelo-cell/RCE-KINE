@@ -160,6 +160,9 @@ function obtenerBoot(datos, ctx, auth) {
       camas: (rCamas && rCamas.ok) ? rCamas.data : [],
       evos: (rEvos && rEvos.ok) ? rEvos.data : [],
       asignacion: asignacion,
+      // Reloj del servidor: evita la llamada aparte GET_FECHA_HOY al arrancar
+      // (el cliente compara para avisar si el equipo tiene mal la hora).
+      ahora: ahoraTS(),
     });
   } catch (e) { return err('obtenerBoot: ' + e.message, ERR.INTERNO, e); }
 }

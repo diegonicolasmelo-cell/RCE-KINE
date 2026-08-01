@@ -34,6 +34,58 @@ function repoLeerTodos(hoja, filtroKey, filtroVal) {
   return out;
 }
 
+/**
+ * Lee SOLO las filas cuyo campo `colKey` cumple `pred`, sin traer la hoja
+ * entera (ago-2026). Primero baja una única columna (barato) para ubicar las
+ * filas y después lee el bloque que las contiene. En EVOLUCIONES (379
+ * columnas) esto evita descargar decenas de miles de celdas en cada arranque:
+ * el costo deja de crecer con el historial acumulado.
+ */
+function repoLeerFiltrado(hoja, colKey, pred) {
+  const h = _hoja(hoja);
+  const fi = FILA_DATOS[hoja], total = TOTAL_COLS[hoja], ult = h.getLastRow();
+  if (ult < fi) return [];
+  const nFilas = ult - fi + 1;
+  const col = COL[hoja][colKey];
+  if (!col) throw new Error('Columna desconocida: ' + colKey + ' en ' + hoja);
+  const clave = h.getRange(fi, col, nFilas, 1).getValues();
+  let desde = -1, hasta = -1;
+  const marcadas = [];
+  for (let i = 0; i < clave.length; i++) {
+    if (!pred(clave[i][0])) continue;
+    marcadas.push(i);
+    if (desde < 0) desde = i;
+    hasta = i;
+  }
+  if (!marcadas.length) return [];
+  // Las filas del día suelen ir juntas al final, pero pueden quedar dispersas
+  // (evoluciones de fechas pasadas). Se leen por TRAMOS contiguos, uniendo
+  // huecos pequeños: un solo getRange en el caso normal y unos pocos en el
+  // peor, en vez de bajar la hoja entera.
+  const HUECO = 25;
+  const tramos = [];
+  let ini = marcadas[0], fin = marcadas[0];
+  for (let k = 1; k < marcadas.length; k++) {
+    if (marcadas[k] - fin <= HUECO) { fin = marcadas[k]; continue; }
+    tramos.push([ini, fin]); ini = fin = marcadas[k];
+  }
+  tramos.push([ini, fin]);
+  // Cada getRange tiene su costo fijo: si quedaron demasiados tramos (filas
+  // muy dispersas), sale más barato una sola lectura del bloque completo.
+  if (tramos.length > 8) tramos.length = 0, tramos.push([desde, hasta]);
+  const porFila = {};
+  tramos.forEach(function (t) {
+    const vals = h.getRange(fi + t[0], 1, t[1] - t[0] + 1, total).getValues();
+    for (let i = 0; i < vals.length; i++) porFila[t[0] + i] = vals[i];
+  });
+  const out = [];
+  for (let k = 0; k < marcadas.length; k++) {
+    const fila = porFila[marcadas[k]];
+    if (fila) out.push(esquemaFilaAObjeto(hoja, fila));
+  }
+  return out;
+}
+
 /** Índice de fila (1-based) cuyo campo colKey == id, o -1. */
 function repoBuscarFila(hoja, colKey, id) {
   const col = COL[hoja][colKey];

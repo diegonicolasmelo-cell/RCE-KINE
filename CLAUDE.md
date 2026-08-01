@@ -106,6 +106,29 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.21 · VELOCIDAD: PINTADO INSTANTÁNEO + LECTURA ACOTADA (ago-2026,
+  cohete v5.21-veloz).** Pedido de Diego junto con volver la pantalla de
+  carga a la pose que saluda (la del guante tenía los dedos transparentes;
+  mandará un modelo nuevo). Medido con arnés propio (latencia simulada de
+  350 ms por viaje):
+  1. **Una llamada menos al arrancar**: `GET_BOOT` devuelve `ahora` (reloj del
+     servidor) y `chequearReloj(ts)` ya no gasta un viaje en GET_FECHA_HOY
+     (que se conserva para servidores antiguos).
+  2. **Pintado instantáneo** (`_bootPintarCache`/`_bootGuardar`): el censo de
+     la última carga se guarda en **sessionStorage** (NO localStorage: los
+     datos clínicos se van al cerrar la pestaña, nada queda en el equipo del
+     hospital) y se pinta antes de que responda el servidor, con el aviso
+     `#bootAct` «actualizando…». Recargar dentro del turno: **729 → 292 ms**.
+  3. **`repoLeerFiltrado`** (repo.gs): lee una sola columna para ubicar las
+     filas y luego SOLO los tramos contiguos que las contienen (une huecos
+     ≤25 filas; si quedan >8 tramos colapsa a un bloque). `obtenerEvosDelDia`
+     lo usa: antes bajaba EVOLUCIONES entera (379 columnas × todo el
+     historial) en CADA arranque — con 1.200 filas, **96% menos celdas**.
+  4. Medido: navegación entre pestañas 2-34 ms (ya cacheaba por pestaña) y el
+     panel de evolución usa UNA llamada combinada — ahí no había que tocar.
+  5. Guardia: bloque nuevo en `checks/rendimiento.js` (sin GET_FECHA_HOY,
+     caché de sesión presente, aviso oculto con datos frescos).
+
 - **v5.20 · LOS RELOJES DE DISPOSITIVOS USAN LA FECHA EFECTIVA (ago-2026,
   cohete v5.20-disp).** Reporte de Diego: «si es noche del 31 se anota con la
   fecha del día siguiente (01), por lo que tendrían 1 día y no 2». La fecha
