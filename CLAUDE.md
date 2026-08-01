@@ -106,6 +106,17 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **INVENTARIO REAL CARGABLE (ago-2026)**: `cargarInventarioInicial()` en
+  `mantenimiento.gs` traspasa el libro de VM en papel del 31-07: 18 VM en
+  cama (Avea 1/3, Vela 9, PB 1/2/980, Savina 1/2/4, Servo U, Mek
+  4/5/6/9/10/12/15/16), 5 de bodega con nombre PROVISORIO, V60 Nº1-4,
+  Airvo2 Nº1-4 (Nº1 en préstamo UTI; son los «CNAF Nº» del papel), Carina y
+  MR850. Idempotente por NOMBRE; usa guardarVentilador (deja ALTA EN
+  INVENTARIO en MOVIMIENTOS_VM). OJO: varias camas tienen VM+V60/Airvo a la
+  vez y el tablero muestra UN chip por cama (los demás quedan en tarjetas) —
+  se resolverá con el rediseño del tablero aprobado en mockup. Pendiente de
+  Diego: números reales de bodega, series, inventarios, cantidad de Aerogen.
+
 - **v5.15/v5.16 · SERVI INFLA EL GUANTE EN LA CARGA (ago-2026, cohete
   v5.16-guante — el v5.15 se re-emitió tras el reclamo «sin sombras y
   recorte al mínimo»: la limpieza definitiva conserva SOLO la pieza
