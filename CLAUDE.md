@@ -106,6 +106,15 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.15 · SERVI INFLA EL GUANTE EN LA CARGA (ago-2026, cohete
+  v5.15-guante).** Pose nueva de Diego (llegó como archivo al SEGUNDO
+  intento) para la pantalla de carga, con texto «Cargando unidad…» (antes
+  «Cargando la unidad...»). Limpieza con DOS trampas nuevas resueltas:
+  el tope de tamaño en las bolsas encerradas (100–9000 px a escala 700)
+  protege el GUANTE BLANCO gigante de ser perforado, y la sombra difusa
+  exigió tres pasadas (criterio gris neutro + retazos sueltos sat<25 +
+  franja inferior lum>172). El botón/globos siguen con sus poses.
+
 - **v5.14 · EXTUBAR DESDE EL INGRESO + «SI SE REGISTRÓ, QUEDÓ» (ago-2026,
   cohete v5.14-ingreso, DÍA DEL LANZAMIENTO).** Pedido de Diego: un paciente
   que llega intubado debe poder extubarse en el MISMO formulario de ingreso
@@ -202,8 +211,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.14-ingreso**
-  (antes v5.13-movil, v5.12-fiesta, v5.11-asinc, v5.10-poses, v5.9-rapido).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.15-guante**
+  (antes v5.14-ingreso, v5.13-movil, v5.12-fiesta, v5.11-asinc, v5.10-poses).
   Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
