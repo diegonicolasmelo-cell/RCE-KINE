@@ -227,7 +227,14 @@ const _COLS_EVOLUCIONES = [
   ['REINTUB_SPO2','decimal'],['REINTUB_PMAX','decimal'],['REINTUB_PPL','decimal'],['REINTUB_AUTOPEEP','decimal'],
   ['REINTUB_PS','decimal'],['REINTUB_PAFI','decimal'],
   ['TQT_VT','decimal'],['TQT_FR','decimal'],['TQT_PEEP','decimal'],['TQT_FIO2','decimal'],
-  ['TQT_SPO2','decimal'],['TQT_PMAX','decimal'],['TQT_PPL','decimal'],['TQT_PS','decimal'],['TQT_PAFI','decimal']
+  ['TQT_SPO2','decimal'],['TQT_PMAX','decimal'],['TQT_PPL','decimal'],['TQT_PS','decimal'],['TQT_PAFI','decimal'],
+  // v5.23 (ago-2026) — trazabilidad del motor de texto. De qué BLOQUE salió cada
+  // línea de TEXTO_AUTO (JSON: ["enc","fase","ppres",…], alineado 1:1 con las
+  // líneas). Es INVISIBLE para el equipo: no cambia el texto ni la pantalla.
+  // Insumo para medir qué bloques conserva cada colega al editar a mano y, más
+  // adelante, ofrecerle una evolución a su medida («Mi estilo»).
+  // SIEMPRE AL FINAL.
+  ['TEXTO_BLOQUES','texto']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -736,7 +743,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 379) errs.push('EVOLUCIONES != 379 columnas: ' + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 380) errs.push("EVOLUCIONES != 380 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

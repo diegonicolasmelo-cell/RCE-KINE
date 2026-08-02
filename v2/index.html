@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.22-cierre">
+<meta name="rce-version" content="5.23-bloques">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3664,7 +3664,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.22-cierre]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.23-bloques]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5470,6 +5470,10 @@ function guardar() {
   // para trazabilidad y refinamiento del generador. Sin edición manual, ambos
   // son idénticos (texto regenerado al momento de guardar).
   datos.TEXTO_AUTO = genTexto();
+  // Etiqueta de bloque por línea de TEXTO_AUTO (invisible para el equipo): deja
+  // registrado de qué bloque salió cada frase, para poder medir después qué
+  // conserva cada colega al editar a mano. genTexto() la acaba de refrescar.
+  datos.TEXTO_BLOQUES = JSON.stringify(window._TXB_ULT || []);
   const _rtV = ($('rtxt')?.value || '').trim();
   datos.TEXTO_MANUAL = !!(_textoManual && _rtV);
   datos.TEXTO_GENERADO = datos.TEXTO_MANUAL ? $('rtxt').value : datos.TEXTO_AUTO;
@@ -6906,19 +6910,41 @@ function _lcIni(x){
   if(t.length>1 && t===t.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(t)) return x;
   return x.charAt(0).toLowerCase()+x.slice(1);
 }
+// ── Etiqueta de bloque del motor de texto (v5.23) ────────────────────────────
+// Cada frase que empuja genTexto queda marcada con el bloque del que salió
+// (fase clínica, presiones y mecánica, KTR…). Es INVISIBLE: no cambia el texto,
+// ni la pantalla, ni el formulario — viaja aparte en TEXTO_BLOQUES, alineada
+// 1:1 con las líneas de TEXTO_AUTO. Sirve para poder medir, más adelante, qué
+// bloques conserva cada colega al editar a mano (insumo de «Mi estilo»).
+// Las frases NUNCA deben llevar salto de línea interno o se desalinearía la
+// etiqueta; lo asserta checks/texto_bloques.js.
+let _TXB='';
+function _B(k){ _TXB=k; }                    // marca el bloque de lo que sigue
+function _txbLista(){
+  const a=[]; a._b=[];
+  a.push=function(s){ a._b.push(_TXB); return Array.prototype.push.call(a,s); };
+  return a;
+}
+window._TXB_ULT=[];                          // etiquetas de la última generación
+
 function genTexto() {
   const gv=id=>{ const e=$(id); return e&&e.value?e.value:null; };
   const esIng=v('cIng')==='true';
   const turno=SHIFT==='Noche'?'TURNO NOCHE':'TURNO DÍA';
-  let L=[esIng?`KINESIOLOGÍA ${turno} — INGRESO`:`KINESIOLOGÍA ${turno}`];
+  const L=_txbLista();
+  _B('enc'); L.push(esIng?`KINESIOLOGÍA ${turno} — INGRESO`:`KINESIOLOGÍA ${turno}`);
   const dx=gv('fDx');
   // Aislamiento
+  _B('aisl');
   if($('cAisl')?.checked){ const mic=$('fAislMicroVal')?.value||''; L.push(`Paciente en aislamiento de contacto${mic?' por '+mic:''}.`); }
   // AET
+  _B('aet');
   if($('cAET')?.checked){ const niv=v('fAETnivel')||''; L.push(`Paciente con AET${niv?' Grupo '+niv:''}.`); }
   // Fase clínica (v2)
+  _B('fase');
   if(FASES_SEL&&FASES_SEL.size) L.push(`Fase clínica: ${Array.from(FASES_SEL).join(' + ')}.`);
   // UPOT / procuramiento
+  _B('upot');
   if($('cUPOT')?.checked){
     let _u='Paciente en seguimiento por UPOT, con sospecha de muerte cerebral';
     const _ap=v('fApneaTest');
@@ -6927,7 +6953,9 @@ function genTexto() {
     L.push(_u+'.');
   }
   // Reingreso
+  _B('reing');
   if($('cReing')?.checked) L.push('Corresponde a reingreso a UCI.');
+  _B('dia');
   if(esIng){
     L.push(`Paciente ingresa a UCI${dx?' con diagnóstico de '+dx:''}.`);
   } else {
@@ -6961,12 +6989,13 @@ function genTexto() {
   else if(camicu==='neg') s+=', CAM-ICU negativo';
   else if(camicu==='ne') s+=', CAM-ICU no evaluable';
   s+='.';
-  L.push(s);
+  _B('sed'); L.push(s);
   const hEst=gv('fHEst')||'Estable', dva=gv('fDVA')||'Sin requerimientos';
   let h=`HDN ${hEst==='Estable'?'estable':'inestable'}`;
   h+=dva==='Sin requerimientos'?', sin requerimientos de DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase().replace(/dosis (baja|media|alta)/,'dosis $1s');
-  if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt}`; } L.push(h+'.');
+  if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt}`; } _B('hdn'); L.push(h+'.');
   const _pic=gv('fPIC'), _ppc=gv('fPPC');
+  _B('neuro');
   if(_pic||_ppc) L.push(`Neuromonitoreo: ${[_pic?`PIC ${_pic} mmHg`:null,_ppc?`PPC ${_ppc} mmHg`:null].filter(Boolean).join(', ')}.`);
   const sop=gv('fSop')||'Ambiente', modo=gv('fModo')||'';
   const vt=parseFloat(gv('r_vt'))||0, fr=parseFloat(gv('r_fr'))||0;
@@ -6975,6 +7004,7 @@ function genTexto() {
   // Reintubación registrada SIN extubación este turno (VA venía no invasiva)
   // "Por…"/"Para…" ya traen su preposición; el resto se une con "por"
   const _conMotivo=m=>{ m=String(m||'').trim(); if(!m) return ''; const ml=m.toLowerCase(); return (ml.startsWith('por ')||ml.startsWith('para '))?' '+ml:' por '+ml; };
+  _B('vaCambio');
   if(va==='TOT' && $('cCambioTOT')?.checked){
     const _cm=v('fCambioTOTmot')==='Otro'?(v('fCambioTOTdet')||''):v('fCambioTOTmot');
     L.push(`Se realiza cambio de TOT${_conMotivo(_cm)}.`);
@@ -6983,12 +7013,14 @@ function genTexto() {
     const _cq=v('fCambioTQTmot')==='Otro'?(v('fCambioTQTdet')||''):v('fCambioTQTmot');
     L.push(`Se realiza cambio de cánula de TQT${_conMotivo(_cq)}.`);
   }
+  _B('va');
   if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()} (día ${dVA})${$('cCambioTOT')?.checked?' (tubo nuevo)':''}.`); }
   else if(va==='TQT'&&!$('cTqtO')?.checked) L.push(`VAA mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''} (día ${dVA})${$('cCambioTQT')?.checked?' (cánula nueva)':''}.`);
   // TQT instalada ESTE turno (regla de Diego): puede venir de TOT o Natural —
   // lo que llevó a traqueostomizar son los DÍAS DE VM, no el estado del
   // momento. El texto justifica con los días, narra el procedimiento y el
   // «Queda con» describe la ventilación (el previo se guarda, no se narra).
+  _B('tqt');
   if($('cTqtO')?.checked){
     const _tec=(gv('fTqtTec')||'').toLowerCase();
     const _hq=gv('fTqtHora'), _det=(gv('fTqtDet')||'').trim();
@@ -7025,7 +7057,7 @@ function genTexto() {
     // PVE no realizada (solo en modo controlado): cierra la frase, después de
     // la interacción P-VM — antes quedaba incrustada al medio y se leía mal.
     if(!_espontaneo && _pveNoCond) vs+=`, sin realización de PVE en este turno${_pveNoRaz?' por '+_lcIni(_pveNoRaz):''}`;
-    L.push(vs+'.');
+    _B('sop'); L.push(vs+'.');
     // Parámetros en 3 líneas: volúmenes/frecuencia · presiones/mecánica · oxigenación
     const _l1=_pjoin([
       vt?`Vti ${vt} ml${_mlkg?` (${_mlkg} ml/kg PI)`:''}`:null,
@@ -7048,51 +7080,53 @@ function genTexto() {
       _numTxt('l_cesr')?`Cesr ${_numTxt('l_cesr')} ml/cmH2O`:null,
     ]);
     const _l3=_pjoin([fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null, _np('r_pafi')?`PaFiO2 ${_np('r_pafi')}`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null]);
-    if(_l1) L.push(`Parámetros: ${_l1}.`);
-    if(_l2) L.push(`${_l2}.`);
-    if(_l3) L.push(`${_l3}.`);
+    _B('pvol');  if(_l1) L.push(`Parámetros: ${_l1}.`);
+    _B('ppres'); if(_l2) L.push(`${_l2}.`);
+    _B('poxi');  if(_l3) L.push(`${_l3}.`);
   } else if(sop==='VNI'){
     const ip=_np('r_ipap'), ipmax=_np('r_ipapmax'), ep=_np('r_epap');
     let vs=`En VNI, modo ${modo||'?'}${_humid?', más humidificación activa':''}`;
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
-    L.push(vs+'.');
+    _B('sop'); L.push(vs+'.');
     const _psVni=(ip>0&&ep>0)?Math.round((ip-ep)*10)/10:0;
     const _pb=_pjoin([ip?`IPAP ${ip}${ipmax?'–'+ipmax:''} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null, _np('r_pafi')?`PaFiO2 ${_np('r_pafi')}`:null]);
-    if(_pb) L.push(`Parámetros: ${_pb}.`);
+    _B('param'); if(_pb) L.push(`Parámetros: ${_pb}.`);
   } else if(sop==='CNAF'){
     const fl=_np('r_flujo');
-    L.push(`Ventila espontáneo con apoyo de CNAF${_humid?' con humidificación activa':''}.`);
+    _B('sop'); L.push(`Ventila espontáneo con apoyo de CNAF${_humid?' con humidificación activa':''}.`);
     const _pb=_pjoin([fl?`Flujo ${fl} L/min`:null, fio2?`FiO2 ${fio2}%`:null, spo2?`SpO2 ${spo2}%`:null, _numTxt('l_irox')?`índice ROX ${_numTxt('l_irox')}`:null]);
-    if(_pb) L.push(`Parámetros: ${_pb}.`);
+    _B('param'); if(_pb) L.push(`Parámetros: ${_pb}.`);
   } else if(sop==='Oxigenoterapia/OAF'){
     if(['CNAF','OAF/CTAF'].includes(modo)){
       const _fl=_np('r_flujo'), _tmp=gv('r_temp');
-      L.push(`Ventila espontáneo con apoyo de ${modo}${_humid?' con humidificación activa':''}.`);
+      _B('sop'); L.push(`Ventila espontáneo con apoyo de ${modo}${_humid?' con humidificación activa':''}.`);
       const _pb=_pjoin([_fl?`Flujo ${_fl} L/min`:null, _tmp?`T° ${_tmp}°C`:null, fio2?`FiO2 ${fio2}%`:null, fr?`FR ${fr} rpm`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null, _numTxt('l_irox')?`índice ROX ${_numTxt('l_irox')}`:null]);
-      if(_pb) L.push(`Parámetros: ${_pb}.`);
+      _B('param'); if(_pb) L.push(`Parámetros: ${_pb}.`);
     } else if(modo==='Válvula de fonación'){
       const _lit=_np('r_litros');
-      L.push(`Ventila espontáneo con válvula de fonación${_lit||fio2?' y O2 adicional':''}.`);
+      _B('sop'); L.push(`Ventila espontáneo con válvula de fonación${_lit||fio2?' y O2 adicional':''}.`);
       const _pb=_pjoin([_lit?`${_lit} Lpm`:null, fio2?`FiO2 ${fio2}%`:null, fr?`FR ${fr} rpm`:null, spo2?`SpO2 ${spo2}%`:null]);
-      if(_pb) L.push(`Oxigenoterapia: ${_pb}.`);
+      _B('param'); if(_pb) L.push(`Oxigenoterapia: ${_pb}.`);
     } else {
       const _lit=_np('r_litros'), _dev=modo&&modo!=='Sin soporte'?modo:'';
-      L.push(`Ventila espontáneo con FiO2 adicional${_dev?` por ${_dev}`:''}.`);
+      _B('sop'); L.push(`Ventila espontáneo con FiO2 adicional${_dev?` por ${_dev}`:''}.`);
       const _pb=_pjoin([_lit?`${_lit} Lpm`:null, fio2?`FiO2 ${fio2}%`:null, fr?`FR ${fr} rpm`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null]);
-      if(_pb) L.push(`Oxigenoterapia: ${_pb}.`);
+      _B('param'); if(_pb) L.push(`Oxigenoterapia: ${_pb}.`);
     }
   } else {
     const _umaAmb=_numTxt('l_uma')||_mon('l_uma');
     const _parts=[fr?`FR ${fr} rpm`:null, _umaAmb?`UMA ${_umaAmb}`:null, spo2?`SpO2 ${spo2}%`:null].filter(Boolean);
     const _vf = modo==='Válvula de fonación' ? ' con válvula de fonación' : '';
-    L.push(`Ventila espontáneo${_vf} sin O2 adicional${_parts.length?', '+_parts.join(', '):''}.`);
+    _B('sop'); L.push(`Ventila espontáneo${_vf} sin O2 adicional${_parts.length?', '+_parts.join(', '):''}.`);
   }
+  _B('reintub');
   if(_extReintub() && !_extOcurrio()){
     const _rh=v('fReintubHoraT'), _rz=_extReintubRaz();
     L.push(`Paciente requirió reintubación${_rh?' a las '+_rh+' hrs':''}${_rz?' por '+_rz.toLowerCase():''}${_reintubEquipoTxt()}.`);
   }
   // Intubación NUEVA este turno (paciente sin historial de VM). En un INGRESO
   // narra la transición: llegó ventilando con el soporte previo y se intubó.
+  _B('intub');
   if($('cIntubO')?.checked){
     const _ih=v('fIntubHora'), _idt=v('fIntubDet'), _isp=v('fIntubSopPrevio')||_sopPrevioAuto();
     const _pv=_isp?`Previo en ${_lcIni(_isp)}, p`:'P';
@@ -7106,6 +7140,7 @@ function genTexto() {
     L.push(_q+(_pp?`. ${_pp}`:'')+'.');
   }
   // Traqueostomía: cómo QUEDA tras el procedimiento (el previo queda arriba)
+  _B('tqt');
   if($('cTqtO')?.checked){
     const _ts=v('poTqtSop'), _tm=v('poTqtModo'), _tp=_paramsTxt('pt_','ptl_');
     if(_ts||_tm){
@@ -7115,6 +7150,7 @@ function genTexto() {
     }
   }
   // Desvinculación de VM (TQT): ventana del turno con su delta de horas
+  _B('desvinc');
   if(v('fVA')==='TQT' && $('cDesvinc')?.checked){
     const _dh=v('fDesvincHora'), _da=v('fDesvincA'), _dm=v('fDesvincMotivo');
     let _t=`Se desvincula de ventilación mecánica${_dh?' a las '+_dh+' hrs':''}${_da?`, quedando con ${_da}`:''}`;
@@ -7129,6 +7165,7 @@ function genTexto() {
     if(v('fDesvincDet')) L.push(v('fDesvincDet')+'.');
   }
   // Válvula de fonación: uso del turno (Rehabilitación)
+  _B('vfon');
   if(v('fVA')==='TQT' && $('cVfon')?.checked){
     const _vm=v('fVfonMin'), _vt=v('fVfonTol');
     let _t=`Se instala válvula de fonación${_vm?` por ${_vm} minutos`:''}`;
@@ -7137,6 +7174,7 @@ function genTexto() {
     L.push(_t+'.');
   }
   // Gases arteriales del turno (bloque opcional)
+  _B('gsa');
   if($('cGSA')?.checked){
     const _g=(id,lbl,u)=>{ const x=v(id); return x?`${lbl} ${String(x).replace('.',',')}${u||''}`:null; };
     const _gp=[_g('fGsaPh','pH'),_g('fGsaPao2','PaO2',' mmHg'),_g('fGsaPaco2','PaCO2',' mmHg'),
@@ -7148,6 +7186,7 @@ function genTexto() {
     }
   }
   // Decanulación (evento único del turno, VA=TQT)
+  _B('decan');
   if(v('fVA')==='TQT' && $('cDecanOcurrio')?.checked){
     const _dt=document.querySelector('input[name="decanTipo"]:checked')?.value||'';
     const _dtTxt=_dt==='protocolo'?' según protocolo':_dt==='sin_protocolo'?' sin protocolo':_dt==='accidental'?' accidental':'';
@@ -7160,6 +7199,7 @@ function genTexto() {
     L.push(_t+'.');
   }
   const mp=v('fMPVal'), ru=v('fRuidosVal'), ruLoc=v('fRuidosLoc');
+  _B('ausc');
   if(mp||ru){
     let e='Auscultación';
     if(mp){
@@ -7177,6 +7217,7 @@ function genTexto() {
   }
   // ── KTR (primero) ──
   (function(){
+    _B('ktr');
     if($('cSinKTR')?.checked){ L.push('Sin requerimientos de KTR en turno.'); return; }
     const perm=[];
     if($('cSET')?.checked) perm.push('SET');
@@ -7196,6 +7237,7 @@ function genTexto() {
     const secrTxt=secrParts.length?`, secreciones ${secrParts.join(' ')}`:'';
     // Cultivo nuevo en este turno (se integra al final de la línea KTR)
     const _res=(_tiState['fCultTags']||[]).filter(Boolean);
+    _B('cult');
     if(_res.length) L.push('Resultado de cultivo: '+_res.join(', ')+'.');
     let _cultSuffix='';
     if($('cMue')?.checked){
@@ -7208,9 +7250,11 @@ function genTexto() {
     let ktrLine='';
     if(perm.length) ktrLine=`KTR + ${perm.join(' + ')}${secrTxt}`;
     else if(secrTxt) ktrLine=`Secreciones ${secrParts.join(' ')}`;
+    _B('ktr');
     if(ktrLine){ L.push(ktrLine+(_cultSuffix||'')+'.'); }
     else if(_cultSuffix){ L.push(_cultSuffix.replace(/^: /,'')+'.'); }
     // Inhaloterapia
+    _B('inhalo');
     if($('cInhalo')?.checked) L.push('Se administra inhaloterapia según indicación médica (SOS).');
     // Posicionamiento
     const posArr=[];
@@ -7220,6 +7264,7 @@ function genTexto() {
     if($('cProno')?.checked){ const h=v('fPronoHora'); posArr.push(h?`Prono desde las ${h} hrs`:'Prono'); }
     if($('cSupino')?.checked){ const h=v('fSupinoHora'); posArr.push(h?`Se supina a las ${h} hrs`:'Supino'); }
     const lib=v('fPosLibre'); if(lib) posArr.push(lib);
+    _B('pos');
     if(posArr.length) L.push(`Posicionamiento: ${posArr.join(', ')}.`);
   })();
   // ── KTM (después de KTR) ──
@@ -7231,7 +7276,8 @@ function genTexto() {
     let k=_kcant>1?`Se realizan ${_kcant} sesiones de KTM${_nivTxt}`:`Se realiza KTM${_nivTxt}`;
     if(_asis) k+=` con asistencia ${_asis.toLowerCase()}`;
     if(_t) k+=` (${_t} min)`;
-    L.push(k+'.');
+    _B('ktm'); L.push(k+'.');
+    _B('imt');
     if($('cIMT')?.checked){
       const _f=v('fIMTfreq'), _i=v('fIMTint'), _it=v('fIMTt'), _d=v('fIMTdes');
       let imt='Se realiza IMT';
@@ -7241,6 +7287,7 @@ function genTexto() {
       if(_d) imt+=`, descanso ${_d} seg entre series`;
       L.push(imt+'.');
     }
+    _B('ems');
     if($('cEMS')?.checked){
       let ems='Se realiza electroestimulación neuromuscular (EMS)';
       if(v('fEMSgrupo')) ems+=` en ${v('fEMSgrupo').toLowerCase()}`;
@@ -7249,20 +7296,22 @@ function genTexto() {
       if(v('fEMSt')) ems+=` por ${v('fEMSt')} min`;
       L.push(ems+'.');
     }
+    _B('ktm');
     if($('cKTMalert')?.checked){
       L.push(`KTM suspendida durante la sesión por señal de alerta ${(gv('fKTMalertCat')||'').toLowerCase()}: ${gv('fKTMalertRaz')||'sin especificar'}.`);
     }
   } else if(kS){
     const _kraz=gv('fKTMraz')||gv('fKTMman')||'';
-    L.push(`KTM contraindicada${_kraz?' por '+_kraz:'.'}.`.replace('..','.'));
+    _B('ktm'); L.push(`KTM contraindicada${_kraz?' por '+_kraz:'.'}.`.replace('..','.'));
   } else if(kN){
     const _nr=gv('fKTMnoRaz')||'', _nc=gv('fKTMnoCom')||'';
     let _ktmn='KTM no realizada';
     // Las razones son etiquetas del catálogo; en el texto se narran natural
     if(_nr) _ktmn+=` por ${({'Motivo ingreso':'ingreso reciente','Sin equipo o tiempo disponible':'falta de equipo o tiempo disponible'})[_nr]||_nr.toLowerCase()}`;
     if(_nc) _ktmn+=`. ${_nc}`;
-    L.push(_ktmn+'.');
+    _B('ktm'); L.push(_ktmn+'.');
   }
+  _B('edu');
   if($('cEduReal')?.checked) L.push('Se realiza educación a usuario/cuidador/familia.');
   // Evaluaciones funcionales del turno — se narran si tienen valor registrado
   {
@@ -7285,6 +7334,7 @@ function genTexto() {
     if(gv('fExcD')||gv('fExcI')) ev.push(`Excursión diafragmática D/I ${gv('fExcD')||'—'}/${gv('fExcI')||'—'} cm`);
     if(gv('fDeglucion')) ev.push(`Deglución: ${gv('fDeglucion')}`);
     { const _ims=$('fIMS')?.value; if(_ims!==''&&_ims!=null) ev.push(`IMS ${_ims}/10`); }
+    _B('evalf');
     if(ev.length) L.push('Evaluaciones funcionales: ' + ev.join('; ') + '.');
   }
   // Extubación + PVE — texto clínico unificado
@@ -7319,18 +7369,19 @@ function genTexto() {
       const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
       const _mstr=_mots.length?_mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]:'aspectos clínicos';
       if(_res==='superada'){
-        L.push(`Se realiza PVE con resultado superado, progresando a extubación${_horaTxt}.`);
+        _B('pve'); L.push(`Se realiza PVE con resultado superado, progresando a extubación${_horaTxt}.`);
         if(_reint){
           let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} por lo que se reintuba${v('fReintubHoraN1')?' a las '+v('fReintubHoraN1')+' hrs':''}${_reintubEquipoTxt()}.`;
-          L.push(_rt);
-        } else if(_peModo){ L.push(_peTxt()); }
+          _B('reintub'); L.push(_rt);
+        } else if(_peModo){ _B('ext'); L.push(_peTxt()); }
       } else if(_res==='frustra'){
-        L.push(`Se realiza PVE según protocolo con resultado fallido por ${_mstr}. Paciente continúa con soporte ventilatorio.`);
+        _B('pve'); L.push(`Se realiza PVE según protocolo con resultado fallido por ${_mstr}. Paciente continúa con soporte ventilatorio.`);
       } else {
-        L.push('Se realiza PVE según protocolo.');
+        _B('pve'); L.push('Se realiza PVE según protocolo.');
       }
     } else {
       // Rama NO PVE
+      _B('ext');
       if(_et==='autoextubacion'){
         let _etxt=`Paciente se autoextuba${_horaTxt}`;
         if(_mot) _etxt+=`. ${_mot}`;
@@ -7346,21 +7397,29 @@ function genTexto() {
       }
       if(_reint){
         let _rt=`Evolucionando con ${(_rraz||'falla respiratoria').toLowerCase()} por lo que se reintuba${v('fReintubHoraN2')?' a las '+v('fReintubHoraN2')+' hrs':''}${_reintubEquipoTxt()}.`;
-        L.push(_rt);
-      } else if(_peModo){ L.push(_peTxt()); }
+        _B('reintub'); L.push(_rt);
+      } else if(_peModo){ _B('ext'); L.push(_peTxt()); }
     }
+    _B('ext');
     if(_post) L.push(`Evaluación post-extubación: ${_post}.`);
   })();
   // Procedimientos: no se imprimen como lista cruda — van narrados en el texto (BD: PROC_JSON).
 
   // PVE sin_condiciones espontáneo → justo antes del Plan
+  _B('pve');
   if(_pveNoCond && _espontaneo){
     L.push(`*No se realiza PVE en este turno${_pveNoRaz?' por '+_lcIni(_pveNoRaz):''}${_pveNoDet?' ('+_pveNoDet+')':''}. Mantiene soporte ventilatorio.`);
   }
   const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
-  if(pl) L.push(`Plan: ${pl}`); if(no) L.push(`Nota: ${no}`);
-  if(fi) L.push(window.Turnos && Turnos.firmaTexto ? Turnos.firmaTexto(fi) : `Kinesiólogo: ${fi}`);
-  return L.filter(Boolean).join('\n');
+  _B('plan');  if(pl) L.push(`Plan: ${pl}`);
+  _B('nota');  if(no) L.push(`Nota: ${no}`);
+  _B('firma'); if(fi) L.push(window.Turnos && Turnos.firmaTexto ? Turnos.firmaTexto(fi) : `Kinesiólogo: ${fi}`);
+  // Las frases vacías se descartan; la etiqueta se filtra EN PARALELO para que
+  // TEXTO_BLOQUES quede alineado 1:1 con las líneas de TEXTO_AUTO.
+  const _sal=[], _blq=[];
+  L.forEach((s,i)=>{ if(s){ _sal.push(s); _blq.push(L._b[i]||''); } });
+  window._TXB_ULT=_blq;
+  return _sal.join('\n');
 }
 
 //  REM

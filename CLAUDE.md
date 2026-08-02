@@ -25,7 +25,7 @@ navegador del hospital o de su casa.
   viajan fusionados como `servicios.gs` (`build/fusionar_servicios.js`).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 379 columnas** y `testEsquema`
+- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 380 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -78,6 +78,7 @@ Chromium con puente simulado; acepta ruta del cohete como argumento),
 `eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`,
 `reset.js`, `mover_camas.js`, `vm_lote.js`, `retro_camas.js`,
 `rendimiento.js` (bucles de repintado con la unidad llena),
+`texto_bloques.js` (la etiqueta de bloque no altera el texto visible),
 `asincronia.js` (Ppl/AutoPEEP inhabilitados con paciente asincrónico).
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
@@ -105,6 +106,63 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   truncaba — usar `_hjNum`. Guardia: `checks/hoja_uci.js`.
 
 ## Estado y pendientes (julio 2026)
+
+- **v5.23 · ETIQUETA DE BLOQUE DEL MOTOR DE TEXTO (ago-2026, cohete
+  v5.23-bloques).** Primer paso de «Mi estilo» (evolución personalizada).
+  Diego anticipa pedir un análisis de las evoluciones ORIGINALES vs EDITADAS
+  por colega para reconocer patrones de escritura («Mauricio saca la fase
+  clínica y I:E/Pmax/Pmedia y se queda con PD, Ppl, Cest, FiO2; Eduardo casi
+  no deja nada del texto generado»). Para que ese análisis sea EXACTO y no
+  aproximado, hay que saber de qué bloque salió cada frase — y eso **solo
+  sirve hacia adelante**, por eso se implementó ya.
+  1. Columna nueva `TEXTO_BLOQUES` en EVOLUCIONES (⇒ **380 columnas**, EXIGE
+     `crearORepararEstructura()`; el assert de `testEsquema` pasó a 380).
+     Guarda `["enc","fase","ppres",…]` alineado **1:1 con las líneas** de
+     TEXTO_AUTO. En el servidor se descarta si el re-guardado no trae
+     TEXTO_AUTO (etiquetas de otra generación quedarían desalineadas).
+  2. Cliente: `_B(k)` marca el bloque en curso y `_txbLista()` devuelve un
+     arreglo cuyo `push` registra la etiqueta; al cerrar `genTexto` se filtran
+     frases y etiquetas EN PARALELO y quedan en `window._TXB_ULT`. Bloques:
+     enc · aisl · aet · fase · upot · reing · dia · sed · hdn · neuro ·
+     vaCambio · va · tqt · sop · pvol · ppres · poxi · param · reintub ·
+     intub · desvinc · vfon · gsa · decan · ausc · ktr · cult · inhalo · pos ·
+     ktm · imt · ems · edu · evalf · pve · ext · plan · nota · firma.
+     Los parámetros van en TRES bloques (volúmenes · presiones y mecánica ·
+     oxigenación) justamente para poder apagar «presiones» sin perder la
+     oxigenación; `param` es la línea única de VNI/CNAF/oxigenoterapia.
+  3. **INVISIBLE por decisión de Diego** («no quiero generar más roce si ellos
+     no lo ven»): el texto en pantalla no cambia ni una coma — verificado
+     comparando `genTexto()` del index anterior vs el nuevo en 6 escenarios
+     (VM controlada, PSV+PVE+extubación, VNI, CNAF, TQT con desvinculación,
+     ambiente): **texto idéntico**.
+  4. Guardia `checks/texto_bloques.js` (28 asserts): alineación, cero
+     etiquetas vacías, cero saltos de línea internos (romperían la
+     alineación), cada etiqueta corresponde a su contenido, plan≠nota y los
+     tres bloques de parámetros separados.
+  - **«MI ESTILO» — DISEÑO CERRADO CON DIEGO, NO PROGRAMADO** (mockup en
+    `scratchpad/mockup_mi_estilo.html`). Cuando haya material (≈20-30
+    evoluciones editadas por persona):
+    · El clínico ve **UN BOTÓN y nada más** — jamás la pantalla de casillas
+      (Diego: «no quiero complicarle más la visual»). La pantalla de casillas
+      + la tabla de retención viven en **Estadísticas**, solo coordinación.
+    · El botón **aparece cuando ya aprendió**, no antes. Aviso corto la
+      primera vez; si el resultado no gusta, el colega edita a mano y el
+      botón vuelve a aprender.
+    · **El texto NACE COMPLETO** y él aprieta el botón para dejar lo que
+      habitualmente deja; después edita el resto. Nunca nace podado (si el
+      motor deja de narrar algo sin que lo note, se pierde registro).
+    · Regla de Diego: «todo se puede modificar mientras guarde información
+      fidedigna» ⇒ **fijos** solo los bloques que narran algo OCURRIDO ese
+      turno (intub, reintub, tqt, ext, decan, desvinc, pve, RCP) + enc y
+      firma. Todo lo demás, opcional.
+    · Apagar un bloque **saca la frase, no borra el dato**: REM, indicadores,
+      Hoja UCI y entrega leen columnas, no la narración.
+    · **El análisis va CON NOMBRE**, el equipo está en conocimiento y su fin
+      es personalizar, no evaluar (dicho por Diego, ago-2026). Corre DENTRO
+      de la app: ningún texto clínico sale a APIs externas (Ley 19.628).
+  - PENDIENTES de decidir antes de programarlo: si la coordinación fija un
+    mínimo común que nadie pueda apagar, y si cada uno edita solo el suyo o
+    Diego puede editar el de todos.
 
 - **v5.22 · CIERRE DE AÑO: TRASLADO AL HISTÓRICO + AVISO (ago-2026, cohete
   v5.22-cierre).** Sheets admite 10 M de celdas y EVOLUCIONES tiene 379
@@ -352,7 +410,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
   (ahí se afina el registro con uso real). Deployment: cohete **v5.16-guante**
   (antes v5.14-ingreso, v5.13-movil, v5.12-fiesta, v5.11-asinc, v5.10-poses).
-  Exige `crearORepararEstructura()` (EVOLUCIONES 379 columnas + CAMAS_ESTADO
+  Exige `crearORepararEstructura()` (EVOLUCIONES 380 columnas + CAMAS_ESTADO
   con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
   v4.7-docs).**

@@ -46,6 +46,10 @@ function guardarEvolucion(datos, ctx) {
       // ANTES de la fusión con la fila previa, igual que el texto oficial.
       const _textoAutoCli = String(datos.TEXTO_AUTO || '').trim();
       const _textoManualCli = esVerdadero(datos.TEXTO_MANUAL);
+      // Etiqueta de bloque por línea de TEXTO_AUTO (v5.23). Viaja solo desde el
+      // navegador: si la evolución entra por API sin cliente, queda vacía y el
+      // análisis simplemente no cuenta ese turno.
+      const _textoBloquesCli = String(datos.TEXTO_BLOQUES || '').trim();
 
       // ── Fusión con lo ya guardado ──
       // Los eventos únicos (PVE/extubación, decanulación, intubación,
@@ -170,6 +174,10 @@ function guardarEvolucion(datos, ctx) {
       // hubo edición manual, el oficial ES la salida del motor.
       datos.TEXTO_AUTO = _textoAutoCli || (_textoManualCli ? '' : datos.TEXTO_GENERADO);
       datos.TEXTO_MANUAL = _textoManualCli;
+      // Las etiquetas solo valen si acompañan al TEXTO_AUTO que las produjo: si
+      // este re-guardado no las trae, se descartan las de la fila previa (que
+      // corresponden a otra generación) en vez de dejarlas desalineadas.
+      datos.TEXTO_BLOQUES = _textoAutoCli ? _textoBloquesCli : '';
 
       // Procedimientos del turno
       let procs = [];

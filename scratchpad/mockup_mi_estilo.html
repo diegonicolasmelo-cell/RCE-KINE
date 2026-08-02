@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RCE-KINE · Mockup — ✍️ Mi estilo</title>
+<style>
+:root{--tinta:#1f2328;--suave:#5b6470;--linea:#dfe3e8;--fondo:#f4f6f8;--azul:#2f6fbf;--verde:#1f7a4d;--ambar:#b45309}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1140px;margin:0 auto;padding:24px 16px 70px}
+h1{font-size:1.45rem;margin:0 0 3px}
+h2{font-size:1.02rem;margin:32px 0 10px;padding-top:15px;border-top:2px solid var(--linea)}
+p.sub{color:var(--suave);margin:0 0 16px}
+.card{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:15px;margin:13px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.nota{background:#fff8e1;border:1px solid #f0d78a;border-radius:8px;padding:10px 13px;font-size:.9rem;margin:12px 0}
+.ok{background:#eaf6ef;border:1px solid #b9dfc9;border-radius:8px;padding:10px 13px;font-size:.9rem;margin:12px 0}
+
+/* barra del panel de evolución */
+.barra{display:flex;flex-wrap:wrap;gap:7px;align-items:center;background:#111827;color:#fff;border-radius:9px;padding:9px 12px;font-size:.86rem}
+.barra .bt{background:#374151;border-radius:7px;padding:5px 11px}
+.barra .bt.on{background:var(--azul);font-weight:700}
+.barra .sp{flex:1}
+
+/* layout principal */
+.dos{display:grid;grid-template-columns:400px 1fr;gap:18px;align-items:start}
+@media(max-width:880px){.dos{grid-template-columns:1fr}}
+
+.panel{background:#fff;border:1px solid var(--linea);border-radius:10px;overflow:hidden;position:sticky;top:12px}
+.panel .ph{background:#111827;color:#fff;padding:10px 14px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.panel .pb{padding:12px 14px;max-height:70vh;overflow:auto}
+.grupo{font-size:.72rem;text-transform:uppercase;letter-spacing:.7px;color:var(--suave);font-weight:800;margin:14px 0 6px;padding-bottom:3px;border-bottom:1px solid var(--linea)}
+.grupo:first-child{margin-top:0}
+.fila{display:flex;align-items:center;gap:9px;padding:5px 2px;font-size:.9rem}
+.fila label{flex:1;cursor:pointer}
+.fila.fijo{color:var(--suave)}
+.fila.fijo label{cursor:default}
+.cand{font-size:.9rem}
+.lock{font-size:.78rem;color:var(--suave)}
+.preset{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.preset button{border:1px solid var(--linea);background:#fff;border-radius:999px;padding:5px 11px;font-size:.8rem;cursor:pointer}
+.preset button:hover{background:#eef4fb;border-color:#cfe0f2}
+
+/* vista previa */
+.prev{background:#fff;border:1px solid var(--linea);border-radius:10px;overflow:hidden}
+.prev .ph{background:#f7f8fa;border-bottom:1px solid var(--linea);padding:9px 14px;font-weight:700;font-size:.9rem;display:flex;justify-content:space-between}
+.prev .pb{padding:15px 17px;font-size:.94rem;line-height:1.75;white-space:pre-wrap}
+.prev .pb .off{color:#c4c9d0;text-decoration:line-through}
+.cnt{font-weight:400;color:var(--suave);font-size:.82rem}
+
+/* franja de sugerencia */
+.sug{display:flex;gap:11px;align-items:flex-start;background:#fff7ed;border:1px solid #fcd9a8;border-radius:9px;padding:11px 13px;margin:12px 0;font-size:.9rem}
+.sug .em{font-size:1.3rem;line-height:1}
+.sug .bts{margin-top:7px;display:flex;gap:7px}
+.sug .bts button{border:1px solid var(--linea);background:#fff;border-radius:7px;padding:4px 11px;font-size:.82rem;cursor:pointer}
+.sug .bts button.p{background:var(--ambar);color:#fff;border-color:var(--ambar);font-weight:700}
+
+table.an{width:100%;border-collapse:collapse;font-size:.87rem;margin-top:8px}
+table.an th,table.an td{border:1px solid var(--linea);padding:6px 9px;text-align:left}
+table.an th{background:#eef1f5;font-size:.8rem;text-transform:uppercase;letter-spacing:.3px}
+table.an td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.bar{display:inline-block;height:8px;background:var(--ambar);border-radius:3px;vertical-align:middle;margin-right:6px}
+</style></head><body>
+<div class="wrap">
+
+<h1>✍️ Mi estilo — evolución personalizada</h1>
+<p class="sub">Mockup para revisión de Diego · ago-2026 · <b>nada programado todavía</b> ·
+las casillas funcionan: prueba apagar bloques y mira el texto de la derecha.</p>
+
+<h2>1 · Dónde vive</h2>
+<div class="card">
+<p style="margin-top:0">En la barra del panel de evolución, junto al texto generado. También en la
+hoja «Más» del celular.</p>
+<div class="barra">
+  <span>📝 Texto de la evolución</span>
+  <span class="sp"></span>
+  <span class="bt">🔄 Regenerar</span>
+  <span class="bt">📋 Copiar</span>
+  <span class="bt on">✍️ Mi estilo</span>
+</div>
+<p style="font-size:.88rem;color:var(--suave);margin-bottom:0">Se configura una vez y queda
+guardada <b>por kinesiólogo/a</b> (en la hoja KINESIOLOGOS), no por paciente ni por turno.
+El que firma es el que manda: si Mauricio evoluciona la cama 7, sale con el estilo de Mauricio.</p>
+</div>
+
+<h2>2 · La pantalla</h2>
+<div class="dos">
+
+  <div class="panel">
+    <div class="ph"><span>✍️ Mi estilo — Mauricio Rojas</span><span>✕</span></div>
+    <div class="pb">
+      <div class="preset">
+        <button onclick="preset('todo')">Todo (motor completo)</button>
+        <button onclick="preset('poda')">Ejemplo: poda de parámetros</button>
+        <button onclick="preset('escueto')">Ejemplo: escueto</button>
+      </div>
+      <div id="lista"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="prev">
+      <div class="ph"><span>Vista previa — así saldría tu evolución</span>
+        <span class="cnt" id="cnt"></span></div>
+      <div class="pb" id="txt"></div>
+    </div>
+    <div class="ok" style="margin-top:12px">
+      <b>Importante:</b> apagar un bloque <b>saca la frase del texto, no borra el dato</b>.
+      La Pmedia, el I:E y la fase clínica siguen guardándose, siguen apareciendo en la Hoja UCI,
+      en la entrega de turno y en los indicadores. Solo dejan de narrarse.
+    </div>
+    <div class="nota" style="margin-top:10px">
+      🔒 = <b>bloque fijo</b>. Son los que narran <b>algo que ocurrió ese turno</b> (intubación,
+      reintubación, TQT, extubación, decanulación, desvinculación, PVE, RCP) más la firma.
+      Apagarlos haría que el texto dejara de ser fidedigno — tu propia regla. Además solo
+      aparecen el día que pasan, así que en un turno normal no estorban.
+    </div>
+  </div>
+</div>
+
+<h2>3 · Y cuando llegue el análisis, la pantalla viene rellenada sola</h2>
+<p class="sub">Esto es lo que se agregaría <b>después</b>, con unas semanas de evoluciones
+editadas encima. La pantalla es la misma; arriba aparecen las sugerencias.</p>
+
+<div class="sug">
+  <div class="em">💡</div>
+  <div>
+    <b>Borras «Fase clínica» en 47 de tus últimos 50 turnos.</b>
+    <div style="color:var(--suave)">¿La apago de tu texto? El dato se sigue guardando igual.</div>
+    <div class="bts"><button class="p" onclick="apagar('fase')">Apagar</button>
+      <button>Dejarla</button><button>No preguntar más</button></div>
+  </div>
+</div>
+<div class="sug">
+  <div class="em">💡</div>
+  <div>
+    <b>De «Presiones y mecánica» borras siempre I:E, Pmax y Pmedia, pero conservas Ppl, DP y Cest.</b>
+    <div style="color:var(--suave)">Puedo dejarte el bloque con solo esos tres.</div>
+    <div class="bts"><button class="p">Ajustar el bloque</button><button>Dejarlo completo</button></div>
+  </div>
+</div>
+
+<div class="card">
+<b>Así se vería el análisis (pantalla nueva en Estadísticas, solo para coordinación)</b>
+<table class="an">
+  <tr><th>Bloque</th><th>Turnos con el bloque</th><th>Lo conservó</th><th>Retención</th></tr>
+  <tr><td>Fase clínica</td><td class="n">50</td><td class="n">3</td>
+      <td><span class="bar" style="width:8px"></span>6%</td></tr>
+  <tr><td>Presiones y mecánica</td><td class="n">50</td><td class="n">50</td>
+      <td><span class="bar" style="width:120px;background:#1f7a4d"></span>100%</td></tr>
+  <tr><td>— dentro: I:E</td><td class="n">50</td><td class="n">3</td>
+      <td><span class="bar" style="width:8px"></span>6%</td></tr>
+  <tr><td>— dentro: Pmedia</td><td class="n">50</td><td class="n">4</td>
+      <td><span class="bar" style="width:10px"></span>8%</td></tr>
+  <tr><td>— dentro: Ppl</td><td class="n">50</td><td class="n">49</td>
+      <td><span class="bar" style="width:118px;background:#1f7a4d"></span>98%</td></tr>
+  <tr><td>Oxigenación</td><td class="n">50</td><td class="n">50</td>
+      <td><span class="bar" style="width:120px;background:#1f7a4d"></span>100%</td></tr>
+  <tr><td>Neuromonitoreo</td><td class="n">12</td><td class="n">11</td>
+      <td><span class="bar" style="width:110px;background:#1f7a4d"></span>92%</td></tr>
+</table>
+<p style="font-size:.86rem;color:var(--suave);margin-bottom:0">Con nombre, como acordaste, y con
+la leyenda a la vista: <i>«esta pantalla existe para personalizar el motor de texto y ahorrarles
+trabajo; el equipo está en conocimiento»</i>. Todo el cálculo corre dentro de la app: ningún
+texto clínico sale a ninguna parte.</p>
+</div>
+
+<h2>4 · Lo que hay que decidir para programarlo</h2>
+<div class="card">
+<ol style="margin:0;padding-left:20px">
+<li>¿La lista de bloques de abajo está completa o falta/sobra algo?</li>
+<li>¿Los fijos son esos, o quieres además dejar fijo algo más (por ejemplo la vía aérea)?</li>
+<li>¿Puede la coordinación fijar un <b>mínimo común</b> que nadie pueda apagar, o cada uno decide libre?</li>
+<li>¿El estilo lo edita cada uno el suyo, o tú puedes editar el de todos?</li>
+</ol>
+</div>
+
+<script>
+const BLOQUES=[
+ {g:'Encabezado y contexto'},
+ {id:'enc',   l:'Encabezado del turno', fijo:1, t:'KINESIOLOGÍA TURNO DÍA'},
+ {id:'aisl',  l:'Aislamiento', t:'Paciente en aislamiento de contacto por Klebsiella BLEE.'},
+ {id:'aet',   l:'AET / adecuación del esfuerzo', t:'Paciente con AET Grupo B.'},
+ {id:'fase',  l:'Fase clínica', t:'Fase clínica: Weaning + Rehabilitación precoz.'},
+ {id:'reing', l:'Reingreso', off:1, t:'Corresponde a reingreso a UCI.'},
+ {id:'dia',   l:'Día de estadía y diagnóstico', t:'Paciente en 4to día de estadía en UCI en contexto de estatus epiléptico.'},
+
+ {g:'Monitorización'},
+ {id:'sed',   l:'Sedación · GCS · cooperación · CAM-ICU', t:'Sedación escalón 2 para meta SAS 3. GCS 10T (O:3, V:1T, M:6), coopera parcialmente, CAM-ICU negativo.'},
+ {id:'hdn',   l:'Hemodinamia y DVA', t:'HDN estable, sin requerimientos de DVA.'},
+ {id:'neuro', l:'Neuromonitoreo (PIC / PPC)', t:'Neuromonitoreo: PIC 12 mmHg, PPC 68 mmHg.'},
+
+ {g:'Terapia ventilatoria'},
+ {id:'va',    l:'Vía aérea artificial (tubo, fijación, día)', t:'VAA mediante TOT N° 8.0 fijado a 22 cm a nivel de comisura labial (día 3).'},
+ {id:'sop',   l:'Soporte y modo ventilatorio', t:'Conectado a VM en modo PSV, adaptado, con buena interacción paciente-ventilador.'},
+ {id:'p1',    l:'Parámetros · volúmenes y frecuencia', t:'Parámetros: Vt 470 ml (6,9 ml/kg), FR 14, volumen minuto 6,6 L/min.'},
+ {id:'p2',    l:'Parámetros · presiones y mecánica', t:'Pmax 22 cmH2O, Ppl 18 cmH2O, Pmedia 9 cmH2O, DP 13 cmH2O, Cest 36 ml/cmH2O, AutoPEEP 0, I:E 1:2,4.'},
+ {id:'p3',    l:'Parámetros · oxigenación', t:'PEEP 5 cmH2O, FiO2 35%, SpO2 98%, PaFi 274.'},
+ {id:'gsa',   l:'Gases arteriales (GSA)', t:'GSA de las 08:00 hrs: pH 7,38, PaO2 96, PaCO2 41, HCO3 24, EB -1, lactato 1,2. Sin trastorno acido-base.'},
+
+ {g:'Kinesiterapia respiratoria'},
+ {id:'ktr',   l:'KTR, técnicas y secreciones', t:'Se realiza KTR con tecnicas de higiene bronquial y aspiracion de secreciones mucosas en moderada cantidad.'},
+ {id:'cult',  l:'Resultado de cultivo', t:'Resultado de cultivo: aspirado traqueal negativo.'},
+ {id:'inh',   l:'Inhaloterapia', t:'Se administra inhaloterapia segun indicacion medica (SOS).'},
+ {id:'pos',   l:'Posicionamiento', t:'Posicionamiento: sedente al borde de la cama, 30 minutos.'},
+
+ {g:'Rehabilitación'},
+ {id:'ktm',   l:'KTM / movilización', t:'Se realiza KTM nivel 4 con tolerancia adecuada.'},
+ {id:'imt',   l:'IMT', t:'Se realiza IMT, 3 series de 10 repeticiones al 40% de la PImax.'},
+ {id:'ems',   l:'EMS', t:'Se realiza EMS en cuadriceps bilateral, 20 minutos.'},
+ {id:'edu',   l:'Educación a usuario / familia', t:'Se realiza educacion a usuario/cuidador/familia.'},
+ {id:'eval',  l:'Evaluaciones funcionales (MRC, FSS, dinamometría)', t:'Evaluaciones funcionales: MRC-ss 46/60; FSS-ICU 24/35; dinamometria 18 kg.'},
+ {id:'vfon',  l:'Válvula de fonación', off:1, t:'Uso de valvula de fonacion por 120 minutos, con buena tolerancia.'},
+
+ {g:'Eventos del turno'},
+ {id:'ev',    l:'PVE, extubación y eventos de vía aérea', fijo:1, t:'Se realiza PVE segun protocolo con resultado superado, progresando a extubacion a las 11:20 hrs. Queda en naricera a 3 L/min. Evaluacion post-extubacion: sin estridor, tos efectiva.'},
+
+ {g:'Cierre'},
+ {id:'plan',  l:'Plan', t:'Plan: continuar KTR segun necesidad, progresar sedestacion.'},
+ {id:'nota',  l:'Nota del turno', off:1, t:'Nota: familia solicita entrevista con equipo.'},
+ {id:'firma', l:'Firma', fijo:1, t:'Klgo. Mauricio Rojas'},
+];
+const EST={};
+BLOQUES.forEach(b=>{ if(b.id) EST[b.id] = b.off ? false : true; });
+
+function pintarLista(){
+  let h='';
+  BLOQUES.forEach(b=>{
+    if(b.g){ h+=`<div class="grupo">${b.g}</div>`; return; }
+    if(b.fijo){
+      h+=`<div class="fila fijo"><span class="cand">🔒</span>`+
+         `<label>${b.l}</label><span class="lock">siempre</span></div>`;
+    } else {
+      h+=`<div class="fila"><input type="checkbox" id="c_${b.id}" ${EST[b.id]?'checked':''} `+
+         `onchange="EST['${b.id}']=this.checked;pintarTexto()"><label for="c_${b.id}">${b.l}</label></div>`;
+    }
+  });
+  document.getElementById('lista').innerHTML=h;
+}
+function pintarTexto(){
+  let h='', n=0, tot=0;
+  BLOQUES.forEach(b=>{
+    if(!b.id) return; tot++;
+    const on = b.fijo || EST[b.id];
+    if(on){ n++; h+=b.t+'\n'; }
+    else h+=`<span class="off">${b.t}</span>\n`;
+  });
+  document.getElementById('txt').innerHTML=h;
+  document.getElementById('cnt').textContent=`${n} de ${tot} bloques`;
+}
+function apagar(id){ EST[id]=false; pintarLista(); pintarTexto(); }
+function preset(k){
+  BLOQUES.forEach(b=>{ if(!b.id||b.fijo) return;
+    if(k==='todo') EST[b.id]=!b.off;
+    if(k==='poda') EST[b.id]=!['fase','p2','neuro','reing','vfon','nota'].includes(b.id);
+    if(k==='escueto') EST[b.id]=['va','sop','p3','ktr','ktm','plan'].includes(b.id);
+  });
+  pintarLista(); pintarTexto();
+}
+pintarLista(); pintarTexto();
+</script>
+</div></body></html>
