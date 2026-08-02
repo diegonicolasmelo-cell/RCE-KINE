@@ -160,9 +160,13 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     · **El análisis va CON NOMBRE**, el equipo está en conocimiento y su fin
       es personalizar, no evaluar (dicho por Diego, ago-2026). Corre DENTRO
       de la app: ningún texto clínico sale a APIs externas (Ley 19.628).
-  - PENDIENTES de decidir antes de programarlo: si la coordinación fija un
-    mínimo común que nadie pueda apagar, y si cada uno edita solo el suyo o
-    Diego puede editar el de todos.
+    · **Cada uno edita SOLO SU estilo** (Diego, ago-2026: «la evolución es
+      personal»). Ni la coordinación edita el de otro; desde Estadísticas se
+      VE la tabla de retención de cada uno, pero no se toca su configuración.
+  - PENDIENTE menor: si la coordinación fija además un mínimo común que nadie
+    pueda apagar. Por la regla anterior el default es **NO** — el único piso
+    son los bloques fijos de eventos ocurridos; confirmar con Diego al
+    programarlo.
 
 - **v5.22 · CIERRE DE AÑO: TRASLADO AL HISTÓRICO + AVISO (ago-2026, cohete
   v5.22-cierre).** Sheets admite 10 M de celdas y EVOLUCIONES tiene 379
