@@ -107,6 +107,33 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.27 · HOJAS DEL DÍA + HOJA PVE (ago-2026, cohete v5.27-hojas).** Mata
+  el ritual diario: imprimir la «Lista de hospitalizados», RECORTAR la franja
+  de cada paciente con tijera, pegarla en la hoja de registro y fechar a mano.
+  1. **🖨️ Hojas del día** (barra del Registro Diario, junto a 📂): UNA hoja
+     por paciente hospitalizado (2 carillas), con la franja prellenada —
+     cama · edad · nombre · RUT · días (bloques 24 h) · fecha. «Lo rescatable
+     de la lista» según Diego: entre cama y f. ingreso SIN ficha clínica.
+     La grilla EN BLANCO (se llena a mano en el turno). Sin selector de camas
+     (V1 imprime todas las ocupadas).
+  2. La hoja es el **docx oficial V0.2 con protocolo weaning** convertido con
+     python-docx (fusiones exactas) a plantillas `RK_PG1/RK_PG2` en el index;
+     la tabla «Evaluaciones adicionales» venía ANIDADA y se rescató del
+     conversor regex; la fila DAUCI perdía su etiqueta al resolver fusiones
+     (reparada a mano). LibreOffice NO pudo abrir el docx («source file could
+     not be loaded») — la referencia visual fue la FOTO del papel real.
+  3. **🖨️ Hoja PVE** en el historial (junto a RHB y APK): fiel al PDF
+     oficial (PVE 1/2/3 inicio·30 min, DOS reevaluaciones post extubación,
+     logos extraídos del PDF). Prellena nombre y SOLO el RUT si existe
+     (decisión de Diego).
+  4. **`_imprimirVertical(clase)`**: estas hojas son verticales y el @page
+     global es apaisado ⇒ se inyecta `#pgVertical` (@page portrait, gana por
+     cascada) y se retira tras afterprint. Patrón reutilizable.
+  5. Guardia `checks/hojas_dia.js` (25 asserts). Deuda anotada: los tics de
+     los turnos en la carilla 1 quedan como zonas fusionadas (el equipo
+     escribe la hora a mano igual que en el papel); Diego afinará contra la
+     versión de imprenta con el piloto.
+
 - **v5.26 · HOJA APK FIEL AL FORMATO OFICIAL (ago-2026, cohete v5.26-apk).**
   Diego mandó el PDF real (APK 1.2, 2017): «Pauta de cotejo preparación del
   paciente para ejecución de KTR» — «debe ser fiel reflejo».
