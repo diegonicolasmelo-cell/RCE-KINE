@@ -54,3 +54,52 @@ function _asigPodarViejas(props) {
   keys.sort(); // orden lexicográfico = cronológico (yyyy-MM-dd)
   keys.slice(0, keys.length - _ASIG_MAX_KEYS).forEach(function (k) { props.deleteProperty(k); });
 }
+
+/* ── Sugerencias del equipo (ago-2026, centro de ayuda de la mascota) ──
+   Cada colega deja su idea con su firma; la coordinación las revisa en
+   Estadísticas y les pone estado. El colega ve las SUYAS con su estado
+   (sabe que no cayeron al vacío); el listado completo es de coordinación. */
+
+function guardarSugerencia(datos, ctx) {
+  try {
+    const texto = String((datos && datos.texto) || '').trim().slice(0, 1000);
+    const firma = String((datos && datos.firma) || '').trim();
+    if (!texto) return err('Escribe la sugerencia antes de enviar.', ERR.VALIDACION);
+    if (!firma) return err('Falta la firma de quien sugiere.', ERR.VALIDACION);
+    const fila = {
+      ID: 'SUG_' + Date.now(),
+      TIMESTAMP: ahoraTS(),
+      FIRMA: firma,
+      AUTOR_EMAIL: (ctx && ctx.email) || '',
+      TEXTO: texto,
+      ESTADO: 'nueva',
+      NOTA_COORD: '',
+    };
+    repoInsertar('SUGERENCIAS', fila);
+    return ok({ id: fila.ID, entidad: 'SUGERENCIAS', accion: 'sugerencia' });
+  } catch (e) { return err('guardarSugerencia: ' + e.message, ERR.INTERNO, e); }
+}
+
+function obtenerSugerencias() {
+  try {
+    const rows = repoLeerTodos('SUGERENCIAS').map(function (s) {
+      return { id: s.ID, ts: s.TIMESTAMP, firma: s.FIRMA, texto: s.TEXTO,
+               estado: s.ESTADO || 'nueva', nota: s.NOTA_COORD || '' };
+    });
+    rows.reverse();   // las más nuevas primero
+    return ok(rows);
+  } catch (e) { return err('obtenerSugerencias: ' + e.message, ERR.INTERNO, e); }
+}
+
+const _SUG_ESTADOS = ['nueva', 'considerada', 'aplicada', 'descartada'];
+function setSugerenciaEstado(datos) {
+  try {
+    const id = String((datos && datos.id) || '');
+    const estado = String((datos && datos.estado) || '');
+    if (_SUG_ESTADOS.indexOf(estado) === -1) return err('Estado desconocido: ' + estado, ERR.VALIDACION);
+    const cambios = { ESTADO: estado };
+    if (datos && datos.nota !== undefined) cambios.NOTA_COORD = String(datos.nota).slice(0, 500);
+    if (!repoActualizar('SUGERENCIAS', 'ID', id, cambios)) return err('Sugerencia no encontrada.', ERR.VALIDACION);
+    return ok({ id: id, estado: estado, entidad: 'SUGERENCIAS', accion: 'estado sugerencia' });
+  } catch (e) { return err('setSugerenciaEstado: ' + e.message, ERR.INTERNO, e); }
+}

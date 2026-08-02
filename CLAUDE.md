@@ -25,7 +25,7 @@ navegador del hospital o de su casa.
   viajan fusionados como `servicios.gs` (`build/fusionar_servicios.js`).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 19 hojas; **EVOLUCIONES tiene 380 columnas** y `testEsquema`
+- `esquema.gs`: 20 hojas; **EVOLUCIONES tiene 380 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -106,6 +106,34 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   truncaba — usar `_hjNum`. Guardia: `checks/hoja_uci.js`.
 
 ## Estado y pendientes (julio 2026)
+
+- **v5.28 · CENTRO DE AYUDA + VM DE PRÁCTICA (ago-2026, cohete v5.28-ayuda).**
+  Reporte de Diego: el equipo «no entiende algunos movimientos» y él era el
+  intermediario de todas las dudas. La mascota YA NO lanza el recorrido:
+  abre un MENÚ (#ayudaMod) con 5 opciones.
+  1. Recorridos: esencial · evolucionar · **Mover ventiladores y equipos**
+     (nuevo, 5 pasos). Este último siembra el **🎓 VM DE PRUEBA**
+     (`_tutDemoVM`): existe SOLO en el navegador (window._TUT_EQ hace que
+     sobreviva a vmCargar), toda acción sobre él se SIMULA — `vmMoverOk` y
+     `vmColaAplicar` interceptan id 'TUT_DEMO' y el servidor jamás recibe
+     nada; vmBaja lo retira local; desaparece al recargar. Petición textual
+     de Diego: «un VM de prueba para que al mover no afecte el inventario
+     real».
+  2. **FAQ con buscador** (AYUDA_FAQS, 9 preguntas redactadas del uso real,
+     2 enlazan a recorridos). Viven en el index: se editan sin estructura.
+  3. **Sugerencias**: hoja nueva SUGERENCIAS (⇒ 20 hojas, EXIGE
+     `crearORepararEstructura()`), servicio en svc_turnos
+     (guardar/obtener/setEstado, estados nueva/considerada/aplicada/
+     descartada), API GET_SUGERENCIAS + GUARDAR_SUGERENCIA +
+     SET_SUGERENCIA_ESTADO (auditadas). El colega deja la suya con firma
+     del ROSTER y ve las PROPIAS con su estado; la coordinación revisa el
+     listado completo en **Estadísticas** (#sugCoordBox, decisión de Diego:
+     no listado abierto). Clasificada en _RESET_VACIAR.
+  4. **Mascota animada: EN MEMORIA, NO HACER** (Diego: «aún no hagas nada»).
+     Idea: dejar SOLO al kinesiólogo animado (flotar/parpadear/saludar);
+     demo en scratchpad/mockup_centro_ayuda.html.
+  - Guardia `checks/ayuda.js` (30 asserts, servicio + cliente + demo VM sin
+    llamadas al servidor); `checks/tutorial.js` pasó a exigir TRES recorridos.
 
 - **v5.27 · HOJAS DEL DÍA + HOJA PVE (ago-2026, cohete v5.27-hojas).** Mata
   el ritual diario: imprimir la «Lista de hospitalizados», RECORTAR la franja

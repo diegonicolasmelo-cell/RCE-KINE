@@ -411,6 +411,13 @@ const ESQUEMA = {
     ['KINE_RECIBE','texto'],['AUTOR_EMAIL','email'],['CAMAS_N','entero'],['OCUPADAS','entero'],['EN_VM','entero'],
     ['CAMAS_IDS','texto'],['NOTAS','texto'],['SNAPSHOT_JSON','json'],
   ]},
+  // Sugerencias del equipo (ago-2026, centro de ayuda): cada colega deja la
+  // suya con su firma desde la mascota; la coordinación las revisa en
+  // Estadísticas y les pone estado (nueva/considerada/aplicada/descartada).
+  SUGERENCIAS: { headerRows: 1, cols: [
+    ['ID','texto'],['TIMESTAMP','ts'],['FIRMA','texto'],['AUTOR_EMAIL','email'],
+    ['TEXTO','texto'],['ESTADO','texto'],['NOTA_COORD','texto'],
+  ]},
   AUDIT_LOG: { headerRows: 1, cols: [
     ['ID','texto'],['TIMESTAMP','ts'],['USUARIO_EMAIL','email'],['FIRMA','texto'],['ACCION','texto'],
     ['ENTIDAD','texto'],['ID_ENTIDAD','texto'],['PATIENT_ID','uuid'],['RESUMEN','texto'],

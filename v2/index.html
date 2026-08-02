@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.27-hojas">
+<meta name="rce-version" content="5.28-ayuda">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1245,7 +1245,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
 </div>
 
 <!-- TUTORIAL ANCLADO: mascota flotante + recorrido de globos sobre la pantalla real -->
-<button type="button" id="tutBtn" class="no-print" onclick="tutAbrir()" title="Ver el tutorial de la app">
+<button type="button" id="tutBtn" class="no-print" onclick="ayudaAbrir()" title="Centro de ayuda: recorridos, preguntas frecuentes y sugerencias">
   <img class="masc-persona" src="data:image/png;base64,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" alt="Ayuda: ver el tutorial">
   <span class="masc-servi">
     <span id="serviOn"><img class="servi-svg" src="data:image/png;base64,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" alt="Servi U"></span>
@@ -1706,6 +1706,15 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <button type="button" class="btn" style="width:auto;padding:5px 13px;background:#f59e0b;color:#3a2a00;border:none;font-weight:800;font-size:.76rem;" onclick="vmColaAplicar()">✅ Aplicar todos</button>
   </div>
   <div id="vmColaLista" style="max-height:34vh;overflow-y:auto;padding:8px 12px;font-size:.8rem;"></div>
+</div>
+
+<!-- CENTRO DE AYUDA: menú de la mascota (recorridos · FAQ · sugerencias) -->
+<div class="tlmodal" id="ayudaMod" role="dialog" aria-modal="true" style="width:min(480px,94vw);">
+  <div class="phdr">
+    <div class="ptitle" id="ayudaTit">🧑‍⚕️ ¿En qué te ayudo?</div>
+    <button class="xbtn" onclick="ayudaCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div id="ayudaBody" style="padding:14px 16px;overflow-y:auto;max-height:72vh;"></div>
 </div>
 
 <!-- MODAL PORTADA: elegir preset o URL propia para el banner de la pestaña -->
@@ -3718,7 +3727,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.27-hojas]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.28-ayuda]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5982,6 +5991,126 @@ function docsRender(d){
    Solo lee la interfaz (no toca datos); cada paso encuadra una zona con un
    anillo-foco y la explica. Si el ancla no existe (p.ej. sin pacientes), el
    globo sale centrado sin anillo. ── */
+/* ══ CENTRO DE AYUDA (v5.28, pedido de Diego): la mascota ya no lanza el
+   recorrido directo — abre un menú con los recorridos, preguntas frecuentes
+   con buscador (respuestas al instante, sin intermediario) y el buzón de
+   sugerencias del equipo. ══ */
+const AYUDA_FAQS=[
+ ['¿Cómo evoluciono a un paciente?','Toca la tarjeta de su cama en CAMAS (o 📝 en el Registro Diario). El formulario parte con lo del turno anterior ya replicado: revisa, cambia lo que corresponda del turno y aprieta 💾 Guardar. La firma y la vía aérea son lo único obligatorio.','evolucion','▶ Ver el recorrido de evolución'],
+ ['Guardé y me faltó algo, ¿puedo reabrir?','Sí. Abre la misma cama en el mismo turno: aparece lo guardado, agregas lo que faltó y guardas de nuevo. Lo registrado nunca se pierde (los eventos como intubación o extubación quedan aunque re-guardes).','',''],
+ ['¿Cómo registro un procedimiento que olvidé, sin reabrir todo?','Con el botón ➕ de la fila del paciente en el Registro Diario: procedimiento del catálogo, cambio de HME/HEPA/sonda o resultado de cultivo. Va directo al registro del turno.','',''],
+ ['¿Cómo muevo un ventilador o un equipo?','En la pestaña VENTILADORES, botón 🔁 Mover de la tarjeta del equipo: eliges cama, bodega, préstamo o equipos médicos. Para reorganizar varios, «➕ A la lista» y «✅ Aplicar todos» (así también se intercambian equipos entre camas).','equipos','▶ Practicar con un equipo de prueba'],
+ ['El paciente llegó intubado, ¿qué pongo?','En el ingreso marca vía aérea TOT con su número y fijación. Si además se extuba ese mismo turno, el formulario lo permite desde el ingreso (sección Extubación).','',''],
+ ['¿Por qué dice «Día 0» si el paciente ya lleva horas?','Los días se cuentan por bloques de 24 horas desde el momento real de ingreso, igual que el sistema del hospital: menos de 24 h = Día 0. Anota la hora de ingreso en el formulario para que el conteo sea exacto.','',''],
+ ['¿Cómo muevo un paciente a otra cama?','En CAMAS toca ⇄ en la tarjeta de origen y luego el destino: «Mover aquí» si está libre, «Intercambiar» si está ocupada. El historial se va con el paciente.','',''],
+ ['Se cayó la red justo al guardar, ¿perdí la evolución?','No. Lo escrito queda en pantalla y la app reintenta sola a los 3 segundos. Si tampoco resulta, revisa la conexión y aprieta 💾 de nuevo — guardar dos veces no duplica.','',''],
+ ['¿Dónde imprimo las hojas (registro, APK, PVE, RHB)?','La hoja de registro diaria: botón 🖨️ Hojas del día en el Registro Diario (salen todas las camas con sus datos). APK, PVE y RHB: en el historial del paciente, arriba.','',''],
+];
+function ayudaAbrir(){ ayudaVista('menu'); $('ayudaMod').classList.add('on'); $('ovl').classList.add('on'); }
+function ayudaCerrar(){ $('ayudaMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function _ayudaRec(rec){ ayudaCerrar(); tutAbrir(rec); }
+function ayudaVista(vv){
+  const B=$('ayudaBody'), T=$('ayudaTit');
+  const item=(em,t,d,fn)=>`<div onclick="${fn}" style="display:flex;gap:11px;align-items:center;padding:11px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;background:#fff;">`+
+    `<span style="font-size:1.4rem;width:32px;text-align:center;">${em}</span>`+
+    `<div><div style="font-weight:700;">${t}</div><div style="font-size:.78rem;color:var(--muted);">${d}</div></div></div>`;
+  if(vv==='menu'){
+    T.textContent='🧑‍⚕️ ¿En qué te ayudo?';
+    B.innerHTML=item('🚀','Conocer la aplicación','El recorrido general por pestañas y botones',"_ayudaRec('esencial')")
+      +item('📝','Aprender a evolucionar','Paso a paso dentro del formulario real',"_ayudaRec('evolucion')")
+      +item('🔧','Mover ventiladores y equipos','Con un equipo de PRUEBA: nada afecta al inventario real',"_ayudaRec('equipos')")
+      +item('❓','Preguntas frecuentes','Respuestas al instante, con buscador',"ayudaVista('faq')")
+      +item('💡','Dejar una sugerencia','Ideas para futuras actualizaciones',"ayudaVista('sug')");
+    return;
+  }
+  if(vv==='faq'){
+    T.textContent='❓ Preguntas frecuentes';
+    B.innerHTML=`<span onclick="ayudaVista('menu')" style="font-size:.8rem;color:#0058A0;cursor:pointer;font-weight:700;">← Volver</span>
+      <input id="faqQ" placeholder="Busca: extubación, día 0, imprimir…" oninput="faqFiltra(this.value)"
+        style="width:100%;margin:8px 0;height:34px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:.85rem;">
+      <div id="faqLista"></div>`;
+    faqFiltra(''); return;
+  }
+  if(vv==='sug'){
+    T.textContent='💡 Sugerencias';
+    const ops=(window.Turnos&&Turnos.ROSTER)?Turnos.ROSTER.map(r=>`<option value="${r.f}">${r.f} — ${r.n}</option>`).join(''):'';
+    B.innerHTML=`<span onclick="ayudaVista('menu')" style="font-size:.8rem;color:#0058A0;cursor:pointer;font-weight:700;">← Volver</span>
+      <textarea id="sugTxt" placeholder="¿Qué mejorarías o agregarías a la app?" style="width:100%;min-height:64px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font:inherit;font-size:.86rem;margin-top:8px;"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+        <select id="sugFirma" style="height:32px;border:1px solid var(--border);border-radius:7px;font-size:.82rem;"><option value="">— Tu firma —</option>${ops}</select>
+        <button class="btn btn-p" style="margin-left:auto;width:auto;padding:0 16px;height:34px;" onclick="sugEnviar()">Enviar</button>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:8px;">Queda con tu firma y la revisa la coordinación. Abajo ves las TUYAS con su estado.</div>
+      <div id="sugMias" style="margin-top:6px;"></div>`;
+    sugMias(); return;
+  }
+}
+function faqFiltra(q){
+  q=String(q||'').toLowerCase();
+  const L=$('faqLista'); if(!L) return;
+  L.innerHTML=AYUDA_FAQS.filter(f=>!q||f[0].toLowerCase().indexOf(q)!==-1||f[1].toLowerCase().indexOf(q)!==-1)
+    .map(f=>`<details style="border:1px solid var(--border);border-radius:9px;margin-bottom:6px;background:#fff;">
+      <summary style="padding:9px 12px;cursor:pointer;font-weight:700;font-size:.85rem;">${f[0]}</summary>
+      <div style="padding:2px 13px 11px;font-size:.83rem;color:#374151;">${f[1]}
+        ${f[2]?`<br><span onclick="_ayudaRec('${f[2]}')" style="display:inline-block;margin-top:6px;font-size:.76rem;background:#e3edf7;border:1px solid #b9d2ea;border-radius:999px;padding:3px 10px;cursor:pointer;font-weight:700;color:#0058A0;">${f[3]}</span>`:''}
+      </div></details>`).join('')
+    ||'<div style="font-size:.83rem;color:var(--muted);padding:8px;">Nada con esa palabra — prueba con otra o deja la duda como sugerencia 💡</div>';
+}
+let SUG_CACHE=null;
+function sugEnviar(){
+  const t=(v('sugTxt')||'').trim(), f=v('sugFirma');
+  if(!t){ toast('Escribe la sugerencia antes de enviar'); return; }
+  if(!f){ toast('Elige tu firma'); return; }
+  gs('GUARDAR_SUGERENCIA',{texto:t, firma:f}, ()=>{
+    toast('💡 ¡Gracias! Tu sugerencia quedó registrada');
+    $('sugTxt').value=''; SUG_CACHE=null; sugMias();
+  });
+}
+function sugMias(){
+  const box=$('sugMias'); if(!box) return;
+  const pinta=()=>{
+    const f=v('sugFirma');
+    const mias=(SUG_CACHE||[]).filter(s=>!f||s.firma===f).slice(0,8);
+    box.innerHTML=mias.map(s=>`<div style="border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:.8rem;margin-top:6px;background:#fafbfc;">${_docsEsc(s.texto)}
+      <div style="font-size:.68rem;color:var(--muted);margin-top:2px;">${s.firma} · estado: <b>${s.estado}</b>${s.nota?' — '+_docsEsc(s.nota):''}</div></div>`).join('');
+  };
+  if(SUG_CACHE){ pinta(); return; }
+  gs('GET_SUGERENCIAS',{}, r=>{ SUG_CACHE=r||[]; pinta(); }, ()=>{});
+  const sel=$('sugFirma'); if(sel&&!sel._sugHook){ sel._sugHook=true; sel.addEventListener('change',sugMias); }
+}
+/* Revisión de coordinación (Estadísticas): lista completa + cambio de estado */
+function sugCoordRender(){
+  const box=$('sugCoordLista'); if(!box) return;
+  box.innerHTML='<div style="color:var(--muted);font-size:.8rem;">Cargando…</div>';
+  gs('GET_SUGERENCIAS',{}, r=>{
+    const rows=r||[];
+    if(!rows.length){ box.innerHTML='<div style="color:var(--muted);font-size:.82rem;">Sin sugerencias todavía — aparecerán cuando el equipo las deje desde la mascota.</div>'; return; }
+    box.innerHTML=rows.map(s=>`<div style="border:1px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:7px;background:#fff;">
+      <div style="font-size:.86rem;">${_docsEsc(s.texto)}</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+        <span style="font-size:.72rem;color:var(--muted);">${s.firma} · ${String(s.ts||'').slice(0,16)}</span>
+        <select onchange="sugSetEstado('${s.id}',this.value)" style="margin-left:auto;height:28px;border:1px solid var(--border);border-radius:6px;font-size:.76rem;">
+          ${['nueva','considerada','aplicada','descartada'].map(e=>`<option value="${e}"${e===s.estado?' selected':''}>${e}</option>`).join('')}
+        </select>
+      </div></div>`).join('');
+  });
+}
+function sugSetEstado(id, estado){
+  gs('SET_SUGERENCIA_ESTADO',{id, estado}, ()=>{ toast('✅ Estado actualizado'); SUG_CACHE=null; });
+}
+/* La sección de revisión vive al final de Estadísticas (solo coordinación
+   entra ahí); se carga recién al desplegarla. */
+(function(){
+  const tc=$('tcD'); if(!tc) return;
+  const d=document.createElement('details');
+  d.id='sugCoordBox';
+  d.style.cssText='margin:14px 0;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:0 14px 10px;';
+  d.innerHTML='<summary style="padding:12px 0;cursor:pointer;font-weight:800;font-size:.92rem;">💡 Sugerencias del equipo <span style="font-weight:600;color:var(--muted);font-size:.76rem;">— dejadas desde la mascota; márcalas para que cada uno vea el estado de la suya</span></summary>'+
+    '<div id="sugCoordLista"></div>';
+  d.addEventListener('toggle',()=>{ if(d.open) sugCoordRender(); });
+  tc.appendChild(d);
+})();
+
 /* Dos recorridos: «Lo esencial» (la app por fuera, sin abrir formularios) y
    «Evolucionar un paciente» (abre una cama de ejemplo y recorre el registro).
    El segundo NO guarda nada: al terminar cierra el formulario descartando. */
@@ -6013,8 +6142,29 @@ const TUT_RECORRIDOS={
   {sel:'#dKTMr', selAlt:'#sp', t:'💪 Rehabilitación', d:'Kinesiterapia motora, entrenamiento muscular, sedestación… Si no se pudo hacer, se registra el motivo: eso alimenta las estadísticas de la unidad.'},
   {sel:'#rtxt', t:'📄 El texto se escribe solo', d:'Con lo que marcaste, la app redacta la evolución en lenguaje clínico. Puedes leerla, y si quieres ajustar algo, editarla a mano antes de guardar.'},
   {sel:'#btnGuardar', t:'💾 Guardar', d:'Al guardar, la evolución queda en el historial del paciente, alimenta la entrega de turno y suma a las estadísticas. Si te interrumpen, «− Minimizar» conserva el borrador sin perder nada.', fin:true},
+ ]},
+ equipos:{
+  titulo:'Mover ventiladores y equipos',
+  pasos:[
+  {tab:'V', sel:'#tcV', t:'🔧 El inventario de la unidad', d:'Aquí vive cada equipo: en qué cama está, si está operativo, en mantención o con falla, y todo su historial de movimientos. Para practicar sin miedo, apareció un equipo especial: el 🎓 VM DE PRUEBA.'},
+  {tab:'V', sel:'[data-vm="TUT_DEMO"]', selAlt:'#tcV', t:'🎓 Tu equipo de práctica', d:'Esta tarjeta es de MENTIRA: muévela cuanto quieras y nada se guarda — el inventario real ni se entera. Desaparece al recargar la página.'},
+  {tab:'V', sel:'[data-vm="TUT_DEMO"]', selAlt:'#tcV', t:'🔁 Mover un equipo', d:'El botón «🔁 Mover» abre el destino: una CAMA, la bodega, préstamo a otra unidad o la zona de equipos médicos (mantención). Si entra a mantención, la app sugiere cambiar el estado sola.'},
+  {tab:'V', sel:'#vmCola', selAlt:'#tcV', t:'📦 Varios de una vez', d:'Cuando se reorganizan varios equipos, usa «➕ A la lista» en cada uno y después «✅ Aplicar todos»: se validan juntos y así también puedes INTERCAMBIAR ventiladores entre dos camas.'},
+  {tab:'V', sel:'[data-vm="TUT_DEMO"]', selAlt:'#tcV', t:'💪 Ahora practica tú', d:'Cierra este globo y mueve el 🎓 VM DE PRUEBA: a una cama, a bodega, con «Mover ahora» o por la lista. Todo lo que hagas con él es simulacro — cuando te sientas seguro, lo mismo aplica a los equipos reales.', fin:true},
  ]}
 };
+/* Equipo de PRÁCTICA del recorrido (solo existe en ESTA pantalla): se
+   inyecta al censo local de ventiladores y toda acción sobre él se simula
+   en el navegador — jamás viaja al servidor ni toca el inventario real.
+   Desaparece al recargar la página. */
+function _tutDemoVM(){
+  if((VM_ALL||[]).some(x=>x.id==='TUT_DEMO')) return;
+  window._TUT_EQ=true;
+  (VM_ALL=VM_ALL||[]).push({ id:'TUT_DEMO', nombre:'🎓 VM DE PRUEBA', marca:'', modelo:'(tutorial)',
+    estado:'Operativo', activo:true, ubicTipo:'BODEGA', ubicDetalle:'', fechaUbicacion:'',
+    obs:'Equipo de práctica del tutorial: muévelo sin miedo, nada se guarda. Desaparece al recargar.' });
+  if(typeof vmRender==='function') vmRender();
+}
 let TUT_PASOS=TUT_RECORRIDOS.esencial.pasos;
 let TUT_REC='esencial';
 let _tutI=-1;
@@ -6090,11 +6240,12 @@ function tutHolaCerrar(){
 let _tutAbrioPanel=false;
 function tutAbrir(rec){
   tutHolaCerrar();
-  TUT_REC=(rec==='evolucion')?'evolucion':'esencial';
+  TUT_REC=(rec==='evolucion'||rec==='equipos')?rec:'esencial';
   TUT_PASOS=TUT_RECORRIDOS[TUT_REC].pasos;
   $('tutGlobo')?.classList.toggle('rec-evo',TUT_REC==='evolucion');   // pose de Servi según recorrido
   _tutI=-1; document.addEventListener('keydown',_tutEsc);
   if(TUT_REC==='evolucion') return _tutAbrirEvolucion();
+  if(TUT_REC==='equipos') _tutDemoVM();   // siembra el 🎓 VM DE PRUEBA local
   tutSiguiente();
 }
 /* El recorrido del formulario necesita un paciente: abre el primero ocupado
@@ -10371,7 +10522,9 @@ function initVentiladores(){ if(VM_ALL===null) vmCargar(); else vmRender(); }
 
 function vmCargar(){
   $('vmBody').innerHTML='<div class="pivot-empty">Cargando ventiladores…</div>';
-  gs('GET_VENTILADORES',{},r=>{ VM_ALL=r||[]; vmRender(); stkCargar(); },
+  gs('GET_VENTILADORES',{},r=>{ VM_ALL=r||[];
+    if(window._TUT_EQ) _tutDemoVM();   // la recarga del censo no borra el equipo de práctica
+    vmRender(); stkCargar(); },
     msg=>{ $('vmBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'')+' <button class="dpset" onclick="vmCargar()">Reintentar</button></div>'; });
 }
 
@@ -10550,7 +10703,7 @@ function _vmCard(x){
     if(c&&(c.OCUPADA===true||c.OCUPADA==='TRUE')&&c.SOPORTE==='VM') pac=`<div style="font-size:.72rem;color:#0369a1;">🫁 Ventilando a ${c.NOMBRE||'paciente'}</div>`;
     else pac='<div style="font-size:.72rem;color:#94a3b8;">Sala sin paciente en VM</div>';
   }
-  return `<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:11px 13px;display:flex;flex-direction:column;gap:4px;">
+  return `<div data-vm="${x.id}" style="background:#fff;border:1px ${x.id==='TUT_DEMO'?'dashed #b45309':'solid var(--border)'};border-radius:10px;padding:11px 13px;display:flex;flex-direction:column;gap:4px;">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
       <span style="font-weight:800;color:#0f172a;">${x.nombre||'—'}</span>
       <span style="background:${col}18;color:${col};border:1px solid ${col}55;border-radius:12px;padding:1px 9px;font-size:.68rem;font-weight:800;white-space:nowrap;">${x.estado}</span>
@@ -10700,6 +10853,7 @@ function vmNuevo(){
   $('vmMod').classList.add('on'); $('ovl').classList.add('on');
 }
 function vmEditar(id){
+  if(id==='TUT_DEMO'){ toast('🎓 El equipo de práctica no se edita — es solo para ensayar movimientos'); return; }
   const x=(VM_ALL||[]).find(k=>k.id===id); if(!x) return;
   $('vmModTit').textContent='✏️ Editar '+(x.nombre||'ventilador');
   $('vmfId').value=x.id; $('vmfNombre').value=x.nombre||''; $('vmfMarca').value=x.marca||'';
@@ -10873,6 +11027,15 @@ function vmColaRender(){
 }
 function vmColaAplicar(){
   if(!VM_COLA.length) return;
+  // 🎓 Los movimientos del equipo de práctica se separan y se simulan aquí;
+  // al servidor solo viajan los reales.
+  const _demo=VM_COLA.filter(m=>String(m.idVm)==='TUT_DEMO');
+  if(_demo.length){
+    VM_COLA=VM_COLA.filter(m=>String(m.idVm)!=='TUT_DEMO');
+    _demo.forEach(m=>_tutDemoMover({ idVm:'TUT_DEMO', tipo:m.tipo, detalle:m.detalle, fecha:m.fecha, estado:m.estado }));
+    vmColaRender();
+    if(!VM_COLA.length) return;
+  }
   uiConfirm({ icono:'🔁', titulo:`Aplicar ${VM_COLA.length} movimientos`,
     mensaje: VM_COLA.map(m=>`· <b>${_docsEsc(_vmNombre(m.idVm))}</b> → ${_docsEsc(_vmDestinoTxt(m))}`).join('<br>'),
     detalle:'Se revisan todos antes de aplicar: si alguno no se puede, no se mueve ninguno.',
@@ -10893,12 +11056,26 @@ function vmMoverOk(){
     fecha:v('vmmFecha'), motivo:v('vmmMotivo') };
   if(!$('vmmMantRow')?.classList.contains('hidden') && $('vmmMant')?.checked) d.estado='En mantención';
   else if(!$('vmmOperRow')?.classList.contains('hidden') && $('vmmOper')?.checked) d.estado='Operativo';
+  // 🎓 Equipo de práctica del tutorial: el movimiento se SIMULA en pantalla
+  // y jamás viaja al servidor (el inventario real y su libro quedan intactos)
+  if(d.idVm==='TUT_DEMO'){ _tutDemoMover(d); return; }
   loading(true,'Moviendo ventilador…');
   gs('MOVER_VENTILADOR',d,r=>{ loading(false); vmCerrarMove(); VMZ_SEL=null; toast('🔁 '+((r&&r.resumen)||'Ventilador movido')); vmCargar(); },()=>loading(false));
+}
+function _tutDemoMover(d){
+  const x=(VM_ALL||[]).find(k=>k.id==='TUT_DEMO'); if(!x) return;
+  x.ubicTipo=d.tipo==='CAMA'?'CAMA':(d.tipo||'BODEGA');
+  x.ubicDetalle=d.detalle||'';
+  x.fechaUbicacion=d.fecha||'';
+  if(d.estado) x.estado=d.estado;
+  vmCerrarMove(); VMZ_SEL=null;
+  vmRender();
+  toast('🎓 Movimiento de PRÁCTICA aplicado — nada se guardó en el inventario real');
 }
 
 // ── Baja e historial ──
 function vmBaja(id){
+  if(id==='TUT_DEMO'){ VM_ALL=(VM_ALL||[]).filter(k=>k.id!=='TUT_DEMO'); window._TUT_EQ=false; vmRender(); toast('🎓 Equipo de práctica retirado'); return; }
   const x=(VM_ALL||[]).find(k=>k.id===id); if(!x) return;
   uiConfirm({ icono:'⛔', titulo:'Dar de baja del inventario',
     mensaje:`<b>${x.nombre}</b> ${x.marca?`(${x.marca} ${x.modelo||''})`:''} saldrá del inventario activo.`,

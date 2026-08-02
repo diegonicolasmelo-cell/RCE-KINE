@@ -29,7 +29,8 @@ const { chromium } = require('playwright-core');
   eq('botón ❓ flotante visible', BASE.fab, true);
   eq('entrada «❓ Tutorial» en la hoja Más del móvil', BASE.enMas, true);
   eq('recorrido «Lo esencial» de 12 pasos', BASE.pasos, 12);
-  eq('hay DOS recorridos', BASE.recorridos, 2);
+  // v5.28: se sumó «Mover ventiladores y equipos» (con VM de práctica)
+  eq('hay TRES recorridos', BASE.recorridos, 3);
   eq('el segundo recorrido tiene 8 pasos', BASE.pasosEvo, 8);
   eq('parte cerrado (sin globo ni velo)', BASE.cerrado, true);
 

@@ -47,6 +47,7 @@ function api(accion, datos, token) {
       case 'GET_STATS':        return obtenerStats(datos.desde, datos.hasta);
       case 'GET_ARCHIVADOS':   return obtenerArchivados(datos);
       case 'GET_HISTORICOS':   return obtenerHistoricos();
+      case 'GET_SUGERENCIAS':  return obtenerSugerencias();
       case 'GET_VENTILADORES': return obtenerVentiladores();
       case 'GET_MOVIMIENTOS_VM': return obtenerMovimientosVM(datos.idVm || '', datos.limite || 40);
       case 'GET_ENTREGA_TURNO':  return obtenerEntregaTurno(datos.idCamas, datos.fecha, datos.turno);
@@ -63,6 +64,10 @@ function api(accion, datos, token) {
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
       // ── Escrituras (auditadas) ──
+      case 'GUARDAR_SUGERENCIA':
+        return _auditar(ctx, accion, () => guardarSugerencia(datos, ctx));
+      case 'SET_SUGERENCIA_ESTADO':
+        return _auditar(ctx, accion, () => setSugerenciaEstado(datos));
       case 'INGRESAR_PACIENTE':
         return _auditar(ctx, accion, () => ingresarPaciente(datos, ctx));
       case 'DAR_ALTA':
