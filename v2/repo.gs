@@ -20,17 +20,22 @@ function _hoja(nombre) {
  * @return {Array<Object>}
  */
 function repoLeerTodos(hoja, filtroKey, filtroVal) {
+  // Con filtro, la lectura se acota por tramos (repoLeerFiltrado): baja UNA
+  // columna para ubicar las filas y solo después las filas completas. Antes
+  // se traía la hoja ENTERA (EVOLUCIONES: 380 columnas × todo el historial)
+  // y se filtraba en memoria — invisible con pocos datos, segundos de espera
+  // con el año lleno. Todas las columnas usadas como filtro son de tipo
+  // texto, así que el valor crudo de la celda calza con el convertido.
+  if (filtroKey != null && filtroVal != null) {
+    const fv = String(filtroVal).trim();
+    return repoLeerFiltrado(hoja, filtroKey, function (v) { return String(v).trim() === fv; });
+  }
   const h = _hoja(hoja);
   const fi = FILA_DATOS[hoja], total = TOTAL_COLS[hoja], ult = h.getLastRow();
   if (ult < fi) return [];
   const datos = h.getRange(fi, 1, ult - fi + 1, total).getValues();
-  const fv = (filtroKey != null && filtroVal != null) ? String(filtroVal).trim() : null;
   const out = [];
-  for (let i = 0; i < datos.length; i++) {
-    const obj = esquemaFilaAObjeto(hoja, datos[i]);
-    if (fv !== null && String(obj[filtroKey]).trim() !== fv) continue;
-    out.push(obj);
-  }
+  for (let i = 0; i < datos.length; i++) out.push(esquemaFilaAObjeto(hoja, datos[i]));
   return out;
 }
 

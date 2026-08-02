@@ -314,13 +314,8 @@ const ESQUEMA = {
     ['ID_HITO','texto'],['ID_CAMA','texto'],['PATIENT_ID','uuid'],['FECHA','fecha'],['TURNO','texto'],
     ['TIPO','texto'],['TEXTO','texto'],['AUTOR','texto'],['AUTOR_EMAIL','email'],['TIMESTAMP','ts'],
   ]},
-  // Historial de entregas de turno emitidas (no afecta datos clínicos)
-  ENTREGAS_TURNO: { headerRows: 1, cols: [
-    ['ID_ENTREGA','texto'],['TIMESTAMP','ts'],['FECHA','fecha'],['TURNO','texto'],
-    ['KINE_ENTREGA','texto'],['KINE_RECIBE','texto'],['CAMAS_N','entero'],
-    ['OCUPADAS','entero'],['EN_VM','entero'],['CAMAS_IDS','texto'],
-    ['NOTAS','texto'],['SNAPSHOT_JSON','json'],
-  ]},
+  // (ENTREGAS_TURNO se define más abajo, junto a AUDIT_LOG. Aquí hubo una
+  // segunda copia que la de abajo pisaba en silencio — eliminada ago-2026.)
   ARCHIVO_PACIENTES: { headerRows: 1, cols: [
     ['ID_ARCHIVO','texto'],['PATIENT_ID','uuid'],['CAMA_ORIGEN','texto'],['COD_PACIENTE','texto'],
     ['FECHA_INGRESO','fecha'],['FECHA_EGRESO','fecha'],['DIAS_TOTAL','entero'],['DIAS_VM_TOTAL','entero'],
@@ -406,6 +401,11 @@ const ESQUEMA = {
     ['TIPO_DESVINCULACION','texto'],['MOTIVO','texto'],['SOPORTE_PREVIO','texto'],['TIEMPO_EXTUBADO','texto'],
     ['HORA_REINTUBACION','texto'],['KINESIOLOGO','texto'],['AUTOR_EMAIL','email'],
   ]},
+  // Historial de entregas de turno emitidas (no afecta datos clínicos).
+  // ÚNICA definición vigente: es la que construyó la hoja real (13 columnas,
+  // con AUTOR_EMAIL). El identificador se llama ID — el servicio escribe y
+  // lee ese nombre; durante un tiempo escribió ID_ENTREGA y la columna
+  // quedaba vacía (corregido ago-2026).
   ENTREGAS_TURNO: { headerRows: 1, cols: [
     ['ID','texto'],['TIMESTAMP','ts'],['FECHA','fecha'],['TURNO','texto'],['KINE_ENTREGA','texto'],
     ['KINE_RECIBE','texto'],['AUTOR_EMAIL','email'],['CAMAS_N','entero'],['OCUPADAS','entero'],['EN_VM','entero'],

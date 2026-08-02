@@ -14,6 +14,7 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
 /* ── Parte 1 · servidor: la entrega de turno mide contra la fecha efectiva ── */
 const DB = { CAMAS_ESTADO: [], EVOLUCIONES: [], PROCEDIMIENTOS: [], ENTREGAS_TURNO: [] };
 global.repoLeerTodos = (h, c, val) => { let f = (DB[h] || []).slice(); if (c !== undefined) f = f.filter(r => String(r[c]) === String(val)); return f; };
+global.repoLeerFiltrado = (h, colKey, pred) => (DB[h] || []).filter(r => pred(r[colKey]));
 global.repoBuscarPorId = (h, c, id) => (DB[h] || []).find(r => String(r[c]) === String(id)) || null;
 global.repoInsertar = (h, o) => { (DB[h] = DB[h] || []).push(o); return o; };
 global.repoActualizar = () => true; global.repoUpsert = () => 'crear';

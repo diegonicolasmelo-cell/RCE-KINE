@@ -26,7 +26,10 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
     const camaPorId = {};
     camas.forEach(c => camaPorId[String(c.ID_CAMA)] = c);
 
-    const evosAll = repoLeerTodos('EVOLUCIONES');
+    // Solo las evoluciones de las camas seleccionadas (lectura por tramos):
+    // antes bajaba EVOLUCIONES entera en cada vista de la entrega.
+    const evosAll = repoLeerFiltrado('EVOLUCIONES', 'ID_CAMA',
+      function (v) { return !!setSel[String(v).trim()]; });
     const evoTurnoPorCama = {};   // evolución del turno que se entrega
     const episodioPorCama = {};   // evoluciones del episodio actual (mismo PATIENT_ID)
     evosAll.forEach(e => {
@@ -283,12 +286,15 @@ function guardarEntregaTurno(payload, ctx) {
     try {
       const r = payload.resumen || {};
       const fila = {
-        ID_ENTREGA: 'ENT_' + Date.now(),
+        // El campo se llama ID en el esquema: con ID_ENTREGA la columna
+        // quedaba vacía en silencio (el upsert descarta claves desconocidas).
+        ID: 'ENT_' + Date.now(),
         TIMESTAMP: ahoraTS(),
         FECHA: payload.fecha || '',
         TURNO: payload.turno || '',
         KINE_ENTREGA: payload.kineEntrega || (ctx && ctx.firma) || '',
         KINE_RECIBE: payload.kineRecibe || '',
+        AUTOR_EMAIL: (ctx && ctx.email) || '',
         CAMAS_N: (payload.idCamas || []).length,
         OCUPADAS: r.ocupadas || '',
         EN_VM: r.enVM || '',
@@ -297,7 +303,7 @@ function guardarEntregaTurno(payload, ctx) {
         SNAPSHOT_JSON: String(payload.snapshotJson || '').slice(0, 45000),
       };
       repoInsertar('ENTREGAS_TURNO', fila);
-      return ok({ id: fila.ID_ENTREGA, entidad: 'ENTREGAS_TURNO' });
+      return ok({ id: fila.ID, entidad: 'ENTREGAS_TURNO' });
     } catch (e) { return err('guardarEntregaTurno: ' + e.message, ERR.INTERNO, e); }
   });
 }
@@ -306,7 +312,7 @@ function guardarEntregaTurno(payload, ctx) {
 function obtenerEntregasTurno(limite) {
   try {
     const rows = repoLeerTodos('ENTREGAS_TURNO').map(function (v) {
-      return { id: v.ID_ENTREGA, timestamp: v.TIMESTAMP, fecha: v.FECHA, turno: v.TURNO,
+      return { id: v.ID, timestamp: v.TIMESTAMP, fecha: v.FECHA, turno: v.TURNO,
                kineEntrega: v.KINE_ENTREGA, kineRecibe: v.KINE_RECIBE, camasN: v.CAMAS_N,
                ocupadas: v.OCUPADAS, enVM: v.EN_VM, camasIds: v.CAMAS_IDS, notas: v.NOTAS };
     });

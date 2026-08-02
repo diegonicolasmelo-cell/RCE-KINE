@@ -28,6 +28,11 @@ global.repoLeerTodos = (h, campo, valor) => {
   if (campo !== undefined) filas = filas.filter(r => String(r[campo]) === String(valor));
   return filas;
 };
+// Misma semántica que repo.gs: el predicado recibe el valor de la columna.
+// (Faltaba desde v5.21: sin él, obtenerEvosDelDia fallaba en silencio dentro
+// de la simulación y el registro diario simulado quedaba sin cobertura.)
+global.repoLeerFiltrado = (h, colKey, pred) =>
+  (DB[h] || []).filter(r => pred(r[colKey]));
 global.repoBuscarPorId = (h, campo, id) =>
   (DB[h] || []).find(r => String(r[campo]) === String(id)) || null;
 global.repoBuscarFila = (h, campo, id) => {
