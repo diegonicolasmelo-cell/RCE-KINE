@@ -438,6 +438,26 @@ function obtenerArchivados(params) {
   } catch (e) { return err('obtenerArchivados: ' + e.message, ERR.INTERNO, e); }
 }
 
+/**
+ * Planillas históricas de los cierres de año: { '2026': url, … }.
+ * El cierre anual (mantenimiento.gs) deja el ID en CONFIG.HISTORICO_AAAA;
+ * la URL se arma directo del ID, sin abrir la planilla (cero costo).
+ * El cliente la usa para el enlace «Abrir histórico» cuando un episodio
+ * trasladado ya no tiene evoluciones en la planilla de trabajo.
+ */
+function obtenerHistoricos() {
+  try {
+    const out = {};
+    repoLeerTodos('CONFIG').forEach(function (r) {
+      const m = String(r.CLAVE || '').match(/^HISTORICO_(\d{4})$/);
+      if (m && String(r.VALOR || '').trim()) {
+        out[m[1]] = 'https://docs.google.com/spreadsheets/d/' + String(r.VALOR).trim();
+      }
+    });
+    return ok(out);
+  } catch (e) { return err('obtenerHistoricos: ' + e.message, ERR.INTERNO, e); }
+}
+
 // ── BUSCADOR GLOBAL: pacientes activos + egresados ─────────────────────────
 /**
  * Busca por nombre, código, diagnóstico o cama ("cama 10" / "10"), sin

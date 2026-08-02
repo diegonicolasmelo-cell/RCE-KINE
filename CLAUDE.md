@@ -107,6 +107,56 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.25 · PANEL DE PRUEBA + ENLACE AL HISTÓRICO (ago-2026, cohete
+  v5.25-panel).** Tras la auditoría pedida por Diego («busca vacíos, dame
+  feedback»). Decisiones de esa ronda: histórico = **opción A** (enlace, no
+  pestaña ni llamada remota); riel «no me convence tanto pero aplícalo para
+  probarlo en real — esta versión no la compartiré aún» ⇒ es VERSIÓN DE
+  PRUEBA para Diego; fecha para activar identidad real: «definiremos fecha»
+  (pendiente); cierre por lotes + TIMELINE al histórico: propuesta aceptada,
+  programar en ronda tranquila ANTES de dic-2026 (el primer cierre real es
+  ene-2027 y hoy copia todo en un solo setValues).
+  1. **Riel de secciones** (`#spRiel`, solo ≥1100 px; el móvil conserva su
+     acordeón): índice armado de las `.fcard` visibles con ✓ verde si la
+     sección tiene datos; INFORMATIVO, no agrega obligaciones. `rielRender`
+     delegado en document (input/change en #kf, sobrevive a innerHTML);
+     réplicas/cargas programáticas no disparan eventos ⇒ `_rielDeb()` al
+     inicio de `fillFormReplica` + doble setTimeout en `abrirPanel`.
+  2. **`#gFalta`** sobre la act-bar: «Falta: firma y vía aérea» EN VIVO (la
+     act-bar ya era sticky — el mockup de «guardar a la vista» ya existía).
+  3. **Reintento automático del guardado**: `guardar()` pasó de gs() a api()
+     con retry — 1 fallo ⇒ botón «⏳ Reintentando…» + segundo intento a los
+     3 s; el upsert por turno lo hace inocuo. Sesión expirada NO reintenta
+     (va a mostrarLogin).
+  4. **Histórico opción A**: `obtenerHistoricos()` en svc_camas (CONFIG
+     HISTORICO_AAAA → URL armada del ID, sin abrir la planilla) + API
+     `GET_HISTORICOS`; en el detalle del archivado sin evoluciones y con año
+     cerrado aparece el banner «📚 … Abrir Histórico AAAA ↗».
+  - Guardia `checks/panel_ux.js` (16 asserts: riel, gFalta, reintento con
+    red que parpadea, banner solo en año cerrado).
+
+- **v5.24 · AUDITORÍA: LECTURAS ACOTADAS + ENTREGAS_TURNO ÚNICA (ago-2026,
+  sin cambio de index).** Hallazgos de la revisión completa:
+  1. `repoLeerTodos` CON FILTRO ahora delega en `repoLeerFiltrado` (todas
+     las columnas de filtro son texto ⇒ el valor crudo calza). Optimiza
+     panel/historial/egreso/eventos sin tocar llamadores; la entrega además
+     filtra por camas seleccionadas. OJO: las evoluciones YA se particionan
+     al egreso (EVOLUCIONES chica, EVOLUCIONES_ARCHIVO crece) — el susto de
+     «diciembre lento» era menor; los que sí crecen son historial de
+     archivados e indicadores/REM (jefatura, se dejaron con lectura completa).
+  2. ENTREGAS_TURNO estaba DOS veces en esquema.gs (la 2ª pisaba a la 1ª).
+     Se borró la copia muerta y salió el BUG: el servicio escribía
+     `ID_ENTREGA` pero la hoja real se llama `ID` ⇒ el identificador quedaba
+     vacío y AUTOR_EMAIL nunca se escribía. Corregido servicio (no esquema:
+     la definición vigente es la que construyó la hoja — sin reparación).
+  3. La SIMULACIÓN venía sin `repoLeerFiltrado` desde v5.21 y los fallos de
+     `obtenerEvosDelDia` quedaban como avisos silenciosos ⇒ sim_srv.js y
+     disp_fecha.js ahora lo proveen en memoria.
+  - AUDITORÍA (informe entregado): AUTH_DEV_MODE sigue TRUE (fecha por
+    definir); TIMELINE nunca se limpia (va con el cierre por lotes);
+    consultar el histórico = opción A; peso del index (1 MB por visita, no
+    cacheable) ACEPTADO — no tocar el empaquetado base64.
+
 - **v5.23 · ETIQUETA DE BLOQUE DEL MOTOR DE TEXTO (ago-2026, cohete
   v5.23-bloques).** Primer paso de «Mi estilo» (evolución personalizada).
   Diego anticipa pedir un análisis de las evoluciones ORIGINALES vs EDITADAS

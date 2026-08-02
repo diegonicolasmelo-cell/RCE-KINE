@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.23-bloques">
+<meta name="rce-version" content="5.25-panel">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -577,6 +577,22 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .btn-r{background:#fff;color:#334155;border:1px solid #cbd5e1;}.btn-r:hover{background:#f8fafc;}
 .btn-c{background:var(--ok);color:#fff;}
 .act-bar{display:flex;gap:10px;align-items:center;padding:12px 2px 14px;position:sticky;bottom:0;z-index:5;background:linear-gradient(to top,var(--bg) 72%,rgba(244,246,248,0));}
+/* ── Riel de secciones del panel (v5.25, prueba): índice con estado por
+   tarjeta. Solo escritorio ancho; el celular conserva su acordeón. ── */
+#spRiel{display:none;}
+@media(min-width:1100px){
+  #sp .pcontent{display:flex;gap:14px;align-items:flex-start;}
+  #spRiel{display:block;position:sticky;top:6px;width:196px;flex-shrink:0;max-height:calc(100dvh - 130px);overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 6px;}
+  #sp .pcontent>form{flex:1;min-width:0;}
+}
+.riel-t{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;padding:2px 8px 6px;}
+.riel-i{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;font-size:.76rem;cursor:pointer;color:#334155;font-weight:600;}
+.riel-i:hover{background:#eef2f7;}
+.riel-st{width:16px;height:16px;border-radius:50%;border:1.5px solid #c7cdd6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.58rem;flex-shrink:0;font-weight:800;}
+.riel-st.ok{background:#16a34a;border-color:#16a34a;}
+.riel-i.req .riel-st{border-color:#dc2626;}
+.riel-i.req{color:#b91c1c;}
+#gFalta{text-align:right;font-size:.75rem;font-weight:800;color:#b45309;min-height:15px;padding:0 4px;}
 .act-bar .btn{height:46px;border-radius:12px;}
 #btnGuardar{background:linear-gradient(135deg,#5856d6,#4338ca);font-size:.95rem;box-shadow:0 5px 16px rgba(79,70,229,.32);}
 #btnGuardar:hover{filter:brightness(1.08);background:linear-gradient(135deg,#5856d6,#4338ca);}
@@ -1855,6 +1871,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
     </div>
   </div>
   <div class="pcontent">
+    <nav id="spRiel" aria-label="Secciones de la evolución"></nav>
     <form id="kf" onsubmit="return false;" autocomplete="off">
       <input type="hidden" id="cBed">
       <input type="hidden" id="cIng" value="false">
@@ -3400,6 +3417,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
       </div>
 
       <!-- ACCIONES -->
+      <div id="gFalta"></div>
       <div class="act-bar">
         <button type="button" id="btnGuardar" class="btn btn-p" onclick="guardar()">💾 Guardar Evolución</button>
         <button type="button" class="btn btn-r" style="width:auto;padding:0 15px;flex-shrink:0;" onclick="previewTexto()">👁️ Preview</button>
@@ -3664,7 +3682,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.23-bloques]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.25-panel]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4108,6 +4126,47 @@ function _resetHiddenYEventos(){
   _evoEventoGuardado=false;
 }
 
+// ── Riel de secciones del panel (v5.25, versión de PRUEBA de Diego) ──
+// Índice del formulario armado desde las tarjetas visibles (.fcard):
+// ✓ verde = la sección tiene datos · ○ = vacía. Es INFORMATIVO — no agrega
+// obligaciones nuevas (las obligatorias siguen siendo firma y vía aérea,
+// que además se anuncian en #gFalta antes de apretar Guardar).
+let _rielT=null;
+function _rielDeb(){ clearTimeout(_rielT); _rielT=setTimeout(rielRender,250); }
+function rielRender(){
+  const nav=$('spRiel'); if(!nav) return;
+  const faltas=[];
+  if(!v('fFirma')) faltas.push('firma');
+  if(!v('fVA')) faltas.push('vía aérea');
+  const fEl=$('gFalta');
+  if(fEl) fEl.textContent=faltas.length?('Falta: '+faltas.join(' y ')):'';
+  const cards=Array.from(document.querySelectorAll('#kf .fcard')).filter(c=>c.offsetParent!==null);
+  if(!cards.length){ nav.innerHTML=''; return; }
+  nav.innerHTML='<div class="riel-t">Secciones</div>'+cards.map((c,i)=>{
+    c.dataset.riel=i;
+    const t=(c.querySelector('.fcard-title')?.textContent||'Sección').trim();
+    let lleno=0;
+    c.querySelectorAll('input:not([type=hidden]),select,textarea').forEach(el=>{
+      if(el.offsetParent===null||el.disabled) return;
+      if(el.type==='checkbox'||el.type==='radio'){ if(el.checked) lleno++; }
+      else if(String(el.value||'').trim()!=='') lleno++;
+    });
+    const req=(faltas.indexOf('firma')!==-1 && /Planes/i.test(t)) ||
+              (faltas.indexOf('vía aérea')!==-1 && /Ventilatoria/i.test(t));
+    return `<div class="riel-i${req?' req':''}" onclick="rielIr(${i})">`+
+      `<span class="riel-st${lleno?' ok':''}">${lleno?'✓':''}</span>`+
+      `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t}</span></div>`;
+  }).join('');
+}
+function rielIr(i){
+  const c=document.querySelector(`#kf .fcard[data-riel="${i}"]`);
+  if(c) c.scrollIntoView({behavior:'smooth',block:'start'});
+}
+// Cualquier tecleo o cambio dentro del formulario refresca el riel (delegado
+// al documento: sobrevive a los innerHTML que reconstruyen los módulos).
+document.addEventListener('input', e=>{ if(e.target && e.target.closest && e.target.closest('#kf')) _rielDeb(); });
+document.addEventListener('change', e=>{ if(e.target && e.target.closest && e.target.closest('#kf')) _rielDeb(); });
+
 function abrirPanel(id, esIng) {
   // Si esta cama quedó minimizada con un borrador, se restaura tal cual
   // (aunque se entre por el botón de la cama y no por la bandeja): lo
@@ -4234,6 +4293,10 @@ function abrirPanel(id, esIng) {
   $('sp').classList.add('on');
   mAcordeonInit();
   dispConfirmRender();
+  // Riel: dos pasadas — una apenas abre y otra cuando la réplica/carga
+  // asíncrona ya llenó el formulario (los .value programáticos no disparan
+  // eventos, así que el listener delegado no los ve).
+  setTimeout(rielRender,200); setTimeout(rielRender,900);
   document.body.style.overflow = 'hidden';
 
   // ★ FIX scroll: asegurar que el panel arranca al inicio del formulario.
@@ -4727,6 +4790,7 @@ function fillForm(s) {
  * NO copia firma, texto libre de nota de turno, ni ID de evolución.
  */
 function fillFormReplica(s) {
+  _rielDeb();   // el llenado programático no dispara eventos: refresco explícito
   // Racha de válvula de fonación del episodio (para la frase de decanulación)
   window._vfonHoras = parseInt(s && s._VFON_HORAS) || 0;
   // set() omite valores que Sheets devuelve como fecha ISO (columna con formato fecha)
@@ -5480,7 +5544,7 @@ function guardar() {
   _podarEventosPayload(datos);
   const btn=$('btnGuardar'); btn.disabled=true; btn.textContent='⏳ Guardando...';
   toast('💾 Guardando en servidor...');
-  gs('GUARDAR_EVOLUCION', datos, r=>{
+  const _exito=r=>{
     btn.disabled=false; btn.textContent='✅ Guardado';
     toast('✅ Evolución guardada correctamente');
     // Texto DEFINITIVO: si hubo edición manual, lo de pantalla ES lo guardado
@@ -5495,7 +5559,25 @@ function guardar() {
     // Mostrar botón cerrar y actualizar grid en background (sin overlay)
     show('btnCerrarPost');
     recargarSilencioso();
-  }, ()=>{ btn.disabled=false; btn.textContent='💾 Guardar Evolución'; });
+  };
+  const _falloFinal=m=>{
+    btn.disabled=false; btn.textContent='💾 Guardar Evolución';
+    toast('❌ No se pudo guardar: '+(m||'sin conexión')+' — tu evolución sigue en pantalla, revisa la red y aprieta 💾 de nuevo');
+  };
+  // Reintento automático (v5.25): si la red parpadea justo al guardar, se
+  // reintenta UNA vez a los 3 s antes de molestar. Es inocuo aunque el primer
+  // intento sí hubiera llegado: re-guardar el mismo turno actualiza, no duplica.
+  api('GUARDAR_EVOLUCION', datos).then(_exito).catch(e1=>{
+    const m1=(e1&&e1.message)||String(e1);
+    if(/Sesión no válida|Inicia sesión/i.test(m1)){ loading(false); mostrarLogin(); _falloFinal(m1); return; }
+    btn.textContent='⏳ Reintentando…';
+    toast('⚠️ Sin respuesta del servidor — reintentando en 3 s…');
+    setTimeout(()=>{
+      api('GUARDAR_EVOLUCION', datos)
+        .then(r=>{ toast('✅ Guardado al segundo intento'); _exito(r); })
+        .catch(e2=>_falloFinal((e2&&e2.message)||String(e2)));
+    }, 3000);
+  });
 }
 
 //  EGRESO
@@ -10125,8 +10207,13 @@ const _arcF=s=>s?String(s).slice(0,10).split('-').reverse().join('-'):'—';
 
 function initArchivados(){ if(ARC_ALL===null) arcCargar(); }
 
+// Planillas históricas de cierres de año: { '2026': url }. Se piden una vez
+// por sesión; alimentan el enlace «Abrir histórico» de los episodios cuyo año
+// ya se trasladó (opción A elegida por Diego, ago-2026).
+let ARC_HIST=null;
 function arcCargar(){
   $('arcBody').innerHTML='<div class="pivot-empty">Cargando archivados…</div>';
+  if(ARC_HIST===null) gs('GET_HISTORICOS',{},h=>{ ARC_HIST=h||{}; },()=>{ ARC_HIST={}; });
   gs('GET_ARCHIVADOS',{},r=>{ ARC_ALL=r||[]; arcFiltrar(); },
     msg=>{ $('arcBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'desconocido')+' <button class="dpset" onclick="arcCargar()">Reintentar</button></div>'; });
 }
@@ -10199,7 +10286,17 @@ function arcDetalle(i){
   gs('GET_HISTORIAL_PACIENTE',{idCama:a.cama,patientId:a.patientId},d=>{
     const evos=(d&&d.evoluciones)||[];
     const box=$('arcEvos'); if(!box) return;
-    if(!evos.length){ box.textContent='Sin evoluciones registradas para este episodio.'; return; }
+    if(!evos.length){
+      // Año cerrado: las evoluciones viven en la planilla histórica — enlace directo
+      const _anio=String(a.fEgreso||'').slice(0,4);
+      const _url=ARC_HIST&&ARC_HIST[_anio];
+      if(_url){
+        box.innerHTML=`<div style="background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px;padding:10px 13px;font-size:.8rem;color:#1e293b;">`+
+          `📚 Este episodio se trasladó al archivo histórico en el cierre del año ${_anio}. `+
+          `<a href="${_url}" target="_blank" rel="noopener" style="font-weight:800;color:#0058A0;">Abrir «RCE-KINE — Histórico ${_anio}» ↗</a></div>`;
+      } else box.textContent='Sin evoluciones registradas para este episodio.';
+      return;
+    }
     box.innerHTML=evos.slice().reverse().map(e=>{
       const tk=String(e.TURNO_KEY||''); const f=tk.slice(0,10).split('-').reverse().join('-');
       const turno=tk.endsWith('Noche')?'🌙 Noche':'☀️ Día';
