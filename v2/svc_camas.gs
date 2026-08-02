@@ -289,6 +289,10 @@ function intercambiarCamas(idA, idB, ctx) {
       const B = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', String(idB));
       if (!A || !B) return err('Cama origen o destino no encontrada.', ERR.NO_ENCONTRADO);
 
+      // Los PATIENT_ID se capturan ANTES de escribir: si la lectura devolvió
+      // referencias vivas en vez de fotos, A y B ya tendrían los datos del
+      // otro al llegar al reetiquetado (orden-independiente por diseño).
+      const pidA = String(A.PATIENT_ID || ''), pidB = String(B.PATIENT_ID || '');
       const campA = Object.assign({}, B); campA.ID_CAMA = String(idA);
       const campB = Object.assign({}, A); campB.ID_CAMA = String(idB);
       repoActualizar('CAMAS_ESTADO', 'ID_CAMA', String(idA), campA);
@@ -296,12 +300,12 @@ function intercambiarCamas(idA, idB, ctx) {
 
       // El episodio completo viaja con el paciente (antes de los hitos, para
       // que el cache TIMELINE_JSON se reconstruya con las filas correctas).
-      _reetiquetarEpisodioACama(A.PATIENT_ID, idB);
-      _reetiquetarEpisodioACama(B.PATIENT_ID, idA);
+      _reetiquetarEpisodioACama(pidA, idB);
+      _reetiquetarEpisodioACama(pidB, idA);
 
       const fecha = hoyISO();
-      _agregarHitoInterno({ idCama: idA, patientId: B.PATIENT_ID, fecha, turno: 'Dia', tipo: 'general', texto: `Traslado a Cama ${idA} (desde ${idB})`, autor: ctx.firma || '', autorEmail: ctx.email || '' });
-      _agregarHitoInterno({ idCama: idB, patientId: A.PATIENT_ID, fecha, turno: 'Dia', tipo: 'general', texto: `Traslado a Cama ${idB} (desde ${idA})`, autor: ctx.firma || '', autorEmail: ctx.email || '' });
+      _agregarHitoInterno({ idCama: idA, patientId: pidB, fecha, turno: 'Dia', tipo: 'general', texto: `Traslado a Cama ${idA} (desde ${idB})`, autor: ctx.firma || '', autorEmail: ctx.email || '' });
+      _agregarHitoInterno({ idCama: idB, patientId: pidA, fecha, turno: 'Dia', tipo: 'general', texto: `Traslado a Cama ${idB} (desde ${idA})`, autor: ctx.firma || '', autorEmail: ctx.email || '' });
       SpreadsheetApp.flush();
       return ok({ accion: 'intercambio', camaA: idA, camaB: idB });
     } catch (e) { return err('intercambiarCamas: ' + e.message, ERR.INTERNO, e); }
@@ -319,12 +323,16 @@ function moverACamaVacia(idOrigen, idDestino, ctx) {
       if (!esVerdadero(O.OCUPADA)) return err('La cama origen está libre.', ERR.VALIDACION);
       if (esVerdadero(D.OCUPADA)) return err('La cama destino no está libre.', ERR.VALIDACION);
 
+      // El PATIENT_ID se captura ANTES de limpiar el origen: el reetiquetado
+      // de las evoluciones no debe depender de si la lectura fue foto o
+      // referencia viva (orden-independiente por diseño).
+      const pidO = String(O.PATIENT_ID || '');
       const camp = Object.assign({}, O); camp.ID_CAMA = String(idDestino);
       repoActualizar('CAMAS_ESTADO', 'ID_CAMA', String(idDestino), camp);
       _limpiarCamaInterno(String(idOrigen));
-      _reetiquetarEpisodioACama(O.PATIENT_ID, idDestino);
+      _reetiquetarEpisodioACama(pidO, idDestino);
 
-      _agregarHitoInterno({ idCama: idDestino, patientId: O.PATIENT_ID, fecha: hoyISO(), turno: 'Dia', tipo: 'general', texto: `Traslado a Cama ${idDestino} (desde ${idOrigen})`, autor: ctx.firma || '', autorEmail: ctx.email || '' });
+      _agregarHitoInterno({ idCama: idDestino, patientId: pidO, fecha: hoyISO(), turno: 'Dia', tipo: 'general', texto: `Traslado a Cama ${idDestino} (desde ${idOrigen})`, autor: ctx.firma || '', autorEmail: ctx.email || '' });
       SpreadsheetApp.flush();
       return ok({ accion: 'mover_cama_vacia', origen: idOrigen, destino: idDestino, patientId: O.PATIENT_ID });
     } catch (e) { return err('moverACamaVacia: ' + e.message, ERR.INTERNO, e); }

@@ -33,14 +33,22 @@ global.repoLeerTodos = (h, campo, valor) => {
 // de la simulación y el registro diario simulado quedaba sin cobertura.)
 global.repoLeerFiltrado = (h, colKey, pred) =>
   (DB[h] || []).filter(r => pred(r[colKey]));
-global.repoBuscarPorId = (h, campo, id) =>
-  (DB[h] || []).find(r => String(r[campo]) === String(id)) || null;
+// FOTO, no referencia viva: en producción repoBuscarPorId materializa la fila
+// desde la hoja, así que mutar la base después NO cambia lo ya leído. La
+// simulación debe comportarse igual (una referencia viva escondía el orden
+// exacto de operaciones en los traslados).
+global.repoBuscarPorId = (h, campo, id) => {
+  const r = (DB[h] || []).find(x => String(x[campo]) === String(id));
+  return r ? Object.assign({}, r) : null;
+};
 global.repoBuscarFila = (h, campo, id) => {
   const i = (DB[h] || []).findIndex(r => String(r[campo]) === String(id));
   return i === -1 ? -1 : i + 2;
 };
+// Las ESCRITURAS sí operan sobre la fila viva (interno, no expuesto a los .gs)
+const _filaViva = (h, campo, id) => (DB[h] || []).find(x => String(x[campo]) === String(id)) || null;
 global.repoActualizar = (h, campo, id, cambios) => {
-  const r = global.repoBuscarPorId(h, campo, id);
+  const r = _filaViva(h, campo, id);
   if (r) Object.assign(r, cambios);
   return !!r;
 };
@@ -49,7 +57,7 @@ global.repoActualizarDonde = (h, fil, mut) =>
 global.repoInsertar = (h, obj) => { (DB[h] = DB[h] || []).push(obj); return obj; };
 global.repoEliminarDonde = (h, fn) => { DB[h] = (DB[h] || []).filter(r => !fn(r)); };
 global.repoUpsert = (h, campo, id, obj) => {
-  const r = global.repoBuscarPorId(h, campo, id);
+  const r = _filaViva(h, campo, id);
   // Como repo.gs: la fila se REESCRIBE completa (no merge) — un upsert con
   // menos campos borra los que no vengan, igual que en producción.
   if (r) {

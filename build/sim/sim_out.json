@@ -497,8 +497,8 @@
         "💾 Guardando en servidor...",
         "✅ Evolución guardada correctamente"
       ],
-      "avisos": "",
-      "texto": "KINESIOLOGÍA TURNO DÍA\nFase clínica: Neuroprotección.\nPaciente en 1er día de estadía en UCI en contexto de ACV isquémico extenso.\nSin sedación. GCS 11T (O:4, V:1T, M:6).\nHDN estable, sin requerimientos de DVA.\nVAA mediante TOT N° 7.5 fijado a 21 cm a nivel de comisura labial (día 1).\nEn VMI, modo ACVC (día 1 de VM), con adecuada interacción P-VM.\nSe realiza KTM.\nKlgo. Diego Melo Villagrán",
+      "avisos": "Quedan 12 valores heredados del turno anterior sin revisar (en ámbar). Corrígelos si cambiaron, tócalos para confirmarlos, o usa «✓ Sin cambios» en cada módulo.",
+      "texto": "KINESIOLOGÍA TURNO DÍA\nFase clínica: Neuroprotección.\nPaciente en 1er día de estadía en UCI en contexto de ACV isquémico extenso.\nSin sedación. GCS 11T (O:4, V:1T, M:6).\nHDN estable, sin requerimientos de DVA.\nVAA mediante TOT N° 7.5 fijado a 21 cm a nivel de comisura labial (día 1).\nEn VMI, modo ACVC (día 1 de VM), con adecuada interacción P-VM.\nParámetros: Vti 360 ml (7.5 ml/kg PI), FR 18 rpm, VM 6.5 L/min.\nPmax 24 cmH2O, PEEP 8 cmH2O.\nFiO2 45%, SpO2 96%.\nSe realiza KTM.\nKlgo. Diego Melo Villagrán",
       "camaSnap": {
         "VA": "TOT",
         "SOP": "VM",
@@ -804,7 +804,7 @@
         "accion": "mover_cama_vacia",
         "origen": "7",
         "destino": "12",
-        "patientId": ""
+        "patientId": "uuid-7"
       }
     },
     {
@@ -988,7 +988,7 @@
       "err": "",
       "data": {
         "entidad": "FALLAS_VM",
-        "id": "FALLA_1785708425782_085B1",
+        "id": "FALLA_1785710974136_RCTHU",
         "idVm": "vm1",
         "fotoUrl": "",
         "accion": "falla registrada: AVEA-01"
