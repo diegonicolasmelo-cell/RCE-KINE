@@ -163,6 +163,9 @@ function obtenerBoot(datos, ctx, auth) {
       // Reloj del servidor: evita la llamada aparte GET_FECHA_HOY al arrancar
       // (el cliente compara para avisar si el equipo tiene mal la hora).
       ahora: ahoraTS(),
+      // Recordatorio de cierre de año (solo entre el 26-dic y febrero, y solo
+      // si quedan evoluciones de egresados del año anterior sin trasladar).
+      cierre: (typeof avisoCierreAnio === 'function') ? avisoCierreAnio() : null,
     });
   } catch (e) { return err('obtenerBoot: ' + e.message, ERR.INTERNO, e); }
 }

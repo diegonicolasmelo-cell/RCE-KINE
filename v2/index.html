@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.21-veloz">
+<meta name="rce-version" content="5.22-cierre">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1283,6 +1283,11 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <button type="button" class="tb-btn no-print" onclick="bannerMenu('G')">🖼️ Portada</button>
   </div>
   <div class="turno-legend" id="turnoLegend"></div>
+  <div id="cierreAviso" class="hidden no-print" style="background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:9px;padding:10px 14px;margin-bottom:10px;font-size:.82rem;color:#78350f;display:flex;align-items:flex-start;gap:10px;">
+    <span style="font-size:1.1rem;line-height:1;">🗓️</span>
+    <div style="flex:1;"><b id="cierreTit"></b><div id="cierreTxt" style="margin-top:3px;"></div></div>
+    <button type="button" class="dpset" style="flex-shrink:0;" onclick="cierreOcultar()">Recordar en 7 días</button>
+  </div>
   <div id="bootAct" class="hidden" style="font-size:.72rem;color:var(--muted);margin:-4px 0 6px;display:flex;align-items:center;gap:6px;">
     <span style="width:9px;height:9px;border-radius:99px;background:#f59e0b;display:inline-block;animation:bootPulse 1s ease-in-out infinite;"></span>
     Mostrando lo último que viste · actualizando con el servidor…
@@ -3659,7 +3664,7 @@ setTimeout(function () {
         : (/Verificando/.test(l.textContent)
             ? 'El servidor no respondió la verificación de identidad. Probable conflicto de cuentas de Google en este navegador: cierra las otras sesiones o usa la URL /exec.'
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.21-veloz]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.22-cierre]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -11698,6 +11703,30 @@ function _bootGuardar(b, fecha, turno){
     }));
   }catch(e){}
 }
+/* Recordatorio de CIERRE DE AÑO (ago-2026): el servidor avisa entre el
+   26-dic y febrero si quedan evoluciones de pacientes EGRESADOS el año
+   anterior sin trasladar al histórico. Los pacientes hospitalizados no se
+   tocan: su historial se archiva recién en el cierre del año en que egresen.
+   El traslado lo corre el coordinador desde el editor; esto solo recuerda. */
+const CIERRE_KEY='rce_cierre_pospuesto';
+function cierreMostrar(c){
+  if(!c || !c.anio) return;
+  try{ const hasta=parseInt(localStorage.getItem(CIERRE_KEY+'_'+c.anio)||'0',10);
+       if(hasta && Date.now()<hasta) return; }catch(e){}
+  const t=$('cierreTit'), x=$('cierreTxt'), b=$('cierreAviso');
+  if(!t||!x||!b) return;
+  t.textContent=`Cierre de año ${c.anio}: conviene respaldar y aligerar la planilla`;
+  x.innerHTML=`Hay <b>${c.evoluciones}</b> evoluciones de <b>${c.egresados}</b> pacientes egresados en ${c.anio} listas para pasar al histórico.`+
+    (c.hospitalizados?` Los <b>${c.hospitalizados}</b> paciente(s) hospitalizado(s) NO se tocan: completan su estadía y se archivan cuando egresen.`:'')+
+    ` En el editor: <code>archivarAnioHistorico(${c.anio})</code> para ver el detalle y <code>archivarAnioHistoricoCONFIRMAR(${c.anio})</code> para hacerlo.`;
+  b.classList.remove('hidden');
+}
+function cierreOcultar(){
+  const b=$('cierreAviso'); if(!b) return;
+  const m=/Cierre de año (\d{4})/.exec($('cierreTit').textContent||'');
+  if(m){ try{ localStorage.setItem(CIERRE_KEY+'_'+m[1], String(Date.now()+7*864e5)); }catch(e){} }
+  b.classList.add('hidden');
+}
 function _bootPintarCache(fecha, turno){
   let c=null;
   try{ c=JSON.parse(sessionStorage.getItem(BOOT_CACHE)||'null'); }catch(e){}
@@ -11724,6 +11753,7 @@ window.onload = function() {
     chequearReloj(b.ahora);
     _bootGuardar(b, _f0, SHIFT);
     const _a=$('bootAct'); if(_a) _a.classList.add('hidden');
+    cierreMostrar(b.cierre);
     YO=b.yo||{};
     if(YO.dev && LOGIN_UI_ACTIVO){ const d=$('devbar'); if(d) d.style.display='block'; }
     FASES=b.fases||[]; renderFases();

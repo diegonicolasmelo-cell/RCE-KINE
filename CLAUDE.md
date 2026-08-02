@@ -106,6 +106,27 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.22 · CIERRE DE AÑO: TRASLADO AL HISTÓRICO + AVISO (ago-2026, cohete
+  v5.22-cierre).** Sheets admite 10 M de celdas y EVOLUCIONES tiene 379
+  columnas ⇒ un año lleno ≈ 5 M. En `mantenimiento.gs`:
+  `archivarAnioHistorico(anio)` = SIMULACRO y
+  `archivarAnioHistoricoCONFIRMAR(anio)` = traslado real a una planilla nueva
+  «RCE-KINE — Histórico AAAA» (su ID queda en CONFIG.HISTORICO_AAAA; se
+  reutiliza si ya existe). Respalda primero y si el respaldo falla CANCELA;
+  copia, VERIFICA el conteo y recién entonces borra.
+  - **REGLA DURA de Diego**: los pacientes hospitalizados NO se tocan. El
+    traslado va por **EPISODIO EGRESADO** (ARCHIVO_PACIENTES.FECHA_EGRESO del
+    año) y mueve su historia COMPLETA, así el que ingresó en diciembre y
+    egresó en enero viaja entero en el cierre del año en que se fue.
+  - Se queda en la planilla de trabajo: ARCHIVO_PACIENTES (resumen de cada
+    egreso ⇒ REM, indicadores y reingresos por RUT siguen funcionando).
+  - **Aviso automático**: `avisoCierreAnio()` viaja en GET_BOOT y el cliente
+    muestra el banner `#cierreAviso` entre el 26-dic y febrero mientras
+    queden evoluciones del año anterior sin trasladar; «Recordar en 7 días»
+    lo pospone (localStorage) y `CONFIG.CIERRE_AAAA` lo apaga para siempre.
+  - Guardia `checks/cierre_anio.js` (24 asserts, incluido el paciente que
+    cruza el año y el hospitalizado intocable).
+
 - **v5.21 · VELOCIDAD: PINTADO INSTANTÁNEO + LECTURA ACOTADA (ago-2026,
   cohete v5.21-veloz).** Pedido de Diego junto con volver la pantalla de
   carga a la pose que saluda (la del guante tenía los dedos transparentes;

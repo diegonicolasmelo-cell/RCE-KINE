@@ -342,3 +342,145 @@ function cargarInventarioInicial() {
   console.log('Pendientes de completar con ✏️ Editar: números reales de los equipos de bodega, series, inventarios y años.');
   return { altas: altas, saltados: saltados, stock: stockAltas };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CIERRE DE AÑO — TRASLADO DEL HISTÓRICO (ago-2026)
+//  Google Sheets admite 10 millones de celdas por planilla y EVOLUCIONES
+//  tiene 379 columnas: con la unidad llena, un año de registro ocupa ~5
+//  millones. Una vez al año se mueven las evoluciones de los pacientes YA
+//  EGRESADOS a una planilla aparte («RCE-KINE — Histórico AAAA»), dejando la
+//  de trabajo liviana.
+//
+//  REGLA DE ORO (pedido de Diego): los pacientes que siguen hospitalizados
+//  NO se tocan. El traslado va por EPISODIO EGRESADO — se mueve la historia
+//  COMPLETA de cada paciente dado de alta ese año, aunque haya ingresado en
+//  diciembre del año anterior. Un paciente que cruza el año de fin a inicio
+//  conserva todo su historial en la planilla de trabajo hasta que egrese, y
+//  se archiva en el cierre del año en que se fue.
+//
+//  Uso desde el editor:
+//    1) archivarAnioHistorico(2026)            → SIMULACRO: informa, no toca
+//    2) archivarAnioHistoricoCONFIRMAR(2026)   → traslado real
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Episodios EGRESADOS en el año + sus evoluciones archivadas. */
+function _cierreDatosAnio(anio) {
+  const a = String(anio);
+  const egresados = repoLeerTodos('ARCHIVO_PACIENTES').filter(function (x) {
+    return String(_statISO(x.FECHA_EGRESO)).slice(0, 4) === a;
+  });
+  const pids = {};
+  egresados.forEach(function (x) { if (x.PATIENT_ID) pids[String(x.PATIENT_ID)] = true; });
+  const evos = repoLeerTodos('EVOLUCIONES_ARCHIVO').filter(function (e) {
+    return pids[String(e.PATIENT_ID)];
+  });
+  // Pacientes que siguen en la unidad: JAMÁS se tocan (control explícito)
+  const enUnidad = repoLeerTodos('CAMAS_ESTADO').filter(function (c) { return esVerdadero(c.OCUPADA); });
+  return { anio: a, egresados: egresados, evos: evos, enUnidad: enUnidad };
+}
+
+/** Paso 1 — SIMULACRO: informa qué se movería. No modifica nada. */
+function archivarAnioHistorico(anio) {
+  anio = anio || (new Date().getFullYear() - 1);
+  const d = _cierreDatosAnio(anio);
+  const celdas = d.evos.length * TOTAL_COLS.EVOLUCIONES;
+  console.log('🔎 SIMULACRO de cierre ' + d.anio + ' — no se ha movido nada.\n');
+  console.log('  Pacientes egresados en ' + d.anio + ': ' + d.egresados.length);
+  console.log('  Evoluciones que se trasladarían: ' + d.evos.length +
+    ' (~' + Math.round(celdas / 1000) + ' mil celdas liberadas)');
+  console.log('  Quedan intactos en la planilla de trabajo:');
+  console.log('    · ' + d.enUnidad.length + ' paciente(s) HOSPITALIZADO(S) — su historial completo se queda');
+  console.log('    · el resumen de cada egreso en ARCHIVO_PACIENTES (indicadores, REM y reingresos siguen funcionando)');
+  console.log('\n  Para ejecutarlo de verdad: archivarAnioHistoricoCONFIRMAR(' + d.anio + ')');
+  return { anio: d.anio, egresados: d.egresados.length, evoluciones: d.evos.length, hospitalizados: d.enUnidad.length };
+}
+
+/** Paso 2 — TRASLADO REAL: copia a la planilla histórica y recién ahí borra. */
+function archivarAnioHistoricoCONFIRMAR(anio) {
+  anio = anio || (new Date().getFullYear() - 1);
+  const d = _cierreDatosAnio(anio);
+  if (!d.evos.length) {
+    console.log('No hay evoluciones archivadas de ' + d.anio + ' para trasladar.');
+    return { anio: d.anio, movidas: 0 };
+  }
+  // 1) Respaldo primero: si falla, no se mueve nada (todo o nada).
+  console.log('1/4 · Respaldando antes de mover…');
+  const rb = backupDiario();
+  if (!rb || !rb.ok) {
+    console.log('❌ El respaldo falló: NO se movió nada. ' + ((rb && rb.error) || ''));
+    return { anio: d.anio, movidas: 0, error: 'respaldo' };
+  }
+  // 2) Planilla histórica del año (se reutiliza si ya existe)
+  console.log('2/4 · Preparando la planilla histórica…');
+  const claveCfg = 'HISTORICO_' + d.anio;
+  let ss = null;
+  const idPrevio = leerConfig(claveCfg, '');
+  if (idPrevio) { try { ss = SpreadsheetApp.openById(idPrevio); } catch (e) { ss = null; } }
+  if (!ss) {
+    ss = SpreadsheetApp.create('RCE-KINE — Histórico ' + d.anio);
+    escribirConfig(claveCfg, ss.getId());
+    try {
+      const carpeta = _obtenerCarpetaBackup();
+      DriveApp.getFileById(ss.getId()).moveTo(carpeta);
+    } catch (e) { console.log('  (la planilla quedó en la raíz de Drive: ' + e.message + ')'); }
+  }
+  // 3) Copiar encabezados + filas
+  console.log('3/4 · Copiando ' + d.evos.length + ' evoluciones…');
+  const cols = ESQUEMA.EVOLUCIONES_ARCHIVO.cols.map(function (c) { return c[0]; });
+  let hoja = ss.getSheetByName('EVOLUCIONES_ARCHIVO');
+  if (!hoja) {
+    hoja = ss.getSheets()[0].setName('EVOLUCIONES_ARCHIVO');
+    hoja.getRange(1, 1, 1, cols.length).setValues([cols]);
+  }
+  const filas = d.evos.map(function (e) {
+    return cols.map(function (c) { return e[c] === undefined || e[c] === null ? '' : e[c]; });
+  });
+  const desde = Math.max(2, hoja.getLastRow() + 1);
+  hoja.getRange(desde, 1, filas.length, cols.length).setValues(filas);
+  SpreadsheetApp.flush();
+  // Verificación: solo se borra si la copia quedó completa
+  const copiadas = hoja.getLastRow() - desde + 1;
+  if (copiadas !== filas.length) {
+    console.log('❌ La copia quedó incompleta (' + copiadas + ' de ' + filas.length + '): NO se borró nada.');
+    return { anio: d.anio, movidas: 0, error: 'copia incompleta' };
+  }
+  // 4) Recién ahora se vacían de la planilla de trabajo
+  console.log('4/4 · Liberando espacio en la planilla de trabajo…');
+  const pids = {};
+  d.egresados.forEach(function (x) { if (x.PATIENT_ID) pids[String(x.PATIENT_ID)] = true; });
+  repoEliminarDonde('EVOLUCIONES_ARCHIVO', function (e) { return pids[String(e.PATIENT_ID)]; });
+  escribirConfig('CIERRE_' + d.anio, ahoraTS());
+  try {
+    auditar({ email: '', firma: 'MANTENIMIENTO', accion: 'CIERRE_ANIO', entidad: 'EVOLUCIONES_ARCHIVO',
+      idEntidad: d.anio, resumen: d.evos.length + ' evoluciones de ' + d.egresados.length + ' egresos → ' + ss.getName() });
+  } catch (e) {}
+  console.log('\n✅ Cierre ' + d.anio + ' listo.');
+  console.log('   Planilla histórica: ' + ss.getUrl());
+  console.log('   Trasladadas: ' + d.evos.length + ' evoluciones de ' + d.egresados.length + ' pacientes egresados.');
+  console.log('   Intactos: ' + d.enUnidad.length + ' paciente(s) hospitalizado(s) y el resumen de todos los egresos.');
+  return { anio: d.anio, movidas: d.evos.length, url: ss.getUrl() };
+}
+
+/**
+ * Aviso de cierre para la app (lo consume GET_BOOT). Aparece desde el 26 de
+ * diciembre y durante enero-febrero mientras queden evoluciones del año
+ * anterior sin trasladar. Es solo un recordatorio: no mueve nada.
+ */
+function avisoCierreAnio() {
+  try {
+    const hoy = hoyISO();
+    const anioAct = parseInt(hoy.slice(0, 4), 10);
+    const mes = parseInt(hoy.slice(5, 7), 10);
+    const dia = parseInt(hoy.slice(8, 10), 10);
+    const enVentana = (mes === 12 && dia >= 26) || mes <= 2;
+    if (!enVentana) return null;
+    const anio = (mes === 12) ? anioAct : anioAct - 1;
+    if (leerConfig('CIERRE_' + anio, '')) return null;   // ya se hizo
+    const d = _cierreDatosAnio(anio);
+    if (!d.evos.length) return null;
+    return {
+      anio: anio, evoluciones: d.evos.length, egresados: d.egresados.length,
+      hospitalizados: d.enUnidad.length,
+    };
+  } catch (e) { return null; }
+}
