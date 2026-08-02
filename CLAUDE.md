@@ -107,6 +107,24 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.26 · HOJA APK FIEL AL FORMATO OFICIAL (ago-2026, cohete v5.26-apk).**
+  Diego mandó el PDF real (APK 1.2, 2017): «Pauta de cotejo preparación del
+  paciente para ejecución de KTR» — «debe ser fiel reflejo».
+  1. `apkHojaHTML(rut, nombre, cama)` + `imprimirHojaAPK()` en el index,
+     patrón calcado de la Hoja RHB (#apkPrint + body.print-apk + afterprint).
+     Botón **🖨️ Hoja APK** junto a 🖨️ Hoja RHB en el historial.
+  2. FIEL: logos del PDF extraídos con pdfimages e incrustados (11 KB),
+     título exacto, 10 columnas Fecha, las 9 actividades con texto exacto
+     (5 con asterisco), nota «1= SI 0= NO o N/A». Grilla EN BLANCO.
+  3. Prellenado SOLO Ficha o RUN (RUT de la cama, decisión de Diego: el RUT
+     SÍ va impreso porque la hoja va a la ficha física) y Servicio (UCI).
+     El NOMBRE no entra a la pauta (el formato oficial no lo trae): va en la
+     línea chica de generación al pie. Sin RUT ⇒ raya para llenar a mano.
+  4. Guardia `checks/hoja_apk.js` (20 asserts). El PDF original quedó en
+     los uploads de la sesión; los logos extraídos en scratchpad.
+  - PENDIENTE: si el piloto gusta, sumar hoja diaria y de rehabilitación al
+    mismo mecanismo (la RHB YA existe desde antes: `imprimirHojaRHB`).
+
 - **v5.25 · PANEL DE PRUEBA + ENLACE AL HISTÓRICO (ago-2026, cohete
   v5.25-panel).** Tras la auditoría pedida por Diego («busca vacíos, dame
   feedback»). Decisiones de esa ronda: histórico = **opción A** (enlace, no
