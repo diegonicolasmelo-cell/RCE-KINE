@@ -7210,6 +7210,19 @@ function _bindPanelListeners(){
   // Editor de texto: regeneración en vivo mientras no haya edición manual
   $('kf')?.addEventListener('change', _rtxtLive);
   $('kf')?.addEventListener('input', _rtxtLive);
+  // TRAMPA PAGADA (ago-2026, reporte de Diego): los chips del formulario son
+  // <button type="button"> — estado y nivel de KTM, asistencia, cuff, IMS — y
+  // un <button> NO emite 'input' ni 'change' al pulsarse; marcar .checked por
+  // código tampoco emite evento (mismo tropiezo que ya costó el riel en v5.25).
+  // Resultado: el texto quedaba CONGELADO narrando la réplica del turno
+  // anterior. El colega marcaba «KTM nivel 1» y la evolución seguía diciendo
+  // «KTM contraindicada» hasta que tocara por casualidad un campo escrito.
+  // Se engancha el CLIC para que cualquier chip, presente o futuro, quede
+  // cubierto sin tener que acordarse de avisarle al generador.
+  $('kf')?.addEventListener('click', ev=>{
+    if(!ev.target.closest('button')) return;
+    _formDirty=true; _rtxtLive(ev);
+  });
   // Cualquier interacción del usuario marca el formulario como "con cambios"
   $('kf')?.addEventListener('input', ()=>{ _formDirty=true; });
   $('kf')?.addEventListener('change', ()=>{ _formDirty=true; });
