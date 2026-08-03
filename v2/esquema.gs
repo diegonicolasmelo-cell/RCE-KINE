@@ -234,7 +234,12 @@ const _COLS_EVOLUCIONES = [
   // Insumo para medir qué bloques conserva cada colega al editar a mano y, más
   // adelante, ofrecerle una evolución a su medida («Mi estilo»).
   // SIEMPRE AL FINAL.
-  ['TEXTO_BLOQUES','texto']
+  ['TEXTO_BLOQUES','texto'],
+  // La POSICIÓN (RESP_POS_PRONO/SUPINO) dice cómo está el paciente; estas dos
+  // dicen que el cambio se hizo ESTE turno y son las únicas que registran el
+  // procedimiento. Antes bastaba con marcar la posición y cada turno sumaba una
+  // pronación nueva (reporte de Diego, ago-2026). SIEMPRE AL FINAL.
+  ['RESP_PRONO_EVENTO','bool'],['RESP_SUPINO_EVENTO','bool']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -750,7 +755,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 380) errs.push("EVOLUCIONES != 380 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 382) errs.push("EVOLUCIONES != 382 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

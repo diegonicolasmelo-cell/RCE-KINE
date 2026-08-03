@@ -110,8 +110,16 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf) {
     }
     if (esVerdadero(ev.TOT_CAMBIO)) eventos.push('🔄 Cambio de tubo ' + f);
     if (esVerdadero(ev.TQT_CAMBIO)) eventos.push('🔄 Cambio de cánula ' + f);
-    if (esVerdadero(ev.RESP_POS_PRONO)) eventos.push('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));
-    if (esVerdadero(ev.RESP_POS_SUPINO)) eventos.push('🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : ''));
+    // Esta lista es de lo que OCURRIÓ en el turno: va el cambio de posición,
+    // no el hecho de seguir en la misma (antes se repetía turno a turno).
+    // Los episodios anteriores a la separación no traen el campo del evento:
+    // ahí manda la posición, como siempre.
+    const _pronoEv = (ev.RESP_PRONO_EVENTO === undefined || ev.RESP_PRONO_EVENTO === '')
+      ? esVerdadero(ev.RESP_POS_PRONO) : esVerdadero(ev.RESP_PRONO_EVENTO);
+    const _supEv = (ev.RESP_SUPINO_EVENTO === undefined || ev.RESP_SUPINO_EVENTO === '')
+      ? esVerdadero(ev.RESP_POS_SUPINO) : esVerdadero(ev.RESP_SUPINO_EVENTO);
+    if (_pronoEv) eventos.push('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));
+    if (_supEv) eventos.push('🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : ''));
   });
 
   // ── Clasificación de weaning desde los PVE del episodio ──

@@ -107,6 +107,48 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.32 · POSICIÓN = ESTADO, PRONACIÓN = EVENTO (ago-2026, cohete
+  v5.32-prono; EXIGE `crearORepararEstructura()`, EVOLUCIONES **382
+  columnas**).** Reporte de Diego: la paciente de la cama 4 se pronó UNA vez a
+  las 19:00 (turno de María José) y apareció una segunda pronación en el turno
+  siguiente. NO fue error de tipeo: la casilla «Prono» hacía las dos cosas —
+  describir la posición y registrar el procedimiento — así que el colega que
+  describía el estado sumaba una pronación inexistente. Es el mismo error de
+  fondo que v4.3 corrigió en la vía aérea; el posicionamiento se había quedado
+  con el diseño viejo.
+  1. Columnas nuevas `RESP_PRONO_EVENTO` / `RESP_SUPINO_EVENTO` (al final) +
+     casillas ámbar «Se prona/supina este turno» dentro del despliegue de la
+     hora. `_autoProcs` exige **posición Y evento**; la posición sola no
+     registra nada. Al desmarcar la posición se apaga el evento, y prono ⇄
+     supino se excluyen con todo y evento.
+  2. **BUG GRAVE encontrado de paso**: `fillForm` NUNCA restauró el bloque de
+     posicionamiento ⇒ re-editar una evolución lo devolvía VACÍO y al guardar
+     se **perdía la posición registrada**. Restaurados estado, evento, horas,
+     texto libre y los timestamps (sin reiniciar `_pronoTs`: el reloj de horas
+     en prono es del episodio, no de esta apertura del panel).
+  3. **Hitos del historial**: `PROC_TO_HITO` se buscaba por texto EXACTO, así
+     que `PRONO 19:00 HRS` no generaba hito y el `PRONO` pelado sí — el hito
+     caía en el turno equivocado. `_procClaveHito()` recorta la hora pegada y
+     los ciclos del RCP y traduce SUPINACIÓN→SUPINO.
+  4. Entrega de turno: la lista de eventos usa el EVENTO (con respaldo a la
+     posición para los episodios anteriores al cambio), ya no repite «🔃 Prono»
+     turno a turno.
+  5. **Corrección de lo ya guardado** (elegida por Diego):
+     `corregirPronosRepetidos()` = SIMULACRO y
+     `corregirPronosRepetidosCONFIRMAR()` = real, en `mantenimiento.gs`.
+     Criterio conservador: solo saca el procedimiento cuando el turno anterior
+     YA estaba en esa posición **y** el registro viene SIN hora (el que pronó
+     de verdad anotó la hora). Respalda primero y si el respaldo falla CANCELA;
+     limpia PROC_JSON/RESUMEN/CANTIDAD, la fila de PROCEDIMIENTOS y el hito.
+     El texto clínico y la posición quedan INTACTOS.
+  - Guardia `checks/prono.js` (19 asserts, servidor + formulario), verificada
+    contra el index anterior (falla).
+  - PENDIENTE menor: hoy la posición NO se replica al turno siguiente (cada
+    colega la vuelve a marcar). Con la separación ya sería inofensivo
+    replicarla, pero se dejó como está por el precedente del cuff («heredarlo
+    daría por hecha una medición que nadie hizo»). Consultar a Diego si el
+    equipo lo pide.
+
 - **v5.31 · EL ANILLO DEL TUTORIAL DESPLIEGA LO PLEGADO (ago-2026, cohete
   v5.31-foco).** Reporte de Diego con captura: en el recorrido de equipos el
   anillo caía sobre un recuadro vacío. La tarjeta del 🎓 VM DE PRUEBA vive
@@ -614,9 +656,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.31-foco**
-  (antes v5.30-reposo, v5.29-mauri, v5.28-ayuda, v5.27-hojas, v5.26-apk).
-  Exige `crearORepararEstructura()` (EVOLUCIONES 380 columnas + hoja
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.32-prono**
+  (antes v5.31-foco, v5.30-reposo, v5.29-mauri, v5.28-ayuda, v5.27-hojas).
+  Exige `crearORepararEstructura()` (EVOLUCIONES 382 columnas + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete

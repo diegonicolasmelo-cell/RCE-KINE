@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.31-foco">
+<meta name="rce-version" content="5.32-prono">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3079,12 +3079,23 @@ document.documentElement.setAttribute('data-piel', 'inst');
                       <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
                       <input type="time" id="fPronoHora" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
                       <span id="sPronoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
+                      <!-- ESTADO vs EVENTO (v5.32): la casilla de arriba dice cómo está
+                           el paciente; esta dice que la pronación se hizo ESTE turno y
+                           es la única que registra el procedimiento. -->
+                      <span class="check wa" style="background:#fef3c7;border-color:#fcd34d;">
+                        <input type="checkbox" id="cPronoEv" onchange="hPos();_renderAutoProcs();">
+                        <label for="cPronoEv" title="Marca solo el turno en que se realiza la pronación">Se prona este turno</label>
+                      </span>
                     </div>
                     <div class="check wa"><input type="checkbox" id="cSupino" onchange="hPosEspecial('supino')"><label for="cSupino">Supino</label></div>
                     <div id="dSupinoHora" class="hidden" style="display:inline-flex;align-items:center;gap:3px;">
                       <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
                       <input type="time" id="fSupinoHora" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
                       <span id="sSupinoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
+                      <span class="check wa" style="background:#fef3c7;border-color:#fcd34d;">
+                        <input type="checkbox" id="cSupinoEv" onchange="hPos();_renderAutoProcs();">
+                        <label for="cSupinoEv" title="Marca solo el turno en que se supina al paciente">Se supina este turno</label>
+                      </span>
                     </div>
                   </div>
                   <div style="margin-top:6px;">
@@ -3728,7 +3739,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.31-foco]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.32-prono]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4626,6 +4637,21 @@ function fillForm(s) {
   calcInsumosDias();
   { const _hme=$('fFecHME'); if(_hme) _hme.disabled=(s.VENT_H_ACTIVA===true||s.VENT_H_ACTIVA==='TRUE'); }
   setRuidosExtra(s.EX_RUIDOS_JSON||'');
+  /* POSICIONAMIENTO — faltaba por completo en fillForm (v5.32): al re-editar
+     una evolución el bloque volvía VACÍO y, al guardar de nuevo, borraba la
+     posición registrada. Se restaura el estado, el evento del turno, las horas
+     y los timestamps (sin reiniciarlos: el reloj de horas en prono es del
+     episodio, no de esta apertura del panel). */
+  chk('cPosSed',s.RESP_POS_SED); chk('cPosDCLD',s.RESP_POS_DCLD); chk('cPosDCLI',s.RESP_POS_DCLI);
+  chk('cProno',s.RESP_POS_PRONO); chk('cSupino',s.RESP_POS_SUPINO);
+  chk('cPronoEv',s.RESP_PRONO_EVENTO); chk('cSupinoEv',s.RESP_SUPINO_EVENTO);
+  set('fPronoHora',s.RESP_PRONO_HORA); set('fSupinoHora',s.RESP_SUPINO_HORA);
+  set('fPosLibre',s.RESP_POS_LIBRE);
+  set('fPronoTs',s.RESP_PRONO_TS); set('fSupinoTs',s.RESP_SUPINO_TS);
+  _pronoTs=parseInt(s.RESP_PRONO_TS)||0; _supinoTs=parseInt(s.RESP_SUPINO_TS)||0;
+  if($('cProno')&&$('cProno').checked){ show('dPronoHora'); _updatePronoTip(); }
+  if($('cSupino')&&$('cSupino').checked){ show('dSupinoHora'); _updateSupinoTip(); }
+  hPos();
   set('fDeglucion',s.EVAL_DEGLUCION);
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
   chk('cUPOTmed',s.UPOT_MEDIDAS);
@@ -5005,8 +5031,11 @@ function _autoProcs(){
   const muHisop=mu.filter(x=>String(x).toLowerCase().startsWith('hisopado'));
   if(muHisop.length) auto.push('PCR COVID');
   if(mu.length>muHisop.length) auto.push('CULTIVO DE SECRECIONES');
-  if($('cProno')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
-  if($('cSupino')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
+  // ESTADO ≠ EVENTO (v5.32, reporte de Diego): estar en prono NO es haber
+  // pronado. El procedimiento lo declara la casilla del turno, no la posición
+  // — si no, cada colega que describía la posición sumaba una pronación nueva.
+  if($('cProno')?.checked && $('cPronoEv')?.checked){ const h=v('fPronoHora'); auto.push(h?`PRONO ${h} HRS`:'PRONO'); }
+  if($('cSupino')?.checked && $('cSupinoEv')?.checked){ const h=v('fSupinoHora'); auto.push(h?`SUPINACIÓN ${h} HRS`:'SUPINACIÓN'); }
   if($('cIntubO')?.checked) auto.push('INTUBACIÓN');
   if(_extReintub() && !_extOcurrio()) auto.push('REINTUBACIÓN');
   if(v('fApneaTest')) auto.push('TEST APNEA');
@@ -5416,6 +5445,9 @@ function guardar() {
     RESP_POS_DCLI:  bv('cPosDCLI'),
     RESP_POS_PRONO: bv('cProno'),
     RESP_POS_SUPINO:bv('cSupino'),
+    // el EVENTO del turno (v5.32): la posición describe, esto declara
+    RESP_PRONO_EVENTO: bv('cProno') && bv('cPronoEv'),
+    RESP_SUPINO_EVENTO:bv('cSupino') && bv('cSupinoEv'),
     RESP_POS_LIBRE: v('fPosLibre'),
     RESP_PRONO_TS:  v('fPronoTs'),
     RESP_SUPINO_TS: v('fSupinoTs'),
@@ -8297,9 +8329,11 @@ function hPosEspecial(tipo){
     if(checked){
       if(!_pronoTs){ _pronoTs=Date.now(); const h=$('fPronoTs'); if(h) h.value=_pronoTs; }
       if($('cSupino')) $('cSupino').checked=false;
+      if($('cSupinoEv')) $('cSupinoEv').checked=false;   // el evento sigue a su posición
       _updatePronoTip();
     } else {
       _pronoTs=0; const h=$('fPronoTs'); if(h) h.value='';
+      if($('cPronoEv')) $('cPronoEv').checked=false;
       hide('dPronoHora');
     }
   } else {
@@ -8307,13 +8341,16 @@ function hPosEspecial(tipo){
     if(checked){
       if(!_supinoTs){ _supinoTs=Date.now(); const h=$('fSupinoTs'); if(h) h.value=_supinoTs; }
       if($('cProno')) $('cProno').checked=false;
+      if($('cPronoEv')) $('cPronoEv').checked=false;
       _updateSupinoTip();
     } else {
       _supinoTs=0; const h=$('fSupinoTs'); if(h) h.value='';
+      if($('cSupinoEv')) $('cSupinoEv').checked=false;
       hide('dSupinoHora');
     }
   }
   hPos();
+  _renderAutoProcs();
 }
 function _hrsStr(ms){ const h=Math.round(ms/3600000); return `${h} hr${h!==1?'s':''}`; }
 function _updatePronoTip(){

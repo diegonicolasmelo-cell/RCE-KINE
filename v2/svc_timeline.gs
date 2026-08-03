@@ -92,13 +92,27 @@ const PROC_TO_HITO = {
 
 const _TIPOS_HITO_AUTO = ['via_aerea', 'procedimiento', 'kine', 'general'];
 
+/**
+ * Clave de hito de un procedimiento. Varios se guardan con un dato pegado
+ * ('PRONO 19:00 HRS', 'RCP 3 CICLOS') y la búsqueda exacta los dejaba SIN
+ * hito: la pronación con hora no aparecía en el historial y la que venía sin
+ * hora sí — el hito terminaba en el turno equivocado (ago-2026).
+ */
+function _procClaveHito(proc) {
+  var k = String(proc || '').trim().toUpperCase();
+  k = k.replace(/\s+\d{1,2}:\d{2}\s*HRS?$/, '');   // PRONO 19:00 HRS
+  k = k.replace(/\s+\d+\s+CICLOS?$/, '');          // RCP 3 CICLOS
+  if (k === 'SUPINACIÓN' || k === 'SUPINACION') k = 'SUPINO';
+  return k;
+}
+
 /** Convierte la lista de procedimientos del turno en hitos (idempotente). */
 function _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, autor, autorEmail) {
   _borrarHitosAutoTurno(idCama, fecha, turno);
   if (!Array.isArray(procs) || !procs.length) return;
   let creados = 0;
   procs.forEach(proc => {
-    const map = PROC_TO_HITO[String(proc || '').trim()];
+    const map = PROC_TO_HITO[_procClaveHito(proc)];
     if (!map) return;
     _agregarHitoInternoSinSync({ idCama, fecha, turno, tipo: map.tipo, texto: map.label, autor: autor || '', autorEmail: autorEmail || '' });
     creados++;

@@ -484,3 +484,124 @@ function avisoCierreAnio() {
     };
   } catch (e) { return null; }
 }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+//  CORRECCIÓN · PRONACIONES REPETIDAS (ago-2026)
+//  Hasta la v5.31 la casilla «Prono» del posicionamiento servía para DOS cosas:
+//  decir cómo estaba el paciente y registrar la pronación. Quien describía la
+//  posición en el turno siguiente sumaba una pronación que nunca ocurrió
+//  (reportado por Diego con la paciente de la cama 4). Desde la v5.32 el
+//  procedimiento lo declara una casilla aparte; estas dos funciones limpian lo
+//  que quedó registrado con la regla vieja.
+//
+//  Criterio (conservador — solo saca lo que es claramente arrastre):
+//    · la evolución trae un procedimiento PRONO/SUPINACIÓN, y
+//    · el turno ANTERIOR del mismo episodio ya estaba en esa misma posición, y
+//    · el procedimiento de esta evolución viene SIN hora
+//      (el que pronó de verdad anota la hora; el que solo describía, no).
+//  El texto clínico, la posición y todo lo demás quedan INTACTOS: se saca el
+//  procedimiento sobrante de PROC_JSON/PROC_RESUMEN/PROC_CANTIDAD, su fila en
+//  PROCEDIMIENTOS y su hito en TIMELINE.
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Paso 1 — SIMULACRO: lista qué se corregiría. No modifica nada. */
+function corregirPronosRepetidos() { return _pronoCorregir(false); }
+
+/** Paso 2 — CORRECCIÓN REAL. Respalda primero; si el respaldo falla, cancela. */
+function corregirPronosRepetidosCONFIRMAR() { return _pronoCorregir(true); }
+
+function _pronoCorregir(aplicar) {
+  var HOJAS = ['EVOLUCIONES', 'EVOLUCIONES_ARCHIVO'];
+  var casos = [];
+
+  HOJAS.forEach(function (hoja) {
+    var filas = repoLeerTodos(hoja) || [];
+    // Agrupar por episodio y ordenar cronológicamente por TURNO_KEY
+    // ('2026-08-02-Dia' ordena bien como texto salvo el turno: Dia < Noche ✓).
+    var porEpisodio = {};
+    filas.forEach(function (f) {
+      var pid = String(f.PATIENT_ID || f.ID_CAMA || '');
+      (porEpisodio[pid] = porEpisodio[pid] || []).push(f);
+    });
+    Object.keys(porEpisodio).forEach(function (pid) {
+      var evs = porEpisodio[pid].sort(function (a, b) {
+        return String(a.TURNO_KEY) < String(b.TURNO_KEY) ? -1 : 1;
+      });
+      for (var i = 1; i < evs.length; i++) {
+        [['PRONO', 'RESP_POS_PRONO'], ['SUPINACIÓN', 'RESP_POS_SUPINO']].forEach(function (par) {
+          var etq = par[0], colPos = par[1];
+          if (!esVerdadero(evs[i][colPos]) || !esVerdadero(evs[i - 1][colPos])) return;
+          var procs = _pronoProcs(evs[i]);
+          // solo el registro SIN hora: el que pronó de verdad la anotó
+          var sobra = procs.filter(function (p) { return String(p).trim().toUpperCase() === etq; });
+          if (!sobra.length) return;
+          casos.push({
+            hoja: hoja, id: evs[i].ID_EVOLUCION, cama: evs[i].ID_CAMA,
+            turno: evs[i].TURNO_KEY, firma: evs[i].PLAN_FIRMA_KINE,
+            quita: etq, turnoPrevio: evs[i - 1].TURNO_KEY,
+          });
+        });
+      }
+    });
+  });
+
+  var detalle = casos.map(function (c) {
+    return '  · ' + c.hoja + ' · cama ' + c.cama + ' · ' + c.turno + ' (' + (c.firma || 's/firma') +
+      ') — quita «' + c.quita + '» (ya estaba en esa posición desde ' + c.turnoPrevio + ')';
+  }).join('\n');
+
+  if (!aplicar) {
+    var msg = casos.length
+      ? 'SIMULACRO — se corregirían ' + casos.length + ' registro(s):\n' + detalle +
+        '\n\nNada se ha modificado. Para aplicarlo corre corregirPronosRepetidosCONFIRMAR().'
+      : 'SIMULACRO — no hay pronaciones repetidas que corregir.';
+    Logger.log(msg);
+    return ok({ simulacro: true, casos: casos.length, detalle: casos, mensaje: msg });
+  }
+
+  if (!casos.length) { Logger.log('Nada que corregir.'); return ok({ casos: 0 }); }
+
+  var resp = backupDiario();
+  if (!resp || !resp.ok) {
+    var e = 'CANCELADO: el respaldo falló, no se modificó nada. ' + ((resp && resp.error) || '');
+    Logger.log(e); return err(e);
+  }
+
+  casos.forEach(function (c) {
+    var fila = repoBuscarPorId(c.hoja, 'ID_EVOLUCION', c.id);
+    if (!fila) return;
+    var procs = _pronoProcs(fila).filter(function (p) {
+      return String(p).trim().toUpperCase() !== c.quita;
+    });
+    repoActualizar(c.hoja, 'ID_EVOLUCION', c.id, {
+      PROC_JSON: JSON.stringify(procs),
+      PROC_RESUMEN: procs.join(', '),
+      PROC_CANTIDAD: procs.length,
+    });
+    // la fila del procedimiento y su hito en el historial
+    repoEliminarDonde('PROCEDIMIENTOS', function (p) {
+      return String(p.ID_EVOLUCION) === String(c.id) &&
+             String(p.PROCEDIMIENTO || '').trim().toUpperCase() === c.quita;
+    });
+    var etiqueta = (PROC_TO_HITO[c.quita === 'SUPINACIÓN' ? 'SUPINO' : c.quita] || {}).label;
+    if (etiqueta) {
+      var partes = String(c.turno).split('-');
+      var turno = partes.pop(), fecha = partes.join('-');
+      repoEliminarDonde('TIMELINE', function (h) {
+        return String(h.ID_CAMA) === String(c.cama) && String(h.FECHA) === fecha &&
+               h.TURNO === turno && String(h.TEXTO) === etiqueta;
+      });
+    }
+  });
+
+  auditar({ accion: 'CORRECCION_PRONO', entidad: 'EVOLUCIONES', detalle: casos.length + ' registro(s)' });
+  var fin = 'Listo: ' + casos.length + ' pronación(es)/supinación(es) repetida(s) corregida(s).\n' + detalle;
+  Logger.log(fin);
+  return ok({ casos: casos.length, detalle: casos, mensaje: fin });
+}
+
+/** Procedimientos de una evolución (PROC_JSON, tolerante a filas antiguas). */
+function _pronoProcs(fila) {
+  try { return JSON.parse(fila.PROC_JSON || '[]') || []; } catch (e) { return []; }
+}
