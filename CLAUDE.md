@@ -107,6 +107,39 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.29 · DON MAURI, LA MASCOTA KINESIÓLOGA (ago-2026, cohete v5.29-mauri).**
+  Diego mandó DOS láminas dibujadas con poses de un kinesiólogo y las bautizó
+  **«Don Mauri»**. Reemplaza por completo a la «persona antigua» (la mascota
+  genérica que venía desde v4.9), que se ELIMINÓ del index.
+  1. **8 poses recortadas** de las láminas con `scratchpad/mauri/recortar.py`
+     (segmentación por componentes conexos + quita de fondo, sombra de piso y
+     bolsas blancas encerradas): `tablet` (📋 mostrando información, la pose
+     por defecto), `confirma` (👍), `duerme` (😴), `error` (😡), `festejo`
+     (🎉), `piensa` (🤔), `idea` (💡) y `cafe` (☕ procesando).
+     TRAMPA: el filtro de residuos por componente conexo (≥260 px) se comía
+     el ✓ azul de la pose «confirma» ⇒ bajado a 95 px.
+  2. **Formato WebP 140 px calidad 85**, no PNG: 50,0 KB las 8 poses contra
+     149 KB en PNG cuantizado, y el tamaño MÁXIMO en que se muestran es
+     104 px (medido) ⇒ 140 px basta y sobra. Verificado antes de incrustar
+     que Chromium renderiza data-URI WebP («✅ 104x140»). Viven en el objeto
+     `MAURI` del index; `mauriSrc(p)` arma el data-URI y `mauriPose(sel,p)`
+     cambia la pose de un `<img>`.
+  3. **Pose por contexto** en `_tutColocar`: paso final de un recorrido con
+     `_tutI>0` ⇒ `festejo`; recorrido de equipos ⇒ `confirma`; paso impar del
+     esencial ⇒ `idea`; el resto ⇒ `tablet`. El botón flotante va con
+     `tablet` y la pantalla de carga con `cafe`.
+  4. **Servi conserva 5 poses** (decisión de Diego, «dejar a las dos para ver
+     cuál tiene mayor aceptación»): saludo, dormido, duda, idea y celebración.
+     Se BORRARON la de la jeringa (`sg-alerta`) y la del guante. La regla CSS
+     `#tutGlobo.rec-evo` dejaba a Servi sin ninguna pose al irse la jeringa:
+     ahora solo apaga `sg-idea` y queda la duda.
+  5. Balance de peso medido: −14,9 KB (jeringa 5,9 + persona antigua 9,0) y
+     +50,0 KB de Don Mauri ⇒ index 0,88 → 0,95 MB, cohete 1.225 KB.
+  - `MASC_NOMBRE='Servi U'` + `MASC_NOMBRE_P='Don Mauri'`; el saludo de la
+    primera vez elige el nombre según `mascActual()`.
+  - Guardia `checks/tutorial.js` actualizada (acepta `data:image/webp`, ya no
+    exige la jeringa).
+
 - **v5.28 · CENTRO DE AYUDA + VM DE PRÁCTICA (ago-2026, cohete v5.28-ayuda).**
   Reporte de Diego: el equipo «no entiende algunos movimientos» y él era el
   intermediario de todas las dudas. La mascota YA NO lanza el recorrido:
@@ -535,10 +568,11 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.16-guante**
-  (antes v5.14-ingreso, v5.13-movil, v5.12-fiesta, v5.11-asinc, v5.10-poses).
-  Exige `crearORepararEstructura()` (EVOLUCIONES 380 columnas + CAMAS_ESTADO
-  con `TQT_CALIBRE` + CONFIG con `DOCS_FOLDER`).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.29-mauri**
+  (antes v5.28-ayuda, v5.27-hojas, v5.26-apk, v5.25-panel, v5.23-bloques).
+  Exige `crearORepararEstructura()` (EVOLUCIONES 380 columnas + hoja
+  SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
+  `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete
   v4.7-docs).**
   1. **📂 Documentos**: botón en la barra del Registro Diario → modal que

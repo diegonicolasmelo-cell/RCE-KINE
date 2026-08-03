@@ -113,10 +113,10 @@ const { chromium } = require('playwright-core');
     tutCerrar();
     return {
       globoFlex: flex, mascVisible: altoMasc > 40,
-      fabImg: !!fab && fab.src.indexOf('data:image/png;base64,') === 0,
+      fabImg: !!fab && /^data:image\/(png|webp);base64,/.test(fab.src),
       fabSinInterrogacion: $('tutBtn').textContent.indexOf('?') === -1,
-      globoImg: !!glo && glo.src.indexOf('data:image/png;base64,') === 0,
-      cargaImg: !!lov && lov.src.indexOf('data:image/png;base64,') === 0,
+      globoImg: !!glo && /^data:image\/(png|webp);base64,/.test(glo.src),
+      cargaImg: !!lov && /^data:image\/(png|webp);base64,/.test(lov.src),
       marcaAgua: marca.indexOf('data:image/png;base64,') > -1,
       logoIncrustado: !!logo && logo.src.indexOf('data:image/png;base64,') === 0,
     };
@@ -172,7 +172,7 @@ const { chromium } = require('playwright-core');
     r.soloServi = vis('#tutBtn .masc-servi') && !vis('#tutBtn .masc-persona');
     // la ilustración es la que aportó Diego: va incrustada, sin URL externa
     r.incrustada = [...$('tutBtn').querySelectorAll('.masc-servi img')]
-      .every(i => i.src.indexOf('data:image/png;base64,') === 0);
+      .every(i => /^data:image\/(png|webp);base64,/.test(i.src));
     r.dosPoses = !!$('serviOn') && !!$('serviOff');
     r.nombre = MASC_NOMBRE;
     r.servikQuieto = getComputedStyle($('tutBtn')).animationName === 'none';
@@ -274,12 +274,12 @@ const { chromium } = require('playwright-core');
   eq('ancla inexistente: sin anillo y con velo oscuro (globo centrado)', !SIN.anillo && SIN.dim, true);
 
   /* ── v5.10/v5.12 · Servi cambia de pose según el contexto: duda (?) e idea
-        (💡) alternan en el esencial, jeringa en el clínico (rec-evo) y la
+        (💡) alternan en el esencial (la jeringa se retiró en v5.29) y la
         CELEBRACIÓN con confeti cierra el último paso de ambos (rec-fin);
         el aviso «sin pacientes» NO celebra. ── */
   const POSES = await p.evaluate(async () => {
     const vis = s => { const e = document.querySelector(s); return !!(e && e.offsetParent !== null); };
-    const sólo = cual => ['sg-duda', 'sg-idea', 'sg-alerta', 'sg-exito']
+    const sólo = cual => ['sg-duda', 'sg-idea', 'sg-exito']
       .every(c => vis('#tutGlobo .' + c) === (c === cual));
     const r = {};
     DB = [{ ID_CAMA: '1', OCUPADA: true, NOMBRE: 'Juan Pérez', EDAD: 64, SEXO: 'M',
@@ -295,7 +295,7 @@ const { chromium } = require('playwright-core');
     r.finalExito = sólo('sg-exito');
     tutCerrar();
     tutAbrir('evolucion'); await new Promise(res => setTimeout(res, 1100));
-    r.evoAlerta = sólo('sg-alerta');
+    r.evoAlerta = sólo('sg-duda');
     while (_tutI < TUT_PASOS.length - 1) { tutSiguiente(); await new Promise(res => setTimeout(res, 160)); }
     r.evoFinalExito = sólo('sg-exito');
     tutCerrar();
@@ -303,7 +303,7 @@ const { chromium } = require('playwright-core');
     // sin pacientes: el aviso es paso único y final, pero NO es un logro
     DB = [{ ID_CAMA: '1', OCUPADA: false }];
     tutAbrir('evolucion'); await new Promise(res => setTimeout(res, 350));
-    r.sinPacSinFiesta = sólo('sg-alerta');
+    r.sinPacSinFiesta = sólo('sg-duda');
     tutCerrar();
     return r;
   });
@@ -311,10 +311,10 @@ const { chromium } = require('playwright-core');
   eq('esencial paso 2: cambia a la pose de la idea', POSES.paso2Idea, true);
   eq('esencial paso 3: vuelve la duda (alternan)', POSES.paso3Duda, true);
   eq('último paso del esencial: celebración con confeti', POSES.finalExito, true);
-  eq('recorrido clínico: Servi con la jeringa', POSES.evoAlerta, true);
+  eq('recorrido clínico: Servi con su pose por defecto', POSES.evoAlerta, true);
   eq('último paso del clínico: también celebra', POSES.evoFinalExito, true);
   eq('al cerrar, el globo queda sin clases de pose', POSES.limpio, true);
-  eq('el aviso «sin pacientes» no celebra (jeringa)', POSES.sinPacSinFiesta, true);
+  eq('el aviso «sin pacientes» no celebra', POSES.sinPacSinFiesta, true);
 
   await b.close();
   if (errs.length) { console.log('❌ errores JS:', errs.join(' | ')); fails.push('errores JS'); }
