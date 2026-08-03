@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.30-reposo">
+<meta name="rce-version" content="5.31-foco">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3728,7 +3728,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.30-reposo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.31-foco]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -6186,7 +6186,9 @@ const TUT_RECORRIDOS={
   {tab:'V', sel:'#tcV', t:'🔧 El inventario de la unidad', d:'Aquí vive cada equipo: en qué cama está, si está operativo, en mantención o con falla, y todo su historial de movimientos. Para practicar sin miedo, apareció un equipo especial: el 🎓 VM DE PRUEBA.'},
   {tab:'V', sel:'[data-vm="TUT_DEMO"]', selAlt:'#tcV', t:'🎓 Tu equipo de práctica', d:'Esta tarjeta es de MENTIRA: muévela cuanto quieras y nada se guarda — el inventario real ni se entera. Desaparece al recargar la página.'},
   {tab:'V', sel:'[data-vm="TUT_DEMO"]', selAlt:'#tcV', t:'🔁 Mover un equipo', d:'El botón «🔁 Mover» abre el destino: una CAMA, la bodega, préstamo a otra unidad o la zona de equipos médicos (mantención). Si entra a mantención, la app sugiere cambiar el estado sola.'},
-  {tab:'V', sel:'#vmCola', selAlt:'#tcV', t:'📦 Varios de una vez', d:'Cuando se reorganizan varios equipos, usa «➕ A la lista» en cada uno y después «✅ Aplicar todos»: se validan juntos y así también puedes INTERCAMBIAR ventiladores entre dos camas.'},
+  // la barra de la lista solo existe con movimientos pendientes: si no está,
+  // el foco vuelve a la tarjeta de práctica (ahí nace el «➕ A la lista»)
+  {tab:'V', sel:'#vmCola', selAlt:'[data-vm="TUT_DEMO"]', t:'📦 Varios de una vez', d:'Cuando se reorganizan varios equipos, usa «➕ A la lista» en cada uno y después «✅ Aplicar todos»: se validan juntos y así también puedes INTERCAMBIAR ventiladores entre dos camas.'},
   {tab:'V', sel:'[data-vm="TUT_DEMO"]', selAlt:'#tcV', t:'💪 Ahora practica tú', d:'Cierra este globo y mueve el 🎓 VM DE PRUEBA: a una cama, a bodega, con «Mover ahora» o por la lista. Todo lo que hagas con él es simulacro — cuando te sientas seguro, lo mismo aplica a los equipos reales.', fin:true},
  ]}
 };
@@ -6342,6 +6344,21 @@ function tutSiguiente(){
   // espera el cambio de pestaña/reflow antes de medir el ancla
   setTimeout(()=>_tutColocar(p),120);
 }
+/** Despliega los <details> que tengan escondida a este elemento. */
+function _tutRevelar(el){
+  let n=el;
+  while(n && n!==document.body){
+    if(n.tagName==='DETAILS' && !n.open) n.open=true;
+    n=n.parentElement;
+  }
+}
+/** ¿El ancla se ve DE VERDAD? (no basta con que tenga rect: ver _tutRevelar) */
+function _tutVisible(el){
+  if(!el || !el.offsetParent) return false;
+  if(el.closest && el.closest('details:not([open])')) return false;
+  const r=el.getBoundingClientRect();
+  return r.width>4 && r.height>4;
+}
 function _tutColocar(p){
   // El recorrido pudo cerrarse (o avanzar) durante los 120 ms de espera:
   // si el paso ya no es el vigente, este posicionamiento quedó obsoleto.
@@ -6361,9 +6378,17 @@ function _tutColocar(p){
       : MAURI_RECORRIDO[Math.max(_tutI,0) % MAURI_RECORRIDO.length]);
   }
   let el=document.querySelector(p.sel);
+  // Si el ancla vive dentro de un bloque plegado (<details> cerrado), se
+  // DESPLIEGA antes de medirla. Sin esto el anillo caía sobre una tarjeta
+  // que nadie ve: Chrome le sigue dando tamaño y posición aunque esté
+  // oculta (usa content-visibility, no display:none), así que ni el rect ni
+  // offsetParent delataban el problema. Reportado por Diego en el recorrido
+  // de equipos (v5.30): la tarjeta del VM de prueba está dentro de
+  // «📋 Tarjetas y gestión», que arranca plegado.
+  if(el) _tutRevelar(el);
   // algunos bloques solo existen según el paciente (p. ej. la vía aérea):
   // si no está visible, se usa el ancla alternativa del paso
-  if(p.selAlt && (!el || !el.offsetParent)) el=document.querySelector(p.selAlt);
+  if(p.selAlt && !_tutVisible(el)){ el=document.querySelector(p.selAlt); if(el) _tutRevelar(el); }
   let r=el?el.getBoundingClientRect():null;
   if(r&&p.sel2){ const e2=document.querySelector(p.sel2); if(e2){ const r2=e2.getBoundingClientRect();
     r={left:Math.min(r.left,r2.left),top:Math.min(r.top,r2.top),

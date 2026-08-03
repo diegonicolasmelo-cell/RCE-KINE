@@ -95,6 +95,27 @@ const { chromium } = require('playwright-core');
     await new Promise(res => setTimeout(res, 300));
     r.demoEnCenso = (VM_ALL || []).some(x => x.id === 'TUT_DEMO');
     r.pasosEquipos = TUT_PASOS.length;
+    /* v5.30 · reporte de Diego: el anillo caía sobre la tarjeta del VM de
+       prueba mientras «📋 Tarjetas y gestión» seguía PLEGADO — se veía un
+       recuadro vacío apuntando a nada. Chrome le da rect y offsetParent a lo
+       que hay dentro de un <details> cerrado, así que hay que preguntar por
+       el <details>, no por el tamaño. */
+    r.anillos = [];
+    for (let i = 1; i < TUT_PASOS.length; i++) {
+      tutSiguiente();
+      await new Promise(res => setTimeout(res, 400));
+      const card = document.querySelector('[data-vm="TUT_DEMO"]');
+      const ring = $('tutRing').getBoundingClientRect();
+      r.anillos.push({
+        paso: i + 1,
+        plegado: !!(card && card.closest('details:not([open])')),
+        enTarjeta: !!card && Math.abs(ring.left - (card.getBoundingClientRect().left - 6)) < 2,
+        enPantalla: ring.top >= 0 && ring.bottom <= innerHeight,
+      });
+    }
+    r.pasosPlegados = r.anillos.filter(x => x.plegado).length;
+    r.pasosEnTarjeta = r.anillos.filter(x => x.enTarjeta).length;
+    r.pasosFueraDePantalla = r.anillos.filter(x => !x.enPantalla).length;
     tutCerrar();
     // la recarga del censo NO borra el demo
     vmCargar();
@@ -146,6 +167,9 @@ const { chromium } = require('playwright-core');
   console.log('\n── 🎓 VM de práctica ──');
   eq('el recorrido lo siembra', R.demoEnCenso, true);
   eq('recorrido de 5 pasos', R.pasosEquipos, 5);
+  eq('ningún paso apunta a la tarjeta con el bloque plegado', R.pasosPlegados, 0);
+  eq('los 4 pasos siguientes enfocan la tarjeta de práctica', R.pasosEnTarjeta, 4);
+  eq('y el anillo nunca queda fuera de la pantalla', R.pasosFueraDePantalla, 0);
   eq('sobrevive a la recarga del censo', R.demoSobrevive, true);
   eq('su tarjeta existe en el tablero', R.tarjetaDemo, true);
   eq('moverlo lo simula en pantalla', R.demoMovido, true);

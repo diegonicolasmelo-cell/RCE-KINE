@@ -107,6 +107,26 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.31 · EL ANILLO DEL TUTORIAL DESPLIEGA LO PLEGADO (ago-2026, cohete
+  v5.31-foco).** Reporte de Diego con captura: en el recorrido de equipos el
+  anillo caía sobre un recuadro vacío. La tarjeta del 🎓 VM DE PRUEBA vive
+  dentro de «📋 Tarjetas y gestión», un `<details>` que arranca PLEGADO.
+  1. **TRAMPA (nueva, anotar)**: Chrome le da `getBoundingClientRect()` con
+     tamaño Y `offsetParent` no nulo a lo que está dentro de un `<details>`
+     cerrado (usa `content-visibility`, no `display:none`) ⇒ ni el rect ni
+     `offsetParent` delataban que la tarjeta era invisible, y el `selAlt` del
+     paso nunca entraba. **Para saber si algo se ve de verdad hay que
+     preguntar por `closest('details:not([open])')`.**
+  2. `_tutRevelar(el)` sube por los ancestros y abre los `<details>` cerrados
+     antes de medir; `_tutVisible(el)` reemplaza al `!el.offsetParent` suelto.
+     Vale para cualquier paso futuro, no solo este.
+  3. El paso «📦 Varios de una vez» apuntaba a `#vmCola`, que solo existe con
+     movimientos pendientes ⇒ su `selAlt` era `#tcV` (anillo alrededor de la
+     pestaña entera). Ahora cae en la tarjeta de práctica.
+  - 3 asserts nuevos en `checks/ayuda.js` (ningún paso enfoca con el bloque
+    plegado, los 4 pasos caen en la tarjeta, el anillo nunca sale de la
+    pantalla). Verificado que con el index anterior FALLAN.
+
 - **v5.30 · DON MAURI EN REPOSO: SILLÓN DE DÍA, BOSTEZO DE NOCHE (ago-2026,
   cohete v5.30-reposo).** Pedido de Diego al ver v5.29: «de día descansa en la
   esquina sentado en el sofá y de noche se duerme de pie y bosteza; el resto
@@ -594,8 +614,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.30-reposo**
-  (antes v5.29-mauri, v5.28-ayuda, v5.27-hojas, v5.26-apk, v5.25-panel).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.31-foco**
+  (antes v5.30-reposo, v5.29-mauri, v5.28-ayuda, v5.27-hojas, v5.26-apk).
   Exige `crearORepararEstructura()` (EVOLUCIONES 380 columnas + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).
