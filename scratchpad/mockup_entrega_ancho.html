@@ -1,0 +1,721 @@
+<meta charset="utf-8">
+<title>Entrega de turno — 3 diseños a lo ancho</title>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;background:#eef1f6;color:#0f172a;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 14px 60px;}
+
+/* ── Explicación ── */
+.intro{background:#fff;border:1px solid #d7dee8;border-radius:12px;padding:20px 24px;margin-bottom:26px;}
+.intro h1{margin:0 0 4px;font-size:1.35rem;color:#0f172a;}
+.intro p{margin:8px 0;font-size:.9rem;line-height:1.6;color:#334155;}
+.intro .nota{background:#fffbeb;border-left:3px solid #f59e0b;padding:9px 13px;border-radius:0 6px 6px 0;
+  font-size:.85rem;color:#78350f;margin-top:14px;}
+
+.opt{margin-bottom:42px;}
+.opt-h{background:#0f2d4a;color:#fff;border-radius:10px 10px 0 0;padding:13px 20px;}
+.opt-h h2{margin:0;font-size:1.1rem;}
+.opt-h .sub{font-size:.83rem;opacity:.85;margin-top:3px;}
+.opt-desc{background:#fff;border:1px solid #d7dee8;border-top:none;padding:14px 20px;font-size:.85rem;line-height:1.6;color:#334155;}
+.opt-desc ul{margin:7px 0 0;padding-left:20px;}
+.opt-desc li{margin:3px 0;}
+.opt-desc .si{color:#15803d;font-weight:700;}
+.opt-desc .no{color:#b91c1c;font-weight:700;}
+
+/* ── La hoja ── */
+.hoja{background:#fff;border:1px solid #cbd5e1;border-top:none;border-radius:0 0 10px 10px;
+  padding:16px 18px 22px;overflow-x:auto;}
+.papel{width:1044px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#0f172a;}
+
+/* Encabezado de la entrega (común a los 3) */
+.eh{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #0f2d4a;padding-bottom:6px;margin-bottom:8px;}
+.eh h3{margin:0;font-size:1rem;color:#0f2d4a;letter-spacing:-.01em;}
+.eh .ehs{font-size:.72rem;color:#475569;margin-top:2px;}
+.eh .ehr{font-size:.72rem;color:#334155;text-align:right;line-height:1.6;}
+.pills{display:flex;gap:6px;margin-bottom:9px;flex-wrap:wrap;}
+.pill{background:#eef2f7;border:1px solid #d7dee8;border-radius:11px;padding:2px 10px;font-size:.68rem;color:#334155;}
+.pill b{color:#0f2d4a;}
+.pill.rojo{background:#fee2e2;border-color:#fca5a5;color:#b91c1c;}
+
+/* Chips clínicos */
+.tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.62rem;font-weight:700;
+  margin:0 3px 2px 0;white-space:nowrap;}
+.t-alta{background:#dc262618;color:#dc2626;border:1px solid #dc262655;}
+.t-media{background:#d9770618;color:#d97706;border:1px solid #d9770655;}
+.t-baja{background:#16a34a18;color:#16a34a;border:1px solid #16a34a55;}
+.t-wean{background:#d9770618;color:#b45309;border:1px solid #d9770655;}
+.t-weanp{background:#dc262618;color:#dc2626;border:1px solid #dc262655;}
+.t-prono{background:#0891b218;color:#0e7490;border:1px solid #0891b255;}
+.t-aw{background:#9333ea18;color:#9333ea;border:1px solid #9333ea55;}
+.t-pve{background:#16a34a18;color:#16a34a;border:1px solid #16a34a55;}
+.t-alert{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.t-pend{background:#fde68a;color:#78350f;border:1px solid #f59e0b55;border-radius:10px;padding:1px 8px;}
+
+.rojo-txt{color:#be123c;font-weight:700;}
+.venc{color:#b91c1c;font-weight:800;}
+.camb{color:#b45309;font-weight:800;}
+
+/* Franja de "sin evolución" / heredado */
+.heredado-strip{background:#fff7ed;border-left:3px solid #f59e0b;color:#9a3412;
+  font-size:.65rem;font-weight:700;padding:3px 9px;letter-spacing:.02em;}
+
+/* ═══════════ OPCIÓN A — Franja por paciente ═══════════ */
+.A-f{border:1px solid #cbd5e1;border-radius:7px;margin-bottom:7px;overflow:hidden;break-inside:avoid;}
+.A-f.sinevo{border:1.5px solid #f59e0b;}
+.A-row{display:grid;grid-template-columns:190px 232px 150px 172px 300px;align-items:stretch;}
+.A-col{padding:6px 9px;border-left:1px solid #e6ebf2;min-width:0;}
+.A-col:first-child{border-left:none;background:#f6f9fc;}
+.A-k{font-size:.55rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-bottom:3px;}
+.A-cama{display:inline-block;background:#0f2d4a;color:#fff;font-weight:900;font-size:.82rem;
+  border-radius:4px;padding:1px 7px;margin-right:5px;}
+.A-nm{font-weight:800;font-size:.78rem;color:#0f172a;}
+.A-meta{font-size:.63rem;color:#64748b;margin:2px 0 3px;}
+.A-dx{font-size:.63rem;color:#475569;font-style:italic;line-height:1.35;margin-bottom:3px;}
+.A-v{font-size:.685rem;line-height:1.45;color:#1e293b;}
+.A-v b{font-weight:700;}
+.A-v .li{display:block;}
+.A-plan{background:#fffbeb;}
+.A-plan .esc{border:1px dashed #f0c674;border-radius:4px;min-height:26px;padding:3px 5px;
+  font-size:.66rem;color:#78350f;line-height:1.4;}
+.A-firma{font-size:.6rem;color:#94a3b8;text-align:right;margin-top:3px;}
+.A-firma b{color:#0369a1;}
+
+/* ═══════════ OPCIÓN B — Tabla de turno ═══════════ */
+.B-t{width:100%;border-collapse:collapse;table-layout:fixed;}
+.B-t th{background:#0f2d4a;color:#fff;font-size:.58rem;font-weight:800;letter-spacing:.05em;
+  text-transform:uppercase;padding:5px 6px;text-align:left;border-right:1px solid #2c4a6b;}
+.B-t th:last-child{border-right:none;}
+.B-t td{border:1px solid #dbe2ea;padding:5px 6px;font-size:.665rem;line-height:1.42;
+  vertical-align:top;color:#1e293b;word-wrap:break-word;}
+.B-t tbody tr:nth-child(even) td{background:#f8fafc;}
+.B-t tr.sinevo td{background:#fffbf5;}
+.B-cama{font-weight:900;font-size:.8rem;color:#fff;background:#0f2d4a;border-radius:4px;
+  padding:1px 6px;display:inline-block;margin-bottom:3px;}
+.B-nm{font-weight:800;font-size:.7rem;display:block;color:#0f172a;}
+.B-meta{font-size:.6rem;color:#64748b;display:block;margin-bottom:2px;}
+.B-dx{font-size:.6rem;color:#475569;font-style:italic;display:block;}
+.B-esc{border:1px dashed #f0c674;background:#fffbeb;border-radius:4px;min-height:24px;
+  padding:2px 4px;color:#78350f;font-size:.63rem;}
+.B-fir{font-size:.58rem;color:#0369a1;font-weight:700;margin-top:3px;display:block;}
+
+/* ═══════════ OPCIÓN C — Ficha ancha en dos pisos ═══════════ */
+.C-f{border:1px solid #cbd5e1;border-radius:8px;margin-bottom:8px;overflow:hidden;break-inside:avoid;}
+.C-f.sinevo{border:1.5px solid #f59e0b;}
+.C-h{display:flex;align-items:center;gap:9px;background:#eef4fa;border-bottom:1px solid #d7e2ee;padding:5px 10px;flex-wrap:wrap;}
+.C-cama{background:#0f2d4a;color:#fff;font-weight:900;font-size:.85rem;border-radius:4px;padding:1px 8px;}
+.C-nm{font-weight:800;font-size:.8rem;}
+.C-meta{font-size:.64rem;color:#64748b;}
+.C-dx{font-size:.64rem;color:#475569;font-style:italic;flex-basis:100%;}
+.C-chips{margin-left:auto;text-align:right;}
+.C-p1{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px dashed #dfe6ee;}
+.C-p2{display:grid;grid-template-columns:1.35fr 1fr 1.25fr;}
+.C-c{padding:5px 10px;border-left:1px solid #eef2f7;min-width:0;}
+.C-c:first-child{border-left:none;}
+.C-k{font-size:.55rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-bottom:2px;}
+.C-v{font-size:.68rem;line-height:1.45;color:#1e293b;}
+.C-v b{font-weight:700;}
+.C-plan{background:#fffbeb;}
+.C-esc{border:1px dashed #f0c674;border-radius:4px;min-height:24px;padding:3px 5px;
+  font-size:.65rem;color:#78350f;line-height:1.4;}
+.C-fir{font-size:.6rem;color:#94a3b8;text-align:right;padding:2px 10px 4px;}
+.C-fir b{color:#0369a1;}
+
+/* Pie de la entrega */
+.pie{margin-top:16px;padding-top:9px;border-top:1px dashed #cbd5e1;display:flex;
+  justify-content:space-between;font-size:.65rem;color:#94a3b8;}
+.pie .fl{width:150px;border-top:1px solid #94a3b8;margin-top:24px;padding-top:3px;text-align:center;}
+
+@media print{
+  @page{size:A4 landscape;margin:9mm;}
+  body{background:#fff;}
+  .intro,.opt-h,.opt-desc{display:none;}
+  .wrap{max-width:none;padding:0;}
+  .hoja{border:none;padding:0;overflow:visible;}
+  .opt{margin:0;page-break-after:always;}
+  .papel{width:100%;}
+}
+</style>
+
+<div class="wrap">
+
+<div class="intro">
+  <h1>Entrega de turno — 3 diseños a lo ancho</h1>
+  <p>Los tres usan <b>los mismos 4 pacientes con los mismos datos</b>, para que la comparación sea justa.
+     Hoja A4 apaisada, igual que hoy. La diferencia es cómo se acomoda la información.</p>
+  <p><b>Hoy:</b> dos columnas de tarjetas angostas; cada paciente ocupa media hoja de ancho y la
+     información baja apilada. <b>Los tres diseños de abajo</b> le dan a cada paciente el ancho
+     completo de la hoja y reparten los datos en bloques que se leen de izquierda a derecha.</p>
+  <div class="nota"><b>Ojo con la cama 11:</b> en los tres aparece <b>sin evolución de este turno</b>,
+     mostrando los datos del turno anterior con su franja de aviso. Así se vería el arreglo que
+     autorizaste, dentro de cada diseño.</div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     OPCIÓN A
+     ══════════════════════════════════════════════════════════════ -->
+<div class="opt">
+  <div class="opt-h">
+    <h2>Opción A · Franja por paciente</h2>
+    <div class="sub">Cada paciente = una franja horizontal dividida en 5 bloques con rótulo</div>
+  </div>
+  <div class="opt-desc">
+    Un paciente por franja, de borde a borde. Se lee: <b>quién es → cómo respira → cómo está →
+    qué se le hizo → qué queda pendiente</b>. Los bloques siempre están en el mismo lugar, así que
+    el ojo aprende dónde buscar cada dato.
+    <ul>
+      <li><span class="si">A favor:</span> el más parecido a lo que ya conoce el equipo, pero con el triple de aire. Fácil de leer en voz alta durante la entrega, paciente por paciente.</li>
+      <li><span class="si">A favor:</span> el recuadro de planes queda grande y a la derecha, donde se escribe a mano.</li>
+      <li><span class="no">En contra:</span> comparar el mismo dato entre pacientes obliga a saltar de franja en franja.</li>
+      <li><b>Caben ~7 pacientes por hoja.</b></li>
+    </ul>
+  </div>
+  <div class="hoja"><div class="papel">
+
+    <div class="eh">
+      <div><h3>Entrega de Turno · Kinesiología UCI</h3>
+        <div class="ehs">lunes, 3 de agosto de 2026 · Turno <b>☀️ Día</b> → entrante <b>🌙 Noche</b></div></div>
+      <div class="ehr">Entrega: <b>Klga. María José Cortés</b><br>Recibe: <b>______________________</b></div>
+    </div>
+    <div class="pills">
+      <span class="pill">Camas en entrega: <b>4</b></span>
+      <span class="pill">Ocupadas unidad: <b>14</b>/18</span>
+      <span class="pill">En VM: <b>9</b></span>
+      <span class="pill rojo">⚠️ Sin evolución del turno: <b>1</b></span>
+    </div>
+
+    <!-- Cama 4 -->
+    <div class="A-f">
+      <div class="A-row">
+        <div class="A-col">
+          <div><span class="A-cama">4</span><span class="A-nm">Rosa Muñoz T.</span></div>
+          <div class="A-meta">68a F · 12d UCI</div>
+          <div class="A-dx">Neumonía grave por influenza A + SDRA moderado</div>
+          <span class="tag t-alta">R Alta (14)</span><span class="tag t-alta">M Alta (11)</span>
+          <span class="tag t-wean">🌬️ Weaning difícil</span>
+          <span class="tag t-prono">🔃 En prono 36,5 h (desde 01-08 19:00)</span>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🔵 Ventilatorio</div>
+          <div class="A-v">
+            <span class="li"><b>TOT 8.0</b> · 22 cm · <b>VM</b> · D-VM 9</span>
+            <span class="li"><b>ACVC</b> — Vt 420 · FR 22 · PEEP 10</span>
+            <span class="li">FiO₂ 45% · SpO₂ 96% · PaFi 178</span>
+            <span class="li">Ppl 24 · DP 14 · Cest 42</span>
+          </div>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🟡 Neuro · HDN</div>
+          <div class="A-v">
+            <span class="li">SAS 2 · Propofol + Fentanilo</span>
+            <span class="li"><span class="rojo-txt">BNM ✓</span> · No cooperador</span>
+            <span class="li">DVA dosis medias</span>
+          </div>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🟢 Secreciones · 🧰 Circuito</div>
+          <div class="A-v">
+            <span class="li">Abundantes purulentas</span>
+            <span class="li">Asp. traqueal 30-07 → <b>Klebsiella BLEE</b></span>
+            <span class="li">HME 2/2 <span class="camb">cambiar</span> · HEPA 1/3 · T.Care 4/3 <span class="venc">VENCIDO</span></span>
+          </div>
+        </div>
+        <div class="A-col A-plan">
+          <div class="A-k">📅 Eventos · 🟠 Rehabilitación · 📋 Plan</div>
+          <div class="A-v" style="margin-bottom:3px;">
+            🫁 Intubación 23-07 04:15 · 🔃 Prono 01-08 19:00 · ▼ PVE frustra 31-07 (taquipnea, desaturación)<br>
+            ⚠️ KTM contraindicada (inestabilidad HDN) · KTR ×3
+          </div>
+          <div style="margin-bottom:3px;"><span class="tag t-pend">⏳ GSA control 06:00</span><span class="tag t-pend">⏳ Rx tórax</span></div>
+          <div class="esc">Mantener prono hasta las 08:00. Reevaluar PaFi post-supinación.</div>
+          <div class="A-firma">▸ <b>Klga. María José Cortés</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cama 7 -->
+    <div class="A-f">
+      <div class="A-row">
+        <div class="A-col">
+          <div><span class="A-cama">7</span><span class="A-nm">Luis Araya P.</span></div>
+          <div class="A-meta">54a M · 23d UCI</div>
+          <div class="A-dx">Politraumatizado — TEC grave + contusión pulmonar</div>
+          <span class="tag t-media">R Media (9)</span><span class="tag t-media">M Media (8)</span>
+          <span class="tag t-weanp">🌬️ Weaning prolongado</span>
+          <span class="tag t-aw">🧬 ICU-AW (MRC 42)</span>
+          <span class="tag t-alert">⚠️ VM 21d</span><span class="tag t-alert">⚠️ 23d UCI</span>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🔵 Ventilatorio</div>
+          <div class="A-v">
+            <span class="li"><b>TQT N°8</b> fenestrada · <b>VM</b> · D-VM 21</span>
+            <span class="li"><b>PSV</b> — PS 12 · PEEP 6 · Vt 380 · FR 18</span>
+            <span class="li">FiO₂ 30% · SpO₂ 97% · PaFi 310</span>
+          </div>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🟡 Neuro · HDN</div>
+          <div class="A-v">
+            <span class="li">SAS 4 · Sin sedación</span>
+            <span class="li">Cooperador</span>
+            <span class="li">Sin DVA</span>
+          </div>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🟢 Secreciones · 🧰 Circuito</div>
+          <div class="A-v">
+            <span class="li">Moderadas mucosas</span>
+            <span class="li">Asp. traqueal 28-07 → sin desarrollo</span>
+            <span class="li">HME 1/2 · HEPA 2/3 · T.Care 2/3</span>
+          </div>
+        </div>
+        <div class="A-col A-plan">
+          <div class="A-k">📅 Eventos · 🟠 Rehabilitación · 📋 Plan</div>
+          <div class="A-v" style="margin-bottom:3px;">
+            🫁 Intubación 12-07 · 🔪 TQT 24-07 11:30 (percutánea) · 🔌 Desvinculación 02-08 09:00 → HME · reconectado tras 8 h<br>
+            KTM Nv4 · KTR ×2 — MRC-SS 42 (30-07) · FSS 18 (30-07) · Dinamo 12 kg · CPAx 24 (01-08)
+          </div>
+          <div style="margin-bottom:3px;"><span class="tag t-pend">⏳ Válvula de fonación</span></div>
+          <div class="esc">Progresar desvinculación a 12 h. Sedente al borde de cama.</div>
+          <div class="A-firma">▸ <b>Klgo. Eduardo Pizarro</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cama 2 -->
+    <div class="A-f">
+      <div class="A-row">
+        <div class="A-col">
+          <div><span class="A-cama">2</span><span class="A-nm">Jorge Salinas M.</span></div>
+          <div class="A-meta">61a M · 5d UCI</div>
+          <div class="A-dx">Shock séptico de foco abdominal</div>
+          <span class="tag t-media">R Media (10)</span><span class="tag t-media">M Media (7)</span>
+          <span class="tag t-pve">🟢 Candidato a PVE · 3 turnos</span>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🔵 Ventilatorio</div>
+          <div class="A-v">
+            <span class="li"><b>TOT 7.5</b> · 23 cm · <b>VM</b> · D-VM 5</span>
+            <span class="li"><b>PSV</b> — PS 10 · PEEP 5 · Vt 450 · FR 16</span>
+            <span class="li">FiO₂ 35% · SpO₂ 98% · PaFi 280</span>
+          </div>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🟡 Neuro · HDN</div>
+          <div class="A-v">
+            <span class="li">SAS 3 · Dexmedetomidina</span>
+            <span class="li">Cooperador parcial</span>
+            <span class="li">DVA dosis bajas</span>
+          </div>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🟢 Secreciones · 🧰 Circuito</div>
+          <div class="A-v">
+            <span class="li">Moderadas mucopurulentas</span>
+            <span class="li">Asp. traqueal 01-08 → pendiente</span>
+            <span class="li">HME 1/2 · HEPA 3/3 <span class="camb">cambiar</span> · T.Care 1/3</span>
+          </div>
+        </div>
+        <div class="A-col A-plan">
+          <div class="A-k">📅 Eventos · 🟠 Rehabilitación · 📋 Plan</div>
+          <div class="A-v" style="margin-bottom:3px;">
+            🫁 Intubación 29-07 21:40 · 🩻 Traslado a imagenología 01-08<br>
+            KTM Nv3 · KTR ×2 — MRC-SS 46 (02-08)
+          </div>
+          <div style="margin-bottom:3px;"><span class="tag t-pend">⏳ PVE turno día</span></div>
+          <div class="esc">Tamizaje PVE al inicio del turno. Bipedestación asistida.</div>
+          <div class="A-firma">▸ <b>Klgo. Eduardo Pizarro</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cama 11 — SIN EVOLUCIÓN -->
+    <div class="A-f sinevo">
+      <div class="heredado-strip">⚠️ SIN EVOLUCIÓN DE ESTE TURNO — se muestran los datos del turno anterior (02 · Noche)</div>
+      <div class="A-row">
+        <div class="A-col">
+          <div><span class="A-cama">11</span><span class="A-nm">Carmen Rojas V.</span></div>
+          <div class="A-meta">71a F · 3d UCI</div>
+          <div class="A-dx">EPOC reagudizado + insuficiencia respiratoria global</div>
+          <span class="tag t-media">R Media (8)</span><span class="tag t-baja">M Baja (4)</span>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🔵 Ventilatorio</div>
+          <div class="A-v">
+            <span class="li">Vía aérea <b>natural</b> · <b>CNAF</b></span>
+            <span class="li">Airvo2 — 50 L/min · FiO₂ 40%</span>
+            <span class="li">SpO₂ 93%</span>
+          </div>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🟡 Neuro · HDN</div>
+          <div class="A-v">
+            <span class="li">SAS 4 · Sin sedación</span>
+            <span class="li">Cooperadora</span>
+            <span class="li">Sin DVA</span>
+          </div>
+        </div>
+        <div class="A-col">
+          <div class="A-k">🟢 Secreciones · 🧰 Circuito</div>
+          <div class="A-v">
+            <span class="li">Escasas mucosas</span>
+            <span class="li">Sin cultivos</span>
+          </div>
+        </div>
+        <div class="A-col A-plan">
+          <div class="A-k">📅 Eventos · 🟠 Rehabilitación · 📋 Plan</div>
+          <div class="A-v" style="margin-bottom:3px;">
+            Sin eventos registrados en el episodio<br>
+            KTM Nv3 · KTR ×2 — MRC-SS 50 (01-08)
+          </div>
+          <div class="esc">Continuar CNAF. Evaluar descenso de flujo según tolerancia.</div>
+          <div class="A-firma">▸ <b>Klga. Paulina Herrera</b> <span style="color:#b45309;">(turno 02·Noche)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pie">
+      <div class="fl">Kine que entrega</div>
+      <div style="align-self:flex-end;">Generado 03-08-2026 15:04</div>
+      <div class="fl">Kine que recibe</div>
+    </div>
+
+  </div></div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     OPCIÓN B
+     ══════════════════════════════════════════════════════════════ -->
+<div class="opt">
+  <div class="opt-h">
+    <h2>Opción B · Tabla de turno</h2>
+    <div class="sub">Una tabla real: una fila por paciente, columnas fijas con encabezado</div>
+  </div>
+  <div class="opt-desc">
+    El encabezado se escribe <b>una sola vez arriba</b> y no se repite en cada paciente — eso libera
+    mucho espacio. Como las columnas quedan alineadas, se puede leer <b>hacia abajo</b> para comparar
+    un mismo dato en toda la unidad («¿quién tiene el circuito vencido?»).
+    <ul>
+      <li><span class="si">A favor:</span> la más densa de las tres. Toda la unidad cabe en menos hojas.</li>
+      <li><span class="si">A favor:</span> permite barrer una columna completa de un vistazo, algo que hoy es imposible.</li>
+      <li><span class="no">En contra:</span> se parece menos a la hoja que el equipo conoce; el primer día cuesta más.</li>
+      <li><span class="no">En contra:</span> con mucho texto (eventos largos, planes largos) las filas se descuadran de alto.</li>
+      <li><b>Caben ~9-10 pacientes por hoja.</b></li>
+    </ul>
+  </div>
+  <div class="hoja"><div class="papel">
+
+    <div class="eh">
+      <div><h3>Entrega de Turno · Kinesiología UCI</h3>
+        <div class="ehs">lunes, 3 de agosto de 2026 · Turno <b>☀️ Día</b> → entrante <b>🌙 Noche</b></div></div>
+      <div class="ehr">Entrega: <b>Klga. María José Cortés</b><br>Recibe: <b>______________________</b></div>
+    </div>
+    <div class="pills">
+      <span class="pill">Camas en entrega: <b>4</b></span>
+      <span class="pill">Ocupadas unidad: <b>14</b>/18</span>
+      <span class="pill">En VM: <b>9</b></span>
+      <span class="pill rojo">⚠️ Sin evolución del turno: <b>1</b></span>
+    </div>
+
+    <table class="B-t">
+      <colgroup>
+        <col style="width:132px"><col style="width:150px"><col style="width:112px">
+        <col style="width:140px"><col style="width:118px"><col style="width:180px"><col style="width:212px">
+      </colgroup>
+      <thead><tr>
+        <th>Cama · Paciente</th>
+        <th>🔵 Ventilatorio</th>
+        <th>🟡 Neuro · HDN</th>
+        <th>🟢 Secreciones · Cultivo</th>
+        <th>🧰 Circuito</th>
+        <th>📅 Eventos · 🟠 Rehabilitación</th>
+        <th>📋 Plan · Pendientes</th>
+      </tr></thead>
+      <tbody>
+
+      <tr>
+        <td>
+          <span class="B-cama">4</span>
+          <span class="B-nm">Rosa Muñoz T.</span>
+          <span class="B-meta">68a F · 12d UCI</span>
+          <span class="B-dx">Neumonía grave influenza A + SDRA</span>
+          <div style="margin-top:3px;">
+            <span class="tag t-alta">R Alta</span><span class="tag t-alta">M Alta</span>
+            <span class="tag t-wean">🌬️ Wean. difícil</span>
+            <span class="tag t-prono">🔃 Prono 36,5 h</span>
+          </div>
+        </td>
+        <td><b>TOT 8.0</b> · 22 cm<br><b>VM</b> · D-VM 9<br><b>ACVC</b> Vt 420 · FR 22<br>PEEP 10 · FiO₂ 45%<br>SpO₂ 96% · PaFi 178<br>Ppl 24 · DP 14 · Cest 42</td>
+        <td>SAS 2<br>Propofol + Fentanilo<br><span class="rojo-txt">BNM ✓</span><br>No cooperador<br>DVA dosis medias</td>
+        <td>Abundantes purulentas<br>Asp. traqueal 30-07<br>→ <b>Klebsiella BLEE</b></td>
+        <td>HME 2/2 <span class="camb">cambiar</span><br>HEPA 1/3<br>T.Care 4/3 <span class="venc">VENCIDO</span></td>
+        <td>🫁 Intubación 23-07 04:15<br>🔃 Prono 01-08 19:00<br>▼ PVE frustra 31-07 (taquipnea, desaturación)<br><span class="rojo-txt">⚠️ KTM contraindicada</span> (inestab. HDN) · KTR ×3</td>
+        <td><span class="tag t-pend">⏳ GSA 06:00</span><span class="tag t-pend">⏳ Rx tórax</span>
+          <div class="B-esc" style="margin-top:3px;">Mantener prono hasta las 08:00. Reevaluar PaFi post-supinación.</div>
+          <span class="B-fir">▸ Klga. María José Cortés</span></td>
+      </tr>
+
+      <tr>
+        <td>
+          <span class="B-cama">7</span>
+          <span class="B-nm">Luis Araya P.</span>
+          <span class="B-meta">54a M · 23d UCI</span>
+          <span class="B-dx">Politrauma — TEC grave + contusión pulmonar</span>
+          <div style="margin-top:3px;">
+            <span class="tag t-media">R Media</span><span class="tag t-media">M Media</span>
+            <span class="tag t-weanp">🌬️ Wean. prolong.</span>
+            <span class="tag t-aw">🧬 ICU-AW</span>
+            <span class="tag t-alert">⚠️ VM 21d</span>
+          </div>
+        </td>
+        <td><b>TQT N°8</b> fenestrada<br><b>VM</b> · D-VM 21<br><b>PSV</b> PS 12 · PEEP 6<br>Vt 380 · FR 18<br>FiO₂ 30% · SpO₂ 97%<br>PaFi 310</td>
+        <td>SAS 4<br>Sin sedación<br>Cooperador<br>Sin DVA</td>
+        <td>Moderadas mucosas<br>Asp. traqueal 28-07<br>→ sin desarrollo</td>
+        <td>HME 1/2<br>HEPA 2/3<br>T.Care 2/3</td>
+        <td>🫁 Intubación 12-07<br>🔪 TQT 24-07 11:30 (percutánea)<br>🔌 Desvinculación 02-08 09:00 → HME, reconectado tras 8 h<br>KTM Nv4 · KTR ×2 — MRC-SS 42 (30-07) · FSS 18 · CPAx 24</td>
+        <td><span class="tag t-pend">⏳ Válvula de fonación</span>
+          <div class="B-esc" style="margin-top:3px;">Progresar desvinculación a 12 h. Sedente al borde de cama.</div>
+          <span class="B-fir">▸ Klgo. Eduardo Pizarro</span></td>
+      </tr>
+
+      <tr>
+        <td>
+          <span class="B-cama">2</span>
+          <span class="B-nm">Jorge Salinas M.</span>
+          <span class="B-meta">61a M · 5d UCI</span>
+          <span class="B-dx">Shock séptico de foco abdominal</span>
+          <div style="margin-top:3px;">
+            <span class="tag t-media">R Media</span><span class="tag t-media">M Media</span>
+            <span class="tag t-pve">🟢 Cand. PVE · 3 turnos</span>
+          </div>
+        </td>
+        <td><b>TOT 7.5</b> · 23 cm<br><b>VM</b> · D-VM 5<br><b>PSV</b> PS 10 · PEEP 5<br>Vt 450 · FR 16<br>FiO₂ 35% · SpO₂ 98%<br>PaFi 280</td>
+        <td>SAS 3<br>Dexmedetomidina<br>Cooperador parcial<br>DVA dosis bajas</td>
+        <td>Moderadas mucopurulentas<br>Asp. traqueal 01-08<br>→ pendiente</td>
+        <td>HME 1/2<br>HEPA 3/3 <span class="camb">cambiar</span><br>T.Care 1/3</td>
+        <td>🫁 Intubación 29-07 21:40<br>🩻 Traslado a imagenología 01-08<br>KTM Nv3 · KTR ×2 — MRC-SS 46 (02-08)</td>
+        <td><span class="tag t-pend">⏳ PVE turno día</span>
+          <div class="B-esc" style="margin-top:3px;">Tamizaje PVE al inicio del turno. Bipedestación asistida.</div>
+          <span class="B-fir">▸ Klgo. Eduardo Pizarro</span></td>
+      </tr>
+
+      <tr class="sinevo">
+        <td colspan="7" style="padding:0;">
+          <div class="heredado-strip">⚠️ CAMA 11 SIN EVOLUCIÓN DE ESTE TURNO — se muestran los datos del turno anterior (02 · Noche)</div>
+        </td>
+      </tr>
+      <tr class="sinevo">
+        <td>
+          <span class="B-cama">11</span>
+          <span class="B-nm">Carmen Rojas V.</span>
+          <span class="B-meta">71a F · 3d UCI</span>
+          <span class="B-dx">EPOC reagudizado + insuf. respiratoria global</span>
+          <div style="margin-top:3px;">
+            <span class="tag t-media">R Media</span><span class="tag t-baja">M Baja</span>
+          </div>
+        </td>
+        <td>Vía aérea <b>natural</b><br><b>CNAF</b> — Airvo2<br>50 L/min · FiO₂ 40%<br>SpO₂ 93%</td>
+        <td>SAS 4<br>Sin sedación<br>Cooperadora<br>Sin DVA</td>
+        <td>Escasas mucosas<br>Sin cultivos</td>
+        <td>—</td>
+        <td>Sin eventos en el episodio<br>KTM Nv3 · KTR ×2 — MRC-SS 50 (01-08)</td>
+        <td><div class="B-esc">Continuar CNAF. Evaluar descenso de flujo según tolerancia.</div>
+          <span class="B-fir">▸ Klga. Paulina Herrera <span style="color:#b45309;">(02·Noche)</span></span></td>
+      </tr>
+
+      </tbody>
+    </table>
+
+    <div class="pie">
+      <div class="fl">Kine que entrega</div>
+      <div style="align-self:flex-end;">Generado 03-08-2026 15:04</div>
+      <div class="fl">Kine que recibe</div>
+    </div>
+
+  </div></div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     OPCIÓN C
+     ══════════════════════════════════════════════════════════════ -->
+<div class="opt">
+  <div class="opt-h">
+    <h2>Opción C · Ficha ancha en dos pisos</h2>
+    <div class="sub">Ancho completo, con una barra de identidad arriba y la clínica repartida en dos filas</div>
+  </div>
+  <div class="opt-desc">
+    Mezcla de las dos anteriores. Arriba, una <b>barra con la identidad y los avisos</b> a todo el ancho
+    (los chips dejan de apretar el resto). Abajo, dos pisos: el <b>primero es cómo está el paciente
+    ahora</b> (4 bloques), el <b>segundo es qué pasó y qué sigue</b> (3 bloques anchos).
+    <ul>
+      <li><span class="si">A favor:</span> el que más espacio le da a lo que hoy queda apretado — eventos del episodio y planes.</li>
+      <li><span class="si">A favor:</span> la separación «cómo está / qué pasó y qué sigue» calza con cómo se cuenta una entrega.</li>
+      <li><span class="no">En contra:</span> es el que más alto ocupa por paciente.</li>
+      <li><b>Caben ~5 pacientes por hoja.</b></li>
+    </ul>
+  </div>
+  <div class="hoja"><div class="papel">
+
+    <div class="eh">
+      <div><h3>Entrega de Turno · Kinesiología UCI</h3>
+        <div class="ehs">lunes, 3 de agosto de 2026 · Turno <b>☀️ Día</b> → entrante <b>🌙 Noche</b></div></div>
+      <div class="ehr">Entrega: <b>Klga. María José Cortés</b><br>Recibe: <b>______________________</b></div>
+    </div>
+    <div class="pills">
+      <span class="pill">Camas en entrega: <b>4</b></span>
+      <span class="pill">Ocupadas unidad: <b>14</b>/18</span>
+      <span class="pill">En VM: <b>9</b></span>
+      <span class="pill rojo">⚠️ Sin evolución del turno: <b>1</b></span>
+    </div>
+
+    <!-- Cama 4 -->
+    <div class="C-f">
+      <div class="C-h">
+        <span class="C-cama">4</span>
+        <span class="C-nm">Rosa Muñoz T.</span>
+        <span class="C-meta">68a F · 12d UCI</span>
+        <span class="C-chips">
+          <span class="tag t-alta">R Alta (14)</span><span class="tag t-alta">M Alta (11)</span>
+          <span class="tag t-wean">🌬️ Weaning difícil</span>
+          <span class="tag t-prono">🔃 En prono 36,5 h (desde 01-08 19:00)</span>
+        </span>
+        <span class="C-dx">Neumonía grave por influenza A + SDRA moderado</span>
+      </div>
+      <div class="C-p1">
+        <div class="C-c"><div class="C-k">🔵 Vía aérea y soporte</div>
+          <div class="C-v"><b>TOT 8.0</b> fijado a 22 cm<br><b>VM</b> · día 9 de VM<br>Modo <b>ACVC</b></div></div>
+        <div class="C-c"><div class="C-k">📊 Parámetros</div>
+          <div class="C-v">Vt 420 · FR 22 · PEEP 10 · FiO₂ 45%<br>SpO₂ 96% · PaFi 178<br>Ppl 24 · DP 14 · Cest 42</div></div>
+        <div class="C-c"><div class="C-k">🟡 Neuro · HDN</div>
+          <div class="C-v">SAS 2 · Propofol + Fentanilo<br><span class="rojo-txt">BNM ✓</span> · No cooperador<br>DVA dosis medias</div></div>
+        <div class="C-c"><div class="C-k">🟢 Secreciones · 🧰 Circuito</div>
+          <div class="C-v">Abundantes purulentas<br>Asp. traqueal 30-07 → <b>Klebsiella BLEE</b><br>HME 2/2 <span class="camb">cambiar</span> · HEPA 1/3 · T.Care 4/3 <span class="venc">VENCIDO</span></div></div>
+      </div>
+      <div class="C-p2">
+        <div class="C-c"><div class="C-k">📅 Eventos del episodio</div>
+          <div class="C-v">🫁 Intubación 23-07 04:15<br>▼ PVE frustra 31-07 (taquipnea, desaturación)<br>🔃 Prono 01-08 19:00</div></div>
+        <div class="C-c"><div class="C-k">🟠 Rehabilitación · Evaluaciones</div>
+          <div class="C-v"><span class="rojo-txt">⚠️ KTM contraindicada</span> (inestabilidad HDN)<br>KTR ×3<br>Sin evaluaciones (no cooperador)</div></div>
+        <div class="C-c C-plan"><div class="C-k">📋 Plan · Pendientes</div>
+          <div style="margin-bottom:3px;"><span class="tag t-pend">⏳ GSA control 06:00</span><span class="tag t-pend">⏳ Rx tórax</span></div>
+          <div class="C-esc">Mantener prono hasta las 08:00. Reevaluar PaFi post-supinación.</div></div>
+      </div>
+      <div class="C-fir">▸ <b>Klga. María José Cortés</b></div>
+    </div>
+
+    <!-- Cama 7 -->
+    <div class="C-f">
+      <div class="C-h">
+        <span class="C-cama">7</span>
+        <span class="C-nm">Luis Araya P.</span>
+        <span class="C-meta">54a M · 23d UCI</span>
+        <span class="C-chips">
+          <span class="tag t-media">R Media (9)</span><span class="tag t-media">M Media (8)</span>
+          <span class="tag t-weanp">🌬️ Weaning prolongado</span>
+          <span class="tag t-aw">🧬 ICU-AW (MRC 42)</span>
+          <span class="tag t-alert">⚠️ VM 21d</span><span class="tag t-alert">⚠️ 23d UCI</span>
+        </span>
+        <span class="C-dx">Politraumatizado — TEC grave + contusión pulmonar</span>
+      </div>
+      <div class="C-p1">
+        <div class="C-c"><div class="C-k">🔵 Vía aérea y soporte</div>
+          <div class="C-v"><b>TQT N°8</b> fenestrada<br><b>VM</b> · día 21 de VM<br>Modo <b>PSV</b></div></div>
+        <div class="C-c"><div class="C-k">📊 Parámetros</div>
+          <div class="C-v">PS 12 · PEEP 6 · FiO₂ 30%<br>Vt 380 · FR 18 · SpO₂ 97%<br>PaFi 310</div></div>
+        <div class="C-c"><div class="C-k">🟡 Neuro · HDN</div>
+          <div class="C-v">SAS 4 · Sin sedación<br>Cooperador<br>Sin DVA</div></div>
+        <div class="C-c"><div class="C-k">🟢 Secreciones · 🧰 Circuito</div>
+          <div class="C-v">Moderadas mucosas<br>Asp. traqueal 28-07 → sin desarrollo<br>HME 1/2 · HEPA 2/3 · T.Care 2/3</div></div>
+      </div>
+      <div class="C-p2">
+        <div class="C-c"><div class="C-k">📅 Eventos del episodio</div>
+          <div class="C-v">🫁 Intubación 12-07<br>🔪 TQT 24-07 11:30 (percutánea)<br>🔌 Desvinculación 02-08 09:00 → HME · reconectado tras 8 h</div></div>
+        <div class="C-c"><div class="C-k">🟠 Rehabilitación · Evaluaciones</div>
+          <div class="C-v">KTM Nv4 · KTR ×2<br>MRC-SS 42 (30-07) · FSS 18 (30-07)<br>Dinamo 12 kg · CPAx 24 (01-08)</div></div>
+        <div class="C-c C-plan"><div class="C-k">📋 Plan · Pendientes</div>
+          <div style="margin-bottom:3px;"><span class="tag t-pend">⏳ Válvula de fonación</span></div>
+          <div class="C-esc">Progresar desvinculación a 12 h. Sedente al borde de cama.</div></div>
+      </div>
+      <div class="C-fir">▸ <b>Klgo. Eduardo Pizarro</b></div>
+    </div>
+
+    <!-- Cama 2 -->
+    <div class="C-f">
+      <div class="C-h">
+        <span class="C-cama">2</span>
+        <span class="C-nm">Jorge Salinas M.</span>
+        <span class="C-meta">61a M · 5d UCI</span>
+        <span class="C-chips">
+          <span class="tag t-media">R Media (10)</span><span class="tag t-media">M Media (7)</span>
+          <span class="tag t-pve">🟢 Candidato a PVE · 3 turnos</span>
+        </span>
+        <span class="C-dx">Shock séptico de foco abdominal</span>
+      </div>
+      <div class="C-p1">
+        <div class="C-c"><div class="C-k">🔵 Vía aérea y soporte</div>
+          <div class="C-v"><b>TOT 7.5</b> fijado a 23 cm<br><b>VM</b> · día 5 de VM<br>Modo <b>PSV</b></div></div>
+        <div class="C-c"><div class="C-k">📊 Parámetros</div>
+          <div class="C-v">PS 10 · PEEP 5 · FiO₂ 35%<br>Vt 450 · FR 16 · SpO₂ 98%<br>PaFi 280</div></div>
+        <div class="C-c"><div class="C-k">🟡 Neuro · HDN</div>
+          <div class="C-v">SAS 3 · Dexmedetomidina<br>Cooperador parcial<br>DVA dosis bajas</div></div>
+        <div class="C-c"><div class="C-k">🟢 Secreciones · 🧰 Circuito</div>
+          <div class="C-v">Moderadas mucopurulentas<br>Asp. traqueal 01-08 → pendiente<br>HME 1/2 · HEPA 3/3 <span class="camb">cambiar</span> · T.Care 1/3</div></div>
+      </div>
+      <div class="C-p2">
+        <div class="C-c"><div class="C-k">📅 Eventos del episodio</div>
+          <div class="C-v">🫁 Intubación 29-07 21:40<br>🩻 Traslado a imagenología 01-08</div></div>
+        <div class="C-c"><div class="C-k">🟠 Rehabilitación · Evaluaciones</div>
+          <div class="C-v">KTM Nv3 · KTR ×2<br>MRC-SS 46 (02-08)</div></div>
+        <div class="C-c C-plan"><div class="C-k">📋 Plan · Pendientes</div>
+          <div style="margin-bottom:3px;"><span class="tag t-pend">⏳ PVE turno día</span></div>
+          <div class="C-esc">Tamizaje PVE al inicio del turno. Bipedestación asistida.</div></div>
+      </div>
+      <div class="C-fir">▸ <b>Klgo. Eduardo Pizarro</b></div>
+    </div>
+
+    <!-- Cama 11 — SIN EVOLUCIÓN -->
+    <div class="C-f sinevo">
+      <div class="heredado-strip">⚠️ SIN EVOLUCIÓN DE ESTE TURNO — se muestran los datos del turno anterior (02 · Noche)</div>
+      <div class="C-h">
+        <span class="C-cama">11</span>
+        <span class="C-nm">Carmen Rojas V.</span>
+        <span class="C-meta">71a F · 3d UCI</span>
+        <span class="C-chips">
+          <span class="tag t-media">R Media (8)</span><span class="tag t-baja">M Baja (4)</span>
+        </span>
+        <span class="C-dx">EPOC reagudizado + insuficiencia respiratoria global</span>
+      </div>
+      <div class="C-p1">
+        <div class="C-c"><div class="C-k">🔵 Vía aérea y soporte</div>
+          <div class="C-v">Vía aérea <b>natural</b><br><b>CNAF</b> — Airvo2</div></div>
+        <div class="C-c"><div class="C-k">📊 Parámetros</div>
+          <div class="C-v">50 L/min · FiO₂ 40%<br>SpO₂ 93%</div></div>
+        <div class="C-c"><div class="C-k">🟡 Neuro · HDN</div>
+          <div class="C-v">SAS 4 · Sin sedación<br>Cooperadora<br>Sin DVA</div></div>
+        <div class="C-c"><div class="C-k">🟢 Secreciones · 🧰 Circuito</div>
+          <div class="C-v">Escasas mucosas<br>Sin cultivos</div></div>
+      </div>
+      <div class="C-p2">
+        <div class="C-c"><div class="C-k">📅 Eventos del episodio</div>
+          <div class="C-v">Sin eventos registrados</div></div>
+        <div class="C-c"><div class="C-k">🟠 Rehabilitación · Evaluaciones</div>
+          <div class="C-v">KTM Nv3 · KTR ×2<br>MRC-SS 50 (01-08)</div></div>
+        <div class="C-c C-plan"><div class="C-k">📋 Plan · Pendientes</div>
+          <div class="C-esc">Continuar CNAF. Evaluar descenso de flujo según tolerancia.</div></div>
+      </div>
+      <div class="C-fir">▸ <b>Klga. Paulina Herrera</b> <span style="color:#b45309;">(turno 02·Noche)</span></div>
+    </div>
+
+    <div class="pie">
+      <div class="fl">Kine que entrega</div>
+      <div style="align-self:flex-end;">Generado 03-08-2026 15:04</div>
+      <div class="fl">Kine que recibe</div>
+    </div>
+
+  </div></div>
+</div>
+
+</div>
