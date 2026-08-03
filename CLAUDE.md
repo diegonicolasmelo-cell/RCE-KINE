@@ -971,6 +971,11 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   ventana del navegador (sirve como PDF); fotos de fallas en carpeta Drive
   auto-creada del dueño, sin compartir público; sin migración de registros
   históricos del bug de vía aérea (eran datos de prueba).
+- **MANUEL FUENTES = GESTOR DEL CAMBIO (ago-2026)**: Diego lo incorporó con
+  autorización de edición y el repositorio compartido. Mitiga la dependencia
+  de una sola persona (hallazgo de la auditoría). Puede correr respaldos,
+  cierre anual y pegados. La identidad real (AUTH_DEV_MODE=FALSE) sigue
+  «para luego», sin fecha.
 - **En el tintero** (iniciativa de Klgo. Manuel Fuentes, coordinar y sumar):
   sembrar INDICADORES_HISTORICO con su tabla mensual 2025-2026 (solo
   agregados) cuando la envíe, y la exportación anonimizada paciente-día
