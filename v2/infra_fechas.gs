@@ -107,3 +107,32 @@ function _restarDias(fechaISO, n) {
     return Utilities.formatDate(d, _tz(), 'yyyy-MM-dd');
   } catch (e) { return fechaISO; }
 }
+
+/**
+ * Momento REAL de un evento anotado con hora dentro de un turno.
+ * El turno Noche cruza la medianoche: 20:00 es del día del turno y 03:00 ya es
+ * del día siguiente. Sin hora escrita cae a la referencia del turno.
+ * Devuelve 'yyyy-MM-dd HH:mm'.
+ */
+function _tsEventoTurno(fecha, turno, hora) {
+  var f = String(fecha || '').slice(0, 10);
+  if (!f) return '';
+  var h = _horaValida(hora);
+  if (!h) { var r = refTurno(f, turno); return r.fecha + ' ' + r.hora; }
+  if (String(turno) === 'Noche' && parseInt(h.slice(0, 2), 10) < 12) f = _restarDias(f, -1);
+  return f + ' ' + h;
+}
+
+/** 'yyyy-MM-dd HH:mm' → milisegundos (sin depender del parser de cada motor). */
+function _msDeTS(ts) {
+  var m = String(ts || '').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (!m) return null;
+  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+}
+
+/** Horas entre dos marcas 'yyyy-MM-dd HH:mm' (1 decimal). '' si no se puede. */
+function _horasEntreTS(desde, hasta) {
+  var a = _msDeTS(desde), b = _msDeTS(hasta);
+  if (a === null || b === null || b < a) return '';
+  return Math.round((b - a) / 36e5 * 10) / 10;
+}

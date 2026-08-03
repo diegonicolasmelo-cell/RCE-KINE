@@ -43,6 +43,54 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
   eq('la clave ignora la hora pegada', _procClaveHito('PRONO 19:00 HRS'), 'PRONO');
   eq('y traduce SUPINACIÓN al hito SUPINO', _procClaveHito('SUPINACIÓN 07:30 HRS'), 'SUPINO');
 
+  // ── Parte 1b · Ciclo de prono con FECHA REAL (puede durar varios días) ───
+  const srcF = fs.readFileSync(path.join(V2, 'infra_fechas.gs'), 'utf8');
+  global.Utilities = { getUuid: () => 'u', formatDate: (d) => d.toISOString().slice(0, 10) };
+  global._tz = () => 'UTC';
+  (0, eval)(srcF);
+
+  eq('turno Día: la hora es del día del turno', _tsEventoTurno('2026-08-01', 'Dia', '19:00'), '2026-08-01 19:00');
+  eq('turno Noche 22:00 sigue siendo del día del turno', _tsEventoTurno('2026-07-31', 'Noche', '22:00'), '2026-07-31 22:00');
+  eq('turno Noche 03:00 ya es del día siguiente', _tsEventoTurno('2026-07-31', 'Noche', '03:00'), '2026-08-01 03:00');
+  eq('sin hora cae a la referencia del turno', _tsEventoTurno('2026-08-01', 'Noche', ''), '2026-08-02 03:00');
+  // el caso de Diego: prono el 1-ago 19:00, supino el 3-ago 07:30 → 36,5 h (día completo + 12,5)
+  eq('el ciclo cruza varios días', _horasEntreTS('2026-08-01 19:00', '2026-08-03 07:30'), 36.5);
+  eq('cruzar la medianoche sin días de por medio', _horasEntreTS('2026-08-01 19:00', '2026-08-02 07:30'), 12.5);
+  eq('una supinación anterior al prono no inventa horas', _horasEntreTS('2026-08-02 19:00', '2026-08-01 07:30'), '');
+  eq('sin marca de inicio no hay cuenta', _horasEntreTS('', '2026-08-02 07:30'), '');
+
+  // Cierre del ciclo en el guardado, con la pronación de OTRO turno y OTRO colega
+  const FILAS = [
+    { ID_CAMA: '4', TURNO_KEY: '2026-08-01-Dia', RESP_POS_PRONO: true, RESP_PRONO_EVENTO: true, PRONO_INICIO_TS: '2026-08-01 19:00' },
+    { ID_CAMA: '4', TURNO_KEY: '2026-08-01-Noche', RESP_POS_PRONO: true },   // solo describe
+    { ID_CAMA: '4', TURNO_KEY: '2026-08-02-Dia', RESP_POS_PRONO: true },     // solo describe
+  ];
+  global.repoLeerTodos = (h, col, val2) => (h === 'EVOLUCIONES' ? FILAS.filter(f => !col || String(f[col]) === String(val2)) : []);
+  const srcE = fs.readFileSync(path.join(V2, 'svc_evoluciones.gs'), 'utf8');
+  const cuerpo = srcE.slice(srcE.indexOf('// ── Ciclo de prono'));
+  (0, eval)(cuerpo);
+
+  eq('encuentra la pronación abierta de otro turno', _pronoAbiertoTS('4', '2026-08-03-Dia'), '2026-08-01 19:00');
+  const d1 = { RESP_POS_SUPINO: true, RESP_SUPINO_EVENTO: true, RESP_SUPINO_HORA: '07:30' };
+  _pronoSellarCiclo('4', '2026-08-03-Dia', '2026-08-03', 'Dia', d1);
+  eq('cierra el ciclo de 36,5 h aunque supine otro colega', d1.PRONO_HORAS, 36.5);
+  eq('y sella el momento de la supinación', d1.SUPINO_TS, '2026-08-03 07:30');
+  // ya supinado: una supinación posterior no reabre la cuenta
+  FILAS.push({ ID_CAMA: '4', TURNO_KEY: '2026-08-03-Dia', RESP_SUPINO_EVENTO: true });
+  eq('tras supinar no queda pronación abierta', _pronoAbiertoTS('4', '2026-08-04-Dia'), '');
+  const d2 = { RESP_POS_SUPINO: true, RESP_SUPINO_EVENTO: true, RESP_SUPINO_HORA: '10:00' };
+  _pronoSellarCiclo('4', '2026-08-04-Dia', '2026-08-04', 'Dia', d2);
+  eq('sin pronación abierta no se inventan horas', d2.PRONO_HORAS, '');
+  // pronar y supinar en el mismo turno
+  const d3 = { RESP_PRONO_EVENTO: true, RESP_PRONO_HORA: '08:00',
+               RESP_SUPINO_EVENTO: true, RESP_SUPINO_HORA: '20:00' };
+  _pronoSellarCiclo('4', '2026-08-05-Dia', '2026-08-05', 'Dia', d3);
+  eq('prono y supino en el mismo turno cuentan bien', d3.PRONO_HORAS, 12);
+  // describir la posición NO abre ciclo
+  const d4 = { RESP_POS_PRONO: true };
+  _pronoSellarCiclo('4', '2026-08-06-Dia', '2026-08-06', 'Dia', d4);
+  eq('describir la posición no sella ningún momento', d4.PRONO_INICIO_TS === undefined, true);
+
   // ── Parte 2 · Cliente: el formulario ─────────────────────────────────────
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
   const p = await b.newPage({ viewport: { width: 1400, height: 950 } });
@@ -87,6 +135,24 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
     r.reedSed = !!$('cPosSed').checked;
     r.reedLibre = $('fPosLibre').value;
     r.reedProcs = _autoProcs().filter(x => /PRONO/.test(x));
+
+    // El texto narra el cierre del ciclo con la pronación abierta del episodio
+    abrirPanel('4');
+    SHIFT = 'Dia'; $('gDate').value = '2026-08-03';
+    window._pronoAbierto = '2026-08-01 19:00';
+    $('cSupino').checked = true; hPosEspecial('supino');
+    $('fSupinoHora').value = '07:30'; $('cSupinoEv').checked = true;
+    r.horasCliente = _pronoHorasCiclo();
+    r.txtSupino = (genTexto() || '').split('\n').filter(l => /supina/i.test(l)).join(' ');
+    // sin pronación abierta el texto no inventa horas
+    window._pronoAbierto = '';
+    r.txtSinCiclo = (genTexto() || '').split('\n').filter(l => /supina/i.test(l)).join(' ');
+    // turno Noche: la madrugada pertenece al día siguiente
+    SHIFT = 'Noche'; $('gDate').value = '2026-08-02';
+    window._pronoAbierto = '2026-08-01 19:00';
+    $('fSupinoHora').value = '03:00';
+    r.horasNoche = _pronoHorasCiclo();
+    SHIFT = 'Dia';
     // desmarcar la posición apaga también el evento
     $('cProno').checked = false; hPosEspecial('prono');
     r.apagaEvento = !$('cPronoEv').checked;
@@ -110,6 +176,10 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
   eq('re-editar NO duplica ni pierde el procedimiento', R.reedProcs.join('|'), 'PRONO 19:00 HRS');
   eq('quitar la posición apaga el evento', R.apagaEvento, true);
   eq('supinar limpia el prono y su evento', R.supinoLimpiaProno, true);
+  eq('el cliente cuenta el mismo ciclo que el servidor', R.horasCliente, 36.5);
+  eq('el texto narra las horas en prono', /tras 36,5 h en prono/.test(R.txtSupino), true);
+  eq('sin ciclo abierto el texto no inventa horas', /en prono/.test(R.txtSinCiclo), false);
+  eq('de noche la madrugada cuenta al día siguiente', R.horasNoche, 32);
 
   if (errs.length) { console.log('❌ errores JS:', errs.join(' | ')); fails.push('errores JS'); }
   else console.log('\nsin errores JS');

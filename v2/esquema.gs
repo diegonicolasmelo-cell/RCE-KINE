@@ -239,7 +239,12 @@ const _COLS_EVOLUCIONES = [
   // dicen que el cambio se hizo ESTE turno y son las únicas que registran el
   // procedimiento. Antes bastaba con marcar la posición y cada turno sumaba una
   // pronación nueva (reporte de Diego, ago-2026). SIEMPRE AL FINAL.
-  ['RESP_PRONO_EVENTO','bool'],['RESP_SUPINO_EVENTO','bool']
+  ['RESP_PRONO_EVENTO','bool'],['RESP_SUPINO_EVENTO','bool'],
+  // Ciclo de prono con FECHA REAL: puede durar varios días, así que la hora
+  // sola no basta. Se sellan al guardar (fecha efectiva del turno + la hora
+  // escrita) y PRONO_HORAS cierra el ciclo en la evolución que supina.
+  // SIEMPRE AL FINAL.
+  ['PRONO_INICIO_TS','texto'],['SUPINO_TS','texto'],['PRONO_HORAS','decimal']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -755,7 +760,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 382) errs.push("EVOLUCIONES != 382 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 385) errs.push("EVOLUCIONES != 385 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

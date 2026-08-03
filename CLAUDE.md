@@ -107,6 +107,45 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.33 · HORAS EN PRONO CON FECHA REAL + VIAJAN A LA ENTREGA (ago-2026,
+  cohete v5.33-ciclo; EXIGE `crearORepararEstructura()`, EVOLUCIONES **385
+  columnas**).** Pregunta de Diego sobre la v5.32: «¿supino igual tiene su hora
+  asignada, para el cálculo de cuántas horas estuvo en prono?». Sí la tenía y se
+  guardaba, pero el ÚNICO cálculo era un globito al pasar el cursor y estaba
+  roto de tres formas: (a) contaba con el reloj del CLIC, no con la hora
+  escrita; (b) el marcador era del navegador, así que si pronaba un turno y
+  supinaba otro NUNCA aparecía; (c) no se guardaba en ninguna parte.
+  Regla clínica que dio Diego: **una sesión de prono PUEDE durar más de 24 h**.
+  1. Columnas nuevas `PRONO_INICIO_TS`, `SUPINO_TS` (ambas 'yyyy-MM-dd HH:mm')
+     y `PRONO_HORAS` (decimal, al final). El servidor SELLA el momento real al
+     guardar y `_pronoSellarCiclo` cierra la cuenta en la evolución que supina.
+  2. **`_tsEventoTurno(fecha, turno, hora)`** en infra_fechas: resuelve la fecha
+     real contra la hora ESCRITA. El turno Noche cruza la medianoche — 22:00 es
+     del día del turno, 03:00 ya es del siguiente. NO sirve
+     `_fechaEfectivaTurno` a secas (empuja todo al día siguiente: correcto para
+     el reloj de dispositivos, incorrecto para una hora del anochecer).
+     `_msDeTS` parsea a mano (no depender del parser de cada motor) y
+     `_horasEntreTS` da 1 decimal; delta negativo ⇒ '' (jamás horas inventadas).
+  3. **`_pronoAbiertoTS(idCama, turnoKey)`**: recorre el episodio en orden y
+     deja la última pronación SIN supinación posterior. Da igual quién prone y
+     quién supine, ni cuántos turnos y días pasen en medio. Viaja al cliente
+     como `pronoAbierto` en GET_EVO_TURNO (también al RE-EDITAR, donde la
+     supinación puede agregarse recién ahora) y como `_PRONO_ABIERTO_TS`
+     transitorio en `obtenerEvolucionPrevia` (patrón `_VFON_HORAS`).
+  4. Texto (cliente y servidor a la par): «Se supina a las 07:30 hrs, **tras
+     36,5 h en prono**». Los globitos ⏱ ahora dicen «Lleva X h en prono (desde
+     01-08 19:00)» y «Ciclo de prono cerrado: X h», calculados igual.
+  5. **Entrega de turno** (pedido explícito): la supinación lleva «· tras X h en
+     prono» y el paciente que SIGUE prono trae chip propio
+     `🔃 En prono 36,5 h (desde 01-08 19:00)` — chip, **no alerta**: estar en
+     prono es tratamiento, no aviso, y no se inventó ningún umbral de horas.
+  - 17 asserts nuevos en `checks/prono.js` (36 en total).
+  - LÍMITE CONOCIDO: prono y supino son EXCLUYENTES en la posición (describen
+    cómo queda el paciente), así que un ciclo que empieza y termina DENTRO del
+    mismo turno no puede declararse por formulario — el servidor sí lo calcula
+    si llegan ambos eventos por API. Avisado a Diego; si el equipo lo necesita,
+    sale con un campo de hora de prono visible al supinar.
+
 - **v5.32 · POSICIÓN = ESTADO, PRONACIÓN = EVENTO (ago-2026, cohete
   v5.32-prono; EXIGE `crearORepararEstructura()`, EVOLUCIONES **382
   columnas**).** Reporte de Diego: la paciente de la cama 4 se pronó UNA vez a
@@ -656,9 +695,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.32-prono**
-  (antes v5.31-foco, v5.30-reposo, v5.29-mauri, v5.28-ayuda, v5.27-hojas).
-  Exige `crearORepararEstructura()` (EVOLUCIONES 382 columnas + hoja
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.33-ciclo**
+  (antes v5.32-prono, v5.31-foco, v5.30-reposo, v5.29-mauri, v5.28-ayuda).
+  Exige `crearORepararEstructura()` (EVOLUCIONES 385 columnas + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete

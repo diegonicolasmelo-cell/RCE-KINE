@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.32-prono">
+<meta name="rce-version" content="5.33-ciclo">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3077,23 +3077,23 @@ document.documentElement.setAttribute('data-piel', 'inst');
                     <div class="check wa"><input type="checkbox" id="cProno" onchange="hPosEspecial('prono')"><label for="cProno">Prono</label></div>
                     <div id="dPronoHora" class="hidden" style="display:inline-flex;align-items:center;gap:3px;">
                       <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
-                      <input type="time" id="fPronoHora" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
+                      <input type="time" id="fPronoHora" oninput="_updatePronoTip();_updateSupinoTip();" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
                       <span id="sPronoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
                       <!-- ESTADO vs EVENTO (v5.32): la casilla de arriba dice cómo está
                            el paciente; esta dice que la pronación se hizo ESTE turno y
                            es la única que registra el procedimiento. -->
                       <span class="check wa" style="background:#fef3c7;border-color:#fcd34d;">
-                        <input type="checkbox" id="cPronoEv" onchange="hPos();_renderAutoProcs();">
+                        <input type="checkbox" id="cPronoEv" onchange="hPos();_renderAutoProcs();_updatePronoTip();">
                         <label for="cPronoEv" title="Marca solo el turno en que se realiza la pronación">Se prona este turno</label>
                       </span>
                     </div>
                     <div class="check wa"><input type="checkbox" id="cSupino" onchange="hPosEspecial('supino')"><label for="cSupino">Supino</label></div>
                     <div id="dSupinoHora" class="hidden" style="display:inline-flex;align-items:center;gap:3px;">
                       <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
-                      <input type="time" id="fSupinoHora" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
+                      <input type="time" id="fSupinoHora" oninput="_updateSupinoTip();" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
                       <span id="sSupinoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
                       <span class="check wa" style="background:#fef3c7;border-color:#fcd34d;">
-                        <input type="checkbox" id="cSupinoEv" onchange="hPos();_renderAutoProcs();">
+                        <input type="checkbox" id="cSupinoEv" onchange="hPos();_renderAutoProcs();_updateSupinoTip();">
                         <label for="cSupinoEv" title="Marca solo el turno en que se supina al paciente">Se supina este turno</label>
                       </span>
                     </div>
@@ -3739,7 +3739,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.32-prono]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.33-ciclo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4275,7 +4275,7 @@ function abrirPanel(id, esIng) {
   PEND_SEL=new Set(); renderPend();
   const _spCod=$('spCod'); if(_spCod) _spCod.textContent='';
   hide('dReintubDetT'); hide('dIntubDet');
-  _vmHistFlag=false; _transIntubEsteTurno=false; window._vfonHoras=0;
+  _vmHistFlag=false; _transIntubEsteTurno=false; window._vfonHoras=0; window._pronoAbierto='';
   const _cct=$('cCambioTOT'); if(_cct) _cct.checked=false; _totSnapshot=null; _lockTOT(false);
   hide('dCambioTOTmot'); hide('dCambioTOTdet');
   ['cProcImagen','cProcPabellon','cProcAsistMed'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
@@ -4316,6 +4316,9 @@ function abrirPanel(id, esIng) {
     // v2: una sola llamada combinada (turno actual + turno previo)
     gs('GET_EVO_TURNO',{idCama:id,turnoKey:tkey}, r=>{
       loading(false);
+      // Pronación ABIERTA del episodio (puede ser de otro turno y otro colega):
+      // con ella se narra «tras X h en prono» al supinar.
+      window._pronoAbierto=(r&&r.pronoAbierto)||'';
       const c=DB.find(x=>String(x.ID_CAMA)===String(id));
       if(r && r.actual) {
         // ─── Turno YA guardado: carga exactamente lo que se registró ───
@@ -7656,7 +7659,11 @@ function genTexto() {
     if($('cPosDCLD')?.checked) posArr.push('DCL D');
     if($('cPosDCLI')?.checked) posArr.push('DCL I');
     if($('cProno')?.checked){ const h=v('fPronoHora'); posArr.push(h?`Prono desde las ${h} hrs`:'Prono'); }
-    if($('cSupino')?.checked){ const h=v('fSupinoHora'); posArr.push(h?`Se supina a las ${h} hrs`:'Supino'); }
+    if($('cSupino')?.checked){
+      const h=v('fSupinoHora'), ph=_pronoHorasCiclo();
+      const cierre=ph!==''?`, tras ${String(ph).replace('.',',')} h en prono`:'';
+      posArr.push(h?`Se supina a las ${h} hrs${cierre}`:('Supino'+cierre));
+    }
     const lib=v('fPosLibre'); if(lib) posArr.push(lib);
     _B('pos');
     if(posArr.length) L.push(`Posicionamiento: ${posArr.join(', ')}.`);
@@ -8353,25 +8360,56 @@ function hPosEspecial(tipo){
   _renderAutoProcs();
 }
 function _hrsStr(ms){ const h=Math.round(ms/3600000); return `${h} hr${h!==1?'s':''}`; }
+
+/* ── CICLO DE PRONO CON FECHA REAL ─────────────────────────────────────────
+   Una sesión de prono puede durar VARIOS DÍAS, así que se cuenta contra la
+   marca real (fecha del turno resuelta contra la hora ESCRITA), no contra el
+   reloj del clic: el clic ocurre cuando se anota, no cuando ocurrió. Y la
+   pronación puede venir de otro turno y de otro colega — por eso el servidor
+   manda `pronoAbierto` al abrir el panel. */
+function _tsEvTurno(fecha,turno,hora){
+  const f=_isoDia(fecha||hoy()); if(!f) return '';
+  const t=turno||SHIFT;
+  const h=/^\d{1,2}:\d{2}$/.test(String(hora||''))?String(hora).padStart(5,'0'):'';
+  if(!h) return t==='Noche'?(_fechaEfTurno(f,t)+' 03:00'):(f+' 15:00');
+  // el turno Noche cruza la medianoche: 20:00 es del día del turno, 03:00 ya no
+  if(t==='Noche'&&parseInt(h.slice(0,2),10)<12) return _fechaEfTurno(f,t)+' '+h;
+  return f+' '+h;
+}
+function _msTS(ts){ const m=String(ts||'').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/); return m?Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5]):null; }
+function _horasTS(a,b){ const x=_msTS(a),y=_msTS(b); if(x===null||y===null||y<x) return ''; return Math.round((y-x)/36e5*10)/10; }
+/** Inicio de la pronación abierta (la de este turno o la que trae el episodio). */
+function _pronoInicioTS(){
+  if($('cProno')?.checked&&$('cPronoEv')?.checked) return _tsEvTurno(v('gDate'),SHIFT,v('fPronoHora'));
+  return window._pronoAbierto||'';
+}
+/** Horas del ciclo que se cierra al supinar ('' si no corresponde). */
+function _pronoHorasCiclo(){
+  if(!($('cSupino')?.checked&&$('cSupinoEv')?.checked)) return '';
+  const ini=_pronoInicioTS(); if(!ini) return '';
+  return _horasTS(ini,_tsEvTurno(v('gDate'),SHIFT,v('fSupinoHora')));
+}
+function _hTxt(h){ return String(h).replace('.',',')+' h'; }
 function _updatePronoTip(){
-  const tip=$('sPronoTip'); if(!tip||!_pronoTs) return;
-  const hrs=_hrsStr(Date.now()-_pronoTs);
-  tip.setAttribute('data-tip',`${hrs} en prono`);
+  const tip=$('sPronoTip'); if(!tip) return;
+  const ini=_pronoInicioTS(); if(!ini){ tip.style.display='none'; return; }
+  const ahora=_tsEvTurno(v('gDate'),SHIFT,_horaAhoraCli());
+  const hrs=_horasTS(ini,ahora);
+  tip.setAttribute('data-tip',hrs===''?'En prono':`Lleva ${_hTxt(hrs)} en prono (desde ${_tsLegible(ini)})`);
   tip.style.display='inline-flex';
 }
 function _updateSupinoTip(){
   const tip=$('sSupinoTip'); if(!tip) return;
-  if(_pronoTs&&_supinoTs){
-    const hrs=_hrsStr(_supinoTs-_pronoTs);
-    tip.setAttribute('data-tip',`Ciclo prono cerrado: ${hrs}`);
-  } else if(_supinoTs){
-    const hrs=_hrsStr(Date.now()-_supinoTs);
-    tip.setAttribute('data-tip',`${hrs} en supino`);
-  }
+  const hrs=_pronoHorasCiclo();
+  if(hrs!==''){ tip.setAttribute('data-tip',`Ciclo de prono cerrado: ${_hTxt(hrs)}`); }
+  else if($('cSupinoEv')?.checked&&!_pronoInicioTS()){ tip.setAttribute('data-tip','Sin pronación registrada que cerrar'); }
+  else { tip.setAttribute('data-tip','Supino'); }
   tip.style.display='inline-flex';
 }
+function _horaAhoraCli(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function _tsLegible(ts){ const m=String(ts||'').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/); return m?`${m[3]}-${m[2]} ${m[4]}`:String(ts||''); }
 // Refresca tips cada minuto mientras la página está abierta
-setInterval(()=>{ if(_pronoTs&&$('cProno')?.checked) _updatePronoTip(); },60000);
+setInterval(()=>{ if($('cProno')?.checked) _updatePronoTip(); },60000);
 
 // — Cultivo: badges reactivos con X, histórico sin X —
 // _cultFechas: {CCAET:'30-06-2026', ...}  — persiste entre turnos
@@ -11829,7 +11867,11 @@ function renderEntrega(d){
     // Sin evolución del turno: ficha en rojo con franja propia (el chip del
     // servidor se filtra para no duplicar el mismo aviso).
     const sinEvoF=f.ocupada&&!f.tieneEvo;
-    const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+pveChip+awChip+
+    // 🔃 Pronación EN CURSO: el ciclo cruza turnos (y días), así que el equipo
+    // que entra necesita desde cuándo va, no solo que el paciente está prono.
+    const _pdesde=f.prono?_tsLegible(f.prono.desde):'';
+    const pronoChip=f.prono?`<span class="ent-tag" style="background:#0891b218;color:#0e7490;border:1px solid #0891b255;" title="Pronación en curso desde el ${_pdesde}${f.prono.horas!==''?`, lleva ${String(f.prono.horas).replace('.',',')} h`:''}">🔃 En prono${f.prono.horas!==''?` ${String(f.prono.horas).replace('.',',')} h`:''} (desde ${_pdesde})</span>`:'';
+    const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+pveChip+awChip+pronoChip+
       (f.alertas||[]).filter(a=>!/^Sin evolución/i.test(a)).map(a=>`<span class="ent-tag ent-tag-alert">⚠️ ${a}</span>`).join('');
     // 🔵 Ventilatorio: VA + soporte + días VM / modo + parámetros
     const vaP=[f.viaAerea, f.soporte==='VM'?'VM':(f.soporte||''), (f.diasVM!==''&&f.diasVM!=null)?`D-VM:${f.diasVM}`:''];

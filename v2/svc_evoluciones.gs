@@ -168,6 +168,9 @@ function guardarEvolucion(datos, ctx) {
         datos._VFON_HORAS = hrs;   // transitorio: no es columna
       }
 
+      // Ciclo de prono: sella el momento real y, al supinar, cierra la cuenta.
+      _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos);
+
       // Texto clínico: el de la PANTALLA (cliente) si vino; si no, se genera.
       datos.TEXTO_GENERADO = _textoCliente || generarTextoEvolucion(datos);
       // Respaldo del motor: si el cliente no lo trae (API sin navegador) y no
@@ -447,6 +450,10 @@ function obtenerEvolucionPrevia(idCama, turnoKey) {
       }
       mejor._VFON_HORAS = racha * 12;
     }
+    // Pronación ABIERTA del episodio: el cliente la necesita para narrar «tras
+    // X h en prono» al supinar, aunque la pronación sea de otro turno y de otro
+    // colega. Transitorio: no es columna.
+    if (mejor) mejor._PRONO_ABIERTO_TS = _pronoAbiertoTS(idCama, objetivo);
     return ok(mejor);
   } catch (e) { return err('obtenerEvolucionPrevia: ' + e.message, ERR.INTERNO, e); }
 }
@@ -462,7 +469,9 @@ function obtenerEvoTurno(idCama, turnoKey) {
       const r = obtenerEvolucionPrevia(idCama, turnoKey);
       previa = (r.ok && r.data) ? r.data : null;
     }
-    return ok({ actual: actual, previa: previa });
+    // La pronación abierta viaja SIEMPRE (también al re-editar un turno ya
+    // guardado, donde la supinación puede agregarse recién ahora).
+    return ok({ actual: actual, previa: previa, pronoAbierto: _pronoAbiertoTS(idCama, turnoKey) });
   } catch (e) { return err('obtenerEvoTurno: ' + e.message, ERR.INTERNO, e); }
 }
 
@@ -649,4 +658,46 @@ function anularEvento(datos, ctx) {
       TEXTO_GENERADO: evo.TEXTO_GENERADO || '',
     });
   });
+}
+
+// ── Ciclo de prono ──────────────────────────────────────────────────────────
+//  Una sesión de prono puede durar VARIOS DÍAS, así que la hora sola no basta:
+//  se sella el momento real (fecha del turno resuelta contra la hora escrita —
+//  el turno Noche cruza la medianoche) y la cuenta se cierra en la evolución
+//  que supina, contra la pronación abierta del episodio. Da igual quién prone y
+//  quién supine, ni cuántos turnos pasen en medio.
+
+/** Sella PRONO_INICIO_TS / SUPINO_TS y cierra PRONO_HORAS al supinar. */
+function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos) {
+  if (esVerdadero(datos.RESP_PRONO_EVENTO)) {
+    datos.PRONO_INICIO_TS = _tsEventoTurno(fecha, turno, datos.RESP_PRONO_HORA);
+  }
+  if (esVerdadero(datos.RESP_SUPINO_EVENTO)) {
+    const ts = _tsEventoTurno(fecha, turno, datos.RESP_SUPINO_HORA);
+    datos.SUPINO_TS = ts;
+    // si se pronó y supinó en el mismo turno, el inicio es el de esta misma fila
+    const ini = datos.PRONO_INICIO_TS || _pronoAbiertoTS(idCama, turnoKey);
+    const h = ini ? _horasEntreTS(ini, ts) : '';
+    datos.PRONO_HORAS = (h === '' ? '' : h);
+  }
+}
+
+/**
+ * Momento de la pronación ABIERTA del episodio (la última sin supinación
+ * posterior), mirando los turnos anteriores a turnoKey. '' si no hay ninguna.
+ */
+function _pronoAbiertoTS(idCama, turnoKey) {
+  try {
+    const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
+    const objetivo = String(turnoKey || '');
+    const previas = evos
+      .filter(e => { const k = String(e.TURNO_KEY || ''); return k && (!objetivo || k < objetivo); })
+      .sort((a, b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
+    let abierto = '';
+    previas.forEach(e => {
+      if (esVerdadero(e.RESP_PRONO_EVENTO) && e.PRONO_INICIO_TS) abierto = String(e.PRONO_INICIO_TS);
+      if (esVerdadero(e.RESP_SUPINO_EVENTO)) abierto = '';
+    });
+    return abierto;
+  } catch (e) { return ''; }
 }

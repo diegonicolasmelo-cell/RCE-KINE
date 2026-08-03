@@ -389,7 +389,12 @@ function generarTextoEvolucion(d) {
     if (esVerdadero(d.RESP_POS_DCLD)) pos.push('DCL D');
     if (esVerdadero(d.RESP_POS_DCLI)) pos.push('DCL I');
     if (esVerdadero(d.RESP_POS_PRONO)) pos.push(v('RESP_PRONO_HORA') ? `Prono desde las ${v('RESP_PRONO_HORA')} hrs` : 'Prono');
-    if (esVerdadero(d.RESP_POS_SUPINO)) pos.push(v('RESP_SUPINO_HORA') ? `Se supina a las ${v('RESP_SUPINO_HORA')} hrs` : 'Supino');
+    if (esVerdadero(d.RESP_POS_SUPINO)) {
+      // El ciclo de prono puede durar varios días: al supinar se narra cuánto duró.
+      const ph = String(d.PRONO_HORAS === 0 ? '0' : (d.PRONO_HORAS || '')).replace('.', ',');
+      const cierre = (esVerdadero(d.RESP_SUPINO_EVENTO) && ph) ? `, tras ${ph} h en prono` : '';
+      pos.push(v('RESP_SUPINO_HORA') ? `Se supina a las ${v('RESP_SUPINO_HORA')} hrs${cierre}` : ('Supino' + cierre));
+    }
     if (v('RESP_POS_LIBRE')) pos.push(v('RESP_POS_LIBRE'));
     if (pos.length) txt.push(`Posicionamiento: ${pos.join(', ')}.`);
   })();

@@ -59,7 +59,7 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
 
     const fichas = sel.map(id => _entFicha(id, camaPorId[id] || {},
       evoTurnoPorCama[id] || null, episodioPorCama[id] || [], cultivoPorCama[id] || null, fecha,
-      _fechaEfectivaTurno(fecha, turno)));
+      _fechaEfectivaTurno(fecha, turno), turno));
 
     const ocupadas = camas.filter(c => esVerdadero(c.OCUPADA)).length;
     const enVM = camas.filter(c => esVerdadero(c.OCUPADA) && String(c.SOPORTE) === 'VM').length;
@@ -74,7 +74,7 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
 }
 
 /** Ficha de entrega de una cama. */
-function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf) {
+function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno) {
   const val = (a, b) => (a !== undefined && a !== null && a !== '') ? a : (b !== undefined && b !== null ? b : '');
   const dd = x => { const s = _statISO(x); return s ? s.slice(8, 10) + '-' + s.slice(5, 7) : ''; };
 
@@ -119,7 +119,11 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf) {
     const _supEv = (ev.RESP_SUPINO_EVENTO === undefined || ev.RESP_SUPINO_EVENTO === '')
       ? esVerdadero(ev.RESP_POS_SUPINO) : esVerdadero(ev.RESP_SUPINO_EVENTO);
     if (_pronoEv) eventos.push('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));
-    if (_supEv) eventos.push('🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : ''));
+    if (_supEv) {
+      const _ph = String(ev.PRONO_HORAS === 0 ? '0' : (ev.PRONO_HORAS || '')).replace('.', ',');
+      eventos.push('🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : '') +
+        (_ph ? ' · tras ' + _ph + ' h en prono' : ''));
+    }
   });
 
   // ── Clasificación de weaning desde los PVE del episodio ──
@@ -168,6 +172,21 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf) {
   const edadFss = coop && val(c.ULT_FSS) !== '' ? _edadEval(c.ULT_FSS_FECHA) : null;
   if (edadFss != null && edadFss > cutEval) alertas.push('FSS-ICU hace ' + edadFss + 'd');
   if (!e) alertas.push('Sin evolución de este turno');
+  // Pronación EN CURSO: el ciclo puede llevar días y cruzar varios turnos, así
+  // que el equipo que entra necesita saber desde cuándo va — no basta con ver
+  // «Prono» en la posición del último turno.
+  let pronoTS = '';
+  episodio.forEach(ev2 => {
+    if (esVerdadero(ev2.RESP_PRONO_EVENTO) && ev2.PRONO_INICIO_TS) pronoTS = String(ev2.PRONO_INICIO_TS);
+    if (esVerdadero(ev2.RESP_SUPINO_EVENTO)) pronoTS = '';
+  });
+  let prono = null;
+  if (pronoTS) {
+    const hEnt = _horasEntreTS(pronoTS, _tsEventoTurno(fecha, turno || (e && e.TURNO) || '', ''));
+    // Chip propio, NO alerta: estar en prono es un estado del tratamiento, no
+    // un aviso. Sin umbral inventado — las sesiones pueden pasar las 24 h.
+    prono = { desde: pronoTS, horas: hEnt };
+  }
 
   // ICU-AW: debilidad adquirida en UCI — MRC-SS <48 en paciente cooperador.
   // Se resuelve sola cuando una medición posterior alcanza ≥48.
@@ -223,6 +242,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf) {
     dispositivos: disp,
     alertas: alertas,
     weaning: weaning,
+    prono: prono,
     icuaw: icuaw,
     candidatoPve: candidatoPve,
     pveRacha: pveRacha,
