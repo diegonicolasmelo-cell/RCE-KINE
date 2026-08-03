@@ -107,6 +107,32 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.30 · DON MAURI EN REPOSO: SILLÓN DE DÍA, BOSTEZO DE NOCHE (ago-2026,
+  cohete v5.30-reposo).** Pedido de Diego al ver v5.29: «de día descansa en la
+  esquina sentado en el sofá y de noche se duerme de pie y bosteza; el resto
+  altérnalo en cualquier parte del recorrido».
+  1. **Dos poses estaban MAL BAUTIZADAS** al recortarlas: la que llamé
+     `piensa` es en realidad un BOSTEZO y `cafe` es el hombre sentado en el
+     SILLÓN con un café. Renombradas a `bosteza` y `sofa` — el nombre de la
+     pose es la única documentación de qué dibujo es cuál.
+  2. `mauriEstado()` (espejo de `serviEstado`) manda en el botón de la
+     esquina: turno DÍA ⇒ `sofa` fijo; turno NOCHE ⇒ `duerme` ⇄ `bosteza`
+     cada `MAURI_BOSTEZO_MS`=7 s. La alternancia se apaga con
+     `prefers-reduced-motion` y al volver al día (`clearInterval` primero,
+     así el temporizador nunca se duplica). Se re-evalúa en `mascAplicar` y
+     en `refrescarVista` (junto a Servi). NO usa el temporizador de
+     inactividad de Servi: Diego lo pidió por TURNO, no por inactividad.
+  3. Recorrido: `MAURI_RECORRIDO=['tablet','idea','confirma']` rota por
+     índice de paso; el paso final con `_tutI>0` sigue siendo `festejo`. Las
+     poses de reposo NO entran al recorrido (viven en la esquina).
+  4. `error` (el facepalm) tiene un uso REAL: el watchdog de los 8 s la pone
+     en la mascota de la pantalla de carga cuando la app no arrancó. Va
+     dentro de su propio try + `typeof mauriPose==='function'` (el watchdog
+     es defensivo por diseño: no puede romperse si el resto no cargó).
+  - 6 asserts nuevos en `checks/tutorial.js` (día sillón, noche dormido, el
+    bostezo entra SOLO tras 7 s, vuelve a dormirse, de día no se mueve, y el
+    recorrido no usa poses de reposo).
+
 - **v5.29 · DON MAURI, LA MASCOTA KINESIÓLOGA (ago-2026, cohete v5.29-mauri).**
   Diego mandó DOS láminas dibujadas con poses de un kinesiólogo y las bautizó
   **«Don Mauri»**. Reemplaza por completo a la «persona antigua» (la mascota
@@ -568,8 +594,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.29-mauri**
-  (antes v5.28-ayuda, v5.27-hojas, v5.26-apk, v5.25-panel, v5.23-bloques).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.30-reposo**
+  (antes v5.29-mauri, v5.28-ayuda, v5.27-hojas, v5.26-apk, v5.25-panel).
   Exige `crearORepararEstructura()` (EVOLUCIONES 380 columnas + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).

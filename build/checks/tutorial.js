@@ -193,6 +193,43 @@ const { chromium } = require('playwright-core');
     r.diaDespierto = vis('#serviOn') && !vis('#serviOff');
     return r;
   });
+
+  /* ── v5.30 · Don Mauri en reposo: de DÍA descansa en el sillón, de NOCHE
+     se duerme de pie y alterna con el bostezo (petición de Diego). ── */
+  const REPOSO = await p.evaluate(async () => {
+    const r = {};
+    const img = () => document.querySelector('#tutBtn .masc-persona');
+    const pose = () => {
+      const s = img().src;
+      return Object.keys(MAURI).find(k => s.indexOf(MAURI[k].slice(0, 60)) > -1) || '?';
+    };
+    localStorage.setItem('rce_mascota', 'persona'); mascAplicar();
+    SHIFT = 'Dia'; mauriEstado();
+    r.dia = pose();
+    SHIFT = 'Noche'; mauriEstado();
+    r.noche = pose();
+    // el bostezo entra solo (sin tocar nada) y después vuelve a dormirse
+    await new Promise(ok => setTimeout(ok, MAURI_BOSTEZO_MS + 400));
+    r.noche2 = pose();
+    await new Promise(ok => setTimeout(ok, MAURI_BOSTEZO_MS + 400));
+    r.noche3 = pose();
+    // volver al día apaga la alternancia
+    SHIFT = 'Dia'; mauriEstado();
+    const antes = pose();
+    await new Promise(ok => setTimeout(ok, MAURI_BOSTEZO_MS + 400));
+    r.diaQuieto = antes === 'sofa' && pose() === 'sofa';
+    // las poses de reposo NO se usan en el recorrido
+    r.recorrido = MAURI_RECORRIDO.slice();
+    localStorage.setItem('rce_mascota', 'servi'); mascAplicar();
+    return r;
+  });
+  eq('Don Mauri de DÍA descansa sentado en el sillón', REPOSO.dia, 'sofa');
+  eq('de NOCHE se duerme de pie', REPOSO.noche, 'duerme');
+  eq('y bosteza solo, sin que nadie lo toque', REPOSO.noche2, 'bosteza');
+  eq('después vuelve a dormirse (alterna)', REPOSO.noche3, 'duerme');
+  eq('de día se queda quieto en el sillón', REPOSO.diaQuieto, true);
+  eq('el recorrido usa las poses de trabajo, no las de reposo',
+    REPOSO.recorrido.join(','), 'tablet,idea,confirma');
   eq('la mascota por defecto es Servi', MASCSEL.porDefecto, 'servi');
   eq('se ve UNA sola mascota (Servi)', MASCSEL.soloServi, true);
   eq('la ilustración va incrustada (sin depender de internet)', MASCSEL.incrustada, true);
