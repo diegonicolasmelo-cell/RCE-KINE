@@ -25,6 +25,11 @@ const GRUPOS = [
   ['api.gs', ['api.gs']],
   ['webapp.gs', ['webapp.gs']],
   ['mantenimiento.gs', ['mantenimiento.gs']],
+  // Correcciones puntuales del arranque real (Manuel, ago-2026). Es TEMPORAL
+  // por diseño — se borra cuando terminen las tandas —, pero mientras exista
+  // viaja en el paquete: si no, una migración se lo dejaría atrás en silencio
+  // (lo cazó checks/paquete.js). Al borrarlo del repo desaparece de ambos lados.
+  ['mantenimiento_manuel.gs', ['mantenimiento_manuel.gs']],
   ['spike.gs', ['spike.gs']],
 ];
 

@@ -34,7 +34,9 @@ eq('sin funciones que el repo no tenga', [...paq.keys()].filter(k => !repo.has(k
 eq('sin funciones duplicadas entre archivos', [...paq].filter(([, v]) => v.length > 1).map(([k]) => k).join(',') || 'ninguna', 'ninguna');
 
 const gs = fs.readdirSync(PAQ).filter(f => f.endsWith('.gs'));
-eq('layout de producción: 9 archivos .gs', gs.length, 9);
+// 9 del layout estable + mantenimiento_manuel.gs (TEMPORAL, ago-2026: las
+// correcciones del arranque real). Al borrar ese archivo, este assert vuelve a 9.
+eq('layout de producción: 10 archivos .gs (9 + mantenimiento_manuel temporal)', gs.length, 10);
 
 // Sintaxis real (node no reconoce .gs: se comprueba copiando a .js)
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'paq-'));
