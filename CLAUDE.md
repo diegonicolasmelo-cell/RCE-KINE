@@ -200,8 +200,34 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - Guardia `checks/entrega_ancha.js` (23 asserts: servicio + layout + que el
     código no desapareció del egreso).
 
-  - **DECISIONES de Diego (4-ago) aún NO programadas**: timeline completa
-    (todo PROCEDIMIENTOS con ícono genérico + banda de fase clínica);
+- **v5.39 · LÍNEA DE TIEMPO COMPLETA + BANDA DE FASE (4-ago-2026, cohete
+  v5.39-timeline; sin cambio de esquema).**
+  1. **BUG: los procedimientos se perdían EN SILENCIO.**
+     `_crearHitosDesdeProcedimientos` traducía con la lista fija PROC_TO_HITO y
+     hacía `if (!map) return` — desaparecían asistencia en procedimiento
+     médico, educación a usuario, evaluación intermedia, recanulación, PCR
+     COVID y TODO lo que el colega agregara a mano del catálogo. Como la
+     estadística cuenta filas de PROCEDIMIENTOS y la timeline contaba solo lo
+     traducido, **las dos nunca cuadraban**. Ahora hay respaldo genérico
+     (`_procLabelGenerico`): los conocidos conservan su nombre clínico, el
+     resto entra con etiqueta legible. Regla: lo que entra a PROCEDIMIENTOS
+     entra a TIMELINE — no pueden volver a discrepar ni con procedimientos
+     futuros. `_SIGLAS_UNIDAD` evita destrozar RCP/COVID/NAVM al bajar de
+     mayúsculas (la hoja los guarda en alta).
+  2. **El riel del historial también se alimentaba de una lista propia**
+     (`_tlEventosSlot`, solo eventos de vía aérea de la evolución): ahora suma
+     los hitos de TIMELINE con tipo procedimiento/kine/general/nota (los
+     `via_aerea` se excluyen porque ya vienen con su ícono y se duplicarían) y
+     ordena por fecha.
+  3. **Banda de FASE CLÍNICA** bajo el riel (`_tlBandaFase`): agrupa turnos
+     consecutivos con la misma fase en tramos de ancho proporcional a su
+     duración, para leer en qué fase estaba el paciente cuando ocurrió cada
+     evento (p. ej. que la TQT fue en weaning). Sin fases registradas no se
+     dibuja.
+  - Guardia `checks/timeline_completa.js` (18 asserts, incluido un
+    procedimiento inventado que nadie mapeó nunca).
+
+  - **DECISIONES de Diego (4-ago) aún NO programadas**:
     **Carina = VNI · MR850 = «dispositivos de apoyo»** (nombre elegido por
     Diego) · VNI/CNAF se asignan al PACIENTE, no a la cama («queda en una cama
     pero no vive ahí») · capnógrafos/Aerogen fuera de la pestaña Ventiladores.
@@ -798,8 +824,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.38-entrega**
-  (antes v5.37-vivo, v5.36-noche, v5.35-dias, v5.34-texto, v5.33-ciclo).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.39-timeline**
+  (antes v5.38-entrega, v5.37-vivo, v5.36-noche, v5.35-dias, v5.34-texto).
   Exige `crearORepararEstructura()` (EVOLUCIONES 385 columnas + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).

@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.38-entrega">
+<meta name="rce-version" content="5.39-timeline">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -698,6 +698,13 @@ table.rhb2 .rl{width:128px;text-align:left;}
 /* Historial — vista Resumen (cabecera de hitos + tendencia plegable + feed) */
 .tlr-sec{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:4px 0 9px;}
 .tlr-rail{display:flex;gap:0;overflow-x:auto;padding:6px 2px 14px;-webkit-overflow-scrolling:touch;}
+/* Banda de fase clínica: corre en paralelo al riel de hitos, así se lee en qué
+   fase estaba el paciente cuando ocurrió cada evento (Diego, ago-2026). */
+.tlr-fase{display:flex;gap:3px;padding:2px 2px 0;}
+.tlr-fase-t{flex:1;min-width:0;border:1px solid;border-radius:5px;padding:4px 7px;
+  display:flex;flex-direction:column;gap:1px;overflow:hidden;}
+.tlr-fase-t b{font-size:.72rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tlr-fase-t span{font-size:.62rem;opacity:.8;white-space:nowrap;}
 .tlr-step{flex:0 0 auto;min-width:118px;max-width:156px;position:relative;padding:20px 12px 0;}
 .tlr-step::before{content:"";position:absolute;top:7px;left:0;right:0;height:2px;background:#cbd5e1;}
 .tlr-step:first-child::before{left:50%;} .tlr-step:last-child::before{right:50%;}
@@ -3768,7 +3775,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.38-entrega]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.39-timeline]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -7034,6 +7041,36 @@ function _tlEventosSlot(e){
 function _tlEscHtml(s){ return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 function _tlFaseTxt(e){ try{ const a=JSON.parse(e.FASE_JSON||'[]'); return a&&a.length?a.join(' + '):''; }catch(_){ return ''; } }
 
+/* Banda de FASE CLÍNICA bajo el riel de hitos (pedido de Diego, ago-2026:
+   «la fase en paralelo a la línea de tiempo»). Permite leer de un vistazo en
+   qué fase estaba el paciente cuando ocurrió cada evento — p.ej. que la TQT se
+   hizo estando en weaning. Se agrupan los turnos consecutivos con la misma
+   fase en UN tramo; el ancho es proporcional a cuántos turnos duró. */
+const _FASE_TONO={'Agudo':'#dc2626','Weaning':'#d97706','Rehabilitación':'#16a34a',
+  'Estable':'#0284c7','Paliativo':'#7c3aed','Destete':'#d97706'};
+function _tlBandaFase(evos){
+  const tramos=[];
+  evos.forEach(e=>{
+    const f=_tlFaseTxt(e);
+    if(!f) return;
+    const ult=tramos[tramos.length-1];
+    if(ult&&ult.fase===f){ ult.n++; ult.hasta=String(e.FECHA||'').slice(0,10); ult.diaH=e.DIA_ESTADIA; }
+    else tramos.push({fase:f,n:1,desde:String(e.FECHA||'').slice(0,10),
+                      hasta:String(e.FECHA||'').slice(0,10),diaD:e.DIA_ESTADIA,diaH:e.DIA_ESTADIA});
+  });
+  if(!tramos.length) return '';
+  const tot=tramos.reduce((s,t)=>s+t.n,0);
+  return '<div class="tlr-sec" style="margin-top:10px;">🩺 Fase clínica</div>'+
+    '<div class="tlr-fase">'+tramos.map(t=>{
+      const tono=_FASE_TONO[t.fase]||'#64748b';
+      const rango=(t.diaD===t.diaH)?`Día ${t.diaD}`:`Días ${t.diaD}–${t.diaH}`;
+      return `<div class="tlr-fase-t" style="flex:${t.n};background:${tono}1a;border-color:${tono}55;color:${tono};"
+        title="${_tlEscHtml(t.fase)} · ${rango} (${t.n} turno${t.n===1?'':'s'})">
+        <b>${_tlEscHtml(t.fase)}</b><span>${rango}</span></div>`;
+    }).join('')+'</div>'+
+    `<div style="font-size:.66rem;color:#94a3b8;margin-top:2px;">El ancho de cada tramo es proporcional a los turnos que duró (${tot} en total).</div>`;
+}
+
 function _renderTLResumen(){
   const evos=TL_EVOS
     .filter(e => TL_TURNO === 'all' || e.TURNO === TL_TURNO)
@@ -7046,12 +7083,31 @@ function _renderTLResumen(){
   const ult=evos[evos.length-1];
 
   // ── 1) CABECERA DE HITOS (horizontal) ──
+  // TODO lo que ocurrió aparece (ago-2026, reporte de Diego): antes el riel se
+  // armaba SOLO de los eventos de vía aérea que trae la evolución, así que los
+  // procedimientos —asistencia médica, educación, evaluación intermedia,
+  // recanulación y todo lo que el colega agregaba a mano— no salían nunca. La
+  // estadística los contaba y la línea de tiempo no: las dos nunca cuadraban.
+  // Ahora se suman los hitos de TIMELINE, que desde esta versión recibe TODOS
+  // los procedimientos (los conocidos con su nombre clínico, el resto con
+  // etiqueta genérica).
+  const diaPorFecha={}; evos.forEach(e=>{ if(e.FECHA!=null) diaPorFecha[String(e.FECHA).slice(0,10)]=e.DIA_ESTADIA; });
   const hk=[];
   const ing=evos.find(e=>esT(e.ES_INGRESO));
   if(ing) hk.push({dia:ing.DIA_ESTADIA,fecha:String(ing.FECHA||''),icon:'🏥',label:'Ingreso',color:'#059669'});
   evos.forEach(e=>{ _tlEventosSlot(e).forEach(ev=>hk.push({dia:e.DIA_ESTADIA,fecha:String(e.FECHA||''),icon:ev[0],label:ev[1],color:ev[2]})); });
+  // Procedimientos y demás hitos. Se excluye 'via_aerea' porque esos ya vienen
+  // de la evolución con su ícono propio (si no, saldrían duplicados).
+  const ICO_TIPO={procedimiento:'🔹',kine:'🦵',general:'📋',nota:'📝'};
+  const TONO_TIPO={procedimiento:'#7c3aed',kine:'#d97706',general:'#0284c7',nota:'#b45309'};
+  (TL_HITOS||[]).filter(x=>['procedimiento','kine','general','nota'].indexOf(String(x.TIPO))!==-1)
+    .filter(x=>TL_TURNO==='all'||x.TURNO===TL_TURNO)
+    .forEach(x=>{ const f=String(x.FECHA||'').slice(0,10);
+      hk.push({dia:diaPorFecha[f]!==undefined?diaPorFecha[f]:'',fecha:f,
+        icon:ICO_TIPO[String(x.TIPO)]||'🔹',label:String(x.TEXTO||''),color:TONO_TIPO[String(x.TIPO)]||'#7c3aed'}); });
   const egr=(TL_HITOS||[]).find(h=>h.TIPO==='egreso');
   if(egr) hk.push({dia:'',fecha:String(egr.FECHA||''),icon:'🏠',label:'Alta',color:'#dc2626'});
+  hk.sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)));
   let h='';
   if(hk.length){
     h+='<div class="tlr-sec">📌 Hitos del episodio</div><div class="tlr-rail">';
@@ -7060,6 +7116,7 @@ function _renderTLResumen(){
       <div class="l">${m.icon} ${_tlEscHtml(m.label)}</div>
       <div class="f">${m.fecha.slice(5)}</div></div>`).join('');
     h+='</div>';
+    h+=_tlBandaFase(evos);
   }
 
   // (el plegable «Tendencia por día» se eliminó: era redundante con la
