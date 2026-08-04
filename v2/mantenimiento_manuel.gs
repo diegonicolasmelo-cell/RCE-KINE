@@ -74,11 +74,20 @@ const _MTO_FECHAS = [
   { cama: '9',  nom: 'OLIVARES',   ingreso: '2026-07-30', vm: '2026-07-30' },
   { cama: '11', nom: 'ZEPEDA',     ingreso: '2026-07-27', vm: '2026-07-27' },
   { cama: '13', nom: 'VELIZ',      ingreso: '2026-07-28', vm: '2026-07-28' },
-  { cama: '14', nom: 'BLANCA',     ingreso: '2026-07-31', vm: '' },  // nunca estuvo en VM
+  // Cama 14: la tabla de Manuel decia "nunca estuvo en VM", pero la lista
+  // oficial del 3-ago dice TET+VMI con VM = estadia (ventilada desde el
+  // ingreso) y la cama hoy esta en TOT+VM. Manda la lista.
+  { cama: '14', nom: 'BLANCA',     ingreso: '2026-07-31', vm: '2026-07-31' },
   { cama: '15', nom: 'URTUBIA',    ingreso: '2026-07-30', vm: '2026-07-30' },
   { cama: '16', nom: 'SANTIBA',    ingreso: '2026-07-24', vm: '2026-07-24' },  // sin la enye a proposito
   { cama: '17', nom: 'AVILES',     ingreso: '2026-07-25', vm: '2026-07-25' },
-  { cama: '18', nom: 'TORRE',      ingreso: '2026-07-28', vm: '2026-07-28' },
+  // Cama 18 ELIMINADA de la tanda (4-ago 00:56): el simulacro mostro que la
+  // cama ROTO — Wilson De La Torre ya no esta (la lista traia su traslado
+  // anotado en rojo) y hay un paciente nuevo con su fecha correcta del
+  // formulario. La guardia por nombre lo salto sola: exactamente el
+  // accidente de la cama 5, esta vez PREVENIDO. El episodio de Wilson quedo
+  // archivado con sus dias viejos (decision de Diego: lo egresado no se
+  // persigue en el periodo de aprendizaje).
 
   // Las camas 11, 14, 16 y 17 YA tienen la fecha correcta, pero van igual:
   // la tanda del 2-ago re-sello sus evoluciones con la REGLA VIEJA (bloques de
