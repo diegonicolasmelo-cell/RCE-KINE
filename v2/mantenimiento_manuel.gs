@@ -69,6 +69,15 @@ const _MTO_FECHA_CARGA = '2026-08-01';
 // distinto = se salta e informa. Es la leccion de la cama 5, ahora a prueba
 // de `forzar`.
 const _MTO_FECHAS = [
+  // Camas 4 y 6 agregadas el 4-ago ~01:40: Diego reporta que muestran UN DIA
+  // MAS del real. La primera tanda (2-ago) les habria escrito la fecha con el
+  // mismo corrimiento de ±1 que tenian 5 de las 10 de la segunda tanda (el
+  // registro nocturno anota la noche bajo el dia en que empieza). Fechas de
+  // la lista oficial; VM = ingreso (la hoja del 3-ago trae VM = estadia en
+  // ambas). El simulacro muestra la fecha que tienen HOY: verificar ahi que
+  // efectivamente estaban corridas antes de confirmar.
+  { cama: '4',  nom: 'VILLALOBOS', ingreso: '2026-07-29', vm: '2026-07-29' },
+  { cama: '6',  nom: 'MALUENDA',   ingreso: '2026-07-27', vm: '2026-07-27' },
   { cama: '5',  nom: 'CASTILLO',   ingreso: '2026-08-01', vm: '2026-08-01' },
   { cama: '8',  nom: 'ARRIAGADA',  ingreso: '2026-08-01', vm: '2026-08-01' },
   { cama: '9',  nom: 'OLIVARES',   ingreso: '2026-07-30', vm: '2026-07-30' },
