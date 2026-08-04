@@ -94,17 +94,23 @@ function guardarEvolucion(datos, ctx) {
       Object.assign(datos, calcularRespiratorio(datos));
 
       // Días de estadía / VM / VA
+      // MOMENTO real del ingreso (ago-2026, corregido 5-ago): fecha+turno+hora
+      // con _tsEventoTurno (mismo mecanismo del ciclo de prono, v5.33) — así un
+      // ingreso de turno Noche pasada la medianoche fecha al día SIGUIENTE, como
+      // la lista oficial del hospital (BUDA). No agrega ningún campo: la hora
+      // (PAC_HORA_INGRESO / «Hora ingreso» del formulario) ya se pedía; antes
+      // solo la usaba TS_INGRESO (con _tsDesdeHora, relativo a AHORA — no al
+      // turno) y FECHA_INGRESO caía siempre en la fecha del turno sin mirarla.
+      const _hFormIng = _horaValida(datos.PAC_HORA_INGRESO);
+      const _tsIng = _hFormIng ? _tsEventoTurno(fecha, turno, _hFormIng) : '';
       if (!cama.FECHA_INGRESO) {
         // Episodio sin fecha de ingreso (paciente cargado sin ingreso formal):
         // se ancla al primer turno evolucionado para que los días no queden '?'.
-        cama.FECHA_INGRESO = fecha;
-        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { FECHA_INGRESO: fecha });
+        cama.FECHA_INGRESO = _tsIng ? _tsFecha(_tsIng) : fecha;
+        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { FECHA_INGRESO: cama.FECHA_INGRESO });
       }
-      // MOMENTO real del ingreso (ago-2026): lo fija la hora del formulario o,
-      // si no viene, la del registro. Con él los días cuentan bloques de 24 h.
-      const _hFormIng = _horaValida(datos.PAC_HORA_INGRESO);
       if (!cama.TS_INGRESO) {
-        cama.TS_INGRESO = (_hFormIng ? _tsDesdeHora(_hFormIng) : '') || _tsAhora();
+        cama.TS_INGRESO = _tsIng || _tsAhora();
         repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { TS_INGRESO: cama.TS_INGRESO });
       } else if (_hFormIng && _hFormIng !== _tsHora(cama.TS_INGRESO)) {
         // Corrección a mano: se conserva el día del momento ya guardado.

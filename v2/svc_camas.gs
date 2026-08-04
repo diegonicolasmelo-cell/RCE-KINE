@@ -39,15 +39,18 @@ function obtenerTodasLasCamas() {
         if (!esVerdadero(x.ACTIVO) || x.UBIC_TIPO !== 'CAMA' || !x.UBIC_DETALLE) return;
         const cat = _vmCategoria(x);
         const id = String(x.UBIC_DETALLE);
-        if (_vmEsDeCama(cat)) vmPorCama[id] = { n: String(x.NOMBRE || ''), e: String(x.ESTADO || '') };
-        else (apoyoPorCama[id] = apoyoPorCama[id] || []).push({ n: String(x.NOMBRE || ''), c: cat, e: String(x.ESTADO || '') });
+        // El ID_VM viaja (ago-2026) para que el traslado de paciente pueda
+        // ofrecer mover el equipo con él (MOVER_VENTILADORES_LOTE) sin tener
+        // que volver a buscarlo por nombre.
+        if (_vmEsDeCama(cat)) vmPorCama[id] = { id: String(x.ID_VM), n: String(x.NOMBRE || ''), e: String(x.ESTADO || '') };
+        else (apoyoPorCama[id] = apoyoPorCama[id] || []).push({ id: String(x.ID_VM), n: String(x.NOMBRE || ''), c: cat, e: String(x.ESTADO || '') });
       });
       camas.forEach(c => {
         const t = vmPorCama[String(c.ID_CAMA)];
-        c.VM_TAG = t ? t.n : ''; c.VM_TAG_ESTADO = t ? t.e : '';
+        c.VM_TAG = t ? t.n : ''; c.VM_TAG_ESTADO = t ? t.e : ''; c.VM_TAG_ID = t ? t.id : '';
         c.EQUIPOS_PACIENTE = apoyoPorCama[String(c.ID_CAMA)] || [];
       });
-    } catch (e) { camas.forEach(c => { c.VM_TAG = ''; c.VM_TAG_ESTADO = ''; c.EQUIPOS_PACIENTE = []; }); }
+    } catch (e) { camas.forEach(c => { c.VM_TAG = ''; c.VM_TAG_ESTADO = ''; c.VM_TAG_ID = ''; c.EQUIPOS_PACIENTE = []; }); }
     return ok(camas);
   } catch (e) { return err('obtenerTodasLasCamas: ' + e.message, ERR.INTERNO, e); }
 }

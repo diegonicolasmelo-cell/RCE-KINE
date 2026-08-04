@@ -277,6 +277,62 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `FECHA_INICIO_VA` en el display del formulario): su valor autoritativo es
     `DIAS_VM` del servidor y no es lo reportado.
 
+- **v5.43 · CUATRO CIERRES DE USO REAL: INGRESO NOCTURNO, PVE, EQUIPOS AL
+  TRASLADAR Y AVISO DE GUARDADO (5-ago-2026, cohete v5.43-cierres; sin cambio
+  de esquema).** Cuatro reportes de Diego de la misma ronda de uso real,
+  todos con la misma raíz: la app usaba días de CALENDARIO donde hacía falta
+  HORA real, y algunas validaciones automáticas terminaban BLOQUEANDO el
+  criterio clínico en vez de solo informarlo.
+  1. **Fecha de ingreso real en turno Noche** (reabre lo cerrado "sin cambio"
+     en v5.42): `FECHA_INGRESO`/`TS_INGRESO` en `guardarEvolucion` (bloque de
+     ingreso) ahora resuelven fecha+turno+hora con `_tsEventoTurno` (el mismo
+     mecanismo del ciclo de prono, v5.33) en vez de fijar siempre la fecha del
+     turno. Un ingreso de turno Noche con hora escrita <12:00 fecha al día
+     SIGUIENTE, como BUDA; con hora de la tarde/noche se queda en el día del
+     turno. No agrega ningún campo: usa la «Hora ingreso» que ya existía.
+     Guardia nueva `checks/ingreso_noche.js` (12 asserts).
+  2. **El gate de PVE informa, no bloquea**: el botón "Sí" de PVE se ocultaba/
+     deshabilitaba con `DIAS_VM<1` (días de calendario) — bloqueó a una colega
+     que por horas REALES sí cumplía protocolo. Ahora el botón queda SIEMPRE
+     disponible; junto al bloque se informan las horas reales de VM
+     (`TS_INICIO_SOPORTE` + `_horasEntreTS`, mismo mecanismo del prono) sin
+     decidir por el clínico — si están bajo 24 h y de todos modos se marca
+     "Sí", sigue existiendo la vía "fuera de protocolo" al declarar el tipo de
+     extubación, igual que siempre. Guardia nueva `checks/pve_horas.js`.
+  3. **Al trasladar un paciente, la app pregunta por sus equipos**: traslado
+     (`INTERCAMBIAR_CAMAS`/`MOVER_A_CAMA_VACIA`) y movimiento de VENTILADORES
+     eran dos acciones totalmente desconectadas — caso real: María Ramírez se
+     trasladó de la 3 a la 7 con Airvo+V60+PB1 y nadie los movió a mano. El
+     diálogo de `mover()` ahora ofrece una casilla por equipo de la cama de
+     ORIGEN («¿viaja con el paciente?»): el VM invasivo parte SIN marcar
+     (suele quedarse, es el de la sala), VNI/CNAF/APOYO parten MARCADOS
+     (acompañan al paciente) — solo el default, se puede cambiar. Al confirmar
+     se encadena `MOVER_VENTILADORES_LOTE` con los marcados. Requirió exponer
+     `ID_VM` en el censo (`VM_TAG_ID` + `EQUIPOS_PACIENTE[].id` en
+     `obtenerTodasLasCamas`). **BUG relacionado encontrado y corregido de
+     paso**: `moverVentilador`/`moverVentiladoresLote` rechazaban CUALQUIER
+     segundo equipo en una cama sin mirar la categoría — habría bloqueado
+     mover el VNI/CNAF de María a la cama 7, que ya tenía su propio VM (el
+     Savina). Ahora solo el VM invasivo es exclusivo por cama (`_vmEsDeCama`);
+     VNI/CNAF/APOYO coexisten con él y entre sí, como ya asumía el tablero
+     desde v5.40. Guardia nueva `checks/traslado_equipos.js` (con el
+     escenario real de María).
+  4. **Aviso de "sin guardar" reforzado**: reporte de Diego con Eduardo — el
+     texto y la firma de una evolución se vieron generarse en pantalla (el
+     texto vivo de v5.34 no pide botón) pero la evolución nunca quedó en
+     EVOLUCIONES. `_formDirty` + el aviso al cerrar el panel + `beforeunload`
+     YA existían, pero un cierre que no los dispara (equipo apagado, navegador
+     cerrado a la fuerza) se los salta enteros. **Decisión tomada con Diego**:
+     NO volver a un botón manual de "Generar texto" — reabriría el bug que
+     v5.34 cerró (los chips no regeneraban el texto). En vez de eso: franja
+     fija junto a 💾 Guardar Evolución («⚠️ Sin guardar») visible TODO el
+     tiempo que el panel tiene cambios sin guardar (no solo al salir) +
+     recordatorio único si pasan 10 min sin guardar. `genTexto()`/`_rtxtLive`
+     intactos. Guardia nueva `checks/sin_guardar.js`.
+  - De paso, arreglado un path roto en `checks/rendimiento.js` (resolvía
+    relativo al directorio de ejecución en vez de al archivo — fallaba fuera
+    de `build/`), sin relación con lo de arriba.
+
 - **v5.42 · DÍAS DE SOPORTE POR TRAMOS: ACUMULADOS Y SIN SOLAPARSE
   (4-ago-2026, cohete v5.42-tramos; sin cambio de esquema — usa la DIAS_VNI
   de v5.41).** Hallazgo de Diego con la historia REAL de María del Carmen
@@ -935,9 +991,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.42-tramos**
-  (antes v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega, v5.37-vivo).
-  Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.43-cierres**
+  (antes v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
+  v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).

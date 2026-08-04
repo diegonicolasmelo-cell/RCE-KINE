@@ -28,7 +28,7 @@ const path = require('path');
         setTimeout(() => ok({ ok: true, data: R[a] !== undefined ? R[a] : null }), 5); }
     }; } }; } } } };
   });
-  await p.goto('file://' + path.resolve('..', 'v2', 'index.html'));
+  await p.goto('file://' + path.resolve(__dirname, '..', '..', 'v2', 'index.html'));
   await p.waitForTimeout(1500);
   const ARRANQUE = await p.evaluate(() => ({ acciones: window.__acciones.slice(), camas: document.querySelectorAll('#bedGrid .bcard').length }));
   const fails0 = [];

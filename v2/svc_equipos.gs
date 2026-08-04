@@ -139,10 +139,16 @@ function moverVentilador(d, ctx) {
       if (tipo === 'CAMA' && !d.detalle) return err('Indica el número de cama.', ERR.VALIDACION);
       if (tipo === 'PRESTAMO' && !d.detalle) return err('Indica la unidad del préstamo.', ERR.VALIDACION);
       const detalle = (tipo === 'CAMA' || tipo === 'PRESTAMO') ? String(d.detalle) : '';
-      // Una cama tiene UN ventilador: si otro equipo ocupa la cama destino, se rechaza.
-      if (tipo === 'CAMA') {
+      // Una cama tiene UN SOLO VM invasivo (choca con otro); el resto de
+      // categorías (VNI/CNAF/APOYO) «queda en una cama pero no vive ahí» y
+      // puede coexistir con el VM y entre sí (ago-2026, corregido de paso: el
+      // choque rechazaba CUALQUIER segundo equipo en la cama sin mirar la
+      // categoría — habría bloqueado el traslado de una VNI/CNAF a una cama
+      // que ya tenía su propio VM).
+      if (tipo === 'CAMA' && _vmEsDeCama(_vmCategoria(vmx))) {
         const choque = repoLeerTodos('VENTILADORES').find(function (x) {
-          return esVerdadero(x.ACTIVO) && x.UBIC_TIPO === 'CAMA' && String(x.UBIC_DETALLE) === detalle && x.ID_VM !== vmx.ID_VM;
+          return esVerdadero(x.ACTIVO) && x.UBIC_TIPO === 'CAMA' && String(x.UBIC_DETALLE) === detalle &&
+            x.ID_VM !== vmx.ID_VM && _vmEsDeCama(_vmCategoria(x));
         });
         if (choque) return err('La cama ' + detalle + ' ya tiene asignado ' + choque.NOMBRE + '. Muévelo primero.', ERR.VALIDACION);
       }
@@ -208,16 +214,18 @@ function moverVentiladoresLote(d, ctx) {
         });
       });
 
-      // Estado FINAL de las camas: las que no se mueven + las del lote
+      // Estado FINAL de las camas: las que no se mueven + las del lote.
+      // Solo el VM invasivo es exclusivo por cama (igual que moverVentilador);
+      // VNI/CNAF/APOYO pueden coexistir con él y entre sí.
       if (!problemas.length) {
         const camaFinal = {};
         equipos.forEach(function (x) {
-          if (!esVerdadero(x.ACTIVO) || x.UBIC_TIPO !== 'CAMA') return;
+          if (!esVerdadero(x.ACTIVO) || x.UBIC_TIPO !== 'CAMA' || !_vmEsDeCama(_vmCategoria(x))) return;
           if (vistos[String(x.ID_VM)]) return;          // este se mueve: su cama queda libre
           camaFinal[String(x.UBIC_DETALLE)] = x.NOMBRE || x.ID_VM;
         });
         normal.forEach(function (m) {
-          if (m.tipo !== 'CAMA') return;
+          if (m.tipo !== 'CAMA' || !_vmEsDeCama(_vmCategoria(m.vmx))) return;
           const ya = camaFinal[m.detalle];
           if (ya) problemas.push('La cama ' + m.detalle + ' quedaría con dos ventiladores: ' + ya + ' y ' + (m.vmx.NOMBRE || m.idVm) + '.');
           else camaFinal[m.detalle] = m.vmx.NOMBRE || m.idVm;
