@@ -199,5 +199,36 @@ eq('…VA 13 (no-natural continua desde el ingreso, nunca ha estado Natural)', m
 const simSemb2 = resellarDiasSoporteSIMULACRO();
 eq('sembrado + re-sellado es idempotente', /a re-sellar: 0 /.test(simSemb2), true);
 
+/* ══ 5 · MORELIA: INGRESO CORREGIDO 30→31-jul + VM SEMBRADA ═════════════
+   5-ago: Diego reversó su primera conclusión — Morelia ingresó el 31-jul a
+   las 23:00 (BUDA muestra 30-jul por SU PROPIO error de tipeo). Sin sembrado,
+   el re-sellado ancla la VM a su primera evolución en la app (1-ago) y da
+   VM 1 en vez de 2; con el sembrado (ini:'2026-07-31') cierra justo en su
+   extubación del 2-ago con los 2 días reales — los mismos que decía la
+   planilla manual desde el principio. */
+console.log('\n5 · Morelia: ingreso 31-jul sembrado (no 1-ago, la primera evolución)');
+_n = 400;
+DB.CAMAS_ESTADO = [{ ID_CAMA: '9', OCUPADA: 'TRUE', PATIENT_ID: 'pMo', NOMBRE: 'MORELIA OLIVARES TAPIA',
+  FECHA_INGRESO: '2026-07-31', FECHA_INICIO_VA: '', FECHA_INICIO_SOPORTE: '',
+  VIA_AEREA: 'Natural', SOPORTE: 'Oxigenoterapia/OAF' }];
+DB.EVOLUCIONES = [
+  { ID_EVOLUCION: 'emo1', PATIENT_ID: 'pMo', TURNO_KEY: '2026-08-01-Dia', FECHA: '2026-08-01',
+    VENT_SOPORTE: 'VM', VENT_VIA_AEREA: 'TOT', DIA_ESTADIA: 2, DIAS_VM: 2, DIAS_VA: 2 },
+  { ID_EVOLUCION: 'emo2', PATIENT_ID: 'pMo', TURNO_KEY: '2026-08-02-Dia', FECHA: '2026-08-02',
+    VENT_SOPORTE: 'VM', VENT_VIA_AEREA: 'TOT', EXT_OCURRIO: true, EXT_TIPO: 'protocolo',
+    VENT_VIA_AEREA_FINAL: 'Natural', VENT_SOPORTE_FINAL: 'Oxigenoterapia/OAF',
+    DIA_ESTADIA: 3, DIAS_VM: 3, DIAS_VA: 3 },
+  { ID_EVOLUCION: 'emo5', PATIENT_ID: 'pMo', TURNO_KEY: '2026-08-05-Dia', FECHA: '2026-08-05',
+    VENT_SOPORTE: 'Oxigenoterapia/OAF', VENT_VIA_AEREA: 'Natural', DIA_ESTADIA: 6, DIAS_VM: 3, DIAS_VA: 3 },
+];
+const simMo = resellarDiasSoporteSIMULACRO();
+eq('el simulacro anuncia el sembrado de Morelia', /historial pre-existente sembrado/.test(simMo), true);
+resellarDiasSoporteCONFIRMAR();
+const mo5 = DB.EVOLUCIONES.find(e => e.TURNO_KEY === '2026-08-05-Dia');
+eq('Morelia al 5-ago: VM 2, congelada tras la extubación del 2-ago (31-jul→2-ago)', mo5.DIAS_VM, 2);
+eq('…y VA 2 (misma lógica: TOT desde el 31-jul, cierra el 2-ago)', mo5.DIAS_VA, 2);
+const simMo2 = resellarDiasSoporteSIMULACRO();
+eq('sembrado + re-sellado es idempotente', /a re-sellar: 0 /.test(simMo2), true);
+
 console.log(fails.length ? `\n❌ ${fails.length} FALLOS` : '\n✅ dias_soporte OK');
 process.exit(fails.length ? 1 : 0);

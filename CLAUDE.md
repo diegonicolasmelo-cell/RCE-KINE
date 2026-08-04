@@ -314,12 +314,28 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     colega puede corregirlo eligiendo la fecha en el formulario de ingreso.
     Si se repite en la práctica, reabrir la conversación.
   - **Regla de la transición — CONFIRMADA por Diego (5-ago)**: el día de la
-    transición pertenece al soporte SALIENTE (Morelia queda VM 3, no el 2 de
-    la planilla manual: ese 2 era el error humano de actualizar a mano). La
-    planilla manual actualizaba días A MANO al cierre del turno de día:
-    turnos sin actualizar ⇒ días perdidos, o corregidos de más. Es la clase
-    de error que el RCE elimina por diseño (los días se DERIVAN de fechas y
-    eventos registrados, nunca se digitan).
+    transición pertenece al soporte SALIENTE. La planilla manual actualizaba
+    días A MANO al cierre del turno de día: turnos sin actualizar ⇒ días
+    perdidos, o corregidos de más. Es la clase de error que el RCE elimina
+    por diseño (los días se DERIVAN de fechas y eventos registrados, nunca
+    se digitan).
+  - **REVERSIÓN Morelia (cama 9, 5-ago) — CORRIGE lo anterior**: la primera
+    lectura de esta ronda daba por buena la fecha de ingreso 30-jul del
+    listado BUDA y atribuía el "VM debería ser 3, no el 2 de la planilla" a
+    un error humano de actualización manual. Diego investigó más: Morelia
+    ingresó el **31-jul a las 23:00** (hora real); BUDA muestra 30-jul por
+    SU PROPIO error de tipeo. Prueba: cama 8 (Alberto, ingreso ~07:00 del
+    1-ago) y cama 9 llegaron con solo 8 h de diferencia real, pero con el
+    30-jul de BUDA el listado las separa por 2 días de calendario en vez de
+    1 — la fecha de BUDA no cuadra ni con su propio vecino de cama. Con el
+    31-jul corregido (`mantenimiento_manuel.gs`, `_MTO_FECHAS` + hora real
+    vía el nuevo campo `hora` por entrada), la regla de tramos da
+    estadía=5 y **VM=2 (31-jul→2-ago)** — EXACTAMENTE lo que decía la
+    planilla manual desde el principio. Necesitó sembrarse en
+    `_MTO_SEED_TRAMOS` (mismo mecanismo de Francisca/María): sin el sembrado,
+    el re-sellado ancla el tramo a la primera evolución de Morelia EN LA APP
+    (1-ago) en vez de su ingreso real (31-jul), y daba VM=1 en vez de 2.
+    Sección 5 de `checks/dias_soporte.js` (4 asserts nuevos).
   - Guardia `checks/dias_soporte.js` (24 asserts: la historia de María turno a
     turno, el re-sellado idempotente y el egreso de Ricardo).
 

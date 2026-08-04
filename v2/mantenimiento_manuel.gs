@@ -88,7 +88,19 @@ const _MTO_FECHAS = [
   { cama: '6',  nom: 'MALUENDA',   ingreso: '2026-07-27', vm: '2026-07-27' },
   { cama: '5',  nom: 'CASTILLO',   ingreso: '2026-08-01', vm: '2026-08-01' },
   { cama: '8',  nom: 'ARRIAGADA',  ingreso: '2026-08-01', vm: '2026-08-01' },
-  { cama: '9',  nom: 'OLIVARES',   ingreso: '2026-07-30', vm: '2026-07-30' },
+  // REVERSION (5-ago): la primera correccion (30-jul) daba por buena la
+  // fecha del listado BUDA y atribuia el "VM 3 vs 2" al error humano de
+  // actualizar a mano. Diego lo investigo mas: Morelia ingreso el 31-jul a
+  // las 23:00 (hora real, no el default 08:00); BUDA muestra 30-jul por SU
+  // PROPIO error de tipeo, no por un desfase de turno-noche. Prueba: cama 8
+  // (Alberto, 1-ago ~07:00) y cama 9 llegaron con solo 8 h de diferencia
+  // real, pero con el 30-jul de BUDA el listado las separa por 2 dias de
+  // calendario en vez de 1 - la fecha de BUDA no cuadra ni con su propio
+  // vecino de cama. Con el 31-jul corregido, la regla de tramos da
+  // estadia=5 y VM=2 (31-jul->2-ago) - EXACTAMENTE lo que decia la planilla
+  // manual desde el principio. La conclusion anterior ("VM deberia ser 3")
+  // quedaba corregida sobre una fecha de ingreso equivocada.
+  { cama: '9',  nom: 'OLIVARES',   ingreso: '2026-07-31', vm: '2026-07-31', hora: '23:00' },
   { cama: '11', nom: 'ZEPEDA',     ingreso: '2026-07-27', vm: '2026-07-27' },
   { cama: '13', nom: 'VELIZ',      ingreso: '2026-07-28', vm: '2026-07-28' },
   // Cama 14: la tabla de Manuel decia "nunca estuvo en VM", pero la lista
@@ -179,12 +191,15 @@ function _mtoCorregirIngresos(escribir) {
       }
       if (f.forzar) p('   (REPARACION forzada: se reescribe aunque diga ' + ingActual + ')');
     }
+    // Hora del ingreso: la real si Diego la dio (`f.hora`, ej. Morelia 23:00),
+    // si no la asumida por defecto (5-ago).
+    const _hora = f.hora || _MTO_HORA_INGRESO;
     p('   ingreso   ' + String(c.FECHA_INGRESO || '(vacio)') + '  ->  ' + f.ingreso +
-      ' ' + _MTO_HORA_INGRESO);
+      ' ' + _hora);
 
     const campos = {
       FECHA_INGRESO: f.ingreso,
-      TS_INGRESO:    f.ingreso + ' ' + _MTO_HORA_INGRESO,
+      TS_INGRESO:    f.ingreso + ' ' + _hora,
     };
 
     // Los relojes de via aerea y de VM solo se tocan si el paciente los tiene
@@ -194,7 +209,7 @@ function _mtoCorregirIngresos(escribir) {
     // un soporte NO invasivo (VNI), que el chequeo original ignoraba.
     const tieneVM = String(c.SOPORTE || '') === 'VM' || String(c.SOPORTE || '') === 'VNI';
     if (f.vm && (tieneVA || tieneVM)) {
-      const ts = f.vm + ' ' + _MTO_HORA_INGRESO;
+      const ts = f.vm + ' ' + _hora;
       if (tieneVA) {
         campos.FECHA_INICIO_VA = f.vm; campos.TS_INICIO_VA = ts;
         p('   via aerea ' + String(c.FECHA_INICIO_VA || '(vacio)') + '  ->  ' + f.vm);
@@ -213,7 +228,7 @@ function _mtoCorregirIngresos(escribir) {
       auditar({
         accion: 'CORRECCION_FECHA_INGRESO', entidad: 'CAMAS_ESTADO',
         idEntidad: f.cama, patientId: String(c.PATIENT_ID || ''),
-        resumen: 'ingreso -> ' + f.ingreso + ' ' + _MTO_HORA_INGRESO +
+        resumen: 'ingreso -> ' + f.ingreso + ' ' + _hora +
                  (campos.FECHA_INICIO_SOPORTE ? ' - VM -> ' + f.vm : ''),
       });
     }
@@ -436,6 +451,17 @@ const _MTO_SEED_TRAMOS = [
     DIAS_VM:  { acum: 6, ini: null },
     DIAS_VNI: { acum: 2, ini: '2026-07-30' },
     DIAS_VA:  { acum: 0, ini: '2026-07-22' } },
+  // Morelia Olivares (cama 9): ingreso REAL 31-jul 23:00, YA ventilada (ver la
+  // reversion de fecha en _MTO_FECHAS arriba). Sin este sembrado, el
+  // re-sellado ancla el tramo de VM a la fecha de su PRIMERA evolucion en la
+  // app (1-ago, muy posterior a su ingreso real) y cuenta VM=1 en vez de 2 —
+  // el mismo error de anclaje ya resuelto para Francisca y Maria. Extubada el
+  // 2-ago (tramo YA CERRADO para siempre: `ini` de la VM queda null tras esa
+  // evolucion, la funcion lo cierra sola al ver el turno de la extubacion).
+  { cama: '9', nom: 'OLIVARES',
+    DIAS_VM:  { acum: 0, ini: '2026-07-31' },
+    DIAS_VNI: { acum: 0, ini: null },
+    DIAS_VA:  { acum: 0, ini: '2026-07-31' } },
 ];
 
 function resellarDiasSoporteSIMULACRO() { return _mtoResellarSoporte(false); }
