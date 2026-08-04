@@ -278,7 +278,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `DIAS_VM` del servidor y no es lo reportado.
 
 - **v5.43 · CUATRO CIERRES DE USO REAL: INGRESO NOCTURNO, PVE, EQUIPOS AL
-  TRASLADAR Y AVISO DE GUARDADO (5-ago-2026, cohete v5.43-cierres; sin cambio
+  TRASLADAR Y AVISO DE GUARDADO (4-ago-2026, cohete v5.43-cierres; sin cambio
   de esquema).** Cuatro reportes de Diego de la misma ronda de uso real,
   todos con la misma raíz: la app usaba días de CALENDARIO donde hacía falta
   HORA real, y algunas validaciones automáticas terminaban BLOQUEANDO el
