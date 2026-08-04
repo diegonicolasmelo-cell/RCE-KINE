@@ -306,10 +306,20 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     recorre las evoluciones de cada cama ocupada en orden y re-sella los tres
     contadores por tramos (idempotente). Es lo que corrige a María, Morelia y
     Eugenia. PENDIENTE: Diego lo corre.
-  - **PREGUNTA ABIERTA (ingreso nocturno)**: Ricardo ingresó la noche del 1
-    y BUDA lo fecha el 2 ⇒ ¿FECHA_INGRESO de un ingreso en turno Noche debería
-    ser la fecha EFECTIVA (día siguiente)? Cambiaría el mes del REM de los
-    ingresos de la última noche del mes. NO implementado — esperar decisión.
+  - **Ingreso nocturno — CERRADO SIN CAMBIO (decisión de Diego, 5-ago)**: el
+    desfase de Ricardo vs BUDA lo atribuye a la carga forzada de la marcha
+    blanca, no a los ingresos reales. NO se toca FECHA_INGRESO. Caso residual
+    conocido: un ingreso REAL registrado pasada la medianoche (turno Noche)
+    quedará fechado con el día del turno y BUDA lo fechará al siguiente; el
+    colega puede corregirlo eligiendo la fecha en el formulario de ingreso.
+    Si se repite en la práctica, reabrir la conversación.
+  - **Regla de la transición — CONFIRMADA por Diego (5-ago)**: el día de la
+    transición pertenece al soporte SALIENTE (Morelia queda VM 3, no el 2 de
+    la planilla manual: ese 2 era el error humano de actualizar a mano). La
+    planilla manual actualizaba días A MANO al cierre del turno de día:
+    turnos sin actualizar ⇒ días perdidos, o corregidos de más. Es la clase
+    de error que el RCE elimina por diseño (los días se DERIVAN de fechas y
+    eventos registrados, nunca se digitan).
   - Guardia `checks/dias_soporte.js` (24 asserts: la historia de María turno a
     turno, el re-sellado idempotente y el egreso de Ricardo).
 
