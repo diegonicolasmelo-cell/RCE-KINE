@@ -354,11 +354,16 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     (quemadura de espalda, escaras sacras gigantes) ⇒ la vía discreta y
     siempre disponible para registrarlo se queda: es la excepción, no el
     camino principal, pero sin ella se pierde registro.
-  - **El resto del posicionamiento se va al bloque de PREVENCIÓN DE NAVM**,
-    con la **inclinación de cabecera en GRADOS, 30-45°** (decisión de Diego).
-    OJO: hoy existe «Sedente >45°», que NO calza con el rango 30-45° del
-    paquete NAVM — hay que resolver si el grado reemplaza a esa casilla o
-    conviven, y dónde quedan DCL D / DCL I (son laterales, no cabecera).
+  - **El resto del posicionamiento se DESARMA (decisiones cerradas por Diego,
+    ago-2026)** — el bloque «📐 Posicionamiento» desaparece como tal:
+    · **Cabecera en GRADOS, 30-45°** → al bloque de **PREVENCIÓN DE NAVM**
+      (es parte del paquete). Reemplaza al posicionamiento como dato de NAVM.
+    · **«Sedente >45°»** → NO va a NAVM: **es parte de TERAPIA FÍSICA**
+      (dicho por Diego), así que se muda al bloque de rehabilitación/KTM.
+    · **DCL D / DCL I** → **SE ELIMINAN las casillas**: «que lo hagan manual
+      porque eso es muy puntual». Quedan para el texto libre, no como campo
+      propio. Las columnas `RESP_POS_DCLD`/`RESP_POS_DCLI` NO se borran del
+      esquema (romperían los registros ya guardados): solo dejan de pedirse.
   - **NUEVO · PROTOCOLO HSA EN EL BLOQUE KTM**: para diagnóstico de hemorragia
     subaracnoidea, KTM debe anexar el protocolo HSA con **inclinaciones
     progresivas de cabecera hasta la verticalización** (está en el protocolo de
