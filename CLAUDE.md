@@ -227,14 +227,39 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - Guardia `checks/timeline_completa.js` (18 asserts, incluido un
     procedimiento inventado que nadie mapeó nunca).
 
-  - **DECISIONES de Diego (4-ago) aún NO programadas**:
-    **Carina = VNI · MR850 = «dispositivos de apoyo»** (nombre elegido por
-    Diego) · VNI/CNAF se asignan al PACIENTE, no a la cama («queda en una cama
-    pero no vive ahí») · capnógrafos/Aerogen fuera de la pestaña Ventiladores.
-    SUGERENCIAS de los colegas SIN LEER (Drive MCP pide aprobación; pedidas
-    por texto). Segunda tanda de corrección de fechas (camas 1, 2 y 7)
-    pendiente de que Diego confirme los inicios de VM derivados: Francisca
-    21-jul y la señora trasladada de la 3 a la 7, 26-jul.
+- **v5.40 · VM · VNI · CNAF · DISPOSITIVOS DE APOYO (4-ago-2026, cohete
+  v5.40-equipos; EXIGE `crearORepararEstructura()` — VENTILADORES con
+  `CATEGORIA`).** Corrección de Diego a un supuesto mío: los 33 equipos NO son
+  todos «ventiladores».
+  · **VM** = soporte invasivo, parte de la sala, OCUPA la cama.
+  · **VNI** (V60, **Carina**) y **CNAF** (Airvo 2) = soporte del PACIENTE
+    («queda en una cama pero no vive ahí»), NO de la cama.
+  · **APOYO** = «dispositivos de apoyo», nombre elegido por Diego (MR850,
+    capnógrafos, Aerogen): no son soporte, acompañan.
+  1. Columna `CATEGORIA` al final de VENTILADORES. Los equipos ya cargados la
+     traen vacía y `_vmCategoria()` la DERIVA del modelo/nombre/obs, así el
+     inventario se clasifica solo sin reescribirlo; `guardarVentilador` la
+     persiste para que deje de depender de la deducción.
+  2. **Arreglado el problema conocido desde la carga del inventario real**:
+     `obtenerTodasLasCamas` metía TODOS los equipos de la cama en un único
+     `VM_TAG` y el último pisaba a los anteriores — las camas con VM +
+     V60/Airvo mostraban uno solo. Ahora solo el VM ocupa el casillero
+     (`_vmEsDeCama`) y el resto viaja en `EQUIPOS_PACIENTE` con chip propio
+     (`.eqtag`, punteado, uno por categoría).
+  3. **REGRESIÓN CAZADA POR LA BATERÍA**: al hacer que la tarjeta cuente
+     contra el reloj real (v5.37) se rompió la vista RETROSPECTIVA, que debe
+     mostrar los días de la fecha que se mira. Se distingue con `c._RETRO`
+     (`retro_camas.js` lo delató). El COD_PACIENTE salió de esa guardia:
+     ahora asserta el diagnóstico.
+  - Guardia `checks/equipos_categoria.js` (17 asserts).
+
+  - **PENDIENTES**: capnógrafos/Aerogen aún dentro de la pestaña Ventiladores
+    (Diego los quiere en su propia sección de «dispositivos de apoyo» — el
+    dato ya está clasificado, falta la vista). SUGERENCIAS de los colegas SIN
+    LEER (Drive MCP pide aprobación; Diego las pegará cuando se acumulen).
+    Segunda tanda de corrección de fechas (camas 1, 2 y 7) pendiente de que
+    Diego confirme los inicios de VM derivados: Francisca 21-jul y la señora
+    trasladada de la 3 a la 7, 26-jul.
 
 - **v5.33 · HORAS EN PRONO CON FECHA REAL + VIAJAN A LA ENTREGA (ago-2026,
   cohete v5.33-ciclo; EXIGE `crearORepararEstructura()`, EVOLUCIONES **385
@@ -824,9 +849,10 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.39-timeline**
-  (antes v5.38-entrega, v5.37-vivo, v5.36-noche, v5.35-dias, v5.34-texto).
-  Exige `crearORepararEstructura()` (EVOLUCIONES 385 columnas + hoja
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.40-equipos**
+  (antes v5.39-timeline, v5.38-entrega, v5.37-vivo, v5.36-noche, v5.35-dias).
+  Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
+  EVOLUCIONES 385 columnas + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete

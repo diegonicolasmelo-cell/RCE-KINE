@@ -28,17 +28,26 @@ function obtenerTodasLasCamas() {
     // Tag del ventilador asignado a cada cama (v4): el cruce se hace AQUÍ, en
     // una sola lectura de VENTILADORES — nunca N llamadas desde el cliente.
     try {
+      // SOLO el VM invasivo ocupa el casillero de la cama (ago-2026, regla de
+      // Diego): el V60/Airvo «queda en una cama pero no vive ahí», va con el
+      // PACIENTE. Antes todos competían por el mismo chip y el que llegaba
+      // último pisaba al anterior — con el inventario real, las camas con VM +
+      // V60/Airvo mostraban solo uno y el otro desaparecía de la vista.
       const vmPorCama = {};
+      const apoyoPorCama = {};
       repoLeerTodos('VENTILADORES').forEach(x => {
-        if (esVerdadero(x.ACTIVO) && x.UBIC_TIPO === 'CAMA' && x.UBIC_DETALLE) {
-          vmPorCama[String(x.UBIC_DETALLE)] = { n: String(x.NOMBRE || ''), e: String(x.ESTADO || '') };
-        }
+        if (!esVerdadero(x.ACTIVO) || x.UBIC_TIPO !== 'CAMA' || !x.UBIC_DETALLE) return;
+        const cat = _vmCategoria(x);
+        const id = String(x.UBIC_DETALLE);
+        if (_vmEsDeCama(cat)) vmPorCama[id] = { n: String(x.NOMBRE || ''), e: String(x.ESTADO || '') };
+        else (apoyoPorCama[id] = apoyoPorCama[id] || []).push({ n: String(x.NOMBRE || ''), c: cat, e: String(x.ESTADO || '') });
       });
       camas.forEach(c => {
         const t = vmPorCama[String(c.ID_CAMA)];
         c.VM_TAG = t ? t.n : ''; c.VM_TAG_ESTADO = t ? t.e : '';
+        c.EQUIPOS_PACIENTE = apoyoPorCama[String(c.ID_CAMA)] || [];
       });
-    } catch (e) { camas.forEach(c => { c.VM_TAG = ''; c.VM_TAG_ESTADO = ''; }); }
+    } catch (e) { camas.forEach(c => { c.VM_TAG = ''; c.VM_TAG_ESTADO = ''; c.EQUIPOS_PACIENTE = []; }); }
     return ok(camas);
   } catch (e) { return err('obtenerTodasLasCamas: ' + e.message, ERR.INTERNO, e); }
 }

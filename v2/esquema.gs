@@ -353,6 +353,18 @@ const ESQUEMA = {
     ['ACTIVO','bool'],['OBS','texto'],['TIMESTAMP','ts'],
     ['FECHA_MANT','texto'],      // última mantención (ISO)
     ['FECHA_MANT_PROX','texto'], // próxima mantención programada (ISO)
+    // CATEGORÍA (ago-2026, corrección de Diego a un supuesto mío): los 33
+    // equipos NO son todos «ventiladores». Tres clases distintas:
+    //   VM    · soporte invasivo. Es parte de la sala y OCUPA la cama.
+    //   VNI   · V60, Carina. Soporte, pero va al PACIENTE — «queda en una
+    //           cama pero no vive ahí».
+    //   CNAF  · Airvo 2. Igual que VNI: del paciente, no de la cama.
+    //   APOYO · «dispositivos de apoyo» (nombre elegido por Diego): MR850,
+    //           capnógrafos, Aerogen. NO son soporte, acompañan.
+    // Va al final: la reparación reescribe encabezados y meterla al medio
+    // desalinearía los datos. Vacía en los equipos ya cargados ⇒ se deriva
+    // del modelo con _vmCategoria().
+    ['CATEGORIA','texto'],
   ]},
   MOVIMIENTOS_VM: { headerRows: 1, cols: [
     ['ID_MOV','texto'],['ID_VM','texto'],['TIMESTAMP','ts'],['FECHA','texto'],

@@ -30,9 +30,36 @@ function repararIdsVentiladores() {
   return msg;
 }
 
+/**
+ * Categoría de un equipo (ago-2026, corrección de Diego a un supuesto mío).
+ * Los 33 equipos NO son todos «ventiladores»:
+ *   VM    · soporte invasivo. Parte de la sala: OCUPA la cama.
+ *   VNI   · V60, Carina. Soporte que va al PACIENTE («queda en una cama pero
+ *           no vive ahí»), no a la cama.
+ *   CNAF  · Airvo 2. Igual que VNI: del paciente.
+ *   APOYO · «dispositivos de apoyo»: MR850, capnógrafos, Aerogen. No son
+ *           soporte, acompañan.
+ * Si la columna viene vacía (equipos cargados antes de esta versión) se
+ * DERIVA del modelo/nombre: así el inventario ya cargado se clasifica solo,
+ * sin pedirle a nadie que lo reescriba.
+ */
+function _vmCategoria(x) {
+  const guardada = String(x.CATEGORIA || '').trim().toUpperCase();
+  if (guardada) return guardada;
+  const t = (String(x.MODELO || '') + ' ' + String(x.NOMBRE || '') + ' ' +
+             String(x.MARCA || '') + ' ' + String(x.OBS || '')).toUpperCase();
+  if (/AIRVO|CNAF|OPTIFLOW/.test(t)) return 'CNAF';
+  if (/V60|CARINA|BIPAP|VNI/.test(t)) return 'VNI';
+  if (/MR ?850|AEROGEN|CAPN[OÓ]GRAFO|NIHON|DR[AÄ]GER VISTA|HUMIDIFICAD/.test(t)) return 'APOYO';
+  return 'VM';
+}
+/** ¿Este equipo ocupa el casillero de la cama? Solo el VM invasivo. */
+function _vmEsDeCama(cat) { return String(cat) === 'VM'; }
+
 function obtenerVentiladores() {
   try {
     const rows = repoLeerTodos('VENTILADORES').map(function (x) {
+      const cat = _vmCategoria(x);
       return {
         id: x.ID_VM, nombre: x.NOMBRE, marca: x.MARCA, modelo: x.MODELO,
         serie: x.NUM_SERIE, inventario: x.NUM_INVENTARIO, anio: x.ANIO_ADQ,
@@ -40,6 +67,7 @@ function obtenerVentiladores() {
         fechaUbicacion: _statISO(x.FECHA_UBICACION),
         estado: x.ESTADO || 'Operativo', activo: esVerdadero(x.ACTIVO), obs: x.OBS || '',
         fechaMant: _statISO(x.FECHA_MANT), fechaMantProx: _statISO(x.FECHA_MANT_PROX),
+        categoria: cat, deCama: _vmEsDeCama(cat),
       };
     });
     rows.sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }); });
@@ -80,6 +108,11 @@ function guardarVentilador(d, ctx) {
         FECHA_MANT_PROX: d.fechaMantProx !== undefined ? (_statISO(d.fechaMantProx) || '') : String((previo && previo.FECHA_MANT_PROX) || ''),
         TIMESTAMP: ahoraTS(),
       };
+      // Categoría: la que venga del formulario o, si no, la que se deduce del
+      // modelo. Se PERSISTE para que deje de depender de la deducción — el día
+      // que llegue un equipo con nombre raro, basta corregirlo una vez.
+      fila.CATEGORIA = String(d.categoria || '').trim().toUpperCase() ||
+                       _vmCategoria(Object.assign({}, previo || {}, fila));
       repoUpsert('VENTILADORES', 'ID_VM', id, fila);
       if (esNuevo) {
         repoInsertar('MOVIMIENTOS_VM', {

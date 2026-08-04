@@ -49,7 +49,10 @@ const { chromium } = require('playwright-core');
       ocupanteDeHoy: txt.indexOf('Caamaño') > -1,
       pacienteDeEseDia: txt.indexOf('Luis Antiguo Soto') > -1,
       diasDeEseDia: /Día 6/.test(txt),        // 6 días de estadía AL 28, no los de hoy
-      codDeEseDia: txt.indexOf('LAS58') > -1,
+      // El COD_PACIENTE salió de la tarjeta en ago-2026 (decisión de Diego:
+      // el código es plomería interna). Lo que la tarjeta debe mostrar del
+      // paciente de ese día es su DIAGNÓSTICO.
+      dxDeEseDia: txt.indexOf('SDRA') > -1,
       sinRegistro: (txt.match(/Sin registro ese día/g) || []).length,
       botones: [...cards[0].querySelectorAll('.bfoot button')].map(x => x.textContent.trim()),
       egreso: txt.indexOf('Egr.') > -1,
@@ -61,7 +64,7 @@ const { chromium } = require('playwright-core');
   eq('el ocupante de HOY ya NO aparece en la fecha pasada', RETRO.ocupanteDeHoy, false);
   eq('aparece el paciente que estaba ese día', RETRO.pacienteDeEseDia, true);
   eq('los contadores son los de esa fecha (día 6 de estadía)', RETRO.diasDeEseDia, true);
-  eq('y el código del paciente de ese día', RETRO.codDeEseDia, true);
+  eq('y el diagnóstico del paciente de ese día', RETRO.dxDeEseDia, true);
   eq('las camas sin evolución dicen «Sin registro ese día»', RETRO.sinRegistro, 2);
   eq('esas camas no permiten crear evolución hacia atrás', RETRO.sinEvoDeshabilitado, true);
   eq('la cama con registro deja ver/editar lo guardado', RETRO.botones.join('|'), '✏️ Ver / editar|⏱️ Hist.');
