@@ -59,32 +59,49 @@ const _MTO_FECHA_CARGA = '2026-08-01';
 // EMPIEZA, asi que un ingreso de las 02:00 del 28 queda escrito como 27. Ojo
 // que las dos camas que Manuel tuvo que deducir («sin evento INGRESO anotado»,
 // 13 y 15) fueron justamente dos de las que salieron mal.
+// `nom` es la GUARDIA POR NOMBRE (4-ago-2026): el simulacro de esa madrugada
+// mostro que la tanda del 2-ago YA se habia CONFIRMADO — las nueve camas
+// tenian fecha escrita (cinco de ellas la equivocada), asi que la guardia por
+// fecha-de-carga dejo de servir para distinguir "corregida" de "rotada".
+// Ahora la funcion solo escribe si el nombre del paciente en la cama CONTIENE
+// el fragmento declarado (verificado contra el registro del simulacro, donde
+// los nueve nombres calzaron con la lista oficial). Cama rotada = nombre
+// distinto = se salta e informa. Es la leccion de la cama 5, ahora a prueba
+// de `forzar`.
 const _MTO_FECHAS = [
-  { cama: '5',  ingreso: '2026-08-01', vm: '2026-08-01' },
-  { cama: '8',  ingreso: '2026-08-01', vm: '2026-08-01' },
-  { cama: '9',  ingreso: '2026-07-30', vm: '2026-07-30' },
-  { cama: '11', ingreso: '2026-07-27', vm: '2026-07-27' },
-  { cama: '13', ingreso: '2026-07-28', vm: '2026-07-28' },
-  { cama: '14', ingreso: '2026-07-31', vm: '' },            // nunca estuvo en VM
-  { cama: '15', ingreso: '2026-07-30', vm: '2026-07-30' },
-  { cama: '16', ingreso: '2026-07-24', vm: '2026-07-24' },
-  { cama: '17', ingreso: '2026-07-25', vm: '2026-07-25' },
-  { cama: '18', ingreso: '2026-07-28', vm: '2026-07-28' },
+  { cama: '5',  nom: 'CASTILLO',   ingreso: '2026-08-01', vm: '2026-08-01' },
+  { cama: '8',  nom: 'ARRIAGADA',  ingreso: '2026-08-01', vm: '2026-08-01' },
+  { cama: '9',  nom: 'OLIVARES',   ingreso: '2026-07-30', vm: '2026-07-30' },
+  { cama: '11', nom: 'ZEPEDA',     ingreso: '2026-07-27', vm: '2026-07-27' },
+  { cama: '13', nom: 'VELIZ',      ingreso: '2026-07-28', vm: '2026-07-28' },
+  { cama: '14', nom: 'BLANCA',     ingreso: '2026-07-31', vm: '' },  // nunca estuvo en VM
+  { cama: '15', nom: 'URTUBIA',    ingreso: '2026-07-30', vm: '2026-07-30' },
+  { cama: '16', nom: 'SANTIBA',    ingreso: '2026-07-24', vm: '2026-07-24' },  // sin la enye a proposito
+  { cama: '17', nom: 'AVILES',     ingreso: '2026-07-25', vm: '2026-07-25' },
+  { cama: '18', nom: 'TORRE',      ingreso: '2026-07-28', vm: '2026-07-28' },
 
-  // FUERA a proposito:
-  //  - camas 7 y 10: EGRESARON el 4-ago. Su episodio ya esta cerrado en
-  //    ARCHIVO_PACIENTES con los dias congelados; corregirlos es otro camino y
-  //    Diego decidio no perseguir lo ya egresado (periodo de aprendizaje).
-  //  - cama 12: estaba vacia en la lista del 3-ago.
-  //  - camas 1,2,3,4,6: corregidas en la primera tanda (2-ago). Sus fechas en
-  //    la lista oficial son 17-07, 29-07, 22-07, 29-07 y 27-07: si alguna no
-  //    coincide con lo que muestra el tablero, agregarla aqui con `forzar`.
+  // Las camas 11, 14, 16 y 17 YA tienen la fecha correcta, pero van igual:
+  // la tanda del 2-ago re-sello sus evoluciones con la REGLA VIEJA (bloques de
+  // 24 h y la noche sin fecha efectiva), asi que hay que re-sellarlas de nuevo
+  // con la regla BUDA. Reescribir la misma fecha es inocuo.
   //
-  // Las fechas de VM se toman iguales a la de ingreso porque todos estos
-  // pacientes llegaron ya ventilados. La lista oficial NO trae fecha de inicio
-  // de VM, asi que este dato es el unico que no esta verificado contra ella:
-  // la funcion solo escribe el reloj de VM si el paciente HOY tiene VA
-  // artificial o VM, y en los demas lo informa sin tocar nada.
+  // FUERA a proposito:
+  //  - camas 7 y 10: EGRESARON el 4-ago (episodio cerrado en ARCHIVO_PACIENTES;
+  //    Diego decidio no perseguir lo ya egresado — periodo de aprendizaje).
+  //    En la cama 7 ahora esta la senora que VINO DE LA CAMA 3: su fecha
+  //    (22-jul) viajo con ella en el traslado y esta correcta.
+  //  - cama 12: estaba vacia en la lista del 3-ago.
+  //  - camas 1,2,3,4,6: primera tanda del 2-ago con fechas que SI calzan con
+  //    la lista oficial (17-07, 29-07, 22-07, 29-07, 27-07). Sus evoluciones
+  //    quedaron selladas con la regla vieja; si Diego quiere afinarlas se
+  //    agregan aqui con su `nom` — el desfase es de a lo mas 1 dia por turno
+  //    de noche.
+  //
+  // Las fechas de VM se toman iguales a la de ingreso porque estos pacientes
+  // llegaron ya ventilados. La lista oficial NO trae fecha de inicio de VM:
+  // la funcion solo escribe ese reloj si el paciente HOY tiene VA artificial
+  // o VM (camas 9 y 15 ya no la tienen ⇒ no se les toca, y sus evoluciones
+  // historicas conservan los dias de VM que ya tenian).
 ];
 
 function corregirIngresosSIMULACRO() { return _mtoCorregirIngresos(false); }
@@ -113,16 +130,29 @@ function _mtoCorregirIngresos(escribir) {
     p('cama ' + f.cama + ' - ' + String(c.NOMBRE || '(sin nombre)') +
       ' - via aerea: ' + String(c.VIA_AEREA || '-') + ' - soporte: ' + String(c.SOPORTE || '-'));
 
-    // Guardia de rotacion: si no tiene la fecha de carga, no se toca. `forzar`
-    // la salta a proposito, para reparar una cama que quedo mal escrita.
     const ingActual = String(c.FECHA_INGRESO || '').slice(0, 10);
-    if (ingActual !== _MTO_FECHA_CARGA && !f.forzar) {
-      p('   !! NO SE TOCA: su ingreso dice ' + (ingActual || '(vacio)') +
-        ', no ' + _MTO_FECHA_CARGA + '.');
-      p('      O ya se corrigio, o esta cama roto y hay otro paciente. Revisar a mano.');
-      saltadas++; return;
+    if (f.nom) {
+      // Guardia POR NOMBRE (4-ago): escribe SOLO si el paciente de la cama es
+      // el que la tabla espera. Reemplaza a la guardia por fecha-de-carga, que
+      // dejo de servir cuando la tanda del 2-ago ya habia escrito fechas.
+      if (String(c.NOMBRE || '').toUpperCase().indexOf(f.nom) === -1) {
+        p('   !! NO SE TOCA: el paciente es "' + String(c.NOMBRE || '(sin nombre)') +
+          '" y la tabla espera uno con "' + f.nom + '" - la cama ROTO. Revisar a mano.');
+        saltadas++; return;
+      }
+      if (ingActual === f.ingreso)
+        p('   (la fecha ya estaba correcta: se reescribe igual para re-sellar sus evoluciones)');
+    } else {
+      // Guardia de rotacion original (entradas sin `nom`): si no tiene la
+      // fecha de carga, no se toca. `forzar` la salta a proposito.
+      if (ingActual !== _MTO_FECHA_CARGA && !f.forzar) {
+        p('   !! NO SE TOCA: su ingreso dice ' + (ingActual || '(vacio)') +
+          ', no ' + _MTO_FECHA_CARGA + '.');
+        p('      O ya se corrigio, o esta cama roto y hay otro paciente. Revisar a mano.');
+        saltadas++; return;
+      }
+      if (f.forzar) p('   (REPARACION forzada: se reescribe aunque diga ' + ingActual + ')');
     }
-    if (f.forzar) p('   (REPARACION forzada: se reescribe aunque diga ' + ingActual + ')');
     p('   ingreso   ' + String(c.FECHA_INGRESO || '(vacio)') + '  ->  ' + f.ingreso +
       ' ' + _MTO_HORA_INGRESO);
 
@@ -194,12 +224,18 @@ function _mtoCorregirIngresos(escribir) {
       // svc_evoluciones.gs, HAY QUE CAMBIARLO AQUI TAMBIEN.
       const fRef = _fechaEfectivaTurno(m[1], m[2]);   // la Noche fecha al dia siguiente
       const dEst = diasEntre(c.FECHA_INGRESO, fRef);
+      // OJO: `c` son SOLO los campos que se van a escribir. Si el paciente ya
+      // NO esta en VM (extubado, p.ej. camas 9 y 15), el reloj de VM no viene
+      // en `c` — y diasEntre('') daria 0, BORRANDO los dias de VM historicos
+      // de sus evoluciones. Sin la fecha, se CONSERVA lo que la fila ya tiene.
       const enVM = String(e.VENT_SOPORTE || '') === 'VM' ||
                    String(e.VENT_SOPORTE_FINAL || '') === 'VM';
-      const dVM = enVM ? diasEntre(c.FECHA_INICIO_SOPORTE, fRef) : parseInt(e.DIAS_VM, 10) || 0;
+      const dVM = (enVM && c.FECHA_INICIO_SOPORTE)
+        ? diasEntre(c.FECHA_INICIO_SOPORTE, fRef) : parseInt(e.DIAS_VM, 10) || 0;
       const esVA = function (x) { return x && String(x) !== 'Natural'; };
       const enVA = esVA(e.VENT_VIA_AEREA) || esVA(e.VENT_VIA_AEREA_FINAL);
-      const dVA = enVA ? diasEntre(c.FECHA_INICIO_VA, fRef) : parseInt(e.DIAS_VA, 10) || 0;
+      const dVA = (enVA && c.FECHA_INICIO_VA)
+        ? diasEntre(c.FECHA_INICIO_VA, fRef) : parseInt(e.DIAS_VA, 10) || 0;
       if (String(e.DIA_ESTADIA) === String(dEst) &&
           String(e.DIAS_VM) === String(dVM) && String(e.DIAS_VA) === String(dVA)) return;
       p('   cama ' + x.cama + ' ' + tk + ': dia ' + e.DIA_ESTADIA + '->' + dEst +

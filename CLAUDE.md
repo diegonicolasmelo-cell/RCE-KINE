@@ -107,6 +107,74 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **v5.34–v5.36 · GENERADOR DE TEXTO VIVO + DÍAS COMO BUDA (4-ago-2026,
+  cohete v5.36-noche; sin cambio de esquema).** Ronda nacida de reportes de
+  Diego en uso real. TRES lecciones caras:
+  1. **v5.34 · Los chips no regeneraban el texto.** Reporte: marcó «KTM
+     nivel 1» y la evolución siguió diciendo «KTM contraindicada» (la réplica
+     del turno anterior). Causa: `_rtxtLive` colgaba de 'input'/'change' del
+     form, pero estado/nivel KTM, asistencia, cuff e IMS son
+     `<button type="button">` — un botón NO emite esos eventos (mismo tropiezo
+     del riel v5.25). Arreglo: listener 'click' delegado en #kf que cubre
+     cualquier chip presente o futuro. Además **aviso de desfase al guardar**:
+     con edición manual la regeneración queda en pausa por diseño, así que
+     antes de guardar se comparan BLOQUE a BLOQUE (etiquetas TEXTO_BLOQUES de
+     v5.23) el texto base de la edición vs el que saldría del motor; si no
+     calzan, uiConfirm muestra «el texto dice / registraste» y decide el
+     colega. Guardia `checks/texto_vivo.js` (11 asserts, verificada fallando
+     contra el index anterior).
+  2. **v5.35 · LOS DÍAS SE CUENTAN COMO LA LISTA OFICIAL (BUDA): días de
+     CALENDARIO, ingreso = Día 0.** Diego mandó FOTO de la «Lista de
+     hospitalizados UCI» del 3-ago (sistema BUDA): las 17 camas cuadran con
+     `hoy − fecha ingreso`. Esto REVIERTE los bloques de 24 h de v5.19, que
+     se construyó sobre un supuesto FALSO mío (que BUDA contaba por bloques).
+     TS_INGRESO se sigue guardando (dato válido; ya no decide el número).
+     `dias24`→`diasCal` en el index. Y **DIAS_VM/VA se CONGELAN al extubar**
+     («se para el día que se extuba») en vez de caer a 0: el turno que extuba
+     SÍ suma; el valor congelado se toma del turno anterior (no existe campo
+     de fin de soporte — anotado como mejora). Guardia `checks/dias_estadia.js`
+     asserta las 17 camas de la lista real (reemplaza a dias24.js).
+  3. **v5.36 · El turno de NOCHE fecha al día siguiente también para los
+     días.** Diego preguntó «¿a esta hora ya es otro día?» y destapó el
+     desfase tablero (reloj) vs evolución (fecha del turno) a las 02:00.
+     Regla que lo zanja: BUDA se actualiza al cambiar el calendario y el
+     equipo lo copia después ⇒ manda `_fechaEfectivaTurno` (el criterio de
+     dispositivos v5.20). La función se MUDÓ de svc_eventos.gs a
+     infra_fechas.gs (helper puro; dejarla allá obligaba a cada arnés a
+     cargar svc_eventos — via_aerea_previo dejó de guardar y lo cazó la
+     batería). checks/eventos.js la stubea para no pisar sus relojes.
+  - **CORRECCIÓN DE FECHAS REALES (`mantenimiento_manuel.gs`, estado 4-ago)**:
+    el simulacro de Diego (00:40) reveló que Manuel YA CONFIRMÓ su tanda
+    vieja ⇒ 9 camas con fecha escrita, **5 equivocadas por ±1 día** (8, 9,
+    13, 15, 18; el registro diario anota la noche bajo el día en que EMPIEZA,
+    BUDA no). La tabla `_MTO_FECHAS` quedó con las fechas de la LISTA OFICIAL
+    y **guardia POR NOMBRE** (`nom`: fragmento del apellido; cama con otro
+    nombre = rotó = se salta — reemplaza a la guardia por fecha-de-carga, que
+    murió cuando la tanda vieja escribió fechas). Las camas 11/14/16/17 van
+    igual con fecha idéntica: su re-sellado quedó con la regla vieja. El
+    re-sellado usa fecha efectiva y CONSERVA los DIAS_VM históricos si el
+    reloj de VM no viene en los campos (extubadas 9/15 — antes los borraba a
+    0). Camas 7 y 10 egresaron el 4-ago: NO se persiguen (decisión de Diego,
+    período de aprendizaje). En cama 7 ahora está la señora trasladada DESDE
+    la 3 (fecha 22-jul viajó con ella). PENDIENTE: Diego corre
+    SIMULACRO→pega registro→CONFIRMAR.
+  - **Diego ROMPIÓ el editor** pegando archivos sueltos del repo
+    (dominio_texto → `_firmaCache` duplicado): en producción son 9 .gs
+    fusionados. `/exec` NUNCA se cayó (sirve la versión publicada — la regla
+    es no tocar «Nueva versión» hasta que `/dev` cargue). Camino de
+    recuperación: `build/RCE-KINE_completo_v536.zip` (paquete verificado).
+  - **DECISIONES de Diego (4-ago) aún NO programadas**: entrega de turno
+    rediseñada con el **mockup C** («ficha ancha en dos pisos»,
+    `scratchpad/mockup_entrega_ancho.html`) + diagnóstico junto al nombre +
+    fichas sin evolución muestran el turno ANTERIOR con franja de aviso
+    (autorizado); diagnóstico reemplaza al COD_PACIENTE en tarjeta/panel (el
+    código QUEDA en egreso/archivados); timeline completa (todo PROCEDIMIENTOS
+    con ícono genérico + banda de fase clínica); **Carina = VNI · MR850 =
+    «dispositivos de apoyo»** (nombre elegido por Diego) · VNI/CNAF se asignan
+    al PACIENTE, no a la cama («queda en una cama pero no vive ahí») ·
+    capnógrafos/Aerogen fuera de la pestaña Ventiladores. SUGERENCIAS de los
+    colegas SIN LEER (Drive MCP pide aprobación; pedidas por texto).
+
 - **v5.33 · HORAS EN PRONO CON FECHA REAL + VIAJAN A LA ENTREGA (ago-2026,
   cohete v5.33-ciclo; EXIGE `crearORepararEstructura()`, EVOLUCIONES **385
   columnas**).** Pregunta de Diego sobre la v5.32: «¿supino igual tiene su hora
@@ -695,8 +763,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.33-ciclo**
-  (antes v5.32-prono, v5.31-foco, v5.30-reposo, v5.29-mauri, v5.28-ayuda).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.36-noche**
+  (antes v5.35-dias, v5.34-texto, v5.33-ciclo, v5.32-prono, v5.31-foco).
   Exige `crearORepararEstructura()` (EVOLUCIONES 385 columnas + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).
