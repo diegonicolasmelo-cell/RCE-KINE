@@ -160,6 +160,13 @@ function guardarEvolucion(datos, ctx) {
         };
         datos.DIAS_VM = _enVM ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : _congelado('DIAS_VM');
         datos.DIAS_VA = _enVA ? diasEntre(cama.FECHA_INICIO_VA, fecha)     : _congelado('DIAS_VA');
+        // VNI: mismo trato que la VM (ago-2026, reporte de Diego). Antes no
+        // tenía columna y el cliente la recalculaba exigiendo que la cama
+        // estuviera en VNI en ESE instante, así que al cambiar de soporte el
+        // número se caía. Manda el SOPORTE registrado, nunca la interfaz de
+        // vía aérea: la mascarilla sola no es ventilación no invasiva.
+        const _enVNI = String(datos.VENT_SOPORTE) === 'VNI' || String(_sopT) === 'VNI';
+        datos.DIAS_VNI = _enVNI ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : _congelado('DIAS_VNI');
       }
 
       // BDT (test de azul) — repetible: cada resultado marcado en el turno se

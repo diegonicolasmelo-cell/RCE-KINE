@@ -253,6 +253,30 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      ahora asserta el diagnóstico.
   - Guardia `checks/equipos_categoria.js` (17 asserts).
 
+- **v5.41 · DÍAS DE VNI: POR SOPORTE Y CONGELADOS (4-ago-2026, cohete
+  v5.41-vni; EXIGE `crearORepararEstructura()` — EVOLUCIONES **386 columnas**
+  con `DIAS_VNI`).** Reporte de Diego: «varios pacientes que precisamente no
+  estuvieron con VNI» mostraban días, «y otro que sí tiene lleva menos». DOS
+  defectos distintos:
+  1. `_esVNIDb` decidía que había VNI mirando la **INTERFAZ** de vía aérea
+     (`Full Face`/`Oronasal`) en vez del SOPORTE. Esas mascarillas también se
+     usan en oxigenoterapia y CNAF ⇒ a esos pacientes se les contaban días de
+     VNI, y encima desde `FECHA_INICIO_VA` (su ingreso) por el respaldo
+     `FECHA_INICIO_SOPORTE||FECHA_INICIO_VA`. Ahora: `c.SOPORTE==='VNI'` y se
+     cuenta solo desde el inicio del soporte.
+  2. **Asimetría de fondo**: la VM tenía `DIAS_VM` calculado y CONGELADO por
+     el servidor; la VNI NO tenía columna y el cliente la recalculaba
+     exigiendo `c.SOPORTE==='VNI'` en ESE instante ⇒ al cambiar de soporte el
+     número se caía. Columna nueva `DIAS_VNI` (al final) + cálculo en
+     `guardarEvolucion` idéntico al de la VM, con el mismo congelado al salir
+     de VNI. La grilla del registro lee el contador del servidor.
+  - Guardia `checks/dias_vni.js` (14 asserts: mascarilla en oxigenoterapia y
+    CNAF ⇒ 0, el de VNI cuenta desde el soporte y no desde el ingreso, y
+    queda congelado dos turnos después de salir).
+  - NO se tocó la línea equivalente de la VM (que conserva el respaldo a
+    `FECHA_INICIO_VA` en el display del formulario): su valor autoritativo es
+    `DIAS_VM` del servidor y no es lo reportado.
+
   - **PENDIENTES**: capnógrafos/Aerogen aún dentro de la pestaña Ventiladores
     (Diego los quiere en su propia sección de «dispositivos de apoyo» — el
     dato ya está clasificado, falta la vista). SUGERENCIAS de los colegas SIN
@@ -849,10 +873,10 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.40-equipos**
-  (antes v5.39-timeline, v5.38-entrega, v5.37-vivo, v5.36-noche, v5.35-dias).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.41-vni**
+  (antes v5.40-equipos, v5.39-timeline, v5.38-entrega, v5.37-vivo, v5.36-noche).
   Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
-  EVOLUCIONES 385 columnas + hoja
+  EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).
 - **v4.7 · DOCUMENTOS DE LA UNIDAD + RESPALDO HABILITADO (jul-2026, cohete

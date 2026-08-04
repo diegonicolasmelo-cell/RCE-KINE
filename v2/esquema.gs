@@ -244,7 +244,15 @@ const _COLS_EVOLUCIONES = [
   // sola no basta. Se sellan al guardar (fecha efectiva del turno + la hora
   // escrita) y PRONO_HORAS cierra el ciclo en la evolución que supina.
   // SIEMPRE AL FINAL.
-  ['PRONO_INICIO_TS','texto'],['SUPINO_TS','texto'],['PRONO_HORAS','decimal']
+  ['PRONO_INICIO_TS','texto'],['SUPINO_TS','texto'],['PRONO_HORAS','decimal'],
+  // DÍAS DE VNI del turno (ago-2026). Faltaba: la VM tenía su contador
+  // calculado y CONGELADO por el servidor, pero la VNI se recalculaba en el
+  // cliente exigiendo que la cama estuviera en VNI en ESE momento — así que
+  // al cambiar de soporte el número se caía, y se contaban «días de VNI» a
+  // pacientes que solo tenían mascarilla (la detección miraba la interfaz de
+  // vía aérea, no el soporte). Ahora es simétrico con DIAS_VM.
+  // SIEMPRE AL FINAL.
+  ['DIAS_VNI','entero']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -772,7 +780,7 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 385) errs.push("EVOLUCIONES != 385 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 386) errs.push("EVOLUCIONES != 386 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

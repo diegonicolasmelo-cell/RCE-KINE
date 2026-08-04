@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.40-equipos">
+<meta name="rce-version" content="5.41-vni">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3784,7 +3784,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.40-equipos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.41-vni]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4654,7 +4654,11 @@ function fillCama(c, fecha) {
   _fechaInicioTQT=''; _fechaInicioVNI='';
   _diasVMPrevios=0; _diasVNIPrevios=0; _nReintub=0;
   const _vaDb=c.VIA_AEREA||'';
-  const _esVNIDb=_vaDb==='Full Face'||_vaDb==='Oronasal';
+  // VNI = SOPORTE ventilatorio no invasivo. NO la interfaz: 'Full Face' y
+  // 'Oronasal' son mascarillas y también se usan en oxigenoterapia y CNAF —
+  // mirarlas hacía que a esos pacientes se les contaran «días de VNI» que
+  // nunca tuvieron, y encima desde su ingreso (Diego, ago-2026).
+  const _esVNIDb=String(c.SOPORTE||'')==='VNI';
   const _esInvDb=_vaDb==='TOT'||_vaDb==='TQT';
   if(_vaDb==='TQT'){
     _diasTOTBase=0; _diasTQTBase=parseInt(dias(c.FECHA_INICIO_VA,fecha))||0;
@@ -4664,7 +4668,7 @@ function fillCama(c, fecha) {
     _diasTOTBase=0; _diasTQTBase=0;
   }
   _diasVMEpisodio=_esInvDb?(parseInt(dias(c.FECHA_INICIO_SOPORTE||c.FECHA_INICIO_VA,fecha))||0):0;
-  _diasVNIEpisodio=_esVNIDb?(parseInt(dias(c.FECHA_INICIO_SOPORTE||c.FECHA_INICIO_VA,fecha))||0):0;
+  _diasVNIEpisodio=_esVNIDb?(parseInt(dias(c.FECHA_INICIO_SOPORTE,fecha))||0):0;
   _vaAnterior=_vaDb;
   _vmHistFlag = (c.SOPORTE==='VM') || parseFloat(c.DIAS_VM)>0;
   actualizarContadores();
@@ -10656,7 +10660,12 @@ function renderTabla(){
                  :(ocu?diasCal(c.TS_INGRESO, c.FECHA_INGRESO, fecha):'');
       const dvm=evoRef?((parseInt(evoRef.DIAS_VM_PREVIOS)||0)+(parseInt(evoRef.DIAS_VM)||0))
                       :(ocu&&c.SOPORTE==='VM'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
-      const dvni=evoRef?((parseInt(evoRef.DIAS_VNI_PREVIOS)||0)+(evoRef.VENT_SOPORTE==='VNI'&&ocu&&c.SOPORTE==='VNI'?dias(c.FECHA_INICIO_SOPORTE,fecha):0))
+      // Simétrico con la VM: manda el contador que calculó y congeló el
+      // servidor. Antes se recalculaba aquí exigiendo que la cama estuviera
+      // en VNI en ESE instante, así que al cambiar de soporte el número se
+      // caía; y como la detección miraba la mascarilla, sumaba días de VNI a
+      // pacientes que nunca la tuvieron (Diego, ago-2026).
+      const dvni=evoRef?((parseInt(evoRef.DIAS_VNI_PREVIOS)||0)+(parseInt(evoRef.DIAS_VNI)||0))
                        :(ocu&&c.SOPORTE==='VNI'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
       const nomHtml=nombre?`<span title="${nombre}">${String(nombre).slice(0,28)}</span>`
                           :'<span style="color:#cbd5e1;font-style:italic;">Disponible</span>';
