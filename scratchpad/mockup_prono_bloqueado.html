@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RCE-KINE · Mockup — Prono bloqueado</title>
+<style>
+:root{--tinta:#1f2328;--suave:#5b6470;--linea:#dfe3e8;--fondo:#f4f6f8;--azul:#2f6fbf;--verde:#1f7a4d;--ambar:#b45309;--rojo:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1140px;margin:0 auto;padding:24px 16px 70px}
+h1{font-size:1.45rem;margin:0 0 3px}
+h2{font-size:1.02rem;margin:32px 0 10px;padding-top:15px;border-top:2px solid var(--linea)}
+p.sub{color:var(--suave);margin:0 0 16px}
+.card{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:15px;margin:13px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.nota{background:#fff8e1;border:1px solid #f0d78a;border-radius:8px;padding:10px 13px;font-size:.9rem;margin:12px 0}
+.ok{background:#eaf6ef;border:1px solid #b9dfc9;border-radius:8px;padding:10px 13px;font-size:.9rem;margin:12px 0}
+.mal{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 13px;font-size:.9rem;margin:12px 0}
+
+/* selector de escenario */
+.esc{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 18px}
+.esc button{border:1px solid var(--linea);background:#fff;border-radius:999px;padding:7px 14px;font-size:.85rem;cursor:pointer;font-weight:600;color:var(--suave)}
+.esc button:hover{background:#eef4fb;border-color:#cfe0f2}
+.esc button.on{background:#111827;color:#fff;border-color:#111827}
+
+/* layout principal */
+.dos{display:grid;grid-template-columns:420px 1fr;gap:18px;align-items:start}
+@media(max-width:880px){.dos{grid-template-columns:1fr}}
+
+.panel{background:#fff;border:1px solid var(--linea);border-radius:10px;overflow:hidden}
+.panel .ph{background:#111827;color:#fff;padding:10px 14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;font-size:.9rem}
+.panel .pb{padding:14px}
+
+/* bloque de posicionamiento — estado A: casillas manuales (como hoy) */
+.check{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:.88rem}
+.check input{width:16px;height:16px}
+.hint{font-size:.72rem;color:var(--suave);margin-left:23px}
+.evchk{background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:7px 9px;margin:6px 0 6px 23px;font-size:.82rem;color:#92400e}
+.hora{display:inline-block;margin-left:23px;margin-top:4px}
+.hora input{border:1px solid var(--linea);border-radius:5px;padding:3px 7px;font-size:.85rem;width:80px}
+
+/* bloque de posicionamiento — estado B/C: indicador bloqueado */
+.lockbox{background:#eef2ff;border:1px solid #c7d2fe;border-radius:9px;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.lockbox .ico{font-size:1.4rem}
+.lockbox .txt{flex:1;min-width:160px}
+.lockbox .txt b{display:block;font-size:.92rem}
+.lockbox .txt span{font-size:.78rem;color:var(--suave)}
+.lockbox button{background:var(--azul);color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.85rem;font-weight:700;cursor:pointer}
+.lockbox button:hover{background:#25599c}
+
+.confirmbox{background:#fff;border:1.5px dashed var(--azul);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:.85rem}
+.confirmbox input{border:1px solid var(--linea);border-radius:5px;padding:4px 8px;font-size:.85rem;width:80px;margin:0 8px}
+.confirmbox button{background:var(--verde);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:.82rem;font-weight:700;cursor:pointer}
+
+/* vista previa de texto */
+.prev{background:#fff;border:1px solid var(--linea);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.prev .ph{background:#f7f8fa;border-bottom:1px solid var(--linea);padding:9px 14px;font-weight:700;font-size:.9rem}
+.prev .pb{padding:15px 17px;font-size:.94rem;line-height:1.75}
+.prev .pb .nuevo{background:#fef3c7;padding:1px 3px;border-radius:3px}
+
+.procbox{display:flex;align-items:center;gap:10px;font-size:.88rem;padding:9px 12px;border-radius:8px;margin-bottom:10px}
+.procbox.si{background:#eaf6ef;border:1px solid #b9dfc9;color:var(--verde)}
+.procbox.no{background:#f1f5f9;border:1px solid #dfe3e8;color:var(--suave)}
+
+table.cmp{width:100%;border-collapse:collapse;font-size:.87rem;margin-top:8px}
+table.cmp th,table.cmp td{border:1px solid var(--linea);padding:7px 10px;text-align:left;vertical-align:top}
+table.cmp th{background:#eef1f5;font-size:.8rem;text-transform:uppercase;letter-spacing:.3px}
+</style></head><body>
+<div class="wrap">
+
+<h1>🔃 Prono bloqueado — el turno que continúa ya no tilda nada</h1>
+<p class="sub">Mockup para revisión de Diego · ago-2026 · <b>nada programado todavía</b> ·
+elige un escenario abajo y mira cómo cambia el bloque de posicionamiento y el texto.</p>
+
+<div class="mal">
+<b>El problema real (Caterina, cama 4, 2-ago):</b> María José prona a las 19:00 (evento correcto).
+En la noche, Mauricio marca que Caterina sigue en prono — pero como la posición no se replica, tuvo
+que tildar «Prono» de nuevo, y también quedó tildado «Se prona este turno» ⇒ <b>segundo PRONO
+duplicado</b> en Procedimientos, aunque no hubo una pronación nueva.
+</div>
+
+<div class="esc" id="escSel">
+  <button data-e="a" class="on">① Turno que INICIA el prono</button>
+  <button data-e="b">② Turno que CONTINÚA (bloqueado)</button>
+  <button data-e="c">③ Clic en «Supinar ahora»</button>
+</div>
+
+<div class="dos">
+  <div class="panel">
+    <div class="ph"><span>📋 Posicionamiento</span><span id="phEp" style="font-weight:400;opacity:.75">Caterina · cama 4</span></div>
+    <div class="pb" id="posBloque"></div>
+  </div>
+
+  <div>
+    <div class="prev">
+      <div class="ph">📄 Texto de la evolución (fragmento)</div>
+      <div class="pb" id="textoPrev"></div>
+    </div>
+    <div id="procBloque"></div>
+  </div>
+</div>
+
+<h2>Comparación antes / ahora</h2>
+<table class="cmp">
+<tr><th></th><th>Hoy (lo que pasó con Mauricio)</th><th>Con el bloqueo</th></tr>
+<tr><td><b>Turno que continúa</b></td>
+  <td>Casillas «Prono» + «Se prona este turno» visibles y vacías — hay que recordar tildar SOLO la
+  posición, no el evento. Fácil marcar ambas por error.</td>
+  <td>No hay nada que tildar: aparece la franja fija con las horas transcurridas y un solo botón
+  «Supinar ahora».</td></tr>
+<tr><td><b>Procedimientos</b></td>
+  <td>Puede duplicarse un PRONO por turno si alguien tilda el evento sin querer.</td>
+  <td>Solo se registra un PRONO (inicio) y una SUPINACIÓN (fin) por ciclo, nunca de más.</td></tr>
+<tr><td><b>Texto generado</b></td>
+  <td>Turnos intermedios repiten «Prono» sin indicar que es continuación.</td>
+  <td>Turnos intermedios narran «Paciente continúa en prono (36,5 h)», sin sonar a evento nuevo.</td></tr>
+<tr><td><b>Hoja UCI</b></td>
+  <td>—</td>
+  <td>Sigue mostrando «Prono» en cada turno de la racha (no cambia: es la posición del turno, no el evento).</td></tr>
+</table>
+
+<p class="sub" style="margin-top:20px">Esto es solo el mockup — avísame si el flujo calza y lo llevo al código real
+(con su guardia correspondiente antes de entregarlo).</p>
+
+</div>
+<script>
+const ESCENARIOS = {
+  a: {
+    pos: `
+      <div class="check"><input type="checkbox" id="mProno" onchange="mToggle()"><label for="mProno">Prono</label></div>
+      <div id="mHoraWrap" class="hora" style="display:none">Hora: <input type="text" value="19:00"></div>
+      <div id="mEvWrap" class="evchk" style="display:none">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="mEv" checked onchange="mRender()"> Se prona este turno
+        </label>
+      </div>
+      <div class="check" style="margin-top:8px"><input type="checkbox" id="mSupino"><label for="mSupino">Supino</label></div>
+    `,
+    texto: `Sin evento aún. Al tildar «Prono» + «Se prona este turno» con hora 19:00, el texto dirá:<br><br>
+      <span class="nuevo">"Se realiza prono a las 19:00 hrs."</span>`,
+    proc: `<div class="procbox si">✅ Se registra <b>PRONO 19:00 HRS</b> en Procedimientos (inicia el ciclo)</div>`,
+  },
+  b: {
+    pos: `
+      <div class="lockbox">
+        <div class="ico">🔃</div>
+        <div class="txt"><b>En prono desde 02-08 19:00</b><span>Lleva 36,5 h · iniciado por María José, turno Día</span></div>
+        <button onclick="mSetEsc('c')">Supinar ahora</button>
+      </div>
+      <div class="hint" style="margin-left:0;margin-top:8px">No hay casillas que tildar — Mauricio no tiene que
+      volver a marcar «Prono»: el sistema ya sabe que Caterina sigue así.</div>
+    `,
+    texto: `Turno de Mauricio, sin tocar nada:<br><br>
+      <span class="nuevo">"Paciente continúa en prono (36,5 h)."</span>`,
+    proc: `<div class="procbox no">— No se registra ningún procedimiento nuevo (es continuación, no evento)</div>`,
+  },
+  c: {
+    pos: `
+      <div class="lockbox">
+        <div class="ico">🔃</div>
+        <div class="txt"><b>En prono desde 02-08 19:00</b><span>Lleva 36,5 h</span></div>
+        <button disabled style="opacity:.5;cursor:default">Supinar ahora</button>
+      </div>
+      <div class="confirmbox">
+        Hora de supinación: <input type="text" value="07:30"> <button onclick="mSetEsc('c2')">Confirmar</button>
+      </div>
+    `,
+    texto: `Se confirma la hora y se cierra el ciclo:<br><br>
+      <span class="nuevo">"Se supina paciente a las 07:30 hrs, tras 36,5 h en prono."</span>`,
+    proc: `<div class="procbox si">✅ Se registra <b>SUPINACIÓN 07:30 HRS</b> en Procedimientos (cierra el ciclo)</div>`,
+  },
+};
+
+function mSetEsc(e){
+  document.querySelectorAll('#escSel button').forEach(b=>b.classList.toggle('on', b.dataset.e===e || (e==='c2'&&b.dataset.e==='c')));
+  const s = ESCENARIOS[e==='c2'?'c':e];
+  document.getElementById('posBloque').innerHTML = s.pos;
+  document.getElementById('textoPrev').innerHTML = s.texto;
+  document.getElementById('procBloque').innerHTML = s.proc;
+  if(e==='c2'){
+    document.getElementById('posBloque').innerHTML = `<div class="ok" style="margin:0">✅ Ciclo cerrado. La franja desaparece; el próximo prono empezará un ciclo nuevo.</div>`;
+  }
+}
+function mToggle(){
+  const on = document.getElementById('mProno').checked;
+  document.getElementById('mHoraWrap').style.display = on?'inline-block':'none';
+  document.getElementById('mEvWrap').style.display = on?'block':'none';
+  mRender();
+}
+function mRender(){
+  const proc = document.getElementById('mEv') && document.getElementById('mEv').checked;
+  document.getElementById('procBloque').innerHTML = proc
+    ? `<div class="procbox si">✅ Se registra <b>PRONO 19:00 HRS</b> en Procedimientos (inicia el ciclo)</div>`
+    : `<div class="procbox no">— Posición marcada, pero sin evento: no se registra procedimiento</div>`;
+}
+document.getElementById('escSel').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  mSetEsc(b.dataset.e);
+});
+mSetEsc('a');
+</script>
+</body></html>
