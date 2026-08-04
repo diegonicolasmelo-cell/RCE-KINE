@@ -47,28 +47,44 @@ const _MTO_FECHA_CARGA = '2026-08-01';
  * Si una cama de aqui esta vacia o cambio de paciente, la funcion la SALTA y lo
  * informa: no escribe a ciegas.
  */
+// FUENTE DE LAS FECHAS (4-ago-2026): la «LISTA DE HOSPITALIZADOS UCI» del
+// 3-ago-2026 09:01, impresa del sistema oficial del hospital (BUDA). Es la
+// fuente de verdad y reemplaza a la tanda anterior, que se habia armado
+// leyendo el registro diario de Kinesiologia.
+//
+// POR QUE SE REESCRIBIO: al comparar la tabla anterior contra la lista oficial
+// salieron SEIS de diez fechas equivocadas por un dia (camas 7, 8, 9, 13, 15 y
+// 18), en las dos direcciones. La causa mas probable es el turno de noche, que
+// cruza la medianoche: el registro diario anota la noche bajo el dia en que
+// EMPIEZA, asi que un ingreso de las 02:00 del 28 queda escrito como 27. Ojo
+// que las dos camas que Manuel tuvo que deducir («sin evento INGRESO anotado»,
+// 13 y 15) fueron justamente dos de las que salieron mal.
 const _MTO_FECHAS = [
-  // --- REPARACION (2-ago 16:00): la cama 5 roto y quedo con la fecha del
-  // paciente ANTERIOR (10 dias que no son suyos). Su ingreso real es el 1-ago,
-  // asi que vuelve a Dia 0. Lleva `forzar` porque la guardia la saltaria.
-  { cama: '5',  ingreso: '2026-08-01', vm: '2026-08-01', forzar: true },
-
-  // --- Pendientes de la segunda tanda ---
-  { cama: '7',  ingreso: '2026-07-30', vm: '2026-07-30' },
-  { cama: '8',  ingreso: '2026-07-31', vm: '2026-07-31' },
-  { cama: '9',  ingreso: '2026-07-31', vm: '2026-07-31' },
+  { cama: '5',  ingreso: '2026-08-01', vm: '2026-08-01' },
+  { cama: '8',  ingreso: '2026-08-01', vm: '2026-08-01' },
+  { cama: '9',  ingreso: '2026-07-30', vm: '2026-07-30' },
   { cama: '11', ingreso: '2026-07-27', vm: '2026-07-27' },
-  { cama: '13', ingreso: '2026-07-29', vm: '2026-07-29' },  // sin evento INGRESO anotado
+  { cama: '13', ingreso: '2026-07-28', vm: '2026-07-28' },
   { cama: '14', ingreso: '2026-07-31', vm: '' },            // nunca estuvo en VM
-  { cama: '15', ingreso: '2026-07-29', vm: '2026-07-29' },  // sin evento INGRESO anotado
+  { cama: '15', ingreso: '2026-07-30', vm: '2026-07-30' },
   { cama: '16', ingreso: '2026-07-24', vm: '2026-07-24' },
   { cama: '17', ingreso: '2026-07-25', vm: '2026-07-25' },
-  { cama: '18', ingreso: '2026-07-27', vm: '2026-07-27' },
+  { cama: '18', ingreso: '2026-07-28', vm: '2026-07-28' },
 
-  // FUERA a proposito, verificado con la planilla de las 15:46 del 2-ago:
-  //  - cama 10: paciente nuevo, ingreso 1-ago = lo que ya tiene. Nada que hacer.
-  //  - cama 12: egreso, la cama esta vacia.
-  //  - camas 1,2,3,4,6: corregidas en la primera tanda con estas mismas fechas.
+  // FUERA a proposito:
+  //  - camas 7 y 10: EGRESARON el 4-ago. Su episodio ya esta cerrado en
+  //    ARCHIVO_PACIENTES con los dias congelados; corregirlos es otro camino y
+  //    Diego decidio no perseguir lo ya egresado (periodo de aprendizaje).
+  //  - cama 12: estaba vacia en la lista del 3-ago.
+  //  - camas 1,2,3,4,6: corregidas en la primera tanda (2-ago). Sus fechas en
+  //    la lista oficial son 17-07, 29-07, 22-07, 29-07 y 27-07: si alguna no
+  //    coincide con lo que muestra el tablero, agregarla aqui con `forzar`.
+  //
+  // Las fechas de VM se toman iguales a la de ingreso porque todos estos
+  // pacientes llegaron ya ventilados. La lista oficial NO trae fecha de inicio
+  // de VM, asi que este dato es el unico que no esta verificado contra ella:
+  // la funcion solo escribe el reloj de VM si el paciente HOY tiene VA
+  // artificial o VM, y en los demas lo informa sin tocar nada.
 ];
 
 function corregirIngresosSIMULACRO() { return _mtoCorregirIngresos(false); }
@@ -170,15 +186,19 @@ function _mtoCorregirIngresos(escribir) {
       const tk = String(e.TURNO_KEY || '');
       const m = tk.match(/^(\d{4}-\d{2}-\d{2})-(Dia|Noche)$/);
       if (!m) return;
-      // Misma referencia determinista que usa el guardado (refTurno):
-      // Dia -> 15:00 del dia, Noche -> 03:00 del dia siguiente.
-      const ref = refTurno(m[1], m[2]);
-      const dEst = diasBloques24(c.TS_INGRESO, c.FECHA_INGRESO, ref.fecha, ref.hora);
-      const dVM = (String(e.VENT_SOPORTE_FINAL || e.VENT_SOPORTE || '') === 'VM')
-        ? diasBloques24(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, ref.fecha, ref.hora) : 0;
-      const vaF = String(e.VENT_VIA_AEREA_FINAL || e.VENT_VIA_AEREA || '');
-      const dVA = (vaF === 'TOT' || vaF === 'TQT')
-        ? diasBloques24(c.TS_INICIO_VA, c.FECHA_INICIO_VA, ref.fecha, ref.hora) : 0;
+      // MISMA regla que usa el guardado (svc_evoluciones.gs): dias de
+      // CALENDARIO contra la fecha del TURNO, igual que la lista oficial del
+      // hospital (BUDA). OJO: hasta el 4-ago esto usaba diasBloques24 y habria
+      // re-sellado TODAS las evoluciones con la regla vieja, deshaciendo la
+      // correccion en lo ya guardado. Si se cambia el conteo en
+      // svc_evoluciones.gs, HAY QUE CAMBIARLO AQUI TAMBIEN.
+      const dEst = diasEntre(c.FECHA_INGRESO, m[1]);
+      const enVM = String(e.VENT_SOPORTE || '') === 'VM' ||
+                   String(e.VENT_SOPORTE_FINAL || '') === 'VM';
+      const dVM = enVM ? diasEntre(c.FECHA_INICIO_SOPORTE, m[1]) : parseInt(e.DIAS_VM, 10) || 0;
+      const esVA = function (x) { return x && String(x) !== 'Natural'; };
+      const enVA = esVA(e.VENT_VIA_AEREA) || esVA(e.VENT_VIA_AEREA_FINAL);
+      const dVA = enVA ? diasEntre(c.FECHA_INICIO_VA, m[1]) : parseInt(e.DIAS_VA, 10) || 0;
       if (String(e.DIA_ESTADIA) === String(dEst) &&
           String(e.DIAS_VM) === String(dVM) && String(e.DIAS_VA) === String(dVA)) return;
       p('   cama ' + x.cama + ' ' + tk + ': dia ' + e.DIA_ESTADIA + '->' + dEst +
