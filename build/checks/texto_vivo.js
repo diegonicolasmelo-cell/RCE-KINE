@@ -76,6 +76,40 @@ const ok = (cond, msg) => { if (!cond) { fallas++; console.log('  ✗ ' + msg); 
   const manual = await p.evaluate(() => document.getElementById('rtxt').value);
   ok(manual === 'Texto escrito a mano por el colega.', 'con edición manual el clic NO pisa el texto');
 
+  // ── Red de seguridad: con edición manual, el desfase se DETECTA ──
+  // (la regeneración está en pausa por diseño, así que el texto puede quedar
+  // narrando una versión vieja del turno sin que nadie lo note)
+  console.log('\nDESFASE — el texto contradice lo registrado');
+  const D = await p.evaluate(() => {
+    // El colega parte de un texto del motor con KTM contraindicada…
+    setKTMstate('s');
+    document.getElementById('fKTMraz').value = 'inestabilidad hemodinámica';
+    const t = document.getElementById('rtxt');
+    t.value = genTexto();
+    _marcarTextoGenerado(t.value);
+    // …lo retoca a mano (la regeneración queda EN PAUSA)…
+    t.value = t.value + '\nSe agrega observación del colega.';
+    t.dispatchEvent(new Event('input', { bubbles: true }));
+    const pausada = _textoManual;
+    // …y DESPUÉS registra que la KTM sí se hizo.
+    document.getElementById('bKTMr').click();
+    document.querySelector('.ktm-niv-btn[data-niv="1"]').click();
+    return { pausada, desfases: _bloquesDesfasados(), textoIntacto: /observación del colega/.test(t.value) };
+  });
+  ok(D.pausada, 'el retoque a mano pausa la regeneración (comportamiento de siempre)');
+  ok(D.textoIntacto, 'lo escrito a mano NO se pisa');
+  ok(D.desfases.some(x => /KTM/i.test(x.bloque)), 'se detecta que el bloque KTM quedó desfasado');
+  ok(D.desfases.some(x => /contraindicada/i.test(x.antes) && /nivel 1/i.test(x.ahora)),
+     'el aviso dice qué narra el texto y qué se registró de verdad');
+
+  // Sin edición manual NO hay nada que avisar: el texto se regeneró solo.
+  const sinManual = await p.evaluate(() => {
+    document.getElementById('rtxt').value = genTexto();
+    _marcarTextoGenerado(document.getElementById('rtxt').value);
+    return _bloquesDesfasados().length;
+  });
+  ok(sinManual === 0, 'sin edición manual no se avisa nada');
+
   ok(errs.length === 0, 'sin errores de JavaScript' + (errs.length ? ': ' + errs[0] : ''));
 
   await b.close();

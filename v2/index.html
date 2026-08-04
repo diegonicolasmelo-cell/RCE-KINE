@@ -5287,6 +5287,34 @@ function guardar() {
     if(va){ va.focus(); va.style.outline='2px solid var(--danger)'; setTimeout(()=>{va.style.outline='';},2500); }
     return;
   }
+  // ★ El texto no puede contradecir lo registrado ★
+  // Al retocar el texto a mano la regeneración queda en pausa (para no pisar
+  // lo escrito), así que desde ahí el texto puede quedar narrando una versión
+  // vieja del turno. NO se corrige a la fuerza: se muestra la diferencia
+  // bloque a bloque y decide el colega. Sin edición manual no aplica — ahí el
+  // texto se regenera solo y al guardar sale fresco.
+  if(_textoManual && !_txtDesfaseVisto){
+    const _des=_bloquesDesfasados();
+    if(_des.length){
+      const _esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      _txtDesfaseVisto=true;
+      uiConfirm({
+        icono:'📝', titulo:'El texto no coincide con lo registrado',
+        mensaje:'Editaste el texto a mano, así que dejó de actualizarse solo. Después cambiaste el formulario y <b>estos bloques quedaron contando otra cosa</b>:',
+        detalle:_des.map(d=>`<div style="margin:6px 0;padding:6px 9px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:0 5px 5px 0;text-align:left;font-size:.8rem;">
+            <b>${_esc(d.bloque)}</b><br>
+            <span style="color:#b91c1c;font-weight:700;">El texto dice:</span> ${_esc(d.antes)||'<i>(nada)</i>'}<br>
+            <span style="color:#15803d;font-weight:700;">Registraste:</span> ${_esc(d.ahora)||'<i>(nada)</i>'}
+          </div>`).join(''),
+        confirmar:'🔄 Actualizar el texto y guardar', tono:'rojo',
+      }).then(ok=>{
+        if(ok){ $('rtxt').value=genTexto(); _marcarTextoGenerado($('rtxt').value); guardar(); }
+        else { _txtDesfaseVisto=false; show('rarea'); $('rtxt')?.scrollIntoView({behavior:'smooth',block:'center'}); }
+      });
+      return;
+    }
+  }
+  _txtDesfaseVisto=false;
   // ★ APACHE II: opcional, pero si viene debe ser entero 0-71 ★
   const _apv=v('fApache');
   if(_apv!=='' && (!/^\d+$/.test(String(_apv).trim()) || +_apv>71)){
@@ -7249,10 +7277,42 @@ function copiar() {
 // está en pantalla; la salida del motor viaja aparte (TEXTO_AUTO) para
 // trazabilidad y para refinar el generador comparando ambos.
 let _rtxtGen='';          // último texto salido del motor (para detectar edición)
+let _rtxtGenBloq=[];      // etiquetas de bloque alineadas 1:1 con _rtxtGen
 let _textoManual=false;   // el texto en pantalla tiene retoques manuales
+let _txtDesfaseVisto=false; // el aviso de desfase ya se mostró en este guardado
 function _marcarTextoGenerado(t){
   _rtxtGen = t||'';
+  _rtxtGenBloq = (window._TXB_ULT||[]).slice();
   _setTextoManual(false);
+}
+/* Nombre legible de cada bloque del motor, para poder avisar en cristiano
+   cuál quedó desfasado. El que no esté aquí sale con su clave. */
+const TXB_NOMBRE={ enc:'Encabezado', fase:'Fase clínica', sed:'Sedoanalgesia',
+  hdn:'Hemodinamia', neuro:'Neurológico', va:'Vía aérea', vaCambio:'Cambio de vía aérea',
+  sop:'Soporte ventilatorio', pvol:'Volúmenes', ppres:'Presiones y mecánica',
+  poxi:'Oxigenación', param:'Parámetros', intub:'Intubación', reintub:'Reintubación',
+  tqt:'Traqueostomía', ext:'Extubación', decan:'Decanulación', desvinc:'Desvinculación',
+  vfon:'Válvula de fonación', pve:'PVE', gsa:'Gases arteriales', ausc:'Auscultación',
+  ktr:'KTR', cult:'Cultivos', inhalo:'Inhaloterapia', pos:'Posicionamiento',
+  ktm:'KTM', imt:'IMT', ems:'EMS', edu:'Educación', evalf:'Evaluaciones',
+  plan:'Plan', nota:'Nota del turno', firma:'Firma' };
+/* ¿Qué bloques narran algo distinto de lo que el formulario dice HOY?
+   Solo tiene sentido con edición manual: ahí la regeneración queda EN PAUSA
+   por diseño (para no pisar lo que el colega escribió), así que el texto
+   puede terminar contando una versión vieja del turno. Se compara el texto
+   del que PARTIÓ la edición contra el que saldría del motor ahora — no la
+   pantalla, que ya trae sus retoques legítimos y no se debe tocar. */
+function _bloquesDesfasados(){
+  const fresco=genTexto(), fB=(window._TXB_ULT||[]).slice();
+  const agrupar=(txt,labs)=>{ const m={};
+    String(txt||'').split('\n').forEach((l,i)=>{ const k=labs[i]||'?'; (m[k]=m[k]||[]).push(l); });
+    return m; };
+  const A=agrupar(_rtxtGen,_rtxtGenBloq), B=agrupar(fresco,fB);
+  const claves={}; Object.keys(A).forEach(k=>{claves[k]=1;}); Object.keys(B).forEach(k=>{claves[k]=1;});
+  return Object.keys(claves)
+    .filter(k=>k!=='?' && (A[k]||[]).join(' ').trim()!==(B[k]||[]).join(' ').trim())
+    .map(k=>({ bloque:TXB_NOMBRE[k]||k,
+               antes:(A[k]||[]).join(' ').trim(), ahora:(B[k]||[]).join(' ').trim() }));
 }
 function _setTextoManual(on){
   _textoManual=!!on;
