@@ -333,6 +333,46 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     relativo al directorio de ejecución en vez de al archivo — fallaba fuera
     de `build/`), sin relación con lo de arriba.
 
+- **PRONO / POSICIONAMIENTO / HSA — DISEÑO EN CURSO, NO PROGRAMADO (ago-2026).**
+  Nace del caso de Caterina (cama 4): María José prona a las 19:00 del 2-ago
+  y en la noche Mauricio, para reflejar que seguía en prono, vuelve a tildar
+  la casilla ⇒ **PRONO duplicado** en PROCEDIMIENTOS. Causa de fondo: «📐
+  Posicionamiento» es un bloque **colapsable que arranca cerrado**, lejos, tras
+  el examen físico — se pasa por alto, y quien lo abre tarde tilda de más.
+  Mockups: `scratchpad/mockup_prono_bloqueado.html` (estado bloqueado) y
+  `scratchpad/mockup_prono_ventilatorio.html` (ubicación nueva + BNM).
+  - **Prono/supino se MUEVEN al inicio de Terapia ventilatoria** (donde la
+    vista ya está), con bloques horarios. El turno que solo CONTINÚA no tilda
+    nada: franja bloqueada «En prono desde … (X h)» + botón único «Supinar»,
+    que pide la hora y cierra el ciclo. Así el procedimiento no se puede
+    duplicar y los turnos intermedios narran «continúa en prono», no un evento.
+  - **RAZÓN CLÍNICA (dicha por Diego, corrige un supuesto mío)**: esto se
+    ordena por la **escalera terapéutica del SDRA**. **NO todo BNM lleva a
+    prono** — «a veces con BNM basta» ⇒ el BNM **PREGUNTA** la posición, jamás
+    la asume (mi mockup decía «con bloqueo casi siempre se prona»: FALSO, hay
+    que corregir ese texto). Y **el prono SIN BNM existe pero es EXCEPCIONAL**
+    (quemadura de espalda, escaras sacras gigantes) ⇒ la vía discreta y
+    siempre disponible para registrarlo se queda: es la excepción, no el
+    camino principal, pero sin ella se pierde registro.
+  - **El resto del posicionamiento se va al bloque de PREVENCIÓN DE NAVM**,
+    con la **inclinación de cabecera en GRADOS, 30-45°** (decisión de Diego).
+    OJO: hoy existe «Sedente >45°», que NO calza con el rango 30-45° del
+    paquete NAVM — hay que resolver si el grado reemplaza a esa casilla o
+    conviven, y dónde quedan DCL D / DCL I (son laterales, no cabecera).
+  - **NUEVO · PROTOCOLO HSA EN EL BLOQUE KTM**: para diagnóstico de hemorragia
+    subaracnoidea, KTM debe anexar el protocolo HSA con **inclinaciones
+    progresivas de cabecera hasta la verticalización** (está en el protocolo de
+    kinesioterapia motora de la unidad). FALTA que Diego mande el documento:
+    sin los pasos reales (grados de cada etapa, criterios para avanzar y para
+    detener — vasoespasmo, PIC, deterioro neurológico) no se puede programar.
+    Ya existe infraestructura reutilizable: `#fcNeuro` (index) se muestra solo
+    si el Dx contiene HSA/ACV/TEC/Meningioma/Politrauma, «Hemorragia
+    subaracnoidea» ya está en el catálogo de diagnósticos y «verticalización»
+    ya clasifica como procedimiento `kine` en svc_procedimientos.
+  - PENDIENTE de la misma conversación: Caterina se supinó el **3-ago ~16:00**
+    (⇒ 21 h en prono) y falta registrarlo; y está ofrecido correr
+    `corregirPronosRepetidos()` en SIMULACRO para el duplicado de esa noche.
+
 - **v5.42 · DÍAS DE SOPORTE POR TRAMOS: ACUMULADOS Y SIN SOLAPARSE
   (4-ago-2026, cohete v5.42-tramos; sin cambio de esquema — usa la DIAS_VNI
   de v5.41).** Hallazgo de Diego con la historia REAL de María del Carmen
