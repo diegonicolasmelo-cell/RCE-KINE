@@ -138,35 +138,73 @@ function guardarEvolucion(datos, ctx) {
         // de dispositivos (v5.20) y el fechado de eventos rápidos.
         datos.DIA_ESTADIA = diasEntre(cama.FECHA_INGRESO, fecha);
 
-        // VM y VA cuentan mientras el paciente los tiene y SE CONGELAN cuando
-        // deja de tenerlos («se para el día que se extuba», Diego). El turno
-        // que extuba SÍ suma: el paciente estuvo ventilado durante él, por eso
-        // se mira el estado INICIAL además del final. Antes caían a 0 y se
-        // perdía de vista cuántos días estuvo en VM.
+        // ── VM · VNI · VA: DÍAS POR TRAMOS, ACUMULADOS Y SIN SOLAPARSE ─────
+        // (ago-2026, hallazgo de Diego con María del Carmen: su estadística
+        // manual sumaba VM 8 + VNI 7 = 15 días en una estadía de 13, porque el
+        // día de cada transición se contaba para LOS DOS soportes.)
+        //
+        // REGLA: cada TRAMO de soporte aporta diasEntre(inicio, fin). El día
+        // de la transición pertenece al soporte SALIENTE (el turno que extuba
+        // aún estuvo ventilado) y es el Día 0 del entrante. Así los tramos
+        // consecutivos SUMAN EXACTO la estadía — imposible el día doble y
+        // imposible el día perdido.
+        //
+        // Cómo se calcula sin recorrer tramos: si el turno TIENE el soporte
+        // (estado inicial o final), su valor = BASE + días del tramo abierto,
+        // donde BASE es el valor CONGELADO de la última evolución del episodio
+        // que terminó SIN ese soporte (= la suma de todos los tramos cerrados).
+        // Si el turno NO lo tiene, hereda el valor congelado del turno previo.
+        // El congelado emerge solo: al salir del soporte el número queda quieto
+        // y al REINGRESAR (reintubación, nueva VNI) los tramos anteriores no se
+        // pierden — antes la reintubación reiniciaba el contador a cero.
         const _sopT = datos.VENT_SOPORTE_FINAL || datos.VENT_SOPORTE;
         const _vaT  = datos.VENT_VIA_AEREA_FINAL || datos.VENT_VIA_AEREA;
         const _esVA = function (x) { return x && String(x) !== 'Natural'; };
-        const _enVM = String(datos.VENT_SOPORTE) === 'VM' || String(_sopT) === 'VM';
-        const _enVA = _esVA(datos.VENT_VIA_AEREA) || _esVA(_vaT);
-        // Último valor alcanzado por el contador (turno anterior del episodio).
-        // Sin turno previo no hay nada que congelar ⇒ 0.
-        const _congelado = function (campo) {
-          try {
-            const pr = obtenerEvolucionPrevia(idCama, turnoKey);
-            const p = pr && pr.ok ? pr.data : null;
-            const n = p ? parseInt(p[campo], 10) : 0;
-            return isNaN(n) ? 0 : n;
-          } catch (e) { return 0; }
+        // Episodio ANTERIOR a este turno, del más reciente al más antiguo.
+        const _epiPrev = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', idCama)
+          .filter(function (x) {
+            return String(x.PATIENT_ID) === String(patientId) &&
+                   String(x.TURNO_KEY || '') < String(turnoKey);
+          })
+          .sort(function (a, b) { return String(b.TURNO_KEY).localeCompare(String(a.TURNO_KEY)); });
+        const _contadorTramos = function (campo, enS, terminoSinS, fInicioTramo) {
+          if (!enS) {   // sin el soporte: hereda el congelado (0 si nunca lo tuvo)
+            return _epiPrev.length ? (parseInt(_epiPrev[0][campo], 10) || 0) : 0;
+          }
+          let base = 0, huboSalida = false;   // tramos cerrados = congelado de la última evolución fuera del soporte
+          for (let i = 0; i < _epiPrev.length; i++) {
+            if (terminoSinS(_epiPrev[i])) { base = parseInt(_epiPrev[i][campo], 10) || 0; huboSalida = true; break; }
+          }
+          let ini = fInicioTramo;
+          // Nunca salió del soporte en todo el episodio ⇒ el tramo viene desde
+          // la PRIMERA evolución, aunque el reloj de la cama se haya
+          // re-estampado en el camino (p. ej. TOT → Full Face reestampa la
+          // fecha de inicio de VA sin que la vía aérea dejara de ser artificial).
+          if (!huboSalida && _epiPrev.length) {
+            const f0 = String(_epiPrev[_epiPrev.length - 1].FECHA || '').slice(0, 10);
+            if (f0 && (!ini || f0 < ini)) ini = f0;
+          }
+          return base + Math.max(0, diasEntre(ini, fecha) || 0);
         };
-        datos.DIAS_VM = _enVM ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : _congelado('DIAS_VM');
-        datos.DIAS_VA = _enVA ? diasEntre(cama.FECHA_INICIO_VA, fecha)     : _congelado('DIAS_VA');
-        // VNI: mismo trato que la VM (ago-2026, reporte de Diego). Antes no
-        // tenía columna y el cliente la recalculaba exigiendo que la cama
-        // estuviera en VNI en ESE instante, así que al cambiar de soporte el
-        // número se caía. Manda el SOPORTE registrado, nunca la interfaz de
-        // vía aérea: la mascarilla sola no es ventilación no invasiva.
-        const _enVNI = String(datos.VENT_SOPORTE) === 'VNI' || String(_sopT) === 'VNI';
-        datos.DIAS_VNI = _enVNI ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : _congelado('DIAS_VNI');
+        // Inicio del tramo abierto: el reloj de la cama si la cama YA está en
+        // ese soporte; si la transición ocurre EN ESTE turno (la cama aún dice
+        // el soporte anterior), el tramo parte hoy — Día 0.
+        const _finalSop = function (x) { return String(x.VENT_SOPORTE_FINAL || x.VENT_SOPORTE || ''); };
+        const _finalVa  = function (x) { return String(x.VENT_VIA_AEREA_FINAL || x.VENT_VIA_AEREA || ''); };
+        datos.DIAS_VM = _contadorTramos('DIAS_VM',
+          String(datos.VENT_SOPORTE) === 'VM' || String(_sopT) === 'VM',
+          function (x) { return _finalSop(x) !== 'VM'; },
+          String(cama.SOPORTE) === 'VM' ? cama.FECHA_INICIO_SOPORTE : fecha);
+        // VNI manda el SOPORTE registrado, nunca la interfaz: la mascarilla
+        // sola (Full Face/Oronasal en oxigenoterapia o CNAF) no es VNI.
+        datos.DIAS_VNI = _contadorTramos('DIAS_VNI',
+          String(datos.VENT_SOPORTE) === 'VNI' || String(_sopT) === 'VNI',
+          function (x) { return _finalSop(x) !== 'VNI'; },
+          String(cama.SOPORTE) === 'VNI' ? cama.FECHA_INICIO_SOPORTE : fecha);
+        datos.DIAS_VA = _contadorTramos('DIAS_VA',
+          _esVA(datos.VENT_VIA_AEREA) || _esVA(_vaT),
+          function (x) { return !_esVA(_finalVa(x)); },
+          _esVA(cama.VIA_AEREA) ? cama.FECHA_INICIO_VA : fecha);
       }
 
       // BDT (test de azul) — repetible: cada resultado marcado en el turno se

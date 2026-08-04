@@ -209,10 +209,22 @@ function darAltaPaciente(datos, ctx) {
         if (esVerdadero(e.EXT_REINTUB)) huboReintub = true;
       });
       if (pid && repoLeerTodos('REINTUBACIONES', 'PATIENT_ID', pid).length) huboReintub = true;
-      // El contador del censo sigue mandando si es mayor (episodio que egresa
-      // ventilado, o días previos plegados por vía aérea externa).
-      const diasVMTot = Math.max(Object.keys(diasVMset).length, parseInt(cama.DIAS_VM) || 0);
-      const diasVATot = Math.max(Object.keys(diasVAset).length, parseInt(cama.DIAS_VA) || 0);
+      // TOTALES DEL EPISODIO (ago-2026, hallazgo de Diego con Ricardo Flores:
+      // egresó con MÁS días de VM que de estadía). Contar «días calendario
+      // tocados» duplicaba el día de cada transición — el día de la extubación
+      // contaba para la VM y también para lo que siguiera. Ahora manda el
+      // contador SELLADO de la última evolución, que ya acumula por tramos sin
+      // solaparse (VM + VNI + resto = estadía). Los días tocados quedan solo
+      // como respaldo para episodios antiguos sin contador sellado.
+      const _ultimo = evos.slice().sort(function (a, b) {
+        return String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY));
+      }).pop() || {};
+      const diasVMTot = (_ultimo.DIAS_VM !== '' && _ultimo.DIAS_VM != null)
+        ? Math.max(parseInt(_ultimo.DIAS_VM, 10) || 0, parseInt(cama.DIAS_VM) || 0)
+        : Math.max(Object.keys(diasVMset).length, parseInt(cama.DIAS_VM) || 0);
+      const diasVATot = (_ultimo.DIAS_VA !== '' && _ultimo.DIAS_VA != null)
+        ? Math.max(parseInt(_ultimo.DIAS_VA, 10) || 0, parseInt(cama.DIAS_VA) || 0)
+        : Math.max(Object.keys(diasVAset).length, parseInt(cama.DIAS_VA) || 0);
 
       // Últimas evaluaciones registradas del episodio (si el egreso no las trae)
       const ult = {};

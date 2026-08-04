@@ -98,8 +98,10 @@ ok_('…y es 0 porque empezó hoy (Día 0), no porque se ignore',
 /* ══ 5 · Cliente: la grilla lee el contador del servidor ════════════════ */
 console.log('\n5 · Cliente');
 const idx = fs.readFileSync(path.join(v2, 'index.html'), 'utf8');
-ok_('la grilla usa DIAS_VNI del servidor, como hace con DIAS_VM',
-  /\(parseInt\(evoRef\.DIAS_VNI_PREVIOS\)\|\|0\)\+\(parseInt\(evoRef\.DIAS_VNI\)\|\|0\)/.test(idx));
+// Desde la acumulación por tramos el total sellado ya lo trae TODO: sumarle
+// los _PREVIOS del cliente lo duplicaría.
+ok_('la grilla usa DIAS_VNI del servidor, sin sumar la mochila _PREVIOS',
+  /const dvni=evoRef\?\(parseInt\(evoRef\.DIAS_VNI\)\|\|0\)/.test(idx));
 ok_('…y ya NO exige que la cama esté en VNI en ese instante',
   !/evoRef\.VENT_SOPORTE==='VNI'&&ocu&&c\.SOPORTE==='VNI'/.test(idx));
 ok_('el contador del formulario mira el SOPORTE, no la mascarilla',

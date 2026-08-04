@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.41-vni">
+<meta name="rce-version" content="5.42-tramos">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3784,7 +3784,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.41-vni]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.42-tramos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -10658,14 +10658,15 @@ function renderTabla(){
 
       const dEst=(evoRef&&evoRef.DIA_ESTADIA!==''&&evoRef.DIA_ESTADIA!=null)?evoRef.DIA_ESTADIA
                  :(ocu?diasCal(c.TS_INGRESO, c.FECHA_INGRESO, fecha):'');
-      const dvm=evoRef?((parseInt(evoRef.DIAS_VM_PREVIOS)||0)+(parseInt(evoRef.DIAS_VM)||0))
+      // Mandan los contadores que calculó y SELLÓ el servidor: desde ago-2026
+      // ya vienen ACUMULADOS por tramos (una reintubación no reinicia la
+      // cuenta) y sin solaparse (el día de la transición pertenece al soporte
+      // saliente ⇒ VM + VNI + resto = estadía, nunca días dobles — hallazgo
+      // de Diego con María del Carmen). Sumarles los _PREVIOS del cliente los
+      // duplicaría: esa mochila quedó obsoleta con la acumulación de servidor.
+      const dvm=evoRef?(parseInt(evoRef.DIAS_VM)||0)
                       :(ocu&&c.SOPORTE==='VM'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
-      // Simétrico con la VM: manda el contador que calculó y congeló el
-      // servidor. Antes se recalculaba aquí exigiendo que la cama estuviera
-      // en VNI en ESE instante, así que al cambiar de soporte el número se
-      // caía; y como la detección miraba la mascarilla, sumaba días de VNI a
-      // pacientes que nunca la tuvieron (Diego, ago-2026).
-      const dvni=evoRef?((parseInt(evoRef.DIAS_VNI_PREVIOS)||0)+(parseInt(evoRef.DIAS_VNI)||0))
+      const dvni=evoRef?(parseInt(evoRef.DIAS_VNI)||0)
                        :(ocu&&c.SOPORTE==='VNI'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
       const nomHtml=nombre?`<span title="${nombre}">${String(nombre).slice(0,28)}</span>`
                           :'<span style="color:#cbd5e1;font-style:italic;">Disponible</span>';

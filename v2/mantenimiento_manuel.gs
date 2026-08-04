@@ -374,3 +374,98 @@ function _mtoLimpiarPaciente(escribir) {
   p('LISTO. Queda constancia en AUDIT_LOG.');
   return log.join('\n');
 }
+
+// ── C · Re-sellado de los DIAS DE SOPORTE por tramos (4-ago-2026) ───────────
+// Hallazgo de Diego con Maria del Carmen (cama 7): su historia tiene DOS
+// tramos de VM y DOS de VNI (extubada a VNI, reintubada, extubacion accidental
+// a VNI), y los contadores viejos o bien reiniciaban la cuenta en cada
+// reintubacion o bien contaban el dia de la transicion PARA LOS DOS soportes
+// (VM 8 + VNI 7 = 15 dias en una estadia de 13, "dias falsos").
+//
+// Este re-sellado recorre las evoluciones de cada cama OCUPADA en orden y les
+// escribe DIAS_VM / DIAS_VNI / DIAS_VA con la regla de TRAMOS: cada tramo
+// aporta diasEntre(inicio, fin); el dia de la transicion pertenece al soporte
+// SALIENTE y es el Dia 0 del entrante. Los tramos suman EXACTO la estadia.
+// Es idempotente: re-correrlo no cambia nada que ya este bien.
+
+function resellarDiasSoporteSIMULACRO() { return _mtoResellarSoporte(false); }
+function resellarDiasSoporteCONFIRMAR() { return _mtoResellarSoporte(true); }
+
+function _mtoResellarSoporte(escribir) {
+  const log = [];
+  const p = m => { log.push(m); Logger.log(m); };
+  p(escribir ? '=== RE-SELLADO REAL (dias de soporte por tramos) ==='
+             : '=== SIMULACRO (no se escribe nada) ===');
+
+  const esVA = x => x && String(x) !== 'Natural';
+  // Estado FINAL del turno (si hubo evento de via aerea, manda el resultado).
+  const finSop = e => String(e.VENT_SOPORTE_FINAL || e.VENT_SOPORTE || '');
+  const finVa  = e => String(e.VENT_VIA_AEREA_FINAL || e.VENT_VIA_AEREA || '');
+  const toca = {
+    DIAS_VM:  e => String(e.VENT_SOPORTE) === 'VM'  || finSop(e) === 'VM',
+    DIAS_VNI: e => String(e.VENT_SOPORTE) === 'VNI' || finSop(e) === 'VNI',
+    DIAS_VA:  e => esVA(e.VENT_VIA_AEREA) || esVA(finVa(e)),
+  };
+  const sigue = {
+    DIAS_VM:  e => finSop(e) === 'VM',
+    DIAS_VNI: e => finSop(e) === 'VNI',
+    DIAS_VA:  e => esVA(finVa(e)),
+  };
+
+  let camasOk = 0, evosTocadas = 0;
+  repoLeerTodos('CAMAS_ESTADO').forEach(c => {
+    if (!esVerdadero(c.OCUPADA) || !c.PATIENT_ID) return;
+    const evos = repoLeerTodos('EVOLUCIONES', 'PATIENT_ID', String(c.PATIENT_ID))
+      .filter(e => /^\d{4}-\d{2}-\d{2}-(Dia|Noche)$/.test(String(e.TURNO_KEY || '')))
+      .sort((a, b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
+    if (!evos.length) return;
+
+    p('');
+    p('cama ' + c.ID_CAMA + ' - ' + String(c.NOMBRE || '(sin nombre)') +
+      ' - ' + evos.length + ' evolucion(es)');
+
+    // Estado del recorrido por soporte: acumulado de tramos cerrados + inicio
+    // del tramo abierto (null = fuera del soporte).
+    const st = { DIAS_VM: { acum: 0, ini: null }, DIAS_VNI: { acum: 0, ini: null }, DIAS_VA: { acum: 0, ini: null } };
+    let cambiosCama = 0;
+    evos.forEach(e => {
+      const f = String(e.FECHA || '').slice(0, 10) || String(e.TURNO_KEY).slice(0, 10);
+      const nuevo = {};
+      ['DIAS_VM', 'DIAS_VNI', 'DIAS_VA'].forEach(k => {
+        if (toca[k](e)) {
+          if (st[k].ini === null) st[k].ini = f;             // abre tramo
+          nuevo[k] = st[k].acum + Math.max(0, diasEntre(st[k].ini, f) || 0);
+          if (!sigue[k](e)) {                                // cierra DENTRO del turno:
+            st[k].acum = nuevo[k]; st[k].ini = null;         // el dia de salida SI conto
+          }
+        } else {
+          if (st[k].ini !== null) {                          // salio sin turno de transicion
+            st[k].acum += Math.max(0, diasEntre(st[k].ini, st[k].fUlt || st[k].ini) || 0);
+            st[k].ini = null;
+          }
+          nuevo[k] = st[k].acum;                             // congelado
+        }
+        if (st[k].ini !== null) st[k].fUlt = f;              // ultima fecha vista dentro del tramo
+      });
+      const dif = ['DIAS_VM', 'DIAS_VNI', 'DIAS_VA']
+        .filter(k => String(e[k] === '' || e[k] == null ? '' : e[k]) !== String(nuevo[k]));
+      if (dif.length) {
+        p('   ' + e.TURNO_KEY + ': ' + dif.map(k =>
+          k.replace('DIAS_', '') + ' ' + (e[k] === '' || e[k] == null ? '-' : e[k]) + '->' + nuevo[k]).join(' · '));
+        if (escribir) repoActualizar('EVOLUCIONES', 'ID_EVOLUCION', e.ID_EVOLUCION, nuevo);
+        evosTocadas++; cambiosCama++;
+      }
+    });
+    if (!cambiosCama) p('   (todo ya estaba bien - sin cambios)');
+    else camasOk++;
+  });
+
+  p('');
+  p((escribir ? 'RE-SELLADAS: ' : 'a re-sellar: ') + evosTocadas +
+    ' evolucion(es) en ' + camasOk + ' cama(s)');
+  if (!escribir) p('Si el detalle cuadra, correr resellarDiasSoporteCONFIRMAR().');
+  else auditar({ accion: 'RESELLADO_DIAS_SOPORTE', entidad: 'EVOLUCIONES',
+    idEntidad: 'episodios activos', patientId: '',
+    resumen: evosTocadas + ' evoluciones re-selladas por tramos' });
+  return log.join('\n');
+}

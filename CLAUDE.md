@@ -277,6 +277,42 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `FECHA_INICIO_VA` en el display del formulario): su valor autoritativo es
     `DIAS_VM` del servidor y no es lo reportado.
 
+- **v5.42 · DÍAS DE SOPORTE POR TRAMOS: ACUMULADOS Y SIN SOLAPARSE
+  (4-ago-2026, cohete v5.42-tramos; sin cambio de esquema — usa la DIAS_VNI
+  de v5.41).** Hallazgo de Diego con la historia REAL de María del Carmen
+  (cama 3→7: intubada 22-jul → extubación c/protocolo A VNI 23-jul →
+  reintubación 25-jul → extubación ACCIDENTAL a VNI 30-jul hasta hoy): su
+  estadística manual sumaba VM 8 + VNI 7 = 15 días en una estadía de 13
+  («días falsos» — el día de cada transición contaba PARA LOS DOS soportes).
+  Y Ricardo Flores egresó con MÁS días de VM que de estadía.
+  - **REGLA DEFINITIVA**: cada TRAMO aporta `diasEntre(inicio, fin)`; el día
+    de la transición pertenece al soporte SALIENTE (el turno que extuba aún
+    estuvo ventilado) y es el Día 0 del entrante ⇒ los tramos consecutivos
+    SUMAN EXACTO la estadía (María: VM 6 + VNI 7 = 13 ✓; al 5-ago VNI 8,
+    el número que dio Diego). Una reintubación NO reinicia la cuenta.
+  - `_contadorTramos` en guardarEvolucion: si el turno TIENE el soporte
+    (inicial o final), valor = BASE (congelado de la última evolución del
+    episodio que terminó SIN él = tramos cerrados) + días del tramo abierto
+    (desde el reloj de la cama; si la transición es EN este turno, desde hoy;
+    si NUNCA salió del soporte, desde la PRIMERA evolución — el reloj puede
+    haberse re-estampado a mitad de tramo, p.ej. TOT→Full Face). Si NO lo
+    tiene, hereda el congelado. Reemplaza a `_congelado`.
+  - **Egreso**: DIAS_VM_TOTAL/DIAS_VA_TOTAL archivan el TOTAL SELLADO de la
+    última evolución (los «días calendario tocados» quedan de respaldo para
+    episodios sin sellar) — era lo que hacía VM > estadía en Ricardo.
+  - **Grilla del registro**: lee DIAS_VM/DIAS_VNI sellados SIN sumar la
+    mochila `_PREVIOS` del cliente (la duplicaría; quedó obsoleta).
+  - **`resellarDiasSoporteSIMULACRO/CONFIRMAR`** en mantenimiento_manuel:
+    recorre las evoluciones de cada cama ocupada en orden y re-sella los tres
+    contadores por tramos (idempotente). Es lo que corrige a María, Morelia y
+    Eugenia. PENDIENTE: Diego lo corre.
+  - **PREGUNTA ABIERTA (ingreso nocturno)**: Ricardo ingresó la noche del 1
+    y BUDA lo fecha el 2 ⇒ ¿FECHA_INGRESO de un ingreso en turno Noche debería
+    ser la fecha EFECTIVA (día siguiente)? Cambiaría el mes del REM de los
+    ingresos de la última noche del mes. NO implementado — esperar decisión.
+  - Guardia `checks/dias_soporte.js` (24 asserts: la historia de María turno a
+    turno, el re-sellado idempotente y el egreso de Ricardo).
+
   - **PENDIENTES**: capnógrafos/Aerogen aún dentro de la pestaña Ventiladores
     (Diego los quiere en su propia sección de «dispositivos de apoyo» — el
     dato ya está clasificado, falta la vista). SUGERENCIAS de los colegas SIN
@@ -873,8 +909,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.41-vni**
-  (antes v5.40-equipos, v5.39-timeline, v5.38-entrega, v5.37-vivo, v5.36-noche).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.42-tramos**
+  (antes v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega, v5.37-vivo).
   Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
