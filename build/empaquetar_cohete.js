@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = '5.33-ciclo';
+const VERSION = '5.34-texto';
 const fuente = path.join(__dirname, '..', 'v2', 'index.html');
 const salida = process.argv[2] || path.join(__dirname, 'index_cohete.html');
 
