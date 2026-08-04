@@ -84,9 +84,14 @@ eq('a la mañana siguiente es Día 1, aunque lleve 10 h (como BUDA)',
 AHORA = { fecha: '2026-08-04', hora: '09:01' };
 eq('al día siguiente, Día 2', obtenerTodasLasCamas().data[0].DIA_ESTADIA, 2);
 
-/* ── 3 · LOS DOS TURNOS DEL MISMO DÍA INFORMAN EL MISMO NÚMERO ──────────────
-   El número se anota una vez al día; Día y Noche del 3-ago son «día 1». */
-console.log('\n3 · Día y Noche del mismo día dan el mismo número');
+/* ── 3 · EL TURNO DE NOCHE FECHA AL DÍA SIGUIENTE ───────────────────────────
+   Manda BUDA, que se actualiza al cambiar el calendario, y el equipo lo copia
+   a mano más tarde (Diego, 4-ago). El turno de noche transcurre casi entero ya
+   pasada la medianoche, así que su número es el del día siguiente — mismo
+   criterio que los relojes de dispositivos desde la v5.20.
+   Sin esto, a las 02:00 el tablero mostraba un día MÁS que la evolución que se
+   estaba escribiendo en ese mismo momento. */
+console.log('\n3 · El turno de noche fecha al día siguiente');
 AHORA = { fecha: '2026-08-03', hora: '16:00' };
 guardarEvolucion({ ID_CAMA: '1', TURNO_KEY: '2026-08-03-Dia', PLAN_FIRMA_KINE: 'DMV',
   PAC_NOMBRE: 'Paciente Nocturno', VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM', VENT_MODO: 'ACVC' },
@@ -98,8 +103,14 @@ guardarEvolucion({ ID_CAMA: '1', TURNO_KEY: '2026-08-03-Noche', PLAN_FIRMA_KINE:
 const eD = DB.EVOLUCIONES.find(e => e.TURNO_KEY === '2026-08-03-Dia');
 const eN = DB.EVOLUCIONES.find(e => e.TURNO_KEY === '2026-08-03-Noche');
 eq('turno Día del 3-ago → Día 1', eD.DIA_ESTADIA, 1);
-eq('turno Noche del 3-ago → Día 1 también', eN.DIA_ESTADIA, 1);
-eq('…y los dos cuentan 1 día de VM', String(eD.DIAS_VM) + '/' + String(eN.DIAS_VM), '1/1');
+eq('turno Noche del 3-ago → Día 2 (fecha al 4-ago, como BUDA)', eN.DIA_ESTADIA, 2);
+eq('los días de VM siguen el mismo criterio',
+  String(eD.DIAS_VM) + '/' + String(eN.DIAS_VM), '1/2');
+// La evolución de la noche y el tablero de esa madrugada deben COINCIDIR:
+// es el desfase que Diego detectó preguntando «¿a esta hora ya es otro día?».
+AHORA = { fecha: '2026-08-04', hora: '02:00' };
+eq('el tablero de esa madrugada dice lo mismo que la evolución de la noche',
+  obtenerTodasLasCamas().data[0].DIA_ESTADIA, eN.DIA_ESTADIA);
 
 /* ── 4 · LOS DÍAS DE VM SE CONGELAN AL EXTUBAR ──────────────────────────────
    «Se para el día que se extuba» (Diego). Antes caían a 0 y se perdía de vista

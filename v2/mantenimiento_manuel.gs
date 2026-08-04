@@ -192,13 +192,14 @@ function _mtoCorregirIngresos(escribir) {
       // re-sellado TODAS las evoluciones con la regla vieja, deshaciendo la
       // correccion en lo ya guardado. Si se cambia el conteo en
       // svc_evoluciones.gs, HAY QUE CAMBIARLO AQUI TAMBIEN.
-      const dEst = diasEntre(c.FECHA_INGRESO, m[1]);
+      const fRef = _fechaEfectivaTurno(m[1], m[2]);   // la Noche fecha al dia siguiente
+      const dEst = diasEntre(c.FECHA_INGRESO, fRef);
       const enVM = String(e.VENT_SOPORTE || '') === 'VM' ||
                    String(e.VENT_SOPORTE_FINAL || '') === 'VM';
-      const dVM = enVM ? diasEntre(c.FECHA_INICIO_SOPORTE, m[1]) : parseInt(e.DIAS_VM, 10) || 0;
+      const dVM = enVM ? diasEntre(c.FECHA_INICIO_SOPORTE, fRef) : parseInt(e.DIAS_VM, 10) || 0;
       const esVA = function (x) { return x && String(x) !== 'Natural'; };
       const enVA = esVA(e.VENT_VIA_AEREA) || esVA(e.VENT_VIA_AEREA_FINAL);
-      const dVA = enVA ? diasEntre(c.FECHA_INICIO_VA, m[1]) : parseInt(e.DIAS_VA, 10) || 0;
+      const dVA = enVA ? diasEntre(c.FECHA_INICIO_VA, fRef) : parseInt(e.DIAS_VA, 10) || 0;
       if (String(e.DIA_ESTADIA) === String(dEst) &&
           String(e.DIAS_VM) === String(dVM) && String(e.DIAS_VA) === String(dVA)) return;
       p('   cama ' + x.cama + ' ' + tk + ': dia ' + e.DIA_ESTADIA + '->' + dEst +

@@ -33,6 +33,17 @@ global.SpreadsheetApp = { flush: () => {} };
 global.ok = d => ({ ok: true, data: d });
 global.err = (m, c) => ({ ok: false, error: m, codigo: c });
 global.ERR = { VALIDACION: 'VALIDACION', INTERNO: 'INTERNO' };
+// _fechaEfectivaTurno vive en infra_fechas.gs (se mudó allí en ago-2026, al
+// empezar a usarla también los días de estadía). Se copia aquí en vez de
+// cargar infra_fechas entero: ese archivo trae hoyISO/ahoraTS reales y pisaría
+// los stubs de reloj de este arnés.
+global._fechaEfectivaTurno = (fecha, turno) => {
+  const f = String(fecha || '').slice(0, 10);
+  if (String(turno) !== 'Noche') return f;
+  const d = new Date(f + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
 
 // svc_stats.gs aporta _statISO (misma normalización de fechas de producción).
 eval(['svc_stats.gs', 'svc_eventos.gs'].map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));

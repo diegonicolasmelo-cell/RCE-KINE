@@ -22,14 +22,10 @@ const _EVENTO_DISPS = [
   { k: 'sonda', campo: 'DISP_TC_FECHA',    nombre: 'Sonda de aspiración', icono: '➿', confKey: 'FREC_SONDA_DIAS', frecDef: 3 },
 ];
 
-/** Fecha EFECTIVA de un turno: la Noche fecha al día siguiente. */
-function _fechaEfectivaTurno(fecha, turno) {
-  const f = String(fecha || '').slice(0, 10);
-  if (String(turno) !== 'Noche') return f;
-  const d = new Date(f + 'T12:00:00');
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
+// _fechaEfectivaTurno() se mudó a infra_fechas.gs (ago-2026): es un helper de
+// fechas puro y desde que los DÍAS DE ESTADÍA también lo usan lo necesitan
+// svc_evoluciones, svc_entrega y mantenimiento_manuel. Dejarlo aquí obligaba a
+// cada arnés a cargar svc_eventos entero para poder guardar una evolución.
 
 /** Estado del reloj de una cama respecto de una fecha efectiva de referencia. */
 function estadoDispositivos(cama, fechaRef) {

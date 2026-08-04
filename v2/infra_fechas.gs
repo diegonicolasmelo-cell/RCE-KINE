@@ -85,6 +85,26 @@ function diasBloques24(desdeTS, fechaCal, hastaISO, hastaHora) {
 }
 
 /**
+ * Fecha EFECTIVA de un turno: la Noche fecha al día siguiente.
+ *
+ * El turno de noche transcurre casi entero pasada la medianoche, así que lo
+ * que ocurre en él pertenece al día siguiente. Lo usan los relojes de
+ * dispositivos (v5.20, «la noche del 31 se anota con el 01») y, desde ago-2026,
+ * también los DÍAS DE ESTADÍA / VM / VA: manda la lista oficial del hospital
+ * (BUDA), que se actualiza al cambiar el calendario.
+ *
+ * Vivía en svc_eventos.gs; se mudó aquí al necesitarla svc_evoluciones,
+ * svc_entrega y mantenimiento_manuel — es un helper de fechas, no de eventos.
+ */
+function _fechaEfectivaTurno(fecha, turno) {
+  const f = String(fecha || '').slice(0, 10);
+  if (String(turno) !== 'Noche') return f;
+  const d = new Date(f + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
  * Momento de referencia de un TURNO para contar los bloques de 24 h: la
  * mitad del turno (Día 09-21 → 15:00; Noche 21-09 → 03:00 del día siguiente).
  * Es determinista: re-editar una evolución no cambia sus días.

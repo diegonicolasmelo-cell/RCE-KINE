@@ -125,10 +125,14 @@ function guardarEvolucion(datos, ctx) {
         // Si alguna vez se quiere volver al tiempo transcurrido real, la hora
         // sigue guardada en TS_INGRESO: es un dato, no se perdió.
         //
-        // Se cuenta contra la fecha del TURNO, no contra la fecha efectiva:
-        // ambos turnos del mismo día informan el mismo número, que es como se
-        // anota a mano al final del turno de día.
-        datos.DIA_ESTADIA = diasEntre(cama.FECHA_INGRESO, fecha);
+        // Se cuenta contra la fecha EFECTIVA del turno: la Noche fecha al día
+        // siguiente. Manda BUDA, que se actualiza al cambiar el calendario, y
+        // el equipo lo copia a mano más tarde (Diego, 4-ago). El turno de
+        // noche transcurre casi entero ya pasada la medianoche, así que su
+        // número es el del día siguiente — mismo criterio que los relojes de
+        // dispositivos desde la v5.20 («la noche del 31 se anota con el 01»).
+        const _fRef = _fechaEfectivaTurno(fecha, turno);
+        datos.DIA_ESTADIA = diasEntre(cama.FECHA_INGRESO, _fRef);
 
         // VM y VA cuentan mientras el paciente los tiene y SE CONGELAN cuando
         // deja de tenerlos («se para el día que se extuba», Diego). El turno
@@ -150,8 +154,8 @@ function guardarEvolucion(datos, ctx) {
             return isNaN(n) ? 0 : n;
           } catch (e) { return 0; }
         };
-        datos.DIAS_VM = _enVM ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : _congelado('DIAS_VM');
-        datos.DIAS_VA = _enVA ? diasEntre(cama.FECHA_INICIO_VA, fecha)     : _congelado('DIAS_VA');
+        datos.DIAS_VM = _enVM ? diasEntre(cama.FECHA_INICIO_SOPORTE, _fRef) : _congelado('DIAS_VM');
+        datos.DIAS_VA = _enVA ? diasEntre(cama.FECHA_INICIO_VA, _fRef)     : _congelado('DIAS_VA');
       }
 
       // BDT (test de azul) — repetible: cada resultado marcado en el turno se
