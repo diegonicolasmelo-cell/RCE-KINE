@@ -134,15 +134,24 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      SÍ suma; el valor congelado se toma del turno anterior (no existe campo
      de fin de soporte — anotado como mejora). Guardia `checks/dias_estadia.js`
      asserta las 17 camas de la lista real (reemplaza a dias24.js).
-  3. **v5.36 · El turno de NOCHE fecha al día siguiente también para los
-     días.** Diego preguntó «¿a esta hora ya es otro día?» y destapó el
-     desfase tablero (reloj) vs evolución (fecha del turno) a las 02:00.
-     Regla que lo zanja: BUDA se actualiza al cambiar el calendario y el
-     equipo lo copia después ⇒ manda `_fechaEfectivaTurno` (el criterio de
-     dispositivos v5.20). La función se MUDÓ de svc_eventos.gs a
-     infra_fechas.gs (helper puro; dejarla allá obligaba a cada arnés a
-     cargar svc_eventos — via_aerea_previo dejó de guardar y lo cazó la
-     batería). checks/eventos.js la stubea para no pisar sus relojes.
+  3. **v5.36→v5.37 · CAMA = EN VIVO · REGISTRO = LA HOJA DEL TURNO (regla
+     DEFINITIVA, afinada por Diego a la 01:00 en pleno turno de noche).**
+     Diego preguntó «¿a esta hora ya es otro día?» y en v5.36 respondí
+     empujando la evolución de la Noche al día siguiente (fecha efectiva).
+     **REVERTIDO ESA MISMA NOCHE**: la regla real tiene DOS vistas a
+     propósito — la TARJETA DE CAMA cuenta contra el reloj REAL («en camas
+     veo lo que pasa, lo real en vivo»: a las 00:01 ya dice el día nuevo), y
+     el REGISTRO/evolución cuenta contra LA FECHA DEL TURNO (la hoja de la
+     noche del 3 PERTENECE al 3; «los días se actualizan en la mañana al
+     cambio de turno y aparece una planilla nueva limpia» — referencia de
+     fecha de los procedimientos). Que difieran en 1 durante la madrugada es
+     INTENCIONAL. NO volver a fechar los días con `_fechaEfectivaTurno`: esa
+     función sigue vigente SOLO para dispositivos (v5.20) y eventos rápidos.
+     De paso se MUDÓ de svc_eventos.gs a infra_fechas.gs (helper puro;
+     dejarla allá obligaba a cada arnés a cargar svc_eventos —
+     via_aerea_previo dejó de guardar y lo cazó la batería); checks/eventos.js
+     la stubea para no pisar sus relojes. Guardia: bloque 3 de
+     dias_estadia.js asserta las DOS vistas y la diferencia intencional.
   - **CORRECCIÓN DE FECHAS REALES (`mantenimiento_manuel.gs`, estado 4-ago)**:
     el simulacro de Diego (00:40) reveló que Manuel YA CONFIRMÓ su tanda
     vieja ⇒ 9 camas con fecha escrita, **5 equivocadas por ±1 día** (8, 9,
@@ -763,8 +772,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.36-noche**
-  (antes v5.35-dias, v5.34-texto, v5.33-ciclo, v5.32-prono, v5.31-foco).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.37-vivo**
+  (antes v5.36-noche, v5.35-dias, v5.34-texto, v5.33-ciclo, v5.32-prono).
   Exige `crearORepararEstructura()` (EVOLUCIONES 385 columnas + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).

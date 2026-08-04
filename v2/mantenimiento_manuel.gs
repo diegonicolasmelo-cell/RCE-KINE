@@ -231,7 +231,12 @@ function _mtoCorregirIngresos(escribir) {
       // re-sellado TODAS las evoluciones con la regla vieja, deshaciendo la
       // correccion en lo ya guardado. Si se cambia el conteo en
       // svc_evoluciones.gs, HAY QUE CAMBIARLO AQUI TAMBIEN.
-      const fRef = _fechaEfectivaTurno(m[1], m[2]);   // la Noche fecha al dia siguiente
+      // La fecha del TURNO, sin fecha efectiva (regla afinada por Diego el
+      // 4-ago 01:00 — la hoja del turno noche del 3 pertenece al 3; los dias
+      // se actualizan en la manana al cambio de turno). La tanda confirmada
+      // a las 01:05 sello las noches con +1: re-correr esta funcion las
+      // devuelve (es idempotente — solo toca lo que difiere).
+      const fRef = m[1];
       const dEst = diasEntre(c.FECHA_INGRESO, fRef);
       // OJO: `c` son SOLO los campos que se van a escribir. Si el paciente ya
       // NO esta en VM (extubado, p.ej. camas 9 y 15), el reloj de VM no viene

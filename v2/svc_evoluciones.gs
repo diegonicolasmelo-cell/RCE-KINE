@@ -125,14 +125,18 @@ function guardarEvolucion(datos, ctx) {
         // Si alguna vez se quiere volver al tiempo transcurrido real, la hora
         // sigue guardada en TS_INGRESO: es un dato, no se perdió.
         //
-        // Se cuenta contra la fecha EFECTIVA del turno: la Noche fecha al día
-        // siguiente. Manda BUDA, que se actualiza al cambiar el calendario, y
-        // el equipo lo copia a mano más tarde (Diego, 4-ago). El turno de
-        // noche transcurre casi entero ya pasada la medianoche, así que su
-        // número es el del día siguiente — mismo criterio que los relojes de
-        // dispositivos desde la v5.20 («la noche del 31 se anota con el 01»).
-        const _fRef = _fechaEfectivaTurno(fecha, turno);
-        datos.DIA_ESTADIA = diasEntre(cama.FECHA_INGRESO, _fRef);
+        // Se cuenta contra LA FECHA DEL TURNO (regla afinada por Diego,
+        // 4-ago 01:00, en pleno turno de noche): la hoja de registro del
+        // turno noche del 3 PERTENECE al día 3 — sus días no se adelantan a
+        // medianoche; «se actualizan en la mañana, al cambio de turno, y
+        // aparece una planilla nueva limpia». La TARJETA DE CAMA, en cambio,
+        // es «lo real en vivo» y cuenta contra el reloj (svc_camas/index):
+        // que a las 02:00 difieran en 1 es A PROPÓSITO — la cama muestra lo
+        // que pasa, el registro es la referencia de fecha del turno.
+        // OJO: NO usar _fechaEfectivaTurno aquí (se probó y se revirtió esa
+        // misma noche); la fecha efectiva sigue vigente SOLO para los relojes
+        // de dispositivos (v5.20) y el fechado de eventos rápidos.
+        datos.DIA_ESTADIA = diasEntre(cama.FECHA_INGRESO, fecha);
 
         // VM y VA cuentan mientras el paciente los tiene y SE CONGELAN cuando
         // deja de tenerlos («se para el día que se extuba», Diego). El turno
@@ -154,8 +158,8 @@ function guardarEvolucion(datos, ctx) {
             return isNaN(n) ? 0 : n;
           } catch (e) { return 0; }
         };
-        datos.DIAS_VM = _enVM ? diasEntre(cama.FECHA_INICIO_SOPORTE, _fRef) : _congelado('DIAS_VM');
-        datos.DIAS_VA = _enVA ? diasEntre(cama.FECHA_INICIO_VA, _fRef)     : _congelado('DIAS_VA');
+        datos.DIAS_VM = _enVM ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : _congelado('DIAS_VM');
+        datos.DIAS_VA = _enVA ? diasEntre(cama.FECHA_INICIO_VA, fecha)     : _congelado('DIAS_VA');
       }
 
       // BDT (test de azul) — repetible: cada resultado marcado en el turno se

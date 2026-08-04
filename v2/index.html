@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.36-noche">
+<meta name="rce-version" content="5.37-vivo">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3739,7 +3739,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.36-noche]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.37-vivo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4057,10 +4057,14 @@ function renderGrid() {
     if(ocu) {
       el.classList.add('occ');
       oc++; if(c.SOPORTE==='VM') vm++;
-      // Los días vienen del servidor contados por BLOQUES DE 24 h reales
-      // (ago-2026): un paciente que llegó hace dos horas muestra Día 0.
-      const d   = diasCal(c.TS_INGRESO, c.FECHA_INGRESO, fecha);
-      const dvm = (c.SOPORTE==='VM'||c.SOPORTE==='VNI') ? diasCal(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, fecha) : 0;
+      // La TARJETA DE CAMA es «lo real en vivo» (regla de Diego, 4-ago): sus
+      // días se cuentan contra la fecha calendario de AHORA, no contra la
+      // fecha que se esté viendo en el navegador de turnos. A las 02:00 la
+      // cama ya dice el día nuevo aunque el registro siga en el turno de
+      // noche de ayer — esa diferencia es A PROPÓSITO: la cama muestra lo
+      // que pasa, el registro es la hoja del turno.
+      const d   = diasCal(c.TS_INGRESO, c.FECHA_INGRESO, hoy());
+      const dvm = (c.SOPORTE==='VM'||c.SOPORTE==='VNI') ? diasCal(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, hoy()) : 0;
       const evo = EVO_SET.has(String(c.ID_CAMA));
       const dot = evo ? 'd-done' : 'd-busy';
       if(evo) el.classList.add('evo'); // carpeta con hoja blanca asomando

@@ -84,14 +84,17 @@ eq('a la mañana siguiente es Día 1, aunque lleve 10 h (como BUDA)',
 AHORA = { fecha: '2026-08-04', hora: '09:01' };
 eq('al día siguiente, Día 2', obtenerTodasLasCamas().data[0].DIA_ESTADIA, 2);
 
-/* ── 3 · EL TURNO DE NOCHE FECHA AL DÍA SIGUIENTE ───────────────────────────
-   Manda BUDA, que se actualiza al cambiar el calendario, y el equipo lo copia
-   a mano más tarde (Diego, 4-ago). El turno de noche transcurre casi entero ya
-   pasada la medianoche, así que su número es el del día siguiente — mismo
-   criterio que los relojes de dispositivos desde la v5.20.
-   Sin esto, a las 02:00 el tablero mostraba un día MÁS que la evolución que se
-   estaba escribiendo en ese mismo momento. */
-console.log('\n3 · El turno de noche fecha al día siguiente');
+/* ── 3 · CAMA = EN VIVO · REGISTRO = LA HOJA DEL TURNO ──────────────────────
+   Regla afinada por Diego el 4-ago a la 01:00, EN PLENO turno de noche:
+   la hoja de registro del turno noche del 3 PERTENECE al día 3 — sus días no
+   se adelantan a medianoche; «se actualizan en la mañana, al cambio de turno,
+   y aparece una planilla nueva limpia». La tarjeta de cama, en cambio, es
+   «lo real en vivo» y cuenta contra el reloj. Que a las 02:00 difieran en 1
+   es A PROPÓSITO: «en camas veo lo que pasa; en registro me sirve como
+   referencia de fecha de los procedimientos».
+   (Se probó fechar la noche al día siguiente y se REVIRTIÓ esa misma noche —
+   si este bloque falla, alguien reintrodujo esa idea.) */
+console.log('\n3 · Cama en vivo · registro con la fecha del turno');
 AHORA = { fecha: '2026-08-03', hora: '16:00' };
 guardarEvolucion({ ID_CAMA: '1', TURNO_KEY: '2026-08-03-Dia', PLAN_FIRMA_KINE: 'DMV',
   PAC_NOMBRE: 'Paciente Nocturno', VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM', VENT_MODO: 'ACVC' },
@@ -103,14 +106,13 @@ guardarEvolucion({ ID_CAMA: '1', TURNO_KEY: '2026-08-03-Noche', PLAN_FIRMA_KINE:
 const eD = DB.EVOLUCIONES.find(e => e.TURNO_KEY === '2026-08-03-Dia');
 const eN = DB.EVOLUCIONES.find(e => e.TURNO_KEY === '2026-08-03-Noche');
 eq('turno Día del 3-ago → Día 1', eD.DIA_ESTADIA, 1);
-eq('turno Noche del 3-ago → Día 2 (fecha al 4-ago, como BUDA)', eN.DIA_ESTADIA, 2);
-eq('los días de VM siguen el mismo criterio',
-  String(eD.DIAS_VM) + '/' + String(eN.DIAS_VM), '1/2');
-// La evolución de la noche y el tablero de esa madrugada deben COINCIDIR:
-// es el desfase que Diego detectó preguntando «¿a esta hora ya es otro día?».
+eq('turno Noche del 3-ago → Día 1 TAMBIÉN (la hoja pertenece al 3)', eN.DIA_ESTADIA, 1);
+eq('los días de VM siguen la fecha del turno',
+  String(eD.DIAS_VM) + '/' + String(eN.DIAS_VM), '1/1');
+// …mientras la CAMA, a esa misma hora, ya muestra el día nuevo (en vivo):
 AHORA = { fecha: '2026-08-04', hora: '02:00' };
-eq('el tablero de esa madrugada dice lo mismo que la evolución de la noche',
-  obtenerTodasLasCamas().data[0].DIA_ESTADIA, eN.DIA_ESTADIA);
+eq('la cama a las 02:00 ya dice el día siguiente (diferencia INTENCIONAL)',
+  obtenerTodasLasCamas().data[0].DIA_ESTADIA, 2);
 
 /* ── 4 · LOS DÍAS DE VM SE CONGELAN AL EXTUBAR ──────────────────────────────
    «Se para el día que se extuba» (Diego). Antes caían a 0 y se perdía de vista
