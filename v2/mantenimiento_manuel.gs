@@ -69,6 +69,14 @@ const _MTO_FECHA_CARGA = '2026-08-01';
 // distinto = se salta e informa. Es la leccion de la cama 5, ahora a prueba
 // de `forzar`.
 const _MTO_FECHAS = [
+  // Camas 1 y 7 agregadas el 5-ago: Diego dio la cronologia clinica real de
+  // Francisca y Maria (ver _MTO_SEED_TRAMOS abajo para el detalle completo).
+  // Aqui solo se corrige el reloj del soporte ACTUAL (el `vm` es el inicio
+  // del tramo abierto); el `ingreso` ya estaba correcto en ambas — se
+  // reafirma igual, es inocuo.
+  { cama: '1', nom: 'ARAYA',    ingreso: '2026-07-17', vm: '2026-07-21' },  // Francisca: VM real desde la reintubacion (el tramo del 18-jul se autocancela: intubada y extubada el MISMO dia)
+  { cama: '7', nom: 'RAMIREZ',  ingreso: '2026-07-22', vm: '2026-07-30' },  // Maria: VNI actual desde la extubacion ACCIDENTAL del 30-jul
+
   // Camas 4 y 6 agregadas el 4-ago ~01:40: Diego reporta que muestran UN DIA
   // MAS del real. La primera tanda (2-ago) les habria escrito la fecha con el
   // mismo corrimiento de ±1 que tenian 5 de las 10 de la segunda tanda (el
@@ -182,7 +190,9 @@ function _mtoCorregirIngresos(escribir) {
     // Los relojes de via aerea y de VM solo se tocan si el paciente los tiene
     // hoy: si no, se estaria inventando un inicio para algo que no existe.
     const tieneVA = ['TOT', 'TQT'].indexOf(String(c.VIA_AEREA || '')) !== -1;
-    const tieneVM = String(c.SOPORTE || '') === 'VM';
+    // Incluye VNI (4-ago): Francisca y Maria necesitaban corregir el reloj de
+    // un soporte NO invasivo (VNI), que el chequeo original ignoraba.
+    const tieneVM = String(c.SOPORTE || '') === 'VM' || String(c.SOPORTE || '') === 'VNI';
     if (f.vm && (tieneVA || tieneVM)) {
       const ts = f.vm + ' ' + _MTO_HORA_INGRESO;
       if (tieneVA) {
@@ -191,10 +201,10 @@ function _mtoCorregirIngresos(escribir) {
       }
       if (tieneVM) {
         campos.FECHA_INICIO_SOPORTE = f.vm; campos.TS_INICIO_SOPORTE = ts;
-        p('   VM        ' + String(c.FECHA_INICIO_SOPORTE || '(vacio)') + '  ->  ' + f.vm);
+        p('   ' + String(c.SOPORTE) + '        ' + String(c.FECHA_INICIO_SOPORTE || '(vacio)') + '  ->  ' + f.vm);
       }
     } else if (f.vm) {
-      p('   (hoy sin via aerea artificial ni VM: no se tocan esos relojes)');
+      p('   (hoy sin via aerea artificial ni VM/VNI: no se tocan esos relojes)');
     }
 
     if (escribir) {
@@ -388,6 +398,46 @@ function _mtoLimpiarPaciente(escribir) {
 // SALIENTE y es el Dia 0 del entrante. Los tramos suman EXACTO la estadia.
 // Es idempotente: re-correrlo no cambia nada que ya este bien.
 
+/**
+ * Historial PREVIO A QUE LA APP TRACKEARA al paciente (5-ago-2026): tramos ya
+ * CERRADOS (o el inicio real del tramo abierto) que ninguna evolucion en
+ * EVOLUCIONES puede reconstruir, porque el episodio empezo en papel antes de
+ * que el RCE registrara turnos para esa cama.
+ *
+ * El re-sellado normal (_mtoResellarSoporte) solo puede detectar tramos
+ * CAMINANDO las evoluciones ya guardadas; si el paciente ya estaba en su
+ * tramo actual (o paso por uno anterior) antes de la primera evolucion en la
+ * app, esa historia queda invisible y el re-sellado ancla el tramo a la
+ * fecha de esa primera evolucion — muy posterior a la real.
+ *
+ * Confirmado por Diego con la cronologia clinica real de cada paciente.
+ * `acum` = dias YA cerrados de tramos anteriores (0 si no hay ninguno).
+ * `ini` = fecha real de inicio del tramo que sigue abierto (null si ese
+ * soporte esta cerrado para siempre, como la VM de Maria).
+ */
+const _MTO_SEED_TRAMOS = [
+  // Francisca Araya (cama 1): conectada a VM brevemente el 18-jul (intubada
+  // en la manana, extubada esa misma tarde — programada fuera de protocolo
+  // por VM <24 h). Ese tramo se AUTOCANCELA: mismo dia, 0 dias. Reintubada el
+  // 21-jul, ventilada sin interrupcion desde entonces: ese es el UNICO tramo
+  // que aporta dias. Confirmado por Diego: 18 dias de estadia / 14 de VM al
+  // 4-ago calzan exacto (0 + diasEntre(21-jul,4-ago)=14).
+  { cama: '1', nom: 'ARAYA',
+    DIAS_VM:  { acum: 0, ini: '2026-07-21' },
+    DIAS_VNI: { acum: 0, ini: null },
+    DIAS_VA:  { acum: 0, ini: '2026-07-21' } },
+  // Maria Ramirez (cama 7, antes cama 3): intubada 22-jul, extubada
+  // c/protocolo a VNI 23-jul (1 dia de VM ya cerrado), reintubada 25-jul
+  // (2 dias de VNI ya cerrados), ventilada hasta la extubacion ACCIDENTAL
+  // del 30-jul (5 dias mas de VM = 6 total, cerrado para siempre), en VNI
+  // desde entonces (tramo ABIERTO, ini=30-jul). Via aerea no-natural
+  // continua desde el ingreso (nunca ha estado en Natural).
+  { cama: '7', nom: 'RAMIREZ',
+    DIAS_VM:  { acum: 6, ini: null },
+    DIAS_VNI: { acum: 2, ini: '2026-07-30' },
+    DIAS_VA:  { acum: 0, ini: '2026-07-22' } },
+];
+
 function resellarDiasSoporteSIMULACRO() { return _mtoResellarSoporte(false); }
 function resellarDiasSoporteCONFIRMAR() { return _mtoResellarSoporte(true); }
 
@@ -425,8 +475,15 @@ function _mtoResellarSoporte(escribir) {
       ' - ' + evos.length + ' evolucion(es)');
 
     // Estado del recorrido por soporte: acumulado de tramos cerrados + inicio
-    // del tramo abierto (null = fuera del soporte).
-    const st = { DIAS_VM: { acum: 0, ini: null }, DIAS_VNI: { acum: 0, ini: null }, DIAS_VA: { acum: 0, ini: null } };
+    // del tramo abierto (null = fuera del soporte). Si el paciente tiene
+    // historia PRE-app en _MTO_SEED_TRAMOS, arranca desde ahi en vez de 0.
+    const seed = _MTO_SEED_TRAMOS.find(s => s.cama === String(c.ID_CAMA) &&
+      String(c.NOMBRE || '').toUpperCase().indexOf(s.nom) !== -1);
+    if (seed) p('   (historial pre-existente sembrado: VM base ' + seed.DIAS_VM.acum +
+      ' · VNI base ' + seed.DIAS_VNI.acum + ' · VA base ' + seed.DIAS_VA.acum + ')');
+    const st = seed
+      ? { DIAS_VM: Object.assign({}, seed.DIAS_VM), DIAS_VNI: Object.assign({}, seed.DIAS_VNI), DIAS_VA: Object.assign({}, seed.DIAS_VA) }
+      : { DIAS_VM: { acum: 0, ini: null }, DIAS_VNI: { acum: 0, ini: null }, DIAS_VA: { acum: 0, ini: null } };
     let cambiosCama = 0;
     evos.forEach(e => {
       const f = String(e.FECHA || '').slice(0, 10) || String(e.TURNO_KEY).slice(0, 10);
