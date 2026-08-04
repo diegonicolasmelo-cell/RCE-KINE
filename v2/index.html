@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.37-vivo">
+<meta name="rce-version" content="5.38-entrega">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -285,12 +285,38 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ent-tbl .et-cama{font-weight:800;color:var(--pdark);}
 .ent-tbl .et-vm{color:var(--resp);font-weight:700;}
 
-/* Fichas — diseño compacto */
-.ent-fichas{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+/* ── Fichas: FICHA ANCHA EN DOS PISOS (opción C elegida por Diego, ago-2026)
+   Cada paciente ocupa el ancho COMPLETO de la hoja y se lee de izquierda a
+   derecha. Antes eran dos columnas de tarjetas angostas y la información caía
+   apilada hacia abajo: se desperdiciaba media hoja de ancho y los bloques que
+   más texto tienen (eventos del episodio y plan) quedaban espachurrados.
+   Piso 1 = cómo está el paciente AHORA · Piso 2 = qué pasó y qué sigue. */
+.ent-fichas{display:grid;grid-template-columns:1fr;gap:8px;}
 .ent-ficha{border:1px solid #d7dee8;border-radius:8px;overflow:hidden;break-inside:avoid;}
+/* Barra de identidad a todo el ancho: los chips dejan de apretar la clínica */
+.ent-fh{display:flex;align-items:center;gap:9px;background:#eef4fa;border-bottom:1px solid #d7e2ee;padding:5px 10px;flex-wrap:wrap;}
+.ent-fh-dx{font-size:.68rem;color:#475569;font-style:italic;flex-basis:100%;line-height:1.3;}
+.ent-fh-chips{margin-left:auto;text-align:right;}
+.ent-p1{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px dashed #dfe6ee;}
+.ent-p2{display:grid;grid-template-columns:1.35fr 1fr 1.25fr;}
+.ent-c{padding:5px 10px;border-left:1px solid #eef2f7;min-width:0;}
+.ent-p1 .ent-c:first-child,.ent-p2 .ent-c:first-child{border-left:none;}
+.ent-k{font-size:.56rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-bottom:2px;}
+.ent-v{font-size:.7rem;line-height:1.45;color:#1e293b;}
+.ent-v b{font-weight:700;}
+/* Franja ámbar: la ficha trae datos del turno ANTERIOR (no del que se entrega) */
+.ent-heredado{background:#fff7ed;border-left:3px solid #f59e0b;color:#9a3412;
+  font-size:.66rem;font-weight:800;padding:3px 10px;letter-spacing:.02em;}
+@media(max-width:860px){
+  .ent-p1{grid-template-columns:1fr 1fr;}
+  .ent-p2{grid-template-columns:1fr;}
+}
 /* Header de ficha */
 .ent-ficha-h{display:flex;align-items:baseline;gap:9px;padding:7px 11px;background:#f0f4f9;border-bottom:1px solid #dde3ec;}
 .ent-ficha-sinevo{border:2px solid #dc2626;}
+/* Con datos del turno anterior la ficha YA sirve: el aviso baja a ámbar.
+   El rojo queda para la que no tiene NADA que mostrar. */
+.ent-ficha-heredada{border:2px solid #f59e0b;}
 .ent-sinevo-strip{background:#dc2626;color:#fff;font-weight:800;font-size:.68rem;letter-spacing:.04em;padding:4px 11px;}
 .ent-ficha-cama{font-size:.9rem;font-weight:900;color:#fff;background:var(--pdark);border-radius:5px;padding:2px 8px;flex-shrink:0;line-height:1.4;}
 .ent-ficha-nm{font-weight:700;color:#0f172a;font-size:.84rem;flex-grow:1;}
@@ -334,7 +360,7 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
   .ent-doc-wrap{display:block;}
   .ent-doc{box-shadow:none;border:none;border-radius:0;max-width:none;width:100%;padding:0;}
   #tcE{position:absolute;left:0;top:0;width:100%;}
-  .ent-fichas{grid-template-columns:1fr 1fr;}
+  .ent-fichas{grid-template-columns:1fr;}   /* ficha ancha: una por fila también al imprimir */
   .ent-ficha{break-inside:avoid;}
   .ent-pend textarea{color:#78350f!important;-webkit-print-color-adjust:exact;}
 }
@@ -489,6 +515,9 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .d-busy{background:var(--danger);box-shadow:0 0 6px rgba(239,68,68,.45);}
 .d-done{background:var(--ok);box-shadow:0 0 6px rgba(5,150,105,.45);}
 .pname{font-size:.98rem;font-weight:700;color:var(--pdark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Diagnóstico en la tarjeta de cama (reemplaza al código de paciente) */
+.bdx{font-size:.72rem;color:#64748b;font-style:italic;line-height:1.3;margin-top:2px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .empty-txt{color:var(--muted);font-style:italic;text-align:center;padding:14px 0;}
 .pill{display:inline-flex;align-items:center;font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:5px;background:var(--n-gray-bg);border:1px solid transparent;color:var(--n-gray);}
 .pill-d{background:var(--n-red-bg);color:var(--n-red);}
@@ -1904,7 +1933,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
   <div class="phdr">
     <div class="ptitle">
       <span id="spBed" style="background:#1e293b;padding:4px 10px;border-radius:5px;border:1px solid #334155;font-size:.83rem;">Cama X</span>
-      <span id="spCod" style="margin-left:6px;font-size:.7rem;color:#94a3b8;font-family:monospace;"></span>
+      <span id="spCod" style="margin-left:8px;font-size:.76rem;color:#cbd5e1;font-style:italic;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
     </div>
     <span id="spRepInfo" style="flex:1;text-align:right;font-size:.7rem;color:#94a3b8;padding:0 10px;display:none;"></span>
     <div class="phdr-btns">
@@ -3739,7 +3768,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.37-vivo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.38-entrega]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4132,7 +4161,14 @@ function renderGrid() {
         </div>
         <div class="bbody">
           <div class="pname" title="${c.NOMBRE||''}">${c.NOMBRE||'-'}</div>
-          <div style="font-size:.78rem;color:var(--muted);">${c.COD_PACIENTE||''} · ${c.EDAD||'?'}a · ${c.SEXO||''}</div>
+          <div style="font-size:.78rem;color:var(--muted);">${c.EDAD||'?'}a · ${c.SEXO||''}</div>
+          ${/* El DIAGNÓSTICO reemplaza al COD_PACIENTE en la tarjeta (Diego,
+                ago-2026): el código es plomería interna para cruzar datos sin
+                identidad y no le sirve a nadie del equipo aquí. Sigue vivo en
+                egreso y archivados, que es donde cumple su función.
+                Se recorta porque los diagnósticos largos desarman la tarjeta;
+                el completo queda al pasar el cursor. */''}
+          ${c.DIAGNOSTICO?`<div class="bdx" title="${String(c.DIAGNOSTICO).replace(/"/g,'&quot;')}">${String(c.DIAGNOSTICO).length>46?String(c.DIAGNOSTICO).slice(0,46)+'…':c.DIAGNOSTICO}</div>`:''}
           <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;">
             <span class="pill pill-d">Día ${d}</span>
             <span class="pill">${c.VIA_AEREA||'-'}</span>
@@ -4587,7 +4623,9 @@ function fillCama(c, fecha) {
   $('fDias').value = diasCal(c.TS_INGRESO, c.FECHA_INGRESO, fecha);
   if($('fHoraIng')) $('fHoraIng').value = (String(c.TS_INGRESO||'').slice(11,16)) || '';
   _fechaInicioVA=_isoDia(c.FECHA_INICIO_VA)||'';
-  const _cCod=$('spCod'); if(_cCod) _cCod.textContent=c.COD_PACIENTE||'';
+  // Diagnóstico junto al nombre en la cabecera del panel: al colega le sirve
+  // ver POR QUÉ está el paciente, no su código interno (Diego, ago-2026).
+  const _cCod=$('spCod'); if(_cCod){ _cCod.textContent=c.DIAGNOSTICO||''; _cCod.title=c.DIAGNOSTICO||''; }
   setFasesDesde(c.FASE_JSON||'');
   _fechaInicioTQT=''; _fechaInicioVNI='';
   _diasVMPrevios=0; _diasVNIPrevios=0; _nReintub=0;
@@ -4840,7 +4878,7 @@ function fillForm(s) {
   aplicarFirmaTurno(s.PLAN_FIRMA_KINE);
   setFasesDesde(s.FASE_JSON||'');
   setPendDesde(s.PLAN_PENDIENTES||'');
-  const _cod=$('spCod'); if(_cod) _cod.textContent=s.COD_PACIENTE||'';
+  const _cod=$('spCod'); if(_cod){ _cod.textContent=s.PAC_DIAGNOSTICO||''; _cod.title=s.PAC_DIAGNOSTICO||''; }
   const _ad=$('sAdapt'); if(_ad&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!==''){ _ad.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico'; hAdapt(); }
   hSed(); hHTrend(); hMultiDVA(); calcGCS(); calcPI();
   if(s.KTM_UMA===true||s.KTM_UMA==='TRUE') show('dUMA');
@@ -11928,10 +11966,6 @@ function renderEntrega(d){
     const col={Baja:'#16a34a',Media:'#d97706',Alta:'#dc2626'}[c.nivel]||'#64748b';
     return `<span class="ent-tag" style="background:${col}18;color:${col};border:1px solid ${col}55;">${letra} ${c.nivel}${c.pje?` (${c.pje})`:''}</span>`;
   };
-  const _ln=(ico,partes)=>{
-    const txt=(Array.isArray(partes)?partes.filter(Boolean).join(' · '):partes);
-    return txt?`<div class="ent-ln"><span class="ent-ln-ico">${ico}</span><span class="ent-ln-body">${txt}</span></div>`:'';
-  };
 
   d.fichas.forEach(f=>{
     if(!f.ocupada&&!f.tieneEvo) return;
@@ -11952,53 +11986,60 @@ function renderEntrega(d){
     const pronoChip=f.prono?`<span class="ent-tag" style="background:#0891b218;color:#0e7490;border:1px solid #0891b255;" title="Pronación en curso desde el ${_pdesde}${f.prono.horas!==''?`, lleva ${String(f.prono.horas).replace('.',',')} h`:''}">🔃 En prono${f.prono.horas!==''?` ${String(f.prono.horas).replace('.',',')} h`:''} (desde ${_pdesde})</span>`:'';
     const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+pveChip+awChip+pronoChip+
       (f.alertas||[]).filter(a=>!/^Sin evolución/i.test(a)).map(a=>`<span class="ent-tag ent-tag-alert">⚠️ ${a}</span>`).join('');
-    // 🔵 Ventilatorio: VA + soporte + días VM / modo + parámetros
-    const vaP=[f.viaAerea, f.soporte==='VM'?'VM':(f.soporte||''), (f.diasVM!==''&&f.diasVM!=null)?`D-VM:${f.diasVM}`:''];
-    const lnVA=_ln('🔵',vaP);
-    const lnParams=(f.modo||f.params)?_ln('&nbsp;&nbsp;&nbsp;&nbsp;',[f.modo,f.params]):'';
-    // 📅 Eventos fechados del episodio
-    const lnEv=(f.eventos&&f.eventos.length)?_ln('📅',f.eventos):'';
-    // 🟡 Sedoanalgesia / neuro / HDN
-    const lnSed=_ln('🟡',[
-      f.sas!==''&&f.sas!=null?`SAS ${f.sas}`:'', f.sedTipo||'',
-      f.bnm?'<b style="color:#be123c;">BNM ✓</b>':'', f.cooperacion||'',
-      f.dva?`DVA ${f.dva}`:'', f.hemoEstado==='Inestable'?'<b style="color:#be123c;">HDN inestable</b>':'']);
-    // 🟢 Secreciones + último cultivo (fecha + estudio + microorganismo)
+    // Último cultivo (fecha + estudio + microorganismo), usado en el piso 1
     const cult=f.ultimoCultivo?`${f.ultimoCultivo.nombre||'Cultivo'} ${f.ultimoCultivo.fecha}${f.ultimoCultivo.micro?` → <b>${f.ultimoCultivo.micro}</b>`:''}`:'';
-    const lnSecr=_ln('🟢',[f.secr?`Secreciones ${f.secr}`:'',cult]);
-    // 🧰 Dispositivos de circuito (solo VM)
-    const lnDisp=(f.dispositivos&&f.dispositivos.length)?_ln('🧰',f.dispositivos.map(x=>{
-      const mark=x.estado==='vencido'?' <b style="color:#b91c1c;">VENCIDO</b>':(x.estado==='cambiar'?' <b style="color:#b45309;">cambiar</b>':'');
-      return `${x.n} día ${x.dia}/${x.dur}${mark}`;
-    })):'';
-    // 🟠 Terapia física + evaluaciones con fecha
-    const lnKTM=_ln('🟠',[
-      f.ktmRealizada&&f.ktmNivel?`KTM Nv${f.ktmNivel}`:'',
-      f.ktmSuspendida?`⚠️ KTM contraindicada${f.ktmContra?` (${f.ktmContra})`:''}`:'',
-      f.ktr?`KTR ×${f.ktr}`:'']);
-    const lnEval=(f.evals&&f.evals.length)?_ln('&nbsp;&nbsp;&nbsp;&nbsp;',f.evals):'';
     const planVal=(f.plan||'').replace(/"/g,'&quot;');
-    H+=`<div class="ent-ficha${sinEvoF?' ent-ficha-sinevo':''}">
-      <div class="ent-ficha-h">
+    // ── FICHA ANCHA EN DOS PISOS (opción C, elegida por Diego) ──
+    // Piso 1: cómo está el paciente AHORA. Piso 2: qué pasó y qué sigue.
+    const _celda=(k,v)=>`<div class="ent-c"><div class="ent-k">${k}</div><div class="ent-v">${v||'—'}</div></div>`;
+    const _u=a=>a.filter(Boolean).join('<br>');
+    // Datos heredados del turno anterior: la ficha lo dice EN GRANDE. Sin este
+    // aviso el arreglo sería peor que la hoja vacía — alguien leería datos de
+    // hace 12 h creyéndolos de ahora.
+    const _her=f.heredadoDe?(()=>{ const m=String(f.heredadoDe).match(/^(\d{4})-(\d{2})-(\d{2})-(Dia|Noche)$/);
+      return m?`${m[3]}-${m[2]} · ${m[4]==='Dia'?'Día':'Noche'}`:f.heredadoDe; })():'';
+    const vent=_u([
+      f.viaAerea?`<b>${f.viaAerea}</b>`:'',
+      f.soporte?`<b>${f.soporte==='VM'?'VM':f.soporte}</b>${(f.diasVM!==''&&f.diasVM!=null)?` · día ${f.diasVM} de VM`:''}`:'',
+      f.modo?`Modo <b>${f.modo}</b>`:'']);
+    const secr=_u([f.secr?`Secreciones ${f.secr}`:'', cult,
+      (f.dispositivos&&f.dispositivos.length)?f.dispositivos.map(x=>{
+        const mk=x.estado==='vencido'?' <b style="color:#b91c1c;">VENCIDO</b>':(x.estado==='cambiar'?' <b style="color:#b45309;">cambiar</b>':'');
+        return `${x.n} ${x.dia}/${x.dur}${mk}`; }).join(' · '):'']);
+    const neuro=_u([
+      [f.sas!==''&&f.sas!=null?`SAS ${f.sas}`:'', f.sedTipo||''].filter(Boolean).join(' · '),
+      [f.bnm?'<b style="color:#be123c;">BNM ✓</b>':'', f.cooperacion||''].filter(Boolean).join(' · '),
+      [f.dva?`DVA ${f.dva}`:'', f.hemoEstado==='Inestable'?'<b style="color:#be123c;">HDN inestable</b>':''].filter(Boolean).join(' · ')]);
+    const rehab=_u([
+      f.ktmRealizada&&f.ktmNivel?`KTM Nv${f.ktmNivel}`:'',
+      f.ktmSuspendida?`<b style="color:#be123c;">⚠️ KTM contraindicada</b>${f.ktmContra?` (${f.ktmContra})`:''}`:'',
+      f.ktr?`KTR ×${f.ktr}`:'',
+      (f.evals&&f.evals.length)?f.evals.join(' · '):'']);
+    H+=`<div class="ent-ficha${sinEvoF?(_her?' ent-ficha-heredada':' ent-ficha-sinevo'):''}">
+      ${sinEvoF?`<div class="ent-heredado">⚠️ SIN EVOLUCIÓN DE ESTE TURNO${_her?` — se muestran los datos del turno anterior (${_her})`:' — pendiente de registro'}</div>`:''}
+      <div class="ent-fh">
         <span class="ent-ficha-cama">${f.idCama}</span>
-        <span class="ent-ficha-nm">${f.nombre||'—'}</span>
+        <span class="ent-ficha-nm" style="flex-grow:0;">${f.nombre||'—'}</span>
         <span class="ent-ficha-meta">${meta}</span>
+        ${chips?`<span class="ent-fh-chips">${chips}</span>`:''}
+        ${f.diagnostico?`<span class="ent-fh-dx">${f.diagnostico}</span>`:''}
       </div>
-      ${sinEvoF?'<div class="ent-sinevo-strip">⚠️ SIN EVOLUCIÓN DE ESTE TURNO — pendiente de registro</div>':''}
-      ${chips?`<div style="padding:4px 11px 0;display:flex;gap:4px;flex-wrap:wrap;">${chips}</div>`:''}
-      ${f.diagnostico?`<div class="ent-dx">${f.diagnostico}</div>`:''}
-      <div class="ent-clin">
-        ${lnVA}${lnParams}${lnEv}
-        ${lnSed}
-        ${lnSecr}
-        ${lnDisp}
-        ${lnKTM}${lnEval}
+      <div class="ent-p1">
+        ${_celda('🔵 Vía aérea y soporte',vent)}
+        ${_celda('📊 Parámetros',f.params||'')}
+        ${_celda('🟡 Neuro · HDN',neuro)}
+        ${_celda('🟢 Secreciones · 🧰 Circuito',secr)}
       </div>
-      <div class="ent-pend">
-        ${(f.pendientes&&f.pendientes.length)?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">${f.pendientes.map(p=>`<span style="background:#fde68a;color:#78350f;border:1px solid #f59e0b55;border-radius:10px;padding:1px 8px;font-size:.66rem;font-weight:800;">⏳ ${p}</span>`).join('')}</div>`:''}
-        <textarea data-cama="${f.idCama}" rows="2" placeholder="📋 Planes / Pendientes…">${planVal}</textarea>
+      <div class="ent-p2">
+        ${_celda('📅 Eventos del episodio',(f.eventos&&f.eventos.length)?f.eventos.join('<br>'):'')}
+        ${_celda('🟠 Rehabilitación · Evaluaciones',rehab)}
+        <div class="ent-c ent-pend">
+          <div class="ent-k">📋 Plan · Pendientes</div>
+          ${(f.pendientes&&f.pendientes.length)?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">${f.pendientes.map(p=>`<span style="background:#fde68a;color:#78350f;border:1px solid #f59e0b55;border-radius:10px;padding:1px 8px;font-size:.66rem;font-weight:800;">⏳ ${p}</span>`).join('')}</div>`:''}
+          <textarea data-cama="${f.idCama}" rows="2" placeholder="📋 Planes / Pendientes…">${planVal}</textarea>
+        </div>
       </div>
-      <div class="ent-firma">▸ <b>${f.firma||'—'}</b></div>
+      <div class="ent-firma">▸ <b>${f.firma||'—'}</b>${_her?` <span style="color:#b45309;">(turno ${_her})</span>`:''}</div>
     </div>`;
   });
   H+=`</div>

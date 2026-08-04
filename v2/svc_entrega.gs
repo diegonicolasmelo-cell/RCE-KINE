@@ -57,9 +57,24 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
       if (!cultivoPorCama[id] || iso > cultivoPorCama[id].iso) cultivoPorCama[id] = { iso: iso, nombre: p.NOMBRE_PROC };
     });
 
+    // ── Evolución del turno ANTERIOR, para las camas sin evolución de este ──
+    // (Diego, ago-2026): antes esas fichas salían huecas —sedación, SAS,
+    // parámetros, plan, todo vacío— y la hoja impresa no servía. Ahora se
+    // rellenan con el último turno evolucionado del episodio y la ficha lo
+    // AVISA: leer datos de hace 12 h creyéndolos de ahora es peor que el
+    // vacío, así que el aviso es parte del arreglo, no un adorno.
+    const evoPrevPorCama = {};
+    sel.forEach(id => {
+      if (evoTurnoPorCama[id]) return;
+      const epi = episodioPorCama[id] || [];
+      for (let i = epi.length - 1; i >= 0; i--) {
+        if (String(epi[i].TURNO_KEY) < turnoKey) { evoPrevPorCama[id] = epi[i]; break; }
+      }
+    });
+
     const fichas = sel.map(id => _entFicha(id, camaPorId[id] || {},
       evoTurnoPorCama[id] || null, episodioPorCama[id] || [], cultivoPorCama[id] || null, fecha,
-      _fechaEfectivaTurno(fecha, turno), turno));
+      _fechaEfectivaTurno(fecha, turno), turno, evoPrevPorCama[id] || null));
 
     const ocupadas = camas.filter(c => esVerdadero(c.OCUPADA)).length;
     const enVM = camas.filter(c => esVerdadero(c.OCUPADA) && String(c.SOPORTE) === 'VM').length;
@@ -74,7 +89,13 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
 }
 
 /** Ficha de entrega de una cama. */
-function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno) {
+function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
+  // ¿Hay evolución de ESTE turno? Se guarda antes de sustituir por la previa:
+  // de aquí salen la franja de aviso y el contador «sin evolución» del
+  // encabezado, que NO deben cambiar porque la ficha venga rellenada.
+  const tieneEvo = !!e;
+  const heredadoDe = (!e && ePrev) ? String(ePrev.TURNO_KEY || '') : '';
+  if (!e && ePrev) e = ePrev;   // datos del turno anterior, avisados en la ficha
   const val = (a, b) => (a !== undefined && a !== null && a !== '') ? a : (b !== undefined && b !== null ? b : '');
   const dd = x => { const s = _statISO(x); return s ? s.slice(8, 10) + '-' + s.slice(5, 7) : ''; };
 
@@ -171,7 +192,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno) {
   if (edadMrc != null && edadMrc > cutEval) alertas.push('MRC-SS hace ' + edadMrc + 'd');
   const edadFss = coop && val(c.ULT_FSS) !== '' ? _edadEval(c.ULT_FSS_FECHA) : null;
   if (edadFss != null && edadFss > cutEval) alertas.push('FSS-ICU hace ' + edadFss + 'd');
-  if (!e) alertas.push('Sin evolución de este turno');
+  if (!tieneEvo) alertas.push('Sin evolución de este turno');
   // Pronación EN CURSO: el ciclo puede llevar días y cruzar varios turnos, así
   // que el equipo que entra necesita saber desde cuándo va — no basta con ver
   // «Prono» en la posición del último turno.
@@ -211,7 +232,8 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno) {
   return {
     idCama: id,
     ocupada: esVerdadero(c.OCUPADA),
-    tieneEvo: !!e,
+    tieneEvo: tieneEvo,
+    heredadoDe: heredadoDe,   // turnoKey del que se copiaron los datos ('' si es de este turno)
     nombre: val(e && e.PAC_NOMBRE, c.NOMBRE),
     edad: val(e && e.PAC_EDAD, c.EDAD),
     sexo: val(e && e.PAC_SEXO, c.SEXO),

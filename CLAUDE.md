@@ -172,17 +172,43 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     fusionados. `/exec` NUNCA se cayó (sirve la versión publicada — la regla
     es no tocar «Nueva versión» hasta que `/dev` cargue). Camino de
     recuperación: `build/RCE-KINE_completo_v536.zip` (paquete verificado).
-  - **DECISIONES de Diego (4-ago) aún NO programadas**: entrega de turno
-    rediseñada con el **mockup C** («ficha ancha en dos pisos»,
-    `scratchpad/mockup_entrega_ancho.html`) + diagnóstico junto al nombre +
-    fichas sin evolución muestran el turno ANTERIOR con franja de aviso
-    (autorizado); diagnóstico reemplaza al COD_PACIENTE en tarjeta/panel (el
-    código QUEDA en egreso/archivados); timeline completa (todo PROCEDIMIENTOS
-    con ícono genérico + banda de fase clínica); **Carina = VNI · MR850 =
-    «dispositivos de apoyo»** (nombre elegido por Diego) · VNI/CNAF se asignan
-    al PACIENTE, no a la cama («queda en una cama pero no vive ahí») ·
-    capnógrafos/Aerogen fuera de la pestaña Ventiladores. SUGERENCIAS de los
-    colegas SIN LEER (Drive MCP pide aprobación; pedidas por texto).
+- **v5.38 · ENTREGA ANCHA EN DOS PISOS + DIAGNÓSTICO EN VEZ DEL CÓDIGO
+  (4-ago-2026, cohete v5.38-entrega; sin cambio de esquema).**
+  1. **Entrega rediseñada al mockup C** (`scratchpad/mockup_entrega_ancho.html`,
+     elegido por Diego entre 3): cada paciente ocupa el ancho COMPLETO de la
+     hoja. Barra de identidad (cama · nombre · edad/sexo/días · chips ·
+     **diagnóstico**) + piso 1 «cómo está AHORA» (vía aérea y soporte ·
+     parámetros · neuro/HDN · secreciones y circuito) + piso 2 «qué pasó y qué
+     sigue» (eventos del episodio · rehabilitación y evaluaciones · plan).
+     Antes eran 2 columnas de tarjetas angostas: se perdía media hoja de ancho
+     y eventos/plan quedaban espachurrados. `.ent-fichas` a 1 columna también
+     en `@media print`.
+  2. **La ficha SIN evolución muestra el turno ANTERIOR** (petición de Diego:
+     antes salía hueca — ~15 campos vacíos — y la hoja impresa no servía).
+     `obtenerEntregaTurno` calcula `evoPrevPorCama` (última del episodio con
+     TURNO_KEY < turnoKey) y `_entFicha` la usa como respaldo. CLAVE: `tieneEvo`
+     se captura ANTES de sustituir, así el contador «sin evolución» del
+     encabezado y la alerta NO cambian; viaja `heredadoDe` (turnoKey) y la
+     ficha lleva franja ámbar «se muestran los datos del turno anterior
+     (02-08 · Noche)» + borde ámbar (el rojo queda para la que no tiene NADA).
+     El aviso es PARTE del arreglo: leer datos de hace 12 h creyéndolos de
+     ahora es peor que la hoja vacía.
+  3. **Diagnóstico reemplaza al COD_PACIENTE** en la tarjeta de cama (`.bdx`,
+     recortado a 46 car. con el completo en el tooltip) y en la cabecera del
+     panel (`#spCod`). El código SIGUE en egreso y archivados, que es donde
+     cumple su función (cruce anonimizado).
+  - Guardia `checks/entrega_ancha.js` (23 asserts: servicio + layout + que el
+    código no desapareció del egreso).
+
+  - **DECISIONES de Diego (4-ago) aún NO programadas**: timeline completa
+    (todo PROCEDIMIENTOS con ícono genérico + banda de fase clínica);
+    **Carina = VNI · MR850 = «dispositivos de apoyo»** (nombre elegido por
+    Diego) · VNI/CNAF se asignan al PACIENTE, no a la cama («queda en una cama
+    pero no vive ahí») · capnógrafos/Aerogen fuera de la pestaña Ventiladores.
+    SUGERENCIAS de los colegas SIN LEER (Drive MCP pide aprobación; pedidas
+    por texto). Segunda tanda de corrección de fechas (camas 1, 2 y 7)
+    pendiente de que Diego confirme los inicios de VM derivados: Francisca
+    21-jul y la señora trasladada de la 3 a la 7, 26-jul.
 
 - **v5.33 · HORAS EN PRONO CON FECHA REAL + VIAJAN A LA ENTREGA (ago-2026,
   cohete v5.33-ciclo; EXIGE `crearORepararEstructura()`, EVOLUCIONES **385
@@ -772,8 +798,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.37-vivo**
-  (antes v5.36-noche, v5.35-dias, v5.34-texto, v5.33-ciclo, v5.32-prono).
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.38-entrega**
+  (antes v5.37-vivo, v5.36-noche, v5.35-dias, v5.34-texto, v5.33-ciclo).
   Exige `crearORepararEstructura()` (EVOLUCIONES 385 columnas + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
   `DOCS_FOLDER`).
