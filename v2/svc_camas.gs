@@ -13,11 +13,13 @@ function obtenerTodasLasCamas() {
     camas.forEach(c => {
       if (esVerdadero(c.OCUPADA)) {
         c.OCUPADA = true;
-        // En vivo los días cuentan bloques de 24 h REALES contra el reloj: un
-        // paciente que llegó hace dos horas muestra Día 0, no Día 1 (ago-2026).
-        c.DIA_ESTADIA = diasBloques24(c.TS_INGRESO, c.FECHA_INGRESO, hoy, _ahora);
-        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasBloques24(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, hoy, _ahora) : 0;
-        c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasBloques24(c.TS_INICIO_VA, c.FECHA_INICIO_VA, hoy, _ahora) : 0;
+        // Los días se cuentan COMO LA LISTA OFICIAL DEL HOSPITAL (BUDA): un día
+        // más por cada día de CALENDARIO, el de ingreso es Día 0 (ago-2026).
+        // El tablero debe mostrar el MISMO número que el papel que el equipo
+        // lee en la reunión — verificado contra la lista del 3-ago en 17 camas.
+        c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
+        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
+        c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
         try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }
       } else {
         c.OCUPADA = false; c.DIA_ESTADIA = 0; c.DIAS_VM = 0; c.DIAS_VA = 0; c.TIMELINE = [];
@@ -48,9 +50,9 @@ function obtenerCama(idCama) {
     const hoy = hoyISO();
     if (esVerdadero(c.OCUPADA)) {
       c.OCUPADA = true;
-      c.DIA_ESTADIA = diasBloques24(c.TS_INGRESO, c.FECHA_INGRESO, hoy, _horaAhora());
-      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasBloques24(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, hoy, _horaAhora()) : 0;
-      c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasBloques24(c.TS_INICIO_VA, c.FECHA_INICIO_VA, hoy, _horaAhora()) : 0;
+      c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
+      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
+      c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
     } else { c.OCUPADA = false; }
     try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }
     return ok(c);

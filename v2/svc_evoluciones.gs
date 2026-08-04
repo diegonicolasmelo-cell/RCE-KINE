@@ -112,16 +112,46 @@ function guardarEvolucion(datos, ctx) {
         repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { TS_INGRESO: cama.TS_INGRESO });
       }
       if (cama.FECHA_INGRESO) {
-        // Referencia determinista: la mitad del turno evolucionado (re-editar
-        // no cambia el número). El tablero en vivo usa la hora real.
-        const _ref = refTurno(fecha, turno);
-        datos.DIA_ESTADIA = diasBloques24(cama.TS_INGRESO, cama.FECHA_INGRESO, _ref.fecha, _ref.hora);
-        // Un turno que intuba TERMINA en VM aunque haya empezado en oxigenoterapia:
-        // los contadores usan el estado final (el previo queda en VENT_*).
+        // ── DÍAS: EL MISMO NÚMERO QUE LA LISTA OFICIAL (BUDA) ──────────────
+        // (ago-2026, decisión de Diego con la «Lista de hospitalizados» a la
+        // vista.) La unidad suma UN día de estadía por cada día de CALENDARIO
+        // y el día de ingreso es Día 0. Verificado contra la lista del
+        // 3-ago-2026: las 17 camas cuadran con `hoy − fecha de ingreso`.
+        //
+        // OJO — esto REVIERTE los bloques de 24 h de la v5.19. Aquella se
+        // construyó sobre un supuesto equivocado (que BUDA contaba por
+        // bloques); en realidad cuenta por calendario, así que la app se
+        // despegaba hasta en un día del papel que el equipo lee en la reunión.
+        // Si alguna vez se quiere volver al tiempo transcurrido real, la hora
+        // sigue guardada en TS_INGRESO: es un dato, no se perdió.
+        //
+        // Se cuenta contra la fecha del TURNO, no contra la fecha efectiva:
+        // ambos turnos del mismo día informan el mismo número, que es como se
+        // anota a mano al final del turno de día.
+        datos.DIA_ESTADIA = diasEntre(cama.FECHA_INGRESO, fecha);
+
+        // VM y VA cuentan mientras el paciente los tiene y SE CONGELAN cuando
+        // deja de tenerlos («se para el día que se extuba», Diego). El turno
+        // que extuba SÍ suma: el paciente estuvo ventilado durante él, por eso
+        // se mira el estado INICIAL además del final. Antes caían a 0 y se
+        // perdía de vista cuántos días estuvo en VM.
         const _sopT = datos.VENT_SOPORTE_FINAL || datos.VENT_SOPORTE;
         const _vaT  = datos.VENT_VIA_AEREA_FINAL || datos.VENT_VIA_AEREA;
-        datos.DIAS_VM = (_sopT === 'VM') ? diasBloques24(cama.TS_INICIO_SOPORTE, cama.FECHA_INICIO_SOPORTE, _ref.fecha, _ref.hora) : 0;
-        datos.DIAS_VA = (_vaT && _vaT !== 'Natural') ? diasBloques24(cama.TS_INICIO_VA, cama.FECHA_INICIO_VA, _ref.fecha, _ref.hora) : 0;
+        const _esVA = function (x) { return x && String(x) !== 'Natural'; };
+        const _enVM = String(datos.VENT_SOPORTE) === 'VM' || String(_sopT) === 'VM';
+        const _enVA = _esVA(datos.VENT_VIA_AEREA) || _esVA(_vaT);
+        // Último valor alcanzado por el contador (turno anterior del episodio).
+        // Sin turno previo no hay nada que congelar ⇒ 0.
+        const _congelado = function (campo) {
+          try {
+            const pr = obtenerEvolucionPrevia(idCama, turnoKey);
+            const p = pr && pr.ok ? pr.data : null;
+            const n = p ? parseInt(p[campo], 10) : 0;
+            return isNaN(n) ? 0 : n;
+          } catch (e) { return 0; }
+        };
+        datos.DIAS_VM = _enVM ? diasEntre(cama.FECHA_INICIO_SOPORTE, fecha) : _congelado('DIAS_VM');
+        datos.DIAS_VA = _enVA ? diasEntre(cama.FECHA_INICIO_VA, fecha)     : _congelado('DIAS_VA');
       }
 
       // BDT (test de azul) — repetible: cada resultado marcado en el turno se

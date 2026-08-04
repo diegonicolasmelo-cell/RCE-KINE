@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.34-texto">
+<meta name="rce-version" content="5.35-dias">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3739,7 +3739,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.34-texto]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.35-dias]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -3809,19 +3809,21 @@ const dias = (a,b) => {
   const ms = (new Date(_isoDia(b)+'T00:00:00')) - (new Date(_isoDia(a)+'T00:00:00'));
   return ms<0 ? 0 : Math.floor(ms/86400000);
 };
-/* Días por BLOQUES DE 24 h desde el momento real (ago-2026): el número que se
-   ve afuera debe ser el que lleva de verdad — llegó hace dos horas ⇒ Día 0.
-   `ts` es 'yyyy-MM-dd HH:mm'; sin él se cuenta por días calendario, como antes. */
-function dias24(ts, fechaCal, hastaISO){
-  const t = String(ts||'');
-  if(!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(t)) return dias(fechaCal, hastaISO);
-  const hoyISO_ = _isoDia(hastaISO||hoy());
-  const ahora = new Date();
-  const ref = (hoyISO_===_isoDia(hoy()))
-    ? ahora                                   // vista de HOY: contra el reloj
-    : new Date(hoyISO_+'T23:59:00');          // fecha pasada: fin de ese día
-  const ms = ref - new Date(t.slice(0,10)+'T'+t.slice(11,16)+':00');
-  return ms<0 ? 0 : Math.floor(ms/86400000);
+/* Días de estadía COMO LOS CUENTA LA LISTA OFICIAL DEL HOSPITAL (BUDA):
+   un día más por cada día de CALENDARIO, el día de ingreso es Día 0.
+   Verificado contra la «Lista de hospitalizados» del 3-ago-2026: las 17 camas
+   cuadran con `fecha de la lista − fecha de ingreso`.
+
+   (ago-2026) Esto REVIERTE los bloques de 24 h de la v5.19, que se apoyaban en
+   un supuesto equivocado — se creía que BUDA contaba por bloques y cuenta por
+   calendario, así que la app se despegaba hasta en un día del papel que el
+   equipo lee en la reunión. Decisión de Diego: manda la lista oficial.
+
+   `ts` (el momento real, TS_INGRESO) se sigue recibiendo y GUARDANDO: es un
+   dato válido y no se perdió, simplemente ya no decide el número que se ve.
+   Si algún día se quiere mostrar el tiempo transcurrido real, está ahí. */
+function diasCal(ts, fechaCal, hastaISO){
+  return dias(fechaCal, hastaISO);
 }
 
 // Clasificación del weaning (Boles 2007): difícil = ≥1 PVE frustro;
@@ -4057,8 +4059,8 @@ function renderGrid() {
       oc++; if(c.SOPORTE==='VM') vm++;
       // Los días vienen del servidor contados por BLOQUES DE 24 h reales
       // (ago-2026): un paciente que llegó hace dos horas muestra Día 0.
-      const d   = dias24(c.TS_INGRESO, c.FECHA_INGRESO, fecha);
-      const dvm = (c.SOPORTE==='VM'||c.SOPORTE==='VNI') ? dias24(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, fecha) : 0;
+      const d   = diasCal(c.TS_INGRESO, c.FECHA_INGRESO, fecha);
+      const dvm = (c.SOPORTE==='VM'||c.SOPORTE==='VNI') ? diasCal(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, fecha) : 0;
       const evo = EVO_SET.has(String(c.ID_CAMA));
       const dot = evo ? 'd-done' : 'd-busy';
       if(evo) el.classList.add('evo'); // carpeta con hoja blanca asomando
@@ -4578,7 +4580,7 @@ function fillCama(c, fecha) {
   updBarthelLbl('fBarthel','lblBarthel'); updEcfLbl('fEcf','lblEcf');
   s('fDx',c.DIAGNOSTICO); s('fRem',c.DIAG_REM);
   s('fCharlson',c.CHARLSON); s('fIngTipo',c.INGRESO_TIPO); s('fApache',c.APACHE2);
-  $('fDias').value = dias24(c.TS_INGRESO, c.FECHA_INGRESO, fecha);
+  $('fDias').value = diasCal(c.TS_INGRESO, c.FECHA_INGRESO, fecha);
   if($('fHoraIng')) $('fHoraIng').value = (String(c.TS_INGRESO||'').slice(11,16)) || '';
   _fechaInicioVA=_isoDia(c.FECHA_INICIO_VA)||'';
   const _cCod=$('spCod'); if(_cCod) _cCod.textContent=c.COD_PACIENTE||'';
@@ -10535,7 +10537,7 @@ function renderTabla(){
       else tr.className='ro';
 
       const dEst=(evoRef&&evoRef.DIA_ESTADIA!==''&&evoRef.DIA_ESTADIA!=null)?evoRef.DIA_ESTADIA
-                 :(ocu?dias24(c.TS_INGRESO, c.FECHA_INGRESO, fecha):'');
+                 :(ocu?diasCal(c.TS_INGRESO, c.FECHA_INGRESO, fecha):'');
       const dvm=evoRef?((parseInt(evoRef.DIAS_VM_PREVIOS)||0)+(parseInt(evoRef.DIAS_VM)||0))
                       :(ocu&&c.SOPORTE==='VM'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
       const dvni=evoRef?((parseInt(evoRef.DIAS_VNI_PREVIOS)||0)+(evoRef.VENT_SOPORTE==='VNI'&&ocu&&c.SOPORTE==='VNI'?dias(c.FECHA_INICIO_SOPORTE,fecha):0))
@@ -12031,7 +12033,7 @@ function rkHojaHTML(c, fechaISO){
   const f=(fechaISO||'').split('-').reverse().join('/');
   let dias='';
   try{
-    dias=(typeof dias24==='function')?String(dias24(c.TS_INGRESO||'', _isoDia(c.FECHA_INGRESO), fechaISO)):'';
+    dias=(typeof diasCal==='function')?String(diasCal(c.TS_INGRESO||'', _isoDia(c.FECHA_INGRESO), fechaISO)):'';
     if(dias==='null'||dias==='undefined'||dias==='NaN') dias='';
   }catch(e){ dias=''; }
   const fr=[['{{CAMA}}',String(c.ID_CAMA||'')],['{{EDAD}}',String(c.EDAD||'')],
