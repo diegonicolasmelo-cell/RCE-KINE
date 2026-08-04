@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RCE-KINE · Mockup — Prono dentro de Terapia ventilatoria</title>
+<style>
+:root{--tinta:#1f2328;--suave:#5b6470;--linea:#dfe3e8;--fondo:#f4f6f8;--resp:#2a6395;--neuro:#6940a5;
+      --verde:#1f7a4d;--ambar:#b45309;--rojo:#b91c1c;--muted:#94a3b8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 70px}
+h1{font-size:1.45rem;margin:0 0 3px}
+h2{font-size:1.02rem;margin:30px 0 10px;padding-top:15px;border-top:2px solid var(--linea)}
+p.sub{color:var(--suave);margin:0 0 16px}
+.card{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:15px;margin:13px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.mal{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:11px 13px;font-size:.9rem;margin:12px 0}
+.ok{background:#eaf6ef;border:1px solid #b9dfc9;border-radius:8px;padding:11px 13px;font-size:.9rem;margin:12px 0}
+.nota{background:#fff8e1;border:1px solid #f0d78a;border-radius:8px;padding:11px 13px;font-size:.9rem;margin:12px 0}
+
+.dos{display:grid;grid-template-columns:1fr 400px;gap:18px;align-items:start}
+@media(max-width:940px){.dos{grid-template-columns:1fr}}
+
+/* ── simulación del formulario real ── */
+.form{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:0;overflow:hidden}
+.form .fh{background:#111827;color:#fff;padding:9px 14px;font-weight:700;font-size:.88rem;display:flex;justify-content:space-between}
+.form .fb{padding:14px}
+.sec{border:1px solid #e2e8f0;border-radius:8px;padding:11px;margin-bottom:12px}
+.sec-t{font-size:.78rem;font-weight:800;margin:0 0 9px;letter-spacing:.02em}
+.sec-t.neuro{color:var(--neuro)}
+.sec-t.resp{color:var(--resp)}
+.check{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;border:1px solid #e2e8f0;border-radius:6px;padding:4px 9px;background:#f8fafc;cursor:pointer;margin:0 5px 5px 0}
+.check input{width:15px;height:15px;cursor:pointer}
+.check.cr{background:#f5f3ff;border-color:#ddd6fe}
+.selrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.selrow label{font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--muted)}
+.selrow select{height:27px;font-size:.78rem;border:1px solid #cbd5e1;border-radius:4px;padding:0 6px}
+.paramgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:7px;margin-top:9px}
+.paramgrid div{border:1px solid #e2e8f0;border-radius:5px;padding:5px 7px;background:#fafbfc}
+.paramgrid span{display:block;font-size:.6rem;color:var(--muted);text-transform:uppercase;font-weight:700}
+.paramgrid b{font-size:.85rem;font-weight:600;color:#475569}
+
+/* ── la franja de prono, protagonista ── */
+.pfranja{border-radius:8px;padding:10px 12px;margin-bottom:11px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.pfranja.pedir{background:#fffbeb;border:1.5px solid #fcd34d}
+.pfranja.activo{background:#eef2ff;border:1.5px solid #c7d2fe}
+.pfranja .ico{font-size:1.35rem;line-height:1}
+.pfranja .txt{flex:1;min-width:170px}
+.pfranja .txt b{display:block;font-size:.88rem}
+.pfranja .txt span{font-size:.75rem;color:var(--suave)}
+.pfranja button{border:none;border-radius:7px;padding:7px 14px;font-size:.82rem;font-weight:700;cursor:pointer;color:#fff}
+.pfranja button.pri{background:var(--resp)}
+.pfranja button.sup{background:#4f46e5}
+.pfranja button:disabled{opacity:.45;cursor:default}
+.pchips{display:flex;gap:6px;flex-wrap:wrap;width:100%}
+.pchip{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:5px 13px;font-size:.8rem;cursor:pointer;font-weight:600;color:#475569}
+.pchip:hover{border-color:var(--resp);color:var(--resp)}
+.pchip.on{background:var(--resp);border-color:var(--resp);color:#fff}
+.horain{border:1px solid #a5f3fc;border-radius:5px;padding:4px 8px;font-size:.82rem;width:88px}
+.discreto{font-size:.75rem;color:var(--suave);margin-bottom:10px;padding:6px 10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;cursor:pointer}
+.discreto:hover{background:#f1f5f9;color:var(--resp)}
+
+/* viejo bloque, tachado */
+.viejo{opacity:.55;position:relative}
+.viejo:after{content:"❌ SE ELIMINA";position:absolute;top:8px;right:10px;font-size:.68rem;font-weight:800;color:var(--rojo);background:#fff;padding:2px 7px;border-radius:4px;border:1px solid #fecaca}
+.colapsado{background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:.78rem;font-weight:700;color:#475569;display:flex;justify-content:space-between}
+
+/* panel lateral */
+.side{background:#fff;border:1px solid var(--linea);border-radius:10px;overflow:hidden;position:sticky;top:12px}
+.side .sh{background:#f7f8fa;border-bottom:1px solid var(--linea);padding:9px 14px;font-weight:700;font-size:.88rem}
+.side .sb{padding:13px 15px;font-size:.9rem;line-height:1.7}
+.side .sb .nuevo{background:#fef3c7;padding:1px 4px;border-radius:3px}
+.procbox{display:flex;align-items:center;gap:9px;font-size:.85rem;padding:9px 12px;border-radius:8px;margin:11px 15px 14px}
+.procbox.si{background:#eaf6ef;border:1px solid #b9dfc9;color:var(--verde)}
+.procbox.no{background:#f1f5f9;border:1px solid #dfe3e8;color:var(--suave)}
+
+table.cmp{width:100%;border-collapse:collapse;font-size:.87rem;margin-top:8px}
+table.cmp th,table.cmp td{border:1px solid var(--linea);padding:7px 10px;text-align:left;vertical-align:top}
+table.cmp th{background:#eef1f5;font-size:.8rem;text-transform:uppercase;letter-spacing:.3px}
+.dec{background:#fff;border-left:4px solid var(--ambar);border-radius:0 8px 8px 0;padding:11px 14px;margin:11px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.dec b{display:block;margin-bottom:3px}
+</style></head><body>
+<div class="wrap">
+
+<h1>🔃 Prono dentro de Terapia ventilatoria (ya no escondido)</h1>
+<p class="sub">Mockup para revisión de Diego · ago-2026 · <b>nada programado todavía</b> ·
+prueba marcar el 🔒 BNM y seguir el flujo.</p>
+
+<div class="mal">
+<b>Por qué se pierde hoy:</b> «📐 Posicionamiento» es un bloque <b>colapsable que arranca cerrado</b>
+y vive lejos, después del examen físico. Quien evoluciona rápido nunca lo abre ⇒ el prono no se
+registra, o se registra tarde y mal (el caso de Caterina). La solución no es otro recordatorio:
+es <b>ponerlo donde la vista ya está</b> — al empezar lo ventilatorio.
+</div>
+
+<div class="dos">
+  <div>
+    <div class="form">
+      <div class="fh"><span>📝 Evolución — Caterina · cama 4</span><span style="font-weight:400;opacity:.7">04-08 · Día</span></div>
+      <div class="fb">
+
+        <!-- SEDACIÓN / NEURO -->
+        <div class="sec">
+          <div class="sec-t neuro">🧠 Sedación y neurológico</div>
+          <label class="check"><input type="checkbox"> RASS/SAS meta</label>
+          <label class="check cr"><input type="checkbox" id="bnm" onchange="render()"> 🔒 BNM</label>
+          <label class="check"><input type="checkbox"> Delirium</label>
+          <div style="font-size:.72rem;color:var(--suave);margin-top:6px">↑ Marca <b>🔒 BNM</b> y mira lo que aparece abajo.</div>
+        </div>
+
+        <!-- TERAPIA VENTILATORIA -->
+        <div class="sec">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:9px">
+            <div class="sec-t resp" style="margin:0">💨 Terapia ventilatoria</div>
+            <div class="selrow">
+              <label>Soporte</label><select><option>VM</option></select>
+              <label>Modo</label><select><option>ACVC</option></select>
+            </div>
+          </div>
+
+          <!-- AQUÍ va la franja de prono -->
+          <div id="zonaProno"></div>
+
+          <div class="paramgrid">
+            <div><span>Vt</span><b>420 ml</b></div>
+            <div><span>FR</span><b>18</b></div>
+            <div><span>PEEP</span><b>12</b></div>
+            <div><span>FiO₂</span><b>60 %</b></div>
+            <div><span>Ppl</span><b>26</b></div>
+            <div><span>PaFi</span><b>112</b></div>
+          </div>
+        </div>
+
+        <!-- BLOQUE VIEJO -->
+        <div class="sec viejo">
+          <div class="sec-t" style="color:var(--suave)">Antes vivía acá abajo, cerrado:</div>
+          <div class="colapsado"><span>📐 Posicionamiento</span><span>▼</span></div>
+          <div style="font-size:.72rem;color:var(--suave);margin-top:7px">
+            Prono, Supino y sus horas salen de aquí. <b>Sedente &gt;45°, DCL D/I y «otro
+            posicionamiento» se quedan</b> (ver decisión 1 abajo).
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="side">
+      <div class="sh">📄 Texto que se genera</div>
+      <div class="sb" id="txt"></div>
+      <div id="proc"></div>
+    </div>
+  </div>
+</div>
+
+<h2>Cómo se comporta</h2>
+<table class="cmp">
+<tr><th>Situación</th><th>Qué ve el colega</th><th>Procedimiento</th></tr>
+<tr><td><b>BNM sin marcar</b></td><td>Una línea discreta «¿Paciente en prono?» — no estorba, pero
+  <b>siempre está</b>: se prona sin BNM y se puede registrar igual.</td><td>Ninguno</td></tr>
+<tr><td><b>BNM marcado, sin prono</b></td><td>Franja ámbar <b>pidiendo</b> la posición: Prono / Supino
+  (obliga a decidir, no a adivinar).</td><td>Ninguno hasta elegir</td></tr>
+<tr><td><b>Se marca Prono</b></td><td>Pide la hora y confirma. Queda el ciclo abierto.</td>
+  <td>✅ PRONO hh:mm HRS</td></tr>
+<tr><td><b>Turno siguiente</b></td><td>Franja azul bloqueada: «En prono desde… (X h)» + botón
+  «Supinar». <b>Nada que tildar</b> ⇒ no se puede duplicar.</td><td>— (continuación)</td></tr>
+<tr><td><b>Se supina</b></td><td>Pide la hora, cierra el ciclo y calcula las horas totales.</td>
+  <td>✅ SUPINACIÓN hh:mm HRS</td></tr>
+</table>
+
+<h2>Dos decisiones que necesito de ti</h2>
+
+<div class="dec">
+<b>1 · ¿Qué hago con el resto del bloque Posicionamiento?</b>
+Sedente &gt;45°, DCL D, DCL I y «otro posicionamiento» no son eventos con hora: son estado del turno.
+Si borro el bloque entero, se pierden — y <b>Sedente &gt;45° es parte del paquete de prevención de
+NAVM</b> (cabecera elevada). Mi recomendación: <b>sacar solo Prono/Supino</b> y dejar el bloque
+colapsable con lo demás (o mover «Sedente &gt;45°» al bloque NAVM, donde se lee junto a cuff y cabecera).
+</div>
+
+<div class="dec">
+<b>2 · ¿El prono sin BNM debe poder registrarse?</b>
+No todo prono lleva bloqueo neuromuscular. Si la franja apareciera <b>solo</b> con BNM marcado,
+un prono sin BNM quedaría sin forma de anotarse y volveríamos a perder registro — justo lo que
+esto viene a arreglar. Por eso en el mockup, sin BNM queda la <b>línea discreta</b> siempre
+disponible. Si prefieres que sea estrictamente BNM, dímelo y lo cierro así.
+</div>
+
+<p class="sub" style="margin-top:20px">Dime si el flujo calza y qué eliges en las dos decisiones, y lo llevo al código
+(con su guardia antes de entregarlo).</p>
+
+</div>
+<script>
+let estado = 'ninguno';   // ninguno | pidiendoHora | abierto | continua | pidiendoSupino | cerrado
+let horaProno = '19:00', horaSupino = '16:00';
+
+function bnmOn(){ return document.getElementById('bnm').checked; }
+
+function render(){
+  const z = document.getElementById('zonaProno');
+  const bnm = bnmOn();
+  let html = '';
+
+  if(estado==='ninguno'){
+    html = bnm
+      ? `<div class="pfranja pedir">
+           <div class="ico">🔃</div>
+           <div class="txt"><b>Paciente con BNM — ¿en qué posición queda?</b>
+             <span>Se pregunta acá porque con bloqueo casi siempre se prona.</span></div>
+           <div class="pchips">
+             <button class="pchip" onclick="elegir('prono')">Prono</button>
+             <button class="pchip" onclick="elegir('supino')">Supino</button>
+             <button class="pchip" onclick="elegir('nada')">Ninguna de las dos</button>
+           </div>
+         </div>`
+      : `<div class="discreto" onclick="elegir('prono')">🔃 ¿Paciente en prono? · <b>Registrar posición</b></div>`;
+  }
+  else if(estado==='pidiendoHora'){
+    html = `<div class="pfranja pedir">
+        <div class="ico">🔃</div>
+        <div class="txt"><b>Se prona este turno</b><span>Anota la hora en que se realizó.</span></div>
+        <input class="horain" id="hp" type="time" value="${horaProno}">
+        <button class="pri" onclick="confirmarProno()">Confirmar</button>
+      </div>`;
+  }
+  else if(estado==='abierto'){
+    html = `<div class="pfranja activo">
+        <div class="ico">🔃</div>
+        <div class="txt"><b>Pronado hoy a las ${horaProno}</b><span>Ciclo abierto · se cerrará al supinar</span></div>
+        <button class="sup" onclick="pedirSupino()">Supinar</button>
+      </div>`;
+  }
+  else if(estado==='continua'){
+    html = `<div class="pfranja activo">
+        <div class="ico">🔃</div>
+        <div class="txt"><b>En prono desde 02-08 ${horaProno}</b><span>Lleva 36,5 h · iniciado por María José</span></div>
+        <button class="sup" onclick="pedirSupino()">Supinar ahora</button>
+      </div>
+      <div style="font-size:.72rem;color:var(--suave);margin:-4px 0 10px 2px">Sin casillas que tildar: el turno que solo continúa no puede duplicar el procedimiento.</div>`;
+  }
+  else if(estado==='pidiendoSupino'){
+    html = `<div class="pfranja activo">
+        <div class="ico">🔃</div>
+        <div class="txt"><b>Supinar a Caterina</b><span>Anota la hora para cerrar el ciclo.</span></div>
+        <input class="horain" id="hs" type="time" value="${horaSupino}">
+        <button class="sup" onclick="confirmarSupino()">Confirmar</button>
+      </div>`;
+  }
+  else if(estado==='cerrado'){
+    html = `<div class="pfranja activo" style="background:#eaf6ef;border-color:#b9dfc9">
+        <div class="ico">✅</div>
+        <div class="txt"><b>Ciclo cerrado — supinada a las ${horaSupino}</b><span>21 h en prono · el próximo prono abre un ciclo nuevo</span></div>
+        <button class="pri" onclick="reset()">Reiniciar demo</button>
+      </div>`;
+  }
+  z.innerHTML = html;
+  pintarTexto();
+}
+
+function elegir(q){
+  if(q==='prono'){ estado='pidiendoHora'; }
+  else if(q==='supino'){ estado='cerrado'; }
+  else { estado='ninguno'; document.getElementById('bnm').checked=false; }
+  render();
+}
+function confirmarProno(){ horaProno = document.getElementById('hp').value || '19:00'; estado='abierto'; render(); }
+function pedirSupino(){ estado='pidiendoSupino'; render(); }
+function confirmarSupino(){ horaSupino = document.getElementById('hs').value || '16:00'; estado='cerrado'; render(); }
+function reset(){ estado='ninguno'; document.getElementById('bnm').checked=false; render(); }
+
+function pintarTexto(){
+  const t = document.getElementById('txt'), p = document.getElementById('proc');
+  const base = 'Paciente en VM modo ACVC. Vt 420 ml, FR 18, PEEP 12, FiO₂ 60%. PaFi 112. ';
+  let frase = '', proc = '';
+  if(estado==='abierto'){
+    frase = `<span class="nuevo">Se realiza prono a las ${horaProno} hrs.</span>`;
+    proc = `<div class="procbox si">✅ Se registra <b>PRONO ${horaProno} HRS</b> (abre el ciclo)</div>`;
+  } else if(estado==='continua'){
+    frase = `<span class="nuevo">Paciente continúa en prono (36,5 h).</span>`;
+    proc = `<div class="procbox no">— Sin procedimiento nuevo: es continuación, no evento</div>`;
+  } else if(estado==='cerrado'){
+    frase = `<span class="nuevo">Se supina paciente a las ${horaSupino} hrs, tras 21 h en prono.</span>`;
+    proc = `<div class="procbox si">✅ Se registra <b>SUPINACIÓN ${horaSupino} HRS</b> (cierra el ciclo)</div>`;
+  } else {
+    proc = `<div class="procbox no">— Nada registrado aún</div>`;
+  }
+  t.innerHTML = base + frase;
+  p.innerHTML = proc;
+}
+
+// botón extra para saltar al turno siguiente
+document.addEventListener('DOMContentLoaded', ()=>{
+  render();
+  const nav = document.createElement('div');
+  nav.style.cssText='margin-top:14px;display:flex;gap:8px;flex-wrap:wrap';
+  nav.innerHTML = `<button onclick="estado='continua';document.getElementById('bnm').checked=true;render()"
+      style="border:1px solid var(--linea);background:#fff;border-radius:999px;padding:7px 14px;font-size:.85rem;cursor:pointer;font-weight:600">
+      ⏭ Ver el turno SIGUIENTE (prono ya abierto)</button>`;
+  document.querySelector('.dos').parentNode.insertBefore(nav, document.querySelector('h2'));
+});
+</script>
+</body></html>
