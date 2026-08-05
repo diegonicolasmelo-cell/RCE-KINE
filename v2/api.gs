@@ -12,6 +12,13 @@
 function api(accion, datos, token) {
   datos = datos || {};
 
+  // La configuración y los catálogos se memorizan durante UNA petición (ver la
+  // nota en esquema.gs). Aquí empieza la petición, así que aquí se olvida lo de
+  // la anterior: en Apps Script cada llamada es un proceso nuevo y esto no
+  // cambia nada, pero el simulador atiende muchas peticiones en un mismo
+  // proceso de Node y ahí el memo no puede sobrevivir de una a otra.
+  if (typeof _memoReset === 'function') _memoReset();
+
   // Acción PÚBLICA (pre-login): entrega el client id de GIS para dibujar el
   // botón de acceso. No expone datos clínicos (un client id de OAuth es
   // público por diseño). Reemplaza al scriptlet de plantilla que se eliminó.

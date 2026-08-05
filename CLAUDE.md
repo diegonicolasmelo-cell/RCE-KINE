@@ -107,6 +107,39 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **VELOCIDAD · LA CONFIGURACIÓN SE LEE UNA VEZ POR PETICIÓN (ago-2026, sin
+  cambio de index — NO exige `crearORepararEstructura()`).** Propuesto por
+  Manuel Fuentes trayendo el método de otro sistema Apps Script + Sheets (la
+  agenda de Colitas): medir por capas antes de tocar, y después demostrar que
+  acelerar no cambió ningún dato.
+  1. `leerConfig` bajaba la tabla CONFIG **entera cada vez que se le preguntaba
+     una clave**, y un arranque pregunta **17 veces** (12 en `_configUI`, 4 en
+     camas, 1 en evoluciones) por una tabla de ~20 filas. Ahora hay un memo por
+     petición (`_cfgTabla` en esquema.gs): **17 lecturas → 1**.
+  2. `configVal` (infra_util.gs) usaba su propio camino por `repoLeerTodos` y
+     corre en el de autenticación, o sea en **todas** las llamadas al servidor,
+     no solo al arrancar. Ahora comparte el mismo memo.
+  3. `catalogo()` y `catMatrices()` igual (GET_BOOT pide fases y matrices).
+  4. El memo se olvida en `api()` al entrar y en cada escritura de CONFIG o de
+     catálogos ⇒ nadie puede leer configuración vieja. El reseteo en `api()` no
+     es decorativo: en producción cada petición es un proceso nuevo, pero **el
+     simulador atiende muchas peticiones en un mismo proceso de Node** y sin él
+     una prueba vería la configuración de la anterior.
+  5. `medirArranque()` (mantenimiento.gs, correr desde el editor) cronometra
+     GET_BOOT por capas CON y SIN memo y compara las dos respuestas: si
+     difieren en algo, lo dice. Mide con el orden desfavorable al memo a
+     propósito (las lecturas quedan tibias del lado de Google).
+  6. Guardia: `checks/memo_config.js` (11 asserts: equivalencia de valores
+     —incluidas las rarezas de clave duplicada y valor vacío—, 17→1 lecturas,
+     e invalidación).
+  - **Descartado con evidencia, no por opinión**: el arranque del cliente ya
+    hace **un solo viaje** (GET_BOOT, v5.21) y `avisoCierreAnio()` sale por su
+    guarda de ventana fuera de dic-feb. **NO se copió de la agenda el caché
+    largo con precalentador**: allá el dato es una cita y aquí es un paciente
+    en UCI — cachear camas o evoluciones por horas es un riesgo clínico. Solo
+    se memoriza lo que no es clínico: CONFIG, CATALOGOS, CAT_MATRICES.
+  - PENDIENTE: correr `medirArranque()` en el proyecto real (cuánto son en ms)
+    y pegar los 4 .gs **coordinando con Diego** (un solo proyecto publicado).
 - **v5.34–v5.36 · GENERADOR DE TEXTO VIVO + DÍAS COMO BUDA (4-ago-2026,
   cohete v5.36-noche; sin cambio de esquema).** Ronda nacida de reportes de
   Diego en uso real. TRES lecciones caras:

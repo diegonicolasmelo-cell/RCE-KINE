@@ -494,22 +494,51 @@ function esquemaObjetoAFila(hoja, obj) {
   return fila;
 }
 
-/** Lee una clave de CONFIG (columna A=clave, B=valor). Devuelve porDefecto si no existe. */
-function leerConfig(clave, porDefecto) {
+// ── CONFIG: una sola lectura por ejecución (ago-2026) ───────────────────────
+// `leerConfig` bajaba la tabla CONFIG entera CADA vez que se le preguntaba una
+// clave, y un solo arranque pregunta 17 veces (12 en _configUI, 4 en camas, 1
+// en evoluciones) por una tabla de ~20 filas que no cambia durante la
+// petición. En Apps Script cada llamada a la API de Sheets es un viaje de red:
+// se pagaban ~50 viajes para leer 17 valores.
+//
+// El memo vive lo que dura la ejecución. Eso basta y es lo seguro: cada
+// petición a la web app es un proceso nuevo, así que nadie puede quedarse con
+// una configuración vieja. `escribirConfig` lo invalida para que quien escriba
+// y lea seguido dentro de la misma ejecución vea su propio cambio.
+// (`_MEMO_OFF`, `_memoApagado()` y `_memoReset()` viven en infra_util.gs, que
+// es el archivo que también se carga en el simulador.)
+var _CFG_MEMO = null;
+
+/** Tabla CONFIG {clave: valor} de esta petición. */
+function _cfgTabla() {
+  if (_CFG_MEMO && !_memoApagado()) return _CFG_MEMO;
+  const m = {};
   try {
     const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
     if (h && h.getLastRow() >= 2) {
       const vals = h.getRange(2, 1, h.getLastRow() - 1, 2).getValues();
       for (let i = 0; i < vals.length; i++) {
-        if (String(vals[i][0]).trim() === clave && String(vals[i][1]).trim() !== '') return String(vals[i][1]).trim();
+        const k = String(vals[i][0]).trim(), v = String(vals[i][1]).trim();
+        // Misma semántica que la lectura anterior: gana la PRIMERA aparición de
+        // la clave, y un valor vacío NO cuenta como definido (cae al
+        // por-defecto de quien pregunta).
+        if (k && v !== '' && !Object.prototype.hasOwnProperty.call(m, k)) m[k] = v;
       }
     }
   } catch (e) {}
-  return porDefecto;
+  if (!_memoApagado()) _CFG_MEMO = m;
+  return m;
+}
+
+/** Lee una clave de CONFIG (columna A=clave, B=valor). Devuelve porDefecto si no existe. */
+function leerConfig(clave, porDefecto) {
+  const m = _cfgTabla();
+  return Object.prototype.hasOwnProperty.call(m, clave) ? m[clave] : porDefecto;
 }
 
 /** Escribe (o crea) una clave en la hoja CONFIG. */
 function escribirConfig(clave, valor) {
+  _CFG_MEMO = null;   // lo que se escribe debe verse en la siguiente lectura
   const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
   if (!h) throw new Error('No existe la hoja CONFIG (corre crearORepararEstructura).');
   const n = h.getLastRow();
