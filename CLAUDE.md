@@ -333,6 +333,36 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     relativo al directorio de ejecución en vez de al archivo — fallaba fuera
     de `build/`), sin relación con lo de arriba.
 
+- **EL RELOJ DEL SOPORTE ES OTRA FECHA QUE LA DE INGRESO (4-ago-2026).**
+  Diego reporta que María Inelda (cama 2) muestra 3 días de VM con estadía 6.
+  Reproducido con el código real: su `FECHA_INGRESO` estaba BIEN (29-jul, de
+  ahí la estadía correcta) pero su `FECHA_INICIO_SOPORTE` apuntaba a su
+  PRIMERA EVOLUCIÓN EN LA APP (1-ago) — `diasEntre(1-ago, 4-ago) = 3`.
+  - **NO era un caso aislado**: el simulacro delató que las OCHO camas
+    pre-app mostraban exactamente `VM 3` (2, 4, 6, 11, 13, 14, 16 y 17), y el
+    re-sellado las devuelve a 6, 6, 8, 8, 7, 4, 11 y 10 — que es EXACTO lo
+    que dice la lista oficial. Diego solo había notado dos.
+  - **LECCIÓN**: que el ingreso calce con la lista oficial NO significa que el
+    reloj del soporte esté bien. Son dos fechas independientes y los días de
+    VM/VNI/VA cuelgan de la segunda. En la tanda anterior se dio por buena la
+    cama 2 mirando solo el ingreso: ese fue el error.
+  - `corregirIngresosCONFIRMAR()` re-sella las evoluciones él mismo (el
+    `resellarDiasSoporte*` es el otro mecanismo, por tramos). Es idempotente:
+    solo toca las filas que difieren.
+  - **BUG aparte, corregido**: `_limpiarCamaInterno` nunca limpió
+    `TS_INGRESO`/`TS_INICIO_VA`/`TS_INICIO_SOPORTE` (columnas de v5.19) ⇒ el
+    paciente siguiente de la cama heredaba los relojes del anterior. Guardia
+    `checks/cama_limpia.js`, genérica sobre el esquema: exige que TODA columna
+    `FECHA_*` o `TS_*` quede vacía al liberar.
+  - **BUG aparte, corregido**: la grilla del Registro Diario pintaba los días
+    de soporte con `${dvm||'-'}` y en JS el 0 es FALSO ⇒ el **Día 0** (ingresa
+    y se intuba el mismo día — Rosa, 4-ago) salía como raya mientras la
+    estadía, dos líneas más abajo, sí mostraba 0 (usaba `!==''`). Ahora hay
+    número si el soporte está vigente o alcanzó a acumular días, y la raya
+    queda para quien NUNCA lo tuvo (0 ≠ no aplica). Guardia
+    `checks/dia_cero.js`. PENDIENTE menor: la Hoja UCI tiene el mismo patrón
+    (`n||''`) en la fila «Días de VM» — no se tocó, consultar a Diego.
+
 - **PRONO / POSICIONAMIENTO / HSA — DISEÑO EN CURSO, NO PROGRAMADO (ago-2026).**
   Nace del caso de Caterina (cama 4): María José prona a las 19:00 del 2-ago
   y en la noche Mauricio, para reflejar que seguía en prono, vuelve a tildar
