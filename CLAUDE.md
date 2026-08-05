@@ -333,6 +333,27 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     relativo al directorio de ejecución en vez de al archivo — fallaba fuera
     de `build/`), sin relación con lo de arriba.
 
+- **EL TEXTO REDACTADO A MANO SE PERDÍA AL GUARDAR (4-ago-2026).** Reporte de
+  Diego: «el texto se reinicia al momento de guardar y no queda el texto
+  editado a mano». REPRODUCIDO en Chromium: la culpa era del **aviso de
+  desfase de v5.34** (mío). El aviso está bien pensado — compara bloque a
+  bloque lo retocado contra lo registrado y «decide el colega» — pero
+  `uiConfirm` es BINARIO, así que las salidas reales eran «🔄 Actualizar el
+  texto y guardar» (REGENERA, borra lo escrito) o Cancelar (no guarda nada):
+  **el único camino que guardaba destruía la redacción**, y el botón se leía
+  como el de guardar. El colega perdía su evolución por apretar lo que parecía
+  correcto.
+  - Arreglo: `uiConfirm` acepta una **tercera salida opcional** (`alterno`,
+    resuelve con `'alt'`; sin ese parámetro nada cambia para los ~20 diálogos
+    que ya la usan). El aviso ahora ofrece **conservar** (primaria) ·
+    regenerar · volver. REGLA: lo escrito a mano jamás se descarta sin que
+    alguien lo elija explícitamente.
+  - Guardia `checks/texto_manual.js` (21 asserts, las cuatro salidas + el
+    flujo sin retoques), verificada fallando contra el index anterior.
+  - LECCIÓN: un aviso que sirve para «decidir» necesita tantas salidas como
+    decisiones haya. Con dos botones para tres caminos, el que falta es
+    siempre el que el usuario quería.
+
 - **EL RELOJ DEL SOPORTE ES OTRA FECHA QUE LA DE INGRESO (4-ago-2026).**
   Diego reporta que María Inelda (cama 2) muestra 3 días de VM con estadía 6.
   Reproducido con el código real: su `FECHA_INGRESO` estaba BIEN (29-jul, de

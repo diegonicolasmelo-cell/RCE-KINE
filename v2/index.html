@@ -1034,6 +1034,9 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
 .uc-cancel{flex:1;height:40px;border:1px solid #e2e8f0;background:#f8fafc;color:#374151;border-radius:9px;
   font-size:.86rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
 .uc-cancel:hover,.uc-cancel:focus{background:#eef2f6;}
+.uc-alt{flex:1.3;height:40px;border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:9px;
+  font-size:.86rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+.uc-alt:hover,.uc-alt:focus{background:#f1f5f9;}
 .uc-ok{flex:1.3;height:40px;border:none;background:var(--pdark);color:#fff;border-radius:9px;
   font-size:.86rem;font-weight:800;cursor:pointer;font-family:inherit;transition:background .15s,box-shadow .15s;}
 .uc-ok:hover,.uc-ok:focus{background:var(--primary);box-shadow:0 4px 14px rgba(29,111,196,.35);}
@@ -1938,6 +1941,12 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <div class="uc-det" id="ucDet" style="display:none;"></div>
     <div class="uc-btns">
       <button type="button" class="uc-cancel" id="ucCancel" onclick="_ucFin(false)">Cancelar</button>
+      <!-- Tercera salida OPCIONAL (ago-2026): hay decisiones que no son
+           sí/no. El aviso de desfase del texto tenía SOLO «regenerar y
+           guardar» como camino de guardado, así que el colega que había
+           redactado a mano perdía lo escrito por apretar el único botón que
+           guardaba. Se muestra solo si uiConfirm recibe `alterno`. -->
+      <button type="button" class="uc-alt" id="ucAlt" style="display:none;" onclick="_ucFin('alt')"></button>
       <button type="button" class="uc-ok" id="ucOk" onclick="_ucFin(true)">Confirmar</button>
     </div>
   </div>
@@ -5403,10 +5412,26 @@ function guardar() {
             <span style="color:#b91c1c;font-weight:700;">El texto dice:</span> ${_esc(d.antes)||'<i>(nada)</i>'}<br>
             <span style="color:#15803d;font-weight:700;">Registraste:</span> ${_esc(d.ahora)||'<i>(nada)</i>'}
           </div>`).join(''),
-        confirmar:'🔄 Actualizar el texto y guardar', tono:'rojo',
-      }).then(ok=>{
-        if(ok){ $('rtxt').value=genTexto(); _marcarTextoGenerado($('rtxt').value); guardar(); }
-        else { _txtDesfaseVisto=false; show('rarea'); $('rtxt')?.scrollIntoView({behavior:'smooth',block:'center'}); }
+        // TRES salidas, no dos (corregido ago-2026 — reporte de Diego: «el
+        // texto se reinicia al guardar y no queda lo editado a mano»). Antes
+        // el ÚNICO camino que guardaba era regenerar, así que el colega que
+        // había redactado a mano perdía lo escrito por apretar el botón que
+        // parecía «guardar». Lo que se escribió a mano JAMÁS se descarta sin
+        // que alguien lo elija explícitamente.
+        confirmar:'✍️ Guardar mi texto tal como está',
+        alterno:'🔄 Usar el texto actualizado',
+      }).then(r=>{
+        if(r===true){
+          // Respeta lo redactado: se guarda tal cual está en pantalla. Al
+          // reentrar, _txtDesfaseVisto ya está en true y el aviso no se
+          // repite; _textoManual sigue en true, así que el payload lleva el
+          // texto de pantalla y NO el del motor.
+          guardar();
+        } else if(r==='alt'){
+          $('rtxt').value=genTexto(); _marcarTextoGenerado($('rtxt').value); guardar();
+        } else {
+          _txtDesfaseVisto=false; show('rarea'); $('rtxt')?.scrollIntoView({behavior:'smooth',block:'center'});
+        }
       });
       return;
     }
@@ -5909,6 +5934,10 @@ function uiConfirm(o){
   $('ucMsg').innerHTML=o.mensaje||'';
   const det=$('ucDet'); det.innerHTML=o.detalle||''; det.style.display=o.detalle?'':'none';
   $('ucOk').textContent=o.confirmar||'Confirmar';
+  // Tercera salida opcional: resuelve la promesa con 'alt' (distinto de
+  // true/false, así quien no la use no cambia en nada).
+  const _alt=$('ucAlt');
+  if(_alt){ _alt.style.display=o.alterno?'':'none'; _alt.textContent=o.alterno||''; }
   $('ucCard').classList.toggle('uc-rojo', o.tono==='rojo');
   $('ucOvl').classList.add('on');
   setTimeout(()=>{ const b=$('ucOk'); if(b) b.focus(); },60);
