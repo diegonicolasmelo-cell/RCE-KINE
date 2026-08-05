@@ -10738,6 +10738,19 @@ function renderTabla(){
                       :(ocu&&c.SOPORTE==='VM'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
       const dvni=evoRef?(parseInt(evoRef.DIAS_VNI)||0)
                        :(ocu&&c.SOPORTE==='VNI'?dias(c.FECHA_INICIO_SOPORTE,fecha):0);
+      /* ¿Mostrar el número o una raya? El contador vale 0 en DOS casos que se
+         leen distinto: el paciente que va en su DÍA 0 de soporte (ingresa y se
+         intuba hoy) y el que nunca lo tuvo. Antes la celda hacía `dvm||'-'` y,
+         como 0 es falso en JS, el Día 0 salía como raya — reporte de Diego
+         (4-ago): un ingreso del día mostraba estadía 0 pero «-» en VM. La
+         estadía, dos líneas más abajo, ya distinguía bien con `!==''`.
+         Regla: hay número si el soporte está vigente o si alcanzó a acumular
+         días (el congelado del que salió del soporte); si no, raya. */
+      const _conSop=(evo,sop,dias_)=>evo
+        ? (String(evo.VENT_SOPORTE_FINAL||evo.VENT_SOPORTE||'')===sop || dias_>0)
+        : (ocu && c.SOPORTE===sop);
+      const dvmTxt =_conSop(evoRef,'VM', dvm) ? dvm : '-';
+      const dvniTxt=_conSop(evoRef,'VNI',dvni)? dvni: '-';
       const nomHtml=nombre?`<span title="${nombre}">${String(nombre).slice(0,28)}</span>`
                           :'<span style="color:#cbd5e1;font-style:italic;">Disponible</span>';
       const dx=((diag||'').slice(0,24)+((diag||'').length>24?'…':''))||'-';
@@ -10765,8 +10778,8 @@ function renderTabla(){
         <td class="tc-num" style="color:var(--muted);">${sexo||'-'}</td>
         <td class="tc-num">${edad||'-'}</td>
         <td class="tc-num" style="color:${parseInt(dEst)>7?'var(--danger)':'inherit'};font-weight:${parseInt(dEst)>7?800:600};">${dEst!==''?dEst:'-'}</td>
-        <td class="tc-num" style="color:var(--resp);">${dvm||'-'}</td>
-        <td class="tc-num" style="color:var(--fisico);">${dvni||'-'}</td>
+        <td class="tc-num" style="color:var(--resp);">${dvmTxt}</td>
+        <td class="tc-num" style="color:var(--fisico);">${dvniTxt}</td>
         <td class="tc-dx" title="${diag||''}">${dx}</td>
         <td class="tc-sop">${nombre?sopHtml:'-'}</td>
         <td class="tc-ktr">${ktrCell(ktrD)}</td>
