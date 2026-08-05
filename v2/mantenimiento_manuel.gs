@@ -77,6 +77,17 @@ const _MTO_FECHAS = [
   { cama: '1', nom: 'ARAYA',    ingreso: '2026-07-17', vm: '2026-07-21' },  // Francisca: VM real desde la reintubacion (el tramo del 18-jul se autocancela: intubada y extubada el MISMO dia)
   { cama: '7', nom: 'RAMIREZ',  ingreso: '2026-07-22', vm: '2026-07-30' },  // Maria: VNI actual desde la extubacion ACCIDENTAL del 30-jul
 
+  // Cama 2 agregada el 4-ago: Diego reporta VM 3 cuando la lista oficial dice
+  // 6, igual que la estadia. REPRODUCIDO con el codigo real: su FECHA_INGRESO
+  // (29-jul) esta BIEN — por eso la estadia sale 6 correcta — pero su reloj de
+  // soporte (FECHA_INICIO_SOPORTE) nunca se corrigio y apunta a su PRIMERA
+  // EVOLUCION EN LA APP (1-ago), no al inicio real de la VM. diasEntre(1-ago,
+  // 4-ago) = 3: el numero exacto que ve. Quedo fuera de la tanda anterior
+  // porque el comentario de abajo la daba por buena mirando SOLO el ingreso.
+  // Leccion: ingreso correcto NO implica reloj de soporte correcto; son dos
+  // fechas distintas y los dias de VM cuelgan de la segunda.
+  { cama: '2',  nom: 'OLIVARES',   ingreso: '2026-07-29', vm: '2026-07-29' },  // Maria Inelda: ventilada desde el ingreso (lista oficial: VM = estadia)
+
   // Camas 4 y 6 agregadas el 4-ago ~01:40: Diego reporta que muestran UN DIA
   // MAS del real. La primera tanda (2-ago) les habria escrito la fecha con el
   // mismo corrimiento de ±1 que tenian 5 de las 10 de la segunda tanda (el

@@ -381,6 +381,13 @@ function _limpiarCamaInterno(idCama) {
     VIA_AEREA: 'Natural', TOT_NUMERO: '', TOT_CM_LABIO: '', TQT_TIPO: '', TQT_CALIBRE: '',
     SOPORTE: 'Ambiente', MODO: 'Sin soporte',
     FECHA_INGRESO: '', FECHA_INICIO_VA: '', FECHA_INICIO_SOPORTE: '',
+    // Los relojes TS_* (v5.19) NUNCA se habian agregado aca: al liberar la
+    // cama quedaban con el MOMENTO del paciente anterior y el siguiente los
+    // heredaba (la tarjeta cuenta los dias en vivo contra ellos, y el bloque
+    // de ingreso de guardarEvolucion solo los escribe `if (!cama.TS_INGRESO)`
+    // — con el valor viejo presente, no los tocaba). Encontrado el 4-ago
+    // revisando por que un ingreso del dia no mostraba 0 dias.
+    TS_INGRESO: '', TS_INICIO_VA: '', TS_INICIO_SOPORTE: '',
     FASE_JSON: '', KTM_NIVEL: '', KTM_SUSP: false, FIRMA_KINE: '', AUTOR_EMAIL: '',
     TEXTO_EVO_DIA: '', TEXTO_EVO_NOCHE: '', ULTIMO_TURNO_KEY: '', TIMELINE_JSON: '',
     KTR_DIA: '', KTM_DIA: '', PROC_DIA: '', FIRMA_DIA: '', KEY_DIA: '',
