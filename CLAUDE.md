@@ -173,12 +173,16 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      las dos. Antes eran tres bajadas idénticas de la misma hoja, en el mismo
      segundo, dentro de la misma acción.
   3. **`_tz()` memoizado** (`esquema.gs`, `_TZ_MEMO`), invalidado por
-     `escribirConfig` y `_memoReset`. No es ganancia de hoy: es el seguro contra
-     el día en que UNA celda quede con formato de fecha —`esquemaFilaAObjeto`
-     pide la zona horaria por cada celda `Date`— y una pantalla salte de 22
-     lecturas a miles. Medido: 200 filas con celda `Date` pasan de **200
-     lecturas de CONFIG a 1**, con valor idéntico en 8 casos borde (sin la
-     clave, vacía, duplicada, tras escribir, tras resetear).
+     `escribirConfig` y `_memoReset`. **Ojo con el alcance, que es el más ancho
+     de los cinco**: `_tz()` no es un rincón raro, lo llaman `hoyISO()` y
+     `ahoraTS()` (`infra_fechas.gs`), o sea **cada TIMESTAMP que se escribe** —
+     cada evolución, cada hito, cada línea de auditoría. Aparte está la vía de
+     `esquemaFilaAObjeto`, que lo pide por cada celda `Date`: esa hoy casi no se
+     dispara (`_forzarTexto` mantiene las fechas como texto), pero basta UNA
+     celda con formato de fecha para que una pantalla salte a miles de lecturas.
+     Medido: 200 filas con celda `Date` pasan de **200 lecturas de CONFIG a 1**,
+     con valor idéntico en los casos borde (clave ausente, vacía, duplicada,
+     tras escribir, tras resetear). Guardia: `checks/memo_tz.js`.
   4. **`patientId` viaja a los hitos** (`svc_timeline.gs:146`). Sin él,
      `_agregarHitoInternoSinSync` volvía a CAMAS_ESTADO por CADA procedimiento
      del turno a buscar un dato que el guardado ya tenía en la mano.
@@ -215,6 +219,38 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `export CHROMIUM_PATH="$HOME/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"`.
     Ojo: `checks/rendimiento.js` tiene la ruta `/opt/pw-browsers/chromium`
     **fija** y no lee esa variable — es el único que hay que parchear a mano.
+  - **REVISIÓN ADVERSARIAL (11 revisores independientes, encargo de REFUTAR):
+    0 refutaciones de 10.** Cada uno montó su propio arnés A/B contra el commit
+    anterior; entre ellos sumaron >3.500 escenarios aleatorios comparando la
+    base entera (EVOLUCIONES, CAMAS_ESTADO, TIMELINE, PROCEDIMIENTOS,
+    REINTUBACIONES) con **0 diferencias**. Lo que dejaron anotado:
+    1. ⚠️ **`medirArranque()` ya no es comparable con la cifra del 5-ago.** Su
+       `limpiar` ahora apaga también `_TZ_MEMO`, así que la pasada «sin memo»
+       mezcla los dos cambios y la línea base es más lenta que la que se midió.
+       **No volver a citar el 67% como si saliera de la misma medición.**
+    2. ⚠️ **El simulador es ciego a esto por construcción.** `sim_srv.js:26-29`
+       devuelve las filas VIVAS de su base, mientras producción arma objetos
+       nuevos por lectura (`repo.gs` + `esquemaFilaAObjeto`). O sea: las 32
+       guardias de navegador pasarían igual con o sin la Ola 1, y el aliasing no
+       se puede cazar ahí. Por eso `memo_episodio.js` lo audita a mano
+       (bloque 5) en vez de confiar en el simulador.
+    3. El repo REAL (`repoLeerFiltrado`, con su troceado por tramos y el
+       fallback del bloque completo) **no lo ejercita ninguna guardia**: las
+       cifras de viajes salen del arnés de medición, no de una guardia. Si
+       alguien rompe el troceado, las guardias siguen verdes.
+- 🔴 **HALLAZGO PREEXISTENTE, NO de la Ola 1: `LIMPIAR_CAMA` deja vivas las
+  evoluciones del paciente anterior.** `_limpiarCamaInterno` (`svc_camas.gs:376`)
+  vacía CAMAS_ESTADO campo por campo pero **no toca EVOLUCIONES** (verificado: 0
+  menciones en la función). Solo `darAltaPaciente` las archiva y borra
+  (`svc_camas.gs:279-280`). Como `_pronoAbiertoTS` filtra **solo por `ID_CAMA`**
+  y no por `PATIENT_ID`, el siguiente ocupante de esa cama puede heredar una
+  pronación abierta ajena: dos revisores lo reprodujeron por separado
+  («tras 108,5 h en prono», horas de otro paciente). `_epiPrev` del guardado sí
+  filtra por `PATIENT_ID`, así que los días de VM/VNI/VA están a salvo.
+  **Decisión pendiente de Diego**: o `LIMPIAR_CAMA` archiva como el alta, o los
+  lectores del episodio filtran también por `PATIENT_ID`. Ojo: deroga la premisa
+  «la hoja viva solo tiene el episodio en curso», que aparece escrita como
+  verificada en revisiones anteriores.
   - PENDIENTE: pegar los `.gs` en el editor y publicar. **Ola 2** (fusionar
     `GET_STATS`+`GET_INDICADORES`, paralelizar los viajes en cadena) exige tocar
     `index.html` y rearmar el cohete: no empezarla hasta que la Ola 1 lleve

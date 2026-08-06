@@ -570,14 +570,17 @@ function salirModoPrueba() {
   return 'Modo prueba DESACTIVADO (AUTH_DEV_MODE=FALSE).';
 }
 
-// Zona horaria: UNA lectura por petición (ago-2026). esquemaFilaAObjeto la pide
-// por CADA celda que venga como fecha (esquema.gs, rama `v instanceof Date`), y
-// sin memo cada una de esas celdas costaba bajar CONFIG entera. Hoy casi nunca
-// se dispara porque _forzarTexto mantiene las columnas de fecha como texto,
-// pero basta con que UNA celda quede con formato de fecha —un pegado, una
-// reparación a mano— para que abrir Estadísticas pase de 22 lecturas a miles.
-// Esto es el seguro contra ese día. Vive lo que dura la petición: api() lo
-// olvida al entrar (_memoReset) y escribirConfig lo invalida al escribir.
+// Zona horaria: UNA lectura por petición (ago-2026). Ojo con el alcance: _tz()
+// NO es un rincón raro. Está en el camino caliente, porque lo llaman
+// `hoyISO()` y `ahoraTS()` (infra_fechas.gs) — o sea CADA TIMESTAMP que se
+// escribe: cada evolución, cada hito, cada línea de auditoría. Encima,
+// esquemaFilaAObjeto lo pide por CADA celda que venga como fecha (la rama
+// `v instanceof Date`): esa vía hoy casi no se dispara porque _forzarTexto
+// mantiene las columnas de fecha como texto, pero basta con que UNA celda
+// quede con formato de fecha —un pegado, una reparación a mano— para que
+// abrir Estadísticas pase de 22 lecturas a miles.
+// El memo vive lo que dura la petición: api() lo olvida al entrar
+// (_memoReset) y escribirConfig lo invalida al escribir. Guardia: memo_tz.js.
 var _TZ_MEMO = null;
 
 function _tz() {

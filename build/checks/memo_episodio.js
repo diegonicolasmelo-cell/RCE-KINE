@@ -48,10 +48,16 @@ let OPS = [];
 const cuenta = k => OPS.push(k);
 const lecturasEpisodio = () => OPS.filter(k => k === 'leer:EVOLUCIONES/ID_CAMA').length;
 
+// Se recuerdan los objetos del episodio y las claves con que nacieron, para
+// poder auditar después qué les inyectó el guardado (ver bloque 5).
+let EPISODIO_ENTREGADO = [];
 global.repoLeerTodos = (h, c, v) => {
   cuenta('leer:' + h + (c !== undefined ? '/' + c : ''));
   let f = (DB[h] || []).map(r => Object.assign({}, r));
   if (c !== undefined) f = f.filter(r => String(r[c]) === String(v));
+  if (h === 'EVOLUCIONES' && c === 'ID_CAMA') {
+    f.forEach(o => EPISODIO_ENTREGADO.push({ obj: o, claves: Object.keys(o).slice() }));
+  }
   return f;
 };
 global.repoLeerFiltrado = (h, colKey, pred) => {
@@ -134,6 +140,7 @@ function sembrar() {
       PLAN_FIRMA_KINE: 'DMV',
     });
   });
+  EPISODIO_ENTREGADO = [];
   DB = {
     CAMAS_ESTADO: [{ ID_CAMA: '7', OCUPADA: 'TRUE', PATIENT_ID: 'p7', COD_PACIENTE: 'PAC7',
       NOMBRE: 'Paciente Siete', FECHA_INGRESO: '2026-07-25', TS_INGRESO: '2026-07-25 08:00:00',
@@ -212,6 +219,34 @@ const despues = obtenerEvoTurno('7', TK);
 eq('la petición siguiente vuelve a leer la hoja', lecturasEpisodio() > antes, true);
 eq('…y ve la supinación que acaba de escribir otro colega', despues.data.pronoAbierto, '');
 eq('…y su previa es la evolución nueva', despues.data.previa.TURNO_KEY, '2026-08-03-Noche');
+
+/* ══ 5 · La mina que hay que desactivar antes de que exista ═════════════════ */
+console.log('\n5 · Lo que el guardado le inyecta al episodio compartido');
+// Al compartir una sola lectura, los objetos del episodio pasan por varias
+// manos: `_epiPrev` calcula los días de VM/VNI/VA con ellos y
+// `obtenerEvolucionPrevia` les pega campos transitorios (_PREVIA_DIA,
+// _VFON_HORAS). Hoy es inocuo por dos razones que NO son evidentes: el cálculo
+// de días corre ANTES de la primera mutación, y ninguna columna del esquema
+// empieza con «_», así que lo inyectado nunca llega a la hoja.
+// Si mañana alguien inyecta un transitorio con nombre de columna REAL (p. ej.
+// `mejor.DIAS_VM = …`), los días de ventilación mecánica saldrían mal en
+// silencio. Esta guardia lo caza antes de que ocurra.
+sembrar();
+guardarEvolucion(payload({
+  EVAL_T_BDT_POS: 'TRUE', APNEA_TEST: 'Positivo', DECAN_OCURRIO: 'TRUE', VFON_USADA: 'TRUE',
+}), { firma: 'DMV', email: 'd@h' });
+const inyectadas = new Set();
+EPISODIO_ENTREGADO.forEach(({ obj, claves }) => {
+  Object.keys(obj).forEach(k => { if (claves.indexOf(k) === -1) inyectadas.add(k); });
+});
+const lista = Array.from(inyectadas).sort();
+console.log('   claves inyectadas: ' + (lista.join(', ') || 'ninguna'));
+eq('toda clave inyectada es transitoria (empieza con «_»)', lista.every(k => k.charAt(0) === '_'), true);
+eq('…y son solo las dos conocidas', lista.join(',') || 'ninguna', '_PREVIA_DIA,_VFON_HORAS');
+// Y lo que de verdad importa: que los días no se hayan contaminado.
+const filaProto = DB.EVOLUCIONES.find(e => e.ID_EVOLUCION === 'CAMA_7_' + TK);
+eq('los días de VM sobreviven intactos', filaProto.DIAS_VM, 12);
+eq('los días de vía aérea también', filaProto.DIAS_VA > 0, true);
 
 console.log('');
 if (fails.length) { console.log('❌ FALLARON ' + fails.length + ':\n  - ' + fails.join('\n  - ')); process.exit(1); }
