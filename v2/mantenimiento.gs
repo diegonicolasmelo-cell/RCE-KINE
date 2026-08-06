@@ -605,3 +605,136 @@ function _pronoCorregir(aplicar) {
 function _pronoProcs(fila) {
   try { return JSON.parse(fila.PROC_JSON || '[]') || []; } catch (e) { return []; }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  CAMAS DE PRUEBA (ago-2026)
+//  Pedido de Diego: quiere probar una versión nueva con la unidad llena de
+//  pacientes REALES, sin tocarles la evolución. Se agregan camas al final
+//  del censo para ensayar ahí.
+//
+//  OJO — la siembra de crearORepararEstructura() solo corre con la hoja
+//  VACÍA (`if (hCam.getLastRow() < filaDatos)`), así que subir NUM_CAMAS a
+//  mano NO agrega nada cuando ya hay pacientes. Por eso existe esto.
+//
+//  Las camas de prueba NO son inocuas para la estadística: los indicadores
+//  y el REM cuentan pacientes-día desde EVOLUCIONES, así que todo lo que se
+//  evolucione en ellas SUMA. Por eso el retiro borra también su historia.
+// ═══════════════════════════════════════════════════════════════════════
+
+/** Cuántas camas de prueba se agregan. */
+const _PRUEBA_N = 2;
+
+/** ¿Es una cama de prueba? Lo son las que pasan del NUM_CAMAS declarado. */
+function _esCamaPrueba(idCama) {
+  const real = parseInt(leerConfig('NUM_CAMAS', '18'), 10) || 18;
+  return (parseInt(idCama, 10) || 0) > real;
+}
+
+/**
+ * Agrega _PRUEBA_N camas vacías al final del censo, para ensayar sin tocar
+ * a los pacientes reales. Idempotente: si ya existen, no las duplica.
+ * NO cambia NUM_CAMAS a propósito — así `_esCamaPrueba` puede distinguirlas
+ * y el retiro sabe cuáles son.
+ */
+function agregarCamasPrueba() {
+  const log = [];
+  const p = m => { log.push(m); Logger.log(m); };
+  const camas = repoLeerTodos('CAMAS_ESTADO');
+  const ids = {};
+  let maxId = 0;
+  camas.forEach(c => {
+    const n = parseInt(c.ID_CAMA, 10) || 0;
+    ids[String(n)] = true;
+    if (n > maxId) maxId = n;
+  });
+  const real = parseInt(leerConfig('NUM_CAMAS', '18'), 10) || 18;
+  p('=== CAMAS DE PRUEBA ===');
+  p('camas reales declaradas (NUM_CAMAS): ' + real);
+  p('cama más alta que existe hoy: ' + maxId);
+
+  let creadas = 0;
+  for (let i = 1; i <= _PRUEBA_N; i++) {
+    const id = String(real + i);
+    if (ids[id]) { p('  cama ' + id + ': YA EXISTE - se salta'); continue; }
+    repoInsertar('CAMAS_ESTADO', {
+      ID_CAMA: id, OCUPADA: false, STATUS_CAMA: 'Libre',
+      VIA_AEREA: 'Natural', SOPORTE: 'Ambiente', MODO: 'Sin soporte',
+    });
+    p('  cama ' + id + ': CREADA (vacía)');
+    creadas++;
+  }
+  SpreadsheetApp.flush();
+  try { CacheService.getScriptCache().removeAll(['camas', 'boot']); } catch (e) {}
+  p('');
+  p(creadas ? ('✅ ' + creadas + ' cama(s) de prueba agregadas. Recarga la app con Ctrl+Shift+R.')
+            : 'Nada que hacer: ya estaban.');
+  p('Cuando termines de probar: quitarCamasPruebaSIMULACRO().');
+  return log.join('\n');
+}
+
+/** Paso 1 — SIMULACRO: informa qué se borraría al retirar las camas de prueba. */
+function quitarCamasPruebaSIMULACRO() { return _mtoQuitarPrueba(false); }
+/** Paso 2 — REAL: retira las camas de prueba y TODA su historia. */
+function quitarCamasPruebaCONFIRMAR() { return _mtoQuitarPrueba(true); }
+
+function _mtoQuitarPrueba(escribir) {
+  const log = [];
+  const p = m => { log.push(m); Logger.log(m); };
+  p(escribir ? '=== RETIRO REAL DE CAMAS DE PRUEBA ===' : '=== SIMULACRO (no se borra nada) ===');
+
+  const camas = repoLeerTodos('CAMAS_ESTADO').filter(c => _esCamaPrueba(c.ID_CAMA));
+  if (!camas.length) { p('No hay camas de prueba. Nada que hacer.'); return log.join('\n'); }
+
+  // Los PATIENT_ID que nacieron en esas camas: su historia se va con ellas.
+  const pids = {};
+  camas.forEach(c => { if (c.PATIENT_ID) pids[String(c.PATIENT_ID)] = true; });
+  const idsCama = {};
+  camas.forEach(c => { idsCama[String(c.ID_CAMA)] = true; });
+  repoLeerTodos('EVOLUCIONES').forEach(e => {
+    if (idsCama[String(e.ID_CAMA)] && e.PATIENT_ID) pids[String(e.PATIENT_ID)] = true;
+  });
+
+  p('camas de prueba: ' + camas.map(c => c.ID_CAMA).join(', '));
+  p('episodios de prueba: ' + (Object.keys(pids).length || 'ninguno'));
+  p('');
+
+  // Tablas que cuelgan de la cama o del episodio. Se limpian TODAS para que
+  // las pruebas no queden sumando en indicadores, REM ni historial.
+  // OJO: repoEliminarDonde SIEMPRE borra (no tiene modo simulacro), así que
+  // en el simulacro se CUENTA con repoLeerTodos y no se le llama jamás.
+  const PORCAMA = ['EVOLUCIONES', 'EVOLUCIONES_ARCHIVO', 'PROCEDIMIENTOS', 'TIMELINE', 'REINTUBACIONES'];
+  const dePrueba = function (f) {
+    return !!(idsCama[String(f.ID_CAMA)] || pids[String(f.PATIENT_ID)]);
+  };
+  let total = 0;
+  PORCAMA.forEach(hoja => {
+    let n = 0;
+    try {
+      n = escribir ? repoEliminarDonde(hoja, dePrueba)
+                   : repoLeerTodos(hoja).filter(dePrueba).length;
+    } catch (e) { p('  ' + hoja + ': no existe o no se pudo leer (' + e.message + ')'); return; }
+    p('  ' + hoja + ': ' + n + (escribir ? ' fila(s) borradas' : ' fila(s) se borrarían'));
+    total += n;
+  });
+  try {
+    const esEp = f => !!pids[String(f.PATIENT_ID)];
+    const n = escribir ? repoEliminarDonde('ARCHIVO_PACIENTES', esEp)
+                       : repoLeerTodos('ARCHIVO_PACIENTES').filter(esEp).length;
+    p('  ARCHIVO_PACIENTES: ' + n + (escribir ? ' fila(s) borradas' : ' fila(s) se borrarían'));
+    total += n;
+  } catch (e) {}
+
+  if (escribir) {
+    const n = repoEliminarDonde('CAMAS_ESTADO', f => _esCamaPrueba(f.ID_CAMA));
+    p('  CAMAS_ESTADO: ' + n + ' cama(s) retiradas');
+    SpreadsheetApp.flush();
+    try { CacheService.getScriptCache().removeAll(['camas', 'boot']); } catch (e) {}
+    p('');
+    p('✅ Listo. ' + total + ' fila(s) de prueba borradas. Recarga con Ctrl+Shift+R.');
+  } else {
+    p('');
+    p('Total: ' + total + ' fila(s) de historia + ' + camas.length + ' cama(s).');
+    p('Si cuadra, correr quitarCamasPruebaCONFIRMAR().');
+  }
+  return log.join('\n');
+}
