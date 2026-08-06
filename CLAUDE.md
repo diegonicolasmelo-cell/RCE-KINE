@@ -251,10 +251,40 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   lectores del episodio filtran también por `PATIENT_ID`. Ojo: deroga la premisa
   «la hoja viva solo tiene el episodio en curso», que aparece escrita como
   verificada en revisiones anteriores.
-  - PENDIENTE: pegar los `.gs` en el editor y publicar. **Ola 2** (fusionar
-    `GET_STATS`+`GET_INDICADORES`, paralelizar los viajes en cadena) exige tocar
-    `index.html` y rearmar el cohete: no empezarla hasta que la Ola 1 lleve
-    tiempo en producción.
+  - ✅ **PUBLICADA: Versión 22 del 6-ago-2026 7:50**, mismo ID de
+    implementación. Verificado en el registro de Ejecuciones: `doGet` y `api`
+    de la Versión 22, **todas «Completada», cero errores**, con el turno de la
+    mañana usándola.
+  - 🪤 **TRAMPA (costó un susto):** el editor de Apps Script abierto desde una
+    sesión anterior muestra el contenido que tenía **en memoria**, no lo
+    guardado. Al verificar un pegado, **recargar la pestaña primero** (mejor
+    ⌘⇧R): sin recargar parecía que los archivos no tenían los cambios, y tras
+    recargar estaban todos. Y el screenshot del navegador **no pinta el iframe
+    de la app** aunque funcione: la app «en blanco» se descarta mirando el
+    registro de Ejecuciones, no la captura.
+  - PENDIENTE: **Ola 2** (fusionar `GET_STATS`+`GET_INDICADORES`, paralelizar
+    los viajes en cadena) exige tocar `index.html` y rearmar el cohete: no
+    empezarla hasta que la Ola 1 lleve tiempo en producción.
+- 🔴 **EL FRONT DESPLEGADO ESTÁ EN 5.22, NO EN 5.43 (descubierto 6-ago-2026).**
+  El `index.html` del proyecto es, **por dentro**, `5.22-cierre` — no es la
+  etiqueta desfasada. Verificado decodificando el base64 del cargador desde el
+  propio editor (`monaco.editor.getModels()`):
+
+  | | Proyecto (producción) | Repo |
+  |---|---|---|
+  | Versión declarada y real | 5.22-cierre | 5.43-cierres |
+  | Carga útil | 779.883 bytes | 960.583 bytes |
+  | `pronoAbierto` | **0** | 5 |
+  | `TEXTO_BLOQUES` | **0** | sí |
+
+  Consecuencias: (a) todo el trabajo de interfaz de 5.23→5.43 está en el repo y
+  **no** en lo que usa el equipo; (b) hoy corre un **servidor 5.43 con un front
+  5.22**, combinación que **ninguna guardia cubre** — las guardias se corren
+  siempre contra `v2/index.html`; (c) de rebote, confirma que retirar
+  `_PRONO_ABIERTO_TS` es inocuo, porque este front ni siquiera tiene
+  `pronoAbierto`. No se sabe cuándo ni cómo se degradó; puede haber sido un
+  pegado propio. Consultado a Diego en #mejoras-rce el 6-ago; **no pegar el
+  cohete 5.43 hasta que responda**.
 - **v5.34–v5.36 · GENERADOR DE TEXTO VIVO + DÍAS COMO BUDA (4-ago-2026,
   cohete v5.36-noche; sin cambio de esquema).** Ronda nacida de reportes de
   Diego en uso real. TRES lecciones caras:
