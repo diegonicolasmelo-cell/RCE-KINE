@@ -155,7 +155,70 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `archivarAnioHistoricoCONFIRMAR`. (Aquí no hubo daño: `cuadrarEncabezados`
     es idempotente y el registro dice «ya estaba cuadrada» en las 23 hojas,
     «todas las hojas existían» y `testEsquema: []`.)
-  - PENDIENTE: publicar («Nueva versión») lo decide Diego.
+  - PUBLICADO: **Versión 21** del 6-ago-2026 1:24, con el mismo ID de
+    implementación (la URL del equipo no cambia).
+- **OLA 1 · EL EPISODIO SE BAJA UNA SOLA VEZ (6-ago-2026, solo `.gs`, sin tocar
+  `index.html` ni rearmar el cohete).** Segunda mitad del trabajo de velocidad:
+  el arranque ya estaba resuelto, faltaban los tres flujos que se usan todo el
+  día. El diagnóstico no era «algoritmo lento» sino **la misma pregunta repetida
+  dentro de una misma acción**.
+  1. **`_PRONO_ABIERTO_TS` retirado** (`svc_evoluciones.gs`). Campo transitorio
+     que costaba una bajada COMPLETA de EVOLUCIONES por apertura y **no lo leía
+     nadie**: 0 usos en los `.gs`, 0 en `index.html` y 0 en el cohete desplegado
+     (decodificado íntegro a 960.583 bytes, donde `pronoAbierto` sí sale 5
+     veces). Es la ÚNICA respuesta que cambia en toda la Ola 1.
+  2. **El episodio viaja por parámetro.** `obtenerEvolucionPrevia(idCama,
+     turnoKey, _evos)` y `_pronoAbiertoTS(idCama, turnoKey, _evos)` aceptan las
+     evoluciones ya leídas; `obtenerEvoTurno` las lee UNA vez y se las pasa a
+     las dos. Antes eran tres bajadas idénticas de la misma hoja, en el mismo
+     segundo, dentro de la misma acción.
+  3. **`_tz()` memoizado** (`esquema.gs`, `_TZ_MEMO`), invalidado por
+     `escribirConfig` y `_memoReset`. No es ganancia de hoy: es el seguro contra
+     el día en que UNA celda quede con formato de fecha —`esquemaFilaAObjeto`
+     pide la zona horaria por cada celda `Date`— y una pantalla salte de 22
+     lecturas a miles. Medido: 200 filas con celda `Date` pasan de **200
+     lecturas de CONFIG a 1**, con valor idéntico en 8 casos borde (sin la
+     clave, vacía, duplicada, tras escribir, tras resetear).
+  4. **`patientId` viaja a los hitos** (`svc_timeline.gs:146`). Sin él,
+     `_agregarHitoInternoSinSync` volvía a CAMAS_ESTADO por CADA procedimiento
+     del turno a buscar un dato que el guardado ya tenía en la mano.
+  5. **Una sola lectura del episodio por guardado** (`_evosCama()`, perezoso y
+     local a la invocación). Lo usan el cálculo de días, el histórico de BDT, el
+     de test de apnea y la decanulación: los cuatro corren dentro del MISMO
+     `conLock` y ANTES del único `repoUpsert`, así que devolvían por fuerza lo
+     mismo. **Esto no es cachear datos clínicos** (que sigue prohibido): nada
+     sobrevive a la petición.
+  - **MEDIDO** (arnés con `repo.gs` y `esquema.gs` reales sobre un
+    `SpreadsheetApp` instrumentado; 18 camas, 10 días, 364 filas × 386 columnas):
+
+    | Flujo | Viajes | Celdas |
+    |---|---|---|
+    | Abrir paciente (turno nuevo) | 11 → **5** (−55%) | 398.638 → **133.120** (−67%) |
+    | Abrir paciente (re-editar) | 6 → 6 | sin cambio |
+    | Guardar normal | 19 → 19 | sin cambio |
+    | Guardar protocolo de decanulación | 40 → **22** (−45%) | 931.357 → **134.803** (−86%) |
+    | Guardar con 3 procedimientos | 46 → **37** (−20%) | sin cambio |
+
+    **Los segundos NO están medidos** en estos flujos: lo medido son viajes y
+    celdas. Decir «tanto más rápido» sería inventar.
+  - **EQUIVALENCIA DEMOSTRADA, no supuesta**: arnés A/B que corre la versión
+    anterior y la nueva sobre 12 escenarios clínicos y compara respuesta *y*
+    secuela (fila guardada, cama, hitos). **10 de 12 idénticos**; los 2 restantes
+    difieren exactamente en el campo retirado a propósito. Las **49 guardias**
+    del proyecto pasan, incluida `prono.js` (39 asserts).
+  - Guardia nueva: `checks/memo_episodio.js` — fija que el episodio se lea UNA
+    vez al abrir y al guardar, que el campo muerto no vuelva (busca la
+    asignación, no el nombre: el comentario que lo explica debe poder
+    mencionarlo), que los hitos lleven el paciente puesto, y que **la petición
+    siguiente vea lo que otro colega acaba de escribir**.
+  - Para correr las guardias con navegador en un Mac:
+    `export CHROMIUM_PATH="$HOME/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"`.
+    Ojo: `checks/rendimiento.js` tiene la ruta `/opt/pw-browsers/chromium`
+    **fija** y no lee esa variable — es el único que hay que parchear a mano.
+  - PENDIENTE: pegar los `.gs` en el editor y publicar. **Ola 2** (fusionar
+    `GET_STATS`+`GET_INDICADORES`, paralelizar los viajes en cadena) exige tocar
+    `index.html` y rearmar el cohete: no empezarla hasta que la Ola 1 lleve
+    tiempo en producción.
 - **v5.34–v5.36 · GENERADOR DE TEXTO VIVO + DÍAS COMO BUDA (4-ago-2026,
   cohete v5.36-noche; sin cambio de esquema).** Ronda nacida de reportes de
   Diego en uso real. TRES lecciones caras:
@@ -567,12 +630,17 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      el reloj de dispositivos, incorrecto para una hora del anochecer).
      `_msDeTS` parsea a mano (no depender del parser de cada motor) y
      `_horasEntreTS` da 1 decimal; delta negativo ⇒ '' (jamás horas inventadas).
-  3. **`_pronoAbiertoTS(idCama, turnoKey)`**: recorre el episodio en orden y
-     deja la última pronación SIN supinación posterior. Da igual quién prone y
-     quién supine, ni cuántos turnos y días pasen en medio. Viaja al cliente
-     como `pronoAbierto` en GET_EVO_TURNO (también al RE-EDITAR, donde la
-     supinación puede agregarse recién ahora) y como `_PRONO_ABIERTO_TS`
-     transitorio en `obtenerEvolucionPrevia` (patrón `_VFON_HORAS`).
+  3. **`_pronoAbiertoTS(idCama, turnoKey, _evos)`**: recorre el episodio en
+     orden y deja la última pronación SIN supinación posterior. Da igual quién
+     prone y quién supine, ni cuántos turnos y días pasen en medio. Viaja al
+     cliente como `pronoAbierto` en GET_EVO_TURNO (también al RE-EDITAR, donde
+     la supinación puede agregarse recién ahora). El tercer parámetro es el
+     episodio ya leído por quien llama, para no bajar la hoja dos veces en la
+     misma petición; sin él se comporta igual que siempre.
+     ⚠️ Hasta ago-2026 `obtenerEvolucionPrevia` adjuntaba además un
+     `_PRONO_ABIERTO_TS` transitorio (patrón `_VFON_HORAS`). **Se retiró**: no
+     lo leía nadie —ni el servidor, ni el index, ni el cohete desplegado— y
+     costaba una bajada completa de EVOLUCIONES por apertura de paciente.
   4. Texto (cliente y servidor a la par): «Se supina a las 07:30 hrs, **tras
      36,5 h en prono**». Los globitos ⏱ ahora dicen «Lleva X h en prono (desde
      01-08 19:00)» y «Ciclo de prono cerrado: X h», calculados igual.

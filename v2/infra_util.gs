@@ -57,6 +57,7 @@ function _catInvalidar() { _CAT_MEMO = {}; }
 function _memoReset() {
   _CAT_MEMO = {};
   if (typeof _CFG_MEMO !== 'undefined') _CFG_MEMO = null;
+  if (typeof _TZ_MEMO !== 'undefined') _TZ_MEMO = null;
 }
 
 /** Valores activos de un catálogo (CATALOGOS), ordenados. */

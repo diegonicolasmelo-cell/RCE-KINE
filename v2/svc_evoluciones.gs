@@ -93,6 +93,22 @@ function guardarEvolucion(datos, ctx) {
       // Cálculos respiratorios
       Object.assign(datos, calcularRespiratorio(datos));
 
+      // ── El episodio se baja UNA sola vez por guardado ───────────────────
+      // Cuatro bloques necesitan las evoluciones anteriores de esta cama: los
+      // contadores de días (VM/VNI/VA), el histórico de BDT, el de test de
+      // apnea y la racha de válvula de fonación de la decanulación. Los cuatro
+      // corren dentro del MISMO conLock y ANTES de la única escritura a
+      // EVOLUCIONES (el repoUpsert de más abajo), así que las cuatro lecturas
+      // devolvían por fuerza filas idénticas — en el turno de una decanulación
+      // completa eran SIETE bajadas de la hoja para el mismo dato.
+      // No es un caché clínico: nace y muere dentro de esta llamada, y se
+      // llena solo cuando alguien de verdad lo pide.
+      let _evosCamaMemo = null;
+      const _evosCama = function () {
+        if (_evosCamaMemo === null) _evosCamaMemo = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', idCama);
+        return _evosCamaMemo;
+      };
+
       // Días de estadía / VM / VA
       // MOMENTO real del ingreso (ago-2026, corregido 5-ago): fecha+turno+hora
       // con _tsEventoTurno (mismo mecanismo del ciclo de prono, v5.33) — así un
@@ -167,7 +183,7 @@ function guardarEvolucion(datos, ctx) {
         const _vaT  = datos.VENT_VIA_AEREA_FINAL || datos.VENT_VIA_AEREA;
         const _esVA = function (x) { return x && String(x) !== 'Natural'; };
         // Episodio ANTERIOR a este turno, del más reciente al más antiguo.
-        const _epiPrev = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', idCama)
+        const _epiPrev = _evosCama()
           .filter(function (x) {
             return String(x.PATIENT_ID) === String(patientId) &&
                    String(x.TURNO_KEY || '') < String(turnoKey);
@@ -220,7 +236,7 @@ function guardarEvolucion(datos, ctx) {
         // Continuidad del histórico: fila de este turno (si se edita) o turno previo.
         let base = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
         if (!base || !base.BDT_JSON) {
-          const rp = obtenerEvolucionPrevia(idCama, turnoKey);
+          const rp = obtenerEvolucionPrevia(idCama, turnoKey, _evosCama());
           if (rp.ok && rp.data) base = rp.data;
         }
         let hist = [];
@@ -237,7 +253,7 @@ function guardarEvolucion(datos, ctx) {
       if (apRes) {
         let baseA = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
         if (!baseA || !baseA.APNEA_JSON) {
-          const rpa = obtenerEvolucionPrevia(idCama, turnoKey);
+          const rpa = obtenerEvolucionPrevia(idCama, turnoKey, _evosCama());
           if (rpa.ok && rpa.data) baseA = rpa.data;
         }
         let histA = [];
@@ -251,14 +267,17 @@ function guardarEvolucion(datos, ctx) {
       // Horas con válvula de fonación (para la frase de la decanulación):
       // racha consecutiva de turnos previos + el propio turno si va con válvula.
       if (esVerdadero(datos.DECAN_OCURRIO)) {
-        const rp2 = obtenerEvolucionPrevia(idCama, turnoKey);
+        const rp2 = obtenerEvolucionPrevia(idCama, turnoKey, _evosCama());
         let hrs = (rp2.ok && rp2.data && rp2.data._VFON_HORAS) ? rp2.data._VFON_HORAS : 0;
         if (String(datos.VENT_MODO) === 'Válvula de fonación' || esVerdadero(datos.VFON_USADA)) hrs += 12;
         datos._VFON_HORAS = hrs;   // transitorio: no es columna
       }
 
       // Ciclo de prono: sella el momento real y, al supinar, cierra la cuenta.
-      _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos);
+      // Le viaja el episodio SOLO si ya se bajó en este guardado (que es lo
+      // normal); si no, _pronoSellarCiclo lo pide por su cuenta y únicamente en
+      // el caso en que de verdad lo mira (supinación sin pronación del turno).
+      _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos, _evosCamaMemo);
 
       // Texto clínico: el de la PANTALLA (cliente) si vino; si no, se genera.
       datos.TEXTO_GENERADO = _textoCliente || generarTextoEvolucion(datos);
@@ -302,7 +321,7 @@ function guardarEvolucion(datos, ctx) {
 
       // Procedimientos (filas) + hitos automáticos
       _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, turno, procs, ctx.email);
-      _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email);
+      _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email, patientId);
 
       // Reintubación desde el bloque EXT_*
       if (esVerdadero(evo.EXT_REINTUB)) {
@@ -508,10 +527,15 @@ function obtenerEvolucion(idCama, turnoKey) {
  * Evolución inmediatamente ANTERIOR a un turno (para replicar y bajar el roce).
  * Como turnoKey = "YYYY-MM-DD-Dia|Noche", el orden alfabético coincide con el
  * cronológico (Dia < Noche). Devuelve la más reciente estrictamente anterior.
+ *
+ * `_evos` (opcional): las evoluciones de la cama que quien llama YA tiene en la
+ * mano, de la misma petición y sin ninguna escritura de por medio. No es un
+ * caché — nada sobrevive a la petición — sino no volver a pedir lo mismo dos
+ * veces seguidas. Sin el parámetro se comporta exactamente como antes.
  */
-function obtenerEvolucionPrevia(idCama, turnoKey) {
+function obtenerEvolucionPrevia(idCama, turnoKey, _evos) {
   try {
-    const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
+    const evos = _evos || repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
     const objetivo = String(turnoKey);
     let mejor = null, mejorKey = '';
     let mejorDia = null, mejorDiaKey = '';
@@ -539,10 +563,11 @@ function obtenerEvolucionPrevia(idCama, turnoKey) {
       }
       mejor._VFON_HORAS = racha * 12;
     }
-    // Pronación ABIERTA del episodio: el cliente la necesita para narrar «tras
-    // X h en prono» al supinar, aunque la pronación sea de otro turno y de otro
-    // colega. Transitorio: no es columna.
-    if (mejor) mejor._PRONO_ABIERTO_TS = _pronoAbiertoTS(idCama, objetivo);
+    // (Aquí vivía `mejor._PRONO_ABIERTO_TS`, retirado en ago-2026: ningún
+    // consumidor lo leía —ni el servidor, ni el index, ni el cohete desplegado—
+    // y costaba una bajada COMPLETA de EVOLUCIONES por cada apertura de
+    // paciente. La pronación abierta llega al cliente por su vía real: el campo
+    // `pronoAbierto` de GET_EVO_TURNO, que sí se consume.)
     return ok(mejor);
   } catch (e) { return err('obtenerEvolucionPrevia: ' + e.message, ERR.INTERNO, e); }
 }
@@ -553,14 +578,19 @@ function obtenerEvolucionPrevia(idCama, turnoKey) {
 function obtenerEvoTurno(idCama, turnoKey) {
   try {
     const actual = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', 'CAMA_' + idCama + '_' + turnoKey);
+    // UNA sola bajada del episodio para las dos preguntas que vienen: la previa
+    // y la pronación abierta miran exactamente las mismas filas, y entre una y
+    // otra no hay ninguna escritura (esta acción solo lee). Antes el mismo
+    // bloque se pedía hasta TRES veces por apertura de paciente.
+    const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
     let previa = null;
     if (!actual) {
-      const r = obtenerEvolucionPrevia(idCama, turnoKey);
+      const r = obtenerEvolucionPrevia(idCama, turnoKey, evos);
       previa = (r.ok && r.data) ? r.data : null;
     }
     // La pronación abierta viaja SIEMPRE (también al re-editar un turno ya
     // guardado, donde la supinación puede agregarse recién ahora).
-    return ok({ actual: actual, previa: previa, pronoAbierto: _pronoAbiertoTS(idCama, turnoKey) });
+    return ok({ actual: actual, previa: previa, pronoAbierto: _pronoAbiertoTS(idCama, turnoKey, evos) });
   } catch (e) { return err('obtenerEvoTurno: ' + e.message, ERR.INTERNO, e); }
 }
 
@@ -757,7 +787,7 @@ function anularEvento(datos, ctx) {
 //  quién supine, ni cuántos turnos pasen en medio.
 
 /** Sella PRONO_INICIO_TS / SUPINO_TS y cierra PRONO_HORAS al supinar. */
-function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos) {
+function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos, _evos) {
   if (esVerdadero(datos.RESP_PRONO_EVENTO)) {
     datos.PRONO_INICIO_TS = _tsEventoTurno(fecha, turno, datos.RESP_PRONO_HORA);
   }
@@ -765,7 +795,7 @@ function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos) {
     const ts = _tsEventoTurno(fecha, turno, datos.RESP_SUPINO_HORA);
     datos.SUPINO_TS = ts;
     // si se pronó y supinó en el mismo turno, el inicio es el de esta misma fila
-    const ini = datos.PRONO_INICIO_TS || _pronoAbiertoTS(idCama, turnoKey);
+    const ini = datos.PRONO_INICIO_TS || _pronoAbiertoTS(idCama, turnoKey, _evos);
     const h = ini ? _horasEntreTS(ini, ts) : '';
     datos.PRONO_HORAS = (h === '' ? '' : h);
   }
@@ -774,10 +804,13 @@ function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos) {
 /**
  * Momento de la pronación ABIERTA del episodio (la última sin supinación
  * posterior), mirando los turnos anteriores a turnoKey. '' si no hay ninguna.
+ *
+ * `_evos` (opcional): el episodio ya leído por quien llama, en la misma
+ * petición y sin escrituras de por medio. Ver obtenerEvolucionPrevia.
  */
-function _pronoAbiertoTS(idCama, turnoKey) {
+function _pronoAbiertoTS(idCama, turnoKey, _evos) {
   try {
-    const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
+    const evos = _evos || repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
     const objetivo = String(turnoKey || '');
     const previas = evos
       .filter(e => { const k = String(e.TURNO_KEY || ''); return k && (!objetivo || k < objetivo); })
