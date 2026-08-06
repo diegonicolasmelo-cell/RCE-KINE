@@ -539,6 +539,7 @@ function leerConfig(clave, porDefecto) {
 /** Escribe (o crea) una clave en la hoja CONFIG. */
 function escribirConfig(clave, valor) {
   _CFG_MEMO = null;   // lo que se escribe debe verse en la siguiente lectura
+  _TZ_MEMO = null;    // TIMEZONE vive en la misma hoja
   const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
   if (!h) throw new Error('No existe la hoja CONFIG (corre crearORepararEstructura).');
   const n = h.getLastRow();
@@ -569,16 +570,29 @@ function salirModoPrueba() {
   return 'Modo prueba DESACTIVADO (AUTH_DEV_MODE=FALSE).';
 }
 
+// Zona horaria: UNA lectura por petición (ago-2026). esquemaFilaAObjeto la pide
+// por CADA celda que venga como fecha (esquema.gs, rama `v instanceof Date`), y
+// sin memo cada una de esas celdas costaba bajar CONFIG entera. Hoy casi nunca
+// se dispara porque _forzarTexto mantiene las columnas de fecha como texto,
+// pero basta con que UNA celda quede con formato de fecha —un pegado, una
+// reparación a mano— para que abrir Estadísticas pase de 22 lecturas a miles.
+// Esto es el seguro contra ese día. Vive lo que dura la petición: api() lo
+// olvida al entrar (_memoReset) y escribirConfig lo invalida al escribir.
+var _TZ_MEMO = null;
+
 function _tz() {
+  if (_TZ_MEMO !== null && !_memoApagado()) return _TZ_MEMO;
+  let tz = 'America/Santiago';
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const h = ss.getSheetByName('CONFIG');
     if (h) {
       const vals = h.getRange(1, 1, h.getLastRow() || 1, 2).getValues();
-      for (const r of vals) if (String(r[0]) === 'TIMEZONE' && r[1]) return String(r[1]);
+      for (const r of vals) if (String(r[0]) === 'TIMEZONE' && r[1]) { tz = String(r[1]); break; }
     }
   } catch (e) {}
-  return 'America/Santiago';
+  if (!_memoApagado()) _TZ_MEMO = tz;
+  return tz;
 }
 
 // ============================================================

@@ -779,7 +779,7 @@ function medirArranque() {
     return { ms: ms, r: r };
   };
 
-  const limpiar = function () { _CFG_MEMO = null; _CAT_MEMO = {}; };
+  const limpiar = function () { _CFG_MEMO = null; _TZ_MEMO = null; _CAT_MEMO = {}; };
 
   // Calentamiento: la primera lectura de la planilla en una ejecución paga el
   // arranque en frío de Apps Script. Se descarta para no atribuírselo a nadie.

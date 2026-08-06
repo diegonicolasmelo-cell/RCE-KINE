@@ -143,7 +143,7 @@ function _procLabelGenerico(proc) {
  * La lista sigue mandando para los eventos con ícono y nombre clínico propio;
  * lo demás entra con etiqueta genérica en vez de desaparecer.
  */
-function _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, autor, autorEmail) {
+function _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, autor, autorEmail, patientId) {
   _borrarHitosAutoTurno(idCama, fecha, turno);
   if (!Array.isArray(procs) || !procs.length) return;
   let creados = 0;
@@ -151,7 +151,10 @@ function _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, autor, auto
     const map = PROC_TO_HITO[_procClaveHito(proc)] ||
                 { tipo: 'procedimiento', label: _procLabelGenerico(proc), generico: true };
     if (!map.label) return;   // procedimiento vacío: nada que anotar
-    _agregarHitoInternoSinSync({ idCama, fecha, turno, tipo: map.tipo, texto: map.label, autor: autor || '', autorEmail: autorEmail || '' });
+    // patientId viaja desde quien llama: sin él, _agregarHitoInternoSinSync
+    // vuelve a CAMAS_ESTADO a buscarlo por CADA procedimiento del turno, aunque
+    // el guardado ya lo tenga en la mano. Si no viene, se comporta como antes.
+    _agregarHitoInternoSinSync({ idCama, patientId: patientId || '', fecha, turno, tipo: map.tipo, texto: map.label, autor: autor || '', autorEmail: autorEmail || '' });
     creados++;
   });
   if (creados) _sincronizarTimelineCama(String(idCama));
