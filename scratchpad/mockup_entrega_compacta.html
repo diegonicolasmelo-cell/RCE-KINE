@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RCE-KINE · Entrega de turno compacta — 3 opciones</title>
+<style>
+:root{--tinta:#1f2328;--suave:#5b6470;--linea:#dfe3e8;--fondo:#f4f6f8;--pdark:#2a4d7a;
+      --resp:#2a6395;--ambar:#b45309;--rojo:#b91c1c;--verde:#1f7a4d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 16px 70px}
+h1{font-size:1.4rem;margin:0 0 3px}
+h2{font-size:1rem;margin:26px 0 4px}
+p.sub{color:var(--suave);margin:0 0 14px}
+.nota{background:#fff8e1;border:1px solid #f0d78a;border-radius:8px;padding:10px 13px;font-size:.88rem;margin:12px 0}
+.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--linea);
+  border-radius:10px;padding:11px 13px;margin:14px 0;position:sticky;top:0;z-index:5}
+.barra button{border:1px solid var(--linea);background:#fff;border-radius:8px;padding:7px 13px;font-size:.84rem;
+  cursor:pointer;font-weight:700;color:#475569}
+.barra button:hover{background:#eef4fb;border-color:#cfe0f2}
+.barra button.pri{background:var(--pdark);color:#fff;border-color:var(--pdark)}
+.hoja{background:#fff;border:1px solid var(--linea);border-radius:8px;padding:14px;margin:10px 0 22px;
+  box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.cab{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--pdark);
+  padding-bottom:5px;margin-bottom:8px}
+.cab b{font-size:.95rem}
+.cab span{font-size:.72rem;color:var(--suave)}
+.medida{display:inline-block;background:#eef2f7;border-radius:20px;padding:3px 11px;font-size:.75rem;
+  font-weight:700;color:#475569;margin-left:8px}
+.medida.bien{background:#eaf6ef;color:var(--verde)}
+.medida.mal{background:#fef2f2;color:var(--rojo)}
+
+/* ══ HOY (v5.38) ══ */
+.a-f{border:1px solid #d7dee8;border-radius:8px;overflow:hidden;margin-bottom:8px}
+.a-fh{display:flex;align-items:center;gap:9px;background:#eef4fa;border-bottom:1px solid #d7e2ee;padding:5px 10px;flex-wrap:wrap}
+.a-cama{font-size:.9rem;font-weight:900;color:#fff;background:var(--pdark);border-radius:5px;padding:2px 8px}
+.a-nm{font-weight:700;font-size:.84rem;flex-grow:1}
+.a-meta{font-size:.67rem;color:#64748b}
+.a-dx{font-size:.68rem;color:#475569;font-style:italic;flex-basis:100%}
+.a-p1{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px dashed #dfe6ee}
+.a-p2{display:grid;grid-template-columns:1.35fr 1fr 1.25fr}
+.a-c{padding:5px 10px;border-left:1px solid #eef2f7}
+.a-c:first-child{border-left:none}
+.a-k{font-size:.56rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-bottom:2px}
+.a-v{font-size:.7rem;line-height:1.45;color:#1e293b}
+
+/* ══ B · FICHA COMPACTA ══ */
+.b-f{border:1px solid #d7dee8;border-radius:6px;overflow:hidden;margin-bottom:4px;break-inside:avoid}
+.b-h{display:flex;align-items:baseline;gap:7px;background:#eef4fa;padding:2px 8px;flex-wrap:wrap}
+.b-cama{font-size:.72rem;font-weight:900;color:#fff;background:var(--pdark);border-radius:4px;padding:0 6px}
+.b-nm{font-weight:700;font-size:.72rem}
+.b-meta{font-size:.62rem;color:#64748b;margin-left:auto}
+.b-dx{font-size:.62rem;color:#475569;font-style:italic;flex-basis:100%;line-height:1.25}
+.b-body{padding:3px 8px;font-size:.67rem;line-height:1.5;color:#1e293b}
+.b-body b{color:#0f172a}
+.b-body .sep{color:#cbd5e1;margin:0 4px}
+.b-plan{background:#fffbeb;border-top:1px dashed #fde68a;padding:2px 8px;font-size:.65rem;color:#78350f}
+
+/* ══ C · TABLA DENSA ══ */
+table.c-t{width:100%;border-collapse:collapse;font-size:.63rem}
+table.c-t th{background:#eef2f7;border:1px solid #cbd5e1;padding:2px 4px;font-size:.55rem;
+  text-transform:uppercase;letter-spacing:.04em;color:#475569;text-align:left}
+table.c-t td{border:1px solid #dde3ea;padding:2px 4px;vertical-align:top;line-height:1.35}
+table.c-t tr:nth-child(even) td{background:#fafbfc}
+.c-cama{font-weight:900;color:var(--pdark);text-align:center}
+.c-nm{font-weight:700}
+.c-sub{color:#64748b;font-size:.95em}
+.chip{display:inline-block;background:#dbeafe;color:#1e40af;border-radius:3px;padding:0 4px;font-size:.9em;font-weight:700}
+.chip.al{background:#fee2e2;color:#991b1b}
+.chip.ok{background:#dcfce7;color:#166534}
+
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body{background:#fff}
+  .wrap{max-width:none;padding:0}
+  .barra,.nota,h1,p.sub,.medida{display:none!important}
+  .hoja{border:none;box-shadow:none;padding:0;margin:0}
+  h2{display:none}
+  body.solo-a .op-b,body.solo-a .op-c{display:none}
+  body.solo-b .op-a,body.solo-b .op-c{display:none}
+  body.solo-c .op-a,body.solo-c .op-b{display:none}
+}
+</style></head><body>
+<div class="wrap">
+
+<h1>🖨️ Entrega de turno — versión compacta</h1>
+<p class="sub">Mockup para revisión de Diego · ago-2026 · <b>nada programado todavía</b> ·
+mismos 4 pacientes reales en los tres formatos, para comparar densidad.</p>
+
+<div class="nota">
+<b>El problema:</b> hoy cada paciente ocupa una franja a todo el ancho con <b>dos pisos y 7 columnas</b>.
+Con 17 pacientes eso se va a muchas hojas — y como dices, la información real por paciente es poca.
+Las cifras de abajo son <b>medidas</b> (alto real por paciente en el navegador), proyectadas a <b>17 pacientes en A4 apaisado</b>.
+</div>
+
+<div class="barra">
+  <b style="font-size:.85rem">Vista previa de impresión:</b>
+  <button onclick="imprimir('a')">Imprimir HOY</button>
+  <button class="pri" onclick="imprimir('b')">Imprimir opción B</button>
+  <button class="pri" onclick="imprimir('c')">Imprimir opción C</button>
+  <span style="font-size:.78rem;color:var(--suave)">↑ ábrelas y mira el contador de páginas real</span>
+</div>
+
+<!-- ════════ HOY ════════ -->
+<h2>Hoy (v5.38) <span class="medida mal">≈ 4 hojas · 173 px por paciente</span></h2>
+<div class="hoja op-a">
+  <div class="cab"><b>Entrega de turno · Día · 06-08-2026</b><span>UCI · Hospital San Pablo de Coquimbo</span></div>
+  <div id="ha"></div>
+</div>
+
+<!-- ════════ B ════════ -->
+<h2>Opción B · Ficha compacta <span class="medida bien">≈ 2,5 hojas · 102 px por paciente</span></h2>
+<p class="sub" style="margin-top:-2px">Conserva la ficha por paciente, pero en <b>líneas corridas</b>:
+se van las etiquetas en mayúsculas y las columnas vacías. Lo que no se registró, no ocupa lugar.</p>
+<div class="hoja op-b">
+  <div class="cab"><b>Entrega de turno · Día · 06-08-2026</b><span>UCI · Hospital San Pablo de Coquimbo</span></div>
+  <div id="hb"></div>
+</div>
+
+<!-- ════════ C ════════ -->
+<h2>Opción C · Tabla densa <span class="medida bien">≈ 1,3 hojas · 51 px por paciente</span></h2>
+<p class="sub" style="margin-top:-2px">Una <b>fila por paciente</b>, como la lista oficial que el equipo ya lee.
+Máxima densidad; el precio es que el plan y los eventos van recortados.</p>
+<div class="hoja op-c">
+  <div class="cab"><b>Entrega de turno · Día · 06-08-2026</b><span>UCI · Hospital San Pablo de Coquimbo</span></div>
+  <table class="c-t" id="hc"></table>
+</div>
+
+<div class="nota" style="margin-top:26px">
+<b>Mi recomendación: la B.</b> La C entra en una hoja, pero el plan del turno queda recortado a una línea
+y ahí es justamente donde va lo que el colega que entra necesita leer. La B baja de ~4 hojas a ~2,5
+sin perder nada: lo que se gana es el espacio en blanco, no información.
+<br><br>
+Se puede combinar: <b>B para imprimir</b> y dejar la vista de pantalla como está hoy (ancha y cómoda).
+Son dos usos distintos y el papel es el que aprieta.
+</div>
+
+</div>
+<script>
+const PAC = [
+  { cama:'1', nm:'Francisca Araya Veliz', meta:'67a F · 18d', dx:'Otros pre y post quirúrgicos',
+    va:'TOT N° 7.5 · 22 cm', sop:'VM ACVC', par:'Vt 420 · FR 18 · PEEP 12 · FiO₂ 60% · PaFi 112',
+    neuro:'RASS -3 · GCS 8 (O2 V2 M4)', hdn:'NAD 0.12 · PAM 72',
+    secr:'Abundantes, espesas · HME día 2', ev:'Prono 19:00 · KTM nivel 2',
+    plan:'Continuar prono 16 h. Control GSA 06:00. Evaluar destete si PaFi > 200.' },
+  { cama:'2', nm:'María Inelda Olivares Díaz', meta:'73a F · 6d', dx:'Enfermedades respiratorias',
+    va:'TOT N° 7.0 · 21 cm', sop:'VM CPAP/PS', par:'PS 12 · PEEP 8 · FiO₂ 40% · PaFi 240',
+    neuro:'RASS -1 · coopera', hdn:'Sin DVA · PAM 85',
+    secr:'Moderadas · Trach Care día 3', ev:'PVE superada · KTM nivel 3',
+    plan:'Extubación programada turno de día. Preparar CNAF post extubación.' },
+  { cama:'4', nm:'Caterina Villalobos Calderón', meta:'54a F · 6d', dx:'Otros',
+    va:'TOT N° 7.5 · 23 cm', sop:'VM ACVC', par:'Vt 400 · FR 20 · PEEP 14 · FiO₂ 70% · PaFi 98',
+    neuro:'RASS -4 · BNM', hdn:'NAD 0.25 · PAM 65',
+    secr:'Escasas · HEPA día 1', ev:'Supino 16:00 tras 21 h en prono',
+    plan:'Nuevo ciclo de prono si PaFi < 150. Mantener BNM.' },
+  { cama:'5', nm:'Custodio Gastón Castillo Gómez', meta:'76a M · 3d', dx:'Otras neurológicas',
+    va:'Natural', sop:'Oxigenoterapia/OAF 3 L', par:'SpO₂ 95%',
+    neuro:'Vigil · GCS 15', hdn:'Sin DVA · PAM 90',
+    secr:'Escasas', ev:'Extubado 02-08 · KTM nivel 4',
+    plan:'Deambulación asistida. Evaluar alta a sala.' },
+];
+
+/* ── HOY ── */
+document.getElementById('ha').innerHTML = PAC.map(p=>`
+  <div class="a-f">
+    <div class="a-fh">
+      <span class="a-cama">${p.cama}</span><span class="a-nm">${p.nm}</span>
+      <span class="a-meta">${p.meta}</span><span class="a-dx">${p.dx}</span>
+    </div>
+    <div class="a-p1">
+      <div class="a-c"><div class="a-k">Vía aérea y soporte</div><div class="a-v">${p.va}<br>${p.sop}</div></div>
+      <div class="a-c"><div class="a-k">Parámetros</div><div class="a-v">${p.par}</div></div>
+      <div class="a-c"><div class="a-k">Neuro / HDN</div><div class="a-v">${p.neuro}<br>${p.hdn}</div></div>
+      <div class="a-c"><div class="a-k">Secreciones y circuito</div><div class="a-v">${p.secr}</div></div>
+    </div>
+    <div class="a-p2">
+      <div class="a-c"><div class="a-k">Eventos del episodio</div><div class="a-v">${p.ev}</div></div>
+      <div class="a-c"><div class="a-k">Rehabilitación</div><div class="a-v">—</div></div>
+      <div class="a-c"><div class="a-k">Plan</div><div class="a-v">${p.plan}</div></div>
+    </div>
+  </div>`).join('');
+
+/* ── B · ficha compacta ── */
+document.getElementById('hb').innerHTML = PAC.map(p=>`
+  <div class="b-f">
+    <div class="b-h">
+      <span class="b-cama">${p.cama}</span><span class="b-nm">${p.nm}</span>
+      <span class="b-meta">${p.meta} · ${p.dx}</span>
+    </div>
+    <div class="b-body">
+      <b>${p.va}</b> · ${p.sop} <span class="sep">|</span> ${p.par}<br>
+      ${p.neuro} <span class="sep">|</span> ${p.hdn} <span class="sep">|</span> ${p.secr}<br>
+      <b>Eventos:</b> ${p.ev}
+    </div>
+    <div class="b-plan"><b>Plan:</b> ${p.plan}</div>
+  </div>`).join('');
+
+/* ── C · tabla densa ── */
+document.getElementById('hc').innerHTML = `
+  <tr><th style="width:3%">Cama</th><th style="width:16%">Paciente</th><th style="width:20%">Vía aérea · soporte · parámetros</th>
+      <th style="width:15%">Neuro / HDN</th><th style="width:14%">Secreciones</th><th style="width:14%">Eventos</th><th style="width:18%">Plan</th></tr>
+  ` + PAC.map(p=>`
+  <tr>
+    <td class="c-cama">${p.cama}</td>
+    <td><span class="c-nm">${p.nm}</span><br><span class="c-sub">${p.meta}<br>${p.dx}</span></td>
+    <td><span class="chip">${p.sop}</span> ${p.va}<br><span class="c-sub">${p.par}</span></td>
+    <td>${p.neuro}<br><span class="c-sub">${p.hdn}</span></td>
+    <td>${p.secr}</td>
+    <td>${p.ev}</td>
+    <td>${p.plan}</td>
+  </tr>`).join('');
+
+function imprimir(op){
+  document.body.classList.add('solo-'+op);
+  window.onafterprint = ()=> document.body.classList.remove('solo-'+op);
+  setTimeout(()=>window.print(), 60);
+}
+</script>
+</body></html>
