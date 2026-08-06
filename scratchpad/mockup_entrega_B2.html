@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RCE-KINE · Entrega compacta B — afinada</title>
+<style>
+:root{--tinta:#1f2328;--suave:#5b6470;--linea:#dfe3e8;--fondo:#f4f6f8;--pdark:#2a4d7a;--verde:#1f7a4d;--rojo:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1320px;margin:0 auto;padding:22px 16px 70px}
+h1{font-size:1.4rem;margin:0 0 3px}
+h2{font-size:1rem;margin:26px 0 4px}
+p.sub{color:var(--suave);margin:0 0 14px}
+.nota{background:#fff8e1;border:1px solid #f0d78a;border-radius:8px;padding:10px 13px;font-size:.88rem;margin:12px 0}
+.barra{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--linea);
+  border-radius:10px;padding:11px 13px;margin:14px 0;position:sticky;top:0;z-index:5}
+.barra button{border:1px solid var(--linea);background:#fff;border-radius:8px;padding:7px 13px;font-size:.84rem;cursor:pointer;font-weight:700;color:#475569}
+.barra button.pri{background:var(--pdark);color:#fff;border-color:var(--pdark)}
+.hoja{background:#fff;border:1px solid var(--linea);border-radius:8px;padding:14px;margin:10px 0 22px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.cab{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--pdark);padding-bottom:5px;margin-bottom:8px}
+.cab b{font-size:.95rem}
+.cab span{font-size:.72rem;color:var(--suave)}
+.medida{display:inline-block;background:#eef2f7;border-radius:20px;padding:3px 11px;font-size:.75rem;font-weight:700;color:#475569;margin-left:8px}
+.medida.bien{background:#eaf6ef;color:var(--verde)}
+.medida.mal{background:#fef2f2;color:var(--rojo)}
+
+/* ═══ B ORIGINAL (la que te gustó) ═══ */
+.b-f{border:1px solid #d7dee8;border-radius:6px;overflow:hidden;margin-bottom:4px;break-inside:avoid}
+.b-h{display:flex;align-items:baseline;gap:7px;background:#eef4fa;padding:2px 8px;flex-wrap:wrap}
+.b-cama{font-size:.72rem;font-weight:900;color:#fff;background:var(--pdark);border-radius:4px;padding:0 6px}
+.b-nm{font-weight:700;font-size:.72rem}
+.b-meta{font-size:.62rem;color:#64748b;margin-left:auto}
+.b-body{padding:3px 8px;font-size:.67rem;line-height:1.5}
+.b-body .sep{color:#cbd5e1;margin:0 4px}
+.b-plan{background:#fffbeb;border-top:1px dashed #fde68a;padding:2px 8px;font-size:.65rem;color:#78350f}
+
+/* ═══ B2 · AFINADA: cabecera de una línea + cuerpo en columnas ═══ */
+.n-f{border:1px solid #d7dee8;border-radius:5px;overflow:hidden;margin-bottom:3px;break-inside:avoid}
+/* Cabecera: TODO en una fila. El dx toma el espacio sobrante (flex:1) — que es
+   justamente el blanco que se desperdiciaba a la derecha. */
+.n-h{display:flex;align-items:baseline;gap:8px;background:#eef4fa;border-bottom:1px solid #dbe5f0;padding:2px 8px}
+.n-cama{font-size:.7rem;font-weight:900;color:#fff;background:var(--pdark);border-radius:3px;padding:0 6px;flex-shrink:0}
+.n-nm{font-weight:700;font-size:.71rem;flex-shrink:0}
+.n-edad{font-size:.62rem;color:#64748b;flex-shrink:0}
+.n-dx{font-size:.63rem;color:#334155;font-style:italic;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n-ing{font-size:.6rem;color:#64748b;flex-shrink:0;white-space:nowrap}
+/* Cuerpo en 2 columnas: usa el ancho y baja el alto a la mitad */
+.n-body{display:grid;grid-template-columns:1fr 1fr;font-size:.66rem;line-height:1.45}
+.n-col{padding:3px 8px;min-width:0}
+.n-col+.n-col{border-left:1px solid #eef2f7}
+.n-ln{display:block}
+.n-ln b{color:#0f172a}
+.n-sep{color:#cbd5e1;margin:0 4px}
+.n-plan{background:#fffbeb;border-top:1px dashed #fde68a;padding:2px 8px;font-size:.64rem;color:#78350f}
+
+/* ═══ B3 · aún más ancho: 3 columnas ═══ */
+.t-body{grid-template-columns:1fr 1fr 1fr}
+
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body{background:#fff}
+  .wrap{max-width:none;padding:0}
+  .barra,.nota,h1,p.sub,.medida,h2{display:none!important}
+  .hoja{border:none;box-shadow:none;padding:0;margin:0}
+  body.solo-b .op-n,body.solo-b .op-t{display:none}
+  body.solo-n .op-b,body.solo-n .op-t{display:none}
+  body.solo-t .op-b,body.solo-t .op-n{display:none}
+}
+</style></head><body>
+<div class="wrap">
+
+<h1>🖨️ Entrega compacta B — afinada</h1>
+<p class="sub">Mockup para Diego · ago-2026 · <b>nada programado</b> ·
+el diagnóstico y la fecha de ingreso suben a la fila del nombre, y las líneas clínicas usan el ancho completo.</p>
+
+<div class="nota">
+<b>Lo que pediste:</b> en la B el texto clínico ocupaba solo la mitad izquierda y sobraba blanco a la derecha.
+Ahora el <b>diagnóstico llena ese hueco</b> en la misma fila del nombre (se estira hasta donde alcance) y la
+<b>fecha de ingreso</b> cierra la fila por la derecha. Y las líneas clínicas se estiran a todo lo ancho:
+lo que antes ocupaba 3 líneas cortas entra en 2 largas.
+</div>
+
+<div class="barra">
+  <b style="font-size:.85rem">Vista previa:</b>
+  <button onclick="imprimir('b')">B original</button>
+  <button class="pri" onclick="imprimir('n')">B2 · ancho completo</button>
+  <button class="pri" onclick="imprimir('t')">B3 · 3 columnas</button>
+</div>
+
+<h2>B original <span class="medida mal" id="mB"></span></h2>
+<div class="hoja op-b">
+  <div class="cab"><b>Entrega de turno · Día · 06-08-2026</b><span>UCI · Hospital San Pablo de Coquimbo</span></div>
+  <div id="hb"></div>
+</div>
+
+<h2>B2 · cabecera de una línea + líneas corridas a todo el ancho <span class="medida bien" id="mN"></span></h2>
+<div class="hoja op-n">
+  <div class="cab"><b>Entrega de turno · Día · 06-08-2026</b><span>UCI · Hospital San Pablo de Coquimbo</span></div>
+  <div id="hn"></div>
+</div>
+
+<h2>B3 · lo mismo repartido en 3 columnas <span class="medida bien" id="mT"></span></h2>
+<p class="sub" style="margin-top:-2px">Mismo alto que la B2 (84 px medidos), pero cada columna queda angosta.
+Con estos pacientes no se corta nada; con uno de muchos parámetros el texto empezaría a partirse y la ganancia se perdería.</p>
+<div class="hoja op-t">
+  <div class="cab"><b>Entrega de turno · Día · 06-08-2026</b><span>UCI · Hospital San Pablo de Coquimbo</span></div>
+  <div id="ht"></div>
+</div>
+
+<div class="nota" style="margin-top:24px">
+<b>Recomiendo la B2.</b> Medido: <b>84 px por paciente, exactamente lo mismo que la B3</b> — pero sin
+columnas angostas, así que ningún parámetro corre riesgo de partirse en el paciente complejo, que es justo
+el que más importa leer bien. Mismo ahorro, menos riesgo.
+<br><br>
+<b>Nota honesta:</b> mi primer intento de la B2 usaba 2 columnas y salió <b>peor que la B original</b>
+(107 px contra 102): al bajar «Eventos» a una fila propia agregaba altura en vez de quitarla. Lo que
+funciona no es partir en columnas, sino que <b>cada línea use todo el ancho</b>.
+</div>
+
+</div>
+<script>
+const PAC = [
+  { cama:'1', nm:'Francisca Araya Veliz', ed:'67a F', dias:'18d', ing:'17-07', dx:'Otros pre y post quirúrgicos',
+    va:'TOT N° 7.5 · 22 cm', sop:'VM ACVC', par:'Vt 420 · FR 18 · PEEP 12 · FiO₂ 60% · PaFi 112',
+    neuro:'RASS -3 · GCS 8 (O2 V2 M4)', hdn:'NAD 0.12 · PAM 72',
+    secr:'Abundantes, espesas · HME día 2', ev:'Prono 19:00 · KTM nivel 2',
+    plan:'Continuar prono 16 h. Control GSA 06:00. Evaluar destete si PaFi > 200.' },
+  { cama:'2', nm:'María Inelda Olivares Díaz', ed:'73a F', dias:'6d', ing:'29-07', dx:'Enfermedades respiratorias',
+    va:'TOT N° 7.0 · 21 cm', sop:'VM CPAP/PS', par:'PS 12 · PEEP 8 · FiO₂ 40% · PaFi 240',
+    neuro:'RASS -1 · coopera', hdn:'Sin DVA · PAM 85',
+    secr:'Moderadas · Trach Care día 3', ev:'PVE superada · KTM nivel 3',
+    plan:'Extubación programada turno de día. Preparar CNAF post extubación.' },
+  { cama:'4', nm:'Caterina Villalobos Calderón', ed:'54a F', dias:'6d', ing:'29-07', dx:'Otros',
+    va:'TOT N° 7.5 · 23 cm', sop:'VM ACVC', par:'Vt 400 · FR 20 · PEEP 14 · FiO₂ 70% · PaFi 98',
+    neuro:'RASS -4 · BNM', hdn:'NAD 0.25 · PAM 65',
+    secr:'Escasas · HEPA día 1', ev:'Supino 16:00 tras 21 h en prono',
+    plan:'Nuevo ciclo de prono si PaFi < 150. Mantener BNM.' },
+  { cama:'5', nm:'Custodio Gastón Castillo Gómez', ed:'76a M', dias:'3d', ing:'01-08', dx:'Otras neurológicas',
+    va:'Natural', sop:'Oxigenoterapia/OAF 3 L', par:'SpO₂ 95%',
+    neuro:'Vigil · GCS 15', hdn:'Sin DVA · PAM 90',
+    secr:'Escasas', ev:'Extubado 02-08 · KTM nivel 4',
+    plan:'Deambulación asistida. Evaluar alta a sala.' },
+];
+
+document.getElementById('hb').innerHTML = PAC.map(p=>`
+  <div class="b-f">
+    <div class="b-h"><span class="b-cama">${p.cama}</span><span class="b-nm">${p.nm}</span>
+      <span class="b-meta">${p.ed} · ${p.dias} · ${p.dx}</span></div>
+    <div class="b-body">
+      <b>${p.va}</b> · ${p.sop} <span class="sep">|</span> ${p.par}<br>
+      ${p.neuro} <span class="sep">|</span> ${p.hdn} <span class="sep">|</span> ${p.secr}<br>
+      <b>Eventos:</b> ${p.ev}
+    </div>
+    <div class="b-plan"><b>Plan:</b> ${p.plan}</div>
+  </div>`).join('');
+
+const cabecera = p => `
+    <div class="n-h">
+      <span class="n-cama">${p.cama}</span>
+      <span class="n-nm">${p.nm}</span>
+      <span class="n-edad">${p.ed} · ${p.dias}</span>
+      <span class="n-dx" title="${p.dx}">${p.dx}</span>
+      <span class="n-ing">ing. ${p.ing}</span>
+    </div>`;
+
+/* B2 · LÍNEAS CORRIDAS A TODO EL ANCHO.
+   El primer intento las puso en 2 columnas y salió PEOR (107 px contra 102):
+   al bajar «Eventos» a su propia fila se agregaba una línea. La ganancia real
+   viene de que cada línea use el ancho COMPLETO, así el contenido que antes
+   ocupaba 3 líneas cortas entra en 2 largas. */
+const fichaB2 = p => `
+  <div class="n-f">
+    ${cabecera(p)}
+    <div class="n-body" style="grid-template-columns:1fr">
+      <div class="n-col">
+        <span class="n-ln"><b>${p.va}</b><span class="n-sep">·</span>${p.sop}<span class="n-sep">·</span>${p.par}</span>
+        <span class="n-ln">${p.neuro}<span class="n-sep">·</span>${p.hdn}<span class="n-sep">·</span>${p.secr}<span class="n-sep">·</span><b>Eventos:</b> ${p.ev}</span>
+      </div>
+    </div>
+    <div class="n-plan"><b>Plan:</b> ${p.plan}</div>
+  </div>`;
+
+/* B3 · las mismas líneas repartidas en 3 columnas. */
+const fichaB3 = p => `
+  <div class="n-f">
+    ${cabecera(p)}
+    <div class="n-body t-body">
+      <div class="n-col">
+        <span class="n-ln"><b>${p.va}</b><span class="n-sep">·</span>${p.sop}</span>
+        <span class="n-ln">${p.par}</span>
+      </div>
+      <div class="n-col">
+        <span class="n-ln">${p.neuro}</span>
+        <span class="n-ln">${p.hdn}<span class="n-sep">·</span>${p.secr}</span>
+      </div>
+      <div class="n-col">
+        <span class="n-ln"><b>Eventos:</b> ${p.ev}</span>
+      </div>
+    </div>
+    <div class="n-plan"><b>Plan:</b> ${p.plan}</div>
+  </div>`;
+
+document.getElementById('hn').innerHTML = PAC.map(fichaB2).join('');
+document.getElementById('ht').innerHTML = PAC.map(fichaB3).join('');
+
+// Medición real: alto por paciente
+function medir(){
+  const alto = id => Math.round(document.getElementById(id).getBoundingClientRect().height / PAC.length);
+  const hojas = a => Math.round((a*17)/718*10)/10;
+  const set = (id, a) => document.getElementById(id).textContent =
+    `≈ ${hojas(a)} hojas · ${a} px por paciente`;
+  set('mB', alto('hb')); set('mN', alto('hn')); set('mT', alto('ht'));
+}
+medir();
+
+function imprimir(op){
+  document.body.classList.add('solo-'+op);
+  window.onafterprint = ()=> document.body.classList.remove('solo-'+op);
+  setTimeout(()=>window.print(), 60);
+}
+</script>
+</body></html>
