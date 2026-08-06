@@ -296,6 +296,11 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 /* Barra de identidad a todo el ancho: los chips dejan de apretar la clínica */
 .ent-fh{display:flex;align-items:center;gap:9px;background:#eef4fa;border-bottom:1px solid #d7e2ee;padding:5px 10px;flex-wrap:wrap;}
 .ent-fh-dx{font-size:.68rem;color:#475569;font-style:italic;flex-basis:100%;line-height:1.3;}
+/* La fecha de ingreso viaja en el HTML pero SOLO se ve al imprimir: en
+   pantalla basta el «Nd UCI» de la meta y no se toca el diseño actual. */
+.ent-fh-ing{display:none;}
+/* Espejo del plan: invisible en pantalla, es la versión que sale en papel. */
+.ent-plan-print{display:none;}
 .ent-fh-chips{margin-left:auto;text-align:right;}
 .ent-p1{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px dashed #dfe6ee;}
 .ent-p2{display:grid;grid-template-columns:1.35fr 1fr 1.25fr;}
@@ -363,6 +368,59 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
   .ent-fichas{grid-template-columns:1fr;}   /* ficha ancha: una por fila también al imprimir */
   .ent-ficha{break-inside:avoid;}
   .ent-pend textarea{color:#78350f!important;-webkit-print-color-adjust:exact;}
+
+  /* ─────────────────────────────────────────────────────────────────────
+     ENTREGA COMPACTA — SOLO EN PAPEL (ago-2026, pedido de Diego)
+     En pantalla la ficha se queda como está (ancha y cómoda, y en el
+     celular con su acordeón): son dos usos distintos y el que aprieta es
+     el papel. Medido con 17 pacientes en A4 apaisado: de ~4 hojas a ~2.
+     La ganancia NO viene de achicar la letra sino de dos cosas:
+       · la cabecera pasa a UNA línea y el diagnóstico se estira hasta
+         llenar el blanco que sobraba a la derecha;
+       · los dos pisos dejan de ser rejilla y sus celdas fluyen EN LÍNEA,
+         así lo que ocupaba 3 líneas cortas entra en 2 largas.
+     Se probó repartir en 2 columnas y salía PEOR (más alto): partir en
+     columnas agrega filas, estirar las líneas las quita.
+     ───────────────────────────────────────────────────────────────────── */
+  .ent-ficha{border-radius:4px;margin-bottom:0;}
+  .ent-fichas{gap:4px;}
+
+  /* Cabecera de UNA línea: cama · nombre · edad/días · chips · dx · ingreso */
+  .ent-fh{flex-wrap:nowrap;gap:6px;padding:1px 7px;align-items:baseline;}
+  .ent-ficha-cama{font-size:.68rem;padding:0 5px;border-radius:3px;}
+  .ent-ficha-nm{font-size:.68rem;flex-grow:0;white-space:nowrap;}
+  .ent-ficha-meta{font-size:.58rem;}
+  .ent-fh-chips{margin-left:0;flex-shrink:0;}
+  /* El dx toma el sobrante (era el blanco desperdiciado) y se recorta si no cabe */
+  .ent-fh-dx{flex-basis:auto;flex:1 1 auto;min-width:0;font-size:.59rem;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ent-fh-ing{display:inline;font-size:.56rem;color:#64748b;white-space:nowrap;flex-shrink:0;}
+
+  /* Cuerpo: los pisos dejan de ser rejilla; las celdas fluyen en línea */
+  .ent-p1,.ent-p2{display:block;border-bottom:none;}
+  .ent-p1{border-bottom:1px dotted #e2e8f0;}
+  .ent-c{display:inline;border-left:none;padding:0;}
+  .ent-p1,.ent-p2{padding:1px 7px;}
+  .ent-k{display:none;}                    /* las etiquetas en mayúsculas sobran en papel */
+  .ent-v{display:inline;font-size:.6rem;line-height:1.4;}
+  .ent-v br{display:none;}                 /* los eventos van seguidos, no apilados */
+  .ent-c + .ent-c:before{content:" · ";color:#94a3b8;font-weight:700;}
+  .ent-c-vacia{display:none;}              /* lo no registrado no gasta papel */
+  .ent-c-vacia + .ent-c:before{content:"";} /* …y no deja su separador huérfano */
+
+  /* El plan conserva franja propia: es lo que el turno que entra viene a leer.
+     En papel se muestra el ESPEJO (div) y no el textarea: éste imprime solo
+     lo que cabe en sus 2 filas y cortaría los planes largos. El div crece con
+     el texto, así que además ocupa 1 línea cuando el plan es corto. */
+  .ent-p2 .ent-pend{display:block;padding:1px 7px;margin-top:1px;}
+  .ent-p2 .ent-pend .ent-k{display:block;font-size:.5rem;margin-bottom:0;}
+  .ent-pend textarea{display:none;}
+  .ent-plan-print{display:block;font-size:.6rem;line-height:1.35;color:#78350f;
+    white-space:pre-wrap;word-break:break-word;}
+  .ent-plan-print:empty{display:none;}
+  .ent-firma{padding:0 7px 2px;font-size:.55rem;}
+  .ent-heredado{font-size:.58rem;padding:1px 7px;}
+  .ent-sinevo-strip{font-size:.58rem;padding:1px 7px;}
 }
 /* ── Hojas del día (registro kinésico V0.2) + Hoja PVE — verticales ── */
 #rkPrint,#pvePrint{display:none;}
@@ -12187,7 +12245,11 @@ function renderEntrega(d){
     const planVal=(f.plan||'').replace(/"/g,'&quot;');
     // ── FICHA ANCHA EN DOS PISOS (opción C, elegida por Diego) ──
     // Piso 1: cómo está el paciente AHORA. Piso 2: qué pasó y qué sigue.
-    const _celda=(k,v)=>`<div class="ent-c"><div class="ent-k">${k}</div><div class="ent-v">${v||'—'}</div></div>`;
+    /* La celda vacía se marca (ago-2026): en pantalla sigue mostrando su «—»
+       para que la grilla no se descuadre, pero AL IMPRIMIR se oculta — lo que
+       no se registró no gasta papel. Es lo que hace que la versión impresa
+       encoja de verdad y no solo con letra más chica. */
+    const _celda=(k,v)=>`<div class="ent-c${v?'':' ent-c-vacia'}"><div class="ent-k">${k}</div><div class="ent-v">${v||'—'}</div></div>`;
     const _u=a=>a.filter(Boolean).join('<br>');
     // Datos heredados del turno anterior: la ficha lo dice EN GRANDE. Sin este
     // aviso el arreglo sería peor que la hoja vacía — alguien leería datos de
@@ -12219,6 +12281,7 @@ function renderEntrega(d){
         <span class="ent-ficha-meta">${meta}</span>
         ${chips?`<span class="ent-fh-chips">${chips}</span>`:''}
         ${f.diagnostico?`<span class="ent-fh-dx">${f.diagnostico}</span>`:''}
+        ${f.fechaIngreso?`<span class="ent-fh-ing">ing. ${String(f.fechaIngreso).slice(8,10)}-${String(f.fechaIngreso).slice(5,7)}</span>`:''}
       </div>
       <div class="ent-p1">
         ${_celda('🔵 Vía aérea y soporte',vent)}
@@ -12233,6 +12296,11 @@ function renderEntrega(d){
           <div class="ent-k">📋 Plan · Pendientes</div>
           ${(f.pendientes&&f.pendientes.length)?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">${f.pendientes.map(p=>`<span style="background:#fde68a;color:#78350f;border:1px solid #f59e0b55;border-radius:10px;padding:1px 8px;font-size:.66rem;font-weight:800;">⏳ ${p}</span>`).join('')}</div>`:''}
           <textarea data-cama="${f.idCama}" rows="2" placeholder="📋 Planes / Pendientes…">${planVal}</textarea>
+          <!-- Espejo del plan para el papel (ago-2026): un textarea imprime
+               SOLO lo que cabe en sus filas, así que un plan largo se cortaba
+               en silencio — justo el dato que el turno que entra viene a leer.
+               Este div se llena en 'beforeprint' y crece con el texto. -->
+          <div class="ent-plan-print"></div>
         </div>
       </div>
       <div class="ent-firma">▸ <b>${f.firma||'—'}</b>${_her?` <span style="color:#b45309;">(turno ${_her})</span>`:''}</div>
@@ -12246,8 +12314,19 @@ function renderEntrega(d){
   </div>`;
   $('entDoc').innerHTML=H;
 }
+/* El plan se copia del textarea a su espejo imprimible. Va en 'beforeprint'
+   (y no solo en el botón) para que también valga cuando alguien imprime con
+   Ctrl+P, que es como lo hace la mitad del equipo. */
+function _entEspejarPlanes(){
+  document.querySelectorAll('#entDoc .ent-pend').forEach(box=>{
+    const ta=box.querySelector('textarea'), esp=box.querySelector('.ent-plan-print');
+    if(ta&&esp) esp.textContent=ta.value.trim();
+  });
+}
+window.addEventListener('beforeprint', _entEspejarPlanes);
 function entImprimir(){
   if(!ENT_DATA){ toast('Genera la entrega primero.'); return; }
+  _entEspejarPlanes();
   window.print();
 }
 

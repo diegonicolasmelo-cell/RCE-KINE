@@ -239,6 +239,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     sexo: val(e && e.PAC_SEXO, c.SEXO),
     diagnostico: val(e && e.PAC_DIAGNOSTICO, c.DIAGNOSTICO),
     diasEstadia: diasEst, diasVM: diasVM,
+    // Fecha de ingreso (ago-2026): la pidió Diego para la cabecera de la
+    // versión IMPRESA, donde va junto al diagnóstico llenando el blanco que
+    // sobraba a la derecha. En pantalla no se muestra (basta el «Nd UCI»).
+    fechaIngreso: String(c.FECHA_INGRESO || '').slice(0, 10),
     viaAerea: val(e && e.VENT_VIA_AEREA, c.VIA_AEREA),
     soporte: val(e && e.VENT_SOPORTE, c.SOPORTE),
     modo: val(e && e.VENT_MODO, c.MODO),
