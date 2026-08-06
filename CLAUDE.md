@@ -138,8 +138,24 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     largo con precalentador**: allá el dato es una cita y aquí es un paciente
     en UCI — cachear camas o evoluciones por horas es un riesgo clínico. Solo
     se memoriza lo que no es clínico: CONFIG, CATALOGOS, CAT_MATRICES.
-  - PENDIENTE: correr `medirArranque()` en el proyecto real (cuánto son en ms)
-    y pegar los 4 .gs **coordinando con Diego** (un solo proyecto publicado).
+  - **MEDIDO EN EL PROYECTO REAL (5-ago-2026 23:56)**: `GET_BOOT` **3.823 ms →
+    1.253 ms** (−2.570 ms, **67%**); solo la configuración **2.717 ms → 345 ms**.
+    «Respuesta idéntica con y sin memo: **SÍ ✓**». Referencia sin/con memo:
+    camas 294/290 · evoluciones 478/660 · fases 83/138 · matrices 78/0 — esas
+    partes varían por ruido de red en ambos sentidos; la que cambia de verdad es
+    la config. La medición corrió CON memo primero y SIN memo después, o sea con
+    el orden que favorece al comportamiento antiguo: la ganancia real no es menor
+    que la medida.
+  - **TRAMPA NUEVA (misma sesión)**: el selector de funciones del editor
+    **ejecutó la función ANTERIOR** (`cuadrarEncabezados`) aunque la barra ya
+    mostraba `medirArranque`; el segundo Ejecutar sí corrió la elegida. Es el
+    mismo desfase documentado en la agenda de Colitas. **Antes de creerle a una
+    ejecución, leer el registro y confirmar que la salida es la de la función que
+    se eligió** — en esa lista conviven `resetearBaseDeDatosCONFIRMAR` y
+    `archivarAnioHistoricoCONFIRMAR`. (Aquí no hubo daño: `cuadrarEncabezados`
+    es idempotente y el registro dice «ya estaba cuadrada» en las 23 hojas,
+    «todas las hojas existían» y `testEsquema: []`.)
+  - PENDIENTE: publicar («Nueva versión») lo decide Diego.
 - **v5.34–v5.36 · GENERADOR DE TEXTO VIVO + DÍAS COMO BUDA (4-ago-2026,
   cohete v5.36-noche; sin cambio de esquema).** Ronda nacida de reportes de
   Diego en uso real. TRES lecciones caras:
