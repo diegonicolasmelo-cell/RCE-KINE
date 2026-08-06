@@ -21,11 +21,18 @@ navegador del hospital o de su casa.
 ## Arquitectura
 
 - **Repo = verdad.** `v2/*.gs` + `v2/index.html` (fuente, sin minificar).
-  El proyecto GAS de producción usa un layout de 9 .gs: los 11 `svc_*.gs`
-  viajan fusionados como `servicios.gs` (`build/fusionar_servicios.js`).
+  Remoto: `git@github.com:diegonicolasmelo-cell/RCE-KINE.git`. **El acceso es
+  por SSH**, con la clave dedicada `~/.ssh/github_rce` declarada en
+  `~/.ssh/config` (`Host github.com` → `IdentityFile`, `IdentitiesOnly yes`).
+  No hay token de por medio: si `git push` pide usuario y contraseña, el
+  problema es esa configuración, no las credenciales.
+  El proyecto GAS de producción usa un layout de 9 .gs: los 15 `svc_*.gs`
+  (de 31 `.gs` en `v2/`) viajan fusionados como `servicios.gs`
+  (`build/fusionar_servicios.js`, que los toma por glob: la cifra sube sola al
+  agregar un servicio).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 20 hojas; **EVOLUCIONES tiene 380 columnas** y `testEsquema`
+- `esquema.gs`: 23 hojas; **EVOLUCIONES tiene 386 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -42,7 +49,7 @@ navegador del hospital o de su casa.
   pida: poner `LOGIN_UI_ACTIVO=true` (todo el mecanismo GIS + GET_LOGIN_INFO
   sigue intacto detrás del flag) y, para exigir identidad real, además
   AUTH_DEV_MODE=FALSE en CONFIG + OAUTH_CLIENT_ID configurado.
-- Frontend: `v2/index.html` único (~9.300 líneas fuente). Piel estilo
+- Frontend: `v2/index.html` único (~13.000 líneas fuente). Piel estilo
   Notion (variables `--n-*`, portadas `.tbanner` por pestaña). Convención
   **`uiConfirm`** (jamás `confirm()` nativo). Módulos heredados del turno
   anterior usan la clase `.heredado` + chip «✓ Sin cambios» por bloque.
@@ -72,14 +79,30 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-`build/checks/`: `convenciones.js` (estáticas), `arranque.js` (boot real en
+**53 guardias** en `build/checks/*.js`; **33 usan navegador**
+(`chromium.launch`) y 20 son Node puro. No hay corredor en el repo: la batería
+completa se corre con un bucle, y **se juzga SOLO por el código de salida**
+(`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para demostrar que
+los detectan, así que leer el texto y no el exit code lleva a «arreglar» código
+sano.
+
+```bash
+export CHROMIUM_PATH="$HOME/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+for f in build/checks/*.js; do node "$f" >/dev/null 2>&1 || echo "FALLA: $f"; done
+```
+
+Las cabeceras: `convenciones.js` (estáticas), `arranque.js` (boot real en
 Chromium con puente simulado; acepta ruta del cohete como argumento),
-`regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`, `indicadores.js`,
-`eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`, `paquete.js`,
-`reset.js`, `mover_camas.js`, `vm_lote.js`, `retro_camas.js`,
-`rendimiento.js` (bucles de repintado con la unidad llena),
+`integridad.js`, `regresion_ui.js`, `movil.js`, `piel.js`, `rem.js`,
+`indicadores.js`, `eventos.js`, `eventos_ui.js`, `docs.js`, `tutorial.js`,
+`paquete.js`, `reset.js`, `mover_camas.js`, `vm_lote.js`, `retro_camas.js`,
+`camas_prueba.js`, `entrega_impresion.js`, `memo_config.js`, `memo_tz.js`,
+`memo_episodio.js`, `rendimiento.js` (bucles de repintado con la unidad llena),
 `texto_bloques.js` (la etiqueta de bloque no altera el texto visible),
 `asincronia.js` (Ppl/AutoPEEP inhabilitados con paciente asincrónico).
+Enumerar aquí las 53 es garantía de desfase: la lista buena es `ls
+build/checks/`.
+
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
 
@@ -208,7 +231,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - **EQUIVALENCIA DEMOSTRADA, no supuesta**: arnés A/B que corre la versión
     anterior y la nueva sobre 12 escenarios clínicos y compara respuesta *y*
     secuela (fila guardada, cama, hitos). **10 de 12 idénticos**; los 2 restantes
-    difieren exactamente en el campo retirado a propósito. Las **49 guardias**
+    difieren exactamente en el campo retirado a propósito. Las **53 guardias**
     del proyecto pasan, incluida `prono.js` (39 asserts).
   - Guardia nueva: `checks/memo_episodio.js` — fija que el episodio se lea UNA
     vez al abrir y al guardar, que el campo muerto no vuelva (busca la
@@ -230,7 +253,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
        **No volver a citar el 67% como si saliera de la misma medición.**
     2. ⚠️ **El simulador es ciego a esto por construcción.** `sim_srv.js:26-29`
        devuelve las filas VIVAS de su base, mientras producción arma objetos
-       nuevos por lectura (`repo.gs` + `esquemaFilaAObjeto`). O sea: las 32
+       nuevos por lectura (`repo.gs` + `esquemaFilaAObjeto`). O sea: las 33
        guardias de navegador pasarían igual con o sin la Ola 1, y el aliasing no
        se puede cazar ahí. Por eso `memo_episodio.js` lo audita a mano
        (bloque 5) en vez de confiar en el simulador.
@@ -238,19 +261,97 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
        fallback del bloque completo) **no lo ejercita ninguna guardia**: las
        cifras de viajes salen del arnés de medición, no de una guardia. Si
        alguien rompe el troceado, las guardias siguen verdes.
-- 🔴 **HALLAZGO PREEXISTENTE, NO de la Ola 1: `LIMPIAR_CAMA` deja vivas las
-  evoluciones del paciente anterior.** `_limpiarCamaInterno` (`svc_camas.gs:376`)
-  vacía CAMAS_ESTADO campo por campo pero **no toca EVOLUCIONES** (verificado: 0
-  menciones en la función). Solo `darAltaPaciente` las archiva y borra
-  (`svc_camas.gs:279-280`). Como `_pronoAbiertoTS` filtra **solo por `ID_CAMA`**
-  y no por `PATIENT_ID`, el siguiente ocupante de esa cama puede heredar una
-  pronación abierta ajena: dos revisores lo reprodujeron por separado
-  («tras 108,5 h en prono», horas de otro paciente). `_epiPrev` del guardado sí
-  filtra por `PATIENT_ID`, así que los días de VM/VNI/VA están a salvo.
-  **Decisión pendiente de Diego**: o `LIMPIAR_CAMA` archiva como el alta, o los
-  lectores del episodio filtran también por `PATIENT_ID`. Ojo: deroga la premisa
-  «la hoja viva solo tiene el episodio en curso», que aparece escrita como
-  verificada en revisiones anteriores.
+- 🔴 **HALLAZGO PREEXISTENTE (6-ago-2026): DOS DEFINICIONES DE «DÍA CON VM» EN
+  `calcularIndicadores`, y una infla un indicador centinela.**
+  - `svc_indicadores.gs:37` usa `VENT_SOPORTE === 'VM'` (**estrecho**) y alimenta
+    `diasVM`, `ventilados`, `vmProlongadaPct` y el **denominador de
+    `autoextPor100VM`**.
+  - `svc_indicadores.gs:114` usa `VENT_SOPORTE !== 'VM' && VENT_SOPORTE_FINAL !== 'VM'`
+    (**ancho**) y alimenta `vmProlongada` y `medianaVMpreTQT`.
+  - `VENT_SOPORTE_FINAL` es columna viva (`esquema.gs:89`), la escribe
+    `svc_evoluciones.gs:764` en los eventos de vía aérea, y `svc_camas.gs:207`
+    usa el criterio ancho: **el raro es el estrecho**.
+  - Efecto medido con un paciente cuyo soporte TERMINA en VM: el mismo payload
+    dice «el traqueostomizado llevaba 10 días de VM» y a la vez «hubo 1 día-VM y
+    ningún paciente con VM prolongada»; y **`autoextPor100VM` salió 100 contra
+    una meta de 1–2 (~11× inflado)** porque el denominador pierde días-VM reales.
+  - **Arreglarlo exige decidir cuál criterio es el clínicamente correcto** — eso
+    es de Manuel y Diego, no de quien pase por el código. Anotado también en la
+    cabecera de `checks/tablero.js`, cuyo fixture no tiene ni una fila con
+    `VENT_SOPORTE_FINAL` y por eso no puede verlo.
+
+- 🔴 **HALLAZGO PREEXISTENTE, NO de la Ola 1: LA PRONACIÓN HEREDADA — un
+  paciente puede ver las horas de prono del ocupante anterior de su cama.**
+  Riesgo asistencial, no cosmético: la app dice «lleva X horas en prono» de otra
+  persona, y eso puede inducir a supinar antes de tiempo o a buscar lesiones por
+  presión que no existen. Dos revisores lo reprodujeron por separado («tras
+  108,5 h en prono», horas de otro paciente).
+  - **La causa son TRES lectores que filtran solo por `ID_CAMA`**, no uno:
+    `obtenerEvolucionPrevia` (`svc_evoluciones.gs:536`),
+    `obtenerEvolucionesRecientes` (`:597`) y `_pronoAbiertoTS` (`:811`). Si en
+    EVOLUCIONES quedan filas de un episodio terminado en esa cama, se las comen
+    como propias.
+  - **Y `_limpiarCamaInterno` (`svc_camas.gs:376`) deja esas filas vivas**: vacía
+    CAMAS_ESTADO campo por campo pero **no toca EVOLUCIONES** (0 menciones en la
+    función).
+  - **RENDIJAS REALMENTE ALCANZABLES** (verificadas, para no re-investigarlas):
+    1. **`limpiarCamasManual('3,5,8')`** (`svc_camas.gs:412`), que se corre a
+       mano desde el editor: llama a `_limpiarCamaInterno` y **no archiva nada**.
+       Es la vía más probable de las que ya ocurrieron.
+    2. **Alta de un episodio SIN `PATIENT_ID`.** `darAltaPaciente` archiva y
+       borra dentro de un `if (pid)` (`svc_camas.gs:278-280`): sin pid, el alta
+       ocurre y las evoluciones **se quedan para siempre** en la hoja viva.
+    3. `LIMPIAR_CAMA` por la API (`api.gs:86`). Ojo: **no se dispara desde la
+       interfaz** — 0 menciones en `v2/index.html`.
+  - **RUTAS SANAS, ya verificadas (no volver a auditarlas):** `darAltaPaciente`
+    con pid archiva a EVOLUCIONES_ARCHIVO y borra por `PATIENT_ID`;
+    `moverACamaVacia` reetiqueta el episodio (`_reetiquetarEpisodioACama`);
+    `_mtoLimpiarPaciente` (`mantenimiento_manuel.gs:332`) borra por `PATIENT_ID`
+    en las seis hojas de `_MTO_HOJAS_PACIENTE` (EVOLUCIONES,
+    EVOLUCIONES_ARCHIVO, PROCEDIMIENTOS, TIMELINE, REINTUBACIONES,
+    ARCHIVO_PACIENTES) **antes** de llamar a `_limpiarCamaInterno`; y `_epiPrev`
+    del guardado sí filtra por `PATIENT_ID`, así que los días de VM/VNI/VA están
+    a salvo.
+  - **NINGUNA GUARDIA CUBRE LA HERENCIA.** `prono.js` tiene 39 asserts y **cero
+    menciones de `PATIENT_ID`** (todos son de estado-vs-evento); `cama_limpia.js`
+    solo mira las columnas de CAMAS_ESTADO, no EVOLUCIONES. Es exactamente el
+    caso de «bug que costó más de un intercambio ⇒ guardia nueva».
+  - 🧪 **FILTRAR POR `PATIENT_ID` SE PROBÓ EL 6-AGO Y SE REVIRTIÓ. No volver a
+    intentarlo sin leer esto.** Se implementó (filtro por paciente en los tres
+    lectores, con `_delEpisodio`/`_pacienteDeCama`), pasó su guardia nueva y pasó
+    las 54 guardias del harness. Aun así **se revirtió**, porque tres revisores
+    independientes reprodujeron el daño:
+    1. **Oculta pronaciones VERDADERAS del mismo paciente.** `ingresarPaciente`
+       genera un `PATIENT_ID` nuevo SIEMPRE. Si a un paciente pronado se le
+       repara la cama con `limpiarCamasManual` y se le re-ingresa —el uso para el
+       que esa herramienta existe—, sus propias evoluciones conservan el pid
+       viejo: `pronoAbierto` pasa de `2026-08-01 19:00` a `""`, la previa a
+       `null`, y un ciclo real de 36,5 h no queda registrado en ninguna parte.
+       Basta **una sola fila anónima** para lo mismo; que las hay lo asume el
+       propio código en `mantenimiento.gs:524` (`f.PATIENT_ID || f.ID_CAMA`).
+    2. **El riesgo es simétrico, y este lado es peor.** Mostrar horas ajenas es
+       malo; ocultar que un paciente lleva 36 h prono decide igual de mal cuándo
+       supinar y dónde buscar lesiones por presión.
+    3. **Hay un CUARTO lector, y es el que escribe**: `obtenerEvolucion`
+       (`svc_evoluciones.gs:525`) busca por `ID_EVOLUCION = CAMA_<cama>_<turnoKey>`,
+       sin paciente, y `guardarEvolucion` fusiona esa fila en el payload. Si la
+       cama rota **dentro del mismo turno** (alta 10:00, ingreso 14:00), le
+       inyecta al nuevo el pid del anterior. Filtrar en los tres lectores no toca
+       esto.
+    - Moraleja de método: **el harness en verde no valida un cambio clínico.** La
+      guardia la escribió quien hizo el cambio, y solo medía la ausencia de la
+      herencia — nunca lo que se perdía por el camino.
+  - **Decisión pendiente de Diego**, y hoy el único camino que sigue en pie:
+    **que la limpieza de cama archive como el alta** (atacar la causa, no los
+    lectores). Falta decidir qué hacer al limpiar una cama con paciente dentro:
+    archivar sus evoluciones lo dejaría sin historia en pantalla.
+  - Ojo: **deroga la premisa «la hoja viva solo tiene el episodio en curso»**,
+    que aparece escrita como verificada en revisiones anteriores y que sigue
+    guiando a quien escriba un pipeline. Regla que la reemplaza, con su límite:
+    **en análisis y pipelines, filtrar por `PATIENT_ID`, nunca por `ID_CAMA`
+    sola. En los lectores del episodio EN VIVO, no**: ahí el pid puede faltar o
+    haber sido regenerado, y filtrar esconde datos verdaderos del paciente que
+    está en la cama.
   - ✅ **PUBLICADA: Versión 22 del 6-ago-2026 7:50**, mismo ID de
     implementación. Verificado en el registro de Ejecuciones: `doGet` y `api`
     de la Versión 22, **todas «Completada», cero errores**, con el turno de la
@@ -595,19 +696,28 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - PENDIENTE: confirmar con el colega los casos 3 y 6 (¿en qué paciente lo
     vio?) antes de programar, y decidir con Diego los casos 1, 2 y 4.
 
-- **MANUEL TRABAJÓ SOBRE LA v5.22 — FUSIÓN PENDIENTE (6-ago-2026).** Manuel
-  implementó su «ola 1» de velocidad **directo en el editor de Apps Script**,
-  sin pasar por el repositorio (verificado: cero commits suyos en la historia
-  de `main`, ninguna rama nueva) y **partiendo de la v5.22** — o sea, ~21
-  versiones atrás de lo que hay hoy. Diego pegó después otro index encima.
-  - Al fusionar: NO aplicar su archivo entero encima (borraría todo lo de
-    v5.23→v5.44). Hay que sacar SUS cambios como diferencia contra la v5.22 y
-    reaplicarlos sobre la actual, uno por uno, corriendo la batería entre
-    medio. Diego está a la espera de que Manuel entregue el archivo.
+- **LA OLA 1 DE MANUEL SÍ ESTÁ EN EL REPO — lo pendiente es fusionar su rama
+  (6-ago-2026).** ⚠️ Esta entrada decía antes que Manuel había trabajado «directo
+  en el editor, sin pasar por el repositorio, partiendo de la v5.22» y que había
+  que rescatar sus cambios como diferencia contra ese index. **Es falso y nació
+  de confundir dos cosas distintas**: que el *front desplegado* sea 5.22 no
+  significa que Manuel haya pegado un index 5.22.
+  - Verificado en el repo: hay **5 commits suyos** (`1a4f61f`, `32ffdce`,
+    `47fc914`, `c37ba41`, `04808a7`) en la rama `manuel/velocidad-arranque`,
+    publicada como `origin/manuel/velocidad-y-entrega-turno`.
+  - La Ola 1 tocó **10 archivos y CERO líneas de `index.html`**
+    (`git diff --name-only ea3ca62..04808a7`): es 100% servidor —`api.gs`,
+    `esquema.gs`, `infra_util.gs`, `mantenimiento.gs`, `svc_evoluciones.gs`,
+    `svc_timeline.gs`— más las tres guardias nuevas y este archivo. No hay nada
+    que «diferenciar contra la v5.22».
+  - Lo que queda por hacer es lo normal: **fusionar la rama de Manuel a `main`**
+    y correr la batería.
   - RAÍZ DEL PROBLEMA, ya avisada: hay UN solo proyecto de Apps Script y el
-    último que pega borra al anterior sin aviso. Regla acordada: Manuel
-    commitea a GitHub ANTES de pegar, una sola persona publica (Diego), y se
-    avisa antes de pegar.
+    último que pega borra al anterior sin aviso. Reglas acordadas: Manuel
+    commitea a GitHub ANTES de pegar, una sola persona publica (Diego), se avisa
+    antes de pegar, y —regla nacida de la regresión de integración— **`git
+    fetch` justo antes de pegar**, para no publicar encima de algo que ya
+    cambió en el remoto mientras se trabajaba.
 
 - **PRONO / POSICIONAMIENTO / HSA — DISEÑO EN CURSO, NO PROGRAMADO (ago-2026).**
   Nace del caso de Caterina (cama 4): María José prona a las 19:00 del 2-ago
