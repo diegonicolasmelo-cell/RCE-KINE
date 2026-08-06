@@ -384,6 +384,53 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `checks/dia_cero.js`. PENDIENTE menor: la Hoja UCI tiene el mismo patrón
     (`n||''`) en la fila «Días de VM» — no se tocó, consultar a Diego.
 
+- **REPORTES DE UN COLEGA SOBRE LA EVOLUCIÓN — SIN ABORDAR (6-ago-2026).**
+  Diego los trae de un colega del equipo; quedan anotados, NO programados. Al
+  lado de cada uno, lo que dice el código HOY (verificado, no supuesto):
+  1. **«Meta PAM no se refleja en evolución»** — CONFIRMADO: `dominio_texto.gs`
+     no menciona PAM ni `HEMO_META_PAM` en ninguna línea (0 apariciones). El
+     dato se captura en el formulario pero jamás llega al texto.
+  2. **«Decisión médica no se incluye»** — el campo NO EXISTE en el esquema
+     (`grep` sin resultados en los .gs). Es funcionalidad nueva, no un bug:
+     antes de programar hay que definir qué es «decisión médica» para el
+     registro kinésico y si se anota como texto libre o catálogo.
+  3. **«Tampoco reología»** — a REVISAR: `dominio_texto.gs:372` SÍ lee
+     `RESP_SECR_REOL` y lo arma en «secreciones {reología} {carácter} en
+     {cantidad}». Puede ser que el colega no lo viera porque la frase entera
+     se omite cuando `qty === '-'`, o porque no llenó el campo. Reproducir
+     antes de tocar nada.
+  4. **«No es necesario incluir la firma al copiar al BUDA»** — la firma sale
+     al final del texto («Klgo./Klga. Nombre Apellido», v3). Al pegar en BUDA
+     estorba. OJO antes de sacarla: la firma en el texto fue pedida en su
+     momento y es parte del registro clínico. Posible salida: un botón
+     «copiar sin firma» en vez de quitarla del texto.
+  5. **«¿Se calcula SaFi y no PaFi?»** — las DOS existen y son cosas
+     distintas: PaFi está en el texto y en el formulario (11 usos en el
+     index), SaFi vive SOLO en la matriz de categorización SOCHIMI
+     (`index:11921`, `SAFI:{nombre:'Oxigenación (SAFI)'}`) porque esa matriz
+     usa SpO₂/FiO₂ cuando no hay gases. No es un error: son dos usos
+     distintos. Conviene explicárselo al equipo antes que cambiar código.
+  6. **«El SAS no se refleja en evolución»** — a REVISAR: `dominio_texto.gs:41`
+     lee `SED_SAS` y lo usa en la frase de sedación, pero SOLO en algunas
+     ramas (con BNM, o «fuera de escalón»). Si el paciente está en un escalón
+     normal, el número de SAS no aparece. Ahí está probablemente el reporte.
+  - PENDIENTE: confirmar con el colega los casos 3 y 6 (¿en qué paciente lo
+    vio?) antes de programar, y decidir con Diego los casos 1, 2 y 4.
+
+- **MANUEL TRABAJÓ SOBRE LA v5.22 — FUSIÓN PENDIENTE (6-ago-2026).** Manuel
+  implementó su «ola 1» de velocidad **directo en el editor de Apps Script**,
+  sin pasar por el repositorio (verificado: cero commits suyos en la historia
+  de `main`, ninguna rama nueva) y **partiendo de la v5.22** — o sea, ~21
+  versiones atrás de lo que hay hoy. Diego pegó después otro index encima.
+  - Al fusionar: NO aplicar su archivo entero encima (borraría todo lo de
+    v5.23→v5.44). Hay que sacar SUS cambios como diferencia contra la v5.22 y
+    reaplicarlos sobre la actual, uno por uno, corriendo la batería entre
+    medio. Diego está a la espera de que Manuel entregue el archivo.
+  - RAÍZ DEL PROBLEMA, ya avisada: hay UN solo proyecto de Apps Script y el
+    último que pega borra al anterior sin aviso. Regla acordada: Manuel
+    commitea a GitHub ANTES de pegar, una sola persona publica (Diego), y se
+    avisa antes de pegar.
+
 - **PRONO / POSICIONAMIENTO / HSA — DISEÑO EN CURSO, NO PROGRAMADO (ago-2026).**
   Nace del caso de Caterina (cama 4): María José prona a las 19:00 del 2-ago
   y en la noche Mauricio, para reflejar que seguía en prono, vuelve a tildar
