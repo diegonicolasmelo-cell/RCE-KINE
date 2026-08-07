@@ -1190,13 +1190,20 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   if (cpax !== '') evals.push('CPAx ' + cpax + (cpaxF ? ' (' + cpaxF + ')' : ''));
 
   // ── Dispositivos de circuito por vencer (solo VM) ──
+  // SEMÁNTICA VALIDADA POR DIEGO (ago-2026): etiqueta = día 0 y el cambio se
+  // hace en el TURNO NOCHE del día etiqueta+frecuencia. «cambiar» = esta
+  // noche; «vencido» solo si amaneció después de esa noche sin cambio. Se
+  // mide contra la fecha del TURNO (no la efectiva: la noche del día D ES la
+  // que cambia lo del día D). Viaja además la fecha EXACTA del cambio, que es
+  // lo que la hoja impresa debe mostrar en vez de contadores de días.
   const disp = [];
   if (String(c.SOPORTE) === 'VM') {
     [['HME', c.DISP_HME_FECHA, 2], ['HEPA', c.DISP_HEPA_FECHA, 3], ['T.Care', c.DISP_TC_FECHA, 3]].forEach(function (d) {
       const iso = _statISO(d[1]); if (!iso) return;
-      // Turno Noche: el reloj se mide contra el día siguiente (fecha efectiva)
-      const dia = diasEntre(iso, fechaEf || fecha) + 1;
-      disp.push({ n: d[0], dia: dia, dur: d[2], estado: dia < d[2] ? 'ok' : (dia === d[2] ? 'cambiar' : 'vencido') });
+      const dias = diasEntre(iso, fecha);
+      const cambio = _sumarDiasISO(iso, d[2]);
+      disp.push({ n: d[0], dia: dias + 1, dur: d[2], cambio: dd(cambio),
+                  estado: dias < d[2] ? 'ok' : (dias === d[2] ? 'cambiar' : 'vencido') });
     });
   }
 
@@ -1298,7 +1305,19 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     icuaw: icuaw,
     candidatoPve: candidatoPve,
     pveRacha: pveRacha,
-    ultimoCultivo: cultivo ? { fecha: dd(cultivo.iso), nombre: cultivo.nombre, micro: val(c.AISL_MICRO) } : null,
+    // El RESULTADO del cultivo no viajaba a la entrega (reporte de Álvaro):
+    // solo salía el nombre y la fecha. Se toma el más reciente del episodio.
+    ultimoCultivo: cultivo ? { fecha: dd(cultivo.iso), nombre: cultivo.nombre, micro: val(c.AISL_MICRO),
+      resultado: (function () {
+        const filas = (episodio || []).slice()
+          .sort(function (a, b) { return String(b.TURNO_KEY).localeCompare(String(a.TURNO_KEY)); });
+        if (e && String(e.EX_CULT_RESULTADO || '').trim()) return String(e.EX_CULT_RESULTADO).trim();
+        for (let i = 0; i < filas.length; i++) {
+          const r = String(filas[i].EX_CULT_RESULTADO || '').trim();
+          if (r) return r;
+        }
+        return '';
+      })() } : null,
     plan: e ? val(e.PLAN_PLANES) : '',
     pendientes: e ? (function () { try { return JSON.parse(e.PLAN_PENDIENTES || '[]') || []; } catch (x) { return []; } })() : [],
     nota: e ? val(e.PLAN_NOTA_TURNO) : '',
@@ -2074,7 +2093,20 @@ const _EVENTO_DISPS = [
 // svc_evoluciones, svc_entrega y mantenimiento_manuel. Dejarlo aquí obligaba a
 // cada arnés a cargar svc_eventos entero para poder guardar una evolución.
 
-/** Estado del reloj de una cama respecto de una fecha efectiva de referencia. */
+/**
+ * Estado del reloj de una cama respecto de una fecha de referencia.
+ *
+ * SEMÁNTICA CORREGIDA (ago-2026, ejemplo validado por Diego): la fecha de
+ * ETIQUETA es el día 0 y el cambio se hace en el TURNO NOCHE del día
+ * etiqueta+frecuencia. O sea, un HME etiquetado el 04 (frec 2) se cambia la
+ * noche del 06 — la app antigua lo daba «vencido» ese mismo día, un día
+ * ANTES de lo que dicta la regla: ese era el desfase reportado en terreno.
+ *   · cambiaEstaNoche: hoy es el día del cambio (dias === frec).
+ *   · vence (vencido): amaneció DESPUÉS de la noche del cambio (dias > frec).
+ *   · venceManana: el cambio es mañana en la noche (dias === frec - 1).
+ *   · fechaCambio: la fecha EXACTA del cambio (etiqueta + frec), para que la
+ *     interfaz muestre fechas y no contadores de días.
+ */
 function estadoDispositivos(cama, fechaRef) {
   const ref = String(fechaRef || hoyISO()).slice(0, 10);
   const enVM = String(cama.SOPORTE) === 'VM';
@@ -2084,11 +2116,47 @@ function estadoDispositivos(cama, fechaRef) {
     const dias = fecha ? Math.round((new Date(ref) - new Date(fecha)) / 864e5) : null;
     return {
       k: d.k, nombre: d.nombre, icono: d.icono, fecha: fecha, frec: frec, dias: dias,
+      fechaCambio: fecha ? _sumarDiasISO(fecha, frec) : '',
       aplica: enVM && !!fecha,
-      vence: enVM && dias !== null && dias >= frec,
+      cambiaEstaNoche: enVM && dias !== null && dias === frec,
+      vence: enVM && dias !== null && dias > frec,
       venceManana: enVM && dias !== null && dias === frec - 1,
     };
   });
+}
+
+/** fecha ISO + n días, sin pasar por Date del navegador (mediodía UTC evita
+ *  que un huso horario corra el día — la causa clásica del desfase). */
+function _sumarDiasISO(iso, n) {
+  const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + (parseInt(n, 10) || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Qué dispositivos se cambian ESTA NOCHE en toda la unidad (y cuáles quedaron
+ * atrasados). fecha = el día D cuyo turno Noche hará los cambios: HME con
+ * etiqueta D-2, HEPA y Trach Care con etiqueta D-3. El dispositivo nuevo se
+ * etiqueta D+1 (fecha efectiva del turno noche — mecanismo ya existente).
+ */
+function cambiosEstaNoche(fecha) {
+  try {
+    const ref = String(fecha || hoyISO()).slice(0, 10);
+    const camas = [];
+    repoLeerTodos('CAMAS_ESTADO').forEach(function (c) {
+      if (!esVerdadero(c.OCUPADA)) return;
+      const disps = estadoDispositivos(c, ref)
+        .filter(function (x) { return x.aplica && (x.cambiaEstaNoche || x.vence); })
+        .map(function (x) {
+          return { k: x.k, nombre: x.nombre, icono: x.icono, etiqueta: x.fecha,
+                   fechaCambio: x.fechaCambio, estado: x.vence ? 'vencido' : 'esta_noche',
+                   diasAtraso: x.vence ? (x.dias - x.frec) : 0 };
+        });
+      if (disps.length) camas.push({ idCama: String(c.ID_CAMA), nombre: String(c.NOMBRE || ''), dispositivos: disps });
+    });
+    camas.sort(function (a, b) { return (parseInt(a.idCama) || 0) - (parseInt(b.idCama) || 0); });
+    return ok({ fecha: ref, camas: camas });
+  } catch (e) { return err('cambiosEstaNoche: ' + e.message, ERR.INTERNO, e); }
 }
 
 /**
@@ -2527,7 +2595,14 @@ function guardarEvolucion(datos, ctx) {
       }
 
       // Procedimientos (filas) + hitos automáticos
-      _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, turno, procs, ctx.email);
+      // UN evento por ciclo prono→supino (ago-2026, Bloque C de Diego): la
+      // SUPINACIÓN no entra a PROCEDIMIENTOS — la estadística contaría DOS
+      // eventos por un solo ciclo. El ciclo lo representa la fila del PRONO y
+      // el total de horas queda sellado en PRONO_HORAS al supinar. La TIMELINE
+      // sí recibe el hito de supino (lista completa), porque el historial
+      // narra maniobras, no cuenta eventos.
+      const procsStats = procs.filter(function (p) { return !/^SUPINACI/i.test(String(p)); });
+      _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, turno, procsStats, ctx.email);
       _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email, patientId);
 
       // Reintubación desde el bloque EXT_*
