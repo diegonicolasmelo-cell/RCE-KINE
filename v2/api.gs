@@ -68,6 +68,7 @@ function api(accion, datos, token) {
       case 'GET_STOCK':          return obtenerStockEquipos();
       case 'GET_MOVS_STOCK':     return obtenerMovimientosStock(datos.id || '', datos.limite || 20);
       case 'GET_DOCUMENTOS':     return obtenerDocumentos(!!datos.refrescar);
+      case 'GET_CAMBIOS_NOCHE':  return cambiosEstaNoche(datos.fecha);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
       // ── Escrituras (auditadas) ──

@@ -27,7 +27,20 @@ const _EVENTO_DISPS = [
 // svc_evoluciones, svc_entrega y mantenimiento_manuel. Dejarlo aquí obligaba a
 // cada arnés a cargar svc_eventos entero para poder guardar una evolución.
 
-/** Estado del reloj de una cama respecto de una fecha efectiva de referencia. */
+/**
+ * Estado del reloj de una cama respecto de una fecha de referencia.
+ *
+ * SEMÁNTICA CORREGIDA (ago-2026, ejemplo validado por Diego): la fecha de
+ * ETIQUETA es el día 0 y el cambio se hace en el TURNO NOCHE del día
+ * etiqueta+frecuencia. O sea, un HME etiquetado el 04 (frec 2) se cambia la
+ * noche del 06 — la app antigua lo daba «vencido» ese mismo día, un día
+ * ANTES de lo que dicta la regla: ese era el desfase reportado en terreno.
+ *   · cambiaEstaNoche: hoy es el día del cambio (dias === frec).
+ *   · vence (vencido): amaneció DESPUÉS de la noche del cambio (dias > frec).
+ *   · venceManana: el cambio es mañana en la noche (dias === frec - 1).
+ *   · fechaCambio: la fecha EXACTA del cambio (etiqueta + frec), para que la
+ *     interfaz muestre fechas y no contadores de días.
+ */
 function estadoDispositivos(cama, fechaRef) {
   const ref = String(fechaRef || hoyISO()).slice(0, 10);
   const enVM = String(cama.SOPORTE) === 'VM';
@@ -37,11 +50,47 @@ function estadoDispositivos(cama, fechaRef) {
     const dias = fecha ? Math.round((new Date(ref) - new Date(fecha)) / 864e5) : null;
     return {
       k: d.k, nombre: d.nombre, icono: d.icono, fecha: fecha, frec: frec, dias: dias,
+      fechaCambio: fecha ? _sumarDiasISO(fecha, frec) : '',
       aplica: enVM && !!fecha,
-      vence: enVM && dias !== null && dias >= frec,
+      cambiaEstaNoche: enVM && dias !== null && dias === frec,
+      vence: enVM && dias !== null && dias > frec,
       venceManana: enVM && dias !== null && dias === frec - 1,
     };
   });
+}
+
+/** fecha ISO + n días, sin pasar por Date del navegador (mediodía UTC evita
+ *  que un huso horario corra el día — la causa clásica del desfase). */
+function _sumarDiasISO(iso, n) {
+  const d = new Date(String(iso).slice(0, 10) + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + (parseInt(n, 10) || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Qué dispositivos se cambian ESTA NOCHE en toda la unidad (y cuáles quedaron
+ * atrasados). fecha = el día D cuyo turno Noche hará los cambios: HME con
+ * etiqueta D-2, HEPA y Trach Care con etiqueta D-3. El dispositivo nuevo se
+ * etiqueta D+1 (fecha efectiva del turno noche — mecanismo ya existente).
+ */
+function cambiosEstaNoche(fecha) {
+  try {
+    const ref = String(fecha || hoyISO()).slice(0, 10);
+    const camas = [];
+    repoLeerTodos('CAMAS_ESTADO').forEach(function (c) {
+      if (!esVerdadero(c.OCUPADA)) return;
+      const disps = estadoDispositivos(c, ref)
+        .filter(function (x) { return x.aplica && (x.cambiaEstaNoche || x.vence); })
+        .map(function (x) {
+          return { k: x.k, nombre: x.nombre, icono: x.icono, etiqueta: x.fecha,
+                   fechaCambio: x.fechaCambio, estado: x.vence ? 'vencido' : 'esta_noche',
+                   diasAtraso: x.vence ? (x.dias - x.frec) : 0 };
+        });
+      if (disps.length) camas.push({ idCama: String(c.ID_CAMA), nombre: String(c.NOMBRE || ''), dispositivos: disps });
+    });
+    camas.sort(function (a, b) { return (parseInt(a.idCama) || 0) - (parseInt(b.idCama) || 0); });
+    return ok({ fecha: ref, camas: camas });
+  } catch (e) { return err('cambiosEstaNoche: ' + e.message, ERR.INTERNO, e); }
 }
 
 /**

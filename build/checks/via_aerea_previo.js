@@ -90,7 +90,7 @@ eq('el día cuenta como día de VM aunque el turno empezara sin ventilador',
 eq('el texto del servidor narra previo → intubación → cómo queda',
    /Previo en naricera-NRC/.test(evo.TEXTO_GENERADO) &&
    /requiere intubación orotraqueal a las 13:40 hrs/.test(evo.TEXTO_GENERADO) &&
-   /Queda con TOT N° 8\.0 fijado a 22 cm, conectado a VM en modo ACVC/.test(evo.TEXTO_GENERADO), true);
+   /Queda con TOT N° 8\.0 a 22 cm de arcada dental, conectado a VM en modo ACVC/.test(evo.TEXTO_GENERADO), true);
 
 /* ── Parte 1b · «Si se registró, quedó» (v5.14): editar la evolución de
       INGRESO jamás borra la marca ES_INGRESO — el cliente reabre con el modo

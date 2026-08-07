@@ -34,7 +34,7 @@ function generarTextoEvolucion(d) {
 
   // 2b. Fase clínica (nuevo)
   const fases = _parseFases(d.FASE_JSON);
-  if (fases.length) txt.push(`En fase de ${fases.join(', ').toLowerCase()}.`);
+  if (fases.length) txt.push(fases.map(_faseIntro).join(' '));
 
   // 3. Sedación / GCS
   const sed = v('SED_TIPO') || 'Sin sedación';
@@ -46,10 +46,14 @@ function generarTextoEvolucion(d) {
   const va = v('VENT_VIA_AEREA') || 'Natural';
   const intubado = va === 'TOT' || va === 'TQT';
 
-  let sedStr = bnm                           ? `Sedado+BNM para meta SAS ${sas || '1'}.`
-             : (sed === 'Sin sedación')      ? 'Sin sedoanalgesia.'
-             : (sed === 'Fuera de escalón')   ? `Sedación fuera de escalón${sas ? ' (SAS ' + sas + ')' : ''}.`
-             : `Sedado en ${sed.toLowerCase()}${sas ? ' para SAS ' + sas : ''}.`;
+  // El escalón SIEMPRE se narra si existe, con su SAS (ago-2026, reporte de
+  // Álvaro vía Diego): la rama de BNM se comía el escalón y el SAS solo salía
+  // en dos ramas. Con BNM el escalón va igual — el bloqueo no borra la pauta.
+  const sasTxt = sas ? ` para meta SAS ${sas}` : '';
+  const escTxt = (sed && sed !== 'Sin sedación') ? (sed === 'Fuera de escalón' ? 'fuera de escalón' : `en ${sed.toLowerCase()}`) : '';
+  let sedStr = bnm ? `Sedado${escTxt ? ' ' + escTxt : ''}+BNM${sasTxt || ' para meta SAS 1'}.`
+             : (sed === 'Sin sedación') ? 'Sin sedoanalgesia.'
+             : `Sedado ${escTxt}${sasTxt}.`;
   // GCS: el total (SED_GCS_TOT="11T") y la verbal (SED_GCS_V="1T") ya vienen con
   // "T" desde el cliente en intubado; /15 solo para paciente sin VA artificial.
   sedStr += ` GCS ${gcsTot}${intubado ? '' : '/15'} (O:${gcsO}, V:${gcsV}, M:${gcsM})`;
@@ -67,12 +71,16 @@ function generarTextoEvolucion(d) {
   const dva  = v('HEMO_DVA');
   const mDVA = esVerdadero(d.HEMO_MULTI_DVA), nDVA = v('HEMO_NUM_DVA');
   const tend = esVerdadero(d.HEMO_TENDENCIA), tendT = v('HEMO_TEND_TIPO');
-  let hemoStr = `Hemodinámicamente ${hEst === 'Estable' ? 'estable' : 'inestable'}`;
-  if (!dva || dva === 'Sin requerimientos' || dva === 'sin DVA') hemoStr += ', sin requerimientos de drogas vasoactivas';
+  // Formato pedido por Diego (ago-2026): «HDN estable c/DVA en dosis bajas
+  // para meta PAM 65» — corto, y la meta PAM (que JAMÁS llegaba al texto,
+  // reporte de Álvaro) inmediatamente después de la HDN.
+  let hemoStr = `HDN ${hEst === 'Estable' ? 'estable' : 'inestable'}`;
+  if (!dva || dva === 'Sin requerimientos' || dva === 'sin DVA') hemoStr += ' s/DVA';
   else {
-    hemoStr += `, con requerimiento de DVA en ${dva.replace(/^DVA\s*/i, '').toLowerCase().replace(/dosis (baja|media|alta)/, 'dosis $1s')}`;
+    hemoStr += ` c/DVA en ${dva.replace(/^DVA\s*/i, '').toLowerCase().replace(/dosis (baja|media|alta)/, 'dosis $1s')}`;
     if (mDVA && nDVA) hemoStr += ` (${nDVA} drogas en paralelo)`;
   }
+  if (esVerdadero(d.HEMO_META_PAM) && v('HEMO_PAM')) hemoStr += ` para meta PAM ${v('HEMO_PAM')} mmHg`;
   if (tend && tendT) hemoStr += `, con tendencia a ${tendT}`;
   txt.push(hemoStr + '.');
   const pic = vn('HEMO_PIC'), ppc = vn('HEMO_PPC');
@@ -94,7 +102,9 @@ function generarTextoEvolucion(d) {
     txt.push(`Se realiza cambio de cánula de TQT${conMotivo(v('TQT_CAMBIO_MOTIVO'))}.`);
   }
   if (va === 'TOT') {
-    const desc = (totN || totCm) ? ` N° ${totN || '?'} fijado en ${totCm || '?'} cm` : '';
+    // Redacción y norma estandarizadas (ago-2026, Diego): «a X cm de arcada
+    // dental» — el punto de fijación es norma de la unidad, no una elección.
+    const desc = (totN || totCm) ? ` N° ${totN || '?'} a ${totCm || '?'} cm de arcada dental` : '';
     txt.push(`VAA mediante TOT${desc} (día ${diasVA || '?'})${esVerdadero(d.TOT_CAMBIO) ? ' (tubo nuevo)' : ''}.`);
   } else if (va === 'TQT' && !esVerdadero(d.TQT_OCURRIO)) {
     const tqtN = v('VENT_TQT_CALIBRE');
@@ -251,6 +261,11 @@ function generarTextoEvolucion(d) {
         const mstr = mots.length ? mots.join(', ') : 'aspectos clínicos';
         txt.push(`Se realiza PVE según protocolo con resultado fallido por ${mstr}. Paciente continúa con soporte ventilatorio.`);
       } else txt.push('Se realiza PVE según protocolo.');
+    } else if (pveVal === 'no' && !esVerdadero(d.EXT_OCURRIO)) {
+      // Paridad con el cliente (ago-2026): la razón de NO hacer PVE —
+      // «Decisión médica» entre ellas — no llegaba al texto del servidor.
+      const scR = v('PVE_SC_RAZON'), scD = v('PVE_SC_DET');
+      txt.push(`No se realiza PVE en este turno${scR ? ' por ' + _lcIni(scR) : ''}${scD ? ' (' + scD + ')' : ''}. Mantiene soporte ventilatorio.`);
     } else if (esVerdadero(d.EXT_OCURRIO)) {
       let e2 = extTipo === 'autoextubacion' ? `Paciente se autoextuba${horaTxt}`
              : extTipo === 'accidental' ? `Extubación accidental${horaTxt}`
@@ -331,7 +346,7 @@ function generarTextoEvolucion(d) {
     const pva = v('INTUB_VA_POST') || 'TOT', psop = v('INTUB_SOP_POST') || 'VM', pmodo = v('INTUB_MODO_POST');
     const ptn = v('INTUB_TOT_N'), ptc = v('INTUB_TOT_CM');
     if (pva || psop || pmodo) {
-      let q = `Queda con ${pva === 'TQT' ? 'TQT' : 'TOT'}${ptn ? ' N° ' + ptn : ''}${ptc ? ' fijado a ' + ptc + ' cm' : ''}`;
+      let q = `Queda con ${pva === 'TQT' ? 'TQT' : 'TOT'}${ptn ? ' N° ' + ptn : ''}${ptc ? ' a ' + ptc + ' cm de arcada dental' : ''}`;
       q += psop === 'VM' ? `, conectado a VM${pmodo ? ' en modo ' + pmodo : ''}` : (pmodo ? ', en ' + pmodo : '');
       const pp = [v('INTUB_VT') ? `Vt ${v('INTUB_VT')} ml` : null, v('INTUB_FR') ? `FR ${v('INTUB_FR')} rpm` : null,
                   v('INTUB_PINSP') ? `Pinsp ${v('INTUB_PINSP')} cmH2O` : null,
@@ -371,6 +386,10 @@ function generarTextoEvolucion(d) {
     if (esVerdadero(d.RESP_ATOS)) perm.push('asistencia de tos');
     const reol = v('RESP_SECR_REOL'), car = v('RESP_SECR_CAR'), qty = v('RESP_SECR_QTY');
     const qtyTxt = { '+': 'escasa cantidad', '++': 'moderada cantidad', '+++': 'abundante cantidad' }[qty] || '';
+    // La reología DESCRITA siempre se narra (ago-2026, reporte de Álvaro):
+    // antes la frase entera dependía de la cantidad, y una reología sin
+    // cantidad marcada desaparecía del texto. El «-» explícito (sin
+    // secreciones) sigue suprimiendo la frase, como siempre.
     const secrParts = [];
     if (qty !== '-') {
       if (reol) secrParts.push(reol.toLowerCase());
@@ -384,19 +403,20 @@ function generarTextoEvolucion(d) {
     else if (secrTxt) linea = `Secreciones ${secrParts.join(' ')}`;
     if (linea) txt.push(linea + '.');
     if (esVerdadero(d.RESP_INHALO)) txt.push('Se administra inhaloterapia según indicación médica (SOS).');
-    const pos = [];
-    if (esVerdadero(d.RESP_POS_SED)) pos.push('Sedente >45°');
-    if (esVerdadero(d.RESP_POS_DCLD)) pos.push('DCL D');
-    if (esVerdadero(d.RESP_POS_DCLI)) pos.push('DCL I');
-    if (esVerdadero(d.RESP_POS_PRONO)) pos.push(v('RESP_PRONO_HORA') ? `Prono desde las ${v('RESP_PRONO_HORA')} hrs` : 'Prono');
-    if (esVerdadero(d.RESP_POS_SUPINO)) {
+    // «Posicionamiento:» SALIÓ del generador (ago-2026, Bloque C de Diego):
+    // sedente/DCL/texto libre ya no se narran (las columnas siguen guardándose).
+    // El prono y el supino se narran SOLOS, como eventos con su hora.
+    if (esVerdadero(d.RESP_POS_PRONO) && esVerdadero(d.RESP_PRONO_EVENTO)) {
+      txt.push(v('RESP_PRONO_HORA') ? `Se prona a las ${v('RESP_PRONO_HORA')} hrs.` : 'Se prona en este turno.');
+    } else if (esVerdadero(d.RESP_POS_PRONO)) {
+      txt.push('Paciente continúa en prono.');
+    }
+    if (esVerdadero(d.RESP_POS_SUPINO) && esVerdadero(d.RESP_SUPINO_EVENTO)) {
       // El ciclo de prono puede durar varios días: al supinar se narra cuánto duró.
       const ph = String(d.PRONO_HORAS === 0 ? '0' : (d.PRONO_HORAS || '')).replace('.', ',');
-      const cierre = (esVerdadero(d.RESP_SUPINO_EVENTO) && ph) ? `, tras ${ph} h en prono` : '';
-      pos.push(v('RESP_SUPINO_HORA') ? `Se supina a las ${v('RESP_SUPINO_HORA')} hrs${cierre}` : ('Supino' + cierre));
+      const cierre = ph ? `, tras ${ph} h en prono` : '';
+      txt.push(v('RESP_SUPINO_HORA') ? `Se supina a las ${v('RESP_SUPINO_HORA')} hrs${cierre}.` : `Se supina en este turno${cierre}.`);
     }
-    if (v('RESP_POS_LIBRE')) pos.push(v('RESP_POS_LIBRE'));
-    if (pos.length) txt.push(`Posicionamiento: ${pos.join(', ')}.`);
   })();
 
   // 8. KTM
@@ -490,9 +510,25 @@ function generarTextoEvolucion(d) {
   const planes = v('PLAN_PLANES'), nota = v('PLAN_NOTA_TURNO'), firma = v('PLAN_FIRMA_KINE');
   if (planes) txt.push(`Plan: ${planes}`);
   if (nota)   txt.push(`Nota: ${nota}`);
-  if (firma)  txt.push(_firmaTextoClinico(firma));
+  // La firma SALIÓ del texto generado (ago-2026, decisión de Diego): al copiar
+  // al BUDA estorbaba. La autoría NO se pierde: queda en PLAN_FIRMA_KINE y en
+  // la auditoría. _firmaTextoClinico se conserva (la usa la entrega de turno).
 
   return txt.filter(Boolean).join('\n');
+}
+
+/**
+ * Inicio propio por fase clínica (ago-2026, pedido de Diego): las fases que
+ * son un PROCESO van con «En proceso de …»; second look es una ESPERA y las
+ * demás son un estado. Una fase nueva del catálogo cae al genérico «En fase
+ * de …» hasta que se le defina inicio.
+ */
+function _faseIntro(fase) {
+  const f = String(fase || '').toLowerCase();
+  if (/second look/.test(f)) return 'A la espera de second look.';
+  if (/reanimaci|weaning|rehabilitaci/.test(f)) return `En proceso de ${f}.`;
+  if (/protecci|neuroprotecci|postoperatorio|postparo/.test(f)) return `En ${f}.`;
+  return `En fase de ${f}.`;
 }
 
 function _parseFases(faseJson) {

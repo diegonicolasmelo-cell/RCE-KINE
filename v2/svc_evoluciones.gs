@@ -320,7 +320,14 @@ function guardarEvolucion(datos, ctx) {
       }
 
       // Procedimientos (filas) + hitos automáticos
-      _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, turno, procs, ctx.email);
+      // UN evento por ciclo prono→supino (ago-2026, Bloque C de Diego): la
+      // SUPINACIÓN no entra a PROCEDIMIENTOS — la estadística contaría DOS
+      // eventos por un solo ciclo. El ciclo lo representa la fila del PRONO y
+      // el total de horas queda sellado en PRONO_HORAS al supinar. La TIMELINE
+      // sí recibe el hito de supino (lista completa), porque el historial
+      // narra maniobras, no cuenta eventos.
+      const procsStats = procs.filter(function (p) { return !/^SUPINACI/i.test(String(p)); });
+      _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, turno, procsStats, ctx.email);
       _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email, patientId);
 
       // Reintubación desde el bloque EXT_*

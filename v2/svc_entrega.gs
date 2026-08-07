@@ -164,13 +164,20 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   if (cpax !== '') evals.push('CPAx ' + cpax + (cpaxF ? ' (' + cpaxF + ')' : ''));
 
   // ── Dispositivos de circuito por vencer (solo VM) ──
+  // SEMÁNTICA VALIDADA POR DIEGO (ago-2026): etiqueta = día 0 y el cambio se
+  // hace en el TURNO NOCHE del día etiqueta+frecuencia. «cambiar» = esta
+  // noche; «vencido» solo si amaneció después de esa noche sin cambio. Se
+  // mide contra la fecha del TURNO (no la efectiva: la noche del día D ES la
+  // que cambia lo del día D). Viaja además la fecha EXACTA del cambio, que es
+  // lo que la hoja impresa debe mostrar en vez de contadores de días.
   const disp = [];
   if (String(c.SOPORTE) === 'VM') {
     [['HME', c.DISP_HME_FECHA, 2], ['HEPA', c.DISP_HEPA_FECHA, 3], ['T.Care', c.DISP_TC_FECHA, 3]].forEach(function (d) {
       const iso = _statISO(d[1]); if (!iso) return;
-      // Turno Noche: el reloj se mide contra el día siguiente (fecha efectiva)
-      const dia = diasEntre(iso, fechaEf || fecha) + 1;
-      disp.push({ n: d[0], dia: dia, dur: d[2], estado: dia < d[2] ? 'ok' : (dia === d[2] ? 'cambiar' : 'vencido') });
+      const dias = diasEntre(iso, fecha);
+      const cambio = _sumarDiasISO(iso, d[2]);
+      disp.push({ n: d[0], dia: dias + 1, dur: d[2], cambio: dd(cambio),
+                  estado: dias < d[2] ? 'ok' : (dias === d[2] ? 'cambiar' : 'vencido') });
     });
   }
 
@@ -272,7 +279,19 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     icuaw: icuaw,
     candidatoPve: candidatoPve,
     pveRacha: pveRacha,
-    ultimoCultivo: cultivo ? { fecha: dd(cultivo.iso), nombre: cultivo.nombre, micro: val(c.AISL_MICRO) } : null,
+    // El RESULTADO del cultivo no viajaba a la entrega (reporte de Álvaro):
+    // solo salía el nombre y la fecha. Se toma el más reciente del episodio.
+    ultimoCultivo: cultivo ? { fecha: dd(cultivo.iso), nombre: cultivo.nombre, micro: val(c.AISL_MICRO),
+      resultado: (function () {
+        const filas = (episodio || []).slice()
+          .sort(function (a, b) { return String(b.TURNO_KEY).localeCompare(String(a.TURNO_KEY)); });
+        if (e && String(e.EX_CULT_RESULTADO || '').trim()) return String(e.EX_CULT_RESULTADO).trim();
+        for (let i = 0; i < filas.length; i++) {
+          const r = String(filas[i].EX_CULT_RESULTADO || '').trim();
+          if (r) return r;
+        }
+        return '';
+      })() } : null,
     plan: e ? val(e.PLAN_PLANES) : '',
     pendientes: e ? (function () { try { return JSON.parse(e.PLAN_PENDIENTES || '[]') || []; } catch (x) { return []; } })() : [],
     nota: e ? val(e.PLAN_NOTA_TURNO) : '',

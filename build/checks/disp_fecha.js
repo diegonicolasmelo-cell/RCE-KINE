@@ -44,17 +44,26 @@ let r = obtenerEntregaTurno(['1'], '2026-08-01', 'Dia');
 let hme = r.data.fichas[0].dispositivos.find(d => d.n === 'HME');
 eq('turno Día del 1-ago: el HME va en su día 1', hme.dia, 1);
 
-// Turno NOCHE del 1-ago: efectiva 2-ago ⇒ día 2 (toca cambiar el HME)
+// SEMÁNTICA VALIDADA POR DIEGO (ago-2026): etiqueta = día 0 y el cambio se
+// hace en el TURNO NOCHE del día etiqueta+frec. El HME etiquetado 01-ago se
+// cambia la noche del 03-ago — la regla vieja (fecha efectiva + «día 2»)
+// avisaba la noche del 01, DOS turnos antes: ese era el desfase de terreno.
 r = obtenerEntregaTurno(['1'], '2026-08-01', 'Noche');
 hme = r.data.fichas[0].dispositivos.find(d => d.n === 'HME');
 const hepa = r.data.fichas[0].dispositivos.find(d => d.n === 'HEPA');
-eq('turno Noche del 1-ago: el HME llega a su día 2', hme.dia, 2);
-eq('…y avisa que toca cambiarlo', hme.estado, 'cambiar');
-eq('el HEPA (3 días) todavía está en regla', hepa.estado, 'ok');
+eq('turno Noche del 1-ago: el HME recién etiquetado NO se cambia aún', hme.estado, 'ok');
+eq('…y la entrega trae su fecha EXACTA de cambio (01+2 = 03-08)', hme.cambio, '03-08');
+eq('el HEPA tampoco (cambia el 04-08)', hepa.estado + '/' + hepa.cambio, 'ok/04-08');
 
-// Turno NOCHE del 2-ago: efectiva 3-ago ⇒ HEPA en su día 3
-r = obtenerEntregaTurno(['1'], '2026-08-02', 'Noche');
-eq('turno Noche del 2-ago: el HEPA llega a su día 3', r.data.fichas[0].dispositivos.find(d => d.n === 'HEPA').estado, 'cambiar');
+// El día del cambio: la entrega del 03 avisa el HME para ESA noche
+r = obtenerEntregaTurno(['1'], '2026-08-03', 'Noche');
+eq('entrega del 03-ago: el HME sale «cambiar» (esta noche)', r.data.fichas[0].dispositivos.find(d => d.n === 'HME').estado, 'cambiar');
+eq('…y el HEPA sigue ok (su noche es la del 04)', r.data.fichas[0].dispositivos.find(d => d.n === 'HEPA').estado, 'ok');
+
+// Si nadie lo cambió, al día siguiente aparece vencido
+r = obtenerEntregaTurno(['1'], '2026-08-04', 'Dia');
+eq('entrega del 04-ago: el HME sin cambiar sale VENCIDO', r.data.fichas[0].dispositivos.find(d => d.n === 'HME').estado, 'vencido');
+eq('…y el HEPA llega a su noche de cambio', r.data.fichas[0].dispositivos.find(d => d.n === 'HEPA').estado, 'cambiar');
 
 /* ── Parte 2 · cliente: el formulario fecha y cuenta con la efectiva ── */
 const { chromium } = require('playwright-core');
