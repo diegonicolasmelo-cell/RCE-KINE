@@ -14,6 +14,13 @@ navegador del hospital o de su casa.
   correr `crearORepararEstructura()`, y recordar el paso **Nueva versión**
   (usar la skill `entrega-gas`; el index SIEMPRE en formato cohete).
 - No agregar funcionalidades que no pidió (p. ej. rechazó envío de correos).
+- **Ramas de GitHub con nombre identificador** (pedido de Diego, ago-2026):
+  toda rama nueva debe decir QUÉ contiene, en español y legible para él
+  (p. ej. `v544-dispositivos-texto-prono`, `arreglo-dias-vm`), nunca nombres
+  genéricos o al azar. Así distingue de un vistazo qué código hay en cada una
+  y no se repite la confusión de las ramas viejas. Las ramas que una sesión
+  trae pre-asignadas con nombre automático se usan igual (no se pueden
+  renombrar), pero al avisarle a Diego siempre decirle en palabras qué trae.
 - Los eventos de vía aérea (intubación, extubación, TQT, decanulación) se
   registran **manualmente** por decisión clínica; las alertas solo detectan
   olvidos, nunca automatizan el registro.
