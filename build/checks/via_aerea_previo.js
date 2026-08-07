@@ -185,7 +185,7 @@ const { chromium } = require('playwright-core');
   eq('sus modos salen de la matriz de vía aérea (TOT + VM)', I.modosVM, 'ACVC|ACPC|CPAP/PS');
   eq('el texto narra previo → intubación → cómo queda',
      /Previo en naricera-NRC/.test(I.texto) && /a las 13:40 hrs/.test(I.texto) &&
-     /Queda con TOT N° 8\.0 fijado a 22 cm, conectado a VM en modo ACVC/.test(I.texto) &&
+     /Queda con TOT N° 8\.0 a 22 cm de arcada dental, conectado a VM en modo ACVC/.test(I.texto) &&
      /Vt 420 ml/.test(I.texto) && /FR 18 rpm/.test(I.texto) && /VM 7\.6 L\/m/.test(I.texto) &&
      /Ppl 24 cmH2O/.test(I.texto) && /DP 14 cmH2O/.test(I.texto) && /AutoPEEP 2 cmH2O/.test(I.texto) &&
      /FiO2 60%/.test(I.texto) && /SpO2 95%/.test(I.texto), true);

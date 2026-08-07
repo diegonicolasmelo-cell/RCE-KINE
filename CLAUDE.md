@@ -455,6 +455,47 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `FECHA_INICIO_VA` en el display del formulario): su valor autoritativo es
     `DIAS_VM` del servidor y no es lo reportado.
 
+- **v5.44 · BLOQUES A/B/C DE DIEGO: FECHAS DE DISPOSITIVOS, MOTOR DE TEXTO Y
+  PRONO JUNTO A LA TQT (7-ago-2026, cohete v5.44-terreno; sin cambio de
+  esquema — NO exige `crearORepararEstructura()`).** Ronda pedida por Diego con
+  los reportes de un colega (Álvaro) y el desfase de dispositivos visto en
+  terreno. Servidor publicado primero (aprobado por Diego), front después.
+  1. **Bloque A · dispositivos por FECHA DE ETIQUETA**: etiqueta = día 0; el
+     cambio se hace en el turno **NOCHE** del día etiqueta+frec (HME 2 días,
+     HEPA y Trach Care 3 — la TC va como el HEPA, confirmado con el ejemplo).
+     El chip del formulario y la entrega muestran la **fecha exacta** de
+     cambio (dd-mm), no días; `vencido` recién con dias>frec — la regla vieja
+     («instalación = día 1» + fecha efectiva) avisaba un día ANTES: ese era el
+     desfase. `_sumarDiasISO` suma a mediodía UTC (mata el corrimiento de
+     huso). `cambiosEstaNoche()` + API `GET_CAMBIOS_NOCHE` + botón/modal 🌙 en
+     el Registro Diario. La medición usa la fecha del TURNO (no la efectiva);
+     el dispositivo nuevo instalado de noche se etiqueta D+1 (mecanismo de
+     fecha efectiva que ya existía). VALIDADO fecha a fecha con el ejemplo de
+     Diego (ingreso 04/08 → noches del 06 y 07) en `eventos.js` sección 6b.
+  2. **Bloque B · motor de texto (cliente y servidor a la par)**: meta PAM
+     inmediatamente tras la HDN («HDN estable c/DVA en dosis bajas para meta
+     PAM 65 mmHg» — JAMÁS llegaba al texto); escalón SIEMPRE con su SAS
+     (la rama BNM se lo comía); fases «En proceso de weaning/rehabilitación/
+     reanimación» y «A la espera de second look» (`_faseIntro` espejado);
+     TOT «N° 8.0 a 22 cm de arcada dental» (fijación ESTANDARIZADA: el select
+     pasó a hidden fijo, la norma va en la etiqueta del campo); la no-PVE se
+     narra con su razón («Decisión médica» incluida — eso era la «decisión
+     médica» del reporte, aclarado por Diego); resultado de cultivo viaja a
+     la entrega; **firma y «Posicionamiento:» FUERA del generador** (la firma
+     del registro sigue en su columna). **Obligatorias nuevas en guardar() +
+     #gFalta**: con TOT hay que declarar PVE sí/no; KTM no realizada exige
+     razón; contraindicada exige protocolo o descripción.
+  3. **Bloque C · prono/supino junto a la TQT**: franja 🔃 propia al inicio de
+     Terapia ventilatoria (mismos IDs de v5.32 ⇒ fillForm/payload/globitos
+     intactos: solo se movió el marcado); el colapsable 📐 queda con sedente/
+     DCL/texto libre y ya no se narra. Un ciclo prono→supino = **UN evento**
+     en estadística (guardarEvolucion filtra SUPINACIÓN de PROCEDIMIENTOS;
+     el timeline conserva ambos hitos); el texto narra «Se prona a las X hrs»
+     / «Paciente continúa en prono» / «Se supina …, tras Y h en prono».
+  - Guardia nueva `checks/reporte_colega.js` (28 asserts: los formatos, la
+    franja, las obligatorias y el modal 🌙). Actualizadas a la regla nueva:
+    `disp_fecha`, `texto_bloques`, `panel_ux`, `via_aerea_previo`, `eventos`.
+    Batería completa: **55 guardias verdes**.
 - **v5.43 · CUATRO CIERRES DE USO REAL: INGRESO NOCTURNO, PVE, EQUIPOS AL
   TRASLADAR Y AVISO DE GUARDADO (4-ago-2026, cohete v5.43-cierres; sin cambio
   de esquema).** Cuatro reportes de Diego de la misma ronda de uso real,
@@ -1338,8 +1379,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.43-cierres**
-  (antes v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.44-terreno**
+  (antes v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con

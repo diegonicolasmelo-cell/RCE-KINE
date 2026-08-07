@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.43-cierres">
+<meta name="rce-version" content="5.44-terreno">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1461,6 +1461,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
         <input type="text" class="datein dashin" id="tblSearch" placeholder="🔍 Buscar paciente…" style="min-width:200px;" oninput="renderTabla()">
         <button class="dpset" id="btnDocs" onclick="docsAbrir()">📂 Documentos</button>
         <button class="dpset" onclick="imprimirHojasDelDia()" title="Imprime la hoja de registro kinésico de cada paciente hospitalizado, con cama, edad, nombre, RUT, días y fecha ya impresos — reemplaza el recorte diario de la lista">🖨️ Hojas del día</button>
+        <button class="dpset" onclick="cnAbrir()" title="Qué HME, HEPA y Trach Care se cambian en el turno noche de esta fecha, y cuáles quedaron atrasados">🌙 Cambios de esta noche</button>
         <button class="dpset" onclick="regCSV()">⬇️ CSV</button>
       </div>
     </div>
@@ -1858,6 +1859,20 @@ document.documentElement.setAttribute('data-piel', 'inst');
   </div>
 </div>
 
+<!-- MODAL CAMBIOS DE ESTA NOCHE: dispositivos del circuito que tocan cambio
+     en el turno noche de la fecha visible (regla validada por Diego, ago-2026:
+     etiqueta = día 0; HME se cambia a los 2 días, HEPA y Trach Care a los 3) -->
+<div class="tlmodal" id="cnMod" role="dialog" aria-modal="true" style="width:min(540px,94vw);max-height:88vh;">
+  <div class="phdr">
+    <div class="ptitle">🌙 Cambios de esta noche</div>
+    <button class="xbtn" onclick="cnCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:14px 22px;overflow-y:auto;">
+    <div id="cnLista"></div>
+    <div style="font-size:.68rem;color:var(--muted);margin-top:10px;">Regla de la unidad: los circuitos se cambian en el turno <b>Noche</b> — HME a los 2 días de la etiqueta; HEPA y Trach Care a los 3. El dispositivo nuevo queda etiquetado con la fecha del día siguiente.</div>
+  </div>
+</div>
+
 <!-- MODAL AVISO: cambio de estado sin evento registrado (etapa 1b — no bloqueante) -->
 <div class="tlmodal" id="transAviso" role="dialog" aria-modal="true" style="width:min(470px,94vw);z-index:103;">
   <div class="phdr">
@@ -2241,7 +2256,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
               <div id="dTOT" class="row hidden" style="margin-bottom:6px;align-items:flex-end;">
                 <div class="col wa"><label>TOT N°</label>
                   <select id="fTOTn" class="bold tc" style="height:34px;"><option value="">--</option><option>6.0</option><option>6.5</option><option>7.0</option><option>7.5</option><option>8.0</option><option>8.5</option></select></div>
-                <div class="col ws"><label>Fijación</label><input type="number" id="fTOTcm" class="tc bold" placeholder="22" style="height:34px;" title="Se puede ajustar en cualquier turno (reposicionamiento del tubo), sin declarar cambio de tubo."></div>
+                <div class="col ws"><label>Fijación · cm de <b>arcada dental</b></label><input type="number" id="fTOTcm" class="tc bold" placeholder="22" style="height:34px;" title="Norma de la unidad: la fijación se mide en cm de arcada dental. Se puede ajustar en cualquier turno (reposicionamiento del tubo), sin declarar cambio de tubo."></div>
                 <div class="check wa" style="align-self:flex-end;"><input type="checkbox" id="cCambioTOT" onchange="toggleCambioTOT()"><label for="cCambioTOT" style="font-weight:700;color:#1d4ed8;">🔄 Cambio de tubo</label></div>
                 <div class="col wa hidden" id="dCambioTOTmot"><label>Motivo del cambio</label>
                   <select id="fCambioTOTmot" onchange="if(this.value==='Otro')show('dCambioTOTdet');else{hide('dCambioTOTdet');const e=$('fCambioTOTdet');if(e)e.value='';}" style="min-width:200px;">
@@ -2253,12 +2268,10 @@ document.documentElement.setAttribute('data-piel', 'inst');
                   </select></div>
                 <div class="col wa hidden" id="dCambioTOTdet"><label>Detalle</label>
                   <input type="text" id="fCambioTOTdet" placeholder="Motivo..." style="min-width:160px;"></div>
-                <div class="col grow"><label>Punto fijación</label>
-                  <select id="fTOTfij" style="height:34px;">
-                    <option value="">-- seleccionar --</option>
-                    <option>Arcada dental</option>
-                    <option>Comisura labial</option>
-                  </select></div>
+                <!-- Punto de fijación ESTANDARIZADO (ago-2026, Diego): la unidad
+                     mide SIEMPRE en arcada dental — dejó de ser una elección.
+                     El hidden conserva el ID para fillForm/payload. -->
+                <input type="hidden" id="fTOTfij" value="Arcada dental">
               </div>
               <!-- Aviso TQT con modo VNI -->
               <div id="dTQTVNIWarn" class="hidden" style="font-size:.7rem;background:#fef3c7;border:1px solid #fde68a;border-radius:5px;padding:5px 8px;margin-bottom:6px;color:#92400e;">
@@ -2565,6 +2578,39 @@ document.documentElement.setAttribute('data-piel', 'inst');
               </div>
               <div id="avisoVentTqt" class="hidden" style="margin:10px 0;padding:7px 10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:7px;font-size:.75rem;color:#64748b;">
                 💨 Terapia ventilatoria — <b>ya registrada arriba</b> en «Queda con (post-traqueostomía)». El estado previo del turno se guarda igual.
+              </div>
+
+              <!-- 🔃 PRONO / SUPINO — al inicio de la terapia ventilatoria, junto a la
+                   TQT (pedido de Diego, ago-2026): la posición se declara donde la vista
+                   ya está, con su hora. Mismos IDs de v5.32 ⇒ fillForm, payload y los
+                   globitos ⏱ siguen intactos; solo se movió el marcado. -->
+              <div id="dPronoStrip" style="margin:10px 0;padding:8px 11px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                  <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#0e7490;letter-spacing:.04em;">🔃 Posición</span>
+                  <div class="check wa"><input type="checkbox" id="cProno" onchange="hPosEspecial('prono')"><label for="cProno">Prono</label></div>
+                  <div id="dPronoHora" class="hidden" style="display:inline-flex;align-items:center;gap:3px;">
+                    <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
+                    <input type="time" id="fPronoHora" oninput="_updatePronoTip();_updateSupinoTip();" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
+                    <span id="sPronoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
+                    <!-- ESTADO vs EVENTO (v5.32): la casilla de arriba dice cómo está
+                         el paciente; esta dice que la pronación se hizo ESTE turno y
+                         es la única que registra el procedimiento. -->
+                    <span class="check wa" style="background:#fef3c7;border-color:#fcd34d;">
+                      <input type="checkbox" id="cPronoEv" onchange="hPos();_renderAutoProcs();_updatePronoTip();">
+                      <label for="cPronoEv" title="Marca solo el turno en que se realiza la pronación">Se prona este turno</label>
+                    </span>
+                  </div>
+                  <div class="check wa"><input type="checkbox" id="cSupino" onchange="hPosEspecial('supino')"><label for="cSupino">Supino</label></div>
+                  <div id="dSupinoHora" class="hidden" style="display:inline-flex;align-items:center;gap:3px;">
+                    <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
+                    <input type="time" id="fSupinoHora" oninput="_updateSupinoTip();" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
+                    <span id="sSupinoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
+                    <span class="check wa" style="background:#fef3c7;border-color:#fcd34d;">
+                      <input type="checkbox" id="cSupinoEv" onchange="hPos();_renderAutoProcs();_updateSupinoTip();">
+                      <label for="cSupinoEv" title="Marca solo el turno en que se supina al paciente">Se supina este turno</label>
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div id="dVentBloque">
@@ -3186,29 +3232,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
                     <div class="check wa"><input type="checkbox" id="cPosSed" onchange="hPos()"><label for="cPosSed">Sedente &gt;45°</label></div>
                     <div class="check wa"><input type="checkbox" id="cPosDCLD" onchange="hPos()"><label for="cPosDCLD">DCL D</label></div>
                     <div class="check wa"><input type="checkbox" id="cPosDCLI" onchange="hPos()"><label for="cPosDCLI">DCL I</label></div>
-                    <div class="check wa"><input type="checkbox" id="cProno" onchange="hPosEspecial('prono')"><label for="cProno">Prono</label></div>
-                    <div id="dPronoHora" class="hidden" style="display:inline-flex;align-items:center;gap:3px;">
-                      <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
-                      <input type="time" id="fPronoHora" oninput="_updatePronoTip();_updateSupinoTip();" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
-                      <span id="sPronoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
-                      <!-- ESTADO vs EVENTO (v5.32): la casilla de arriba dice cómo está
-                           el paciente; esta dice que la pronación se hizo ESTE turno y
-                           es la única que registra el procedimiento. -->
-                      <span class="check wa" style="background:#fef3c7;border-color:#fcd34d;">
-                        <input type="checkbox" id="cPronoEv" onchange="hPos();_renderAutoProcs();_updatePronoTip();">
-                        <label for="cPronoEv" title="Marca solo el turno en que se realiza la pronación">Se prona este turno</label>
-                      </span>
-                    </div>
-                    <div class="check wa"><input type="checkbox" id="cSupino" onchange="hPosEspecial('supino')"><label for="cSupino">Supino</label></div>
-                    <div id="dSupinoHora" class="hidden" style="display:inline-flex;align-items:center;gap:3px;">
-                      <label style="font-size:.68rem;color:var(--muted);">Hora:</label>
-                      <input type="time" id="fSupinoHora" oninput="_updateSupinoTip();" style="height:26px;font-size:.75rem;border:1px solid #a5f3fc;border-radius:5px;padding:0 4px;">
-                      <span id="sSupinoTip" class="interp-tip interp-ok" data-tip="" style="font-size:.7rem;display:none;">⏱</span>
-                      <span class="check wa" style="background:#fef3c7;border-color:#fcd34d;">
-                        <input type="checkbox" id="cSupinoEv" onchange="hPos();_renderAutoProcs();_updateSupinoTip();">
-                        <label for="cSupinoEv" title="Marca solo el turno en que se supina al paciente">Se supina este turno</label>
-                      </span>
-                    </div>
+                    <!-- Prono/supino viven arriba, junto a la TQT (ago-2026). -->
                   </div>
                   <div style="margin-top:6px;">
                     <input type="text" id="fPosLibre" placeholder="Otro posicionamiento…" style="height:28px;font-size:.78rem;border:1px solid #e2e8f0;border-radius:5px;padding:0 8px;width:100%;">
@@ -3852,7 +3876,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.43-cierres]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.44-terreno]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4330,6 +4354,11 @@ function rielRender(){
   const faltas=[];
   if(!v('fFirma')) faltas.push('firma');
   if(!v('fVA')) faltas.push('vía aérea');
+  // Obligatorias nuevas (ago-2026, Diego): declarar la PVE con TOT y la
+  // razón cuando la KTM no se realiza o está contraindicada.
+  if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltas.push('PVE sí/no');
+  if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltas.push('razón de KTM no realizada');
+  if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltas.push('contraindicación de KTM');
   const fEl=$('gFalta');
   if(fEl) fEl.textContent=faltas.length?('Falta: '+faltas.join(' y ')):'';
   const cards=Array.from(document.querySelectorAll('#kf .fcard')).filter(c=>c.offsetParent!==null);
@@ -5451,6 +5480,29 @@ function guardar() {
     if(va){ va.focus(); va.style.outline='2px solid var(--danger)'; setTimeout(()=>{va.style.outline='';},2500); }
     return;
   }
+  // ★ PVE OBLIGATORIA DE DECLARAR (ago-2026, Diego): con el paciente en TOT
+  // hay que decir SÍ se hizo o NO se hizo — sin contestar, el indicador de
+  // PVE queda ciego y la evolución no narra la prueba ★
+  if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')){
+    toast('⚠️ Define si se realizó o no la PVE este turno (botón Sí / No)');
+    const bp=$('btnPVESi');
+    if(bp){ bp.scrollIntoView({behavior:'smooth',block:'center'}); bp.style.outline='2px solid var(--danger)'; setTimeout(()=>{bp.style.outline='';},2500); }
+    return;
+  }
+  // ★ LA RAZÓN DE NO HACER KTM ES OBLIGATORIA (ago-2026, Diego): «no
+  // realizada» o «contraindicada» sin el porqué no dice nada clínicamente ★
+  if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')){
+    toast('⚠️ Indica la razón por la que NO se realizó KTM este turno');
+    const kr=$('fKTMnoRaz');
+    if(kr){ kr.scrollIntoView({behavior:'smooth',block:'center'}); kr.focus(); kr.style.outline='2px solid var(--danger)'; setTimeout(()=>{kr.style.outline='';},2500); }
+    return;
+  }
+  if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()){
+    toast('⚠️ Indica la contraindicación de la KTM (protocolo o descripción)');
+    const kc=$('fKTMcontra');
+    if(kc){ kc.scrollIntoView({behavior:'smooth',block:'center'}); kc.focus(); kc.style.outline='2px solid var(--danger)'; setTimeout(()=>{kc.style.outline='';},2500); }
+    return;
+  }
   // ★ El texto no puede contradecir lo registrado ★
   // Al retocar el texto a mano la regeneración queda en pausa (para no pisar
   // lo escrito), así que desde ahí el texto puede quedar narrando una versión
@@ -5534,7 +5586,7 @@ function guardar() {
     PAC_AISL_LISTA:    $('fAislMicroVal')?.value||'',
     VA_EXTERNO:        $('cVAExtPrev')?.checked||false,
     VA_EXTERNO_DIAS:   $('cVAExtPrev')?.checked ? (v('fVAExtDias')||0) : 0,
-    TOT_FIJACION:      v('fTOTfij'),
+    TOT_FIJACION:      'Arcada dental',   // estandarizado (ago-2026): norma de la unidad
     FECHA_INICIO_TQT:  _fechaInicioTQT||'',
     // Contadores VM
     // Si el paciente queda extubado/decanulado (sin re-), los días del episodio
@@ -6265,6 +6317,40 @@ function docsRender(d){
     h+=g.archivos.map(a=>`<a href="${_docsEsc(a.url)}" target="_blank" rel="noopener" style="display:flex;gap:9px;align-items:center;padding:7px 9px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;text-decoration:none;color:var(--txt);font-size:.83rem;">${_docsIco(a.mime)} <span style="flex:1;">${_docsEsc(a.nombre)}</span><span style="font-size:.68rem;color:var(--muted);">${_docsEsc(a.actualizado)}</span></a>`).join('');
   });
   $('docsLista').innerHTML=h;
+}
+
+/* ── 🌙 Cambios de esta noche: qué HME/HEPA/Trach Care se cambian en el turno
+   noche de la fecha visible y cuáles quedaron atrasados (GET_CAMBIOS_NOCHE).
+   Es una LISTA para planificar la ronda — el registro del cambio sigue
+   haciéndose en la evolución o con el evento rápido, como siempre. ── */
+function cnAbrir(){ $('cnMod').classList.add('on'); $('ovl').classList.add('on'); cnCargar(); }
+function cnCerrar(){ $('cnMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function cnCargar(){
+  $('cnLista').innerHTML='<div style="padding:18px 0;color:var(--muted);font-size:.8rem;">⏳ Revisando la unidad…</div>';
+  gs('GET_CAMBIOS_NOCHE',{fecha:v('gDate')||hoy()}, d=>cnRender(d),
+    ()=>{ $('cnLista').innerHTML='<div style="padding:18px 0;color:#b91c1c;font-size:.8rem;">No se pudo cargar la lista. Cierra y vuelve a intentar.</div>'; });
+}
+function cnRender(d){
+  const camas=(d&&d.camas)||[], f=_ddmm(d&&d.fecha);
+  if(!camas.length){
+    $('cnLista').innerHTML=`<div style="padding:18px 0;color:var(--muted);font-size:.82rem;">✅ Ningún dispositivo toca cambio en la noche del ${f} y no hay atrasados.</div>`;
+    return;
+  }
+  let h='';
+  camas.forEach(c=>{
+    h+=`<div style="font-size:.78rem;font-weight:800;margin:12px 0 5px;">🛏️ Cama ${_docsEsc(c.idCama)}${c.nombre?` · <span style="font-weight:600;">${_docsEsc(c.nombre)}</span>`:''}</div>`;
+    h+=(c.dispositivos||[]).map(x=>{
+      const venc=x.estado==='vencido';
+      return `<div style="display:flex;gap:9px;align-items:center;padding:6px 9px;border:1px solid ${venc?'#fecaca':'#fde68a'};background:${venc?'#fef2f2':'#fffbeb'};border-radius:7px;margin-bottom:5px;font-size:.8rem;">
+        ${x.icono||'🔧'} <b>${_docsEsc(x.nombre)}</b>
+        <span style="color:var(--muted);">etiqueta ${_ddmm(x.etiqueta)}</span>
+        <span style="flex:1;"></span>
+        ${venc?`<b style="color:#b91c1c;">VENCIDO — debió cambiarse el ${_ddmm(x.fechaCambio)}${x.diasAtraso>1?` (hace ${x.diasAtraso} días)`:''}</b>`
+             :`<b style="color:#b45309;">se cambia esta noche</b>`}
+      </div>`;
+    }).join('');
+  });
+  $('cnLista').innerHTML=h;
 }
 
 /* ── ❓ Tutorial anclado: recorrido de globos sobre la pantalla real.
@@ -7662,6 +7748,16 @@ function _txbLista(){
 }
 window._TXB_ULT=[];                          // etiquetas de la última generación
 
+// Redacción de la fase clínica (ago-2026, Diego) — espejo de _faseIntro del
+// servidor: «En proceso de weaning», «A la espera de second look».
+function _faseIntro(fase){
+  const f=String(fase||'').toLowerCase();
+  if(/second look/.test(f)) return 'A la espera de second look.';
+  if(/reanimaci|weaning|rehabilitaci/.test(f)) return `En proceso de ${f}.`;
+  if(/protecci|neuroprotecci|postoperatorio|postparo/.test(f)) return `En ${f}.`;
+  return `En fase de ${f}.`;
+}
+
 function genTexto() {
   const gv=id=>{ const e=$(id); return e&&e.value?e.value:null; };
   const esIng=v('cIng')==='true';
@@ -7675,9 +7771,10 @@ function genTexto() {
   // AET
   _B('aet');
   if($('cAET')?.checked){ const niv=v('fAETnivel')||''; L.push(`Paciente con AET${niv?' Grupo '+niv:''}.`); }
-  // Fase clínica (v2)
+  // Fase clínica — redacción de Diego (ago-2026): «En proceso de weaning»,
+  // «A la espera de second look» (en paridad con _faseIntro del servidor).
   _B('fase');
-  if(FASES_SEL&&FASES_SEL.size) L.push(`Fase clínica: ${Array.from(FASES_SEL).join(' + ')}.`);
+  if(FASES_SEL&&FASES_SEL.size) L.push(Array.from(FASES_SEL).map(_faseIntro).join(' '));
   // UPOT / procuramiento
   _B('upot');
   if($('cUPOT')?.checked){
@@ -7707,12 +7804,15 @@ function genTexto() {
   const camicu=gv('fCAMICU');
   const gcsT=$('lblGCS')?.textContent||'?';
   const va=gv('fVA')||'Natural'; const intub=va==='TOT'||va==='TQT';
+  // El escalón SIEMPRE se narra con su SAS (ago-2026, reporte de Álvaro vía
+  // Diego): la rama de BNM se comía el escalón y el SAS solo salía en dos
+  // ramas — en paridad con el servidor.
+  const _sasTxt=sas?` para meta SAS ${sas}`:'';
+  const _escTxt=(sed&&sed!=='Sin sedación')?(sed==='Fuera de escalón'?'fuera de escalón':`en ${sed.toLowerCase()}`):'';
   let s;
-  if($('cBNM')?.checked) s=`Sedado+BNM para meta SAS ${sas||'1'}.`;
-  else if(sed==='Sin sedación') s='Sin sedación.';
-  else if(sed==='Fuera de escalón') s=`Sedación fuera de escalón${sas?' (SAS '+sas+')':''}.`;
-  else if(sed.startsWith('Escalón')) s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
-  else s=`Sedación ${sed.toLowerCase()}${sas?' para meta SAS '+sas:''}.`;
+  if($('cBNM')?.checked) s=`Sedado${_escTxt?' '+_escTxt:''}+BNM${_sasTxt||' para meta SAS 1'}.`;
+  else if(sed==='Sin sedación') s='Sin sedoanalgesia.';
+  else s=`Sedado ${_escTxt}${_sasTxt}.`;
   // GCS: en intubado el total ("11T") y la verbal ("1T") ya vienen con "T"
   // desde calcGCS; el sufijo /15 solo aplica a paciente sin vía aérea artificial.
   s+=` GCS ${gcsT}${intub?'':'/15'} (O:${gv('fGCSO')||'?'}, V:${gv('fGCSV')||'?'}, M:${gv('fGCSM')||'?'})`;
@@ -7726,8 +7826,12 @@ function genTexto() {
   s+='.';
   _B('sed'); L.push(s);
   const hEst=gv('fHEst')||'Estable', dva=gv('fDVA')||'Sin requerimientos';
+  // Formato de Diego (ago-2026): «HDN estable c/DVA en dosis bajas para meta
+  // PAM 65 mmHg» — la meta PAM (que JAMÁS llegaba al texto, reporte de
+  // Álvaro) va INMEDIATAMENTE después de la HDN.
   let h=`HDN ${hEst==='Estable'?'estable':'inestable'}`;
-  h+=dva==='Sin requerimientos'?', sin requerimientos de DVA':', con DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase().replace(/dosis (baja|media|alta)/,'dosis $1s');
+  h+=dva==='Sin requerimientos'?' s/DVA':' c/DVA en '+dva.replace(/^DVA\s*/i,'').toLowerCase().replace(/dosis (baja|media|alta)/,'dosis $1s');
+  if($('cMetaPAM')?.checked && v('fPAM')) h+=` para meta PAM ${v('fPAM')} mmHg`;
   if($('cHTrend')?.checked){ const tt=gv('fHTT')||''; h+=`, con tendencia a la ${tt}`; } _B('hdn'); L.push(h+'.');
   const _pic=gv('fPIC'), _ppc=gv('fPPC');
   _B('neuro');
@@ -7749,7 +7853,9 @@ function genTexto() {
     L.push(`Se realiza cambio de cánula de TQT${_conMotivo(_cq)}.`);
   }
   _B('va');
-  if(va==='TOT'){ const fij=gv('fTOTfij')||'comisura labial'; L.push(`VAA mediante TOT N° ${gv('fTOTn')||'?'} fijado a ${gv('fTOTcm')||'?'} cm a nivel de ${fij.toLowerCase()} (día ${dVA})${$('cCambioTOT')?.checked?' (tubo nuevo)':''}.`); }
+  // Redacción estandarizada (ago-2026, Diego): «a X cm de arcada dental» —
+  // el punto de fijación es norma de la unidad, no una elección.
+  if(va==='TOT'){ L.push(`VAA mediante TOT N° ${gv('fTOTn')||'?'} a ${gv('fTOTcm')||'?'} cm de arcada dental (día ${dVA})${$('cCambioTOT')?.checked?' (tubo nuevo)':''}.`); }
   else if(va==='TQT'&&!$('cTqtO')?.checked) L.push(`VAA mediante TQT N° ${gv('fTQTn')||'?'}${gv('fTQTt')?' tipo '+gv('fTQTt'):''} (día ${dVA})${$('cCambioTQT')?.checked?' (cánula nueva)':''}.`);
   // TQT instalada ESTE turno (regla de Diego): puede venir de TOT o Natural —
   // lo que llevó a traqueostomizar son los DÍAS DE VM, no el estado del
@@ -7869,7 +7975,7 @@ function genTexto() {
     // Cómo QUEDA tras el procedimiento (panel propio; el estado previo quedó arriba)
     const _pva=v('poIntubVA')||'TOT', _psop=v('poIntubSop')||'VM', _pmodo=v('poIntubModo');
     const _ptn=v('poIntubTotN'), _ptc=v('poIntubTotCm');
-    let _q=`Queda con ${_pva==='TOT'?'TOT':'TQT'}${_ptn?` N° ${_ptn}`:''}${_ptc?` fijado a ${_ptc} cm`:''}`;
+    let _q=`Queda con ${_pva==='TOT'?'TOT':'TQT'}${_ptn?` N° ${_ptn}`:''}${_ptc?` a ${_ptc} cm de arcada dental`:''}`;
     _q+=_psop==='VM'?`, conectado a VM${_pmodo?` en modo ${_pmodo}`:''}`:`${_pmodo?`, en ${_pmodo}`:''}`;
     const _pp=_paramsTxt('pi_','pl_');
     L.push(_q+(_pp?`. ${_pp}`:'')+'.');
@@ -7991,20 +8097,20 @@ function genTexto() {
     // Inhaloterapia
     _B('inhalo');
     if($('cInhalo')?.checked) L.push('Se administra inhaloterapia según indicación médica (SOS).');
-    // Posicionamiento
-    const posArr=[];
-    if($('cPosSed')?.checked) posArr.push('Sedente >45°');
-    if($('cPosDCLD')?.checked) posArr.push('DCL D');
-    if($('cPosDCLI')?.checked) posArr.push('DCL I');
-    if($('cProno')?.checked){ const h=v('fPronoHora'); posArr.push(h?`Prono desde las ${h} hrs`:'Prono'); }
-    if($('cSupino')?.checked){
+    // «Posicionamiento:» SALIÓ del generador (ago-2026, Bloque C de Diego):
+    // sedente/DCL/texto libre ya no se narran (las columnas siguen guardándose).
+    // El prono y el supino se narran SOLOS, como eventos con su hora — en
+    // paridad con el servidor (dominio_texto.gs).
+    _B('pos');
+    if($('cProno')?.checked){
+      if($('cPronoEv')?.checked){ const h=v('fPronoHora'); L.push(h?`Se prona a las ${h} hrs.`:'Se prona en este turno.'); }
+      else L.push('Paciente continúa en prono.');
+    }
+    if($('cSupino')?.checked && $('cSupinoEv')?.checked){
       const h=v('fSupinoHora'), ph=_pronoHorasCiclo();
       const cierre=ph!==''?`, tras ${String(ph).replace('.',',')} h en prono`:'';
-      posArr.push(h?`Se supina a las ${h} hrs${cierre}`:('Supino'+cierre));
+      L.push(h?`Se supina a las ${h} hrs${cierre}.`:`Se supina en este turno${cierre}.`);
     }
-    const lib=v('fPosLibre'); if(lib) posArr.push(lib);
-    _B('pos');
-    if(posArr.length) L.push(`Posicionamiento: ${posArr.join(', ')}.`);
   })();
   // ── KTM (después de KTR) ──
   const kR=$('bKTMr')?.classList.contains('on'), kS=$('bKTMs')?.classList.contains('on'), kN=$('bKTMn')?.classList.contains('on');
@@ -8149,10 +8255,12 @@ function genTexto() {
   if(_pveNoCond && _espontaneo){
     L.push(`*No se realiza PVE en este turno${_pveNoRaz?' por '+_lcIni(_pveNoRaz):''}${_pveNoDet?' ('+_pveNoDet+')':''}. Mantiene soporte ventilatorio.`);
   }
-  const pl=gv('fPlanes'), no=gv('fNota'), fi=gv('fFirma');
+  const pl=gv('fPlanes'), no=gv('fNota');
   _B('plan');  if(pl) L.push(`Plan: ${pl}`);
   _B('nota');  if(no) L.push(`Nota: ${no}`);
-  _B('firma'); if(fi) L.push(window.Turnos && Turnos.firmaTexto ? Turnos.firmaTexto(fi) : `Kinesiólogo: ${fi}`);
+  // La FIRMA salió del texto generado (ago-2026, pedido de Diego): al copiar
+  // al BUDA estorbaba. La firma del REGISTRO sigue intacta (columna FIRMA,
+  // entrega de turno e historial la conservan).
   // Las frases vacías se descartan; la etiqueta se filtra EN PARALELO para que
   // TEXTO_BLOQUES quede alineado 1:1 con las líneas de TEXTO_AUTO.
   const _sal=[], _blq=[];
@@ -8666,8 +8774,7 @@ function _updatePosResumen(){
   if($('cPosSed')?.checked) parts.push('Sedente >45°');
   if($('cPosDCLD')?.checked) parts.push('DCL D');
   if($('cPosDCLI')?.checked) parts.push('DCL I');
-  if($('cProno')?.checked) parts.push('Prono');
-  if($('cSupino')?.checked) parts.push('Supino');
+  // prono/supino viven en su franja propia junto a la TQT (ago-2026)
   const lib=v('fPosLibre'); if(lib) parts.push(lib);
   const el=$('sPosResumen'); if(el) el.textContent=parts.join(', ');
 }
@@ -10344,9 +10451,13 @@ function _abrirDetailsEval(){
   Object.keys(map).forEach(id=>{ const d=$(id); if(d) d.open=conDato(map[id]); });
 }
 
-//  Dispositivos de circuito VM: día de uso y vencimiento POR FECHA CALENDARIO
-//  (no horas): instalación = día 1. HME se cambia en su día 2; HEPA y Trach Care
-//  en su día 3. Humidificación activa no vence.
+//  Dispositivos de circuito VM — SEMÁNTICA VALIDADA POR DIEGO (ago-2026, con
+//  su ejemplo fecha a fecha): la FECHA DE ETIQUETA es el día 0 y el cambio se
+//  hace en el TURNO NOCHE del día etiqueta+frecuencia (HME a los 2 días; HEPA
+//  y Trach Care a los 3). El chip muestra la FECHA EXACTA de cambio, no un
+//  contador de días — la regla vieja («instalación = día 1», aviso con fecha
+//  efectiva) avisaba «vencido» un día antes: ese era el desfase de terreno.
+//  Humidificación activa no vence.
 const _DISP_DEFS=[['fFecHME','sHMEDias',2],['fFecHEPA','sHEPADias',3],['fFecSonda','sSondaDias',3],['fFecHumid','sHumidDias',0]];
 /* Fecha EFECTIVA del turno (ago-2026, pedido de Diego): el turno NOCHE
    transcurre casi entero en el día siguiente, así que los relojes de
@@ -10358,18 +10469,24 @@ function _fechaEfTurno(fecha, turno){
   const d=new Date(f+'T12:00:00'); d.setDate(d.getDate()+1);
   return d.toISOString().slice(0,10);
 }
+// dd-mm legible y suma de días sobre fecha ISO (mediodía: inmune al huso)
+function _ddmm(iso){ const s=_isoDia(iso); return s?`${s.slice(8,10)}-${s.slice(5,7)}`:''; }
+function _sumDiasISO(iso, n){ const d=new Date(_isoDia(iso)+'T12:00:00'); d.setDate(d.getDate()+(n||0)); return d.toISOString().slice(0,10); }
 function calcInsumosDias(){
-  const ref=_fechaEfTurno(v('gDate')||hoy());
+  // Se mide contra la FECHA DEL TURNO (no la efectiva): la noche del 03 ES la
+  // noche de cambio de lo etiquetado el 01 (frec 2) — igual que el servidor.
+  const ref=_isoDia(v('gDate')||hoy());
   _DISP_DEFS.forEach(([inp,lbl,dur])=>{
     const e=$(lbl); if(!e) return;
     const f=v(inp);
     e.classList.remove('disp-ok','disp-warn','disp-bad','disp-none');
     if(!f){ e.textContent='—'; e.classList.add('disp-none'); return; }
-    let d=dias(f,ref)+1; if(d<1)d=1;
-    if(!dur){ e.textContent=`Día ${d} · no vence`; e.classList.add('disp-ok'); }
-    else if(d<dur){ e.textContent=`Día ${d}/${dur}`; e.classList.add('disp-ok'); }
-    else if(d===dur){ e.textContent=`Día ${d}/${dur} · cambiar`; e.classList.add('disp-warn'); }
-    else { e.textContent=`Vencido (día ${d}/${dur})`; e.classList.add('disp-bad'); }
+    if(!dur){ e.textContent='No vence'; e.classList.add('disp-ok'); return; }
+    const d=dias(f,ref);                      // días desde la etiqueta (etiqueta = día 0)
+    const cambio=_ddmm(_sumDiasISO(f,dur));   // fecha EXACTA de cambio
+    if(d<dur){ e.textContent=`Cambio: ${cambio}${d===dur-1?' (mañana en la noche)':''}`; e.classList.add('disp-ok'); }
+    else if(d===dur){ e.textContent=`Cambiar ESTA NOCHE (${cambio})`; e.classList.add('disp-warn'); }
+    else { e.textContent=`VENCIDO — debió cambiarse el ${cambio}`; e.classList.add('disp-bad'); }
   });
 }
 //  Al conectar a VM (ingreso ventilado o cambio de soporte) se fechan HME/HEPA/Trach Care
@@ -12240,8 +12357,10 @@ function renderEntrega(d){
     const pronoChip=f.prono?`<span class="ent-tag" style="background:#0891b218;color:#0e7490;border:1px solid #0891b255;" title="Pronación en curso desde el ${_pdesde}${f.prono.horas!==''?`, lleva ${String(f.prono.horas).replace('.',',')} h`:''}">🔃 En prono${f.prono.horas!==''?` ${String(f.prono.horas).replace('.',',')} h`:''} (desde ${_pdesde})</span>`:'';
     const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+pveChip+awChip+pronoChip+
       (f.alertas||[]).filter(a=>!/^Sin evolución/i.test(a)).map(a=>`<span class="ent-tag ent-tag-alert">⚠️ ${a}</span>`).join('');
-    // Último cultivo (fecha + estudio + microorganismo), usado en el piso 1
-    const cult=f.ultimoCultivo?`${f.ultimoCultivo.nombre||'Cultivo'} ${f.ultimoCultivo.fecha}${f.ultimoCultivo.micro?` → <b>${f.ultimoCultivo.micro}</b>`:''}`:'';
+    // Último cultivo (fecha + estudio + RESULTADO), usado en el piso 1. El
+    // resultado no viajaba a la entrega (reporte de Álvaro, ago-2026): solo
+    // salía nombre y fecha; el micro queda de respaldo si no hay resultado.
+    const cult=f.ultimoCultivo?`${f.ultimoCultivo.nombre||'Cultivo'} ${f.ultimoCultivo.fecha}${f.ultimoCultivo.resultado?` → <b>${f.ultimoCultivo.resultado}</b>`:(f.ultimoCultivo.micro?` → <b>${f.ultimoCultivo.micro}</b>`:'')}`:'';
     const planVal=(f.plan||'').replace(/"/g,'&quot;');
     // ── FICHA ANCHA EN DOS PISOS (opción C, elegida por Diego) ──
     // Piso 1: cómo está el paciente AHORA. Piso 2: qué pasó y qué sigue.
@@ -12262,8 +12381,12 @@ function renderEntrega(d){
       f.modo?`Modo <b>${f.modo}</b>`:'']);
     const secr=_u([f.secr?`Secreciones ${f.secr}`:'', cult,
       (f.dispositivos&&f.dispositivos.length)?f.dispositivos.map(x=>{
-        const mk=x.estado==='vencido'?' <b style="color:#b91c1c;">VENCIDO</b>':(x.estado==='cambiar'?' <b style="color:#b45309;">cambiar</b>':'');
-        return `${x.n} ${x.dia}/${x.dur}${mk}`; }).join(' · '):'']);
+        // Fecha EXACTA de cambio (ago-2026): «HME cambio 05-08», «cambiar ESTA
+        // NOCHE» o «VENCIDO — debió cambiarse el dd-mm». Los días se fueron.
+        const mk=x.estado==='vencido'?` <b style="color:#b91c1c;">VENCIDO${x.cambio?' — debió cambiarse el '+x.cambio:''}</b>`
+                :(x.estado==='cambiar'?` <b style="color:#b45309;">cambiar ESTA NOCHE${x.cambio?' ('+x.cambio+')':''}</b>`
+                :(x.cambio?` cambio ${x.cambio}`:''));
+        return `${x.n}${mk}`; }).join(' · '):'']);
     const neuro=_u([
       [f.sas!==''&&f.sas!=null?`SAS ${f.sas}`:'', f.sedTipo||''].filter(Boolean).join(' · '),
       [f.bnm?'<b style="color:#be123c;">BNM ✓</b>':'', f.cooperacion||''].filter(Boolean).join(' · '),

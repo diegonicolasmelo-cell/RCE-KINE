@@ -54,7 +54,9 @@ const { chromium } = require('playwright-core');
     rielRender();
     r.verdesConDatos = document.querySelectorAll('#spRiel .riel-st.ok').length > 0;
     r.faltaSoloFirma = $('gFalta').textContent;
-    // Con firma, el aviso desaparece
+    // Con TOT la PVE pasó a ser obligatoria de declarar (ago-2026): se contesta
+    // «no» y, con la firma puesta, el aviso desaparece
+    $('fPVEval').value = 'no';
     $('fFirma').innerHTML = '<option value="Diego Melo">Diego Melo</option>';
     $('fFirma').value = 'Diego Melo';
     rielRender();
@@ -68,8 +70,9 @@ const { chromium } = require('playwright-core');
   eq('al abrir en blanco anuncia lo obligatorio', R1.faltaInicial, 'Falta: firma y vía aérea');
   eq('sin datos no está todo verde', R1.ningunaVerde, true);
   eq('una sección con datos se marca ✓', R1.verdesConDatos, true);
-  eq('con vía aérea queda solo la firma', R1.faltaSoloFirma, 'Falta: firma');
-  eq('con firma el aviso desaparece', R1.faltaVacio, '');
+  // Con el paciente en TOT la PVE es obligatoria de declarar (ago-2026)
+  eq('con vía aérea quedan la firma y la PVE', R1.faltaSoloFirma, 'Falta: firma y PVE sí/no');
+  eq('con firma y PVE declarada el aviso desaparece', R1.faltaVacio, '');
   eq('tocar un ítem salta sin error', R1.saltaOk, true);
 
   /* ── 2 · Reintento automático del guardado ── */

@@ -121,16 +121,19 @@ const { chromium } = require('playwright-core');
   eq('el texto es estable entre generaciones', R.estable, true);
 
   console.log('\n── Cada etiqueta corresponde a su contenido ──');
-  eq('«fase» es la fase clínica', /^Fase clínica:/.test(R.tFase), true);
+  // Redacción de Diego (ago-2026): «En proceso de weaning», no «Fase clínica: …»
+  eq('«fase» es la fase clínica', /^En proceso de weaning\. En proceso de rehabilitación precoz\./.test(R.tFase), true);
   eq('«pvol» son volúmenes y frecuencia', /Vti 470 ml/.test(R.tPvol), true);
   eq('«ppres» son presiones y mecánica', /Pmax 22 cmH2O/.test(R.tPpres), true);
   eq('…y no arrastra la oxigenación', /FiO2/.test(R.tPpres), false);
   eq('«neuro» es el neuromonitoreo', /^Neuromonitoreo:/.test(R.tNeuro), true);
   eq('«plan» es el plan', /^Plan:/.test(R.tPlan), true);
   eq('«nota» es la nota', /^Nota:/.test(R.tNota), true);
-  eq('«firma» es la firma', /Rojas/.test(R.tFirma), true);
+  // La firma SALIÓ del texto generado (ago-2026, pedido de Diego: al copiar
+  // al BUDA estorbaba). La columna FIRMA y la entrega la conservan.
+  eq('«firma» ya no existe en el texto generado', R.tFirma, '');
   eq('el encabezado abre el texto', R.encPrimero, 'enc');
-  eq('la firma lo cierra', R.firmaUltimo, 'firma');
+  eq('la nota lo cierra (la firma salió del texto)', R.firmaUltimo, 'nota');
   eq('plan y nota son bloques distintos', R.planNoEsNota, true);
   eq('los parámetros van en TRES bloques separados', R.tresParams, true);
 

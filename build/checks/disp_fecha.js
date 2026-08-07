@@ -93,22 +93,30 @@ const { chromium } = require('playwright-core');
     autoFechasDispositivos(false, true);
     r.fechado = { hme: v('fFecHME'), hepa: v('fFecHEPA'), tc: v('fFecSonda') };
     r.diaHME = $('sHMEDias') ? $('sHMEDias').textContent : '';
-    // ── Turno DÍA del 1-ago: el mismo circuito sigue en su día 1 ──
-    $('gDate').value = '2026-08-01'; SHIFT = 'Dia';
+    // ── Turno DÍA del 2-ago: víspera del cambio (etiqueta 01 + 2 = 03) ──
+    $('gDate').value = '2026-08-02'; SHIFT = 'Dia';
     calcInsumosDias();
-    r.diaHME_1ago = $('sHMEDias') ? $('sHMEDias').textContent : '';
-    // ── Turno NOCHE del 1-ago (efectiva 2-ago): día 2, toca cambiar ──
-    SHIFT = 'Noche'; calcInsumosDias();
-    r.diaHME_1agoNoche = $('sHMEDias') ? $('sHMEDias').textContent : '';
+    r.hme02 = $('sHMEDias') ? $('sHMEDias').textContent : '';
+    // ── El 3-ago ES el día de cambio del HME (su noche) ──
+    $('gDate').value = '2026-08-03'; SHIFT = 'Noche'; calcInsumosDias();
+    r.hme03 = $('sHMEDias') ? $('sHMEDias').textContent : '';
+    r.hepa03 = $('sHEPADias') ? $('sHEPADias').textContent : '';
+    // ── El 4-ago, sin cambio registrado, queda vencido ──
+    $('gDate').value = '2026-08-04'; SHIFT = 'Dia'; calcInsumosDias();
+    r.hme04 = $('sHMEDias') ? $('sHMEDias').textContent : '';
     return r;
   });
   eq('cliente: fecha efectiva del turno Noche = día siguiente', R.efNoche, '2026-08-01');
   eq('cliente: en turno Día no se corre la fecha', R.efDia, '2026-07-31');
-  eq('el circuito instalado la noche del 31 se fecha el 1 de agosto',
+  eq('el circuito instalado la noche del 31 se ETIQUETA el 1 de agosto',
     R.fechado.hme === '2026-08-01' && R.fechado.hepa === '2026-08-01' && R.fechado.tc === '2026-08-01', true);
-  eq('esa misma noche el HME va en su día 1 (antes marcaba 2)', /Día 1\/2/.test(R.diaHME), true);
-  eq('el turno Día del 1-ago lo mantiene en día 1', /Día 1\/2/.test(R.diaHME_1ago), true);
-  eq('la noche del 1-ago pasa a día 2 y avisa el cambio', /Día 2\/2 · cambiar/.test(R.diaHME_1agoNoche), true);
+  // SEMÁNTICA NUEVA (ago-2026, validada por Diego): el chip muestra la FECHA
+  // EXACTA de cambio, no un contador de días.
+  eq('esa misma noche el chip trae la fecha exacta (01+2 = 03-08)', /Cambio: 03-08/.test(R.diaHME), true);
+  eq('el 2-ago avisa que el cambio es mañana en la noche', /Cambio: 03-08 \(mañana en la noche\)/.test(R.hme02), true);
+  eq('la noche del 3-ago dice CAMBIAR ESTA NOCHE', /Cambiar ESTA NOCHE \(03-08\)/.test(R.hme03), true);
+  eq('…y el HEPA de la misma cama aún no (su noche es la del 4)', /Cambio: 04-08/.test(R.hepa03), true);
+  eq('el 4-ago sin cambio queda VENCIDO con la fecha que se saltó', /VENCIDO — debió cambiarse el 03-08/.test(R.hme04), true);
 
   await b.close();
   if (errs.length) { console.log('❌ errores JS: ' + errs.join(' | ')); fails.push('js'); }
