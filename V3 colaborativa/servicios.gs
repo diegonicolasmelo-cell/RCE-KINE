@@ -590,10 +590,9 @@ function darAltaPaciente(datos, ctx) {
       });
 
       // Partición (D5): mover las evoluciones del episodio al archivo histórico.
-      if (pid) {
-        evos.forEach(e => repoInsertar('EVOLUCIONES_ARCHIVO', e));
-        repoEliminarDonde('EVOLUCIONES', e => e.PATIENT_ID === pid);
-      }
+      // Mismo helper que usa `limpiarCama`, para que las dos vías de cierre no
+      // puedan divergir (ago-2026).
+      _archivarEvolucionesEpisodio(pid);
 
       _limpiarCamaInterno(idCama);
       SpreadsheetApp.flush();
@@ -681,10 +680,63 @@ function moverACamaVacia(idOrigen, idDestino, ctx) {
 }
 
 // ── LIMPIAR ────────────────────────────────────────────────
+/**
+ * Manda las evoluciones de un episodio al archivo histórico, igual que el alta.
+ *
+ * OJO — esto va SEPARADO de `_limpiarCamaInterno` a propósito, y no es un
+ * detalle de estilo: ese helper también lo usa el TRASLADO a cama vacía, que
+ * limpia el origen y enseguida re-etiqueta las evoluciones a la cama nueva. Si
+ * el archivado viviera adentro, un traslado archivaría la historia de un
+ * paciente que sigue hospitalizado y el re-etiquetado no encontraría nada que
+ * mover. Solo archiva quien de verdad cierra el episodio.
+ *
+ * @return {number} cuántas evoluciones se archivaron.
+ */
+function _archivarEvolucionesEpisodio(patientId) {
+  const pid = String(patientId || '');
+  if (!pid) return 0;
+  const evos = repoLeerTodos('EVOLUCIONES', 'PATIENT_ID', pid);
+  if (!evos.length) return 0;
+  evos.forEach(e => repoInsertar('EVOLUCIONES_ARCHIVO', e));
+  repoEliminarDonde('EVOLUCIONES', e => String(e.PATIENT_ID) === pid);
+  return evos.length;
+}
+
+/**
+ * Libera una cama. Si tenía paciente, sus evoluciones se ARCHIVAN igual que en
+ * el alta (decisión de Diego, ago-2026).
+ *
+ * EL BUG QUE CIERRA: hasta ahora solo `darAltaPaciente` archivaba, así que una
+ * cama limpiada sin alta formal dejaba las evoluciones del ocupante anterior
+ * VIVAS en la hoja. Como la pronación abierta se busca por ID_CAMA y no por
+ * paciente, el siguiente ocupante heredaba una pronación ajena: en la prueba de
+ * Manuel salió «tras 108,5 h en prono» con horas de otra persona.
+ *
+ * NO se escribe fila en ARCHIVO_PACIENTES: limpiar no es un egreso clínico (no
+ * hay motivo, destino ni evaluaciones de alta) e inventar uno contaminaría el
+ * REM y los indicadores con un egreso que nadie registró. Lo que se arregla es
+ * el arrastre entre pacientes; el episodio queda consultable en el histórico.
+ */
 function limpiarCama(idCama) {
   return conLock(() => {
-    try { _limpiarCamaInterno(String(idCama)); SpreadsheetApp.flush(); return ok({ idCama, accion: 'limpiar' }); }
-    catch (e) { return err('limpiarCama: ' + e.message, ERR.INTERNO, e); }
+    try {
+      const id = String(idCama);
+      const c = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', id);
+      const pid = c ? String(c.PATIENT_ID || '') : '';
+      const nombre = c ? String(c.NOMBRE || '') : '';
+      const archivadas = _archivarEvolucionesEpisodio(pid);
+      _limpiarCamaInterno(id);
+      if (archivadas) {
+        auditar({
+          accion: 'LIMPIAR_CAMA_ARCHIVA', entidad: 'EVOLUCIONES_ARCHIVO', idEntidad: id,
+          patientId: pid,
+          resumen: archivadas + ' evolucion(es) de ' + (nombre || pid) +
+                   ' archivadas al liberar la cama ' + id + ' sin alta formal',
+        });
+      }
+      SpreadsheetApp.flush();
+      return ok({ idCama: id, accion: 'limpiar', archivadas: archivadas });
+    } catch (e) { return err('limpiarCama: ' + e.message, ERR.INTERNO, e); }
   });
 }
 
