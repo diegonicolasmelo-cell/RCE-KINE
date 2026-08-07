@@ -738,3 +738,108 @@ function _mtoQuitarPrueba(escribir) {
   }
   return log.join('\n');
 }
+
+
+// ════════════════════════════════════════════════════════════════════════════
+//  MEDICIÓN DEL ARRANQUE (ago-2026)
+//
+//  Regla aprendida en otro sistema del mismo tipo (la agenda de Colitas): la
+//  causa de la lentitud NUNCA fue la que parecía, y optimizar «lo que se ve
+//  pesado» perdió días sin arreglar nada. Antes de tocar hay que cronometrar
+//  por capas, y después hay que demostrar que acelerar no cambió ni un dato.
+//
+//  Esta función hace las dos cosas en una sola corrida desde el editor:
+//    · cronometra cada parte de GET_BOOT por separado;
+//    · corre el arranque completo CON y SIN el memo de configuración;
+//    · compara las dos respuestas y avisa si difieren en algo.
+//
+//  Orden deliberado: primero CON memo y después SIN memo. Las lecturas de una
+//  hoja quedan tibias del lado de Google, así que el segundo en correr tiene
+//  ventaja — dársela al comportamiento ANTIGUO hace que la comparación sea
+//  conservadora: si el memo igual gana, la ganancia es real.
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Cronometra el arranque y compara con/sin memo. Correr desde el editor y leer
+ * el registro de ejecución. No escribe nada.
+ * @return {string} el mismo informe que deja en el log.
+ */
+function medirArranque() {
+  const fecha = hoyISO();
+  const key = fecha + '-Dia';
+  const out = [];
+  const p = function (s) { out.push(s); };
+
+  const cron = function (etiqueta, fn) {
+    const t0 = Date.now();
+    let r = null, e = '';
+    try { r = fn(); } catch (ex) { e = ex.message; }
+    const ms = Date.now() - t0;
+    p('   ' + etiqueta + ': ' + ms + ' ms' + (e ? '   ⚠ ' + e : ''));
+    return { ms: ms, r: r };
+  };
+
+  const limpiar = function () { _CFG_MEMO = null; _TZ_MEMO = null; _CAT_MEMO = {}; };
+
+  // Calentamiento: la primera lectura de la planilla en una ejecución paga el
+  // arranque en frío de Apps Script. Se descarta para no atribuírselo a nadie.
+  _MEMO_OFF = false; limpiar();
+  const cal = Date.now();
+  try { obtenerTodasLasCamas(); } catch (e) {}
+  p('Calentamiento (arranque en frío + abrir la planilla): ' + (Date.now() - cal) + ' ms');
+  p('');
+
+  // ── 1) CON memo ───────────────────────────────────────────────────────────
+  p('CON memo (esta versión):');
+  _MEMO_OFF = false; limpiar();
+  const cfg2 = cron('config de interfaz', function () { return _configUI(); });
+  const fas2 = cron('catálogo de fases', function () { return catalogo('FASE_CLINICA'); });
+  const mat2 = cron('matrices de categorización', function () { return catMatrices(); });
+  const cam2 = cron('camas', function () { return obtenerTodasLasCamas(); });
+  const evo2 = cron('evoluciones del día', function () { return obtenerEvosDelDia(fecha); });
+  limpiar();
+  const boot2 = cron('GET_BOOT completo', function () { return api('GET_BOOT', { fecha: fecha, key: key }, null); });
+
+  p('');
+
+  // ── 2) SIN memo (como estaba antes) ───────────────────────────────────────
+  p('SIN memo (comportamiento anterior):');
+  _MEMO_OFF = true; limpiar();
+  const cfg1 = cron('config de interfaz', function () { return _configUI(); });
+  const fas1 = cron('catálogo de fases', function () { return catalogo('FASE_CLINICA'); });
+  const mat1 = cron('matrices de categorización', function () { return catMatrices(); });
+  const cam1 = cron('camas', function () { return obtenerTodasLasCamas(); });
+  const evo1 = cron('evoluciones del día', function () { return obtenerEvosDelDia(fecha); });
+  limpiar();
+  const boot1 = cron('GET_BOOT completo', function () { return api('GET_BOOT', { fecha: fecha, key: key }, null); });
+  _MEMO_OFF = false; limpiar();   // dejar el servidor como estaba
+
+  // ── 3) ¿Cambió algún valor? ───────────────────────────────────────────────
+  // `ahora` es el reloj del servidor y cambia entre corridas: se excluye.
+  const norm = function (b) {
+    try {
+      const d = JSON.parse(JSON.stringify((b && b.data) || {}));
+      delete d.ahora;
+      return JSON.stringify(d);
+    } catch (e) { return 'ERROR:' + e.message; }
+  };
+  const iguales = norm(boot1.r) === norm(boot2.r);
+
+  p('');
+  p('─────────────────────────────────────────────');
+  p('GET_BOOT   sin memo: ' + boot1.ms + ' ms');
+  p('GET_BOOT   con memo: ' + boot2.ms + ' ms');
+  const dif = boot1.ms - boot2.ms;
+  p('Diferencia: ' + dif + ' ms' + (boot1.ms ? '  (' + Math.round(dif * 100 / boot1.ms) + '%)' : ''));
+  p('Solo la config: ' + cfg1.ms + ' ms → ' + cfg2.ms + ' ms');
+  p('Respuesta idéntica con y sin memo: ' + (iguales ? 'SÍ ✓' : 'NO ✗  ← REVISAR ANTES DE PUBLICAR'));
+  p('');
+  p('Referencia: camas ' + cam1.ms + '/' + cam2.ms + ' ms · evoluciones ' +
+    evo1.ms + '/' + evo2.ms + ' ms · fases ' + fas1.ms + '/' + fas2.ms +
+    ' ms · matrices ' + mat1.ms + '/' + mat2.ms + ' ms  (sin/con memo)');
+
+  const informe = out.join('\n');
+  Logger.log(informe);
+  console.log(informe);
+  return informe;
+}

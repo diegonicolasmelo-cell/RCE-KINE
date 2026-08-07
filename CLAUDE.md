@@ -595,19 +595,40 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - PENDIENTE: confirmar con el colega los casos 3 y 6 (¿en qué paciente lo
     vio?) antes de programar, y decidir con Diego los casos 1, 2 y 4.
 
-- **MANUEL TRABAJÓ SOBRE LA v5.22 — FUSIÓN PENDIENTE (6-ago-2026).** Manuel
-  implementó su «ola 1» de velocidad **directo en el editor de Apps Script**,
-  sin pasar por el repositorio (verificado: cero commits suyos en la historia
-  de `main`, ninguna rama nueva) y **partiendo de la v5.22** — o sea, ~21
-  versiones atrás de lo que hay hoy. Diego pegó después otro index encima.
-  - Al fusionar: NO aplicar su archivo entero encima (borraría todo lo de
-    v5.23→v5.44). Hay que sacar SUS cambios como diferencia contra la v5.22 y
-    reaplicarlos sobre la actual, uno por uno, corriendo la batería entre
-    medio. Diego está a la espera de que Manuel entregue el archivo.
-  - RAÍZ DEL PROBLEMA, ya avisada: hay UN solo proyecto de Apps Script y el
-    último que pega borra al anterior sin aviso. Regla acordada: Manuel
-    commitea a GitHub ANTES de pegar, una sola persona publica (Diego), y se
-    avisa antes de pegar.
+- **OLA 1 DE MANUEL FUSIONADA A MAIN (6-ago-2026).** La alarma inicial
+  («trabajó sobre la v5.22») resultó FALSA en lo que importa: sus ramas
+  (`manuel/velocidad-arranque` y la definitiva
+  `manuel/velocidad-y-entrega-turno`) parten del ÚLTIMO commit nuestro —
+  hizo fetch antes de trabajar, como acordó. Lo del «5.22» era el contador
+  de implementaciones de Google (Versión 22) Y un hallazgo suyo real: el
+  index PEGADO en el proyecto de Apps Script era, por contenido, el cohete
+  v5.22-cierre mientras el servidor iba en 5.43 — por eso Diego «no veía» la
+  caja de sugerencias (nació en v5.28). No era código perdido: era un front
+  viejo pegado. Diego repegó el 5.43 y quedó al día.
+  - **Qué trae la Ola 1** (solo servidor, JAMÁS toca index.html): CONFIG y
+    catálogos se leen UNA vez por petición (`_cfgTabla`/`_CAT_MEMO` con
+    `_memoReset()` al entrar a `api()` — en GAS cada petición es proceso
+    nuevo; el reseteo existe para el simulador); `_tz()` memorizada (está en
+    el camino de CADA timestamp); el episodio de una cama se baja UNA vez por
+    guardado (`_evosCama()` en guardarEvolucion, viaja como parámetro
+    opcional `_evos` a obtenerEvolucionPrevia/_pronoAbiertoTS — sin él se
+    comportan igual que antes); `obtenerEvoTurno` baja el episodio una vez en
+    lugar de tres; retirado `_PRONO_ABIERTO_TS` de obtenerEvolucionPrevia
+    (verificado: NADIE lo leía; la vía real es `pronoAbierto` de
+    GET_EVO_TURNO); `patientId` viaja a `_crearHitosDesdeProcedimientos`.
+    Medido por él EN PRODUCCIÓN: GET_BOOT 3.823→1.253 ms (−67%), respuesta
+    idéntica antes/después. `medirArranque()` en mantenimiento.gs cronometra
+    con/sin memo (orden deliberado: el SIN memo corre segundo, con caché de
+    Google tibio — la comparación es conservadora).
+  - Guardias suyas: `memo_config.js`, `memo_tz.js`, `memo_episodio.js`. La
+    batería completa (56) pasa sobre la fusión.
+  - PENDIENTE SUYO anotado en sus commits: al limpiar cama sin alta formal
+    las evoluciones no se archivan y `_pronoAbiertoTS` busca por CAMA ⇒ el
+    ocupante siguiente puede heredar una pronación abierta ajena («tras
+    108,5 h en prono» con horas de otra persona). Es criterio clínico de
+    Diego elegir la salida (archivar al limpiar vs filtrar por paciente).
+  - Reglas de convivencia que SÍ funcionaron: fetch antes de trabajar, avisar
+    por #mejoras-rce antes de pegar, una sola persona publica.
 
 - **PRONO / POSICIONAMIENTO / HSA — DISEÑO EN CURSO, NO PROGRAMADO (ago-2026).**
   Nace del caso de Caterina (cama 4): María José prona a las 19:00 del 2-ago

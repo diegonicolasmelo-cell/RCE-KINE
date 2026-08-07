@@ -494,22 +494,52 @@ function esquemaObjetoAFila(hoja, obj) {
   return fila;
 }
 
-/** Lee una clave de CONFIG (columna A=clave, B=valor). Devuelve porDefecto si no existe. */
-function leerConfig(clave, porDefecto) {
+// ── CONFIG: una sola lectura por ejecución (ago-2026) ───────────────────────
+// `leerConfig` bajaba la tabla CONFIG entera CADA vez que se le preguntaba una
+// clave, y un solo arranque pregunta 17 veces (12 en _configUI, 4 en camas, 1
+// en evoluciones) por una tabla de ~20 filas que no cambia durante la
+// petición. En Apps Script cada llamada a la API de Sheets es un viaje de red:
+// se pagaban ~50 viajes para leer 17 valores.
+//
+// El memo vive lo que dura la ejecución. Eso basta y es lo seguro: cada
+// petición a la web app es un proceso nuevo, así que nadie puede quedarse con
+// una configuración vieja. `escribirConfig` lo invalida para que quien escriba
+// y lea seguido dentro de la misma ejecución vea su propio cambio.
+// (`_MEMO_OFF`, `_memoApagado()` y `_memoReset()` viven en infra_util.gs, que
+// es el archivo que también se carga en el simulador.)
+var _CFG_MEMO = null;
+
+/** Tabla CONFIG {clave: valor} de esta petición. */
+function _cfgTabla() {
+  if (_CFG_MEMO && !_memoApagado()) return _CFG_MEMO;
+  const m = {};
   try {
     const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
     if (h && h.getLastRow() >= 2) {
       const vals = h.getRange(2, 1, h.getLastRow() - 1, 2).getValues();
       for (let i = 0; i < vals.length; i++) {
-        if (String(vals[i][0]).trim() === clave && String(vals[i][1]).trim() !== '') return String(vals[i][1]).trim();
+        const k = String(vals[i][0]).trim(), v = String(vals[i][1]).trim();
+        // Misma semántica que la lectura anterior: gana la PRIMERA aparición de
+        // la clave, y un valor vacío NO cuenta como definido (cae al
+        // por-defecto de quien pregunta).
+        if (k && v !== '' && !Object.prototype.hasOwnProperty.call(m, k)) m[k] = v;
       }
     }
   } catch (e) {}
-  return porDefecto;
+  if (!_memoApagado()) _CFG_MEMO = m;
+  return m;
+}
+
+/** Lee una clave de CONFIG (columna A=clave, B=valor). Devuelve porDefecto si no existe. */
+function leerConfig(clave, porDefecto) {
+  const m = _cfgTabla();
+  return Object.prototype.hasOwnProperty.call(m, clave) ? m[clave] : porDefecto;
 }
 
 /** Escribe (o crea) una clave en la hoja CONFIG. */
 function escribirConfig(clave, valor) {
+  _CFG_MEMO = null;   // lo que se escribe debe verse en la siguiente lectura
+  _TZ_MEMO = null;    // TIMEZONE vive en la misma hoja
   const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
   if (!h) throw new Error('No existe la hoja CONFIG (corre crearORepararEstructura).');
   const n = h.getLastRow();
@@ -540,16 +570,32 @@ function salirModoPrueba() {
   return 'Modo prueba DESACTIVADO (AUTH_DEV_MODE=FALSE).';
 }
 
+// Zona horaria: UNA lectura por petición (ago-2026). Ojo con el alcance: _tz()
+// NO es un rincón raro. Está en el camino caliente, porque lo llaman
+// `hoyISO()` y `ahoraTS()` (infra_fechas.gs) — o sea CADA TIMESTAMP que se
+// escribe: cada evolución, cada hito, cada línea de auditoría. Encima,
+// esquemaFilaAObjeto lo pide por CADA celda que venga como fecha (la rama
+// `v instanceof Date`): esa vía hoy casi no se dispara porque _forzarTexto
+// mantiene las columnas de fecha como texto, pero basta con que UNA celda
+// quede con formato de fecha —un pegado, una reparación a mano— para que
+// abrir Estadísticas pase de 22 lecturas a miles.
+// El memo vive lo que dura la petición: api() lo olvida al entrar
+// (_memoReset) y escribirConfig lo invalida al escribir. Guardia: memo_tz.js.
+var _TZ_MEMO = null;
+
 function _tz() {
+  if (_TZ_MEMO !== null && !_memoApagado()) return _TZ_MEMO;
+  let tz = 'America/Santiago';
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const h = ss.getSheetByName('CONFIG');
     if (h) {
       const vals = h.getRange(1, 1, h.getLastRow() || 1, 2).getValues();
-      for (const r of vals) if (String(r[0]) === 'TIMEZONE' && r[1]) return String(r[1]);
+      for (const r of vals) if (String(r[0]) === 'TIMEZONE' && r[1]) { tz = String(r[1]); break; }
     }
   } catch (e) {}
-  return 'America/Santiago';
+  if (!_memoApagado()) _TZ_MEMO = tz;
+  return tz;
 }
 
 // ============================================================
