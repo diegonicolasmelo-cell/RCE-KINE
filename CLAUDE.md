@@ -351,8 +351,41 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     en 0 sin que nada fallara. Si algún día se hace: declarar
     `_CAMPOS_REM.concat(_REM_EVAL_CAMPOS)` y extender la guardia; el punto 2 de
     `checks/columnas.js` ya sabe reconocer ese patrón.
-  - ⏳ **DOS FUNCIONES QUE HAY QUE CORRER EN LA PLANILLA ANTES DE DEJARLA
-    PUESTA**, en este orden:
+  - 🔴 **MEDIDA EN LA PLANILLA REAL Y APAGADA. `_COLS_OFF = true`.** Dos
+    corridas independientes (8-ago-2026, 18:32 y 18:47) — los datos son el
+    resultado de verdad de esta ola:
+    | GET_INDICADORES | corrida 1 | corrida 2 |
+    |---|---|---|
+    | **hoja entera** | **1.465 ms** | **1.545 ms** |
+    | hasta 1 lectura | 1.626 (+11%) | 1.898 (+23%) |
+    | hasta 3 lecturas | 2.670 (+82%) | 1.688 (+9%) |
+    | hasta 6 lecturas | 1.670 (+14%) | 2.382 (+54%) |
+    | hasta 10 lecturas | 2.239 (+53%) | 2.839 (+84%) |
+    - **Leer la hoja entera ganó las ocho comparaciones.** El ahorro de celdas
+      es real (13× medido en Node) pero **en Apps Script el viaje pesa más que
+      la celda**, y a este volumen no alcanza a pagarse.
+    - **Repetir la medición es lo que la vuelve sólida:** entre las dos corridas
+      **el orden de los techos se dio vuelta** (el 3 pasó de peor a mejor, el 6
+      al revés) ⇒ las diferencias *entre techos* son ruido de red. Lo que no se
+      movió es que la lectura entera gana siempre, y con el tiempo más estable.
+      Una sola corrida habría dejado elegir «el mejor techo» sobre puro ruido.
+    - **El volumen es la clave, y desmiente la premisa de la que nació la ola:**
+      EVOLUCIONES tiene **136 filas** y EVOLUCIONES_ARCHIVO **90** — son
+      **87.236 celdas por tablero, no millones**. La lectura por columnas sí se
+      activó (136 × 386 = 52.496 > el umbral de 40.000), así que la comparación
+      fue real; simplemente no hay bastante dato todavía para que gane. De paso:
+      **el tablero no está lento** (1.465 ms), o sea que el problema que esto
+      venía a resolver aún no ha llegado.
+    - Los números traen ruido —el techo 3 no puede ser peor que el 6— pero
+      ninguna corrida quedó por debajo de leer entero.
+    - **El código se queda apagado, no se borra**: tiene interruptor, medidor,
+      9 bloques de guardia y esta medición anotada. El día que la hoja crezca de
+      verdad, `medirTablero()` vuelve a decidir. Si se reactiva, **subir antes
+      el umbral de 40.000 celdas**: a 52.496 ya perdía.
+    - Lo que **sí queda encendido** y no depende de esto: el blindaje de
+      escritura contra registros parciales y la definición única de día-VM.
+  - ⏳ **LAS DOS FUNCIONES QUE HAY QUE CORRER EN LA PLANILLA ANTES DE ENCENDERLA
+    (fueron las que dieron el veredicto de arriba)**, en este orden:
     1. **`verificarTablero()`** — la que decide si los datos están bien. Con los
        datos REALES, compara el tablero por columnas contra el tablero entero
        **indicador por indicador**, en dos rangos (mes en curso y año completo,
@@ -365,9 +398,11 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
        leyendo entero y con techos de 1, 3, 6 y 10 lecturas por hoja y dice cuál
        ganó. **Si ninguno le gana a leer la hoja entera, lo correcto es poner
        `_COLS_OFF = true` y anotarlo, no dejar el código puesto por si acaso.**
-    Hasta entonces **la ganancia en segundos NO se declara**. Lo medido en Node
-    sobre 400 filas sintéticas: 154.617 → 34.217 celdas (4,5× menos) a cambio de
-    10 viajes más.
+    Lo medido en Node sobre 400 filas sintéticas —154.617 → 34.217 celdas, 4,5×
+    menos, a cambio de 10 viajes más— **resultó ser el lado equivocado de la
+    balanza**: las celdas ahorradas no pagaron los viajes. Contar celdas en Node
+    predijo mal el reloj en Apps Script; por eso la regla es medir en la
+    planilla y no declarar segundos que no se midieron ahí.
   - 🪤 **`_auditar` YA EXISTÍA en `api.gs`** — es el envoltorio que escribe la
     traza de auditoría de cada acción. La primera versión de la auditoría de
     columnas se llamaba igual y **la habría pisado en silencio**, porque en Apps

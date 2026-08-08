@@ -91,7 +91,30 @@ function repoLeerFiltrado(hoja, colKey, pred) {
   return out;
 }
 
-var _COLS_OFF = false;        // solo lo levanta medirTablero(), para comparar con/sin
+// 🔴 APAGADA POR MEDICIÓN, DOS VECES (8-ago-2026 18:32 y 18:47, planilla real).
+// NO encenderla sin volver a correr `medirTablero()`. Con 136 filas en
+// EVOLUCIONES y 90 en EVOLUCIONES_ARCHIVO —87.236 celdas por tablero, no
+// millones— **leer la hoja entera ganó las ocho comparaciones**:
+//
+//                          corrida 1        corrida 2
+//     hoja entera ......... 1.465 ms         1.545 ms
+//     hasta  1 lectura .... 1.626 (+11%)     1.898 (+23%)
+//     hasta  3 lecturas ... 2.670 (+82%)     1.688  (+9%)
+//     hasta  6 lecturas ... 1.670 (+14%)     2.382 (+54%)
+//     hasta 10 lecturas ... 2.239 (+53%)     2.839 (+84%)
+//
+// El ahorro de celdas es real (13× en Node) pero a este volumen no alcanza a
+// pagar los viajes de más: en Apps Script el viaje pesa más que la celda.
+// Leer las dos corridas juntas es lo que hace sólida la conclusión: **el orden
+// entre techos se dio vuelta** (el 3 pasó de peor a mejor, el 6 al revés), o
+// sea que las diferencias entre ellos son ruido de red; lo que NO se movió es
+// que la lectura entera gana siempre, y es además el tiempo más estable.
+//
+// El código se queda, apagado y con sus guardias, porque el día que la hoja
+// crezca de verdad la cuenta puede darse vuelta: entonces `medirTablero()`
+// vuelve a decidir. Ojo: el umbral de 40.000 celdas de más abajo enciende esto
+// demasiado pronto —a 52.496 ya perdía—; si algún día se reactiva, subirlo.
+var _COLS_OFF = true;
 var _COLS_MAX_TRAMOS = 6;     // techo de lecturas por hoja; medirTablero() lo mueve
 var _COLS_AUDIT = false;      // lo enciende verificarTablero(): registra accesos no declarados
 var _COLS_AUDIT_HITS = {};    // 'HOJA.CAMPO' → cuántas veces se tocó sin declararlo
