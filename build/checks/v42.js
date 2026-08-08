@@ -21,6 +21,13 @@ global.repoLeerTodos = (h, campo, valor) => {
   if (campo !== undefined) filas = filas.filter(r => String(r[campo]) === String(valor));
   return filas;
 };
+// Lectura por columnas (Ola 3): el doble recorta igual que producción.
+global.repoLeerColumnas = (h, campos) => (DB[h] || []).map(o => {
+  if (!campos || !campos.length) return Object.assign({}, o);
+  const r = {};
+  campos.forEach(c => { r[c] = (o[c] === undefined) ? '' : o[c]; });
+  return r;
+});
 global.repoBuscarPorId = (h, campo, id) => (DB[h] || []).find(r => String(r[campo]) === String(id)) || null;
 global.repoActualizar = (h, campo, id, c) => { const r = global.repoBuscarPorId(h, campo, id); if (r) Object.assign(r, c); return !!r; };
 global.repoInsertar = (h, o) => { (DB[h] = DB[h] || []).push(o); return o; };

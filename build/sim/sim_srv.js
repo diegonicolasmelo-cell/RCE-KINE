@@ -28,6 +28,15 @@ global.repoLeerTodos = (h, campo, valor) => {
   if (campo !== undefined) filas = filas.filter(r => String(r[campo]) === String(valor));
   return filas;
 };
+// Lectura por columnas (Ola 3). El doble RECORTA de verdad: si un cálculo usa
+// un campo que no declaró, aquí lo ve vacío igual que en producción, y el
+// número sale mal en la simulación en vez de salir mal en la UCI.
+global.repoLeerColumnas = (h, campos) => (DB[h] || []).map(o => {
+  if (!campos || !campos.length) return Object.assign({}, o);
+  const r = {};
+  campos.forEach(c => { r[c] = (o[c] === undefined) ? '' : o[c]; });
+  return r;
+});
 // Misma semántica que repo.gs: el predicado recibe el valor de la columna.
 // (Faltaba desde v5.21: sin él, obtenerEvosDelDia fallaba en silencio dentro
 // de la simulación y el registro diario simulado quedaba sin cobertura.)

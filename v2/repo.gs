@@ -91,6 +91,92 @@ function repoLeerFiltrado(hoja, colKey, pred) {
   return out;
 }
 
+var _COLS_OFF = false;        // solo lo levanta medirTablero(), para comparar con/sin
+var _COLS_MAX_TRAMOS = 6;     // techo de lecturas por hoja; medirTablero() lo mueve
+
+/**
+ * Agrupa columnas sueltas en como mucho `_COLS_MAX_TRAMOS` bloques contiguos,
+ * fusionando siempre el hueco MÁS PEQUEÑO que queda. Para un número de viajes
+ * dado, es la agrupación que baja menos celdas.
+ *
+ * El techo importa más de lo que parece: cada `getRange().getValues()` es un
+ * viaje de red con costo fijo, así que «pedir solo lo justo» puede salir más
+ * caro que bajar la fila entera de una vez. Con las 21 columnas del tablero:
+ * 1 viaje → 324 columnas, 6 → 85, 10 → 29. La curva se aplana pasados ~10.
+ *
+ * @param {Array<number>} idx  columnas 1-based, ordenadas
+ * @return {Array<Array<number>>} tramos [primeraCol, ultimaCol]
+ */
+function _colsTramos(idx) {
+  let tramos = idx.map(function (c) { return [c, c]; });
+  while (tramos.length > _COLS_MAX_TRAMOS) {
+    let mejor = 0, hueco = Infinity;
+    for (let k = 0; k < tramos.length - 1; k++) {
+      const h = tramos[k + 1][0] - tramos[k][1];
+      if (h < hueco) { hueco = h; mejor = k; }
+    }
+    tramos = tramos.slice(0, mejor)
+      .concat([[tramos[mejor][0], tramos[mejor + 1][1]]])
+      .concat(tramos.slice(mejor + 2));
+  }
+  return tramos;
+}
+
+/**
+ * Lee TODAS las filas pero SOLO las columnas pedidas (ago-2026, Ola 3).
+ *
+ * El tablero necesita 21 campos y hasta ahora bajaba las 386 columnas de
+ * EVOLUCIONES *y* de EVOLUCIONES_ARCHIVO: con el año lleno son millones de
+ * celdas por pantalla, y el costo crece con el historial aunque el rango
+ * consultado sea de un mes.
+ *
+ * ⚠️ **El campo que no se pide llega vacío, no llega roto.** Un cálculo que
+ * toque un campo ausente de `campos` no falla: da 0 o '' en silencio, que en
+ * un indicador clínico es peor que un error. Por eso la lista se declara
+ * junto al cálculo y `build/checks/columnas.js` la contrasta contra los
+ * campos que el código realmente toca, incluidos los accesos dinámicos.
+ *
+ * Cae a la lectura completa —que es un solo viaje— cuando no compensa: hoja
+ * pequeña, o campos tan dispersos que habría que bajar media fila igual.
+ *
+ * @param {string} hoja
+ * @param {Array<string>} campos  nombres de columna del esquema
+ * @return {Array<Object>} objetos completos; los campos no pedidos van ''
+ */
+function repoLeerColumnas(hoja, campos) {
+  if (_COLS_OFF === true || !campos || !campos.length) return repoLeerTodos(hoja);
+  const h = _hoja(hoja);
+  const fi = FILA_DATOS[hoja], total = TOTAL_COLS[hoja], ult = h.getLastRow();
+  if (ult < fi) return [];
+  const nFilas = ult - fi + 1;
+  const colmap = COL[hoja];
+  const idx = [];
+  for (let i = 0; i < campos.length; i++) {
+    const c = colmap[campos[i]];
+    if (!c) throw new Error('Columna desconocida: ' + campos[i] + ' en ' + hoja);
+    idx.push(c);
+  }
+  idx.sort(function (a, b) { return a - b; });
+  // Con pocas filas la hoja entera cabe en un viaje y sale más barata.
+  if (nFilas * total <= 40000) return repoLeerTodos(hoja);
+  const tramos = _colsTramos(idx);
+  const ancho = tramos.reduce(function (s, t) { return s + (t[1] - t[0] + 1); }, 0);
+  // Si igual hay que bajar más de media fila, el viaje único gana.
+  if (ancho > total * 0.6) return repoLeerTodos(hoja);
+  const filas = new Array(nFilas);
+  for (let i = 0; i < nFilas; i++) filas[i] = new Array(total).fill('');
+  tramos.forEach(function (t) {
+    const vals = h.getRange(fi, t[0], nFilas, t[1] - t[0] + 1).getValues();
+    for (let i = 0; i < nFilas; i++) {
+      const destino = filas[i], origen = vals[i];
+      for (let j = 0; j < origen.length; j++) destino[t[0] - 1 + j] = origen[j];
+    }
+  });
+  const out = new Array(nFilas);
+  for (let i = 0; i < nFilas; i++) out[i] = esquemaFilaAObjeto(hoja, filas[i]);
+  return out;
+}
+
 /** Índice de fila (1-based) cuyo campo colKey == id, o -1. */
 function repoBuscarFila(hoja, colKey, id) {
   const col = COL[hoja][colKey];
