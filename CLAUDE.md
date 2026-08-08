@@ -261,17 +261,28 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
        fallback del bloque completo) **no lo ejercita ninguna guardia**: las
        cifras de viajes salen del arnés de medición, no de una guardia. Si
        alguien rompe el troceado, las guardias siguen verdes.
-- 🔴 **HALLAZGO PREEXISTENTE (6-ago-2026): `obtenerStats` PIDE UN RANGO PERO SOLO
-  VE PACIENTES ACTIVOS.** `obtenerStats(desde, hasta)` filtra por fecha pero lee
-  únicamente `EVOLUCIONES` — **cero menciones de `EVOLUCIONES_ARCHIVO`** (su
-  propio comentario lo asume: «todas = episodios activos; al egresar se
-  archivan»). Como el alta archiva, **todo paciente dado de alta dentro del rango
-  desaparece de la pestaña Estadísticas**: sus atenciones, días-VM, KTM, PVE y
-  procedimientos dejan de contarse en cuanto egresa. `calcularIndicadores` SÍ
-  baja el archivo, así que las dos mitades del mismo tablero miran universos
-  distintos. Verificar antes de usar cifras de esa pestaña para la jefatura.
-  (No lo causó el archivado del alta de ago-2026: los episodios con `PATIENT_ID`
-  ya se archivaban desde D5. Ese cambio solo alineó los casos sin `PATIENT_ID`.)
+- ⚠️ **`obtenerStats` SOLO VE PACIENTES ACTIVOS — y NO se pierde ningún dato
+  (verificado a fondo el 6-ago-2026, no hay nada que arreglar).**
+  `obtenerStats(desde, hasta)` filtra por fecha pero lee únicamente
+  `EVOLUCIONES`, sin `EVOLUCIONES_ARCHIVO` (su comentario lo asume: «todas =
+  episodios activos; al egresar se archivan»). O sea que un paciente dado de alta
+  dentro del rango no suma en **esa** vista.
+  **La cadena de custodia del dato está intacta**, que era la pregunta que
+  importaba:
+  1. El alta **copia antes de borrar** (`repoInsertar` en el archivo → recién
+     después `repoEliminarDonde`), nunca al revés.
+  2. Las dos hojas tienen **las mismas 386 columnas**: al archivar no se pierde
+     ni un campo.
+  3. **Casi todo lee las dos hojas**: `calcularIndicadores` (`svc_indicadores.gs:27`),
+     el **REM** (`svc_rem.gs:63`), `datosPivot` (`svc_stats.gs:194`) y
+     `obtenerHistorialPaciente` (`svc_evoluciones.gs:659`). La única excepción es
+     `obtenerStats`.
+  4. Lo único que borra del archivo es el **cierre anual**
+     (`archivarAnioHistoricoCONFIRMAR`), que copia a otra planilla, cuenta las
+     filas copiadas y **si no cuadran no borra nada** (`mantenimiento.gs:444`).
+  Conclusión de Manuel: mientras los datos queden guardados, no se toca. Anotado
+  por si algún día una cifra de esa pestaña parece baja: no faltan datos, es que
+  esa vista mira solo a los que siguen en la unidad.
 
 - 🔴 **HALLAZGO PREEXISTENTE (6-ago-2026): DOS DEFINICIONES DE «DÍA CON VM» EN
   `calcularIndicadores`, y una infla un indicador centinela.**
