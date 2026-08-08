@@ -94,6 +94,44 @@ global.repoUpsert = (h, campo, id, obj) => {
   }
   global.repoInsertar(h, obj); return 'crear';
 };
+// ── Primitivas de la Ola 4 (guardado con menos viajes) ──
+// La convención de fila del sim es i+2 (repoBuscarFila de arriba): estas
+// dobles la comparten para que fila↔índice sea coherente entre todas.
+global.repoUpsertEnFila = (h, fila, obj) => {
+  global._colsExigirCompleto(h, obj, 'repoUpsertEnFila');
+  if (fila === -1) { global.repoInsertar(h, obj); return 'crear'; }
+  DB[h][fila - 2] = Object.assign({}, obj);
+  return 'actualizar';
+};
+global.repoLeerFila = (h, fila) => Object.assign({}, DB[h][fila - 2]);
+global.repoEscribirFila = (h, fila, obj) => {
+  global._colsExigirCompleto(h, obj, 'repoEscribirFila');
+  DB[h][fila - 2] = Object.assign({}, obj);
+};
+global.repoLeerTodosConFila = h =>
+  (DB[h] || []).map((r, i) => ({ obj: Object.assign({}, r), fila: i + 2 }));
+global.repoEliminarFilas = (h, filas) => {
+  if (!filas || !filas.length) return 0;
+  const idx = filas.map(f => f - 2).sort((a, b) => b - a);
+  idx.forEach(i => DB[h].splice(i, 1));
+  return idx.length;
+};
+global.repoEliminarPorCols = (h, campos, pred) => {
+  const antes = (DB[h] || []).length;
+  DB[h] = (DB[h] || []).filter(r => {
+    const o = {};
+    campos.forEach(c => { o[c] = r[c]; });
+    return !pred(o);
+  });
+  return antes - DB[h].length;
+};
+global.repoInsertarVarios = (h, objs) => {
+  (objs || []).forEach(o => {
+    global._colsExigirCompleto(h, o, 'repoInsertarVarios');
+    (DB[h] = DB[h] || []).push(Object.assign({}, o));
+  });
+  return (objs || []).length;
+};
 
 // ── Infra que no se evalúa: config, lock, auth, log ──
 global.leerConfig = (k, d) => (k in CONFIG && String(CONFIG[k]).trim() !== '') ? String(CONFIG[k]) : d;

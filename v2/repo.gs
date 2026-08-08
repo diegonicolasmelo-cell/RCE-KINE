@@ -310,8 +310,40 @@ function repoInsertar(hoja, obj) {
   const h = _hoja(hoja);
   const fila = esquemaObjetoAFila(hoja, obj);
   const row = Math.max(h.getLastRow() + 1, FILA_DATOS[hoja]);
+  _repoAsegurarFilas(h, row);
   h.getRange(row, 1, 1, TOTAL_COLS[hoja]).setValues([fila]);
   return obj;
+}
+
+/**
+ * La hoja debe tener filas FÍSICAS hasta `filaFin`: en Sheets, getRange más
+ * allá del grid es una excepción, no una expansión automática. Las hojas que
+ * crecen solas (AUDIT_LOG suma una fila por CADA escritura; PROCEDIMIENTOS y
+ * TIMELINE, varias por guardado) iban a chocar con su última fila física y
+ * desde ese día TODA escritura del sistema fallaría — el peor modo de falla:
+ * de golpe, sin aviso y en la acción que el colega no puede repetir después.
+ */
+function _repoAsegurarFilas(h, filaFin) {
+  const max = h.getMaxRows();
+  if (filaFin > max) h.insertRowsAfter(max, Math.max(filaFin - max, 20));
+}
+
+/**
+ * Inserta VARIAS filas contiguas en UN solo setValues (ago-2026, Ola 4).
+ * Insertar N procedimientos/hitos de un guardado fila a fila costaba N viajes;
+ * como nacen juntos, viajan juntos.
+ */
+function repoInsertarVarios(hoja, objs) {
+  if (!objs || !objs.length) return 0;
+  const h = _hoja(hoja);
+  const filas = objs.map(function (o) {
+    _colsExigirCompleto(hoja, o, 'repoInsertarVarios');
+    return esquemaObjetoAFila(hoja, o);
+  });
+  const row = Math.max(h.getLastRow() + 1, FILA_DATOS[hoja]);
+  _repoAsegurarFilas(h, row + filas.length - 1);
+  h.getRange(row, 1, filas.length, TOTAL_COLS[hoja]).setValues(filas);
+  return filas.length;
 }
 
 /**
@@ -385,8 +417,109 @@ function repoActualizarDonde(hoja, fn, mut) {
 function repoUpsert(hoja, colKey, id, obj) {
   _colsExigirCompleto(hoja, obj, 'repoUpsert');
   const f = repoBuscarFila(hoja, colKey, id);
-  if (f === -1) { repoInsertar(hoja, obj); return 'crear'; }
+  return repoUpsertEnFila(hoja, f, obj);
+}
+
+/**
+ * Upsert cuando la fila YA se conoce (ago-2026, Ola 4): el guardado busca la
+ * fila del turno al empezar (para fusionar con lo ya guardado) y volvía a
+ * buscarla al escribir. Válido SOLO dentro del mismo lock y sin ningún
+ * borrado/inserción de la hoja entre la búsqueda y esta escritura — si no,
+ * la fila puede haberse movido y se escribiría encima de otro registro.
+ * @param {number} fila  1-based, o -1 para insertar
+ */
+function repoUpsertEnFila(hoja, fila, obj) {
+  _colsExigirCompleto(hoja, obj, 'repoUpsertEnFila');
+  if (fila === -1) { repoInsertar(hoja, obj); return 'crear'; }
   const h = _hoja(hoja);
-  h.getRange(f, 1, 1, TOTAL_COLS[hoja]).setValues([esquemaObjetoAFila(hoja, obj)]);
+  h.getRange(fila, 1, 1, TOTAL_COLS[hoja]).setValues([esquemaObjetoAFila(hoja, obj)]);
   return 'actualizar';
+}
+
+/** Fila completa (1-based) como objeto. Para quien ya sabe DÓNDE está. */
+function repoLeerFila(hoja, fila) {
+  const h = _hoja(hoja);
+  return esquemaFilaAObjeto(hoja, h.getRange(fila, 1, 1, TOTAL_COLS[hoja]).getValues()[0]);
+}
+
+/**
+ * Reescribe una fila completa desde un objeto, SIN releerla (ago-2026, Ola 4).
+ *
+ * Es la pareja de repoLeerFila: válida solo dentro del mismo lock, con la fila
+ * quieta (nada borró/insertó en la hoja desde que se leyó) y con el objeto
+ * nacido de la lectura de ESA fila. Todas las hojas del esquema van en formato
+ * texto (@, ver _forzarTexto), así que leer→objeto→fila es sin pérdida; si una
+ * celda pegada a mano llegara como Date, esto la normaliza a texto ISO, que es
+ * lo que el sistema espera de todos modos.
+ */
+function repoEscribirFila(hoja, fila, obj) {
+  _colsExigirCompleto(hoja, obj, 'repoEscribirFila');
+  const h = _hoja(hoja);
+  h.getRange(fila, 1, 1, TOTAL_COLS[hoja]).setValues([esquemaObjetoAFila(hoja, obj)]);
+}
+
+/**
+ * Lee TODA la hoja UNA vez y devuelve cada fila con su número (1-based).
+ * Para flujos que necesitan leer, borrar algunas y conservar el resto en la
+ * mano (la línea de tiempo del guardado) sin pagar una segunda lectura.
+ * @return {Array<{obj:Object, fila:number}>}
+ */
+function repoLeerTodosConFila(hoja) {
+  const h = _hoja(hoja);
+  const fi = FILA_DATOS[hoja], total = TOTAL_COLS[hoja], ult = h.getLastRow();
+  if (ult < fi) return [];
+  const datos = h.getRange(fi, 1, ult - fi + 1, total).getValues();
+  const out = [];
+  for (let i = 0; i < datos.length; i++) out.push({ obj: esquemaFilaAObjeto(hoja, datos[i]), fila: fi + i });
+  return out;
+}
+
+/**
+ * Elimina filas por número (1-based), agrupando en TRAMOS contiguos y de abajo
+ * hacia arriba: N filas seguidas cuestan UN deleteRows, no N deleteRow.
+ * @return {number} filas eliminadas
+ */
+function repoEliminarFilas(hoja, filas) {
+  if (!filas || !filas.length) return 0;
+  const h = _hoja(hoja);
+  const ord = filas.slice().sort(function (a, b) { return a - b; });
+  let n = 0;
+  for (let k = ord.length - 1; k >= 0;) {
+    let ini = k;
+    while (ini > 0 && ord[ini - 1] === ord[ini] - 1) ini--;
+    h.deleteRows(ord[ini], k - ini + 1);
+    n += k - ini + 1;
+    k = ini - 1;
+  }
+  return n;
+}
+
+/**
+ * Elimina filas mirando SOLO las columnas que el predicado necesita
+ * (ago-2026, Ola 4). repoEliminarDonde baja la hoja ENTERA para decidir qué
+ * borrar — en cada guardado eso era PROCEDIMIENTOS completa para reemplazar
+ * los 2-4 procs de un turno, y el costo crece con el año acumulado. Aquí se
+ * baja un único rango contiguo [colMin..colMax] de los campos pedidos.
+ * El predicado recibe un objeto SOLO con esos campos.
+ * @return {number} filas eliminadas
+ */
+function repoEliminarPorCols(hoja, campos, pred) {
+  const h = _hoja(hoja);
+  const fi = FILA_DATOS[hoja], ult = h.getLastRow();
+  if (ult < fi) return 0;
+  const colmap = COL[hoja];
+  const idx = campos.map(function (c) {
+    const k = colmap[c];
+    if (!k) throw new Error('Columna desconocida: ' + c + ' en ' + hoja);
+    return k;
+  });
+  const c1 = Math.min.apply(null, idx), c2 = Math.max.apply(null, idx);
+  const vals = h.getRange(fi, c1, ult - fi + 1, c2 - c1 + 1).getValues();
+  const aBorrar = [];
+  for (let i = 0; i < vals.length; i++) {
+    const o = {};
+    for (let j = 0; j < campos.length; j++) o[campos[j]] = vals[i][idx[j] - c1];
+    if (pred(o)) aBorrar.push(fi + i);
+  }
+  return repoEliminarFilas(hoja, aBorrar);
 }
