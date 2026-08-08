@@ -563,3 +563,104 @@ function _mtoResellarSoporte(escribir) {
     resumen: evosTocadas + ' evoluciones re-selladas por tramos' });
   return log.join('\n');
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  MEDIDOR DE LA OLA 4 — guardado y apertura, en LA PLANILLA REAL
+// ════════════════════════════════════════════════════════════════════════════
+/**
+ * Cronometra lo que el kinesiólogo espera: abrir un paciente (GET_EVO_TURNO)
+ * y guardar una evolución. Correr DOS veces desde el editor:
+ *
+ *   1. ANTES de pegar la ola: pegar SOLO mantenimiento_manuel.gs y correr
+ *      medirGuardado('<cama de prueba>')  →  números del código actual.
+ *   2. DESPUÉS de pegar repo/esquema/infra_auth/svc_*: correr igual.
+ *
+ * La APERTURA se mide sobre la primera cama ocupada real (lectura pura, cero
+ * riesgo). El GUARDADO solo corre si se pasa una CAMA DE PRUEBA (valida
+ * _esCamaPrueba): escribe un turno sintético, mide crear y re-guardar, y
+ * después BORRA la evolución, sus procedimientos y sus hitos, y restaura la
+ * fila de la cama tal como estaba. En AUDIT_LOG quedan las 0-2 líneas de la
+ * prueba, a propósito: hubo escrituras y la traza lo dice.
+ *
+ * Regla de siempre: NUNCA declarar segundos que no salieron de aquí. Este
+ * medidor usa solo funciones que existen en ambas versiones del código.
+ */
+function medirGuardado(idCamaPrueba) {
+  const out = [];
+  const p = function (s) { out.push(s); };
+  const cron = function (etiqueta, fn) {
+    const t0 = Date.now();
+    let r = null, e = '';
+    try { r = fn(); } catch (ex) { e = ex.message; }
+    const ms = Date.now() - t0;
+    p('   ' + etiqueta + ': ' + ms + ' ms' + (e ? '   ⚠ ' + e : ''));
+    return { ms: ms, r: r };
+  };
+  const filasDe = function (hoja) {
+    try {
+      const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(hoja);
+      return h ? Math.max(0, h.getLastRow() - FILA_DATOS[hoja] + 1) : 0;
+    } catch (e) { return -1; }
+  };
+  p('Tamaño hoy: EVOLUCIONES ' + filasDe('EVOLUCIONES') + ' · PROCEDIMIENTOS ' +
+    filasDe('PROCEDIMIENTOS') + ' · TIMELINE ' + filasDe('TIMELINE') +
+    ' · AUDIT_LOG ' + filasDe('AUDIT_LOG') + ' filas');
+  p('');
+
+  // ── Apertura (lectura pura, sobre datos reales) ──
+  const ocupadas = repoLeerTodos('CAMAS_ESTADO').filter(function (c) { return esVerdadero(c.OCUPADA); });
+  if (!ocupadas.length) { p('Sin camas ocupadas: no hay apertura que medir.'); return out.join('\n'); }
+  const camaReal = String(ocupadas[0].ID_CAMA);
+  const tkHoy = hoyISO() + '-Dia';
+  const cal = Date.now();
+  try { obtenerEvoTurno(camaReal, tkHoy); } catch (e) {}
+  p('Calentamiento (arranque en frío): ' + (Date.now() - cal) + ' ms');
+  p('Abrir paciente (cama ' + camaReal + ', dos corridas — la diferencia entre ellas es el ruido de red):');
+  cron('GET_EVO_TURNO corrida 1', function () { return obtenerEvoTurno(camaReal, tkHoy); });
+  cron('GET_EVO_TURNO corrida 2', function () { return obtenerEvoTurno(camaReal, tkHoy); });
+  p('');
+
+  // ── Guardado (solo en cama de prueba, y se limpia al terminar) ──
+  const idC = String(idCamaPrueba || '');
+  if (!idC) {
+    p('Guardado NO medido: pásame una cama de prueba — medirGuardado(\'101\').');
+    return out.join('\n');
+  }
+  if (typeof _esCamaPrueba !== 'function' || !_esCamaPrueba(idC)) {
+    p('Guardado NO medido: la cama ' + idC + ' NO es de prueba. Con datos reales no se escribe.');
+    return out.join('\n');
+  }
+  const camaAntes = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idC);
+  if (!camaAntes) { p('Guardado NO medido: la cama ' + idC + ' no existe.'); return out.join('\n'); }
+  const tk = hoyISO() + '-Dia';
+  const idEvo = 'CAMA_' + idC + '_' + tk;
+  const payload = {
+    idCama: idC, turnoKey: tk, PLAN_FIRMA_KINE: 'MED',
+    PAC_NOMBRE: 'PRUEBA MEDIDOR', PAC_EDAD: 60, PAC_SEXO: 'M', PAC_TALLA: 170,
+    PAC_DIAGNOSTICO: 'Prueba de rendimiento',
+    VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM', VENT_MODO: 'ACVC',
+    VENT_VT: 420, VENT_FR: 16, VENT_PEEP: 8, VENT_FIO2: 40, VENT_SPO2: 96,
+    PVE_VAL: 'no', PVE_SC_RAZON: 'Sedación profunda',
+    KTM_REALIZADA: true, KTM_NIVEL_KTR: '2', RESP_KTR_CANT: 1,
+    PROC_JSON: JSON.stringify(['KTR', 'ECOGRAFÍA']), PROC_RESUMEN: 'KTR, ECOGRAFÍA', PROC_CANTIDAD: 2,
+  };
+  const ctx = { email: 'medidor@editor', firma: 'MED' };
+  p('Guardar en cama de prueba ' + idC + ' (turno ' + tk + '):');
+  cron('GUARDAR crear', function () { return guardarEvolucion(payload, ctx); });
+  cron('GUARDAR re-guardar', function () { return guardarEvolucion(payload, ctx); });
+
+  // Limpieza: borrar lo escrito y dejar la cama TAL COMO ESTABA.
+  repoEliminarDonde('EVOLUCIONES', function (e) { return String(e.ID_EVOLUCION) === idEvo; });
+  repoEliminarDonde('PROCEDIMIENTOS', function (r) { return String(r.ID_EVOLUCION) === idEvo; });
+  repoEliminarDonde('TIMELINE', function (h) {
+    return String(h.ID_CAMA) === idC && String(h.FECHA) === hoyISO() &&
+      ['via_aerea', 'procedimiento', 'kine', 'general'].indexOf(h.TIPO) !== -1;
+  });
+  repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idC, camaAntes);
+  SpreadsheetApp.flush();
+  p('Limpieza: evolución, procedimientos e hitos de la prueba borrados; cama ' + idC + ' restaurada.');
+  p('');
+  p('Comparar contra la otra corrida (antes/después de pegar). Lo que decide');
+  p('es la diferencia entre versiones, no el número absoluto de un día.');
+  return out.join('\n');
+}
