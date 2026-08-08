@@ -11,6 +11,15 @@ const v2 = path.join(__dirname, '..', '..', 'v2');
 
 const DB = {};
 global.repoLeerTodos = h => (DB[h] || []).slice();
+// El doble de la lectura por columnas RECORTA de verdad (Ola 3): si el cálculo
+// usa un campo que no declaró en _CAMPOS_INDICADORES, aquí lo ve vacío y los
+// números de abajo se caen. Esta guardia es la segunda red de esa lista.
+global.repoLeerColumnas = (h, campos) => (DB[h] || []).map(o => {
+  if (!campos || !campos.length) return Object.assign({}, o);
+  const r = {};
+  campos.forEach(c => { r[c] = (o[c] === undefined) ? '' : o[c]; });
+  return r;
+});
 global.esVerdadero = v => v === true || v === 'TRUE' || v === 'true';
 global.leerConfig = (k, d) => d;
 global.ok = d => ({ ok: true, data: d });
