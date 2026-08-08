@@ -1,12 +1,23 @@
-// prono_paciente.js — LA PRONACIÓN HEREDADA: bug CONOCIDO y NO ARREGLADO.
+// prono_paciente.js — LA PRONACIÓN HEREDADA: cerrada por el alta (bloque 10),
+// todavía alcanzable por la limpieza manual de camas (bloques 1, 2 y 9).
 //
-// ⚠️ ESTA GUARDIA NO FIJA UN ARREGLO. Hace dos cosas distintas:
-//   1. DOCUMENTA el bug de forma ejecutable, midiendo exactamente lo que hoy
-//      pasa (incluido el número: 87 h de otro paciente). Si alguien lo arregla,
-//      estos bloques FALLAN — y eso es correcto: obliga a venir aquí, leer por
-//      qué el arreglo obvio se descartó, y actualizar la guardia a conciencia.
-//   2. PROTEGE las rutas que sí están sanas (bloques 3, 4, 5 y 8), para que un
-//      arreglo futuro no las rompa. Esas son las que hoy hay que defender.
+// ⚠️ ESTA GUARDIA MEZCLA DOS COSAS A PROPÓSITO. Léela antes de tocarla:
+//   1. FIJA EL ARREGLO (bloque 10). Regla clínica de Manuel, ago-2026: al dar
+//      de alta no puede sobrevivir el conteo de horas de prono. `darAltaPaciente`
+//      archiva ahora TODAS las filas de la cama —también sin PATIENT_ID y
+//      también las huérfanas de un ocupante anterior— vía
+//      `_archivarEvolucionesDeCama`. La otra mitad de la regla, cerrar el ciclo
+//      al marcar el supino, ya la cumplía `_pronoAbiertoTS` (bloque 3).
+//   2. DOCUMENTA lo que sigue vivo (bloques 1, 2 y 9), midiéndolo con su número
+//      (87 h de otro paciente). La ruta que queda es `limpiarCamasManual`, que a
+//      propósito NO archiva: es una herramienta de reparación y puede correrse
+//      con el paciente todavía en la cama, donde borrarle sus evoluciones sería
+//      peor que el problema. Ahora avisa por consola cuando deja filas vivas.
+//      Si algún día estos bloques fallan, alguien cerró también esa ruta: ven
+//      aquí, lee por qué se dejó abierta, y actualiza la guardia a conciencia.
+//   3. PROTEGE las rutas sanas (bloques 3, 4, 5 y 8) para que nada de lo
+//      anterior las rompa: el mismo paciente ve su prono, el traslado se lo
+//      lleva a la cama nueva, y abrir el panel sigue costando una sola bajada.
 //
 // EL BUG: `_pronoAbiertoTS`, `obtenerEvolucionPrevia` y `obtenerEvolucionesRecientes`
 // buscan las filas del episodio filtrando SOLO por ID_CAMA. Una cama es un
@@ -278,7 +289,45 @@ eq('BUG VIVO · en la colisión de turno se le sellan las horas ajenas', colisio
 console.log('   (y la fusión le arrastra el diagnóstico del anterior: ' + JSON.stringify(colision.PAC_DIAGNOSTICO || '') + ')');
 console.log('   (PATIENT_ID que queda en la fila: ' + JSON.stringify(colision.PATIENT_ID || '') + ')');
 
+/* ══ 10 · REGLA CLÍNICA: el alta borra el conteo de prono ════════════════════ */
+console.log('\n10 · Al dar de alta no puede sobrevivir el conteo de horas de prono');
+// Regla de Manuel (ago-2026). Antes el archivado vivía dentro de un `if (pid)`:
+// un episodio sin PATIENT_ID se quedaba entero en la hoja viva y el siguiente
+// ocupante heredaba su pronación abierta.
+
+// (a) Alta de un episodio SIN PATIENT_ID.
+sembrar();
+DB.CAMAS_ESTADO[0].PATIENT_ID = '';
+DB.EVOLUCIONES.forEach(e => { e.PATIENT_ID = ''; });
+const altaSinPid = darAltaPaciente({ idCama: '4', motivoEgreso: 'Fallecimiento' }, { firma: 'MF', email: 'm@h' });
+eq('el alta sin PATIENT_ID sale bien', altaSinPid.ok, true);
+eq('sus evoluciones se archivaron igual', DB.EVOLUCIONES_ARCHIVO.length, 2);
+eq('…y no quedó ninguna en la hoja viva', DB.EVOLUCIONES.length, 0);
+eq('el ingreso siguiente parte limpio', ingresarB().ok, true);
+const trasSinPid = obtenerEvoTurno('4', TK_NUEVO);
+eq('el paciente nuevo NO hereda la pronación', trasSinPid.data.pronoAbierto, '');
+eq('…ni la previa', trasSinPid.data.previa, null);
+eq('y al supinarlo no se le sellan horas ajenas', (supinaB().ok && filaDe(TK_NUEVO).PRONO_HORAS), '');
+
+// (b) Alta CON pid pero con una fila huérfana de un ocupante anterior.
+sembrar();
+DB.EVOLUCIONES.push({ ID_EVOLUCION: 'CAMA_4_2026-07-20-Dia', ID_CAMA: '4', PATIENT_ID: '',
+  TURNO_KEY: '2026-07-20-Dia', FECHA: '2026-07-20', TURNO: 'Dia', PAC_NOMBRE: 'Ocupante Anterior',
+  VENT_SOPORTE: 'VM', VENT_VIA_AEREA: 'TOT', RESP_PRONO_EVENTO: 'TRUE',
+  PRONO_INICIO_TS: '2026-07-20 08:00' });
+eq('el alta con pid sale bien', darAltaPaciente({ idCama: '4', motivoEgreso: 'Traslado a sala' }, { firma: 'MF', email: 'm@h' }).ok, true);
+eq('la cama queda sin ninguna evolución viva', DB.EVOLUCIONES.length, 0);
+eq('y nada se perdió: las 3 están archivadas', DB.EVOLUCIONES_ARCHIVO.length, 3);
+eq('el ingreso siguiente parte limpio', ingresarB().ok, true);
+eq('sin rastro del prono más viejo', obtenerEvoTurno('4', TK_NUEVO).data.pronoAbierto, '');
+
+// (c) El traslado NO se toca: ahí las filas se reetiquetan, no se archivan.
+sembrar();
+eq('el traslado sigue saliendo bien', moverACamaVacia('4', '9', { firma: 'MF', email: 'm@h' }).ok, true);
+eq('el traslado NO archivó nada', DB.EVOLUCIONES_ARCHIVO.length, 0);
+eq('y el paciente conserva su pronación en la cama nueva', obtenerEvoTurno('9', '2026-08-02-Dia').data.pronoAbierto, PRONO_TS);
+
 console.log('');
 if (fails.length) { console.log('❌ FALLARON ' + fails.length + ':\n  - ' + fails.join('\n  - ')); process.exit(1); }
-console.log("✅ prono_paciente OK — rutas sanas protegidas; el bug de herencia sigue VIVO y documentado arriba");
+console.log("✅ prono_paciente OK — el alta ya borra el conteo de prono; la limpieza manual sigue siendo la ruta abierta (bloques 1, 2 y 9)");
 process.exit(0);

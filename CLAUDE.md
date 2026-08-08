@@ -261,6 +261,18 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
        fallback del bloque completo) **no lo ejercita ninguna guardia**: las
        cifras de viajes salen del arnés de medición, no de una guardia. Si
        alguien rompe el troceado, las guardias siguen verdes.
+- 🔴 **HALLAZGO PREEXISTENTE (6-ago-2026): `obtenerStats` PIDE UN RANGO PERO SOLO
+  VE PACIENTES ACTIVOS.** `obtenerStats(desde, hasta)` filtra por fecha pero lee
+  únicamente `EVOLUCIONES` — **cero menciones de `EVOLUCIONES_ARCHIVO`** (su
+  propio comentario lo asume: «todas = episodios activos; al egresar se
+  archivan»). Como el alta archiva, **todo paciente dado de alta dentro del rango
+  desaparece de la pestaña Estadísticas**: sus atenciones, días-VM, KTM, PVE y
+  procedimientos dejan de contarse en cuanto egresa. `calcularIndicadores` SÍ
+  baja el archivo, así que las dos mitades del mismo tablero miran universos
+  distintos. Verificar antes de usar cifras de esa pestaña para la jefatura.
+  (No lo causó el archivado del alta de ago-2026: los episodios con `PATIENT_ID`
+  ya se archivaban desde D5. Ese cambio solo alineó los casos sin `PATIENT_ID`.)
+
 - 🔴 **HALLAZGO PREEXISTENTE (6-ago-2026): DOS DEFINICIONES DE «DÍA CON VM» EN
   `calcularIndicadores`, y una infla un indicador centinela.**
   - `svc_indicadores.gs:37` usa `VENT_SOPORTE === 'VM'` (**estrecho**) y alimenta
@@ -341,10 +353,25 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     - Moraleja de método: **el harness en verde no valida un cambio clínico.** La
       guardia la escribió quien hizo el cambio, y solo medía la ausencia de la
       herencia — nunca lo que se perdía por el camino.
-  - **Decisión pendiente de Diego**, y hoy el único camino que sigue en pie:
-    **que la limpieza de cama archive como el alta** (atacar la causa, no los
-    lectores). Falta decidir qué hacer al limpiar una cama con paciente dentro:
-    archivar sus evoluciones lo dejaría sin historia en pantalla.
+  - ✅ **CERRADO POR EL ALTA (6-ago-2026), con la regla clínica que dio Manuel:**
+    «cada vez que se da de alta al paciente debe eliminarse el conteo de horas de
+    prono; lo mismo si se marca el supino». Se atacó la CAUSA, no los lectores:
+    - `darAltaPaciente` llama ahora a **`_archivarEvolucionesDeCama(idCama)`**
+      después del bloque `if (pid)`. Archiva a `EVOLUCIONES_ARCHIVO` y saca de la
+      hoja viva **todas** las filas de esa cama — las del episodio sin
+      `PATIENT_ID` y las huérfanas de un ocupante anterior. Nada se borra sin
+      archivar antes. Con eso el siguiente ocupante ya no puede heredar nada.
+    - La otra mitad de la regla **ya se cumplía**: `_pronoAbiertoTS` cierra el
+      ciclo en cuanto ve `RESP_SUPINO_EVENTO` (`svc_evoluciones.gs:821`).
+    - `_archivarEvolucionesDeCama` **NO** se llama desde `_limpiarCamaInterno`, a
+      propósito: `moverACamaVacia` lo usa con el paciente vivo y ahí las filas se
+      reetiquetan. Fijado en el bloque 10c de la guardia (el traslado archiva 0).
+  - ⚠️ **Lo que sigue abierto: `limpiarCamasManual`.** No archiva, y es correcto
+    que no lo haga: es una herramienta de reparación que puede correrse con el
+    paciente todavía en la cama, y ahí archivarle sus evoluciones lo dejaría sin
+    historia en pantalla. Ahora **avisa por consola** cuántas filas vivas deja y
+    recomienda dar el alta si la cama va a recibir a otro paciente. Los bloques
+    1, 2 y 9 de `checks/prono_paciente.js` miden esa ruta con su número (87 h).
   - Ojo: **deroga la premisa «la hoja viva solo tiene el episodio en curso»**,
     que aparece escrita como verificada en revisiones anteriores y que sigue
     guiando a quien escriba un pipeline. Regla que la reemplaza, con su límite:

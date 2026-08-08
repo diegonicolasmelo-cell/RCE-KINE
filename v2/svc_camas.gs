@@ -279,6 +279,13 @@ function darAltaPaciente(datos, ctx) {
         evos.forEach(e => repoInsertar('EVOLUCIONES_ARCHIVO', e));
         repoEliminarDonde('EVOLUCIONES', e => e.PATIENT_ID === pid);
       }
+      // Regla clínica (Manuel, ago-2026): dado el alta, en la cama NO puede
+      // sobrevivir el conteo de horas de prono. El bloque de arriba se lo pierde
+      // dos veces: cuando el episodio no tiene PATIENT_ID (el `if`), y cuando la
+      // cama arrastra filas huérfanas de un ocupante anterior. Se barre por cama
+      // —archivando primero, nunca borrando a secas— y con eso el siguiente
+      // paciente ya no puede heredar una pronación abierta ajena.
+      _archivarEvolucionesDeCama(idCama);
 
       _limpiarCamaInterno(idCama);
       SpreadsheetApp.flush();
@@ -412,9 +419,40 @@ function _limpiarCamaInterno(idCama) {
 function limpiarCamasManual(ids) {
   const lista = String(ids || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
   if (!lista.length) { console.log('Indica las camas: limpiarCamasManual("3,5,8")'); return; }
-  lista.forEach(_limpiarCamaInterno);
+  // Esta ruta NO archiva: es una herramienta de reparación y puede correrse con
+  // el paciente todavía en la cama, donde borrarle sus evoluciones sería peor
+  // que el problema. Pero avisa, porque lo que quede vivo aquí es exactamente lo
+  // que el siguiente ocupante puede heredar (incluidas las horas de prono).
+  lista.forEach(function (id) {
+    const vivas = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(id)).length;
+    if (vivas) {
+      console.log('⚠️  Cama ' + id + ': quedan ' + vivas + ' evoluciones en la hoja viva. '
+        + 'Si la cama va a recibir a OTRO paciente, dale el alta al anterior en vez de limpiarla: '
+        + 'el alta las archiva y el alta es lo único que borra el conteo de prono.');
+    }
+    _limpiarCamaInterno(id);
+  });
   SpreadsheetApp.flush();
   console.log('✅ Camas limpiadas y liberadas: ' + lista.join(', '));
+}
+
+/**
+ * Saca de la hoja viva TODAS las evoluciones que queden en una cama, dejándolas
+ * antes en EVOLUCIONES_ARCHIVO. Se usa al dar el alta, que es el momento en que
+ * la cama deja de pertenecer a un paciente: a partir de ahí ninguna fila suya
+ * puede seguir contestando preguntas sobre el ocupante siguiente —la pronación
+ * abierta, la evolución previa, los turnos recientes—.
+ * NO se llama desde `_limpiarCamaInterno`: el traslado a cama vacía lo usa con
+ * el paciente vivo y ahí las filas se reetiquetan, no se archivan.
+ * @returns {number} cuántas filas se archivaron.
+ */
+function _archivarEvolucionesDeCama(idCama) {
+  const cama = String(idCama);
+  const restantes = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', cama);
+  if (!restantes.length) return 0;
+  restantes.forEach(e => repoInsertar('EVOLUCIONES_ARCHIVO', e));
+  repoEliminarDonde('EVOLUCIONES', e => String(e.ID_CAMA) === cama);
+  return restantes.length;
 }
 
 // ── COD_PACIENTE ───────────────────────────────────────────
