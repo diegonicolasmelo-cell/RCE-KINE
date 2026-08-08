@@ -29,7 +29,7 @@ global._rutNormal = rut => { const s = String(rut||'').toUpperCase().replace(/[^
 
 eval(['svc_stats.gs', 'svc_indicadores.gs'].map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 
-const P1='p1', P2='p2', P3='p3';
+const P1='p1', P2='p2', P3='p3', P4='p4';
 DB.EVOLUCIONES = [
   // P1: VM 3 días; extubación c/protocolo el 03 a las 10:00 → reintub 04 a las 08:00 (22h = PRECOZ)
   { PATIENT_ID:P1, FECHA:'2026-07-01', TURNO_KEY:'2026-07-01-Dia', VENT_SOPORTE:'VM', RESP_KTR_CANT:2 },
@@ -40,6 +40,13 @@ DB.EVOLUCIONES = [
   { PATIENT_ID:P2, FECHA:'2026-07-10', TURNO_KEY:'2026-07-10-Noche', VENT_SOPORTE:'VM', EXT_OCURRIO:true, EXT_TIPO:'sin_protocolo', EXT_MOTIVO:'Agitación psicomotora' },
   // P2: autoextubación posterior el 20 (no cuenta en denominador programadas)
   { PATIENT_ID:P2, FECHA:'2026-07-20', TURNO_KEY:'2026-07-20-Dia', VENT_SOPORTE:'VM', EXT_OCURRIO:true, EXT_TIPO:'autoextubacion' },
+  // P4: empieza el turno en VNI y termina CONECTADO a VM (VENT_SOPORTE_FINAL).
+  // Decisión de Manuel (8-ago-2026): ese día CUENTA como día con VM, porque el
+  // paciente estuvo ventilado en el turno. Antes solo se miraba el soporte de
+  // inicio, el denominador de autoextubaciones por 100 días-VM se quedaba corto
+  // y la tasa se disparaba. Si alguien vuelve a mirar solo VENT_SOPORTE, los
+  // dos asserts de más abajo se caen.
+  { PATIENT_ID:P4, FECHA:'2026-07-14', TURNO_KEY:'2026-07-14-Dia', VENT_SOPORTE:'VMNI', VENT_SOPORTE_FINAL:'VM' },
   // P3: TQT el 05 con 9 días de VM previos (jun 27 - jul 05) → VM prolongada
   { PATIENT_ID:P3, FECHA:'2026-07-05', TURNO_KEY:'2026-07-05-Dia', VENT_SOPORTE:'VM', TQT_OCURRIO:true },
   // Cuff (verificación por turno, solo con vía aérea artificial):
@@ -80,6 +87,11 @@ eq('motivo agitación en turno noche', d.motivosFuera['Agitación psicomotora'] 
 eq('PVE del rango', d.pve, 1);
 eq('mediana días-VM antes de TQT (4 jun archivadas + 5 jul = 9)', d.medianaVMpreTQT, 9);
 eq('VM prolongada (solo P3 con 9 días de episodio)', d.vmProlongada, 1);
+// Día con VM = estuvo en VM en algún momento del turno (inicio O cierre).
+// P1 los días 01-03, P2 el 09/10/20, P3 el 01-05, y P4 el 14 SOLO por haber
+// terminado el turno conectado: 3+3+5+1 = 12.
+eq('días-VM cuenta el turno que TERMINA en VM (P4 el 14)', d.diasVM, 12);
+eq('ventilados incluye al que solo terminó el turno en VM', d.ventilados, 4);
 eq('atenciones (KTR 2+3 + KTM 2)', d.atenciones, 7);
 eq('cuff: denominador = turnos con VA artificial, sin los desinflados', d.cuffTurnos, 3);
 eq('cuff: verificados = en rango + ajustados', d.cuffVerificados, 2);

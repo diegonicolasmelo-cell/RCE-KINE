@@ -3240,11 +3240,22 @@ function calcularIndicadores(desde, hasta) {
     const camas = repoLeerTodos('CAMAS_ESTADO');
 
     // ── Denominadores base ──
+    // **Día con VM = el paciente estuvo en VM en algún momento del turno**,
+    // ya sea al empezarlo (`VENT_SOPORTE`) o al cerrarlo (`VENT_SOPORTE_FINAL`).
+    // Decisión de Manuel Fuentes, 8-ago-2026, y corrige un error real: hasta hoy
+    // este denominador contaba SOLO el soporte de inicio mientras que la VM
+    // prolongada y la mediana pre-TQT (más abajo) ya usaban la definición
+    // amplia. Con un paciente que entraba en VNI y terminaba en VM el turno no
+    // contaba como día-VM, el denominador se quedaba corto y
+    // `autoextPor100VM` se disparaba — medido en 100 contra una meta de 1-2.
+    // Ahora el tablero usa UNA sola definición; si se cambia, se cambia en los
+    // dos sitios (lo exige `checks/indicadores.js`).
+    const _esDiaVM = e => String(e.VENT_SOPORTE) === 'VM' || String(e.VENT_SOPORTE_FINAL) === 'VM';
     const pacDias = {}, vmDias = {};
     evosR.forEach(e => {
       const k = String(e.PATIENT_ID) + '|' + _statISO(e.FECHA);
       pacDias[k] = true;
-      if (String(e.VENT_SOPORTE) === 'VM') vmDias[k] = true;
+      if (_esDiaVM(e)) vmDias[k] = true;
     });
     const nPacDias = Object.keys(pacDias).length;
     const nVmDias = Object.keys(vmDias).length;
@@ -3310,7 +3321,7 @@ function calcularIndicadores(desde, hasta) {
 
     const vmDiasEpisodio = {};   // pid → Set de días con VM (episodio completo)
     todasEvos.forEach(e => {
-      if (String(e.VENT_SOPORTE) !== 'VM' && String(e.VENT_SOPORTE_FINAL) !== 'VM') return;
+      if (!_esDiaVM(e)) return;   // misma definición que el denominador de arriba
       const pid = String(e.PATIENT_ID);
       (vmDiasEpisodio[pid] = vmDiasEpisodio[pid] || {})[_statISO(e.FECHA)] = true;
     });

@@ -279,6 +279,24 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     vez cada una; stats, 4). Lo que sí salió de ahí: el criterio de las 48 h
     estaba escrito **dos veces** en `calcularIndicadores` y coincidían por
     suerte; ahora se empareja una sola vez.
+- 🔴 **UNA SOLA DEFINICIÓN DE «DÍA CON VM» (8-ago-2026). CAMBIA NÚMEROS QUE EL
+  EQUIPO YA VEÍA — avisar antes de pegar.** En `calcularIndicadores` convivían
+  dos: el denominador de *autoextubaciones por 100 días-VM* contaba solo el
+  soporte de INICIO del turno (`VENT_SOPORTE`), mientras que *VM prolongada* y
+  la *mediana pre-TQT* ya contaban también el de CIERRE (`VENT_SOPORTE_FINAL`).
+  Con un paciente que entraba en VNI y terminaba conectado, ese turno no contaba
+  como día-VM: el denominador se quedaba corto y la tasa se disparaba — **medida
+  en 100 contra una meta de 1–2, unas 11 veces**.
+  - **Decisión clínica de Manuel Fuentes:** día con VM = **el paciente estuvo en
+    VM en algún momento del turno**, al empezarlo o al cerrarlo. Queda como
+    `_esDiaVM(e)`, usada por los dos sitios; ya no hay dos verdades.
+  - **Qué se mueve:** `diasVM`, `ventilados`, `autoextPor100VM` y
+    `vmProlongadaPct` (por su denominador). Los valores nuevos son más altos en
+    el denominador y por tanto **las tasas bajan**. No es que antes estuvieran
+    mal contados los eventos: estaba mal el universo contra el que se dividían.
+  - Guardia: `checks/indicadores.js` gana un paciente P4 que entra en VNI y
+    termina en VM, con dos asserts (`diasVM = 12`, `ventilados = 4`). Probado que
+    protegen: con la definición vieja los dos fallan.
 - **OLA 3 · EL TABLERO DEJA DE BAJAR 386 COLUMNAS PARA USAR 21 (8-ago-2026,
   solo `.gs`, sin tocar `index.html`).** Sobre la 5.45. Sale de la Ola 2: si
   indicadores es lo más caro del sistema, el problema no es cuántas veces se
