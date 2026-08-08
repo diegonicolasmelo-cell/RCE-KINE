@@ -299,9 +299,24 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      la lista es parte de la definición del indicador.
   4. ⚠️ **La letra chica, que es lo peligroso: el campo que no se pide llega
      VACÍO, no llega roto.** Un campo olvidado no rompe nada — deja el indicador
-     en 0 y nadie se entera. Por eso `checks/columnas.js` **deriva la lista de
-     campos del propio fuente** y falla si a la declarada le falta alguno, en
-     vez de confiar en la memoria de quien la escribió.
+     en 0 y nadie se entera. Contra eso hay **tres redes distintas**, y ninguna
+     sobra porque cada una falla donde la otra no llega:
+     - **La lista sale del código.** `checks/columnas.js` la deriva del propio
+       fuente y falla si a la declarada le falta alguno, en vez de confiar en la
+       memoria de quien la escribió.
+     - **Lo leído a medias no se puede guardar.** Los objetos que devuelve
+       `repoLeerColumnas` van marcados (`_PARCIAL`, no enumerable: no sale en
+       `JSON.stringify` ni en `Object.keys`, y `esquemaObjetoAFila` recorre el
+       esquema, así que no cambia ni un dato) y `repoInsertar`, `repoUpsert`,
+       `repoActualizar` y `repoActualizarDonde` los **rechazan con error**. Ese
+       es el daño de verdad: 21 columnas leídas y 365 en blanco, guardadas tal
+       cual, **borrarían** esas 365. Hoy nadie escribe desde el tablero —lo
+       comprueba el punto 9 de la guardia, con lista blanca de archivos— y esto
+       existe para que siga siendo verdad sin que nadie tenga que acordarse.
+     - **Auditoría con datos reales.** Con `_COLS_AUDIT` encendido, cada fila
+       viaja en un `Proxy` que registra los accesos a campos **no declarados**,
+       aunque hoy lleguen con valor por caer dentro del bloque de un vecino:
+       justo esos son los que se romperían mañana en silencio.
   5. La guardia además **se prueba a sí misma**: quita un campo de la lista y
      exige que el resultado cambie. Anota su propio límite: 10 de los 21 campos
      viajan dentro del bloque de un vecino, así que el A/B **no puede verlos** —
@@ -318,15 +333,37 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     en 0 sin que nada fallara. Si algún día se hace: declarar
     `_CAMPOS_REM.concat(_REM_EVAL_CAMPOS)` y extender la guardia; el punto 2 de
     `checks/columnas.js` ya sabe reconocer ese patrón.
-  - ⏳ **PENDIENTE DE MEDIR EN LA PLANILLA, y hasta entonces la ganancia en
-    segundos NO se declara.** Está `medirTablero()` (mantenimiento.gs): corre el
-    tablero leyendo entero y con techos de 1, 3, 6 y 10 lecturas por hoja,
-    verifica que los números sean idénticos en todos y dice cuál ganó. **Si
-    ninguno le gana a leer la hoja entera, lo correcto es poner
-    `_COLS_OFF = true` y anotarlo, no dejar el código puesto por si acaso.**
-    Medido en Node sobre 400 filas sintéticas: 154.617 → 34.217 celdas (4,5×
-    menos) a cambio de 10 viajes más.
-  - Batería: 56 guardias, la nueva incluida.
+  - ⏳ **DOS FUNCIONES QUE HAY QUE CORRER EN LA PLANILLA ANTES DE DEJARLA
+    PUESTA**, en este orden:
+    1. **`verificarTablero()`** — la que decide si los datos están bien. Con los
+       datos REALES, compara el tablero por columnas contra el tablero entero
+       **indicador por indicador**, en dos rangos (mes en curso y año completo,
+       porque un rango vacío sale «idéntico» sin haber probado nada); revisa
+       **cada 0 uno por uno** —un 0 puede ser verdad (no hubo autoextubaciones)
+       o ser el síntoma, y la única forma de distinguirlo es que valga 0 en los
+       dos caminos—; y lista los campos tocados sin declarar. Veredicto de una
+       línea: se puede dejar puesta, o no.
+    2. **`medirTablero()`** — la que decide si vale la pena. Corre el tablero
+       leyendo entero y con techos de 1, 3, 6 y 10 lecturas por hoja y dice cuál
+       ganó. **Si ninguno le gana a leer la hoja entera, lo correcto es poner
+       `_COLS_OFF = true` y anotarlo, no dejar el código puesto por si acaso.**
+    Hasta entonces **la ganancia en segundos NO se declara**. Lo medido en Node
+    sobre 400 filas sintéticas: 154.617 → 34.217 celdas (4,5× menos) a cambio de
+    10 viajes más.
+  - 🪤 **`_auditar` YA EXISTÍA en `api.gs`** — es el envoltorio que escribe la
+    traza de auditoría de cada acción. La primera versión de la auditoría de
+    columnas se llamaba igual y **la habría pisado en silencio**, porque en Apps
+    Script todos los archivos comparten un único espacio global. Lo cazó
+    `checks/paquete.js` al fusionar. Por eso la familia nueva lleva prefijo:
+    `_colsTramos`, `_colsMarcar`, `_colsAuditar`, `_colsEsParcial`,
+    `_colsExigirCompleto`. **Antes de nombrar una función nueva en este
+    proyecto, `grep -rn "function nombre" v2/`.**
+  - Batería: 56 guardias, la nueva incluida (9 bloques: lista derivada del
+    fuente, accesos dinámicos, A/B, mutación, hoja chica, extremos del
+    agrupador, escritura bloqueada, auditoría y lista blanca de usuarios). La
+    simulación de punta a punta da **exactamente lo mismo que antes del cambio**
+    (16/26 turnos, 8/8 egresos, 3/7 eventos, cero errores JS), comparada contra
+    un worktree en `59ef890`.
 - 🔴 **EL FRONT DESPLEGADO ESTÁ EN 5.22, NO EN 5.43 (descubierto 6-ago-2026).**
   El `index.html` del proyecto es, **por dentro**, `5.22-cierre` — no es la
   etiqueta desfasada. Verificado decodificando el base64 del cargador desde el

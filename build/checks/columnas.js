@@ -91,6 +91,9 @@ const fuente = ['infra_util.gs', 'esquema.gs', 'repo.gs', 'svc_stats.gs', 'svc_i
   '\n;return { calcularIndicadores, _CAMPOS_INDICADORES, repoLeerColumnas, repoLeerTodos,' +
   ' COL, TOTAL_COLS, FILA_DATOS, _colsTramos, maxTramos: () => _COLS_MAX_TRAMOS,' +
   ' ponerTecho: v => { _COLS_MAX_TRAMOS = v; },' +
+  ' repoInsertar, repoUpsert, repoActualizar, _colsEsParcial,' +
+  ' auditar: v => { _COLS_AUDIT = v; _COLS_AUDIT_HITS = {}; },' +
+  ' hits: () => _COLS_AUDIT_HITS,' +
   ' apagarColumnas: v => { _COLS_OFF = v; } };';
 const API = new Function(...Object.keys(sandbox), fuente)(...Object.values(sandbox));
 
@@ -310,6 +313,75 @@ try { API.ponerTecho(0); extremo = API._colsTramos(idxDemo).length; }
 catch (e) { extremo = 'EXCEPCIÓN: ' + e.message; }
 eq('un techo de 0 no revienta', extremo, 1);
 API.ponerTecho(techoNormal);
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 7 · Un registro leído a medias NO puede llegar a la hoja.
+ *     Este es el daño de verdad: 21 columnas leídas y 365 en blanco, guardadas
+ *     tal cual, BORRAN esas 365. Hoy nadie escribe desde el tablero; esto
+ *     existe para que siga siendo verdad sin que nadie tenga que acordarse.
+ * ───────────────────────────────────────────────────────────────────────── */
+console.log('\n── 7 · La escritura rechaza lo leído a medias ──');
+montarHojas(200, 0);
+API.apagarColumnas(false);
+const parciales = API.repoLeerColumnas('EVOLUCIONES', API._CAMPOS_INDICADORES);
+si('la lectura por columnas devuelve filas', parciales.length === 200, parciales.length + ' filas');
+si('vienen marcadas como leídas a medias', API._colsEsParcial(parciales[0]), 'sí');
+const completa = API.repoLeerTodos('EVOLUCIONES');
+si('la lectura completa NO viene marcada', !API._colsEsParcial(completa[0]), 'sí');
+
+['repoInsertar', 'repoUpsert', 'repoActualizar'].forEach(fn => {
+  let msg = '';
+  try {
+    if (fn === 'repoInsertar') API.repoInsertar('EVOLUCIONES', parciales[0]);
+    else if (fn === 'repoUpsert') API.repoUpsert('EVOLUCIONES', 'PATIENT_ID', 'p0', parciales[0]);
+    else API.repoActualizar('EVOLUCIONES', 'PATIENT_ID', 'p0', parciales[0]);
+  } catch (e) { msg = e.message; }
+  si(fn + ' se niega a guardarlo', /le[íi]do a medias/.test(msg), msg ? 'lo frena' : 'LO DEJÓ PASAR');
+});
+let okCompleta = true, errCompleta = '';
+try { API.repoInsertar('EVOLUCIONES', completa[0]); } catch (e) { okCompleta = false; errCompleta = e.message; }
+si('una fila completa sí se puede guardar', okCompleta, okCompleta ? 'sin trabas' : errCompleta);
+
+// La marca no puede ensuciar el dato: ni en las claves ni en el JSON.
+eq('la marca no aparece entre las claves',
+  Object.keys(parciales[0]).indexOf('_PARCIAL'), -1);
+eq('la marca no aparece en el JSON',
+  JSON.stringify(parciales[0]).indexOf('_PARCIAL'), -1);
+eq('el objeto trae las 386 claves del esquema, no 21',
+  Object.keys(parciales[0]).length, TOTAL);
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 8 · La auditoría caza el campo que hoy llega «de puro suerte».
+ * ───────────────────────────────────────────────────────────────────────── */
+console.log('\n── 8 · La auditoría ve lo que el A/B no puede ver ──');
+API.auditar(true);
+const auditadas = API.repoLeerColumnas('EVOLUCIONES', API._CAMPOS_INDICADORES);
+const _decl = auditadas[0].VENT_SOPORTE;          // declarado: no debe registrarse
+const _colado = auditadas[0].VENT_PEEP;           // NO declarado: debe registrarse
+const hits = API.hits();
+API.auditar(false);
+si('registra el campo no declarado', !!hits['EVOLUCIONES.VENT_PEEP'], 'VENT_PEEP');
+si('no molesta con los declarados', !hits['EVOLUCIONES.VENT_SOPORTE'], 'VENT_SOPORTE limpio');
+si('el valor sigue llegando igual con la auditoría puesta',
+  String(_decl) === String(completa[0].VENT_SOPORTE), JSON.stringify(_decl));
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 9 · Quién usa la lectura por columnas, y que no sea nadie que escriba.
+ * ───────────────────────────────────────────────────────────────────────── */
+console.log('\n── 9 · La lectura por columnas no se cuela en una ruta de escritura ──');
+const PERMITIDOS = ['svc_indicadores.gs'];   // ampliar solo tras revisar que NO escribe
+const usuarios = fs.readdirSync(v2dir)
+  .filter(f => f.endsWith('.gs') && f !== 'repo.gs')
+  .filter(f => /repoLeerColumnas\s*\(/.test(v2(f)));
+const noRevisados = usuarios.filter(f => PERMITIDOS.indexOf(f) < 0);
+si('solo la usan los archivos revisados', noRevisados.length === 0,
+  noRevisados.length
+    ? 'sin revisar: ' + noRevisados.join(', ') + ' — comprobar que no guarden lo que leen y agregarlos a PERMITIDOS'
+    : usuarios.join(', '));
+const escribe = /repoInsertar|repoUpsert|repoActualizar|setValues|deleteRow/;
+const sospechosos = usuarios.filter(f => escribe.test(v2(f)));
+si('ninguno de ellos escribe en hojas', sospechosos.length === 0,
+  sospechosos.length ? 'REVISAR: ' + sospechosos.join(', ') : 'ninguno escribe');
 
 /* ── Cierre ── */
 console.log('');

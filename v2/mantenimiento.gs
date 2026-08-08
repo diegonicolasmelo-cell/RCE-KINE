@@ -845,9 +845,120 @@ function medirArranque() {
 }
 
 /**
+ * ✅ **LA FUNCIÓN A CORRER ANTES DE DEJAR PUESTA LA LECTURA POR COLUMNAS.**
+ * Comprueba, **con los datos reales de esta planilla**, que el tablero da
+ * exactamente lo mismo leyendo 21 columnas que leyendo las 386, y que ningún
+ * indicador se fue a 0 en el camino. No escribe nada.
+ *
+ * Tres comprobaciones, en este orden:
+ *  1. **Número por número.** Compara los dos tableros campo a campo y lista las
+ *     diferencias con nombre propio. Un indicador que pasa a 0 aparece aquí.
+ *  2. **Los ceros se miran uno por uno.** Un 0 puede ser verdad (no hubo
+ *     autoextubaciones este mes) o ser el síntoma. La única forma de saberlo es
+ *     que valga 0 en los DOS caminos: eso es lo que se verifica.
+ *  3. **Auditoría de campos.** Con `_COLS_AUDIT` encendido, cualquier campo que
+ *     el cálculo toque sin haberlo declarado queda registrado — incluso si hoy
+ *     llega con valor por caer dentro del bloque de un vecino. Ese es el que se
+ *     rompería mañana en silencio.
+ *
+ * @return {string} el mismo informe que deja en el log.
+ */
+function verificarTablero() {
+  const hoy = hoyISO();
+  const out = [];
+  const p = function (s) { out.push(s); };
+  let problemas = 0;
+
+  // Un mes con datos y el año completo: si el rango va vacío, la comparación
+  // sale «idéntica» sin haber probado nada.
+  const rangos = [
+    ['mes en curso', hoy.slice(0, 8) + '01', hoy],
+    ['año completo', hoy.slice(0, 4) + '-01-01', hoy],
+  ];
+
+  rangos.forEach(function (r) {
+    const etiqueta = r[0], desde = r[1], hasta = r[2];
+    p('══ ' + etiqueta + ' (' + desde + ' a ' + hasta + ') ══');
+
+    _COLS_OFF = true;
+    const entero = calcularIndicadores(desde, hasta);
+    _COLS_OFF = false;
+    _COLS_AUDIT = true; _COLS_AUDIT_HITS = {};
+    const porCol = calcularIndicadores(desde, hasta);
+    _COLS_AUDIT = false;
+
+    if (!entero.ok || !porCol.ok) {
+      problemas++;
+      p('🔴 El cálculo falló: ' + (entero.error || porCol.error));
+      return;
+    }
+    const A = entero.data, B = porCol.data;
+
+    // 1 · Número por número.
+    const claves = Object.keys(A);
+    const dif = [];
+    claves.forEach(function (k) {
+      const a = JSON.stringify(A[k]), b = JSON.stringify(B[k]);
+      if (a !== b) dif.push('   ✗ ' + k + ': entero=' + a + '  porColumnas=' + b);
+    });
+    if (dif.length) {
+      problemas += dif.length;
+      p('🔴 ' + dif.length + ' de ' + claves.length + ' indicadores NO coinciden:');
+      dif.forEach(p);
+    } else {
+      p('✓ los ' + claves.length + ' indicadores coinciden exactamente');
+    }
+
+    // 2 · Los ceros, uno por uno.
+    const ceros = claves.filter(function (k) {
+      return (B[k] === 0 || B[k] === null) && typeof A[k] !== 'object';
+    });
+    const cerosMalos = ceros.filter(function (k) { return A[k] !== B[k]; });
+    if (cerosMalos.length) {
+      problemas += cerosMalos.length;
+      p('🔴 indicadores que se fueron a 0 SOLO al leer por columnas: ' + cerosMalos.join(', '));
+    } else if (ceros.length) {
+      p('✓ ' + ceros.length + ' indicadores valen 0 o nulo, y valen lo mismo leyendo entero');
+      p('   (' + ceros.join(', ') + ')');
+    }
+
+    // 3 · Campos tocados sin declarar.
+    const sueltos = Object.keys(_COLS_AUDIT_HITS);
+    if (sueltos.length) {
+      problemas += sueltos.length;
+      p('🔴 el cálculo tocó campos que nadie declaró en _CAMPOS_INDICADORES:');
+      sueltos.slice(0, 25).forEach(function (k) { p('   ✗ ' + k + ' (' + _COLS_AUDIT_HITS[k] + ' accesos)'); });
+      if (sueltos.length > 25) p('   … y ' + (sueltos.length - 25) + ' más');
+      p('   Hoy pueden estar llegando con valor por caer al lado de otra columna,');
+      p('   pero el día que eso cambie el indicador se va a 0 sin avisar. Agrégalos.');
+      if (sueltos.length > 50) {
+        p('   ⚠ Con tantos campos de golpe, lo más probable es que alguien esté');
+        p('     recorriendo la fila entera (un JSON.stringify o un Object.keys),');
+        p('     no usando cada campo. Mirar QUIÉN serializa antes de agregar 300.');
+      }
+    } else {
+      p('✓ ningún campo tocado fuera de los declarados');
+    }
+    p('');
+  });
+
+  p('─────────────────────────────────────────────');
+  p(problemas === 0
+    ? '✅ SE PUEDE DEJAR PUESTA: mismos números, mismos ceros, ningún campo suelto.'
+    : '🔴 NO DEJARLA PUESTA (' + problemas + ' hallazgos). Mientras se arregla: _COLS_OFF = true en repo.gs.');
+
+  const informe = out.join('\n');
+  Logger.log(informe);
+  console.log(informe);
+  return informe;
+}
+
+/**
  * Cronometra el tablero de indicadores con y sin lectura por columnas, y prueba
  * varios techos de viajes por hoja (Ola 3, ago-2026). Correr desde el editor y
  * leer el registro de ejecución. No escribe nada.
+ *
+ * Mide velocidad; quien dice si los números están bien es `verificarTablero()`.
  *
  * Por qué existe: leer 21 columnas en vez de 386 baja muchísimas celdas, pero
  * cuesta varios `getRange` en vez de uno, y **cuál de las dos cosas pesa más

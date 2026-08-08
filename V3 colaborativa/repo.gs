@@ -93,6 +93,8 @@ function repoLeerFiltrado(hoja, colKey, pred) {
 
 var _COLS_OFF = false;        // solo lo levanta medirTablero(), para comparar con/sin
 var _COLS_MAX_TRAMOS = 6;     // techo de lecturas por hoja; medirTablero() lo mueve
+var _COLS_AUDIT = false;      // lo enciende verificarTablero(): registra accesos no declarados
+var _COLS_AUDIT_HITS = {};    // 'HOJA.CAMPO' → cuántas veces se tocó sin declararlo
 
 /**
  * Agrupa columnas sueltas en como mucho `_COLS_MAX_TRAMOS` bloques contiguos,
@@ -135,16 +137,23 @@ function _colsTramos(idx) {
  *
  * ⚠️ **El campo que no se pide llega vacío, no llega roto.** Un cálculo que
  * toque un campo ausente de `campos` no falla: da 0 o '' en silencio, que en
- * un indicador clínico es peor que un error. Por eso la lista se declara
- * junto al cálculo y `build/checks/columnas.js` la contrasta contra los
- * campos que el código realmente toca, incluidos los accesos dinámicos.
+ * un indicador clínico es peor que un error. Contra eso hay TRES redes, y
+ * ninguna sobra:
+ *   1. La lista se declara junto al cálculo y `build/checks/columnas.js` la
+ *      contrasta contra los campos que el código toca (también los dinámicos).
+ *   2. Lo que sale de aquí queda **marcado como parcial** y las funciones de
+ *      escritura lo RECHAZAN: un objeto parcial guardado borraría con vacío
+ *      todas las columnas que no se leyeron. Eso sí sería pérdida de datos.
+ *   3. Con `_COLS_AUDIT` encendido, tocar un campo no declarado queda
+ *      registrado aunque hoy venga con valor por caer dentro del bloque de un
+ *      vecino: `verificarTablero()` lo usa sobre los datos REALES.
  *
  * Cae a la lectura completa —que es un solo viaje— cuando no compensa: hoja
  * pequeña, o campos tan dispersos que habría que bajar media fila igual.
  *
  * @param {string} hoja
  * @param {Array<string>} campos  nombres de columna del esquema
- * @return {Array<Object>} objetos completos; los campos no pedidos van ''
+ * @return {Array<Object>} objetos SOLO PARA LEER; los campos no pedidos van ''
  */
 function repoLeerColumnas(hoja, campos) {
   if (_COLS_OFF === true || !campos || !campos.length) return repoLeerTodos(hoja);
@@ -176,8 +185,72 @@ function repoLeerColumnas(hoja, campos) {
     }
   });
   const out = new Array(nFilas);
-  for (let i = 0; i < nFilas; i++) out[i] = esquemaFilaAObjeto(hoja, filas[i]);
+  for (let i = 0; i < nFilas; i++) out[i] = _colsMarcar(esquemaFilaAObjeto(hoja, filas[i]), hoja, campos);
   return out;
+}
+
+/**
+ * Marca un objeto como leído a medias y —si la auditoría está encendida— avisa
+ * cuando alguien toca un campo que nadie declaró.
+ *
+ * La marca es **no enumerable** a propósito: no sale en `JSON.stringify`, no
+ * aparece en `Object.keys` y `esquemaObjetoAFila` (que recorre el esquema, no
+ * el objeto) ni la ve. O sea: no cambia ni un dato ni una respuesta.
+ */
+function _colsMarcar(obj, hoja, campos) {
+  const o = _COLS_AUDIT === true ? _colsAuditar(obj, hoja, campos) : obj;
+  try {
+    Object.defineProperty(o, '_PARCIAL', {
+      value: { hoja: hoja, campos: campos }, enumerable: false, writable: false, configurable: true,
+    });
+  } catch (e) { /* si no se puede marcar, se devuelve igual: la marca es una red, no el dato */ }
+  return o;
+}
+
+/**
+ * Envuelve la fila para registrar accesos a campos NO declarados.
+ *
+ * Se compara contra los campos DECLARADOS, no contra los que efectivamente se
+ * bajaron: un campo que hoy llega con valor «de paso», porque cayó dentro del
+ * bloque contiguo de un vecino, es una bomba de tiempo — el día que cambie el
+ * esquema o el techo de tramos empieza a llegar vacío y el indicador se cae sin
+ * ruido. Aquí se caza mientras todavía funciona.
+ */
+function _colsAuditar(obj, hoja, campos) {
+  const declarados = {};
+  campos.forEach(function (c) { declarados[c] = true; });
+  const colmap = COL[hoja] || {};
+  return new Proxy(obj, {
+    get: function (target, prop) {
+      if (typeof prop === 'string' && !declarados[prop] && colmap[prop]) {
+        const k = hoja + '.' + prop;
+        _COLS_AUDIT_HITS[k] = (_COLS_AUDIT_HITS[k] || 0) + 1;
+      }
+      return target[prop];
+    },
+  });
+}
+
+/** ¿Este objeto viene de una lectura por columnas (y por tanto está a medias)? */
+function _colsEsParcial(obj) {
+  return !!(obj && typeof obj === 'object' && obj._PARCIAL);
+}
+
+/**
+ * Frena una escritura que venga de una lectura parcial.
+ *
+ * Es el escenario que de verdad haría daño: un objeto con 21 columnas leídas y
+ * 365 en blanco, guardado tal cual, **borraría** esas 365 en la hoja. Hoy nadie
+ * lo hace —`repoLeerColumnas` solo lo usa el tablero, que no escribe— y esto
+ * existe para que siga siendo verdad el día que alguien reutilice el helper sin
+ * leer este archivo.
+ */
+function _colsExigirCompleto(hoja, obj, quien) {
+  if (!_colsEsParcial(obj)) return;
+  const p = obj._PARCIAL;
+  throw new Error(quien + ': se intentó escribir en ' + hoja + ' un registro leído a medias ' +
+    'por repoLeerColumnas(' + p.hoja + ', ' + p.campos.length + ' campos). Guardarlo dejaría en ' +
+    'blanco todas las columnas que no se leyeron. Vuelve a leer la fila completa antes de escribir.');
 }
 
 /** Índice de fila (1-based) cuyo campo colKey == id, o -1. */
@@ -210,6 +283,7 @@ function repoBuscarPorId(hoja, colKey, id) {
  * zona de encabezado y el registro quedaría invisible para las lecturas.
  */
 function repoInsertar(hoja, obj) {
+  _colsExigirCompleto(hoja, obj, 'repoInsertar');
   const h = _hoja(hoja);
   const fila = esquemaObjetoAFila(hoja, obj);
   const row = Math.max(h.getLastRow() + 1, FILA_DATOS[hoja]);
@@ -222,6 +296,7 @@ function repoInsertar(hoja, obj) {
  * @return {boolean} true si actualizó, false si no encontró.
  */
 function repoActualizar(hoja, colKey, id, campos) {
+  _colsExigirCompleto(hoja, campos, 'repoActualizar');
   const f = repoBuscarFila(hoja, colKey, id);
   if (f === -1) return false;
   const h = _hoja(hoja), total = TOTAL_COLS[hoja], colmap = COL[hoja];
@@ -270,6 +345,7 @@ function repoActualizarDonde(hoja, fn, mut) {
     const obj = esquemaFilaAObjeto(hoja, datos[i]);
     if (!fn(obj)) continue;
     const campos = mut(obj) || {};
+    _colsExigirCompleto(hoja, campos, 'repoActualizarDonde');
     Object.keys(campos).forEach(k => {
       if (colmap[k]) datos[i][colmap[k] - 1] = (campos[k] == null) ? '' : campos[k];
     });
@@ -284,6 +360,7 @@ function repoActualizarDonde(hoja, fn, mut) {
  * @return {string} 'crear' | 'actualizar'
  */
 function repoUpsert(hoja, colKey, id, obj) {
+  _colsExigirCompleto(hoja, obj, 'repoUpsert');
   const f = repoBuscarFila(hoja, colKey, id);
   if (f === -1) { repoInsertar(hoja, obj); return 'crear'; }
   const h = _hoja(hoja);

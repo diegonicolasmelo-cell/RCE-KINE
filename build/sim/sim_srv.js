@@ -31,12 +31,20 @@ global.repoLeerTodos = (h, campo, valor) => {
 // Lectura por columnas (Ola 3). El doble RECORTA de verdad: si un cálculo usa
 // un campo que no declaró, aquí lo ve vacío igual que en producción, y el
 // número sale mal en la simulación en vez de salir mal en la UCI.
+// Y viene MARCADO como parcial: guardarlo dejaría en blanco las columnas que
+// no se leyeron, así que aquí también se frena, igual que en repo.gs.
 global.repoLeerColumnas = (h, campos) => (DB[h] || []).map(o => {
   if (!campos || !campos.length) return Object.assign({}, o);
   const r = {};
   campos.forEach(c => { r[c] = (o[c] === undefined) ? '' : o[c]; });
+  Object.defineProperty(r, '_PARCIAL', { value: { hoja: h, campos }, enumerable: false });
   return r;
 });
+global._colsExigirCompleto = (h, obj, quien) => {
+  if (obj && typeof obj === 'object' && obj._PARCIAL) {
+    throw new Error(quien + ': se intentó escribir en ' + h + ' un registro leído a medias.');
+  }
+};
 // Misma semántica que repo.gs: el predicado recibe el valor de la columna.
 // (Faltaba desde v5.21: sin él, obtenerEvosDelDia fallaba en silencio dentro
 // de la simulación y el registro diario simulado quedaba sin cobertura.)
@@ -57,15 +65,25 @@ global.repoBuscarFila = (h, campo, id) => {
 // Las ESCRITURAS sí operan sobre la fila viva (interno, no expuesto a los .gs)
 const _filaViva = (h, campo, id) => (DB[h] || []).find(x => String(x[campo]) === String(id)) || null;
 global.repoActualizar = (h, campo, id, cambios) => {
+  global._colsExigirCompleto(h, cambios, 'repoActualizar');
   const r = _filaViva(h, campo, id);
   if (r) Object.assign(r, cambios);
   return !!r;
 };
 global.repoActualizarDonde = (h, fil, mut) =>
-  (DB[h] || []).forEach(r => { if (fil(r)) Object.assign(r, mut(r)); });
-global.repoInsertar = (h, obj) => { (DB[h] = DB[h] || []).push(obj); return obj; };
+  (DB[h] || []).forEach(r => {
+    if (!fil(r)) return;
+    const c = mut(r);
+    global._colsExigirCompleto(h, c, 'repoActualizarDonde');
+    Object.assign(r, c);
+  });
+global.repoInsertar = (h, obj) => {
+  global._colsExigirCompleto(h, obj, 'repoInsertar');
+  (DB[h] = DB[h] || []).push(obj); return obj;
+};
 global.repoEliminarDonde = (h, fn) => { DB[h] = (DB[h] || []).filter(r => !fn(r)); };
 global.repoUpsert = (h, campo, id, obj) => {
+  global._colsExigirCompleto(h, obj, 'repoUpsert');
   const r = _filaViva(h, campo, id);
   // Como repo.gs: la fila se REESCRIBE completa (no merge) — un upsert con
   // menos campos borra los que no vengan, igual que en producción.
