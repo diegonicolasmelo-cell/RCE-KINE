@@ -55,6 +55,8 @@ const SpreadsheetApp = {
       if (!H) return null;
       return {
         getLastRow: () => H.filas.length + 3,   // 3 filas de encabezado
+        getMaxRows: () => H.filas.length + 1000, // margen: _repoAsegurarFilas no expande
+        insertRowsAfter: () => {},
         getRange: (fila, col, nFilas, nCols) => ({
           getValues: () => {
             VIAJES++; CELDAS += nFilas * nCols;

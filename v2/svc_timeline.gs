@@ -130,41 +130,59 @@ function _procLabelGenerico(proc) {
 }
 
 /**
- * Convierte la lista de procedimientos del turno en hitos (idempotente).
+ * TODA la línea de tiempo de UN guardado, con una sola pasada por la hoja
+ * (ago-2026, Ola 4): borra los hitos auto del turno, inserta los nuevos (los
+ * de procedimientos + los extra, p.ej. el de ingreso) y devuelve el
+ * TIMELINE_JSON de la cama ya coherente, para que el guardado lo escriba en
+ * su ÚNICA escritura a CAMAS_ESTADO. Antes esto eran: bajar TIMELINE entera
+ * para borrar, un viaje por hito insertado, y volver a bajar TIMELINE para
+ * armar el cache — y si el re-guardado quitaba todos los procedimientos, el
+ * cache NI SE TOCABA: la tarjeta de la cama seguía mostrando hitos borrados
+ * (bug de datos, arreglado de paso porque el JSON ahora se devuelve SIEMPRE).
  *
- * REGLA (ago-2026, reporte de Diego): TODO lo que entra a PROCEDIMIENTOS
- * aparece en la línea de tiempo. Antes se traducía con una lista fija y lo
- * que no estaba en ella se descartaba EN SILENCIO — se perdían la asistencia
- * en procedimiento médico, la educación al usuario, la evaluación intermedia,
- * la recanulación y TODO lo que el colega agregara a mano del catálogo. Como
- * la estadística cuenta filas de PROCEDIMIENTOS y la línea de tiempo contaba
- * solo lo traducido, las dos NUNCA cuadraban.
+ * REGLA de los hitos (ago-2026, reporte de Diego): TODO lo que entra a
+ * PROCEDIMIENTOS aparece en la línea de tiempo. La lista PROC_TO_HITO manda
+ * para los eventos con ícono y nombre clínico propio; lo demás entra con
+ * etiqueta genérica en vez de desaparecer en silencio (la estadística cuenta
+ * filas de PROCEDIMIENTOS y la línea de tiempo debe cuadrar con ella).
  *
- * La lista sigue mandando para los eventos con ícono y nombre clínico propio;
- * lo demás entra con etiqueta genérica en vez de desaparecer.
+ * @return {string} TIMELINE_JSON (últimos 30 hitos de la cama)
  */
-function _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, autor, autorEmail, patientId) {
-  _borrarHitosAutoTurno(idCama, fecha, turno);
-  if (!Array.isArray(procs) || !procs.length) return;
-  let creados = 0;
-  procs.forEach(proc => {
+function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, patientId, hitosExtra) {
+  const id = String(idCama);
+  // UNA lectura: sirve para decidir qué borrar Y para armar el cache después.
+  const todos = repoLeerTodosConFila('TIMELINE');
+  const esDelTurnoAuto = function (h) {
+    return String(h.ID_CAMA) === id && String(h.FECHA) === String(fecha) &&
+      h.TURNO === turno && _TIPOS_HITO_AUTO.indexOf(h.TIPO) !== -1;
+  };
+  repoEliminarFilas('TIMELINE', todos.filter(function (t) { return esDelTurnoAuto(t.obj); })
+    .map(function (t) { return t.fila; }));
+
+  const nuevos = [];
+  const agregar = function (hito) {
+    nuevos.push({
+      ID_HITO: uid('HITO'), ID_CAMA: id, PATIENT_ID: hito.patientId || patientId || '',
+      FECHA: hito.fecha || fecha, TURNO: hito.turno || turno, TIPO: hito.tipo || 'general',
+      TEXTO: hito.texto || '', AUTOR: hito.autor || autor || '',
+      AUTOR_EMAIL: hito.autorEmail || autorEmail || '', TIMESTAMP: ahoraTS(),
+    });
+  };
+  (hitosExtra || []).forEach(agregar);
+  (Array.isArray(procs) ? procs : []).forEach(function (proc) {
     const map = PROC_TO_HITO[_procClaveHito(proc)] ||
                 { tipo: 'procedimiento', label: _procLabelGenerico(proc), generico: true };
     if (!map.label) return;   // procedimiento vacío: nada que anotar
-    // patientId viaja desde quien llama: sin él, _agregarHitoInternoSinSync
-    // vuelve a CAMAS_ESTADO a buscarlo por CADA procedimiento del turno, aunque
-    // el guardado ya lo tenga en la mano. Si no viene, se comporta como antes.
-    _agregarHitoInternoSinSync({ idCama, patientId: patientId || '', fecha, turno, tipo: map.tipo, texto: map.label, autor: autor || '', autorEmail: autorEmail || '' });
-    creados++;
+    agregar({ tipo: map.tipo, texto: map.label });
   });
-  if (creados) _sincronizarTimelineCama(String(idCama));
-}
+  repoInsertarVarios('TIMELINE', nuevos);
 
-/** Borra los hitos auto-generados del turno (preserva ingreso/egreso). */
-function _borrarHitosAutoTurno(idCama, fecha, turno) {
-  repoEliminarDonde('TIMELINE', h =>
-    String(h.ID_CAMA) === String(idCama) &&
-    String(h.FECHA) === String(fecha) &&
-    h.TURNO === turno &&
-    _TIPOS_HITO_AUTO.indexOf(h.TIPO) !== -1);
+  // El cache de la cama, desde lo que ya está en la mano: los hitos que
+  // sobrevivieron + los recién insertados. Mismo orden y corte que
+  // _sincronizarTimelineCama (por TIMESTAMP descendente, últimos 30).
+  const cama = todos.filter(function (t) { return String(t.obj.ID_CAMA) === id && !esDelTurnoAuto(t.obj); })
+    .map(function (t) { return t.obj; })
+    .concat(nuevos);
+  cama.sort(function (a, b) { return String(b.TIMESTAMP).localeCompare(String(a.TIMESTAMP)); });
+  return JSON.stringify(cama.slice(0, 30));
 }

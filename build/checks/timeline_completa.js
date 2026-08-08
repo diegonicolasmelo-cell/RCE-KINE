@@ -26,6 +26,10 @@ const HITOS = [];
 global.repoLeerTodos = () => [];
 global.repoInsertar = (h, o) => { if (h === 'TIMELINE') HITOS.push(o); return o; };
 global.repoEliminarDonde = () => {};
+// Ola 4: los hitos del guardado nacen juntos y viajan juntos en un lote.
+global.repoLeerTodosConFila = () => [];
+global.repoEliminarFilas = () => 0;
+global.repoInsertarVarios = (h, os) => { (os || []).forEach(o => { if (h === 'TIMELINE') HITOS.push(o); }); return (os || []).length; };
 global.repoActualizar = () => true;
 global.repoBuscarPorId = () => null;
 global.esVerdadero = v => v === true || v === 'TRUE';
@@ -53,7 +57,7 @@ const PROCS = [
   'PCR COVID',                           // ← antes DESAPARECÍA (sigla)
   'ASPIRACIÓN SUBGLÓTICA',               // ← inventado: cualquiera futuro
 ];
-_crearHitosDesdeProcedimientos('4', '2026-08-03', 'Dia', PROCS, 'DMV', 'x@y');
+_timelineDelGuardado('4', '2026-08-03', 'Dia', PROCS, 'DMV', 'x@y', 'pid4', []);
 
 ok_('se crea UN hito por CADA procedimiento — ninguno se pierde',
   HITOS.length === PROCS.length, HITOS.length + '/' + PROCS.length);
@@ -75,7 +79,7 @@ ok_('ningún hito queda con texto vacío', textos.every(t => t.trim() !== ''));
 
 // Un procedimiento vacío no debe generar una fila fantasma.
 HITOS.length = 0;
-_crearHitosDesdeProcedimientos('4', '2026-08-03', 'Dia', ['', '   ', 'ECOGRAFÍA'], 'DMV', 'x@y');
+_timelineDelGuardado('4', '2026-08-03', 'Dia', ['', '   ', 'ECOGRAFÍA'], 'DMV', 'x@y', 'pid4', []);
 ok_('los procedimientos vacíos NO generan hitos', HITOS.length === 1, HITOS.length);
 
 /* ══ 2 · CLIENTE: el riel los muestra + banda de fase ═══════════════════ */

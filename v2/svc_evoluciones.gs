@@ -58,9 +58,13 @@ function guardarEvolucion(datos, ctx) {
       // claves y aquí se preservan desde la fila existente. Sin esta fusión,
       // repoUpsert (reescritura de fila completa) borraba los eventos al
       // re-guardar el turno.
-      const _prevR = obtenerEvolucion(idCama, turnoKey);
-      if (_prevR && _prevR.ok && _prevR.data) {
-        const _prev = _prevR.data;
+      // La fila del turno se ubica UNA vez y la posición se recuerda: la
+      // fusión de abajo, los históricos de BDT/apnea y la escritura final
+      // hablan todos de ESTA misma fila. Válido porque todo ocurre dentro del
+      // mismo lock y nada borra/inserta en EVOLUCIONES antes del upsert.
+      const filaEvo = repoBuscarFila('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
+      const _prev = filaEvo === -1 ? null : repoLeerFila('EVOLUCIONES', filaEvo);
+      if (_prev) {
         Object.keys(_prev).forEach(function (k) { if (!(k in datos)) datos[k] = _prev[k]; });
         // «Si se registró, quedó»: la marca de ingreso del turno JAMÁS se
         // pierde al re-editar. El cliente reabre con el modo ingreso apagado
@@ -69,16 +73,17 @@ function guardarEvolucion(datos, ctx) {
         if (esVerdadero(_prev.ES_INGRESO)) datos.ES_INGRESO = true;
       }
 
-      const rc = obtenerCama(idCama);
-      const cama = rc.ok ? rc.data : {};
+      // La cama también se ubica una vez; su ÚNICA escritura es el sync del
+      // final (las que había repartidas por el camino se fusionaron ahí —
+      // de paso el guardado quedó todo-o-nada: si algo revienta a mitad, la
+      // cama no queda a medio actualizar).
+      const filaCama = repoBuscarFila('CAMAS_ESTADO', 'ID_CAMA', idCama);
+      const cama = filaCama === -1 ? {} : repoLeerFila('CAMAS_ESTADO', filaCama);
 
       // PATIENT_ID — ruta única: se toma de la cama; si no existe (episodio sin
-      // ingreso formal) se genera UNA vez y se fija en la cama.
+      // ingreso formal) se genera UNA vez (el sync final lo fija en la cama).
       let patientId = datos.PATIENT_ID || cama.PATIENT_ID || '';
-      if (!patientId) {
-        patientId = Utilities.getUuid();
-        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { PATIENT_ID: patientId });
-      }
+      if (!patientId) patientId = Utilities.getUuid();
       datos.PATIENT_ID = patientId;
 
       // COD_PACIENTE — de la cama; si falta, se genera desde el nombre.
@@ -117,21 +122,21 @@ function guardarEvolucion(datos, ctx) {
       // (PAC_HORA_INGRESO / «Hora ingreso» del formulario) ya se pedía; antes
       // solo la usaba TS_INGRESO (con _tsDesdeHora, relativo a AHORA — no al
       // turno) y FECHA_INGRESO caía siempre en la fecha del turno sin mirarla.
+      // Las fechas de ingreso se corrigen EN MEMORIA sobre `cama`; a la hoja
+      // llegan con el sync único del final (que ya las incluye). Los cálculos
+      // de aquí abajo leen cama.FECHA_INGRESO / cama.TS_INGRESO ya corregidos.
       const _hFormIng = _horaValida(datos.PAC_HORA_INGRESO);
       const _tsIng = _hFormIng ? _tsEventoTurno(fecha, turno, _hFormIng) : '';
       if (!cama.FECHA_INGRESO) {
         // Episodio sin fecha de ingreso (paciente cargado sin ingreso formal):
         // se ancla al primer turno evolucionado para que los días no queden '?'.
         cama.FECHA_INGRESO = _tsIng ? _tsFecha(_tsIng) : fecha;
-        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { FECHA_INGRESO: cama.FECHA_INGRESO });
       }
       if (!cama.TS_INGRESO) {
         cama.TS_INGRESO = _tsIng || _tsAhora();
-        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { TS_INGRESO: cama.TS_INGRESO });
       } else if (_hFormIng && _hFormIng !== _tsHora(cama.TS_INGRESO)) {
         // Corrección a mano: se conserva el día del momento ya guardado.
         cama.TS_INGRESO = _tsFecha(cama.TS_INGRESO) + ' ' + _hFormIng;
-        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { TS_INGRESO: cama.TS_INGRESO });
       }
       if (cama.FECHA_INGRESO) {
         // ── DÍAS: EL MISMO NÚMERO QUE LA LISTA OFICIAL (BUDA) ──────────────
@@ -233,8 +238,9 @@ function guardarEvolucion(datos, ctx) {
       // acumula en BDT_JSON del episodio y BDT_ULTIMO refleja el más reciente.
       const bdtRes = esVerdadero(datos.EVAL_T_BDT_POS) ? '+' : (esVerdadero(datos.EVAL_T_BDT_NEG) ? '-' : '');
       if (bdtRes) {
-        // Continuidad del histórico: fila de este turno (si se edita) o turno previo.
-        let base = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
+        // Continuidad del histórico: fila de este turno (la que la fusión ya
+        // trajo — volver a pedirla era otra bajada de la hoja) o turno previo.
+        let base = _prev;
         if (!base || !base.BDT_JSON) {
           const rp = obtenerEvolucionPrevia(idCama, turnoKey, _evosCama());
           if (rp.ok && rp.data) base = rp.data;
@@ -251,7 +257,7 @@ function guardarEvolucion(datos, ctx) {
       // Test de apnea — repetible (mismo patrón que BDT)
       const apRes = String(datos.APNEA_TEST || '').trim();
       if (apRes) {
-        let baseA = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
+        let baseA = _prev;
         if (!baseA || !baseA.APNEA_JSON) {
           const rpa = obtenerEvolucionPrevia(idCama, turnoKey, _evosCama());
           if (rpa.ok && rpa.data) baseA = rpa.data;
@@ -304,16 +310,15 @@ function guardarEvolucion(datos, ctx) {
         AUTOR_EMAIL: ctx.email || '', PLAN_FIRMA_KINE: datos.PLAN_FIRMA_KINE || ctx.firma || '',
       });
 
-      const accion = repoUpsert('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion, evo);
+      const accion = repoUpsertEnFila('EVOLUCIONES', filaEvo, evo);
       const esNuevo = (accion === 'crear');
 
-      // Sincronizar el snapshot de la cama
-      _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, patientId);
-
-      // Hito de ingreso — solo en la primera escritura
+      // Hito de ingreso — solo en la primera escritura. Viaja en el MISMO lote
+      // que los hitos de procedimientos (una inserción, un solo cache).
+      const hitosExtra = [];
       if (esVerdadero(evo.ES_INGRESO) && esNuevo) {
-        _agregarHitoInterno({
-          idCama, patientId, fecha, turno, tipo: 'ingreso',
+        hitosExtra.push({
+          tipo: 'ingreso',
           texto: 'Ingreso UCI. Dx: ' + (evo.PAC_DIAGNOSTICO || evo.PAC_NOMBRE || 'Sin especificar'),
           autor: evo.PLAN_FIRMA_KINE, autorEmail: ctx.email || '',
         });
@@ -328,11 +333,17 @@ function guardarEvolucion(datos, ctx) {
       // narra maniobras, no cuenta eventos.
       const procsStats = procs.filter(function (p) { return !/^SUPINACI/i.test(String(p)); });
       _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, turno, procsStats, ctx.email);
-      _crearHitosDesdeProcedimientos(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email, patientId);
+      const timelineJson = _timelineDelGuardado(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email, patientId, hitosExtra);
 
-      // Reintubación desde el bloque EXT_*
+      // Sincronizar el snapshot de la cama: la ÚNICA escritura a CAMAS_ESTADO
+      // del guardado (lleva también las fechas de ingreso corregidas arriba y
+      // el cache de la línea de tiempo recién armado).
+      _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, patientId, filaCama, timelineJson);
+
+      // Reintubación desde el bloque EXT_* (le viaja el lector perezoso del
+      // episodio: si el EXT_TS hay que buscarlo hacia atrás, no re-baja la hoja)
       if (esVerdadero(evo.EXT_REINTUB)) {
-        try { _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx); }
+        try { _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx, _evosCama); }
         catch (e) { console.warn('_registrarReintubacion:', e.message); }
       }
 
@@ -343,7 +354,12 @@ function guardarEvolucion(datos, ctx) {
 }
 
 // Sincroniza CAMAS_ESTADO con el último turno (datos del paciente + snapshot por turno).
-function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, patientId) {
+// `filaCama` y `timelineJson` (opcionales, Ola 4): con la fila conocida la
+// escritura es UN setValues sin relectura — válido porque el guardado corre
+// entero dentro del lock y nada mueve filas de CAMAS_ESTADO en el camino.
+// Sin ellos (anularEvento) se comporta como siempre: repoActualizar clásico
+// y el cache de timeline no se toca.
+function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, patientId, filaCama, timelineJson) {
   const esIngreso = esVerdadero(evo.ES_INGRESO);
   const val = (a, b) => (a !== undefined && a !== null && a !== '') ? a : (b || '');
 
@@ -476,18 +492,28 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     campos.TEXTO_EVO_NOCHE = evo.TEXTO_GENERADO || ''; campos.KTR_NOCHE = ktrCant;
     campos.PROC_NOCHE = procStr; campos.FIRMA_NOCHE = firmaT; campos.KEY_NOCHE = turnoKey;
   }
-  repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, campos);
+  if (timelineJson !== undefined && timelineJson !== null) campos.TIMELINE_JSON = timelineJson;
+  if (filaCama !== undefined && filaCama !== null && filaCama > 0) {
+    // Merge en memoria sobre la fila leída al inicio del guardado: mismo
+    // resultado que repoActualizar (los campos no tocados conservan su valor,
+    // null se vuelve ''), sin los dos viajes de volver a ubicar y releer.
+    const filaNueva = Object.assign({}, cama);
+    Object.keys(campos).forEach(function (k) { filaNueva[k] = (campos[k] == null) ? '' : campos[k]; });
+    repoEscribirFila('CAMAS_ESTADO', filaCama, filaNueva);
+  } else {
+    repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, campos);
+  }
 }
 
 // Registra un evento en la hoja REINTUBACIONES (idempotente por ID_EVOLUCION).
-function _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx) {
+function _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx, _evosFn) {
   const idReintub = idEvolucion + '_REINTUB';
   const fila = {
     ID_REINTUB: idReintub, PATIENT_ID: evo.PATIENT_ID || '', TIMESTAMP: ahoraTS(), FECHA: fecha, TURNO: turno,
     ID_CAMA: String(idCama), ID_EVOLUCION: idEvolucion, NOMBRE: evo.PAC_NOMBRE || '', COD_PACIENTE: evo.PAC_COD || '',
     DIAGNOSTICO: evo.PAC_DIAGNOSTICO || '', TIPO_DESVINCULACION: evo.EXT_TIPO || '', MOTIVO: evo.EXT_REINTUB_RAZ || '',
     SOPORTE_PREVIO: evo.REINTUB_SOP_PREV || evo.EXT_PE_SOP || '',
-    TIEMPO_EXTUBADO: _tiempoExtubado(evo, idCama, fecha),
+    TIEMPO_EXTUBADO: _tiempoExtubado(evo, idCama, fecha, _evosFn),
     HORA_REINTUBACION: evo.REINTUB_HORA || evo.EXT_HORA || '',
     KINESIOLOGO: evo.PLAN_FIRMA_KINE || '', AUTOR_EMAIL: (ctx && ctx.email) || '',
   };
@@ -498,14 +524,18 @@ function _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx) {
  * Horas entre la extubación previa del episodio (EXT_TS) y la reintubación.
  * Mismo turno: EXT_TS viene en el propio payload; turno siguiente: se busca
  * el EXT_TS más reciente del episodio. Devuelve '' si no es computable.
+ *
+ * `_evosFn` (opcional): lector perezoso del episodio ya bajado por quien
+ * llama (el guardado), en la misma petición y sin escrituras a EVOLUCIONES
+ * entre medio que cambien lo buscado (solo se miran turnos ANTERIORES).
  */
-function _tiempoExtubado(evo, idCama, fecha) {
+function _tiempoExtubado(evo, idCama, fecha, _evosFn) {
   try {
     const horaRe = evo.REINTUB_HORA || evo.EXT_HORA || '';
     if (!horaRe) return '';
     let extTs = evo.EXT_TS || '';
     if (!extTs) {
-      const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama))
+      const evos = (_evosFn ? _evosFn() : repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama)))
         .filter(function (e) { return e.EXT_TS && String(e.PATIENT_ID) === String(evo.PATIENT_ID || ''); });
       evos.sort(function (a, b) { return String(b.TURNO_KEY).localeCompare(String(a.TURNO_KEY)); });
       if (evos.length) extTs = evos[0].EXT_TS;
@@ -584,12 +614,19 @@ function obtenerEvolucionPrevia(idCama, turnoKey, _evos) {
  */
 function obtenerEvoTurno(idCama, turnoKey) {
   try {
-    const actual = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', 'CAMA_' + idCama + '_' + turnoKey);
-    // UNA sola bajada del episodio para las dos preguntas que vienen: la previa
-    // y la pronación abierta miran exactamente las mismas filas, y entre una y
-    // otra no hay ninguna escritura (esta acción solo lee). Antes el mismo
-    // bloque se pedía hasta TRES veces por apertura de paciente.
+    // UNA sola bajada del episodio responde las TRES preguntas: el turno
+    // actual, la previa y la pronación abierta miran exactamente las mismas
+    // filas, y entre una y otra no hay ninguna escritura (esta acción solo
+    // lee). El turno actual se deriva del episodio en vez de buscarse aparte:
+    // ID_EVOLUCION es 'CAMA_<idCama>_<turnoKey>', así que dentro de las filas
+    // de la cama, coincidir en TURNO_KEY ⇔ coincidir en ID_EVOLUCION (misma
+    // primera-fila que devolvía la búsqueda por columna).
     const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
+    const tk = String(turnoKey);
+    let actual = null;
+    for (let i = 0; i < evos.length; i++) {
+      if (String(evos[i].TURNO_KEY || '') === tk) { actual = evos[i]; break; }
+    }
     let previa = null;
     if (!actual) {
       const r = obtenerEvolucionPrevia(idCama, turnoKey, evos);

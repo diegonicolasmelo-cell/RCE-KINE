@@ -84,6 +84,26 @@ global.repoUpsert = (h, c, id, o) => {
   if (r) { DB[h][DB[h].indexOf(r)] = Object.assign({}, o); return 'actualizar'; }
   (DB[h] = DB[h] || []).push(Object.assign({}, o)); return 'crear';
 };
+// Primitivas de la Ola 4, contadas con las mismas etiquetas del arnés.
+// repoLeerFila trae UNA fila (el turno), no el episodio: no suma a
+// lecturasEpisodio() — que es exactamente lo que esta guardia vigila.
+global.repoLeerFila = (h, f2) => { cuenta('leerFila:' + h); return Object.assign({}, DB[h][f2 - 2]); };
+const _reemplazarFila = (h, f2, o) => { const r = DB[h][f2 - 2]; Object.keys(r).forEach(k => delete r[k]); Object.assign(r, o); };
+global.repoUpsertEnFila = (h, f2, o) => {
+  cuenta('upsert:' + h);
+  if (f2 === -1) { (DB[h] = DB[h] || []).push(Object.assign({}, o)); return 'crear'; }
+  _reemplazarFila(h, f2, o); return 'actualizar';
+};
+global.repoEscribirFila = (h, f2, o) => { cuenta('actualizar:' + h); _reemplazarFila(h, f2, o); };
+global.repoLeerTodosConFila = h => { cuenta('leerTodosConFila:' + h); return (DB[h] || []).map((r, i) => ({ obj: Object.assign({}, r), fila: i + 2 })); };
+global.repoEliminarFilas = (h, fl) => { cuenta('eliminar:' + h); (fl || []).map(f2 => f2 - 2).sort((a, b) => b - a).forEach(i => DB[h].splice(i, 1)); return (fl || []).length; };
+global.repoEliminarPorCols = (h, cs, pred) => {
+  cuenta('eliminar:' + h);
+  const a = (DB[h] || []).length;
+  DB[h] = (DB[h] || []).filter(r => { const o = {}; cs.forEach(c => { o[c] = r[c]; }); return !pred(o); });
+  return a - DB[h].length;
+};
+global.repoInsertarVarios = (h, os) => { cuenta('insertar:' + h); (os || []).forEach(o => (DB[h] = DB[h] || []).push(Object.assign({}, o))); return (os || []).length; };
 
 const CONFIG = { AUTH_DEV_MODE: 'TRUE' };
 global.leerConfig = (k, d) => (k in CONFIG ? String(CONFIG[k]) : d);

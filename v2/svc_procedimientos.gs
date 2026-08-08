@@ -6,13 +6,17 @@
 // Versión interna SIN lock (se llama desde guardarEvolucion, que ya tiene el lock).
 function _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, turno, lista, autorEmail) {
   // Reemplazar los del mismo turno (idempotente al re-guardar la evolución).
-  repoEliminarDonde('PROCEDIMIENTOS', p => String(p.ID_EVOLUCION) === String(idEvolucion));
+  // Por la columna clave, no la hoja entera: PROCEDIMIENTOS acumula el año
+  // completo y aquí solo interesan las filas de ESTE turno (ago-2026, Ola 4).
+  repoEliminarPorCols('PROCEDIMIENTOS', ['ID_EVOLUCION'],
+    p => String(p.ID_EVOLUCION) === String(idEvolucion));
   if (!Array.isArray(lista)) return { cantidad: 0 };
-  let n = 0;
+  // Nacen juntos, viajan juntos: un solo setValues para todos los del turno.
+  const filas = [];
   lista.forEach(nom => {
     const nombre = String(nom || '').trim();
     if (!nombre) return;
-    repoInsertar('PROCEDIMIENTOS', {
+    filas.push({
       ID_PROC:      uid('PROC'),
       ID_EVOLUCION: idEvolucion,
       ID_CAMA:      String(idCama),
@@ -25,9 +29,9 @@ function _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, tu
       AUTOR_EMAIL:  autorEmail || '',
       TIMESTAMP:    ahoraTS(),
     });
-    n++;
   });
-  return { cantidad: n };
+  repoInsertarVarios('PROCEDIMIENTOS', filas);
+  return { cantidad: filas.length };
 }
 
 function obtenerProcedimientos(idEvolucion) {

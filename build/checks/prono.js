@@ -28,14 +28,19 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
   global.repoEliminarDonde = () => {};
   global.repoLeerTodos = () => [];
   global.repoInsertar = () => {};
+  // Ola 4: los hitos del guardado ya no pasan uno a uno por
+  // _agregarHitoInternoSinSync — nacen juntos y viajan juntos en un lote.
+  global.repoLeerTodosConFila = () => [];
+  global.repoEliminarFilas = () => 0;
+  global.repoInsertarVarios = (h, os) => { (os || []).forEach(o => HITOS.push(o.TEXTO)); return (os || []).length; };
+  global.ahoraTS = () => '2026-08-01 12:00:00';
   global._agregarHitoInternoSinSync = h => HITOS.push(h.texto);
   global._sincronizarTimelineCama = () => {};
   global.Utilities = { getUuid: () => 'u' };
   (0, eval)(src);
 
-  global._agregarHitoInternoSinSync = h => HITOS.push(h.texto);
-  _crearHitosDesdeProcedimientos('4', '2026-08-01', 'Dia',
-    ['PRONO 19:00 HRS', 'SUPINACIÓN 07:30 HRS', 'RCP 3 CICLOS', 'INTUBACIÓN'], 'MJ', '');
+  _timelineDelGuardado('4', '2026-08-01', 'Dia',
+    ['PRONO 19:00 HRS', 'SUPINACIÓN 07:30 HRS', 'RCP 3 CICLOS', 'INTUBACIÓN'], 'MJ', '', 'pidX', []);
   eq('la pronación CON hora genera su hito', HITOS.indexOf('Decúbito prono') > -1, true);
   eq('la supinación con hora también', HITOS.indexOf('Decúbito supino') > -1, true);
   eq('el RCP con n° de ciclos también', HITOS.indexOf('Reanimación cardiopulmonar (RCP)') > -1, true);
