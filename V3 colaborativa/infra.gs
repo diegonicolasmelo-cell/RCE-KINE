@@ -413,12 +413,38 @@ function verificarToken(idToken) {
   return claims;
 }
 
-/** Firma clínica activa asociada a un email (1:1), o null. */
+/**
+ * Firma clínica activa asociada a un email (1:1), o null.
+ *
+ * Con caché corto (ago-2026, Ola 4): en producción CADA llamada autenticada
+ * —cada apertura de paciente, cada guardado, cada refresco del grid— bajaba
+ * la hoja KINESIOLOGOS para resolver la misma firma. La lista del staff es
+ * configuración (como CONFIG/CATALOGOS), no dato clínico, y cambia un puñado
+ * de veces al año; se cachea 5 minutos POR EMAIL.
+ *
+ * El costo del trade-off, dicho entero: desactivar a un kinesiólogo en la
+ * hoja tarda hasta 5 min en propagarse al bloqueo de escritura (su firma
+ * sigue resolviendo desde el caché). Solo se cachea el HALLAZGO — un email
+ * sin firma se re-consulta siempre, así que dar de alta a alguien nuevo
+ * funciona al instante.
+ */
+var _FIRMA_CACHE_TTL = 300;   // segundos
 function firmaDeEmail(email) {
   if (!email) return null;
-  const kines = repoLeerTodos('KINESIOLOGOS', 'EMAIL', String(email).toLowerCase())
+  const mail = String(email).toLowerCase();
+  let cache = null;
+  try {
+    cache = CacheService.getScriptCache();
+    const hit = cache.get('firma_' + mail);
+    if (hit) return hit;
+  } catch (e) { /* sin caché se resuelve igual, solo más lento */ }
+  const kines = repoLeerTodos('KINESIOLOGOS', 'EMAIL', mail)
     .filter(k => esVerdadero(k.ACTIVO));
-  return kines.length ? String(kines[0].FIRMA) : null;
+  const firma = kines.length ? String(kines[0].FIRMA) : null;
+  if (firma && cache) {
+    try { cache.put('firma_' + mail, firma, _FIRMA_CACHE_TTL); } catch (e) {}
+  }
+  return firma;
 }
 
 /**

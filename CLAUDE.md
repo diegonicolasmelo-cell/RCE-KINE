@@ -417,6 +417,84 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     simulación de punta a punta da **exactamente lo mismo que antes del cambio**
     (16/26 turnos, 8/8 egresos, 3/7 eventos, cero errores JS), comparada contra
     un worktree en `59ef890`.
+
+- **OLA 4 — EL GUARDADO Y EL CAMBIO DE PACIENTE CON LA MITAD DE LOS VIAJES
+  (8-ago-2026, rama `guardado-con-menos-viajes`, solo `.gs`).** La Ola 1 dejó
+  dicho «guardar normal y re-editar no cambian»; esta ola va justo ahí. El
+  costo no estaba en EVOLUCIONES sino alrededor: la fila del turno se buscaba
+  hasta TRES veces (fusión, histórico de BDT, test de apnea), CAMAS_ESTADO se
+  escribía hasta CINCO veces por guardado (PATIENT_ID, 2 fechas de ingreso,
+  sync del turno, cache de timeline — cada una busca fila, relee y escribe),
+  PROCEDIMIENTOS y TIMELINE se bajaban ENTERAS para reemplazar los 2-4
+  registros de un turno (costo que crecía con el año acumulado), cada
+  hito/procedimiento pagaba su propio viaje de inserción, `_tz()` bajaba la
+  hoja CONFIG aparte del memo de `leerConfig`, y en producción CADA llamada
+  autenticada bajaba KINESIOLOGOS para resolver la misma firma.
+  - **Viajes medidos con `build/medir_guardado.js`** (repo.gs + esquema.gs
+    REALES sobre hojas simuladas que cuentan getValues/setValues/deleteRows,
+    con el volumen real: 136 evos + 90 archivo + 12/18 camas):
+    | acción | antes | ahora |
+    |---|---|---|
+    | guardar turno nuevo (2 procs) | 24 | **13** |
+    | re-guardar el mismo turno | 30 | **17** |
+    | guardado de ingreso | 39 | **13** |
+    | decanulación (BDT+apnea+4 procs) | 30 | **13** |
+    | reintubación | 26 | **14** |
+    | abrir paciente (GET_EVO_TURNO) | 4 | **3** |
+    | reabrir turno guardado | 5 | **3** |
+    | + cada llamada autenticada (prod) | +2 | **+0** (caché 5 min) |
+    ⚠️ Son VIAJES, no segundos — los ms reales se miden con
+    **`medirGuardado('<cama de prueba>')`** (mantenimiento_manuel.gs): correr
+    ANTES de pegar la ola (pegar solo mantenimiento_manuel primero) y DESPUÉS,
+    y comparar. Solo escribe en cama de prueba (valida `_esCamaPrueba`) y deja
+    todo como estaba.
+  - **Cómo quedó el guardado**: la fila del turno se ubica UNA vez
+    (`repoBuscarFila` + `repoLeerFila`) y esa misma sirve para la fusión, BDT,
+    apnea y el upsert final (`repoUpsertEnFila` — válido porque todo corre en
+    el mismo lock y nada mueve filas de EVOLUCIONES entre medio); las fechas
+    de ingreso se corrigen EN MEMORIA y viajan en el ÚNICO sync a CAMAS_ESTADO
+    del final (`repoEscribirFila`: fila completa desde el objeto leído, sin
+    releer — todas las hojas van en formato texto `@`, la ida-vuelta es sin
+    pérdida); los procedimientos se reemplazan leyendo SOLO su columna clave
+    (`repoEliminarPorCols`) y se insertan en UN setValues
+    (`repoInsertarVarios`); la línea de tiempo del guardado es UNA pasada
+    (`_timelineDelGuardado`): lee TIMELINE una vez, borra los hitos auto del
+    turno por tramos (`repoEliminarFilas`), inserta el lote (hito de ingreso
+    incluido) y devuelve el TIMELINE_JSON coherente que viaja en el sync
+    único.
+  - **Dos bugs reales cazados de paso:**
+    1. **El cache de timeline quedaba con HITOS FANTASMA**: si un re-guardado
+       quitaba todos los procedimientos, `_crearHitosDesdeProcedimientos`
+       borraba los hitos y retornaba SIN resincronizar TIMELINE_JSON — la
+       tarjeta de la cama (obtenerTodasLasCamas lo parsea a `c.TIMELINE`)
+       seguía mostrando hitos borrados. Ahora el JSON se devuelve SIEMPRE.
+    2. **El borde de las filas físicas**: `repoInsertar` hacía getRange más
+       allá de `getMaxRows()` cuando la hoja se quedaba sin filas — y las
+       hojas de crecimiento (AUDIT_LOG suma una fila por CADA escritura)
+       iban directo a ese tope. En PROCEDIMIENTOS/TIMELINE tumbaba el guardado
+       entero; en AUDIT_LOG ni siquiera eso: su try/catch se lo traga y la
+       traza de auditoría SE PIERDE EN SILENCIO. `_repoAsegurarFilas` expande
+       antes de escribir. (La guardia lo prueba con la hoja al borde: en el
+       código anterior revienta, ahora expande.)
+  - **firmaDeEmail con caché de 5 min POR EMAIL** (CacheService): la lista del
+    staff es configuración, no dato clínico. El trade-off dicho entero:
+    desactivar a un kinesiólogo tarda hasta 5 min en propagarse al bloqueo de
+    escritura. Solo se cachea el HALLAZGO: dar de alta a alguien nuevo
+    funciona al instante.
+  - **Guardia `checks/guardado_viajes.js`** (A/B contra worktree en
+    `e664f3e`, reloj y uid congelados): respuestas de la API IDÉNTICAS en los
+    8 escenarios, EVOLUCIONES byte a byte, TIMELINE/PROCEDIMIENTOS como
+    conjunto (los ids autogenerados y el orden físico cambian de mecanismo),
+    menos viajes con techo anotado, y los DOS controles negativos (el cache
+    fantasma existe en el base; el borde revienta en el base). 🪤 El banco
+    emite ~3 MB de JSON por stdout: SIN `process.exit()` tras el write —
+    sobre un pipe el exit trunca a 64 KB (nos pasó).
+  - **Lo que NO se tocó, y por qué**: el retry automático del front (v5.25) ya
+    era seguro — repoUpsert/procs/hitos son idempotentes por turno y el hito
+    de ingreso solo se crea en `accion==='crear'`; `recargarSilencioso()`
+    (GET_TODAS_CAMAS + GET_EVOS_DEL_DIA tras guardar) corre en background sin
+    bloquear al kine y tocarlo exigía index.html — fuera del alcance de una
+    ola solo-servidor.
 - 🔴 **EL FRONT DESPLEGADO ESTÁ EN 5.22, NO EN 5.43 (descubierto 6-ago-2026).**
   El `index.html` del proyecto es, **por dentro**, `5.22-cierre` — no es la
   etiqueta desfasada. Verificado decodificando el base64 del cargador desde el

@@ -4,8 +4,10 @@
 Lo que está aquí es lo que hay que pegar en el editor, archivo por archivo, sin
 armar ni fusionar nada.
 
-Regenerada el 8-ago-2026 · index **v5.45-datos** (el índice no cambió en esta
-ronda: solo `repo.gs`, `servicios.gs` y `mantenimiento.gs`)
+Regenerada el 8-ago-2026 (Ola 4) · index **v5.45-datos** (el índice no cambió:
+esta ronda toca `repo.gs`, `esquema.gs`, `infra.gs`, `servicios.gs` y
+`mantenimiento_manuel.gs` — el guardado y la apertura de paciente con menos
+viajes; medir con `medirGuardado('<cama de prueba>')` antes y después de pegar)
 
 ---
 
