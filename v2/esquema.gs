@@ -585,15 +585,12 @@ var _TZ_MEMO = null;
 
 function _tz() {
   if (_TZ_MEMO !== null && !_memoApagado()) return _TZ_MEMO;
+  // Comparte la tabla ya memoizada de _cfgTabla (ago-2026, Ola 4): antes este
+  // memo bajaba la hoja CONFIG por su cuenta, así que una petición que leyera
+  // config Y formateara fechas —o sea, casi todas— pagaba la misma lectura dos
+  // veces. leerConfig no llama a _tz, así que no hay recursión posible.
   let tz = 'America/Santiago';
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const h = ss.getSheetByName('CONFIG');
-    if (h) {
-      const vals = h.getRange(1, 1, h.getLastRow() || 1, 2).getValues();
-      for (const r of vals) if (String(r[0]) === 'TIMEZONE' && r[1]) { tz = String(r[1]); break; }
-    }
-  } catch (e) {}
+  try { tz = String(leerConfig('TIMEZONE', tz) || tz); } catch (e) {}
   if (!_memoApagado()) _TZ_MEMO = tz;
   return tz;
 }
