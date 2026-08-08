@@ -462,6 +462,36 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `FECHA_INICIO_VA` en el display del formulario): su valor autoritativo es
     `DIAS_VM` del servidor y no es lo reportado.
 
+- **v5.45 · LA ENTREGA CON LOS DATOS QUE FALTABAN (8-ago-2026, cohete
+  v5.45-datos; sin cambio de esquema — NO exige `crearORepararEstructura()`).**
+  Reporte de Diego: «hay datos importantes que no aparecen en la entrega,
+  como el GCS o la mecánica ventilatoria». Se levantó el inventario completo
+  (registrado vs mostrado), mockup con 2 opciones y Diego eligió la **A
+  (integrada)**: todo entra a los casilleros existentes sin mover la grilla.
+  1. **Neuro·HDN**: GCS con desglose `GCS 8T (O2·V1T·M5)`; PIC/PPC solo si
+     existen; **«💤 Sedación suspendida el dd-mm»** y «BNM suspendido el
+     dd-mm» — fecha de la ÚLTIMA transición sedado→sin (recorre el episodio;
+     si lo re-sedan desaparece sola: valor no vacío = HOY sigue suspendida).
+  2. **Parámetros**: segunda línea con la mecánica medida `Pmax · Ppl · DP ·
+     Cest · PaFi` (`_entMec`; AutoPEEP/Ti/I:E quedan en el historial).
+     OJO: la Cest es la columna **CALC_CESR** (no CALC_CEST).
+  3. **Vía aérea**: `TOT N° 8.0 · 22 cm` / `TQT N° X` (respaldo en cama).
+  4. **Barra**: chip morado `⚕ fase` (FASE_JSON del turno, respaldo cama).
+  5. **HITO MOTOR MÁS ALTO** (`_hitoMotorEpisodio`, ejemplo textual de Diego:
+     01-08 en cama analítico · 02 SBC · 03 en cama ⇒ «SBC (02-08)»): manda el
+     **IMS** si se registró; sin IMS se traduce el **nivel KTM** (1-2 en cama ·
+     3 SBC · 4 bípedo · 5 marcha; IMS: 0-2 · 3 · 4-5 · 6-10). Fecha = **última
+     vez que se alcanzó** (decisión de Diego: dice qué tan vigente es la
+     capacidad). Va primero en Rehabilitación, al lado del KTM de HOY ⇒ el
+     retroceso se ve al tiro. Matiz avisado: el nivel KTM dice qué se TRABAJÓ,
+     no siempre qué se logró — con IMS anotado se corrige solo (empujón
+     natural para llenar el IMS).
+  - Sirve HACIA ATRÁS (columnas que ya existían). Guardia
+    `checks/entrega_datos.js` (24 asserts, servicio + render, con el ejemplo
+    fecha a fecha). Batería: **56 guardias verdes**. Pendiente conversado y
+    NO programado: GSA y cuff quedan fuera de la entrega (criterio: son de
+    historial); candidatos a sacar (cooperación, litros/flujo con VM) sin
+    decidir.
 - **v5.44 · BLOQUES A/B/C DE DIEGO: FECHAS DE DISPOSITIVOS, MOTOR DE TEXTO Y
   PRONO JUNTO A LA TQT (7-ago-2026, cohete v5.44-terreno; sin cambio de
   esquema — NO exige `crearORepararEstructura()`).** Ronda pedida por Diego con
@@ -1386,8 +1416,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.44-terreno**
-  (antes v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.45-datos**
+  (antes v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con

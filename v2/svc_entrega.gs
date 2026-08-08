@@ -163,6 +163,31 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   episodio.forEach(ev => { if (val(ev.CPAX_TOTAL) !== '') { cpax = ev.CPAX_TOTAL; cpaxF = dd(ev.FECHA); } });
   if (cpax !== '') evals.push('CPAx ' + cpax + (cpaxF ? ' (' + cpaxF + ')' : ''));
 
+  // ── Hito motor más alto del episodio (pedido de Diego, ago-2026) ──
+  // Cada turno aporta su peldaño: manda el IMS si se registró; sin IMS se
+  // traduce el nivel KTM del protocolo, que ya es una escalera de hitos
+  // (1-2 en cama · 3 SBC · 4 bípedo · 5 marcha). La fecha es la ÚLTIMA vez
+  // que se alcanzó ese peldaño (dice qué tan vigente es la capacidad).
+  const hitoMotor = _hitoMotorEpisodio(episodio, dd);
+
+  // ── Suspensión de sedación y de BNM (pedido de Diego, ago-2026): fecha de
+  // la ÚLTIMA transición a «sin». Si después lo re-sedan, se recalcula sola —
+  // un valor no vacío significa que HOY sigue suspendida. ──
+  let sedSusp = '', bnmSusp = '', _sedAntes = false, _bnmAntes = false;
+  episodio.forEach(function (ev) {
+    const tipo = String(ev.SED_TIPO || '');
+    if (tipo && tipo !== 'Sin sedación') { _sedAntes = true; sedSusp = ''; }
+    else if (tipo === 'Sin sedación' && _sedAntes && !sedSusp) sedSusp = dd(ev.FECHA);
+    if (esVerdadero(ev.SED_BNM)) { _bnmAntes = true; bnmSusp = ''; }
+    else if (_bnmAntes && !bnmSusp) bnmSusp = dd(ev.FECHA);
+  });
+
+  // ── Fase clínica (chips de la barra): la del turno, con respaldo en cama ──
+  const fases = (function () {
+    try { const a = JSON.parse(String(val(e && e.FASE_JSON, c.FASE_JSON) || '[]')); return Array.isArray(a) ? a.filter(Boolean) : []; }
+    catch (x) { return []; }
+  })();
+
   // ── Dispositivos de circuito por vencer (solo VM) ──
   // SEMÁNTICA VALIDADA POR DIEGO (ago-2026): etiqueta = día 0 y el cambio se
   // hace en el TURNO NOCHE del día etiqueta+frecuencia. «cambiar» = esta
@@ -251,9 +276,22 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     // sobraba a la derecha. En pantalla no se muestra (basta el «Nd UCI»).
     fechaIngreso: String(c.FECHA_INGRESO || '').slice(0, 10),
     viaAerea: val(e && e.VENT_VIA_AEREA, c.VIA_AEREA),
+    // N° de tubo/cánula y fijación (opción A de Diego, ago-2026): al recibir
+    // el turno sirven para verificar la vía aérea sin abrir el panel.
+    totN: val(e && e.VENT_TOT_NUM, c.TOT_NUMERO),
+    totCm: val(e && e.VENT_TOT_CM, c.TOT_CM_LABIO),
+    tqtN: val(e && e.VENT_TQT_CALIBRE, c.TQT_CALIBRE),
     soporte: val(e && e.VENT_SOPORTE, c.SOPORTE),
     modo: val(e && e.VENT_MODO, c.MODO),
     params: e ? _entParams(e) : '',
+    mec: e ? _entMec(e) : '',
+    gcs: e ? val(e.SED_GCS_TOT) : '',
+    gcsOVM: (e && val(e.SED_GCS_O) !== '' && val(e.SED_GCS_V) !== '' && val(e.SED_GCS_M) !== '')
+      ? ('O' + e.SED_GCS_O + '·V' + e.SED_GCS_V + '·M' + e.SED_GCS_M) : '',
+    pic: e ? val(e.HEMO_PIC) : '', ppc: e ? val(e.HEMO_PPC) : '',
+    fases: fases,
+    hitoMotor: hitoMotor,
+    sedSusp: sedSusp, bnmSusp: bnmSusp,
     catResp: { pje: val(c.CAT_RESP_PJE), nivel: val(c.CAT_RESP_NIVEL) },
     catMotor: { pje: val(c.CAT_MOTOR_PJE), nivel: val(c.CAT_MOTOR_NIVEL) },
     sedTipo: e ? val(e.SED_TIPO) : '',
@@ -351,6 +389,45 @@ function _entParams(e) {
   push('VT', 'VENT_VT'); push('FR', 'VENT_FR'); push('SpO₂', 'VENT_SPO2');
   push('L', 'VENT_LITROS'); push('Flujo', 'VENT_FLUJO');
   return out.join(' · ');
+}
+
+/**
+ * Mecánica medida y derivados que cambian conductas (opción A de Diego,
+ * ago-2026): Pmax · Ppl · DP · Cest · PaFi. AutoPEEP, Ti e I:E quedan en el
+ * historial — la entrega es la foto, no la bitácora.
+ */
+function _entMec(e) {
+  const out = [];
+  const push = function (lbl, key) {
+    const x = e[key];
+    if (x !== '' && x !== null && x !== undefined) out.push(lbl + ' ' + x);
+  };
+  push('Pmax', 'VENT_PMAX'); push('Ppl', 'VENT_PPL');
+  push('DP', 'CALC_DP'); push('Cest', 'CALC_CESR'); push('PaFi', 'VENT_PAFI');
+  return out.join(' · ');
+}
+
+/**
+ * Hito motor más alto del episodio. Peldaños: 1 en cama · 2 SBC · 3 bípedo ·
+ * 4 marcha. El IMS (0-10) manda cuando se registró; sin IMS se traduce el
+ * nivel KTM (1-2 → en cama, 3 → SBC, 4 → bípedo, 5 → marcha). La fecha (y el
+ * IMS mostrado) son de la ÚLTIMA vez que se alcanzó el peldaño máximo.
+ */
+function _hitoMotorEpisodio(episodio, dd) {
+  const LBL = ['', 'en cama', 'SBC', 'bípedo', 'marcha'];
+  const rankIMS = function (n) { return n >= 6 ? 4 : n >= 4 ? 3 : n >= 3 ? 2 : 1; };
+  const rankKTM = function (n) { return n >= 5 ? 4 : n >= 4 ? 3 : n >= 3 ? 2 : 1; };
+  let max = 0, fechaMax = '', imsMax = '';
+  (episodio || []).forEach(function (ev) {
+    const imsRaw = String(ev.EVAL_IMS === 0 ? '0' : (ev.EVAL_IMS || '')).trim();
+    const ims = imsRaw === '' ? NaN : parseInt(imsRaw, 10);
+    const niv = parseInt(ev.KTM_NIVEL_KTR, 10);
+    let r = 0, imsVal = '';
+    if (!isNaN(ims)) { r = rankIMS(ims); imsVal = imsRaw; }
+    else if (esVerdadero(ev.KTM_REALIZADA) && !isNaN(niv)) r = rankKTM(niv);
+    if (r && r >= max) { max = r; fechaMax = dd(ev.FECHA); imsMax = imsVal; }
+  });
+  return max ? { nivel: LBL[max], ims: imsMax, fecha: fechaMax } : null;
 }
 
 /** Guarda una entrega emitida como historial (hoja ENTREGAS_TURNO). */

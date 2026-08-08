@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.44-terreno">
+<meta name="rce-version" content="5.45-datos">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3876,7 +3876,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.44-terreno]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.45-datos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -12355,7 +12355,10 @@ function renderEntrega(d){
     // que entra necesita desde cuándo va, no solo que el paciente está prono.
     const _pdesde=f.prono?_tsLegible(f.prono.desde):'';
     const pronoChip=f.prono?`<span class="ent-tag" style="background:#0891b218;color:#0e7490;border:1px solid #0891b255;" title="Pronación en curso desde el ${_pdesde}${f.prono.horas!==''?`, lleva ${String(f.prono.horas).replace('.',',')} h`:''}">🔃 En prono${f.prono.horas!==''?` ${String(f.prono.horas).replace('.',',')} h`:''} (desde ${_pdesde})</span>`:'';
-    const chips=catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+pveChip+awChip+pronoChip+
+    // Chip de FASE CLÍNICA (opción A de Diego, ago-2026): una palabra que
+    // ordena toda la lectura de la ficha — va primero en la fila de chips.
+    const faseChips=(f.fases||[]).map(fx=>`<span class="ent-tag" style="background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd;">⚕ ${fx}</span>`).join('');
+    const chips=faseChips+catChip(f.catResp,'R')+catChip(f.catMotor,'M')+weanChip+pveChip+awChip+pronoChip+
       (f.alertas||[]).filter(a=>!/^Sin evolución/i.test(a)).map(a=>`<span class="ent-tag ent-tag-alert">⚠️ ${a}</span>`).join('');
     // Último cultivo (fecha + estudio + RESULTADO), usado en el piso 1. El
     // resultado no viajaba a la entrega (reporte de Álvaro, ago-2026): solo
@@ -12375,8 +12378,11 @@ function renderEntrega(d){
     // hace 12 h creyéndolos de ahora.
     const _her=f.heredadoDe?(()=>{ const m=String(f.heredadoDe).match(/^(\d{4})-(\d{2})-(\d{2})-(Dia|Noche)$/);
       return m?`${m[3]}-${m[2]} · ${m[4]==='Dia'?'Día':'Noche'}`:f.heredadoDe; })():'';
+    // N° de tubo/cánula junto a la vía aérea (opción A): «TOT N° 8.0 · 22 cm»
+    const _vaDet=f.viaAerea==='TOT'&&f.totN?` N° ${f.totN}${f.totCm?` · ${f.totCm} cm`:''}`
+               :(f.viaAerea==='TQT'&&f.tqtN?` N° ${f.tqtN}`:'');
     const vent=_u([
-      f.viaAerea?`<b>${f.viaAerea}</b>`:'',
+      f.viaAerea?`<b>${f.viaAerea}${_vaDet}</b>`:'',
       f.soporte?`<b>${f.soporte==='VM'?'VM':f.soporte}</b>${(f.diasVM!==''&&f.diasVM!=null)?` · día ${f.diasVM} de VM`:''}`:'',
       f.modo?`Modo <b>${f.modo}</b>`:'']);
     const secr=_u([f.secr?`Secreciones ${f.secr}`:'', cult,
@@ -12387,11 +12393,20 @@ function renderEntrega(d){
                 :(x.estado==='cambiar'?` <b style="color:#b45309;">cambiar ESTA NOCHE${x.cambio?' ('+x.cambio+')':''}</b>`
                 :(x.cambio?` cambio ${x.cambio}`:''));
         return `${x.n}${mk}`; }).join(' · '):'']);
+    // GCS con desglose, PIC/PPC (solo neurocríticos) y la fecha de suspensión
+    // de sedación/BNM (opción A de Diego, ago-2026).
     const neuro=_u([
+      (f.gcs!==''&&f.gcs!=null)?`<b>GCS ${f.gcs}</b>${f.gcsOVM?` <span style="color:var(--muted);font-size:.9em;">(${f.gcsOVM})</span>`:''}`:'',
       [f.sas!==''&&f.sas!=null?`SAS ${f.sas}`:'', f.sedTipo||''].filter(Boolean).join(' · '),
       [f.bnm?'<b style="color:#be123c;">BNM ✓</b>':'', f.cooperacion||''].filter(Boolean).join(' · '),
+      ((f.pic!==''&&f.pic!=null)||(f.ppc!==''&&f.ppc!=null))?[(f.pic!==''&&f.pic!=null)?`PIC ${f.pic}`:'',(f.ppc!==''&&f.ppc!=null)?`PPC ${f.ppc}`:''].filter(Boolean).join(' · ')+' mmHg':'',
+      f.sedSusp?`💤 Sedación suspendida el ${f.sedSusp}`:'',
+      f.bnmSusp&&!f.bnm?`BNM suspendido el ${f.bnmSusp}`:'',
       [f.dva?`DVA ${f.dva}`:'', f.hemoEstado==='Inestable'?'<b style="color:#be123c;">HDN inestable</b>':''].filter(Boolean).join(' · ')]);
+    // Hito motor más alto del episodio (Diego, ago-2026): junto al KTM de HOY
+    // se lee al tiro si el paciente retrocedió respecto a lo ya logrado.
     const rehab=_u([
+      f.hitoMotor?`📈 Hito motor máx: <b>${f.hitoMotor.nivel}</b>${f.hitoMotor.ims!==''?` — IMS ${f.hitoMotor.ims}`:''} (${f.hitoMotor.fecha})`:'',
       f.ktmRealizada&&f.ktmNivel?`KTM Nv${f.ktmNivel}`:'',
       f.ktmSuspendida?`<b style="color:#be123c;">⚠️ KTM contraindicada</b>${f.ktmContra?` (${f.ktmContra})`:''}`:'',
       f.ktr?`KTR ×${f.ktr}`:'',
@@ -12408,7 +12423,7 @@ function renderEntrega(d){
       </div>
       <div class="ent-p1">
         ${_celda('🔵 Vía aérea y soporte',vent)}
-        ${_celda('📊 Parámetros',f.params||'')}
+        ${_celda('📊 Parámetros',[f.params,f.mec].filter(Boolean).join('<br>'))}
         ${_celda('🟡 Neuro · HDN',neuro)}
         ${_celda('🟢 Secreciones · 🧰 Circuito',secr)}
       </div>
