@@ -269,9 +269,64 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     recargar estaban todos. Y el screenshot del navegador **no pinta el iframe
     de la app** aunque funcione: la app «en blanco» se descarta mirando el
     registro de Ejecuciones, no la captura.
-  - PENDIENTE: **Ola 2** (fusionar `GET_STATS`+`GET_INDICADORES`, paralelizar
-    los viajes en cadena) exige tocar `index.html` y rearmar el cohete: no
-    empezarla hasta que la Ola 1 lleve tiempo en producción.
+  - **Ola 2: MEDIDA Y DESCARTADA (6-ago-2026). No reabrirla sin datos nuevos.**
+    Fusionar `GET_STATS`+`GET_INDICADORES` no se hace, y el motivo es medición:
+    las dos mitades ya salen **en paralelo** desde el front, así que el reloj es
+    el de la más lenta; y la más lenta (indicadores) cuesta **~7×** lo que cuesta
+    stats. Fusionar multiplicaría por 7 el tiempo hasta el primer dato pintado
+    para ahorrar 4 viajes que coinciden una vez por sesión. Tampoco había
+    lecturas duplicadas *dentro* de cada función (indicadores baja 6 hojas una
+    vez cada una; stats, 4). Lo que sí salió de ahí: el criterio de las 48 h
+    estaba escrito **dos veces** en `calcularIndicadores` y coincidían por
+    suerte; ahora se empareja una sola vez.
+- **OLA 3 · EL TABLERO DEJA DE BAJAR 386 COLUMNAS PARA USAR 21 (8-ago-2026,
+  solo `.gs`, sin tocar `index.html`).** Sobre la 5.45. Sale de la Ola 2: si
+  indicadores es lo más caro del sistema, el problema no es cuántas veces se
+  llama sino **cuánto baja cada vez**.
+  1. **Lo medido:** `calcularIndicadores` usa **21 de las 386 columnas** de
+     EVOLUCIONES y las bajaba enteras, dos veces (viva + `EVOLUCIONES_ARCHIVO`).
+     El costo crece con el historial acumulado **aunque el rango consultado sea
+     de un mes**: 2.000 filas ya son 0,77 M de celdas por pantalla.
+  2. **`repoLeerColumnas(hoja, campos)`** (repo.gs) baja solo esas columnas,
+     agrupadas en como mucho `_COLS_MAX_TRAMOS` bloques contiguos. El techo de
+     viajes es lo importante: cada `getRange().getValues()` es un viaje de red
+     con costo fijo, así que «pedir solo lo justo» puede salir **más caro** que
+     bajar la fila entera. Con las 21 columnas: 1 viaje → 324 columnas, 6 → 85,
+     10 → 29; la curva se aplana pasados los 10. Cae a la lectura completa si la
+     hoja es chica (≤40.000 celdas) o si igual habría que bajar más de media
+     fila.
+  3. **`_CAMPOS_INDICADORES`** se declara junto al cálculo, no dentro del repo:
+     la lista es parte de la definición del indicador.
+  4. ⚠️ **La letra chica, que es lo peligroso: el campo que no se pide llega
+     VACÍO, no llega roto.** Un campo olvidado no rompe nada — deja el indicador
+     en 0 y nadie se entera. Por eso `checks/columnas.js` **deriva la lista de
+     campos del propio fuente** y falla si a la declarada le falta alguno, en
+     vez de confiar en la memoria de quien la escribió.
+  5. La guardia además **se prueba a sí misma**: quita un campo de la lista y
+     exige que el resultado cambie. Anota su propio límite: 10 de los 21 campos
+     viajan dentro del bloque de un vecino, así que el A/B **no puede verlos** —
+     a esos los cubre la lista derivada del fuente, no la comparación.
+  6. Los dobles de `repoLeerColumnas` en `checks/indicadores.js`, `checks/v42.js`
+     y `sim/sim_srv.js` **recortan de verdad**: si un cálculo usa un campo que
+     no declaró, el número sale mal en la simulación en vez de salir mal en la
+     UCI.
+  - 🔴 **EL REM NO SE TOCÓ, Y NO POR PEREZA.** `construirREM` usa 18 columnas y
+    ganaría más (21×), pero tiene una trampa que ningún análisis de `e.CAMPO`
+    puede ver: `_REM_EVAL_CAMPOS` (svc_rem.gs:37) son **15 nombres de columna
+    leídos por variable** (`e[c]`), y son justo los que deciden la evaluación
+    intermedia del formulario oficial. Olvidarlos dejaría la casilla B.3 del REM
+    en 0 sin que nada fallara. Si algún día se hace: declarar
+    `_CAMPOS_REM.concat(_REM_EVAL_CAMPOS)` y extender la guardia; el punto 2 de
+    `checks/columnas.js` ya sabe reconocer ese patrón.
+  - ⏳ **PENDIENTE DE MEDIR EN LA PLANILLA, y hasta entonces la ganancia en
+    segundos NO se declara.** Está `medirTablero()` (mantenimiento.gs): corre el
+    tablero leyendo entero y con techos de 1, 3, 6 y 10 lecturas por hoja,
+    verifica que los números sean idénticos en todos y dice cuál ganó. **Si
+    ninguno le gana a leer la hoja entera, lo correcto es poner
+    `_COLS_OFF = true` y anotarlo, no dejar el código puesto por si acaso.**
+    Medido en Node sobre 400 filas sintéticas: 154.617 → 34.217 celdas (4,5×
+    menos) a cambio de 10 viajes más.
+  - Batería: 56 guardias, la nueva incluida.
 - 🔴 **EL FRONT DESPLEGADO ESTÁ EN 5.22, NO EN 5.43 (descubierto 6-ago-2026).**
   El `index.html` del proyecto es, **por dentro**, `5.22-cierre` — no es la
   etiqueta desfasada. Verificado decodificando el base64 del cargador desde el

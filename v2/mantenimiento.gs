@@ -843,3 +843,109 @@ function medirArranque() {
   console.log(informe);
   return informe;
 }
+
+/**
+ * Cronometra el tablero de indicadores con y sin lectura por columnas, y prueba
+ * varios techos de viajes por hoja (Ola 3, ago-2026). Correr desde el editor y
+ * leer el registro de ejecución. No escribe nada.
+ *
+ * Por qué existe: leer 21 columnas en vez de 386 baja muchísimas celdas, pero
+ * cuesta varios `getRange` en vez de uno, y **cuál de las dos cosas pesa más
+ * no se sabe sin medirlo en esta planilla**. Aquí se mide y se elige. Si el
+ * mejor resultado es «entero», dejar `_COLS_MAX_TRAMOS` como está no sirve de
+ * nada: lo correcto es poner `_COLS_OFF = true` en repo.gs y decirlo.
+ *
+ * @return {string} el mismo informe que deja en el log.
+ */
+function medirTablero() {
+  const hoy = hoyISO();
+  const desde = hoy.slice(0, 8) + '01';
+  const hasta = hoy;
+  const out = [];
+  const p = function (s) { out.push(s); };
+
+  const filasDe = function (hoja) {
+    try {
+      const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(hoja);
+      return h ? Math.max(0, h.getLastRow() - FILA_DATOS[hoja] + 1) : 0;
+    } catch (e) { return -1; }
+  };
+  const fEvo = filasDe('EVOLUCIONES'), fArc = filasDe('EVOLUCIONES_ARCHIVO');
+  const celdas = (fEvo + fArc) * TOTAL_COLS.EVOLUCIONES;
+  p('Rango medido: ' + desde + ' a ' + hasta);
+  p('Tamaño: EVOLUCIONES ' + fEvo + ' filas · EVOLUCIONES_ARCHIVO ' + fArc +
+    ' filas · ' + celdas.toLocaleString('es-CL') + ' celdas leídas hoy por tablero');
+  if ((fEvo * TOTAL_COLS.EVOLUCIONES) <= 40000) {
+    p('⚠ EVOLUCIONES todavía cabe bajo el umbral: la lectura por columnas NO se');
+    p('  activa para esa hoja y los tiempos de abajo saldrán casi iguales.');
+  }
+  p('');
+
+  const cron = function (etiqueta, fn) {
+    const t0 = Date.now();
+    let r = null, e = '';
+    try { r = fn(); } catch (ex) { e = ex.message; }
+    const ms = Date.now() - t0;
+    p('   ' + etiqueta + ': ' + ms + ' ms' + (e ? '   ⚠ ' + e : ''));
+    return { ms: ms, r: r };
+  };
+  const norm = function (b) {
+    try { return JSON.stringify((b && b.data) || {}); } catch (e) { return 'ERROR:' + e.message; }
+  };
+
+  // Calentamiento: la primera lectura paga el arranque en frío de Apps Script.
+  const cal = Date.now();
+  try { calcularIndicadores(desde, hasta); } catch (e) {}
+  p('Calentamiento: ' + (Date.now() - cal) + ' ms');
+  p('');
+
+  p('Leyendo la hoja ENTERA (comportamiento anterior):');
+  _COLS_OFF = true;
+  const entero = cron('GET_INDICADORES', function () { return calcularIndicadores(desde, hasta); });
+  _COLS_OFF = false;
+
+  const resultados = [];
+  const techoOriginal = _COLS_MAX_TRAMOS;
+  [1, 3, 6, 10].forEach(function (techo) {
+    _COLS_MAX_TRAMOS = techo;
+    p('');
+    p('Por columnas, hasta ' + techo + ' lectura(s) por hoja:');
+    const r = cron('GET_INDICADORES', function () { return calcularIndicadores(desde, hasta); });
+    resultados.push({ techo: techo, ms: r.ms, igual: norm(r.r) === norm(entero.r) });
+  });
+  _COLS_MAX_TRAMOS = techoOriginal;   // dejar el servidor como estaba
+
+  const distintos = resultados.filter(function (x) { return !x.igual; });
+  let mejor = { techo: 0, ms: entero.ms };
+  resultados.forEach(function (x) { if (x.igual && x.ms < mejor.ms) mejor = x; });
+
+  p('');
+  p('─────────────────────────────────────────────');
+  p('Hoja entera: ' + entero.ms + ' ms');
+  resultados.forEach(function (x) {
+    const dif = entero.ms - x.ms;
+    p('Hasta ' + String(x.techo).padStart(2) + ' lecturas: ' + x.ms + ' ms   (' +
+      (dif >= 0 ? '−' : '+') + Math.abs(dif) + ' ms' +
+      (entero.ms ? ', ' + Math.round(Math.abs(dif) * 100 / entero.ms) + '%' : '') + ')' +
+      (x.igual ? '' : '   ✗ RESULTADO DISTINTO'));
+  });
+  p('');
+  if (distintos.length) {
+    p('🔴 ALGÚN TECHO DEVOLVIÓ NÚMEROS DISTINTOS. No publicar: eso significa que');
+    p('   _CAMPOS_INDICADORES no cubre todo lo que el cálculo usa.');
+  } else if (mejor.techo === 0) {
+    p('⚠ Ningún techo le ganó a leer la hoja entera EN ESTA PLANILLA.');
+    p('  Lo correcto es dejar _COLS_OFF = true en repo.gs y anotar la medición,');
+    p('  no dejar el código puesto «por si acaso».');
+  } else {
+    p('✔ Mejor medición: hasta ' + mejor.techo + ' lecturas por hoja (' + mejor.ms + ' ms).');
+    p('  Dejar _COLS_MAX_TRAMOS = ' + mejor.techo + ' en repo.gs.');
+  }
+  p('  (Todos los techos devolvieron los mismos números que leer la hoja entera' +
+    (distintos.length ? ' EXCEPTO los marcados' : '') + '.)');
+
+  const informe = out.join('\n');
+  Logger.log(informe);
+  console.log(informe);
+  return informe;
+}

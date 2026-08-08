@@ -3205,6 +3205,25 @@ function _pronoAbiertoTS(idCama, turnoKey, _evos) {
  * INDICADORES_HISTORICO (sembrada desde el análisis histórico), marcando fuente.
  */
 
+/**
+ * Campos de EVOLUCIONES que este cálculo necesita — 21 de 386 (ago-2026, Ola 3).
+ *
+ * 🔴 **Si agregas un `e.CAMPO` al cálculo, agrégalo también acá.** Lo que no
+ * esté en esta lista se lee como vacío y el indicador que dependa de él baja
+ * a 0 sin avisar. `build/checks/columnas.js` compara esta lista contra los
+ * campos que el archivo realmente toca y falla si falta alguno; no es una
+ * lista de memoria, es una lista verificada.
+ */
+const _CAMPOS_INDICADORES = [
+  'PATIENT_ID', 'FECHA', 'TURNO_KEY',
+  'VENT_SOPORTE', 'VENT_SOPORTE_FINAL', 'VENT_VIA_AEREA', 'VENT_CUFF_EST',
+  'EXT_OCURRIO', 'EXT_TIPO', 'EXT_HORA', 'EXT_MOTIVO',
+  'PVE_VAL', 'TQT_OCURRIO',
+  'KTM_REALIZADA', 'KTM_CANT', 'RESP_KTR_CANT',
+  'DESVINC_OCURRIO', 'DESVINC_RECONEXION', 'DESVINC_HORAS',
+  'VFON_USADA', 'VFON_MIN',
+];
+
 function calcularIndicadores(desde, hasta) {
   try {
     desde = String(desde || '').slice(0, 10);
@@ -3214,7 +3233,8 @@ function calcularIndicadores(desde, hasta) {
     }
     const enR = f => { const s = _statISO(f); return s >= desde && s <= hasta; };
 
-    const todasEvos = repoLeerTodos('EVOLUCIONES').concat(repoLeerTodos('EVOLUCIONES_ARCHIVO'));
+    const todasEvos = repoLeerColumnas('EVOLUCIONES', _CAMPOS_INDICADORES)
+      .concat(repoLeerColumnas('EVOLUCIONES_ARCHIVO', _CAMPOS_INDICADORES));
     const evosR = todasEvos.filter(e => enR(e.FECHA));
     const archivo = repoLeerTodos('ARCHIVO_PACIENTES');
     const camas = repoLeerTodos('CAMAS_ESTADO');

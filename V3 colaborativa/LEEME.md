@@ -4,7 +4,8 @@
 Lo que está aquí es lo que hay que pegar en el editor, archivo por archivo, sin
 armar ni fusionar nada.
 
-Generada el 4-ago-2026 · index **v5.43-cierres**
+Regenerada el 8-ago-2026 · index **v5.45-datos** (el índice no cambió en esta
+ronda: solo `repo.gs`, `servicios.gs` y `mantenimiento.gs`)
 
 ---
 
@@ -50,7 +51,7 @@ al final.
 ## Después de pegar (esto no es opcional)
 
 1. Guardar.
-2. Verificar el sello: `Ctrl+F` en `index` → buscar `5.43-cierres`.
+2. Verificar el sello: `Ctrl+F` en `index` → buscar `5.45-datos`.
 3. **Implementar → Administrar implementaciones → ✏️ → Nueva versión.**
 
 Sin ese último paso, `/exec` (la dirección que usa el equipo) **sigue sirviendo
@@ -93,7 +94,7 @@ node build/checks/convenciones.js    # revisiones estáticas
 node build/checks/arranque.js        # arranque real en un navegador
 ```
 
-Hay 48 guardias en `build/checks/`. Cada una nació de un error que costó caro:
+Hay 56 guardias en `build/checks/`. Cada una nació de un error que costó caro:
 correrlas antes de entregar evita repetirlo. Necesitan `playwright-core`
 instalado (`npm install --prefix build --no-save playwright-core`).
 
