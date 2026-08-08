@@ -90,6 +90,7 @@ const fuente = ['infra_util.gs', 'esquema.gs', 'repo.gs', 'svc_stats.gs', 'svc_i
   .map(v2).join('\n;\n') +
   '\n;return { calcularIndicadores, _CAMPOS_INDICADORES, repoLeerColumnas, repoLeerTodos,' +
   ' COL, TOTAL_COLS, FILA_DATOS, _colsTramos, maxTramos: () => _COLS_MAX_TRAMOS,' +
+  ' ponerTecho: v => { _COLS_MAX_TRAMOS = v; },' +
   ' apagarColumnas: v => { _COLS_OFF = v; } };';
 const API = new Function(...Object.keys(sandbox), fuente)(...Object.values(sandbox));
 
@@ -292,6 +293,23 @@ const chicaPorCol = corrida(true);
 si('mismo resultado con hoja chica',
   JSON.stringify(chicaEntero.r.data) === JSON.stringify(chicaPorCol.r.data), 'idéntico');
 eq('la hoja chica se lee de una sola vez', chicaPorCol.viajes, chicaEntero.viajes);
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 6 · El agrupador aguanta los extremos.
+ * ───────────────────────────────────────────────────────────────────────── */
+console.log('\n── 6 · El agrupador no se cuelga con un techo raro ──');
+const idxDemo = API._CAMPOS_INDICADORES.map(c => COLS_EVO[c]).sort((a, b) => a - b);
+const techoNormal = API.maxTramos();
+eq('una sola columna pedida da un tramo', API._colsTramos([50]).length, 1);
+eq('con techo 1 queda un solo bloque de punta a punta',
+  (API.ponerTecho(1), API._colsTramos(idxDemo).length), 1);
+// Un techo de 0 dejaría el bucle fusionando un tramo con el siguiente, que no
+// existe: se trata como 1 en vez de reventar.
+let extremo;
+try { API.ponerTecho(0); extremo = API._colsTramos(idxDemo).length; }
+catch (e) { extremo = 'EXCEPCIÓN: ' + e.message; }
+eq('un techo de 0 no revienta', extremo, 1);
+API.ponerTecho(techoNormal);
 
 /* ── Cierre ── */
 console.log('');

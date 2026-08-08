@@ -108,8 +108,11 @@ var _COLS_MAX_TRAMOS = 6;     // techo de lecturas por hoja; medirTablero() lo m
  * @return {Array<Array<number>>} tramos [primeraCol, ultimaCol]
  */
 function _colsTramos(idx) {
+  // Un techo de 0 (o negativo) dejaría el bucle intentando fusionar un tramo
+  // con el siguiente, que no existe: se trata como 1, la lectura de un viaje.
+  const techo = Math.max(1, _COLS_MAX_TRAMOS);
   let tramos = idx.map(function (c) { return [c, c]; });
-  while (tramos.length > _COLS_MAX_TRAMOS) {
+  while (tramos.length > techo) {
     let mejor = 0, hueco = Infinity;
     for (let k = 0; k < tramos.length - 1; k++) {
       const h = tramos[k + 1][0] - tramos[k][1];
