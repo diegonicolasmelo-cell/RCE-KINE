@@ -156,8 +156,22 @@ var HIST_VM=true;
    cuff, prono-EVENTO, procedimientos). */
 var S={};Object.keys(PREV).forEach(function(k){S[k]=Array.isArray(PREV[k])?PREV[k].slice():PREV[k]});
 S.RUIDOS='';S.FIRMA='';S.PVE='';S.CUFF='';S.ADAPTADO='';S.POS_EV=false;
+/* ══ FICHA DEL EPISODIO (separada del registro del turno — Diego, ago-2026):
+   datos personales + estado pre-UCI viven en SU PROPIA hoja, se llenan al
+   ingreso UNA vez y quedan plegados/solo-lectura en los turnos siguientes.
+   El registro clínico viaja sin nombre: solo la cama/episodio lo identifica. */
+var FICHA={NOMBRE:'Paciente de Prueba',EDAD:'62',SEXO:'F',TALLA:'158',RUT:'',F_INGRESO:'2026-07-19',H_INGRESO:'14:30',DX:'Neumonía grave por aspiración',ANTECEDENTES:'HTA, DM2. Autovalente, vivía sola.',BARTHEL_PREVIO:'100',ECF:'3',CHARLSON:'4',APACHE2:'19'};
+var FICHA_SAVED=true;   /* demo: el ingreso ya ocurrió ⇒ llega plegada */
+var FICHA_EDIT=false;
+/* ══ EVALUACIONES FECHADAS (serie temporal, no columnas del turno): cada
+   registro es una ENTRADA con fecha — la serie se lee completa aquí. */
+var EVALS=[{fecha:'2026-08-06',MRC:'40',FSS:'18',DINAMO:'9',firma:'MOW'}];
+var EHOY={};
 var LOG=[],SNAP={},LSKEY='redisenio_C7_'+TK;
-try{var g0=JSON.parse(localStorage.getItem(LSKEY)||'null');if(g0){S=g0.data;LOG=g0.log||[];SNAP=g0.snap||{};document.getElementById('replicaBanner').style.display='none'}}catch(e){}
+try{var g0=JSON.parse(localStorage.getItem(LSKEY)||'null');if(g0){S=g0.data;LOG=g0.log||[];SNAP=g0.snap||{};
+ if(g0.ficha){FICHA=g0.ficha;FICHA_SAVED=g0.fichaSaved!==false}
+ if(g0.evals)EVALS=g0.evals;
+ document.getElementById('replicaBanner').style.display='none'}}catch(e){}
 var GAS=(typeof google!=='undefined'&&google.script&&google.script.run);
 /* ================= helpers ================= */
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -183,6 +197,22 @@ function calcHTML(){var vt=n('VT'),fr=n('FR'),peep=n('PEEP'),ppl=n('PPL'),fio2=n
  var dp=(!asinc&&ppl!=null&&peepTot!=null)?+(ppl-peepTot).toFixed(0):null;
  var cesr=(vt&&dp)?+(vt/dp).toFixed(0):null;
  return c('mL/kg PI',mlkg,'',mlkg&&mlkg>8)+c('Vol/min',vm,'L')+c('Driving P.',dp,'cmH₂O',dp&&dp>15)+c('Cest',cesr,'mL/cmH₂O')}
+/* ================= B0 · FICHA DEL EPISODIO ================= */
+function ffld(k,l,tipo,ph){var t=tipo||'text';return'<div class="fld"><label>'+l+'</label><input type="'+t+'" data-f="'+k+'" value="'+esc(FICHA[k]||'')+'" placeholder="'+(ph||'')+'">'+'</div>'}
+function rB0(){
+ if(FICHA_SAVED&&!FICHA_EDIT){
+  /* PLEGADA y de solo lectura: el kine de turno no vuelve a pasar por aquí */
+  var linea=[FICHA.NOMBRE,FICHA.EDAD?FICHA.EDAD+' años':'',FICHA.SEXO,'ing. '+(FICHA.F_INGRESO||'—')+(FICHA.H_INGRESO?' '+FICHA.H_INGRESO:'')].filter(Boolean).join(' · ');
+  var pre=[FICHA.BARTHEL_PREVIO?'Barthel previo '+FICHA.BARTHEL_PREVIO:'',FICHA.ECF?'ECF '+FICHA.ECF:'',FICHA.CHARLSON?'Charlson '+FICHA.CHARLSON:'',FICHA.APACHE2?'APACHE II '+FICHA.APACHE2:''].filter(Boolean).join(' · ');
+  return'<div class="aviso ver" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>'+esc(linea)+'</b><br><span style="font-size:12.5px">'+esc(FICHA.DX||'')+(pre?' — '+esc(pre):'')+'</span></div><button type="button" class="chip" data-act="fichaEditar">✏️ Editar ficha</button></div>'
+  +'<div class="antes">🔒 Estos datos viven en su PROPIA hoja (REDISENO_EPISODIO), separados del registro clínico: el turno viaja sin nombre y una exportación anonimizada simplemente no incluye la ficha. Se llenaron al ingreso y no se vuelven a pedir.</div>'}
+ return'<div class="gtit">Datos personales (solo en esta ficha — jamás en las filas del turno)</div>'
+  +'<div class="grid">'+ffld('NOMBRE','Nombre completo')+ffld('EDAD','Edad','number')+'<div class="fld"><label>Sexo</label><div class="seg">'+['F','M'].map(function(o){return'<button type="button" data-fseg="SEXO" data-v="'+o+'"'+(FICHA.SEXO===o?' class="on"':'')+'>'+o+'</button>'}).join('')+'</div></div>'+ffld('TALLA','Talla','number','cm')+ffld('RUT','RUT (uso interno: jamás sale en REM ni exportaciones)')+'</div>'
+  +'<div class="gtit">Episodio</div>'
+  +'<div class="grid">'+ffld('F_INGRESO','Fecha ingreso','date')+ffld('H_INGRESO','Hora ingreso','time')+ffld('DX','Diagnóstico')+'</div>'
+  +'<div class="gtit">Estado PRE-UCI (se registra UNA vez — no contamina el turno)</div>'
+  +'<div class="grid">'+ffld('BARTHEL_PREVIO','Barthel previo (0-100)','number')+ffld('ECF','ECF (1-9)','number')+ffld('CHARLSON','Charlson','number')+ffld('APACHE2','APACHE II (opcional: se toma de la evolución médica)','number')+'</div>'
+  +'<div class="fld"><label>Antecedentes / situación funcional previa</label><textarea rows="2" data-f="ANTECEDENTES">'+esc(FICHA.ANTECEDENTES||'')+'</textarea></div>'}
 /* ================= B1 · VÍA AÉREA ================= */
 function rB1(){var via=S.VIA,h='';
  h+=seg('VIA','Vía aérea',['Natural','Full Face','Oronasal','TOT','TQT']);
@@ -286,8 +316,9 @@ function rB5(){var h='<div class="grid">'+fsel('EX_MP','Murmullo pulmonar',MP_OP
  return h}
 /* ================= B6 · REHABILITACIÓN ================= */
 function rB6(){var h='';
- /* KTM NO APLICA de noche (v5.46): ni estado, ni frase, ni estadística. */
- if(!ES_DIA)return'<div class="aviso amb">🌙 Turno Noche: la KTM y la evaluación funcional NO aplican — no se pide estado, no se narra y nada suma a estadística (la planilla manual nunca tuvo casilla nocturna).</div>';
+ /* KTM NO APLICA de noche (v5.46): ni estado, ni frase, ni estadística.
+    La SERIE de evaluaciones sí se muestra siempre (leer no es registrar). */
+ if(!ES_DIA)return'<div class="aviso amb">🌙 Turno Noche: la KTM y el registro de evaluación funcional NO aplican — no se pide estado, no se narra y nada suma a estadística (la planilla manual nunca tuvo casilla nocturna).</div>'+_serieEvalHTML(false);
  h+=check('AET','AET — adecuación del esfuerzo terapéutico');
  if(S.AET)h+='<div class="cond"><div class="grid">'+fsel('AET_NIVEL','Grupo',AET_NIVELES)+'</div></div>';
  var bloqueada=(S.AET&&S.AET_NIVEL==='IIIC')||S.BNM;
@@ -304,15 +335,30 @@ function rB6(){var h='';
    h+=ftxt('KTM_CONTRA_MAN','Descripción adicional')+'</div>'}
   if(S.KTM_ESTADO==='No realizada')h+='<div class="cond">'+fsel('KTM_NO_RAZON','Razón (OBLIGATORIA, v5.44)',KTM_NO_RAZON)+ftxt('KTM_NO_COM','Comentario (opcional)')+'</div>'}
  h+='<div class="gtit">Educación</div>'+check('EDU','📚 Educación a usuario / cuidador / familia');
- h+='<div class="gtit">Evaluación funcional (solo turno Día)</div>';
- h+='<details class="avz"'+(S.EVAL_REG?' open':'')+'><summary>Registrar evaluación del turno</summary><div class="inner">'+check('EVAL_REG','Registrar evaluación este turno');
- if(S.EVAL_REG){var mrc=n('EVAL_MRC'),fss=n('EVAL_FSS'),din=n('EVAL_DINAMO');
-  h+='<div class="grid">'+fnum('EVAL_MRC',{l:'MRC-SS (/60)',u:'',min:0,max:60})+fnum('EVAL_DINAMO',{l:'Dinamometría',u:'kg',min:0,max:60})+fnum('EVAL_FSS',{l:'FSS-ICU (/35)',u:'',min:0,max:35})+(S.VIA==='TQT'?fnum('EVAL_PMANT',{l:'P. transtraqueal (válvula)',u:'cmH₂O',min:0,max:40}):'')+'</div>';
-  var it=[];if(mrc!=null)it.push(mrc<48?'MRC '+mrc+': DAUCI (<48)':'MRC '+mrc+': sin DAUCI');
-  if(fss!=null)it.push('FSS '+fss+(fss>=27?': independencia funcional':': dependencia'));
-  if(it.length)h+='<div class="calc">'+it.map(function(t){return'<div class="c"><b>'+t+'</b>interpretación automática</div>'}).join('')+'</div>'}
- h+='</div></details>';
+ /* EVALUACIONES FECHADAS: serie temporal en su propia hoja, NO columnas del
+    turno (Diego, ago-2026). La serie completa se lee aquí mismo. */
+ h+=_serieEvalHTML(true);
  return h}
+function _serieEvalHTML(conRegistro){var h='<div class="gtit">Evaluación funcional — serie del episodio (entradas fechadas, hoja propia)</div>';
+ if(EVALS.length){h+='<div class="hist">'+EVALS.map(function(ev){
+   var it=[];var m=parseFloat(ev.MRC);if(!isNaN(m))it.push('MRC '+ev.MRC+(m<48?' (DAUCI)':''));
+   var fq=parseFloat(ev.FSS);if(!isNaN(fq))it.push('FSS '+ev.FSS+(fq>=27?' (independencia)':''));
+   if(ev.DINAMO)it.push('Dinamo '+ev.DINAMO+' kg');if(ev.PMANT)it.push('P.transtraqueal '+ev.PMANT);
+   return'<div class="h">📈 '+esc(ev.fecha)+' · '+esc(it.join(' · '))+' · '+esc(ev.firma||'')+'</div>'}).join('')+'</div>'}
+ else h+='<div class="antes">Sin evaluaciones registradas en el episodio.</div>';
+ if(!conRegistro)return h;
+ h+='<details class="avz"'+(EHOY._open?' open':'')+'><summary>➕ Registrar evaluación de HOY</summary><div class="inner">'
+  +'<div class="grid">'+efld('MRC','MRC-SS (/60)',0,60)+efld('DINAMO','Dinamometría (kg)',0,60)+efld('FSS','FSS-ICU (/35)',0,35)+(S.VIA==='TQT'?efld('PMANT','P. transtraqueal (cmH₂O)',0,40):'')+'</div>'
+  +(function(){var m=parseFloat(EHOY.MRC),fq=parseFloat(EHOY.FSS),it=[];
+    if(!isNaN(m))it.push(m<48?'MRC '+m+': DAUCI (<48)':'MRC '+m+': sin DAUCI');
+    if(!isNaN(fq))it.push('FSS '+fq+(fq>=27?': independencia funcional':': dependencia'));
+    return it.length?'<div class="calc">'+it.map(function(t){return'<div class="c"><b>'+t+'</b>interpretación automática</div>'}).join('')+'</div>':''})()
+  +'<div style="display:flex"><button type="button" class="bsave" data-act="evalGuardar" style="margin-left:0">💾 Guardar evaluación de hoy</button></div>'
+  +'<div class="antes">Cada guardado agrega UNA entrada con fecha a la serie — nunca sobrescribe la anterior.</div>'
+  +'</div></details>';
+ return h}
+function efld(k,l,min,max){var v=EHOY[k]==null?'':EHOY[k],err=v!==''&&(+v<min||+v>max);
+ return'<div class="fld'+(err?' err':'')+'"><label>'+l+'</label><input type="number" step="any" data-e="'+k+'" value="'+esc(v)+'">'+(err?'<div class="emsg">Fuera de rango ('+min+'–'+max+').</div>':'')+'</div>'}
 /* ================= B7 · PLAN Y FIRMA ================= */
 function rB7(){var h=chips('FASE','Fase clínica (persiste entre turnos; catálogo real)',FASES);
  h+=farea('PLAN_PLANES','Planes estructurales','Weaning de PS, bipedestación diaria…')+farea('PLAN_NOTA','Nota libre del turno','');
@@ -320,6 +366,7 @@ function rB7(){var h=chips('FASE','Fase clínica (persiste entre turnos; catálo
  if(LOG.length)h+='<div class="gtit">Historial de guardados del turno</div><div class="hist">'+LOG.map(function(e){return'<div class="h">'+esc(e.ts)+' · '+esc(e.bloque)+' · '+esc(e.firma)+'</div>'}).join('')+'</div>';
  return h}
 var BLQ=[
+ {id:'b0',ic:'📇',nom:'Ficha del episodio',sub:'Datos personales · pre-UCI (una vez, hoja propia)',pref:[],render:rB0},
  {id:'b1',ic:'🫁',nom:'Vía aérea',sub:'Estado · cuff · eventos (previo→posterior)',pref:['VIA','TOT_','TQT_','CUFF','INTUB','REINTUB','PVE','EXT','DECAN'],render:rB1},
  {id:'b2',ic:'🌬️',nom:'Ventilación',sub:'VMAPS real: vía → soporte → modo → parámetros',pref:['SOPORTE','MODO','VT','FR','PEEP','FIO2','SPO2','PMAX','PPL','PMEDIA','TI','PINSP','PS','IPAP','EPAP','VT_ASEG','CPAP','FLUJO','LITROS','TEMP','AUTOPEEP','ADAPTADO','HUMIDIF','POS','PRONO_','SUPINO_'],render:rB2},
  {id:'b3',ic:'🧠',nom:'Sedación y conciencia',sub:'Escalones · SAS · GCS con T · S5Q · CAM-ICU',pref:['SED_','SAS','BNM','GCS_','S5Q','CAM','COOP'],render:rB3},
@@ -327,11 +374,14 @@ var BLQ=[
  {id:'b5',ic:'🩺',nom:'Respiratorio y KTR',sub:'Examen · secreciones · cultivo',pref:['EX_','RUIDOS','SECR_','KTR_','SIN_KTR','MUE','INHALO'],render:rB5},
  {id:'b6',ic:'🏃',nom:'Rehabilitación',sub:'KTM · AET · IMS · eval. funcional (solo Día)',pref:['KTM_','AET','EVAL_','IMS','EDU'],render:rB6},
  {id:'b7',ic:'📋',nom:'Plan y firma',sub:'Fases · nota · texto',pref:['FASE','PLAN_','TEXTO'],render:rB7}];
+function blq(id){for(var i=0;i<BLQ.length;i++)if(BLQ[i].id===id)return BLQ[i];return null}
 function keysOf(b){return Object.keys(S).filter(function(k){return b.pref.some(function(p){return k===p||k.indexOf(p)===0})})}
 function snapOf(b){var o={};keysOf(b).forEach(function(k){o[k]=S[k]});return JSON.stringify(o)}
 function blockOf(k){for(var i=0;i<BLQ.length;i++)if(BLQ[i].pref.some(function(p){return k===p||k.indexOf(p)===0}))return BLQ[i];return null}
 /* ================= render ================= */
-function estado(b){var last=null;for(var i=LOG.length-1;i>=0;i--)if(LOG[i].bloque===b.nom){last=LOG[i];break}
+function estado(b){
+ if(b.id==='b0')return FICHA_SAVED&&!FICHA_EDIT?{cls:'ok',txt:'\u2713 ficha',foot:'<span class="sstat">Ficha del episodio guardada \u2014 el turno no vuelve a pedirla</span>'}:{cls:'dirty',txt:'\u25cf sin guardar',foot:'<span class="sstat" style="color:var(--ambar)">Ficha en edici\u00f3n \u2014 guarda para plegarla</span>'};
+ var last=null;for(var i=LOG.length-1;i>=0;i--)if(LOG[i].bloque===b.nom){last=LOG[i];break}
  var dirty=SNAP[b.id]!==undefined?SNAP[b.id]!==snapOf(b):true;
  if(last&&!dirty)return{cls:'ok',txt:'✓ '+last.ts.slice(-8,-3),foot:'<span class="sstat">Guardado <b>'+esc(last.ts.slice(-8,-3))+'</b> · '+esc(last.firma)+'</span>'};
  if(last&&dirty)return{cls:'dirty',txt:'● sin guardar',foot:'<span class="sstat" style="color:var(--ambar)">Cambios sin guardar desde '+esc(last.ts.slice(-8,-3))+'</span>'};
@@ -339,7 +389,7 @@ function estado(b){var last=null;for(var i=LOG.length-1;i>=0;i--)if(LOG[i].bloqu
 function renderRail(){document.getElementById('rail').innerHTML=BLQ.map(function(b,i){var e=estado(b);
  return'<button type="button" class="rbtn" data-nav="'+b.id+'"><span>'+b.ic+'</span><span class="nom">'+(i+1)+'. '+b.nom+'</span><span class="st '+e.cls+'">'+e.txt+'</span></button>'}).join('')}
 function renderBlock(b){var el=document.getElementById(b.id),e=estado(b);
- var inner='<div class="chead"><span class="ic">'+b.ic+'</span><div><h2>'+b.nom+'</h2><div class="sub">'+b.sub+'</div></div></div><div class="cbody">'+b.render()+'</div><div class="cfoot">'+e.foot+'<button type="button" class="bsave" data-save="'+b.id+'">💾 Guardar bloque</button></div>';
+ var inner='<div class="chead"><span class="ic">'+b.ic+'</span><div><h2>'+b.nom+'</h2><div class="sub">'+b.sub+'</div></div></div><div class="cbody">'+b.render()+'</div><div class="cfoot">'+e.foot+'<button type="button" class="bsave" data-save="'+b.id+'">'+(b.id==='b0'?'💾 Guardar ficha':'💾 Guardar bloque')+'</button></div>';
  if(el)el.innerHTML=inner;else{el=document.createElement('div');el.className='card';el.id=b.id;el.innerHTML=inner;document.getElementById('main').appendChild(el)}}
 function renderAll(){BLQ.forEach(renderBlock);renderRail()}
 function rerender(b){if(!b)return;renderBlock(b);renderRail()}
@@ -347,16 +397,19 @@ function rerender(b){if(!b)return;renderBlock(b);renderRail()}
 function efectos(k){var extra=[];
  if(k==='VIA'){var r=VMAPS[S.VIA||'']||VMAPS[''];if(r.sops.indexOf(S.SOPORTE)<0)S.SOPORTE=r.sops.length===1?r.sops[0]:'';
   var ms=(r.modos&&r.modos[S.SOPORTE])||[];if(ms.indexOf(S.MODO)<0)S.MODO=ms.length===1?ms[0]:'';
-  extra.push(BLQ[1],BLQ[2])}
+  extra.push(blq('b2'),blq('b3'))}
  if(k==='SOPORTE'){var ms2=((VMAPS[S.VIA]||{}).modos||{})[S.SOPORTE]||[];if(ms2.indexOf(S.MODO)<0)S.MODO=ms2.length===1?ms2[0]:''}
- if(k==='BNM'||k==='SAS'){if(S.BNM||parseInt(S.SAS)===1){S.GCS_O='1';S.GCS_V='1';S.GCS_M='1'}extra.push(BLQ[2],BLQ[5])}
- if(k==='AET_NIVEL'||k==='AET')extra.push(BLQ[5]);
+ if(k==='BNM'||k==='SAS'){if(S.BNM||parseInt(S.SAS)===1){S.GCS_O='1';S.GCS_V='1';S.GCS_M='1'}extra.push(blq('b3'),blq('b6'))}
+ if(k==='AET_NIVEL'||k==='AET')extra.push(blq('b6'));
  if(k==='HEMO_DVA'&&S.HEMO_DVA==='Sin requerimientos'){S.HEMO_MULTI=false;S.HEMO_NUM=''}
  if(k==='ADAPTADO'&&S.ADAPTADO==='Asincrónico'){S.PPL='';S.AUTOPEEP=''}
  if(k==='SECR_QTY'&&S.SECR_QTY==='-'){S.SECR_CAR='';S.SECR_REOL=''}
  if(k==='POS')S.POS_EV=false;
  return extra}
-document.addEventListener('change',function(e){var k=e.target.dataset.k;if(!k)return;
+document.addEventListener('change',function(e){
+ if(e.target.dataset.f){FICHA[e.target.dataset.f]=e.target.value;return}
+ if(e.target.dataset.e){EHOY[e.target.dataset.e]=e.target.value;EHOY._open=true;rerender(blq('b6'));return}
+ var k=e.target.dataset.k;if(!k)return;
  S[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;
  var ex=efectos(k),b=blockOf(k);if(k==='FIRMA'){renderRail();return}
  rerender(b);ex.forEach(rerender)});
@@ -367,6 +420,9 @@ document.addEventListener('click',function(e){
   if(i>=0)arr.splice(i,1);else arr.push(v);S[ck]=arr;rerender(blockOf(ck));return}
  t=e.target.closest('[data-nav]');if(t){var el=document.getElementById(t.dataset.nav);if(el)window.scrollTo({top:el.offsetTop-70,behavior:'smooth'});return}
  t=e.target.closest('[data-save]');if(t){guardarBloque(t.dataset.save);return}
+ t=e.target.closest('[data-fseg]');if(t){FICHA[t.dataset.fseg]=t.dataset.v;rerender(blq('b0'));return}
+ t=e.target.closest('[data-act="fichaEditar"]');if(t){FICHA_EDIT=true;rerender(blq('b0'));renderRail();return}
+ t=e.target.closest('[data-act="evalGuardar"]');if(t){guardarEvalHoy();return}
  t=e.target.closest('[data-act="copiar"]');if(t){navigator.clipboard.writeText(S.TEXTO||'');t.textContent='✓ Copiado';return}});
 /* ================= confirmación propia (convención: jamás confirm()) ===== */
 function pedirConfirmacion(msg,onSi){var d=document.getElementById('mdlg');
@@ -375,7 +431,7 @@ function pedirConfirmacion(msg,onSi){var d=document.getElementById('mdlg');
  document.getElementById('mdlgNo').onclick=function(){d.classList.remove('on')}}
 /* ================= guardado por bloque + OBLIGATORIAS reales ============= */
 function ahora(){var d=new Date();function p(x){return(x<10?'0':'')+x}return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds())}
-function persistir(){try{localStorage.setItem(LSKEY,JSON.stringify({data:S,log:LOG,snap:SNAP}))}catch(e){}}
+function persistir(){try{localStorage.setItem(LSKEY,JSON.stringify({data:S,log:LOG,snap:SNAP,ficha:FICHA,fichaSaved:FICHA_SAVED,evals:EVALS}))}catch(e){}}
 function faltas(b){var f=[];
  if(!S.FIRMA)f.push('la firma');
  if(b.id==='b1'&&!S.VIA)f.push('la vía aérea');
@@ -385,6 +441,11 @@ function faltas(b){var f=[];
  if(b.id==='b6'&&S.KTM_ESTADO==='Contraindicada'&&!S.BNM&&!(S.AET&&S.AET_NIVEL==='IIIC')&&!S.KTM_CONTRA_RAZ&&!S.KTM_CONTRA_MAN)f.push('la contraindicación de la KTM');
  return f}
 function guardarBloque(id){var b=BLQ.filter(function(x){return x.id===id})[0];
+ if(b.id==='b0'){
+  if(!S.FIRMA){document.getElementById('firma').focus();document.getElementById('firma').style.boxShadow='0 0 0 3px rgba(255,207,138,.6)';setTimeout(function(){document.getElementById('firma').style.boxShadow=''},1600);return}
+  FICHA_SAVED=true;FICHA_EDIT=false;persistir();
+  if(GAS)google.script.run.withFailureHandler(function(err){var fo=document.getElementById('b0').querySelector('.cfoot .sstat');if(fo)fo.innerHTML='<span style="color:var(--rojo)">No se pudo guardar ('+esc(err.message)+') \u2014 qued\u00f3 local.</span>'}).redisGuardarFicha({idCama:'C7',firma:S.FIRMA,ficha:FICHA});
+  rerender(b);renderRail();return}
  var f=faltas(b);
  if(f.length){var el=document.getElementById(b.id);
   var fo=el.querySelector('.cfoot .sstat');if(fo)fo.innerHTML='<span style="color:var(--rojo);font-weight:600">Falta: '+f.join(' y ')+'</span>';
@@ -399,9 +460,19 @@ function guardarBloque(id){var b=BLQ.filter(function(x){return x.id===id})[0];
    var fo=document.getElementById(b.id).querySelector('.cfoot .sstat');
    if(fo)fo.innerHTML='<span style="color:var(--rojo)">No se pudo guardar en la planilla ('+esc(err.message)+') — quedó local.</span>'
   }).redisGuardarBloque({idCama:'C7',turnoKey:TK,bloque:b.nom,firma:S.FIRMA,campos:campos});
-  rerender(b);if(b.id!=='b7')rerender(BLQ[6]);renderRail()};
+  rerender(b);if(b.id!=='b7')rerender(blq('b7'));renderRail()};
  if(b.id==='b1'&&S.REINTUB&&!S._reintubOk){pedirConfirmacion('Confirmar reintubación: se sumará 1 al contador del episodio ('+PREV.N_REINTUB+' previas).',function(){S._reintubOk=true;seguir()});return}
  seguir()}
+function guardarEvalHoy(){
+ if(!S.FIRMA){document.getElementById('firma').focus();document.getElementById('firma').style.boxShadow='0 0 0 3px rgba(255,207,138,.6)';setTimeout(function(){document.getElementById('firma').style.boxShadow=''},1600);return}
+ var tiene=['MRC','FSS','DINAMO','PMANT'].some(function(k){return EHOY[k]!=null&&EHOY[k]!==''});
+ if(!tiene)return;
+ var hoy=new Date().toISOString().slice(0,10);
+ var ent={fecha:hoy,MRC:EHOY.MRC||'',FSS:EHOY.FSS||'',DINAMO:EHOY.DINAMO||'',PMANT:EHOY.PMANT||'',firma:S.FIRMA};
+ EVALS.push(ent);
+ LOG.push({ts:ahora(),bloque:'Evaluaci\u00f3n funcional',firma:S.FIRMA,campos:Object.keys(ent)});
+ if(GAS)google.script.run.withFailureHandler(function(){}).redisGuardarEval({idCama:'C7',fecha:hoy,firma:S.FIRMA,datos:ent});
+ EHOY={};persistir();rerender(blq('b6'));renderRail()}
 /* ================= texto clínico (FORMATOS DE PRODUCCIÓN) ================ */
 function genTexto(){var L=[];
  L.push('KINESIOLOGÍA '+(ES_DIA?'TURNO DÍA':'TURNO NOCHE'));
@@ -462,7 +533,12 @@ function genTexto(){var L=[];
   if(S.KTM_ESTADO==='Contraindicada')L.push('KTM contraindicada por '+(S.KTM_CONTRA_RAZ||S.KTM_CONTRA_MAN||'').toString()+'.');
   if(S.KTM_ESTADO==='No realizada'&&S.KTM_NO_RAZON)L.push('KTM no realizada por '+({'Motivo ingreso':'ingreso reciente','Sin equipo o tiempo disponible':'falta de equipo o tiempo disponible'}[S.KTM_NO_RAZON]||S.KTM_NO_RAZON.toLowerCase())+(S.KTM_NO_COM?'. '+S.KTM_NO_COM:'')+'.')}
  if(S.EDU)L.push('Se realiza educación a usuario/cuidador/familia.');
- if(S.EVAL_REG){var ev=[];if(S.EVAL_MRC)ev.push('MRC-ss '+S.EVAL_MRC+'/60');if(S.EVAL_DINAMO)ev.push('Dinamometría '+S.EVAL_DINAMO+' kg');if(S.EVAL_FSS)ev.push('FSS-ICU '+S.EVAL_FSS+'/35');if(S.IMS!==''&&S.IMS!=null)ev.push('IMS '+S.IMS+'/10');if(ev.length)L.push(ev.join('. ')+'.')}
+ /* La evaluación sale de la SERIE fechada (entrada de hoy), no de columnas */
+ var hoyF=new Date().toISOString().slice(0,10);
+ EVALS.filter(function(x){return x.fecha===hoyF}).forEach(function(x){var ev=[];
+  if(x.MRC)ev.push('MRC-ss '+x.MRC+'/60');if(x.DINAMO)ev.push('Dinamometría '+x.DINAMO+' kg');
+  if(x.FSS)ev.push('FSS-ICU '+x.FSS+'/35');if(ev.length)L.push(ev.join('. ')+'.')});
+ if(S.IMS!==''&&S.IMS!=null&&S.KTM_ESTADO==='Realizada')L.push('IMS '+S.IMS+'/10.');
  if(S.PLAN_PLANES)L.push('Plan: '+S.PLAN_PLANES);
  if(S.PLAN_NOTA)L.push('Nota: '+S.PLAN_NOTA);
  /* SIN firma en el texto (v5.44: al copiar al BUDA estorbaba). La firma vive

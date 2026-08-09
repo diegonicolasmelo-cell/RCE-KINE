@@ -11,10 +11,14 @@
 
 ## Qué es
 
-El formulario de evolución rediseñado como **7 bloques clínicos** con guardado
+El formulario de evolución rediseñado como **ficha del episodio + 7 bloques
+clínicos** con guardado
 independiente (hora + firma por bloque), réplica visible campo a campo
 («Antes: 30 → 35») y validación por rango fisiológico al escribir:
 
+0. 📇 Ficha del episodio — datos personales + pre-UCI (Barthel previo, ECF,
+   Charlson, APACHE II) en HOJA PROPIA: se llena al ingreso una vez, queda
+   plegada, y el registro del turno viaja sin nombre
 1. 🫁 Vía aérea — estado, cuff (1×turno, no se hereda) y eventos con la regla
    previo→posterior (v4.3); PVE sí/no obligatoria con TOT (v5.44)
 2. 🌬️ Ventilación — matriz VMAPS **real**, parámetros por modo con las reglas
@@ -26,7 +30,8 @@ independiente (hora + firma por bloque), réplica visible campo a campo
 5. 🩺 Respiratorio y KTR — «sin secreciones» evaluado se narra, cultivo con
    técnicas reales, anti-oxímoron de auscultación
 6. 🏃 Rehabilitación — KTM con Tabla 1 y Tabla 3 **reales**, IMS 0-10,
-   **KTM no aplica de noche**, eval. funcional con cortes reales (DAUCI <48)
+   **KTM no aplica de noche**; evaluación funcional como **serie de entradas
+   FECHADAS** en hoja propia (cortes reales: DAUCI <48, FSS ≥27)
 7. 📋 Plan y firma — fases del catálogo, texto con los formatos de
    producción y **sin firma dentro del texto**
 

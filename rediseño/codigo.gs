@@ -6,6 +6,14 @@
 var SPREADSHEET_ID = '';
 var H_TURNOS = 'REDISENO_TURNOS';
 var H_LOG = 'REDISENO_LOG';
+/* Separación en tres niveles (Diego, ago-2026): la FICHA DEL EPISODIO (datos
+   personales + estado pre-UCI) vive en su propia hoja, separada del registro
+   clínico del turno — así los datos personales no se replican fila a fila y
+   una exportación anonimizada simplemente NO incluye esta hoja. Las
+   EVALUACIONES funcionales van como entradas FECHADAS (serie temporal), no
+   como columnas del turno. */
+var H_EPISODIO = 'REDISENO_EPISODIO';
+var H_EVAL = 'REDISENO_EVAL';
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
@@ -25,6 +33,49 @@ function _hoja(nombre, cabecera) {
 
 function _hojaTurnos() { return _hoja(H_TURNOS, ['ID', 'ID_CAMA', 'TURNO_KEY', 'DATA_JSON', 'LOG_JSON', 'TS_ULT', 'AUTOR_EMAIL']); }
 function _hojaLog() { return _hoja(H_LOG, ['TS', 'ID_CAMA', 'TURNO_KEY', 'BLOQUE', 'FIRMA', 'AUTOR_EMAIL', 'CAMPOS_JSON']); }
+function _hojaEpisodio() { return _hoja(H_EPISODIO, ['ID_CAMA', 'FICHA_JSON', 'TS_ULT', 'FIRMA', 'AUTOR_EMAIL']); }
+function _hojaEval() { return _hoja(H_EVAL, ['TS', 'ID_CAMA', 'FECHA', 'DATOS_JSON', 'FIRMA', 'AUTOR_EMAIL']); }
+
+/**
+ * Guarda/actualiza la FICHA DEL EPISODIO (una fila por cama-episodio).
+ * payload = {idCama, firma, ficha:{...}}. Los datos personales viven SOLO
+ * aquí: el registro del turno viaja sin nombre.
+ */
+function redisGuardarFicha(payload) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    if (!payload || !payload.firma) throw new Error('Firma obligatoria para guardar.');
+    var h = _hojaEpisodio();
+    var email = Session.getActiveUser().getEmail() || '';
+    var ts = Utilities.formatDate(new Date(), 'America/Santiago', 'yyyy-MM-dd HH:mm:ss');
+    var datos = h.getDataRange().getValues(), fila = -1;
+    for (var i = 1; i < datos.length; i++) if (datos[i][0] === payload.idCama) { fila = i + 1; break; }
+    var valores = [payload.idCama, JSON.stringify(payload.ficha), ts, payload.firma, email];
+    if (fila > 0) h.getRange(fila, 1, 1, 5).setValues([valores]); else h.appendRow(valores);
+    return { ok: true, ts: ts };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Agrega UNA evaluación funcional FECHADA (serie temporal, nunca sobrescribe).
+ * payload = {idCama, fecha, firma, datos:{MRC, FSS, DINAMO, PMANT, ...}}
+ */
+function redisGuardarEval(payload) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    if (!payload || !payload.firma) throw new Error('Firma obligatoria para guardar.');
+    var email = Session.getActiveUser().getEmail() || '';
+    var ts = Utilities.formatDate(new Date(), 'America/Santiago', 'yyyy-MM-dd HH:mm:ss');
+    _hojaEval().appendRow([ts, payload.idCama, payload.fecha || ts.slice(0, 10), JSON.stringify(payload.datos), payload.firma, email]);
+    return { ok: true, ts: ts };
+  } finally {
+    lock.releaseLock();
+  }
+}
 
 /** Carga el turno guardado (o null) para cama+turnoKey. */
 function redisCargar(idCama, turnoKey) {

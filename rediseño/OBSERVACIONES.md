@@ -51,6 +51,23 @@ comportamiento correcto es el de `v2/index.html`.
 2. **Réplica visible campo a campo** («Antes: 30 → 35»).
 3. **Validación por rango fisiológico** al escribir.
 4. Rail de bloques con estado (✓ guardado / ● sin guardar).
+5. **SEPARACIÓN EN TRES NIVELES (v0.3, pedida por Diego ago-2026)** — la
+   respuesta a «que lo pre-UCI y los datos personales no contaminen la
+   planilla del registro diario»:
+   · **📇 Bloque 0 · Ficha del episodio** (`REDISENO_EPISODIO`, una fila por
+     episodio): datos personales (nombre, edad, RUT con su regla) + estado
+     PRE-UCI (Barthel previo, ECF, Charlson, APACHE II, antecedentes). Se
+     llena al INGRESO, queda plegada y de solo lectura los turnos siguientes
+     (botón ✏️ Editar para correcciones). El registro del turno viaja SIN
+     nombre — solo la cama/episodio lo identifica.
+   · **📋 Registro del turno** (los 7 bloques clínicos): solo lo que cambia
+     por turno.
+   · **📈 Evaluaciones FECHADAS** (`REDISENO_EVAL`): MRC/FSS/dinamometría/
+     P. transtraqueal como ENTRADAS con fecha — serie temporal visible
+     completa en el bloque 6, nunca se sobrescribe. De noche la serie SE VE
+     pero no se registra (leer no es registrar).
+   · Beneficio de privacidad directo: una exportación anonimizada simplemente
+     NO incluye la hoja de fichas (Ley 19.628; la regla del RUT ya existía).
 
 ## Pendientes de la adaptación (por orden)
 
