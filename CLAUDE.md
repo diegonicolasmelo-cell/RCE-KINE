@@ -24,6 +24,12 @@ navegador del hospital o de su casa.
 - Los eventos de vía aérea (intubación, extubación, TQT, decanulación) se
   registran **manualmente** por decisión clínica; las alertas solo detectan
   olvidos, nunca automatizan el registro.
+- **Rama `rediseno-formulario-bloques` = prototipo PARALELO del formulario**
+  (ago-2026, carpeta `rediseño/`): evolución por bloques con guardado
+  independiente, proyecto de Apps Script APARTE con hojas propias. Diego lo
+  pidió «encarecidamente paralelo, jamás lo principal»: esa rama **NO se
+  fusiona a main** y nada suyo toca `v2/`. Leer su `OBSERVACIONES.md` antes
+  de tocarla (la forma se explora allá; el fondo clínico viene de `v2/`).
 
 ## Arquitectura
 
