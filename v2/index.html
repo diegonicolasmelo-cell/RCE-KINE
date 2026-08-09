@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.45-datos">
+<meta name="rce-version" content="5.46-afinado">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -518,13 +518,16 @@ table.rhb2 .rl{width:128px;text-align:left;}
 @media (max-width:900px){.vmz-camgrid{grid-template-columns:repeat(3,minmax(0,1fr));}}
 @media (max-width:560px){.vmz-camgrid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 /* Bodega en tres divisiones proporcionales al número de equipos de cada una */
-.vmz-bod-wrap{display:flex;gap:6px;padding:8px 8px 0;align-items:stretch;}
+.vmz-bod-wrap{display:flex;gap:6px;padding:8px;align-items:stretch;}
 .vmz-bod-div{border:1px dashed #cbd5e1;border-radius:9px;background:#fcfdff;padding:6px 7px;min-width:74px;display:flex;flex-direction:column;}
 .vmz-bod-t{font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#64748b;margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
 .vmz-bod-b{display:flex;flex-wrap:wrap;align-content:flex-start;gap:2px;min-height:30px;flex:1;}
 .vmz-bod-div.dropping{outline:3px dashed #2563eb;outline-offset:-3px;background:#eff6ff;}
-.vmz-bod-apoyo{padding:7px 10px 9px;font-size:.68rem;color:#64748b;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 @media (max-width:760px){.vmz-bod-wrap{flex-wrap:wrap;}.vmz-bod-div{flex:1 1 100%!important;}}
+/* Equipos médicos + Otro servicio comparten fila (optimiza alto de pantalla) */
+.vmz-fila2{display:flex;gap:12px;align-items:stretch;}
+.vmz-fila2>.vmz-zona{flex:1 1 0;min-width:0;}
+@media (max-width:760px){.vmz-fila2{flex-direction:column;}}
 .vmz-slot{border:1.5px dashed #cbd5e1;border-radius:9px;min-height:56px;padding:4px 6px;font-size:.62rem;color:#94a3b8;font-weight:700;cursor:pointer;}
 .vmz-slot .n{display:block;margin-bottom:3px;}
 .vmz-slot.occ{border-style:solid;border-color:#dde3ec;background:#fafcff;}
@@ -3159,8 +3162,11 @@ document.documentElement.setAttribute('data-piel', 'inst');
                          y la reología queda bloqueada (no tiene sentido sin secreción) -->
                     <div style="margin-bottom:6px;">
                       <label style="font-size:.67rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;">Características</label>
+                      <!-- El placeholder ya NO dice «Sin secreciones» (Diego, ago-2026):
+                           confundía no-registro con hallazgo. «Sin secreciones» se declara
+                           con el botón «−» de cantidad, y ESO sí se narra. -->
                       <select id="fSecrCar" onchange="hSecrCond()" style="height:28px;font-size:.76rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 5px;width:100%;">
-                        <option value="">-- Sin secreciones --</option>
+                        <option value="">-- Seleccionar --</option>
                         <option>Mucosas</option>
                         <option>Mucopurulentas</option>
                         <option>Purulentas</option>
@@ -3890,7 +3896,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.45-datos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.46-afinado]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4788,6 +4794,7 @@ function fillCama(c, fecha) {
   setFasesDesde(c.FASE_JSON||'');
   _fechaInicioTQT=''; _fechaInicioVNI='';
   _diasVMPrevios=0; _diasVNIPrevios=0; _nReintub=0;
+  _diasVMSellado=''; _diasVNISellado='';
   const _vaDb=c.VIA_AEREA||'';
   // VNI = SOPORTE ventilatorio no invasivo. NO la interfaz: 'Full Face' y
   // 'Oronasal' son mascarillas y también se usan en oxigenoterapia y CNAF —
@@ -4866,6 +4873,8 @@ function fillForm(s) {
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
   chk('cUPOTmed',s.UPOT_MEDIDAS);
   set('fDias',s.DIA_ESTADIA); set('fDiasVM',s.DIAS_VM);
+  if(s.DIAS_VM!==''&&s.DIAS_VM!=null) _diasVMSellado=s.DIAS_VM;
+  if(s.DIAS_VNI!==''&&s.DIAS_VNI!=null) _diasVNISellado=s.DIAS_VNI;
   if(s.VA_EXTERNO_DIAS!==undefined){ set('fVAExtDias',s.VA_EXTERNO_DIAS||0); actualizarDiasVA(); }
   set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
   set('fGCSO',s.SED_GCS_O); set('fGCSV',s.SED_GCS_V); set('fGCSM',s.SED_GCS_M);
@@ -5082,6 +5091,12 @@ function fillFormReplica(s) {
     if(/^\d{4}-\d{2}-\d{2}$/.test(String(val))) return; // skip fecha ISO espuria
     e.value=String(val); } };
   const chk=(id,val)=>{ const e=$(id); if(e) e.checked=(val===true||val==='TRUE'); };
+
+  // Días de soporte SELLADOS de la evolución previa (regla de tramos, v5.42):
+  // es el congelado que el campo del formulario muestra cuando el soporte ya
+  // no está vigente — el contador vivo daría 0 (Diego, ago-2026).
+  if(s.DIAS_VM!==''&&s.DIAS_VM!=null) _diasVMSellado=s.DIAS_VM;
+  if(s.DIAS_VNI!==''&&s.DIAS_VNI!=null) _diasVNISellado=s.DIAS_VNI;
 
   // Sedación / neurológico
   set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
@@ -5528,14 +5543,19 @@ function guardar() {
     if(_des.length){
       const _esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       _txtDesfaseVisto=true;
+      // AVISO DE UNA LÍNEA (opción B de Diego, ago-2026): con muchas ediciones
+      // el detalle bloque a bloque tapaba los botones y no se veía cómo
+      // guardar. Ahora el mensaje es corto y el detalle queda PLEGADO en «Ver
+      // diferencias», con su propio scroll — quien lo quiera lo abre.
       uiConfirm({
         icono:'📝', titulo:'El texto no coincide con lo registrado',
-        mensaje:'Editaste el texto a mano, así que dejó de actualizarse solo. Después cambiaste el formulario y <b>estos bloques quedaron contando otra cosa</b>:',
-        detalle:_des.map(d=>`<div style="margin:6px 0;padding:6px 9px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:0 5px 5px 0;text-align:left;font-size:.8rem;">
+        mensaje:`Editaste el texto a mano y después cambiaste el formulario — <b>${_des.length===1?'1 parte quedó':_des.length+' partes quedaron'} contando otra cosa</b>. ¿Guardar tu texto tal como está?`,
+        detalle:`<details style="text-align:left;"><summary style="cursor:pointer;font-size:.78rem;font-weight:700;color:#b45309;">🔍 Ver diferencias (${_des.length})</summary>
+          <div style="max-height:32vh;overflow-y:auto;margin-top:4px;">${_des.map(d=>`<div style="margin:6px 0;padding:6px 9px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:0 5px 5px 0;text-align:left;font-size:.8rem;">
             <b>${_esc(d.bloque)}</b><br>
             <span style="color:#b91c1c;font-weight:700;">El texto dice:</span> ${_esc(d.antes)||'<i>(nada)</i>'}<br>
             <span style="color:#15803d;font-weight:700;">Registraste:</span> ${_esc(d.ahora)||'<i>(nada)</i>'}
-          </div>`).join(''),
+          </div>`).join('')}</div></details>`,
         // TRES salidas, no dos (corregido ago-2026 — reporte de Diego: «el
         // texto se reinicia al guardar y no queda lo editado a mano»). Antes
         // el ÚNICO camino que guardaba era regenerar, así que el colega que
@@ -5663,7 +5683,8 @@ function guardar() {
     VENT_TQT_CALIBRE: bv('cTqtO') ? (v('poTqtN')||v('fTQTn')) : v('fTQTn'),
     VENT_TQT_TIPO:    bv('cTqtO') ? (v('poTqtTipo')||v('fTQTt')) : v('fTQTt'), VENT_SOPORTE:v('fSop'), VENT_MODO:v('fModo'),
     VENT_H_ACTIVA:bv('cHAct'), KTM_UMA:v('r_uma')||'',
-    VENT_ADAPTADO: $('sAdapt') ? (v('sAdapt')==='Sincrónico') : '',
+    // '' = no evaluado (parte vacío, Diego ago-2026); true/false solo si se eligió
+    VENT_ADAPTADO: ($('sAdapt') && v('sAdapt')) ? (v('sAdapt')==='Sincrónico') : '',
     VENT_VT:n(v('r_vt')), VENT_FR:n(v('r_fr')), VENT_PEEP:n(v('r_peep')),
     VENT_PMAX:n(v('r_pmax')), VENT_PMEDIA:n(v('r_pmedia')), VENT_PPL:n(v('r_ppl')),
     VENT_PS:n(v('r_ps')), VENT_IPAP:n(v('r_ipap')), VENT_IPAP_MAX:n(v('r_ipapmax')), VENT_EPAP:n(v('r_epap')),
@@ -5700,7 +5721,9 @@ function guardar() {
     KTM_EMS_FREQ:v('fEMSfreq'), KTM_EMS_INT:v('fEMSint'), KTM_EMS_PULSO:v('fEMSpulso'),
     KTM_EMS_T:v('fEMSt'), KTM_EMS_GRUPO:v('fEMSgrupo'),
     // ★ KTM 3-way — "no realizada" se infiere si ni realizada ni suspendida
-    KTM_NO_REALIZADA: ($('bKTMn')?.classList.contains('on')) || (!bv('cKTMr') && !bv('cKTMs')),
+    // De NOCHE la KTM no aplica (Diego, ago-2026): ni «no realizada» ni nada —
+    // la estadística manual jamás tuvo casilla nocturna. Vacío = no aplica.
+    KTM_NO_REALIZADA: SHIFT==='Noche' ? '' : (($('bKTMn')?.classList.contains('on')) || (!bv('cKTMr') && !bv('cKTMs'))),
     KTM_NO_RAZON:        v('fKTMnoRaz'),
     KTM_NO_COMENTARIO:   v('fKTMnoCom'),
     KTM_ALERTA:          bv('cKTMalert'),
@@ -7890,7 +7913,8 @@ function genTexto() {
   const _numTxt=id=>_mon(id).replace(/[^0-9.]/g,'');
   const _pjoin=arr=>arr.filter(Boolean).join(', ');
   const _humid=$('cHAct')?.checked;
-  const _interac=$('sAdapt')?(v('sAdapt')==='Sincrónico'?'adecuada':'inadecuada'):null;
+  // Sin elección no se narra interacción (parte vacío, Diego ago-2026)
+  const _interac=($('sAdapt')&&v('sAdapt'))?(v('sAdapt')==='Sincrónico'?'adecuada':'inadecuada'):null;
   const _CTRL=['ACVC','ACPC'];
   const _espontaneo = !_CTRL.includes(modo);
   const _ps=_np('r_ps'), _tobin=_mon('l_tobin');
@@ -7944,7 +7968,11 @@ function genTexto() {
     if(_interac) vs+=`, con ${_interac} interacción P-VM`;
     _B('sop'); L.push(vs+'.');
     const _psVni=(ip>0&&ep>0)?Math.round((ip-ep)*10)/10:0;
-    const _pb=_pjoin([ip?`IPAP ${ip}${ipmax?'–'+ipmax:''} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null, _np('r_pafi')?`PaFiO2 ${_np('r_pafi')}`:null]);
+    // Modo CPAP: la presión ÚNICA vive en el campo «CPAP» (columna del PEEP) —
+    // la línea de IPAP/EPAP la dejaba fuera y el texto salía sin presión
+    // (reporte de Diego, ago-2026).
+    const _cpap=(modo==='CPAP')?peep:0;
+    const _pb=_pjoin([_cpap?`CPAP ${_cpap} cmH2O`:null, ip?`IPAP ${ip}${ipmax?'–'+ipmax:''} cmH2O`:null, ep?`EPAP ${ep} cmH2O`:null, _psVni?`PS ${_psVni} cmH2O`:null, vt?`Vt ${vt} ml`:null, fr?`FR ${fr} rpm`:null, fio2?`FiO2 ${fio2}%`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null, _np('r_pafi')?`PaFiO2 ${_np('r_pafi')}`:null]);
     _B('param'); if(_pb) L.push(`Parámetros: ${_pb}.`);
   } else if(sop==='CNAF'){
     const fl=_np('r_flujo');
@@ -8064,8 +8092,10 @@ function genTexto() {
       e+=`: ${_mpTxt}`;
     }
     if(ru){
-      const _ruTags=(_tiState['fRuidosTags']||[]);
-      if(_ruTags.includes('sin ruidos agregados')) e+=', sin ruidos agregados';
+      // Se decide con el VALOR DEL SELECT, sin distinguir mayúsculas (Diego,
+      // ago-2026): antes se miraba un estado de chips que no siempre calzaba
+      // y salía el oxímoron «…con Sin ruidos agregados».
+      if(/^sin ruidos/i.test(ru)) e+=', sin ruidos agregados';
       else { e+=(mp?', con ':': ')+ru; if(ruLoc) e+=` ${ruLoc}`; }
     }
     L.push(e+'.');
@@ -8088,8 +8118,10 @@ function genTexto() {
       if(car) secrParts.push(car.toLowerCase());
       if(qtyTxt[qty]) secrParts.push('en '+qtyTxt[qty]);
     }
-    // qty==='-' (sin secreciones) o sin datos → omite secreciones de la línea
-    const secrTxt=secrParts.length?`, secreciones ${secrParts.join(' ')}`:'';
+    // «−» = EVALUADO sin secreciones (Diego, ago-2026): se narra, igual que la
+    // UMA (−). Solo el no-registro ('') queda en silencio — evaluar y no
+    // encontrar nada es un hallazgo, no una omisión.
+    const secrTxt=secrParts.length?`, secreciones ${secrParts.join(' ')}`:(qty==='-'?', sin secreciones':'');
     // Cultivo nuevo en este turno (se integra al final de la línea KTR)
     const _res=(_tiState['fCultTags']||[]).filter(Boolean);
     _B('cult');
@@ -8104,7 +8136,8 @@ function genTexto() {
     // Línea KTR principal
     let ktrLine='';
     if(perm.length) ktrLine=`KTR + ${perm.join(' + ')}${secrTxt}`;
-    else if(secrTxt) ktrLine=`Secreciones ${secrParts.join(' ')}`;
+    else if(secrParts.length) ktrLine=`Secreciones ${secrParts.join(' ')}`;
+    else if(qty==='-') ktrLine='Sin secreciones';
     _B('ktr');
     if(ktrLine){ L.push(ktrLine+(_cultSuffix||'')+'.'); }
     else if(_cultSuffix){ L.push(_cultSuffix.replace(/^: /,'')+'.'); }
@@ -8522,6 +8555,15 @@ function cascadeSop(preModo) {
   poblar('fModo', modos, preModo); renderParams();
   actualizarContadores();
   _updateSinKTR();
+  _gatePronoStrip();
+}
+/* La franja 🔃 prono/supino SOLO con paciente en VM (Diego, ago-2026): el
+   prono vigil fue práctica de pandemia y la evidencia actual no lo respalda
+   como rutina. Ocultar NO borra lo marcado (re-editar un turno antiguo que
+   pronó en VM conserva sus datos); el caso excepcional va en texto libre. */
+function _gatePronoStrip(){
+  const el=$('dPronoStrip'); if(!el) return;
+  el.classList.toggle('hidden', v('fSop')!=='VM');
 }
 function _showCol(id){ const el=$(id); if(el){el.classList.remove('hidden');el.style.display='flex';} }
 function _hideCol(id){ const el=$(id); if(el){el.classList.add('hidden');el.style.display='none';} }
@@ -8628,10 +8670,14 @@ const _umaFld=()=>`<div class="col" style="flex-grow:0;"><label>UMA</label><div 
 // aquí); este helper solo arma el selector de interacción P-VM cuando aplica.
 const _humChk=(haAdapt)=>{
   if(!haAdapt) return '';
-  const adaptVal=($('sAdapt')&&$('sAdapt').value)||'Sincrónico';
+  // PARTE VACÍO (Diego, ago-2026): nada se afirma hasta que alguien elija.
+  // Con la preselección en «Sincrónico», los pacientes «amanecían» con una
+  // interacción que nadie evaluó — y la réplica podía voltearla sola.
+  const adaptVal=($('sAdapt')&&$('sAdapt').value)||'';
   return `<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
     <span style="display:inline-flex;align-items:center;gap:5px;font-size:.8rem;font-weight:600;">Interacción P-VM
     <select id="sAdapt" onchange="hAdapt(true)" style="height:28px;font-size:.8rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 6px;">
+      <option value=""${adaptVal===''?' selected':''}>--</option>
       <option${adaptVal==='Sincrónico'?' selected':''}>Sincrónico</option>
       <option${adaptVal==='Asincrónico'?' selected':''}>Asincrónico</option>
     </select></span>
@@ -9257,6 +9303,12 @@ let _nReintub=0;         // N° de reintubaciones
 let _diasVNIEpisodio=0;  // días del episodio actual de VNI
 let _diasVNIPrevios=0;   // días VNI acumulados
 let _fechaInicioVNI='';  // fecha inicio VNI actual
+// DÍAS SELLADOS por el servidor en la última evolución del episodio (regla de
+// tramos, v5.42). Es el CONGELADO que el formulario debe seguir mostrando
+// cuando el soporte ya no está vigente (Diego, ago-2026: la paciente extubada
+// aparecía sin sus días de VM — el contador vivo daba 0 y pisaba el sellado).
+let _diasVMSellado='';
+let _diasVNISellado='';
 let _vaAnterior='';      // VA previa para detectar transiciones
 let _vmHistFlag=false;   // historial de VM detectado en los datos cargados (evo previa / cama)
 let _evoEventoGuardado=false; // el turno cargado YA tiene un evento único guardado (extub/PVE/decan/intub/reintub)
@@ -9283,7 +9335,10 @@ function actualizarContadores(){
   // VM
   const vmTotal=_diasVMPrevios+_diasVMEpisodio;
   const elVM=$('fDiasVM');
-  if(elVM) elVM.value=(_nReintub>0&&_diasVMEpisodio>0)?`${vmTotal}/${_diasVMEpisodio}`:(esInv?vmTotal:(vmTotal||''));
+  // Sin soporte invasivo vigente, el campo muestra el CONGELADO sellado por el
+  // servidor (Diego, ago-2026): antes el contador vivo daba 0 y la paciente
+  // extubada aparecía sin sus días de VM.
+  if(elVM) elVM.value=(_nReintub>0&&_diasVMEpisodio>0)?`${vmTotal}/${_diasVMEpisodio}`:(esInv?vmTotal:(vmTotal||_diasVMSellado||''));
   const elVMLbl=$('lblDiasVM');
   if(elVMLbl) elVMLbl.textContent=_nReintub>0?'VM tot/ep':'Días VM';
   // Reintubaciones
@@ -9291,7 +9346,7 @@ function actualizarContadores(){
   if(_nReintub>0) _showCol('colReintub'); else _hideCol('colReintub');
   // VNI
   const vniTotal=_diasVNIPrevios+_diasVNIEpisodio;
-  const elVNI=$('fDiasVNI'); if(elVNI) elVNI.value=esVNI?vniTotal:(vniTotal||'');
+  const elVNI=$('fDiasVNI'); if(elVNI) elVNI.value=esVNI?vniTotal:(vniTotal||_diasVNISellado||'');
   // Aviso TQT + modo VNI
   const modo=v('fModo');
   const wEl=$('dTQTVNIWarn');
@@ -10383,7 +10438,10 @@ function aplicarGatesEval(){
   const esNoche = SHIFT==='Noche';
   const k=$('fcKtmCard'); if(k) k.classList.toggle('hidden', esNoche);
   const imt=$('fcImtBox'); if(imt) imt.classList.toggle('hidden', esNoche); // IMT: disponible siempre, salvo de noche
-  if(esNoche && typeof setKTMstate==='function') setKTMstate('n');
+  // De noche la KTM NO APLICA (Diego, ago-2026): estado NEUTRO, no «no
+  // realizada» — forzar 'n' hacía que cada evolución nocturna narrara «KTM no
+  // realizada.» y marcara un estado que la estadística manual nunca tuvo.
+  if(esNoche && typeof setKTMstate==='function') setKTMstate('');
   hEgr(); // oculta/muestra la tarjeta de Evaluaciones según turno
   if(esNoche) return; // de noche no hay nada más que decidir
   // — Cooperación — (Ingreso: bloqueado por defecto salvo excepción explícita "Cooperador";
@@ -11253,9 +11311,51 @@ function _stkChipsCama(nCama){
     if(!k) return '';
     const ico=_STK_ICO[x.categoria]||'🧰';
     const corto=String(x.nombre).replace(/^Capnógrafo\s+/i,'').replace(/^Aerogen\s+/i,'Aerogen ');
-    return `<span class="vmz-chip vmz-stk" onclick="event.stopPropagation();stkAbrirCama('${_escSt(x.id)}',${nCama})"
-      title="${_escSt(x.nombre)} en la cama ${nCama} — tocar para asignar o devolver">${ico} ${_escSt(corto)}${k>1?' ×'+k:''}</span>`;
+    return `<span class="vmz-chip vmz-stk" draggable="true" data-stk="${_escSt(x.id)}" data-stkcama="${nCama}"
+      ondragstart="stkDragStart(event)" onclick="event.stopPropagation();stkAbrirCama('${_escSt(x.id)}',${nCama})"
+      title="${_escSt(x.nombre)} en la cama ${nCama} — arrastra a la bodega para devolver 1, o toca para el detalle">${ico} ${_escSt(corto)}${k>1?' ×'+k:''}</span>`;
   }).join('');
+}
+/* ── Stock en la división APOYO de la bodega (Diego, ago-2026): los equipos
+   sin número (Aerogen, capnógrafos) se ven en bodega con su cantidad
+   disponible y se ARRASTRAN igual que un ventilador — soltar en una cama
+   descuenta 1, devolver a bodega lo repone. Sin números inventados: el
+   registro queda por cantidad, como siempre. ── */
+function _stkDisponibles(){
+  return (STOCK_ALL||[]).reduce((a,x)=>a+((!/baja/i.test(x.estado)&&x.disponible>0)?1:0),0);
+}
+function _stkChipsBodega(){
+  return (STOCK_ALL||[]).map(x=>{
+    if(/baja/i.test(x.estado)||!(x.disponible>0)) return '';
+    const ico=_STK_ICO[x.categoria]||'🧰';
+    return `<span class="vmz-chip vmz-stk" draggable="true" data-stk="${_escSt(x.id)}" data-stkcama=""
+      ondragstart="stkDragStart(event)" onclick="event.stopPropagation();stkAsignarUI('${_escSt(x.id)}')"
+      title="${_escSt(x.nombre)} — ${x.disponible} disponible(s). Arrastra a una cama para asignar 1, o toca para elegir cama.">${ico} ${_escSt(x.nombre)} <b>×${x.disponible}</b></span>`;
+  }).join('');
+}
+function stkDragStart(ev){
+  const el=ev.target.closest('.vmz-chip'); const id=el&&el.dataset.stk;
+  if(!id){ ev.preventDefault(); return; }
+  ev.dataTransfer.setData('text/plain','STK|'+id+'|'+(el.dataset.stkcama||''));
+}
+/* El movimiento de stock por arrastre se APLICA al soltar (pedido de Diego):
+   es un conteo reversible —arrastrar de vuelta lo deshace— a diferencia de
+   los ventiladores con nombre, que siguen pasando por su confirmación. */
+function stkDropMover(id, desde, tipo, det){
+  const x=stkItem(id); if(!x) return;
+  const fin=()=>{ toast('✅ '+x.nombre+' actualizado'); stkCargar(); };
+  const errF=m=>toast('No se pudo registrar: '+(m||''));
+  if(tipo==='CAMA'&&det&&!desde){
+    if(!(x.disponible>0)){ toast('No quedan '+x.nombre+' disponibles.'); return; }
+    gs('ASIGNAR_STOCK',{id:id,idCama:String(det),delta:1,detalle:'Arrastre en tablero',fecha:v('gDate')||hoy()},fin,errF);
+  } else if(tipo==='CAMA'&&det&&desde&&String(det)!==String(desde)){
+    // cama → cama: devolver 1 al pool y asignarlo a la nueva
+    gs('ASIGNAR_STOCK',{id:id,idCama:String(desde),delta:-1,detalle:'Arrastre en tablero (a cama '+det+')',fecha:v('gDate')||hoy()},
+      ()=>gs('ASIGNAR_STOCK',{id:id,idCama:String(det),delta:1,detalle:'Arrastre en tablero (desde cama '+desde+')',fecha:v('gDate')||hoy()},fin,errF),errF);
+  } else if(tipo==='BODEGA'&&desde){
+    gs('ASIGNAR_STOCK',{id:id,idCama:String(desde),delta:-1,detalle:'Arrastre en tablero (devuelto)',fecha:v('gDate')||hoy()},fin,errF);
+  } else if(tipo==='BODEGA'&&!desde){ toast('Ya está en bodega.'); }
+  else toast('El stock sin numerar solo se mueve entre la bodega y las camas.');
 }
 /** Desde la tarjeta: primero se elige la cama y luego se reparte. */
 function stkAsignarUI(id){
@@ -11429,26 +11529,25 @@ function vmzTableroHTML(act){
   const equipos=act.filter(x=>x.ubicTipo==='EQUIPOS');
   const bodega=act.filter(x=>['CAMA','PRESTAMO','PASILLO','EQUIPOS'].indexOf(x.ubicTipo)===-1);
   const prest=act.filter(x=>x.ubicTipo==='PRESTAMO');
-  /* BODEGA EN TRES DIVISIONES — VMI · VNI · CNAF (pedido de Diego, ago-2026).
+  /* BODEGA EN CUATRO DIVISIONES — VMI · VNI · CNAF · APOYO (Diego, ago-2026).
      El ancho de cada división es PROPORCIONAL a cuántos equipos tiene, así se
-     ve de un vistazo de qué hay más en bodega. Las tres son destino BODEGA: se
-     puede soltar en cualquiera (la categoría la manda el equipo, no el
-     casillero donde caiga).
-     Los de APOYO (MR850, capnógrafos, Aerogen) NO tienen división propia porque
-     no son soporte — pero tampoco pueden desaparecer del tablero: van en una
-     franja aparte bajo las tres, y solo si hay alguno. */
+     ve de un vistazo de qué hay más en bodega. Las cuatro son destino BODEGA:
+     se puede soltar en cualquiera (la categoría la manda el equipo, no el
+     casillero donde caiga). En APOYO además viven los chips del STOCK sin
+     numerar (Aerogen, capnógrafos): arrastrar uno a una cama descuenta 1. */
   const _bodCat=c=>bodega.filter(x=>String(x.categoria||'').toUpperCase()===c);
   const bodVM=_bodCat('VM'), bodVNI=_bodCat('VNI'), bodCNAF=_bodCat('CNAF');
   const bodApoyo=bodega.filter(x=>['VM','VNI','CNAF'].indexOf(String(x.categoria||'').toUpperCase())===-1);
-  const bodDiv=(tit,arr)=>`<div class="vmz-bod-div" data-tipo="BODEGA" style="flex:${Math.max(1,arr.length)} 1 0;"
+  const stkBodega=(typeof _stkChipsBodega==='function')?_stkChipsBodega():'';
+  const nStkBod=(typeof _stkDisponibles==='function')?_stkDisponibles():0;
+  const bodDiv=(tit,arr,extraHTML,extraN)=>`<div class="vmz-bod-div" data-tipo="BODEGA" style="flex:${Math.max(1,arr.length+(extraN||0))} 1 0;"
       ondragover="vmzOver(event)" ondragleave="vmzLeave(event)" ondrop="vmzDrop(event)" onclick="vmzZonaTap(this)">
-      <div class="vmz-bod-t">${tit} <span class="vmz-zc">${arr.length}</span></div>
-      <div class="vmz-bod-b">${arr.length?arr.map(chip).join(''):'<span class="vmz-vacio">—</span>'}</div></div>`;
+      <div class="vmz-bod-t">${tit} <span class="vmz-zc">${arr.length+(extraN||0)}</span></div>
+      <div class="vmz-bod-b">${(arr.length||extraHTML)?arr.map(chip).join('')+(extraHTML||''):'<span class="vmz-vacio">—</span>'}</div></div>`;
   const bodegaHTML=`<div class="vmz-zona" data-tipo="BODEGA"
       ondragover="vmzOver(event)" ondragleave="vmzLeave(event)" ondrop="vmzDrop(event)" onclick="vmzZonaTap(this)">
-      <div class="vmz-zh vmz-bodega">📦 Bodega <span class="vmz-zc">${bodega.length} disponible</span></div>
-      <div class="vmz-bod-wrap">${bodDiv('🫁 VMI',bodVM)}${bodDiv('😷 VNI',bodVNI)}${bodDiv('💨 CNAF',bodCNAF)}</div>
-      ${bodApoyo.length?`<div class="vmz-bod-apoyo"><b>🧰 Apoyo</b>${bodApoyo.map(chip).join('')}</div>`:''}
+      <div class="vmz-zh vmz-bodega">📦 Bodega <span class="vmz-zc">${bodega.length+nStkBod} disponible</span></div>
+      <div class="vmz-bod-wrap">${bodDiv('🫁 VMI',bodVM)}${bodDiv('😷 VNI',bodVNI)}${bodDiv('💨 CNAF',bodCNAF)}${bodDiv('🧰 APOYO',bodApoyo,stkBodega,nStkBod)}</div>
     </div>`;
   return `<div class="vmz-hint">🖐️ <b>Arrastra</b> un ventilador a su destino — o <b>tócalo y luego toca la zona</b> (tablet). Nada se mueve sin confirmar.</div>
   <div class="vmz-board">
@@ -11457,8 +11556,10 @@ function vmzTableroHTML(act){
     <div class="vmz-col">
       ${zona('PASILLO','🚪','Pasillo',pasillo,'')}
       ${bodegaHTML}
-      ${zona('EQUIPOS','🔧','Equipos médicos',equipos,'mantención')}
-      ${zona('PRESTAMO','🏥','Otro servicio',prest,'préstamo')}
+      <div class="vmz-fila2">
+        ${zona('EQUIPOS','🔧','Equipos médicos',equipos,'mantención')}
+        ${zona('PRESTAMO','🏥','Otro servicio',prest,'préstamo')}
+      </div>
     </div>
   </div>`;
 }
@@ -11467,8 +11568,14 @@ function vmzOver(ev){ ev.preventDefault(); ev.currentTarget.classList.add('dropp
 function vmzLeave(ev){ ev.currentTarget.classList.remove('dropping'); }
 function vmzDrop(ev){
   ev.preventDefault(); ev.stopPropagation(); ev.currentTarget.classList.remove('dropping');
-  const id=ev.dataTransfer.getData('text/plain'); if(!id) return;
-  vmzIniciar(id, ev.currentTarget.dataset.tipo, ev.currentTarget.dataset.det||'');
+  const dat=ev.dataTransfer.getData('text/plain'); if(!dat) return;
+  // Chips de STOCK sin numerar: 'STK|id|camaOrigen' — se aplican al soltar
+  if(dat.indexOf('STK|')===0){
+    const pp=dat.split('|');
+    stkDropMover(pp[1], pp[2]||'', ev.currentTarget.dataset.tipo, ev.currentTarget.dataset.det||'');
+    return;
+  }
+  vmzIniciar(dat, ev.currentTarget.dataset.tipo, ev.currentTarget.dataset.det||'');
 }
 function vmzChipTap(ev,id){
   ev.stopPropagation();
@@ -11517,7 +11624,14 @@ function vmRender(){
   let h=vmzTableroHTML(act);
   let cards=secc(`🛏️ En salas (${enCama.length})`,enCama,'Ningún ventilador asignado a salas.');
   cards+=secc(`🚪 Pasillo (${pasillo.length})`,pasillo,'Sin equipos en pasillo.');
-  cards+=secc(`📦 Bodega (${bodega.length})`,bodega,'Bodega sin stock disponible.');
+  // La bodega de las tarjetas repite la MISMA distribución del tablero de
+  // arriba — VMI · VNI · CNAF · APOYO — para que el ojo no recablee (Diego).
+  const _catDe=x=>String(x.categoria||'').toUpperCase();
+  const _bodDe=c=>bodega.filter(x=>c==='APOYO'?['VM','VNI','CNAF'].indexOf(_catDe(x))===-1:_catDe(x)===c);
+  cards+=secc(`📦 Bodega — 🫁 VMI (${_bodDe('VM').length})`,_bodDe('VM'),'Sin VMI en bodega.');
+  cards+=secc(`📦 Bodega — 😷 VNI (${_bodDe('VNI').length})`,_bodDe('VNI'),'Sin VNI en bodega.');
+  cards+=secc(`📦 Bodega — 💨 CNAF (${_bodDe('CNAF').length})`,_bodDe('CNAF'),'Sin CNAF en bodega.');
+  cards+=secc(`📦 Bodega — 🧰 APOYO (${_bodDe('APOYO').length})`,_bodDe('APOYO'),'Sin equipos de apoyo en bodega.');
   cards+=secc(`🔧 Equipos médicos (${equipos.length})`,equipos,'Sin equipos en mantención externa.');
   cards+=secc(`🏥 Otro servicio (${prest.length})`,prest,'Sin préstamos vigentes.');
   if(bajas.length) cards+=`<details style="margin-top:14px;"><summary style="font-size:.75rem;color:#94a3b8;cursor:pointer;">⛔ Dados de baja (${bajas.length})</summary>
@@ -12433,7 +12547,9 @@ function renderEntrega(d){
     const neuro=_u([
       (f.gcs!==''&&f.gcs!=null)?`<b>GCS ${f.gcs}</b>${f.gcsOVM?` <span style="color:var(--muted);font-size:.9em;">(${f.gcsOVM})</span>`:''}`:'',
       [f.sas!==''&&f.sas!=null?`SAS ${f.sas}`:'', f.sedTipo||''].filter(Boolean).join(' · '),
-      [f.bnm?'<b style="color:#be123c;">BNM ✓</b>':'', f.cooperacion||''].filter(Boolean).join(' · '),
+      // La cooperación SALIÓ de la ficha (Diego, ago-2026): SAS y GCS ya la
+      // dicen mejor. Se sigue registrando y sigue en el historial.
+      f.bnm?'<b style="color:#be123c;">BNM ✓</b>':'',
       ((f.pic!==''&&f.pic!=null)||(f.ppc!==''&&f.ppc!=null))?[(f.pic!==''&&f.pic!=null)?`PIC ${f.pic}`:'',(f.ppc!==''&&f.ppc!=null)?`PPC ${f.ppc}`:''].filter(Boolean).join(' · ')+' mmHg':'',
       f.sedSusp?`💤 Sedación suspendida el ${f.sedSusp}`:'',
       f.bnmSusp&&!f.bnm?`BNM suspendido el ${f.bnmSusp}`:'',

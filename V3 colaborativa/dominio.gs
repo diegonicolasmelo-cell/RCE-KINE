@@ -320,7 +320,10 @@ function generarTextoEvolucion(d) {
     if (l3) txt.push(l3 + '.');
   } else if (sop === 'VNI') {
     const ipapMax = vn('VENT_IPAP_MAX');
-    ventStr = `En VNI modo ${modo}, IPAP ${ipap > 0 ? ipap : '?'}${ipapMax > 0 ? '–' + ipapMax : ''}/${epap > 0 ? epap : '?'} cmH₂O`;
+    // Modo CPAP: la presión única viaja en la columna del PEEP — narrar
+    // IPAP/EPAP dejaba «IPAP ?/? cmH₂O» (reporte de Diego, ago-2026).
+    if (modo === 'CPAP') ventStr = `En VNI modo CPAP, CPAP ${peep > 0 ? peep : '?'} cmH₂O`;
+    else ventStr = `En VNI modo ${modo}, IPAP ${ipap > 0 ? ipap : '?'}${ipapMax > 0 ? '–' + ipapMax : ''}/${epap > 0 ? epap : '?'} cmH₂O`;
     if (vt > 0) ventStr += `, VT ${vt} ml`;
     if (fio2 > 0) ventStr += `, FiO₂ ${fio2}%`;
     if (spo2 > 0) ventStr += `, SpO₂ ${spo2}%`;
@@ -502,7 +505,10 @@ function generarTextoEvolucion(d) {
                 : 'MP(+), ' + mp;
     exStr += `Auscultación: ${mpTxt}`;
   }
-  if (ruidosText && ruidosText !== 'sin ruidos agregados') exStr += `${mp ? ', con ' : 'Auscultación: '}${ruidosText}${ruidosLoc && ruidos !== 'Otro' ? ' ' + ruidosLoc : ''}`;
+  // Comparación SIN distinguir mayúsculas (Diego, ago-2026): el select guarda
+  // «Sin ruidos agregados» y la comparación exacta en minúscula nunca calzaba
+  // — salía el oxímoron «…con Sin ruidos agregados».
+  if (ruidosText && !/^sin ruidos/i.test(ruidosText)) exStr += `${mp ? ', con ' : 'Auscultación: '}${ruidosText}${ruidosLoc && ruidos !== 'Otro' ? ' ' + ruidosLoc : ''}`;
   else if (ruidosText) exStr += `, sin ruidos agregados`;
   if (exStr) txt.push(exStr + '.');
 
@@ -518,19 +524,22 @@ function generarTextoEvolucion(d) {
     const qtyTxt = { '+': 'escasa cantidad', '++': 'moderada cantidad', '+++': 'abundante cantidad' }[qty] || '';
     // La reología DESCRITA siempre se narra (ago-2026, reporte de Álvaro):
     // antes la frase entera dependía de la cantidad, y una reología sin
-    // cantidad marcada desaparecía del texto. El «-» explícito (sin
-    // secreciones) sigue suprimiendo la frase, como siempre.
+    // cantidad marcada desaparecía del texto. Y el «−» explícito SE NARRA
+    // como «sin secreciones» (Diego, ago-2026, mismo criterio de la UMA (−)):
+    // evaluar y no encontrar nada es un hallazgo, no una omisión. Solo el
+    // no-registro ('') queda en silencio.
     const secrParts = [];
     if (qty !== '-') {
       if (reol) secrParts.push(reol.toLowerCase());
       if (car) secrParts.push(car.toLowerCase());
       if (qtyTxt) secrParts.push('en ' + qtyTxt);
     }
-    const secrTxt = secrParts.length ? `, secreciones ${secrParts.join(' ')}` : '';
+    const secrTxt = secrParts.length ? `, secreciones ${secrParts.join(' ')}` : (qty === '-' ? ', sin secreciones' : '');
     if (v('EX_CULT_RESULTADO')) txt.push('Resultado de cultivo: ' + v('EX_CULT_RESULTADO') + '.');
     let linea = '';
     if (perm.length) linea = `KTR + ${perm.join(' + ')}${secrTxt}`;
-    else if (secrTxt) linea = `Secreciones ${secrParts.join(' ')}`;
+    else if (secrParts.length) linea = `Secreciones ${secrParts.join(' ')}`;
+    else if (qty === '-') linea = 'Sin secreciones';
     if (linea) txt.push(linea + '.');
     if (esVerdadero(d.RESP_INHALO)) txt.push('Se administra inhaloterapia según indicación médica (SOS).');
     // «Posicionamiento:» SALIÓ del generador (ago-2026, Bloque C de Diego):

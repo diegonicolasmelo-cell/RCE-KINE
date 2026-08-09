@@ -1446,7 +1446,14 @@ function _entParams(e) {
   push('FiO₂', 'VENT_FIO2'); push('PEEP', 'VENT_PEEP'); push('PS', 'VENT_PS');
   push('IPAP', 'VENT_IPAP'); push('EPAP', 'VENT_EPAP');
   push('VT', 'VENT_VT'); push('FR', 'VENT_FR'); push('SpO₂', 'VENT_SPO2');
-  push('L', 'VENT_LITROS'); push('Flujo', 'VENT_FLUJO');
+  // Litros y flujo POR SOPORTE (decisión de Diego, ago-2026): los litros solo
+  // aportan con naricera o mascarilla simple, el flujo solo con CNAF, y la
+  // Venturi (MMV) va SOLO con su FiO₂. En VM ninguno de los dos dice nada y
+  // arrastrarlos ensuciaba la línea con restos del soporte anterior.
+  const sop = String(e.VENT_SOPORTE || ''), modo = String(e.VENT_MODO || '');
+  const esCNAF = sop === 'CNAF' || /^(CNAF|OAF\/CTAF)$/i.test(modo);
+  if (/^(NRC|Naricera(-NRC)?|Mascarilla)$/i.test(modo)) push('L', 'VENT_LITROS');
+  if (esCNAF) push('Flujo', 'VENT_FLUJO');
   return out.join(' · ');
 }
 

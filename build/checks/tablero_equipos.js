@@ -1,10 +1,10 @@
 // tablero_equipos.js — Guardia del TABLERO DE LA PESTAÑA VENTILADORES
 // (pedido de Diego, ago-2026):
 //
-//  1. La BODEGA se divide en TRES: VMI · VNI · CNAF, con el ancho de cada
-//     división PROPORCIONAL a cuántos equipos tiene. Las tres son destino
-//     BODEGA (se puede soltar en cualquiera). Los equipos de APOYO no tienen
-//     división propia pero NO pueden desaparecer del tablero: van en su franja.
+//  1. La BODEGA se divide en CUATRO: VMI · VNI · CNAF · APOYO, con el ancho
+//     de cada división PROPORCIONAL a cuántos equipos tiene. Las cuatro son
+//     destino BODEGA (se puede soltar en cualquiera). En APOYO viven además
+//     los chips del stock sin numerar, arrastrables hacia las camas.
 //  2. La grilla de camas es de SEIS por fila — con 18 camas quedan tres filas
 //     exactas: 1-6, 7-12 y 13-18. Es número fijo, no auto-fill: con auto-fill
 //     el corte cambiaba con el ancho y las filas dejaban de calzar.
@@ -48,7 +48,7 @@ const { chromium } = require('playwright-core');
     setTab('V');
     $('vmBody').innerHTML = vmzTableroHTML(VM_ALL.filter(x => x.activo));
 
-    // ── 1 · Bodega en tres divisiones ──
+    // ── 1 · Bodega en cuatro divisiones ──
     const divs = [...document.querySelectorAll('#vmBody .vmz-bod-div')];
     r.nDivs = divs.length;
     r.titulos = divs.map(d => d.querySelector('.vmz-bod-t').textContent.trim().replace(/\s+/g, ' '));
@@ -56,15 +56,14 @@ const { chromium } = require('playwright-core');
     // El ancho es PROPORCIONAL: 5 VM contra 1 CNAF ⇒ la primera es más ancha
     const w = divs.map(d => d.getBoundingClientRect().width);
     r.anchoVMmayor = w[0] > w[1] && w[1] > w[2];
-    r.proporcional = Math.abs((w[0] / w[2]) - 5) < 1.6;   // ~5:1 con el padding
+    // Con 4 divisiones y ancho mínimo por división, la razón exacta se
+    // comprime: lo que se fija es que 5 equipos pesen BASTANTE más que 1.
+    r.proporcional = (w[0] / w[2]) > 2.2;
     // Las tres aceptan soltar y todas apuntan a BODEGA
     r.todasBodega = divs.every(d => d.dataset.tipo === 'BODEGA');
     r.todasSueltan = divs.every(d => typeof d.ondrop === 'function' && typeof d.onclick === 'function');
-    // Los de APOYO no desaparecen
-    const ap = document.querySelector('#vmBody .vmz-bod-apoyo');
-    r.apoyoVisible = !!ap && ap.querySelectorAll('.vmz-chip').length === 2;
-    // Ningún equipo de bodega se perdió: 10 en total repartidos
-    r.totalBodega = [...document.querySelectorAll('#vmBody .vmz-bod-div .vmz-chip, #vmBody .vmz-bod-apoyo .vmz-chip')].length;
+    // Ningún equipo de bodega se perdió: 10 en total repartidos en las 4
+    r.totalBodega = [...document.querySelectorAll('#vmBody .vmz-bod-div .vmz-chip')].length;
 
     // ── 2 · Grilla de camas: 6 por fila, 3 filas ──
     const grid = document.querySelector('#vmBody .vmz-camgrid');
@@ -84,23 +83,24 @@ const { chromium } = require('playwright-core');
 
     // ── 3 · Una bodega vacía no rompe el reparto ──
     VM_ALL = [mk('solo', 'Mek 9', 'VM', 'BODEGA')];
-    $('vmBody').innerHTML = vmzTableroHTML(VM_ALL);
+    vmRender();   // el render completo: tablero + tarjetas de gestión
     const d2 = [...document.querySelectorAll('#vmBody .vmz-bod-div')];
-    r.vaciasSiguen = d2.length === 3;
+    r.vaciasSiguen = d2.length === 4;
     r.vaciasConAncho = d2.every(d => d.getBoundingClientRect().width > 20);
-    r.sinApoyo = !document.querySelector('#vmBody .vmz-bod-apoyo');
+    // Las tarjetas de gestión repiten la distribución del tablero
+    const seccs = [...document.querySelectorAll('#vmBody details div')].map(x=>'').length; // (no-op, se mide abajo)
+    r.tarjetas4 = ['VMI','VNI','CNAF','APOYO'].every(t => $('vmBody').innerHTML.indexOf('Bodega — ') !== -1 && new RegExp('Bodega — [^(]*'+t).test($('vmBody').innerHTML));
     return r;
   });
 
-  console.log('── 1 · Bodega dividida en VMI · VNI · CNAF ──');
-  eq('hay TRES divisiones', R.nDivs, 3);
-  eq('…y son VMI, VNI y CNAF en ese orden', R.titulos.map(t => t.split(' ')[1]).join('|'), 'VMI|VNI|CNAF');
-  eq('cada equipo cae en su división (5 · 2 · 1)', R.conteos.join('·'), '5·2·1');
+  console.log('── 1 · Bodega dividida en VMI · VNI · CNAF · APOYO ──');
+  eq('hay CUATRO divisiones', R.nDivs, 4);
+  eq('…y son VMI, VNI, CNAF y APOYO en ese orden', R.titulos.map(t => t.split(' ')[1]).join('|'), 'VMI|VNI|CNAF|APOYO');
+  eq('cada equipo cae en su división (5 · 2 · 1 · 2)', R.conteos.join('·'), '5·2·1·2');
   eq('el ancho es proporcional: VMI > VNI > CNAF', R.anchoVMmayor, true);
-  eq('…y la proporción sigue al número (≈5:1)', R.proporcional, true);
-  eq('las tres son destino BODEGA', R.todasBodega, true);
-  eq('en las tres se puede soltar y tocar', R.todasSueltan, true);
-  eq('los equipos de APOYO no desaparecen del tablero', R.apoyoVisible, true);
+  eq('…y la proporción sigue al número (VMI ≫ CNAF)', R.proporcional, true);
+  eq('las cuatro son destino BODEGA', R.todasBodega, true);
+  eq('en las cuatro se puede soltar y tocar', R.todasSueltan, true);
   eq('ningún equipo de bodega se pierde por el camino', R.totalBodega, 10);
 
   console.log('\n── 2 · Grilla de camas de 6 por fila ──');
@@ -112,9 +112,9 @@ const { chromium } = require('playwright-core');
   eq('fila 3 = camas 13 a 18', R.fila3, '13,14,15,16,17,18');
 
   console.log('\n── 3 · Bordes ──');
-  eq('con una sola categoría siguen las tres divisiones', R.vaciasSiguen, true);
+  eq('con una sola categoría siguen las cuatro divisiones', R.vaciasSiguen, true);
   eq('…y las vacías conservan ancho para poder soltar en ellas', R.vaciasConAncho, true);
-  eq('sin equipos de apoyo, la franja no se dibuja', R.sinApoyo, true);
+  eq('las tarjetas de gestión repiten la distribución en 4', R.tarjetas4, true);
 
   await b.close();
   if (errs.length) { console.log('❌ errores JS: ' + errs.join(' | ')); fails.push('js'); }

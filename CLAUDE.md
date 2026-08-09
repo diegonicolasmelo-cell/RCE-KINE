@@ -836,6 +836,53 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `FECHA_INICIO_VA` en el display del formulario): su valor autoritativo es
     `DIAS_VM` del servidor y no es lo reportado.
 
+- **v5.46 · AFINADO DE TERRENO: 12 PUNTOS DE DIEGO EN UNA RONDA (9-ago-2026,
+  cohete v5.46-afinado; sin cambio de esquema — NO exige
+  `crearORepararEstructura()`).** Todos decididos por Diego tras uso real:
+  1. **Entrega limpia**: cooperación FUERA de la ficha (SAS/GCS la dicen
+     mejor); litros SOLO con naricera/mascarilla simple; flujo SOLO con CNAF;
+     Venturi (MMV) solo FiO₂ (`_entParams` mira soporte y modo). GSA y cuff
+     siguen fuera por decisión, no por olvido.
+  2. **Bodega en CUATRO divisiones** VMI·VNI·CNAF·APOYO proporcionales al
+     número de equipos; las tarjetas de gestión repiten esa distribución;
+     «Equipos médicos» y «Otro servicio» comparten fila (`.vmz-fila2`).
+  3. **Stock arrastrable**: los chips de Aerogen/capnógrafos viven en la
+     división APOYO con su ×disponible y se ARRASTRAN — soltar en una cama
+     descuenta 1 (`ASIGNAR_STOCK`), devolver a bodega repone, cama→cama
+     encadena las dos. Payload de drag `STK|id|camaOrigen`. Se aplica al
+     soltar SIN modal (es conteo reversible; los equipos con nombre siguen
+     confirmando). La guardia stock.js pasó de «NO se arrastra» a la regla
+     nueva.
+  4. **Prono/supino SOLO con VM** (`_gatePronoStrip`): el prono vigil es
+     excepcional y sin evidencia hoy; queda el texto libre para ese caso.
+     Ocultar NO borra lo marcado.
+  5. **Interacción P-VM parte VACÍA** («--»): nada se narra ni se inhabilita
+     (Ppl/AutoPEEP) sin elección; elegir Asincrónico sigue bloqueando. Mata el
+     «amanecen asincrónicos» de la réplica.
+  6. **KTM de noche NO APLICA**: el gate nocturno ponía «no realizada» y cada
+     evolución nocturna narraba «KTM no realizada.» — ahora estado NEUTRO
+     (`setKTMstate('')`), payload `KTM_NO_REALIZADA=''` con SHIFT Noche, ni
+     frase ni estadística (la manual nunca tuvo casilla nocturna).
+  7. **«Sin secreciones» evaluado SE NARRA** (botón «−», mismo criterio de la
+     UMA (−)); el no-registro sigue mudo; el placeholder de características ya
+     no dice «Sin secreciones» (confundía placeholder con hallazgo).
+  8. **Días de VM congelados en el formulario**: `_diasVMSellado/_diasVNISellado`
+     (de la evolución previa/reeditada) respaldan el campo cuando el soporte no
+     está vigente — la extubada mostraba vacío porque el contador vivo daba 0 y
+     pisaba el sellado de tramos (v5.42). La grilla ya estaba bien.
+  9. **CPAP (VNI) narra su presión única** «CPAP 8 cmH₂O» en ambos motores —
+     la línea IPAP/EPAP daba «IPAP ?/?» porque la presión vive en la columna
+     del PEEP.
+  10. **Auscultación sin oxímoron**: se decide con el VALOR del select y sin
+     mayúsculas (cliente miraba chips de otro widget; servidor comparaba
+     'sin…' vs 'Sin…') — ya no sale «con Sin ruidos agregados».
+  11. **Aviso de desfase → opción B**: mensaje de UNA línea («N partes
+     quedaron contando otra cosa»), «Guardar mi texto tal como está» sigue
+     primario, y el detalle bloque a bloque queda PLEGADO en «🔍 Ver
+     diferencias» con scroll propio. La columna TEXTO_BLOQUES no se tocó.
+  12. Guardias: nueva `checks/afinado.js` (30 asserts servidor+cliente) +
+     `tablero_equipos.js` a 4 divisiones + `stock.js` a la regla nueva.
+     Batería: **62 guardias verdes**.
 - **v5.45 · LA ENTREGA CON LOS DATOS QUE FALTABAN (8-ago-2026, cohete
   v5.45-datos; sin cambio de esquema — NO exige `crearORepararEstructura()`).**
   Reporte de Diego: «hay datos importantes que no aparecen en la entrega,
@@ -1797,8 +1844,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.45-datos**
-  (antes v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.46-afinado**
+  (antes v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con

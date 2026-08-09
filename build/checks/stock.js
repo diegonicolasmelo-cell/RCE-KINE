@@ -175,7 +175,9 @@ const { chromium } = require('playwright-core');
       tresEquipos: [...s3.querySelectorAll('.vmz-chip:not(.vmz-stk)')].map(c => c.textContent.trim()),
       stockEnCama3: [...s3.querySelectorAll('.vmz-chip.vmz-stk')].map(c => c.textContent.trim()),
       stockEnCama7: [...s7.querySelectorAll('.vmz-chip.vmz-stk')].map(c => c.textContent.trim()),
-      stkNoArrastrable: ![...s3.querySelectorAll('.vmz-chip.vmz-stk')].some(c => c.getAttribute('draggable') === 'true'),
+      // REGLA NUEVA (Diego, ago-2026): el chip de stock SÍ se arrastra — mueve
+      // UNA UNIDAD (cantidad, no una unidad identificable) y lleva su origen.
+      stkArrastrable: [...s3.querySelectorAll('.vmz-chip.vmz-stk')].every(c => c.getAttribute('draggable') === 'true' && c.dataset.stk),
       repartoEnTarjeta: /En camas/.test($('stkBody').textContent),
       disponibles: /7\s*\/\s*10/.test($('stkBody').textContent.replace(/\s+/g, ' ')),
     };
@@ -184,7 +186,7 @@ const { chromium } = require('playwright-core');
   eq('…y son los del inventario (VM + V60 + Airvo)', /PB 1/.test(CAMA.tresEquipos.join('|')) && /V60/.test(CAMA.tresEquipos.join('|')) && /Airvo/.test(CAMA.tresEquipos.join('|')), true);
   eq('el stock asignado aparece en su cama', /Aerogen/.test(CAMA.stockEnCama3.join('')), true);
   eq('…con la cantidad cuando hay más de uno', /×2/.test(CAMA.stockEnCama7.join('')), true);
-  eq('el chip de stock NO se arrastra (no hay unidad identificable)', CAMA.stkNoArrastrable, true);
+  eq('el chip de stock SE ARRASTRA y mueve una unidad (regla ago-2026)', CAMA.stkArrastrable, true);
   eq('la tarjeta resume en qué camas está', CAMA.repartoEnTarjeta, true);
   eq('…y muestra disponibles sobre el total', CAMA.disponibles, true);
 
