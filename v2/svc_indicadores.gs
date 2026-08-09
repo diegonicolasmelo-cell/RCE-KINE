@@ -113,15 +113,26 @@ function calcularIndicadores(desde, hasta) {
       if (m1 !== null && m2 !== null) return dias * 24 + (m2 - m1) / 60;
       return dias * 24;   // sin horas: aproximación por días (0=mismo día→precoz, 1→24h, 2→48h)
     };
+    // El criterio de las 48 h se aplica UNA sola vez por extubación y de aquí
+    // salen los dos consumidores: el total del rango y la tendencia mensual.
+    // Antes se emparejaba dos veces (aquí y al armar la tendencia) con dos
+    // copias del mismo criterio clínico: coincidían por suerte, y si alguien
+    // corregía una definición —la ventana, el orden de los candidatos— el
+    // tablero podía quedar diciendo dos verdades distintas sobre el mismo mes.
     let nPrecoz = 0, nTardio = 0;
+    const porMes = {};   // 'aaaa-mm' → { ext, fra }
     extProg.forEach(x => {
-      const cand = (reintubPorPid[x.pid] || []).filter(r => r.fecha >= x.fecha);
+      const m = x.fecha.slice(0, 7);
+      const mes = porMes[m] = porMes[m] || { ext: 0, fra: 0 };
+      mes.ext++;
       let mejor = null;
-      cand.forEach(r => {
+      (reintubPorPid[x.pid] || []).forEach(r => {
+        if (r.fecha < x.fecha) return;
         const h = horasEntre(x.fecha, x.hora, r.fecha, r.hora);
         if (h >= 0 && h <= 48 && (mejor === null || h < mejor)) mejor = h;
       });
       if (mejor === null) return;
+      mes.fra++;
       if (mejor < 24) nPrecoz++; else nTardio++;
     });
     const nFracaso = nPrecoz + nTardio;
@@ -219,13 +230,6 @@ function calcularIndicadores(desde, hasta) {
       const ext = parseInt(h.EXTUBACIONES) || 0;
       tendencia.push({ mes: String(h.MES || ''), fuente: String(h.FUENTE || 'planilla'),
         fracasoPct: ext ? Math.round(1000 * (parseInt(h.REINTUB_48H) || 0) / ext) / 10 : null });
-    });
-    const porMes = {};
-    extProg.forEach(x => { const m = x.fecha.slice(0, 7); (porMes[m] = porMes[m] || { ext: 0, fra: 0 }).ext++; });
-    extProg.forEach(x => {
-      const cand = (reintubPorPid[x.pid] || []).filter(r => r.fecha >= x.fecha);
-      const hit = cand.some(r => { const h = horasEntre(x.fecha, x.hora, r.fecha, r.hora); return h >= 0 && h <= 48; });
-      if (hit) porMes[x.fecha.slice(0, 7)].fra++;
     });
     Object.keys(porMes).sort().forEach(m => {
       tendencia.push({ mes: m, fuente: 'rce', fracasoPct: porMes[m].ext ? Math.round(1000 * porMes[m].fra / porMes[m].ext) / 10 : null });
