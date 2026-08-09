@@ -587,7 +587,7 @@ function _mtoResellarSoporte(escribir) {
  */
 function medirGuardado(idCamaPrueba) {
   const out = [];
-  const p = function (s) { out.push(s); };
+  const p = function (s) { out.push(s); Logger.log(s); };
   const cron = function (etiqueta, fn) {
     const t0 = Date.now();
     let r = null, e = '';
@@ -663,4 +663,14 @@ function medirGuardado(idCamaPrueba) {
   p('Comparar contra la otra corrida (antes/después de pegar). Lo que decide');
   p('es la diferencia entre versiones, no el número absoluto de un día.');
   return out.join('\n');
+}
+
+/**
+ * Atajo para el selector del editor, que no acepta argumentos: mide usando la
+ * PRIMERA cama de prueba (NUM_CAMAS+1). Si aún no existe, correr antes
+ * agregarCamasPrueba() (idempotente, de mantenimiento.gs).
+ */
+function medirGuardadoEnCamaPrueba() {
+  const real = parseInt(leerConfig('NUM_CAMAS', '18'), 10) || 18;
+  return medirGuardado(String(real + 1));
 }
