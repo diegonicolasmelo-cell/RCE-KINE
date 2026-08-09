@@ -510,7 +510,21 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .vmz-zc{background:#f1f5f9;border-radius:12px;padding:1px 9px;font-size:.7rem;color:#475569;font-weight:700;text-transform:none;letter-spacing:0;}
 .vmz-zb{padding:10px;min-height:44px;}
 .vmz-col{display:flex;flex-direction:column;gap:12px;}
-.vmz-camgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:7px;padding:10px;}
+/* 6 camas por fila (pedido de Diego, ago-2026): con 18 camas quedan tres filas
+   exactas — 1-6, 7-12, 13-18 — que es como el equipo lee la unidad. Es número
+   FIJO, no auto-fill: con auto-fill el corte cambiaba según el ancho y las
+   filas dejaban de calzar con los tramos reales. */
+.vmz-camgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;padding:10px;}
+@media (max-width:900px){.vmz-camgrid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media (max-width:560px){.vmz-camgrid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+/* Bodega en tres divisiones proporcionales al número de equipos de cada una */
+.vmz-bod-wrap{display:flex;gap:6px;padding:8px 8px 0;align-items:stretch;}
+.vmz-bod-div{border:1px dashed #cbd5e1;border-radius:9px;background:#fcfdff;padding:6px 7px;min-width:74px;display:flex;flex-direction:column;}
+.vmz-bod-t{font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#64748b;margin-bottom:5px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.vmz-bod-b{display:flex;flex-wrap:wrap;align-content:flex-start;gap:2px;min-height:30px;flex:1;}
+.vmz-bod-div.dropping{outline:3px dashed #2563eb;outline-offset:-3px;background:#eff6ff;}
+.vmz-bod-apoyo{padding:7px 10px 9px;font-size:.68rem;color:#64748b;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+@media (max-width:760px){.vmz-bod-wrap{flex-wrap:wrap;}.vmz-bod-div{flex:1 1 100%!important;}}
 .vmz-slot{border:1.5px dashed #cbd5e1;border-radius:9px;min-height:56px;padding:4px 6px;font-size:.62rem;color:#94a3b8;font-weight:700;cursor:pointer;}
 .vmz-slot .n{display:block;margin-bottom:3px;}
 .vmz-slot.occ{border-style:solid;border-color:#dde3ec;background:#fafcff;}
@@ -11415,13 +11429,34 @@ function vmzTableroHTML(act){
   const equipos=act.filter(x=>x.ubicTipo==='EQUIPOS');
   const bodega=act.filter(x=>['CAMA','PRESTAMO','PASILLO','EQUIPOS'].indexOf(x.ubicTipo)===-1);
   const prest=act.filter(x=>x.ubicTipo==='PRESTAMO');
+  /* BODEGA EN TRES DIVISIONES — VMI · VNI · CNAF (pedido de Diego, ago-2026).
+     El ancho de cada división es PROPORCIONAL a cuántos equipos tiene, así se
+     ve de un vistazo de qué hay más en bodega. Las tres son destino BODEGA: se
+     puede soltar en cualquiera (la categoría la manda el equipo, no el
+     casillero donde caiga).
+     Los de APOYO (MR850, capnógrafos, Aerogen) NO tienen división propia porque
+     no son soporte — pero tampoco pueden desaparecer del tablero: van en una
+     franja aparte bajo las tres, y solo si hay alguno. */
+  const _bodCat=c=>bodega.filter(x=>String(x.categoria||'').toUpperCase()===c);
+  const bodVM=_bodCat('VM'), bodVNI=_bodCat('VNI'), bodCNAF=_bodCat('CNAF');
+  const bodApoyo=bodega.filter(x=>['VM','VNI','CNAF'].indexOf(String(x.categoria||'').toUpperCase())===-1);
+  const bodDiv=(tit,arr)=>`<div class="vmz-bod-div" data-tipo="BODEGA" style="flex:${Math.max(1,arr.length)} 1 0;"
+      ondragover="vmzOver(event)" ondragleave="vmzLeave(event)" ondrop="vmzDrop(event)" onclick="vmzZonaTap(this)">
+      <div class="vmz-bod-t">${tit} <span class="vmz-zc">${arr.length}</span></div>
+      <div class="vmz-bod-b">${arr.length?arr.map(chip).join(''):'<span class="vmz-vacio">—</span>'}</div></div>`;
+  const bodegaHTML=`<div class="vmz-zona" data-tipo="BODEGA"
+      ondragover="vmzOver(event)" ondragleave="vmzLeave(event)" ondrop="vmzDrop(event)" onclick="vmzZonaTap(this)">
+      <div class="vmz-zh vmz-bodega">📦 Bodega <span class="vmz-zc">${bodega.length} disponible</span></div>
+      <div class="vmz-bod-wrap">${bodDiv('🫁 VMI',bodVM)}${bodDiv('😷 VNI',bodVNI)}${bodDiv('💨 CNAF',bodCNAF)}</div>
+      ${bodApoyo.length?`<div class="vmz-bod-apoyo"><b>🧰 Apoyo</b>${bodApoyo.map(chip).join('')}</div>`:''}
+    </div>`;
   return `<div class="vmz-hint">🖐️ <b>Arrastra</b> un ventilador a su destino — o <b>tócalo y luego toca la zona</b> (tablet). Nada se mueve sin confirmar.</div>
   <div class="vmz-board">
     <div class="vmz-zona vmz-camas"><div class="vmz-zh">🛏️ Camas <span class="vmz-zc">${act.filter(x=>x.ubicTipo==='CAMA').length} equipos en ${Object.keys(porCama).length} camas</span></div>
       <div class="vmz-camgrid">${slots}</div></div>
     <div class="vmz-col">
       ${zona('PASILLO','🚪','Pasillo',pasillo,'')}
-      ${zona('BODEGA','📦','Bodega',bodega,'disponible')}
+      ${bodegaHTML}
       ${zona('EQUIPOS','🔧','Equipos médicos',equipos,'mantención')}
       ${zona('PRESTAMO','🏥','Otro servicio',prest,'préstamo')}
     </div>
