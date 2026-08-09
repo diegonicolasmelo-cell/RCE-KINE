@@ -443,11 +443,23 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     | abrir paciente (GET_EVO_TURNO) | 4 | **3** |
     | reabrir turno guardado | 5 | **3** |
     | + cada llamada autenticada (prod) | +2 | **+0** (caché 5 min) |
-    ⚠️ Son VIAJES, no segundos — los ms reales se miden con
-    **`medirGuardado('<cama de prueba>')`** (mantenimiento_manuel.gs): correr
-    ANTES de pegar la ola (pegar solo mantenimiento_manuel primero) y DESPUÉS,
-    y comparar. Solo escribe en cama de prueba (valida `_esCamaPrueba`) y deja
-    todo como estaba.
+    ✅ **Y LOS SEGUNDOS, MEDIDOS EN LA PLANILLA REAL (8-ago-2026, 20:09 y
+    20:17, `medirGuardado` sobre la cama de prueba 21, antes y después de
+    pegar):**
+    | ms reales | antes | después |
+    |---|---|---|
+    | abrir paciente (GET_EVO_TURNO) | 1.414 / 1.373 | **470 / 479** |
+    | guardar evolución (crear) | 6.483 | **3.364** |
+    | re-guardar el mismo turno | 7.682 | **3.389** |
+    Guardar bajó de ~7 s a ~3,4 s y abrir de ~1,4 s a ~0,5 s. Protocolo usado:
+    pegar SOLO mantenimiento_manuel → `medirGuardadoEnCamaPrueba()` (= antes)
+    → pegar repo/esquema/infra/servicios → correr de nuevo (= después). El
+    medidor solo escribe en camas de prueba (valida `_esCamaPrueba`), restaura
+    la cama al terminar, y las camas de prueba se retiraron después con la
+    rutina quitarCamasPrueba (0 filas de historia tocadas). Pegado verificado
+    carácter a carácter contra el repo vía el modelo de Monaco (longitud
+    UTF-16: los emojis cuentan doble — un +1 ahí no es corrupción). SIN
+    versión nueva: publicar es decisión de Diego.
   - **Cómo quedó el guardado**: la fila del turno se ubica UNA vez
     (`repoBuscarFila` + `repoLeerFila`) y esa misma sirve para la fusión, BDT,
     apnea y el upsert final (`repoUpsertEnFila` — válido porque todo corre en
