@@ -830,7 +830,11 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 386) errs.push("EVOLUCIONES != 386 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  // Salvaguarda contra el borrado accidental de columnas: el número va a mano
+  // y HAY QUE SUBIRLO al agregar una (387 = 386 + RESP_SNT, ago-2026). Si
+  // aparece este ❌ tras sumar una columna, la hoja está bien y lo que falta es
+  // actualizar esta línea.
+  if (TOTAL_COLS.EVOLUCIONES !== 387) errs.push("EVOLUCIONES != 387 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }
