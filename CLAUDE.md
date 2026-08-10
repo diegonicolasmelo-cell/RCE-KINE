@@ -242,9 +242,95 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     escondía justo el caso que hay que mirar. Y `white-space:nowrap` en la
     marca desbordaba sobre la columna vecina: la solución fue **acortar el
     texto** («VENCIDO (3d)»), no forzar la línea.
-  - Guardia: `checks/lista_y_filtros.js` (34 asserts, incluidas las cuentas de
+  - Guardia: `checks/lista_y_filtros.js` (39 asserts, incluidas las cuentas de
     hojas al ancho real del A4 vertical). `hojas_dia.js` pasó a verificar la
     hoja de registro **desde el historial**.
+
+- **LA FECHA DE UN PAPEL ES LA DEL RELOJ, NO LA DEL TURNO (10-ago-2026,
+  reportado en terreno por Manuel: imprimió la lista a la 1 AM del 10 y salió
+  fechada el 9).** No era un huso horario. `gDate` guarda la fecha del **turno
+  lógico**, y `_turnoLogico()` la deja en el DÍA ANTERIOR entre las 00:00 y las
+  09:00 **a propósito**: la noche del 9 se sigue escribiendo hasta las 9 de la
+  mañana del 10 (ventana de gracia para la evolución atrasada). Eso es correcto
+  para el registro clínico y es un error para el papel que se lleva en la mano.
+  - **`_fechaPapel()`** (index) devuelve la fecha del calendario, y la usan la
+    **lista del día** y la **hoja de registro por paciente**: las dos llevan a
+    los pacientes que están presentes AHORA. Se recalcula en cada clic, así que
+    una app abierta desde ayer imprime bien igual. La lista además estampa la
+    **hora** («FECHA 10/08/2026 · 02:30 h»), que avisa qué tan fresca es la hoja
+    que anda dando vueltas por la unidad.
+  - **La excepción es el control de filtros**, que sigue fechándose con el
+    turno: ahí la fecha decide *qué filtro toca cambiar*, y a las 2 AM la ronda
+    en curso es todavía la noche del día anterior — la misma fecha que muestra
+    «Cambios de esta noche». Para que no se lea como un día atrasado, su
+    encabezado pasó de «FECHA …» a **«NOCHE DEL …»**.
+  - Al mirar la vista previa apareció un defecto **que no tiene que ver con la
+    fecha**: la columna RUT de la lista tenía **96 px** y un RUT real
+    («22.222.222-2») se partía en dos líneas — los datos de prueba de la guardia
+    eran RUT cortos («1-9») y por eso nunca se vio. Subida a **112 px**; el
+    nombre, que es la única columna flexible, absorbe la diferencia. Al probar
+    un imprimible, usa datos **del largo real**, no los mínimos.
+  - 🪤 **La guardia dependía del día en que se corriera:** sus asserts estaban
+    escritos contra el 09-08 y pasaban porque se escribió ese día (había un
+    `const FECHA` declarado y sin usar — la intención estaba, la ejecución no).
+    Hoy `lista_y_filtros.js` **fija el reloj** con un `Date` de clase derivada
+    en `addInitScript` (10-ago-2026 02:30, dentro de la ventana de gracia), que
+    es el escenario exacto del bug. Uno de los asserts nuevos comprueba que el
+    turno lógico **sigue** en la noche del 9: el arreglo es del papel, no de la
+    regla clínica.
+
+- **EL CAMBIO DE FILTROS SE AVISABA UNA NOCHE TARDE (10-ago-2026, reportado por
+  Manuel desde el turno; `svc_eventos.gs` + index).** Dijo que el HME etiquetado
+  el 08 y el HEPA/Trach Care del 07 debían cambiarse en la madrugada del 10 —
+  o sea en el turno noche del 09— y la app no los marcaba. Tenía razón, y la
+  prueba estaba en la propia guardia de validación de la regla anterior: HME
+  cambiado en la noche del 06 → se etiqueta **07** (fecha efectiva = la
+  madrugada en que se cambió) → volvía a pedirse la noche del 09 = madrugada del
+  10. **Tres días de HME cuando el HME dura dos.** El ejemplo con que se validó
+  aquella regla (ingreso el 04 en turno día → noches del 06 y 07) solo miraba el
+  PRIMER ciclo, donde la etiqueta es un día real y no una madrugada; ahí la
+  diferencia no se veía.
+  - Regla vigente: `fechaCambio` = etiqueta + frecuencia **se ejecuta en la
+    madrugada de esa fecha**, o sea en el turno noche de la víspera →
+    `cambiaEstaNoche` es `dias === frec-1`, `vence` es `dias >= frec` y el
+    atraso se cuenta desde `frec-1`. Espejado en `_flEstado` (index) y alineado
+    con `_hjDisp`, el chip de la Hoja UCI, **que ya usaba `frec-1`**: llevaba
+    semanas contradiciendo al servidor sin que nadie lo notara.
+  - Textos: la hoja dice «ESTA NOCHE» en vez de «CAMBIAR HOY» (la usan de
+    madrugada y «hoy» se leía como la víspera) y encabeza con «Ronda de la
+    madrugada del dd-mm»; el modal agrega «· madrugada del dd-mm».
+  - 🪤 **La guardia memorizaba fechas y por eso dejó pasar el error.**
+    `eventos.js` ahora encadena los ciclos y mide **el intervalo entre dos
+    cambios del mismo dispositivo** (2 días el HME, 3 el HEPA/TC), que es la
+    propiedad que de verdad importa. Un solo ciclo se ve bien y miente.
+  - ⚠️ Esto **invierte en un día** lo que se publicó el 7-ago con el visto bueno
+    de Diego: su ejemplo pasa de «noches del 06 y 07» a «noches del 05 y 06».
+    Avisarle antes de publicar.
+
+- **LA COLUMNA SOPORTE DICE CUÁL OXIGENOTERAPIA (10-ago-2026, pedido de Manuel;
+  solo index).** «Oxigenoterapia/OAF» a secas no sirve en la ronda. El dato ya
+  existía en `VENT_MODO` —el formulario lo pide— y la grilla lo tiraba: ahora la
+  etiqueta pasa a **«O2 · NRC»** (CNAF, NRC, MMV, mascarilla; con vía aérea
+  artificial, HME o tubo en T) y el nombre largo queda en el tooltip. Si no hay
+  modo registrado **no se inventa**: queda el genérico. VM y VNI no se tocan —
+  el pedido era la oxigenoterapia. Se lee igual que el soporte: manda la
+  evolución del turno, si no el estado de la cama (`c.MODO`).
+  - **Y «Mascarilla» pasó a llamarse «MR» (mascarilla de reservorio)**, que es
+    como la nombra la unidad; decisión de Manuel al preguntarle. El renombre va
+    en el catálogo `VMAPS`, en los selects de modo post-extubación y de soporte
+    previo a la reintubación, y en `_PE_META`. Tres capas para que nada se
+    rompa: **valor** guardado = `MR`; **etiqueta** del desplegable = «MR
+    (reservorio)» vía `_MODO_ETIQ`; y **nombre largo** dentro de la evolución
+    vía `_MODO_LARGO` (espejado en `dominio_texto.gs`) — «por MR» no le dice
+    nada a quien lee la ficha desde fuera de la unidad, «por mascarilla de
+    reservorio» sí. Ojo: `_MODO_LARGO` expande **solo MR**. Al principio expandí
+    también NRC y MMV y `via_aerea_previo.js` se puso roja: la narrativa ya
+    tenía esas siglas fijadas («Previo en naricera-NRC»). La guardia hizo su
+    trabajo — expandir de más es cambiar textos que nadie pidió cambiar. Las evoluciones anteriores guardaron `Mascarilla` y se
+    siguen leyendo en todos los consumidores y en la grilla.
+    NO se tocó el select de dispositivo post-decanulación (`fDecanQueda`): ahí
+    «Mascarilla de oxígeno» es otro vocabulario y no implica reservorio.
+  Guardia nueva: `checks/tabla_soporte.js` (13 asserts).
 
 - **VELOCIDAD · LA CONFIGURACIÓN SE LEE UNA VEZ POR PETICIÓN (ago-2026, sin
   cambio de index — NO exige `crearORepararEstructura()`).** Propuesto por

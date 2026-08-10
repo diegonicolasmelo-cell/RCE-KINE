@@ -214,9 +214,14 @@ function generarTextoEvolucion(d) {
     ].filter(Boolean).join(', ');
     if (pb) txt.push(`Parámetros: ${pb}.`);
   } else if (sop === 'Oxigenoterapia/OAF' || sop === 'Oxigenoterapia') {
-    // Naricera/MMV/Mascarilla — y HME/Tubo T/válvula de fonación en TQT sin VM
+    // Naricera/MMV/MR — y HME/Tubo T/válvula de fonación en TQT sin VM
     const litros = vn('VENT_LITROS'), umaO = v('KTM_UMA');
-    const dev = (modo && modo !== 'Sin soporte') ? modo : '';
+    // La sigla se expande: la evolución la leen también fuera de la unidad, y
+    // «por MR» no dice nada. «Mascarilla» sigue mapeada por las evoluciones
+    // anteriores a ago-2026, cuando MR se llamaba así. Espejo de _MODO_LARGO
+    // en el cliente (index.html) — mantener en paridad.
+    const _MODO_LARGO = { 'MR': 'mascarilla de reservorio', 'Mascarilla': 'mascarilla de reservorio' };
+    const dev = (modo && modo !== 'Sin soporte') ? (_MODO_LARGO[modo] || modo) : '';
     if (modo === 'Válvula de fonación') {
       txt.push(`Ventila espontáneo con válvula de fonación${(litros > 0 || fio2 > 0) ? ' y O2 adicional' : ''}.`);
     } else {

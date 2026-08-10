@@ -8,6 +8,9 @@
 //     diagnóstico y las escalas. Lo que esta guardia cuida: que las escalas
 //     NO se inventen (la que no está medida no aparece), que la cama libre no
 //     entre, que el orden sea por número de cama y que quepa en una hoja.
+//     Y desde el 10-ago-2026, que se feche con el RELOJ y no con el turno: a la
+//     1 AM del 10 salía impresa «09/08» porque heredaba la fecha del turno
+//     lógico, que hasta las 9 de la mañana sigue siendo la noche anterior.
 //
 // 2 · CONTROL DE FILTROS. La hoja de la ronda de la noche, con LAS 18 CAMAS
 //     —no solo las ocupadas: así se ve dónde hay ventiladores libres—, el
@@ -17,6 +20,9 @@
 //     cambio en el turno noche de ese día; NO el día anterior, que fue el
 //     desfase reportado en terreno), que el ventilador diga EN USO solo si hay
 //     un paciente en VM, y que la casilla salga solo donde hay algo que hacer.
+//     Ésta es la excepción a lo anterior: se feche con el TURNO, porque lo que
+//     decide es qué filtro toca cambiar esta noche, y va rotulada «NOCHE DEL …»
+//     para que su fecha no se confunda con un día atrasado.
 //
 // Uso: node build/checks/lista_y_filtros.js
 const path = require('path');
@@ -28,6 +34,18 @@ const MM = 3.779528;
   const p = await b.newPage({ viewport: { width: 1400, height: 950 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.addInitScript(() => {
+    // ⏰ RELOJ FIJO: 10-ago-2026, 02:30. Está a propósito DENTRO de la ventana de
+    // gracia (00:00–09:00), la franja en que el turno lógico todavía apunta al día
+    // ANTERIOR. Es el escenario exacto del desfase que Manuel reportó en terreno:
+    // imprimió la lista siendo 10 y salió fechada el 9. Sin este reloj, la guardia
+    // dependía del día en que se corriera (los asserts estaban escritos contra el
+    // 09-08 y habrían empezado a fallar solos al día siguiente).
+    const REAL = Date, T = new REAL(2026, 7, 10, 2, 30, 0).getTime();
+    class Fija extends REAL {
+      constructor(...a) { super(...(a.length ? a : [T])); }
+      static now() { return T; }
+    }
+    window.Date = Fija;
     window.google = { script: { run: { withSuccessHandler(okF) { return { withFailureHandler() { return {
       api(a) { setTimeout(() => okF({ ok: true, data: (a === 'GET_CONFIG_UI' ? { NUM_CAMAS: 18, BANNERS: {} } : null) }), 5); }
     }; } }; } } } };
@@ -46,7 +64,10 @@ const MM = 3.779528;
         FECHA_INGRESO: '2026-08-02', TS_INGRESO: '2026-08-02 10:00', DIAGNOSTICO: 'Neumonía grave',
         SOPORTE: 'VM', APACHE2: 18, BARTHEL: '', CHARLSON: 3, ULT_MRC: 44, ULT_FSS: '',
         VM_TAG: 'Servo-i 05', VM_TAG_ESTADO: 'Operativo',
-        DISP_HME_FECHA: '2026-08-07', DISP_HEPA_FECHA: '2026-08-06', DISP_TC_FECHA: '2026-08-09' },
+        // El caso REAL que Manuel reportó desde el turno (10-ago-2026): HME del
+        // 08 y HEPA del 07 se cambian los dos en la madrugada del 10, o sea en
+        // esta noche del 09. El TC recién puesto el 09 no toca hasta el 12.
+        DISP_HME_FECHA: '2026-08-08', DISP_HEPA_FECHA: '2026-08-07', DISP_TC_FECHA: '2026-08-09' },
       { ID_CAMA: '1', OCUPADA: 'TRUE', NOMBRE: 'Primer Paciente', EDAD: 50, RUT: '1-9',
         FECHA_INGRESO: '2026-08-01', TS_INGRESO: '2026-08-01 08:00', DIAGNOSTICO: 'Shock séptico',
         SOPORTE: 'Ambiente', VM_TAG: 'Puritan 02', VM_TAG_ESTADO: 'Operativo' },
@@ -56,18 +77,25 @@ const MM = 3.779528;
         DISP_HME_FECHA: '2026-08-04', DISP_HEPA_FECHA: '2026-08-09', DISP_TC_FECHA: '' },
       { ID_CAMA: '3', OCUPADA: false, NOMBRE: '', EDAD: '', RUT: '', VM_TAG: 'Servo-i 09', VM_TAG_ESTADO: 'En mantención' },
     ];
-    const FECHA = '2026-08-09';
-
     /* ── 1 · Lista del día ── */
     imprimirListaDelDia();
     r.listaImprimio = window._PRINTS === 1;
+    // El turno lógico está —correctamente— en la NOCHE DEL 9: son las 02:30 del 10
+    // y la evolución de esa noche todavía se escribe. Lo que NO puede pasar es que
+    // el papel herede esa fecha.
+    r.turnoSigueEnAyer = v('gDate') === '2026-08-09';
     r.listaClase = document.body.classList.contains('print-lista');
     r.listaPortrait = !!$('pgOrientacion') && $('pgOrientacion').textContent.indexOf('portrait') !== -1;
     const L = $('listaPrint').innerHTML;
     r.listaPacientes = (L.match(/class="ld-pac"/g) || []).length;      // 3 ocupadas
     r.listaLibreFuera = L.indexOf('>3<') === -1 || L.indexOf('CAMA</b><br><span class="ld-big">3<') === -1;
     r.listaOrden = L.indexOf('PRIMER PACIENTE') < L.indexOf('SEGUNDO PACIENTE');
-    r.listaFranja = ['PRIMER PACIENTE', '1-9', '09/08/2026', 'Shock séptico'].every(x => L.indexOf(x) !== -1);
+    r.listaFranja = ['PRIMER PACIENTE', '1-9', '10/08/2026', 'Shock séptico'].every(x => L.indexOf(x) !== -1);
+    // 🎯 El pedido de terreno: la hoja se fecha con el reloj y dice a qué hora salió.
+    r.listaFechaReloj = L.indexOf('FECHA 10/08/2026 · 02:30 h') !== -1;
+    r.listaSinDiaAnterior = L.indexOf('09/08/2026') === -1;
+    // Los días de estada corren con la misma fecha: ingresó el 01-08, al 10 lleva 9.
+    r.listaDias = L.indexOf('<b>DÍAS</b><br><span class="ld-big">9</span>') !== -1;
     // Escalas: APACHE/Charlson/MRC del paciente 2 sí; Barthel y FSS (vacías) no.
     const bloque2 = L.split('class="ld-pac"')[2] || '';
     r.escalasQueHay = ['APACHE II', 'Charlson', 'MRC-ss'].every(x => bloque2.indexOf(x) !== -1);
@@ -79,6 +107,10 @@ const MM = 3.779528;
     /* ── 2 · Control de filtros ── */
     imprimirFiltros();
     r.filtrosImprimio = window._PRINTS === 2;
+    // Esta hoja SÍ va con la fecha del turno —a las 02:30 la ronda en curso sigue
+    // siendo la noche del 9—, y lo dice con todas sus letras para que no se lea
+    // como un día atrasado. Es la misma fecha que muestra «Cambios de esta noche».
+    r.filtrosNoche = $('filtrosPrint').innerHTML.indexOf('NOCHE DEL 09/08/2026') !== -1;
     r.filtrosClase = document.body.classList.contains('print-filtros');
     const F = $('filtrosPrint').innerHTML;
     r.filas = (F.match(/class="fl-c fl-cama"/g) || []).length;         // LAS 18 camas
@@ -88,20 +120,24 @@ const MM = 3.779528;
     r.disponible = F.indexOf('DISPONIBLE') !== -1;                     // equipo con paciente NO ventilado
     r.falla = /EN USO · CON FALLA/.test(F);                            // uso y falla, juntos
     r.mantencion = /DISPONIBLE · MANTENCIÓN/.test(F);                  // «EN » se abrevia para que quepa
-    // Regla de vencimiento (la del servidor): HME cada 2 días.
-    //   cama 2: HME puesto 07-08 → cambio 09-08 = HOY
-    //           HEPA puesto 06-08 (cada 3) → cambio 09-08 = HOY
+    // Regla de vencimiento (espejo del servidor): el cambio se hace en la
+    // MADRUGADA de su fecha, o sea en el turno noche de la víspera. Estamos en
+    // la noche del 09 → la madrugada del 10.
+    //   cama 2: HME puesto 08-08 (cada 2) → cambio 10-08 = ESTA NOCHE
+    //           HEPA puesto 07-08 (cada 3) → cambio 10-08 = ESTA NOCHE
     //           T.Care puesto 09-08 → cambio 12-08, aún no
-    //   cama 4: HME puesto 04-08 → debió cambiarse el 06-08 = VENCIDO (3d)
+    //   cama 4: HME puesto 04-08 → debió cambiarse la madrugada del 06 = VENCIDO (4d)
     //           HEPA puesto 09-08 → cambio 12-08; T.Care sin fecha = —
-    r.hoy = (F.match(/CAMBIAR HOY/g) || []).length === 2;
+    r.estaNoche = (F.match(/ESTA NOCHE/g) || []).length === 2;
     // El atraso va abreviado a propósito: el texto largo desbordaba la columna.
-    r.vencido = /VENCIDO \(3d\)/.test(F);
+    r.vencido = /VENCIDO \(4d\)/.test(F);
     r.futuro = F.indexOf('cambio 12-08') !== -1;
     r.sinFecha = (F.match(/class="fl-c fl-na">—/g) || []).length >= 1;
+    // La hoja dice para qué madrugada es, no solo de qué noche.
+    r.madrugada = F.indexOf('madrugada del 10-08') !== -1;
     // Casillas: solo donde hay algo que hacer (2 en cama 2, 1 en cama 4)
     r.casillas = (F.match(/class="fl-box"/g) || []).length === 3;
-    r.pendientes = /<b>3<\/b> cambio\(s\) pendiente\(s\)/.test(F);
+    r.pendientes = /<b>3<\/b> cambio\(s\) esta noche/.test(F);
     // Ventiladores sin paciente: cama 1 (paciente no ventilado), 3 (libre) y 4
     // NO —esa está en uso aunque el equipo falle—, o sea 2.
     r.libres = /<b>2<\/b> ventilador\(es\) sin paciente/.test(F);
@@ -111,8 +147,12 @@ const MM = 3.779528;
     return r;
   });
 
-  console.log('── 1 · Lista del día ──');
+  console.log('── 1 · Lista del día ── (reloj fijo: 10-ago-2026, 02:30)');
   ok('se abrió la impresión', R.listaImprimio);
+  ok('el turno lógico sigue siendo la noche del 9 (regla clínica intacta)', R.turnoSigueEnAyer);
+  ok('…pero el papel se fecha con el RELOJ: 10/08/2026 · 02:30 h', R.listaFechaReloj);
+  ok('ni rastro del día anterior en la hoja', R.listaSinDiaAnterior);
+  ok('los días de estada corren con esa misma fecha (9 días)', R.listaDias);
   ok('clase print-lista activa', R.listaClase);
   ok('se inyecta @page VERTICAL', R.listaPortrait);
   eq('una franja por paciente presente', R.listaPacientes, 3);
@@ -127,6 +167,7 @@ const MM = 3.779528;
   console.log('\n── 2 · Control de filtros ──');
   ok('se abrió la impresión', R.filtrosImprimio);
   ok('clase print-filtros activa', R.filtrosClase);
+  ok('se rotula «NOCHE DEL 09/08/2026»: la ronda en curso, no un día atrasado', R.filtrosNoche);
   eq('salen LAS 18 camas (no solo las ocupadas)', R.filas, 18);
   ok('la cama libre aparece como tal', R.camaLibre);
   ok('las camas sin ventilador lo dicen', R.sinEquipo);
@@ -134,8 +175,9 @@ const MM = 3.779528;
   ok('DISPONIBLE cuando el equipo está sin paciente ventilado', R.disponible);
   ok('un equipo con falla ventilando dice las dos cosas', R.falla);
   ok('el estado largo se abrevia para caber (EN MANTENCIÓN → MANTENCIÓN)', R.mantencion);
-  ok('«CAMBIAR HOY» en los dos que vencen hoy', R.hoy);
-  ok('«VENCIDO (3d)» con el atraso real', R.vencido);
+  ok('«ESTA NOCHE» en los dos del caso de terreno (HME del 08, HEPA del 07)', R.estaNoche);
+  ok('la hoja dice para qué madrugada es (10-08)', R.madrugada);
+  ok('«VENCIDO (4d)» con el atraso real', R.vencido);
   ok('el que no toca muestra su fecha futura', R.futuro);
   ok('el filtro sin fecha queda en —', R.sinFecha);
   ok('una casilla por filtro que toca cambiar, y ninguna más', R.casillas);

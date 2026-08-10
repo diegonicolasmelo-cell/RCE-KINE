@@ -113,30 +113,39 @@ eq('confirma sin tocar fechas', DB.CAMAS_ESTADO[0].DISP_CONFIRMADO === true && D
 r = confirmarDispositivos({ idCama: '3', fecha: '2026-07-26' }, CTX);
 eq('confirmar con fecha ajusta los 3 relojes', DB.CAMAS_ESTADO[0].DISP_HME_FECHA === '2026-07-26' && DB.CAMAS_ESTADO[0].DISP_HEPA_FECHA === '2026-07-26' && DB.CAMAS_ESTADO[0].DISP_TC_FECHA === '2026-07-26', true);
 
-// ── 6. estadoDispositivos — SEMÁNTICA VALIDADA POR DIEGO (ago-2026) ──
-// Etiqueta = día 0; el cambio se hace en el TURNO NOCHE del día etiqueta+frec.
-// «Vencido» SOLO si amaneció después de esa noche sin cambio. La regla vieja
-// (vence cuando dias >= frec) avisaba UN DÍA ANTES: ese era el desfase que el
-// equipo reportó en terreno.
-const cama = { SOPORTE: 'VM', DISP_HME_FECHA: '2026-07-25', DISP_HEPA_FECHA: '2026-07-26', DISP_TC_FECHA: '' };
+// ── 6. estadoDispositivos — EL CAMBIO SE HACE EN LA MADRUGADA ──
+// Etiqueta = día 0 y fechaCambio = etiqueta+frec, pero ese cambio se ejecuta en
+// la MADRUGADA de esa fecha: lo hace el turno noche de la VÍSPERA. Por eso el
+// aviso sale cuando dias === frec-1. Hasta el 10-ago-2026 salía en dias === frec,
+// una noche tarde, y como el dispositivo nuevo se etiqueta con la fecha efectiva
+// (la madrugada), el error se acumulaba: el HME terminaba durando 3 días. Lo
+// reportó Manuel desde el turno; el intervalo real se mide en la sección 6b.
+// Referencia de todos estos casos: 27-07 (turno noche del 27 = madrugada del 28).
+const cama = { SOPORTE: 'VM', DISP_HME_FECHA: '2026-07-26', DISP_HEPA_FECHA: '2026-07-26', DISP_TC_FECHA: '' };
 const est = estadoDispositivos(cama, '2026-07-27');
 const hme = est.find(d => d.k === 'hme'), hepa = est.find(d => d.k === 'hepa'), tc = est.find(d => d.k === 'sonda');
-eq('HME etiqueta hace 2 días (frec 2) → se cambia ESTA NOCHE, no vencido', hme.cambiaEstaNoche && !hme.vence, true);
-eq('…y trae la fecha EXACTA del cambio (etiqueta+2)', hme.fechaCambio, '2026-07-27');
-eq('HEPA hace 1 día (frec 3) → ni esta noche ni vencido', !hepa.vence && !hepa.cambiaEstaNoche, true);
+eq('HME etiqueta de ayer (frec 2) → se cambia ESTA NOCHE, no vencido', hme.cambiaEstaNoche && !hme.vence, true);
+eq('…y su fecha de cambio es la madrugada de mañana (etiqueta+2)', hme.fechaCambio, '2026-07-28');
+eq('HEPA de ayer (frec 3) → ni esta noche ni vencido', !hepa.vence && !hepa.cambiaEstaNoche, true);
 eq('HEPA días=1', hepa.dias, 1);
 eq('…con fecha de cambio etiqueta+3', hepa.fechaCambio, '2026-07-29');
+eq('…y avisa que le toca la madrugada SIGUIENTE', hepa.venceManana, true);
 eq('sonda sin fecha → no aplica', tc.aplica, false);
-const est2 = estadoDispositivos({ SOPORTE: 'VM', DISP_HME_FECHA: '2026-07-26', DISP_HEPA_FECHA: '2026-07-25', DISP_TC_FECHA: '2026-07-24' }, '2026-07-27');
-eq('HME de ayer (frec 2) → cambia MAÑANA en la noche', est2.find(d => d.k === 'hme').venceManana, true);
-eq('HEPA hace 2 días (frec 3) → cambia mañana', est2.find(d => d.k === 'hepa').venceManana, true);
-eq('TC hace 3 días (frec 3) → se cambia ESTA NOCHE', est2.find(d => d.k === 'sonda').cambiaEstaNoche, true);
-const est4 = estadoDispositivos({ SOPORTE: 'VM', DISP_HME_FECHA: '2026-07-24' }, '2026-07-27');
-eq('HME hace 3 días (frec 2): pasó su noche sin cambio → AHORA sí vencido', est4.find(d => d.k === 'hme').vence, true);
+const est2 = estadoDispositivos({ SOPORTE: 'VM', DISP_HME_FECHA: '2026-07-27', DISP_HEPA_FECHA: '2026-07-26', DISP_TC_FECHA: '2026-07-25' }, '2026-07-27');
+eq('HME etiquetado hoy (frec 2) → le toca la madrugada siguiente', est2.find(d => d.k === 'hme').venceManana, true);
+eq('TC hace 2 días (frec 3) → se cambia ESTA NOCHE', est2.find(d => d.k === 'sonda').cambiaEstaNoche, true);
+const est4 = estadoDispositivos({ SOPORTE: 'VM', DISP_HME_FECHA: '2026-07-25' }, '2026-07-27');
+eq('HME hace 2 días (frec 2): pasó su madrugada sin cambio → vencido', est4.find(d => d.k === 'hme').vence, true);
 const est3 = estadoDispositivos({ SOPORTE: 'VMNI', DISP_HME_FECHA: '2026-07-20' }, '2026-07-27');
 eq('sin VM → nada aplica ni vence', est3.every(d => !d.aplica && !d.vence), true);
 
-// ── 6b. cambiosEstaNoche: el ejemplo de VALIDACIÓN de Diego, fecha a fecha ──
+// ── 6b. cambiosEstaNoche, ciclo completo — LA PROPIEDAD ES EL INTERVALO ──
+// Lo que hay que conservar no es una lista de fechas, es que entre dos cambios
+// del MISMO dispositivo pasen exactamente `frec` días. Memorizar fechas fue lo
+// que dejó pasar el error corregido el 10-ago-2026: la secuencia parecía bien
+// (HME etiqueta 04 → noche del 06) pero al encadenar los ciclos el HME duraba 3
+// días, porque el que se cambia de noche se etiqueta con la MADRUGADA (D+1) y
+// el aviso se calculaba sobre la fecha nominal del turno.
 // Paciente ingresa el 04/08: sus 3 dispositivos quedan etiquetados 04/08.
 DB.CAMAS_ESTADO = [
   { ID_CAMA: '5', OCUPADA: 'TRUE', NOMBRE: 'Paciente Ejemplo', SOPORTE: 'VM',
@@ -144,28 +153,45 @@ DB.CAMAS_ESTADO = [
   { ID_CAMA: '6', OCUPADA: 'TRUE', NOMBRE: 'Sin VM', SOPORTE: 'Ambiente',
     DISP_HME_FECHA: '2026-08-01' },
 ];
-// Noche del 05/08: nada suyo se cambia todavía.
-let cn = cambiosEstaNoche('2026-08-05');
-eq('ejemplo · noche del 05/08: nada que cambiar', cn.data.camas.length, 0);
-// Noche del 06/08: se cambia el HME (etiqueta 04/08 = D-2). HEPA y TC no.
-cn = cambiosEstaNoche('2026-08-06');
-eq('ejemplo · noche del 06/08: una cama con cambios', cn.data.camas.length, 1);
+// Noche del 04/08: recién etiquetados, nada que cambiar todavía.
+let cn = cambiosEstaNoche('2026-08-04');
+eq('ciclo · noche del 04/08: nada que cambiar', cn.data.camas.length, 0);
+// Noche del 05/08 (madrugada del 06): toca el HME, y solo él.
+cn = cambiosEstaNoche('2026-08-05');
+eq('ciclo · noche del 05/08: una cama con cambios', cn.data.camas.length, 1);
 eq('…y es SOLO el HME', cn.data.camas[0].dispositivos.map(d => d.k).join(','), 'hme');
 eq('…marcado para esta noche, no vencido', cn.data.camas[0].dispositivos[0].estado, 'esta_noche');
-// El HME cambiado esa noche se etiqueta 07/08 (fecha efectiva, mecanismo existente).
-DB.CAMAS_ESTADO[0].DISP_HME_FECHA = '2026-08-07';
-// Noche del 07/08: se cambian HEPA y TC (etiqueta 04/08 = D-3). El HME nuevo no.
+eq('…y su fecha de cambio es esa madrugada', cn.data.camas[0].dispositivos[0].fechaCambio, '2026-08-06');
+// Se cambia en esa madrugada → se etiqueta 06/08 (fecha efectiva, ya existía).
+DB.CAMAS_ESTADO[0].DISP_HME_FECHA = '2026-08-06';
+// Noche del 06/08 (madrugada del 07): HEPA y TC (etiqueta 04, frec 3). El HME no.
+cn = cambiosEstaNoche('2026-08-06');
+eq('ciclo · noche del 06/08: HEPA y TC', cn.data.camas[0].dispositivos.map(d => d.k).sort().join(','), 'hepa,sonda');
+DB.CAMAS_ESTADO[0].DISP_HEPA_FECHA = '2026-08-07';
+DB.CAMAS_ESTADO[0].DISP_TC_FECHA = '2026-08-07';
+// Noche del 07/08 (madrugada del 08): vuelve a tocar el HME.
 cn = cambiosEstaNoche('2026-08-07');
-eq('ejemplo · noche del 07/08: HEPA y TC', cn.data.camas[0].dispositivos.map(d => d.k).sort().join(','), 'hepa,sonda');
-DB.CAMAS_ESTADO[0].DISP_HEPA_FECHA = '2026-08-08';
-DB.CAMAS_ESTADO[0].DISP_TC_FECHA = '2026-08-08';
-// Noche del 09/08: vuelve a tocar el HME (etiqueta 07/08 = D-2)…
-cn = cambiosEstaNoche('2026-08-09');
-eq('ejemplo · noche del 09/08: el HME de nuevo', cn.data.camas[0].dispositivos.map(d => d.k).join(','), 'hme');
-// …y si esa noche NADIE lo cambia, al día siguiente aparece VENCIDO.
-cn = cambiosEstaNoche('2026-08-10');
+eq('ciclo · noche del 07/08: el HME de nuevo', cn.data.camas[0].dispositivos.map(d => d.k).join(','), 'hme');
+// 🎯 LA PROPIEDAD: del cambio anterior (madrugada del 06) a éste (madrugada del
+// 08) pasan 2 días = la frecuencia del HME. Con la regla vieja eran 3.
+const intervalo = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+eq('🎯 entre dos cambios de HME pasan exactamente 2 días', intervalo('2026-08-06', '2026-08-08'), 2);
+// Y si esa noche NADIE lo cambia, la madrugada siguiente sale VENCIDO.
+cn = cambiosEstaNoche('2026-08-08');
 const hmeV = cn.data.camas[0].dispositivos.find(d => d.k === 'hme');
-eq('ejemplo · 10/08 sin cambio: el HME sale VENCIDO con 1 día de atraso', hmeV.estado + '/' + hmeV.diasAtraso, 'vencido/1');
+eq('ciclo · 08/08 sin cambio: el HME sale VENCIDO con 1 día de atraso', hmeV.estado + '/' + hmeV.diasAtraso, 'vencido/1');
+// Noche del 09/08: al HEPA y al TC (etiqueta 07) les toca la madrugada del 10 →
+// 3 días exactos. Es el caso que Manuel reportó desde el turno el 10-ago-2026.
+cn = cambiosEstaNoche('2026-08-09');
+const n9 = cn.data.camas[0].dispositivos;
+eq('caso de terreno · HEPA y TC del 07 se cambian en la noche del 09', n9.filter(d => d.estado === 'esta_noche').map(d => d.k).sort().join(','), 'hepa,sonda');
+eq('…o sea en la madrugada del 10', n9.find(d => d.k === 'hepa').fechaCambio, '2026-08-10');
+eq('🎯 y del 07 al 10 pasan exactamente 3 días', intervalo('2026-08-07', '2026-08-10'), 3);
+// El HME etiquetado el 08 también toca esa noche (el otro caso de Manuel).
+DB.CAMAS_ESTADO[0].DISP_HME_FECHA = '2026-08-08';
+cn = cambiosEstaNoche('2026-08-09');
+eq('caso de terreno · el HME del 08 también entra en la noche del 09',
+   cn.data.camas[0].dispositivos.filter(d => d.k === 'hme' && d.estado === 'esta_noche').length, 1);
 
 console.log(fails.length ? ('❌ ' + fails.length + ' FALLOS') : '✅ TODO OK');
 process.exit(fails.length ? 1 : 0);

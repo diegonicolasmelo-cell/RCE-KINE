@@ -1455,7 +1455,8 @@ function _entParams(e) {
   // arrastrarlos ensuciaba la línea con restos del soporte anterior.
   const sop = String(e.VENT_SOPORTE || ''), modo = String(e.VENT_MODO || '');
   const esCNAF = sop === 'CNAF' || /^(CNAF|OAF\/CTAF)$/i.test(modo);
-  if (/^(NRC|Naricera(-NRC)?|Mascarilla)$/i.test(modo)) push('L', 'VENT_LITROS');
+  // MR = mascarilla de reservorio (antes de ago-2026 se registraba «Mascarilla»)
+  if (/^(NRC|Naricera(-NRC)?|MR|Mascarilla)$/i.test(modo)) push('L', 'VENT_LITROS');
   if (esCNAF) push('Flujo', 'VENT_FLUJO');
   return out.join(' · ');
 }
@@ -2216,14 +2217,25 @@ const _EVENTO_DISPS = [
 /**
  * Estado del reloj de una cama respecto de una fecha de referencia.
  *
- * SEMÁNTICA CORREGIDA (ago-2026, ejemplo validado por Diego): la fecha de
- * ETIQUETA es el día 0 y el cambio se hace en el TURNO NOCHE del día
- * etiqueta+frecuencia. O sea, un HME etiquetado el 04 (frec 2) se cambia la
- * noche del 06 — la app antigua lo daba «vencido» ese mismo día, un día
- * ANTES de lo que dicta la regla: ese era el desfase reportado en terreno.
- *   · cambiaEstaNoche: hoy es el día del cambio (dias === frec).
- *   · vence (vencido): amaneció DESPUÉS de la noche del cambio (dias > frec).
- *   · venceManana: el cambio es mañana en la noche (dias === frec - 1).
+ * La fecha de ETIQUETA es el día 0 y `fechaCambio` = etiqueta + frecuencia. Ese
+ * cambio se ejecuta en la MADRUGADA de esa fecha, o sea en el turno NOCHE de la
+ * VÍSPERA: el turno noche del día D trabaja en la madrugada de D+1 — el mismo
+ * mecanismo de «fecha efectiva» con que se etiqueta el dispositivo nuevo.
+ *
+ * 🪤 CORREGIDO EL 10-ago-2026 (reportado por Manuel desde el turno): el aviso
+ * salía en el turno noche del día etiqueta+frec, o sea una noche TARDE, y el
+ * error se acumulaba ciclo a ciclo. Se ve en la propia secuencia con que se
+ * validó la regla anterior: HME cambiado en la noche del 06 → se etiqueta 07
+ * (fecha efectiva = la madrugada en que se cambió) → volvía a pedirse la noche
+ * del 09, o sea la madrugada del 10. Son TRES días de HME cuando el HME dura
+ * DOS. Aquel ejemplo solo miraba el PRIMER ciclo (ingreso el 04 en turno día),
+ * donde la etiqueta es un día real y no una madrugada, y ahí no se notaba.
+ * La propiedad que hay que conservar: entre dos cambios pasan exactamente
+ * `frec` días — la cubre `eventos.js` midiendo el intervalo, no memorizando
+ * fechas.
+ *   · cambiaEstaNoche: la madrugada que viene es la del cambio (dias===frec-1).
+ *   · vence (vencido): esa madrugada pasó sin cambio (dias >= frec).
+ *   · venceManana: el cambio es en la madrugada siguiente (dias === frec - 2).
  *   · fechaCambio: la fecha EXACTA del cambio (etiqueta + frec), para que la
  *     interfaz muestre fechas y no contadores de días.
  */
@@ -2238,9 +2250,9 @@ function estadoDispositivos(cama, fechaRef) {
       k: d.k, nombre: d.nombre, icono: d.icono, fecha: fecha, frec: frec, dias: dias,
       fechaCambio: fecha ? _sumarDiasISO(fecha, frec) : '',
       aplica: enVM && !!fecha,
-      cambiaEstaNoche: enVM && dias !== null && dias === frec,
-      vence: enVM && dias !== null && dias > frec,
-      venceManana: enVM && dias !== null && dias === frec - 1,
+      cambiaEstaNoche: enVM && dias !== null && dias === frec - 1,
+      vence: enVM && dias !== null && dias >= frec,
+      venceManana: enVM && dias !== null && dias === frec - 2,
     };
   });
 }
@@ -2255,9 +2267,12 @@ function _sumarDiasISO(iso, n) {
 
 /**
  * Qué dispositivos se cambian ESTA NOCHE en toda la unidad (y cuáles quedaron
- * atrasados). fecha = el día D cuyo turno Noche hará los cambios: HME con
- * etiqueta D-2, HEPA y Trach Care con etiqueta D-3. El dispositivo nuevo se
- * etiqueta D+1 (fecha efectiva del turno noche — mecanismo ya existente).
+ * atrasados). fecha = el día D cuyo turno Noche hará los cambios, trabajando en
+ * la madrugada de D+1: HME con etiqueta D-1, HEPA y Trach Care con etiqueta D-2.
+ * El dispositivo nuevo se etiqueta D+1 (fecha efectiva del turno noche —
+ * mecanismo ya existente), y así entre dos cambios pasan exactamente `frec`
+ * días. Ver la nota de `estadoDispositivos`: hasta el 10-ago-2026 esto pedía
+ * etiqueta D-2 / D-3 y el aviso salía una noche tarde.
  */
 function cambiosEstaNoche(fecha) {
   try {
@@ -2270,7 +2285,8 @@ function cambiosEstaNoche(fecha) {
         .map(function (x) {
           return { k: x.k, nombre: x.nombre, icono: x.icono, etiqueta: x.fecha,
                    fechaCambio: x.fechaCambio, estado: x.vence ? 'vencido' : 'esta_noche',
-                   diasAtraso: x.vence ? (x.dias - x.frec) : 0 };
+                   // el atraso se cuenta desde la madrugada en que tocaba (frec-1)
+                   diasAtraso: x.vence ? (x.dias - (x.frec - 1)) : 0 };
         });
       if (disps.length) camas.push({ idCama: String(c.ID_CAMA), nombre: String(c.NOMBRE || ''), dispositivos: disps });
     });

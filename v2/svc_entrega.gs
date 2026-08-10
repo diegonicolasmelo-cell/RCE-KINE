@@ -396,7 +396,8 @@ function _entParams(e) {
   // arrastrarlos ensuciaba la línea con restos del soporte anterior.
   const sop = String(e.VENT_SOPORTE || ''), modo = String(e.VENT_MODO || '');
   const esCNAF = sop === 'CNAF' || /^(CNAF|OAF\/CTAF)$/i.test(modo);
-  if (/^(NRC|Naricera(-NRC)?|Mascarilla)$/i.test(modo)) push('L', 'VENT_LITROS');
+  // MR = mascarilla de reservorio (antes de ago-2026 se registraba «Mascarilla»)
+  if (/^(NRC|Naricera(-NRC)?|MR|Mascarilla)$/i.test(modo)) push('L', 'VENT_LITROS');
   if (esCNAF) push('Flujo', 'VENT_FLUJO');
   return out.join(' · ');
 }
