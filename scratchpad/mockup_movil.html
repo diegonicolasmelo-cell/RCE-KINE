@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>El formulario en el celular — propuesta</title>
+<style>
+:root{
+  --primary:#2a6395;--pdark:#1f4e77;--ok:#2f7a4c;--danger:#dc2626;--warn:#d97706;
+  --neuro:#6940a5;--hemo:#c4554d;--resp:#2a6395;--kine:#b26b00;
+  --card:#fff;--border:#e6e2d9;--bg:#faf9f7;--txt:#2f2b26;--muted:#8a8578;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:#eceae6;color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;}
+.wrap{max-width:1250px;margin:0 auto;padding:20px 16px 60px;}
+h1{font-size:1.28rem;margin:0 0 4px;}
+.sub{color:var(--muted);font-size:.86rem;margin-bottom:20px;line-height:1.55;}
+h2.sec{font-size:.73rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--muted);margin:30px 0 10px;padding-bottom:6px;border-bottom:1px solid #d9d5cd;}
+.nota{font-size:.8rem;color:#5f5a51;margin:6px 2px 16px;line-height:1.6;}
+.nota b{color:var(--txt);}
+.medido{background:#fff4ed;border:1px solid #fdd9bd;border-left:4px solid var(--warn);
+  border-radius:9px;padding:11px 14px;font-size:.82rem;line-height:1.6;margin-bottom:18px;}
+.medido b{color:#9a3412;}
+.fila{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+
+/* ── marco de teléfono ── */
+.tel{width:330px;border:9px solid #1c1c1e;border-radius:30px;overflow:hidden;
+  background:var(--bg);box-shadow:0 8px 26px rgba(0,0,0,.19);flex-shrink:0;}
+.tel-t{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--muted);margin:0 0 7px 4px;}
+.pant{height:600px;overflow-y:auto;background:var(--bg);position:relative;}
+.pant::-webkit-scrollbar{width:0;}
+
+/* ── encabezado ── */
+.hd-viejo{background:linear-gradient(#20456b,#1b3a5c);color:#fff;padding:9px 10px;}
+.hd-viejo .r{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.hd-viejo .lg{width:30px;height:30px;background:#fff;border-radius:5px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--pdark);font-weight:800;}
+.hd-viejo .mk{font-weight:800;font-size:.86rem;}
+.hd-viejo .rj{font-family:ui-monospace,monospace;font-weight:800;margin-left:auto;font-size:.95rem;}
+.hd-viejo .cnt{font-size:.72rem;color:#b9cbdd;}
+.hd-viejo .fecha{background:#2a6395;border-radius:7px;padding:6px 10px;text-align:center;
+  font-weight:800;font-size:.9rem;flex:1;}
+.hd-viejo .nav{width:32px;height:32px;background:#16324f;border-radius:7px;display:flex;
+  align-items:center;justify-content:center;flex-shrink:0;}
+.hd-viejo .tg{display:flex;background:#16324f;border-radius:7px;overflow:hidden;flex-shrink:0;}
+.hd-viejo .tg i{padding:7px 10px;font-style:normal;}
+.hd-viejo .tg i.on{background:#f0a500;}
+.hd-viejo .bus{background:#16324f;border-radius:8px;padding:8px 11px;color:#8fa8c0;font-size:.82rem;flex:1;}
+.marca-alto{background:#fee2e2;border:1px dashed #ef4444;color:#b91c1c;font-size:.68rem;
+  font-weight:800;text-align:center;padding:2px;}
+
+.hd-nuevo{background:linear-gradient(#20456b,#1b3a5c);color:#fff;padding:7px 10px;
+  display:flex;align-items:center;gap:8px;}
+.hd-nuevo .lg{width:24px;height:24px;background:#fff;border-radius:5px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:.5rem;color:var(--pdark);font-weight:800;}
+.hd-nuevo .f{font-weight:800;font-size:.84rem;}
+.hd-nuevo .t{background:#f0a500;color:#3a2600;border-radius:20px;padding:1px 8px;
+  font-size:.68rem;font-weight:800;}
+.hd-nuevo .sp{margin-left:auto;display:flex;gap:7px;align-items:center;font-size:.9rem;}
+.marca-ok{background:#dcfce7;border:1px dashed #16a34a;color:#166534;font-size:.68rem;
+  font-weight:800;text-align:center;padding:2px;}
+
+/* ── cabecera del paciente ── */
+.pac{background:#fff;border-bottom:1px solid var(--border);padding:8px 12px;
+  position:sticky;top:0;z-index:5;}
+.pac .l1{display:flex;align-items:center;gap:7px;}
+.pac .cama{background:#1f4e77;color:#fff;border-radius:6px;padding:2px 7px;
+  font-size:.7rem;font-weight:800;flex-shrink:0;}
+.pac .nom{font-weight:800;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pac .x{margin-left:auto;color:var(--muted);font-size:1.05rem;flex-shrink:0;}
+.pac .l2{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
+.pac .chip{font-size:.66rem;background:#f1efe9;border:1px solid var(--border);
+  border-radius:10px;padding:1px 7px;color:#5f5a51;}
+.pac .chip.vm{background:#eef4fa;border-color:#c9dcef;color:var(--pdark);font-weight:700;}
+
+/* ── acordeón ── */
+.acc{padding:9px 10px 84px;}
+.sc{background:#fff;border:1px solid var(--border);border-top:3px solid var(--ac,#94a3b8);
+  border-radius:11px;margin-bottom:8px;overflow:hidden;}
+.sc-h{display:flex;align-items:center;gap:8px;padding:9px 11px;cursor:pointer;}
+.sc-est{width:19px;height:19px;border-radius:50%;flex-shrink:0;display:flex;
+  align-items:center;justify-content:center;font-size:.64rem;font-weight:800;}
+.e-ok{background:#dcfce7;color:#166534;}
+.e-falta{background:#fee2e2;color:#b91c1c;}
+.e-no{background:#f1efe9;color:#a8a296;}
+.sc-tt{min-width:0;flex:1;}
+.sc-t{font-size:.73rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--ac,#64748b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sc-r{font-size:.72rem;color:#6b665d;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sc-r.vacio{color:#b3ada2;font-style:italic;}
+.sc-fl{color:#b7b3a9;font-size:.72rem;flex-shrink:0;}
+.a-g{--ac:#64748b;} .a-n{--ac:var(--neuro);} .a-h{--ac:var(--hemo);}
+.a-r{--ac:var(--resp);} .a-k{--ac:var(--kine);} .a-p{--ac:#6d28d9;}
+
+/* ── campos densos ── */
+.sc-b{padding:2px 11px 11px;border-top:1px solid #f2efe9;}
+.f-lin{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid #f6f4f0;}
+.f-lin:last-child{border-bottom:none;}
+.f-lb{font-size:.72rem;font-weight:700;color:#6b665d;width:96px;flex-shrink:0;}
+.f-lin input,.f-lin select{flex:1;min-width:0;height:34px;padding:0 8px;border:1px solid #d6d1c7;
+  border-radius:8px;font-size:.9rem;background:#fff;color:var(--txt);font-family:inherit;}
+.f-g3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:8px 0 2px;}
+.f-g3 .c{display:flex;flex-direction:column;gap:2px;}
+.f-g3 label{font-size:.63rem;font-weight:700;text-transform:uppercase;color:var(--muted);}
+.f-g3 input{height:36px;padding:0 7px;border:1px solid #d6d1c7;border-radius:8px;
+  font-size:.95rem;text-align:center;font-family:inherit;width:100%;}
+.antes{font-size:.63rem;color:#8a8578;margin-top:2px;}
+.antes.cambio{color:#b45309;font-weight:800;}
+.sub-t{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--resp);margin:11px 0 2px;display:flex;align-items:center;gap:5px;}
+
+/* ── barra inferior ── */
+.bar{position:sticky;bottom:0;background:rgba(255,255,255,.97);border-top:1px solid var(--border);
+  padding:8px 10px;display:flex;align-items:center;gap:8px;}
+.bar .g{flex:1;background:var(--primary);color:#fff;border:none;border-radius:10px;
+  padding:11px;font-size:.9rem;font-weight:800;font-family:inherit;}
+.bar .p{background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:11px 13px;font-size:.9rem;}
+.falta{background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;border-radius:9px;
+  padding:5px 10px;font-size:.72rem;font-weight:700;margin-bottom:7px;display:block;}
+
+/* ── pantalla completa (opción A) ── */
+.full-h{background:var(--resp);color:#fff;padding:9px 11px;display:flex;align-items:center;gap:9px;
+  position:sticky;top:0;z-index:6;}
+.full-h .b{font-size:1rem;}
+.full-h .t{font-size:.8rem;font-weight:800;}
+.full-h .n{margin-left:auto;font-size:.68rem;background:rgba(255,255,255,.2);
+  border-radius:10px;padding:2px 8px;font-weight:700;}
+.tabs{display:flex;gap:5px;padding:8px 10px 0;overflow-x:auto;}
+.tabs b{font-size:.68rem;font-weight:800;padding:5px 11px;border-radius:14px;
+  background:#f1efe9;color:#6b665d;white-space:nowrap;border:1px solid var(--border);}
+.tabs b.on{background:var(--resp);color:#fff;border-color:var(--resp);}
+
+.leyenda{background:#eef4fa;border:1px solid #c9dcef;border-left:4px solid var(--primary);
+  border-radius:9px;padding:11px 14px;font-size:.83rem;line-height:1.6;margin-bottom:20px;}
+.leyenda b{color:var(--pdark);}
+table.cmp{border-collapse:collapse;width:100%;font-size:.82rem;background:#fff;
+  border-radius:9px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+table.cmp th,table.cmp td{padding:8px 11px;text-align:left;border-bottom:1px solid #eeebe5;}
+table.cmp th{background:#f6f4f0;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+table.cmp td b{color:var(--pdark);}
+</style></head><body>
+<div class="wrap">
+
+<h1>El formulario en el celular</h1>
+<div class="sub">Diagnóstico medido sobre la app real (pantalla de 390 × 844, el tamaño de un
+iPhone corriente) y propuesta. Nada de esto está programado todavía.</div>
+
+<div class="medido">
+  <b>Lo que medí en la app de hoy, no lo que me parece:</b><br>
+  · El <b>encabezado ocupa 270 px</b> de los 844 de alto — <b>32% de la pantalla</b> antes del
+  primer dato. Con la barra de abajo quedan ~460 px útiles.<br>
+  · La tarjeta <b>Respiratorio abierta mide 1.325 px</b>: un scroll y medio, con <b>133 campos</b>
+  dentro de esa sola sección.<br>
+  · El acordeón funciona, pero las <b>11 secciones se ven idénticas</b>: no dicen qué tienen
+  adentro ni qué falta. Hay que abrirlas a ciegas.<br>
+  · <b>El nombre del paciente no aparece</b> en ninguna parte del panel: la cabecera dice «Cama 4».<br>
+  · El riel con los ✓ existe, pero está <b>oculto bajo 1.100 px</b> — o sea, nunca en un teléfono.
+</div>
+
+<h2 class="sec">① El encabezado: de 270 px a 46</h2>
+<div class="nota">Lo que hoy ocupa tres filas cabe en una: fecha, turno y contadores. El buscador
+aparece al tocar la lupa (se usa una vez, no todo el rato). <b>Se ganan ~220 px</b>, que son
+cuatro campos más por pantalla, en todas las pestañas.</div>
+
+<div class="fila">
+  <div>
+    <div class="tel-t">Hoy</div>
+    <div class="tel" style="width:330px;">
+      <div class="marca-alto">270 px · 32% de la pantalla</div>
+      <div class="hd-viejo">
+        <div class="r"><div class="lg">HSP</div><div class="mk">RCE KINE</div>
+          <div class="rj">19:08</div></div>
+        <div class="r"><div class="cnt">Camas: <b>4</b>/6 · VM: <b>4</b></div></div>
+        <div class="r"><div class="nav">◀</div><div class="fecha">08/10/2026</div>
+          <div class="nav">▶</div><div class="tg"><i class="on">☀️</i><i>🌙</i></div></div>
+        <div class="r"><div class="bus">🔍 Paciente / cama…</div><div class="nav">🔄</div></div>
+      </div>
+      <div style="padding:14px;color:var(--muted);font-size:.8rem;">…recién aquí empiezan las camas</div>
+    </div>
+  </div>
+  <div>
+    <div class="tel-t">Propuesta</div>
+    <div class="tel" style="width:330px;">
+      <div class="marca-ok">46 px · 5% de la pantalla</div>
+      <div class="hd-nuevo">
+        <div class="lg">HSP</div>
+        <div><div class="f">08/10</div></div>
+        <span class="t">☀️ DÍA</span>
+        <div class="sp"><span style="font-size:.72rem;color:#b9cbdd;">4/6</span> 🔍 🔄</div>
+      </div>
+      <div style="padding:10px;">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:11px;padding:10px 12px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></span>
+            <b style="font-size:.78rem;">Cama 1</b>
+            <span style="margin-left:auto;font-size:.68rem;background:#dcfce7;color:#166534;border-radius:10px;padding:1px 7px;font-weight:800;">✓ evolucionada</span></div>
+          <div style="font-weight:700;font-size:.9rem;margin-top:3px;">Rosa Pérez Muñoz ✏️</div>
+          <div style="font-size:.72rem;color:var(--muted);">67a · F · Shock séptico</div>
+          <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;">
+            <span class="chip" style="font-size:.66rem;background:#f1efe9;border:1px solid var(--border);border-radius:10px;padding:1px 7px;">Día 6</span>
+            <span class="chip" style="font-size:.66rem;background:#eef4fa;border:1px solid #c9dcef;color:var(--pdark);border-radius:10px;padding:1px 7px;font-weight:700;">TOT · VM</span>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--border);border-radius:11px;padding:10px 12px;">
+          <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--ok);"></span>
+            <b style="font-size:.78rem;">Cama 2</b>
+            <span style="margin-left:auto;font-size:.68rem;background:#fee2e2;color:#b91c1c;border-radius:10px;padding:1px 7px;font-weight:800;">⚠ sin evolución</span></div>
+          <div style="font-weight:700;font-size:.9rem;margin-top:3px;">Juan Soto Vera ✏️</div>
+          <div style="font-size:.72rem;color:var(--muted);">72a · M · Neumonía grave</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec">② El acordeón dice qué hay adentro</h2>
+<div class="nota">Es el cambio que más rinde y el más barato: las mismas secciones de hoy, pero
+cada una con <b>su resumen y su estado</b>. Sin abrir nada ya sabes en qué vas.
+El punto de color es el mismo criterio del riel que existe en el computador
+—<b>✓ tiene datos · ⚠ falta algo obligatorio · — sin registrar</b>— que hoy en el teléfono
+no se ve nunca.</div>
+
+<div class="fila">
+  <div>
+    <div class="tel-t">Hoy — once títulos iguales</div>
+    <div class="tel">
+      <div class="pant" style="height:420px;">
+        <div class="acc" style="padding-bottom:12px;">
+          <div class="sc a-g"><div class="sc-h"><div class="sc-tt"><div class="sc-t">📊 General</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-n"><div class="sc-h"><div class="sc-tt"><div class="sc-t">🧠 Sedación y conciencia</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-h"><div class="sc-h"><div class="sc-tt"><div class="sc-t">❤️ Hemodinamia</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-r"><div class="sc-h"><div class="sc-tt"><div class="sc-t">🩺 Auscultación</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-r"><div class="sc-h"><div class="sc-tt"><div class="sc-t">🫁 Respiratorio — Terapia ventilatoria</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-k"><div class="sc-h"><div class="sc-tt"><div class="sc-t">🏃 Rehabilitación</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-p"><div class="sc-h"><div class="sc-tt"><div class="sc-t">📋 Planes y pendientes</div></div><span class="sc-fl">▸</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="tel-t">Propuesta — un tablero</div>
+    <div class="tel">
+      <div class="pant" style="height:420px;">
+        <div class="pac">
+          <div class="l1"><span class="cama">CAMA 1</span><span class="nom">Rosa Pérez Muñoz</span><span class="x">✕</span></div>
+          <div class="l2"><span class="chip">Día 6</span><span class="chip vm">TOT · VM · ACVC</span>
+            <span class="chip">☀️ Día 08-10</span></div>
+        </div>
+        <div class="acc" style="padding-bottom:12px;">
+          <div class="sc a-g"><div class="sc-h"><span class="sc-est e-ok">✓</span>
+            <div class="sc-tt"><div class="sc-t">📊 General</div>
+              <div class="sc-r">Rosa Pérez · 67a · Barthel 85 · APACHE II 18</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-n"><div class="sc-h"><span class="sc-est e-ok">✓</span>
+            <div class="sc-tt"><div class="sc-t">🧠 Sedación y conciencia</div>
+              <div class="sc-r">Escalón 2 · SAS 3 · GCS 8T</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-h"><div class="sc-h"><span class="sc-est e-no">—</span>
+            <div class="sc-tt"><div class="sc-t">❤️ Hemodinamia</div>
+              <div class="sc-r vacio">sin registrar</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-r"><div class="sc-h"><span class="sc-est e-ok">✓</span>
+            <div class="sc-tt"><div class="sc-t">🩺 Auscultación</div>
+              <div class="sc-r">MP disminuido bibasal · crépitos</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-r"><div class="sc-h"><span class="sc-est e-falta">!</span>
+            <div class="sc-tt"><div class="sc-t">🫁 Respiratorio</div>
+              <div class="sc-r">VM · ACVC · PEEP 8 · FiO₂ 40 — <b style="color:#b91c1c;">falta declarar PVE</b></div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-k"><div class="sc-h"><span class="sc-est e-ok">✓</span>
+            <div class="sc-tt"><div class="sc-t">🏃 Rehabilitación</div>
+              <div class="sc-r">KTM nivel 3 · SBC · 20 min</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-p"><div class="sc-h"><span class="sc-est e-falta">!</span>
+            <div class="sc-tt"><div class="sc-t">📋 Planes y pendientes</div>
+              <div class="sc-r"><b style="color:#b91c1c;">falta la firma</b></div></div><span class="sc-fl">▸</span></div></div>
+        </div>
+        <div class="bar">
+          <span class="falta" style="margin:0;flex:1;">Falta: PVE y firma</span>
+          <button class="g" style="flex:0 0 auto;padding:11px 15px;">💾 Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec">③ La sección grande: dos formas, elige una</h2>
+<div class="nota">Respiratorio mide <b>1.325 px</b> abierta. Abrirla dentro de la lista te deja
+perdido: haces scroll y ya no sabes en qué sección estás. Dos salidas —
+la <b>A</b> es más cómoda de usar, la <b>B</b> es más parecida a lo que ya conoce el equipo.</div>
+
+<div class="fila">
+  <div>
+    <div class="tel-t">Opción A — se abre a pantalla completa</div>
+    <div class="tel">
+      <div class="pant" style="height:520px;">
+        <div class="full-h"><span class="b">‹</span><span class="t">🫁 RESPIRATORIO</span>
+          <span class="n">2 de 4</span></div>
+        <div class="tabs"><b>Vía aérea</b><b class="on">Ventilación</b><b>Extubación/PVE</b><b>Manejo</b></div>
+        <div style="padding:4px 11px 12px;">
+          <div class="f-lin"><span class="f-lb">Soporte</span>
+            <select><option>VM</option></select></div>
+          <div style="font-size:.63rem;color:#8a8578;margin:-4px 0 0 105px;">Antes: VM</div>
+          <div class="f-lin"><span class="f-lb">Modo</span>
+            <select><option>ACVC</option></select></div>
+          <div style="font-size:.63rem;color:#b45309;font-weight:800;margin:-4px 0 0 105px;">CPAP/PS → ACVC</div>
+          <div class="f-lin"><span class="f-lb">Interacción</span>
+            <select><option>--</option></select></div>
+          <div class="sub-t">Volúmenes</div>
+          <div class="f-g3">
+            <div class="c"><label>Vt ml</label><input value="420"></div>
+            <div class="c"><label>FR</label><input value="16"></div>
+            <div class="c"><label>Flujo</label><input></div>
+          </div>
+          <div class="sub-t">Presiones</div>
+          <div class="f-g3">
+            <div class="c"><label>Pmax</label><input value="24"></div>
+            <div class="c"><label>Ppl</label><input value="18"></div>
+            <div class="c"><label>PEEP</label><input value="8"></div>
+          </div>
+          <div class="sub-t">Oxigenación</div>
+          <div class="f-g3">
+            <div class="c"><label>FiO₂</label><input value="40"></div>
+            <div class="c"><label>SpO₂</label><input value="96"></div>
+            <div class="c"><label>PaFi</label><input></div>
+          </div>
+        </div>
+        <div class="bar"><button class="g">✓ Listo, volver</button></div>
+      </div>
+    </div>
+    <div class="nota" style="max-width:330px;">Una cosa a la vez, con su propio «volver». Las cuatro
+    pestañas de arriba son las partes que hoy van seguidas en la sábana. <b>Es lo que
+    mejor funciona en un teléfono</b>, y es lo más cerca del prototipo sin cambiar cómo se guarda.</div>
+  </div>
+  <div>
+    <div class="tel-t">Opción B — sub-bloques dentro del acordeón</div>
+    <div class="tel">
+      <div class="pant" style="height:520px;">
+        <div class="pac"><div class="l1"><span class="cama">CAMA 1</span>
+          <span class="nom">Rosa Pérez Muñoz</span><span class="x">✕</span></div></div>
+        <div class="acc" style="padding-bottom:12px;">
+          <div class="sc a-n"><div class="sc-h"><span class="sc-est e-ok">✓</span>
+            <div class="sc-tt"><div class="sc-t">🧠 Sedación</div><div class="sc-r">Escalón 2 · SAS 3</div></div><span class="sc-fl">▸</span></div></div>
+          <div class="sc a-r">
+            <div class="sc-h" style="background:#f4f8fc;"><span class="sc-est e-falta">!</span>
+              <div class="sc-tt"><div class="sc-t">🫁 Respiratorio</div>
+                <div class="sc-r">VM · ACVC · PEEP 8</div></div><span class="sc-fl">▾</span></div>
+            <div class="sc-b">
+              <div style="border-left:2px solid #d6e3ef;margin-left:3px;padding-left:9px;">
+                <div class="sc" style="border-top-width:2px;margin:7px 0;"><div class="sc-h" style="padding:7px 9px;">
+                  <span class="sc-est e-ok" style="width:16px;height:16px;font-size:.58rem;">✓</span>
+                  <div class="sc-tt"><div class="sc-t" style="font-size:.68rem;">Vía aérea</div>
+                    <div class="sc-r">TOT 8.0 · 22 cm</div></div><span class="sc-fl">▸</span></div></div>
+                <div class="sc" style="border-top-width:2px;margin:7px 0;"><div class="sc-h" style="padding:7px 9px;">
+                  <span class="sc-est e-ok" style="width:16px;height:16px;font-size:.58rem;">✓</span>
+                  <div class="sc-tt"><div class="sc-t" style="font-size:.68rem;">Ventilación</div>
+                    <div class="sc-r">ACVC · Vt 420 · PEEP 8 · FiO₂ 40</div></div><span class="sc-fl">▸</span></div></div>
+                <div class="sc" style="border-top-width:2px;margin:7px 0;"><div class="sc-h" style="padding:7px 9px;">
+                  <span class="sc-est e-falta" style="width:16px;height:16px;font-size:.58rem;">!</span>
+                  <div class="sc-tt"><div class="sc-t" style="font-size:.68rem;">Extubación / PVE</div>
+                    <div class="sc-r" style="color:#b91c1c;font-weight:700;">falta declarar</div></div><span class="sc-fl">▸</span></div></div>
+                <div class="sc" style="border-top-width:2px;margin:7px 0;"><div class="sc-h" style="padding:7px 9px;">
+                  <span class="sc-est e-no" style="width:16px;height:16px;font-size:.58rem;">—</span>
+                  <div class="sc-tt"><div class="sc-t" style="font-size:.68rem;">Manejo respiratorio</div>
+                    <div class="sc-r vacio">sin registrar</div></div><span class="sc-fl">▸</span></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="sc a-k"><div class="sc-h"><span class="sc-est e-ok">✓</span>
+            <div class="sc-tt"><div class="sc-t">🏃 Rehabilitación</div><div class="sc-r">KTM nivel 3 · SBC</div></div><span class="sc-fl">▸</span></div></div>
+        </div>
+        <div class="bar"><button class="g">💾 Guardar</button><button class="p">👁</button></div>
+      </div>
+    </div>
+    <div class="nota" style="max-width:330px;">Todo sigue en una sola lista, como ahora, pero la
+    sección grande se parte en cuatro. <b>Menos cambio</b> para el equipo; a cambio, la lista
+    se hace larga cuando abres algo.</div>
+  </div>
+</div>
+
+<h2 class="sec">④ Los campos, más apretados</h2>
+<div class="nota">Hoy cada campo lleva su etiqueta ENCIMA, en mayúsculas, y una fila por cada
+uno o dos campos. Poniendo la etiqueta al lado (o los números en grilla de tres) entran
+<b>casi el doble</b> por pantalla, sin achicar la letra ni el área de toque.</div>
+
+<div class="fila">
+  <div>
+    <div class="tel-t">Hoy — 6 campos en 300 px</div>
+    <div class="tel" style="width:330px;">
+      <div style="padding:11px;background:#fff;">
+        <div style="display:flex;gap:14px;margin-bottom:9px;">
+          <div style="flex:1;"><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">VT ML</div>
+            <input style="width:100%;height:34px;border:1px solid #d6d1c7;border-radius:8px;"></div>
+          <div style="flex:1;"><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">FR RPM</div>
+            <input style="width:100%;height:34px;border:1px solid #d6d1c7;border-radius:8px;"></div>
+        </div>
+        <div style="display:flex;gap:14px;margin-bottom:9px;">
+          <div style="flex:1;"><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">FLUJO L/M</div>
+            <input style="width:100%;height:34px;border:1px solid #d6d1c7;border-radius:8px;"></div>
+          <div style="flex:1;"><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">TI SEG</div>
+            <input style="width:100%;height:34px;border:1px solid #d6d1c7;border-radius:8px;"></div>
+        </div>
+        <div style="display:flex;gap:14px;margin-bottom:9px;">
+          <div style="flex:1;"><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">PMAX</div>
+            <input style="width:100%;height:34px;border:1px solid #d6d1c7;border-radius:8px;"></div>
+          <div style="flex:1;"><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">PMEDIA</div>
+            <input style="width:100%;height:34px;border:1px solid #d6d1c7;border-radius:8px;"></div>
+        </div>
+        <div style="height:112px;border:1px dashed #fca5a5;background:#fef2f2;border-radius:8px;
+          display:flex;align-items:center;justify-content:center;color:#b91c1c;font-size:.72rem;font-weight:700;">
+          …y quedan 8 campos más abajo</div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="tel-t">Propuesta — 12 campos en 300 px</div>
+    <div class="tel" style="width:330px;">
+      <div style="padding:11px;background:#fff;">
+        <div class="sub-t" style="margin-top:0;">Volúmenes</div>
+        <div class="f-g3">
+          <div class="c"><label>Vt ml</label><input></div>
+          <div class="c"><label>FR</label><input></div>
+          <div class="c"><label>Flujo</label><input></div>
+        </div>
+        <div class="sub-t">Presiones</div>
+        <div class="f-g3">
+          <div class="c"><label>Pmax</label><input></div>
+          <div class="c"><label>Pmedia</label><input></div>
+          <div class="c"><label>PEEP</label><input></div>
+        </div>
+        <div class="f-g3">
+          <div class="c"><label>Ppl</label><input></div>
+          <div class="c"><label>AutoPEEP</label><input></div>
+          <div class="c"><label>Ti seg</label><input></div>
+        </div>
+        <div class="sub-t">Oxigenación</div>
+        <div class="f-g3">
+          <div class="c"><label>FiO₂</label><input></div>
+          <div class="c"><label>SpO₂</label><input></div>
+          <div class="c"><label>PaFi</label><input></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec">Resumen de lo que propongo</h2>
+<table class="cmp">
+  <tr><th>Cambio</th><th>Qué gana</th><th>Riesgo</th></tr>
+  <tr><td><b>Encabezado en una fila</b></td><td>+220 px de pantalla en todas las pestañas</td><td>Bajo — solo estilos móviles</td></tr>
+  <tr><td><b>Cabecera del paciente en el panel</b></td><td>Saber a quién le estás escribiendo</td><td>Bajo</td></tr>
+  <tr><td><b>Resumen + estado en cada sección</b></td><td>Ver en qué vas sin abrir nada; usa el mismo criterio del riel del computador</td><td>Medio — hay que resumir cada bloque, y el resumen debe seguir al formulario</td></tr>
+  <tr><td><b>Respiratorio partida (A o B)</b></td><td>Deja de ser un scroll de 1.325 px</td><td>Medio — es la sección más usada; conviene probarla con el equipo antes</td></tr>
+  <tr><td><b>Campos más apretados</b></td><td>El doble de campos por pantalla</td><td>Bajo — no se achica el área de toque</td></tr>
+</table>
+
+<div class="leyenda" style="margin-top:18px;">
+  <b>Nada de esto cambia lo que se guarda.</b> Son todos cambios de cómo se ve y se navega
+  en pantallas chicas: mismas columnas, mismo guardado, misma estadística. Dime qué te
+  convence y cuál de las dos formas prefieres para la sección grande, y lo programo con
+  su guardia como cualquier ronda.
+</div>
+
+</div>
+</body></html>
