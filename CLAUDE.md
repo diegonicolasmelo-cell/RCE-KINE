@@ -92,17 +92,26 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**53 guardias** en `build/checks/*.js`; **33 usan navegador**
-(`chromium.launch`) y 20 son Node puro. No hay corredor en el repo: la batería
-completa se corre con un bucle, y **se juzga SOLO por el código de salida**
-(`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para demostrar que
-los detectan, así que leer el texto y no el exit code lleva a «arreglar» código
-sano.
+**64 guardias** en `build/checks/*.js`; **39 usan navegador**
+(`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
+salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
+demostrar que los detectan, así que leer el texto y no el exit code lleva a
+«arreglar» código sano.
 
 ```bash
-export CHROMIUM_PATH="$HOME/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
-for f in build/checks/*.js; do node "$f" >/dev/null 2>&1 || echo "FALLA: $f"; done
+node build/verificar.js                  # la batería entera, 4 en paralelo (~70 s)
+node build/verificar.js eventos          # solo las que contengan «eventos»
+node build/verificar.js --ver arranque   # la salida completa de una
 ```
+
+**Estado al 10-ago-2026: 64 verdes, 0 rojas.** El corredor
+(`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
+lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
+de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
+era la única guardia con la ruta escrita fija y por eso fallaba siempre en el
+Mac; ahora lee `CHROMIUM_PATH` como el resto. El corredor **no tiene lista de
+rojas conocidas** a propósito: una guardia que falla se arregla o se borra con
+su razón escrita.
 
 Las cabeceras: `convenciones.js` (estáticas), `arranque.js` (boot real en
 Chromium con puente simulado; acepta ruta del cohete como argumento),
@@ -113,11 +122,31 @@ Chromium con puente simulado; acepta ruta del cohete como argumento),
 `memo_episodio.js`, `rendimiento.js` (bucles de repintado con la unidad llena),
 `texto_bloques.js` (la etiqueta de bloque no altera el texto visible),
 `asincronia.js` (Ppl/AutoPEEP inhabilitados con paciente asincrónico).
-Enumerar aquí las 53 es garantía de desfase: la lista buena es `ls
+Enumerar aquí las 64 es garantía de desfase: la lista buena es `ls
 build/checks/`.
 
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
+
+## Buscador del proyecto (skill `rce-kine-rag`)
+
+`v2/index.html` pasa de las 10.000 líneas y este archivo de las 1.500: abrir
+cualquiera de los dos «para ver cómo se hace X» quema media sesión y encima
+suele devolver la parte equivocada. Hay un índice SQLite FTS5 **troceado por
+función** sobre los `.gs`, el index, las 64 guardias, esta bitácora, las skills
+y la memoria:
+
+```bash
+python3 ~/Documents/RCE-KINE-rag/rag_buscar.py "vencimiento de filtros HME"
+python3 ~/Documents/RCE-KINE-rag/rag_buscar.py "fechaEfectivaTurno" --tipo función
+python3 ~/Documents/RCE-KINE-rag/rag_index.py        # reindexar tras cada tanda
+```
+
+Vive **fuera del repo** para no ensuciar el proyecto de Diego con herramientas
+que no le sirven. Aborta el indexado si aparece un RUT fuera de su lista blanca
+de RUT de ejemplo. Su mejor uso no es buscar texto sino **encontrar todos los
+lugares donde vive una misma regla** antes de cambiarla — así apareció que la
+entrega de turno se había quedado con la regla vieja de los filtros.
 
 ## Hoja UCI (historial · jul-2026)
 
@@ -306,6 +335,22 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - ⚠️ Esto **invierte en un día** lo que se publicó el 7-ago con el visto bueno
     de Diego: su ejemplo pasa de «noches del 06 y 07» a «noches del 05 y 06».
     Avisarle antes de publicar.
+  - 🔴 **Y LA CORRECCIÓN LLEGÓ A TRES DE LOS CUATRO LUGARES.** Unas horas
+    después, buscando con el RAG recién construido, apareció que
+    `svc_entrega.gs` —**la entrega de turno**, el papel que se pasan los
+    kinesiólogos— seguía con `dias === frec ? 'cambiar'`, o sea avisando una
+    noche tarde, mientras `estadoDispositivos`, `_flEstado` y `_hjDisp` ya iban
+    en `frec-1`. Dos papeles de la misma unidad dando fechas distintas del mismo
+    filtro es exactamente lo que hace que el equipo deje de creerle a los dos.
+    Corregido a `dias >= frec ? 'vencido' : (dias === frec-1 ? 'cambiar' : 'ok')`,
+    con `disp_fecha.js` reescrita: sus asserts codificaban la regla vieja como
+    «SEMÁNTICA VALIDADA POR DIEGO» y ahora, además de las fechas, **miden el
+    intervalo entre dos cambios encadenados**.
+    👉 **Lección para la próxima regla clínica: búscala en TODAS partes antes de
+    tocarla.** Una regla de este sistema vive típicamente en cuatro sitios
+    —servidor, espejo del cliente, imprimible y chip— y el RAG los encuentra en
+    un comando. **Este arreglo está commiteado pero NO desplegado**: producción
+    (Versión 27) sigue con la entrega de turno avisando tarde.
 
 - **LA COLUMNA SOPORTE DICE CUÁL OXIGENOTERAPIA (10-ago-2026, pedido de Manuel;
   solo index).** «Oxigenoterapia/OAF» a secas no sirve en la ronda. El dato ya

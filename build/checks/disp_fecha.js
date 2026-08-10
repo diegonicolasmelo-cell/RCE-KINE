@@ -44,10 +44,15 @@ let r = obtenerEntregaTurno(['1'], '2026-08-01', 'Dia');
 let hme = r.data.fichas[0].dispositivos.find(d => d.n === 'HME');
 eq('turno Día del 1-ago: el HME va en su día 1', hme.dia, 1);
 
-// SEMÁNTICA VALIDADA POR DIEGO (ago-2026): etiqueta = día 0 y el cambio se
-// hace en el TURNO NOCHE del día etiqueta+frec. El HME etiquetado 01-ago se
-// cambia la noche del 03-ago — la regla vieja (fecha efectiva + «día 2»)
-// avisaba la noche del 01, DOS turnos antes: ese era el desfase de terreno.
+// REGLA VIGENTE (corregida el 10-ago-2026, reporte de Manuel desde el turno):
+// etiqueta = día 0, `cambio` = etiqueta + frec, y ese cambio se EJECUTA en la
+// madrugada de esa fecha, o sea en el turno NOCHE de la víspera. El HME
+// etiquetado 01-ago se cambia en la madrugada del 03 ⇒ el aviso sale la noche
+// del 02, con frec-1 días cumplidos.
+//   🪤 La entrega de turno tenía `dias === frec` y avisaba una noche TARDE:
+//   quedó fuera de la corrección que sí recibieron estadoDispositivos, la hoja
+//   de filtros y el chip de la Hoja UCI, y durante unas horas dos papeles de la
+//   misma unidad dieron fechas distintas del mismo filtro.
 r = obtenerEntregaTurno(['1'], '2026-08-01', 'Noche');
 hme = r.data.fichas[0].dispositivos.find(d => d.n === 'HME');
 const hepa = r.data.fichas[0].dispositivos.find(d => d.n === 'HEPA');
@@ -55,15 +60,38 @@ eq('turno Noche del 1-ago: el HME recién etiquetado NO se cambia aún', hme.est
 eq('…y la entrega trae su fecha EXACTA de cambio (01+2 = 03-08)', hme.cambio, '03-08');
 eq('el HEPA tampoco (cambia el 04-08)', hepa.estado + '/' + hepa.cambio, 'ok/04-08');
 
-// El día del cambio: la entrega del 03 avisa el HME para ESA noche
-r = obtenerEntregaTurno(['1'], '2026-08-03', 'Noche');
-eq('entrega del 03-ago: el HME sale «cambiar» (esta noche)', r.data.fichas[0].dispositivos.find(d => d.n === 'HME').estado, 'cambiar');
-eq('…y el HEPA sigue ok (su noche es la del 04)', r.data.fichas[0].dispositivos.find(d => d.n === 'HEPA').estado, 'ok');
+// La VÍSPERA del cambio: la entrega del 02 avisa el HME para esa madrugada
+r = obtenerEntregaTurno(['1'], '2026-08-02', 'Noche');
+eq('entrega del 02-ago: el HME sale «cambiar» (madrugada del 03)', r.data.fichas[0].dispositivos.find(d => d.n === 'HME').estado, 'cambiar');
+eq('…y el HEPA sigue ok (su madrugada es la del 04)', r.data.fichas[0].dispositivos.find(d => d.n === 'HEPA').estado, 'ok');
 
-// Si nadie lo cambió, al día siguiente aparece vencido
-r = obtenerEntregaTurno(['1'], '2026-08-04', 'Dia');
-eq('entrega del 04-ago: el HME sin cambiar sale VENCIDO', r.data.fichas[0].dispositivos.find(d => d.n === 'HME').estado, 'vencido');
-eq('…y el HEPA llega a su noche de cambio', r.data.fichas[0].dispositivos.find(d => d.n === 'HEPA').estado, 'cambiar');
+// Llegada la fecha de cambio sin cambiarlo, aparece vencido
+r = obtenerEntregaTurno(['1'], '2026-08-03', 'Noche');
+eq('entrega del 03-ago: el HME sin cambiar sale VENCIDO', r.data.fichas[0].dispositivos.find(d => d.n === 'HME').estado, 'vencido');
+eq('…y el HEPA llega a su noche de aviso', r.data.fichas[0].dispositivos.find(d => d.n === 'HEPA').estado, 'cambiar');
+
+// ── La propiedad, no la lista de fechas ─────────────────────────────────────
+// Un solo ciclo se ve bien con la regla al revés: el error solo aparece al
+// ENCADENAR, porque el filtro cambiado de madrugada se etiqueta D+1. Esto mide
+// lo que de verdad importa: cuántos días pasan entre dos cambios consecutivos.
+const nocheDeAviso = (etiqueta, frec) => {
+  DB.CAMAS_ESTADO[0].DISP_HME_FECHA = etiqueta;
+  for (let k = 0; k <= frec + 3; k++) {
+    const f = new Date(etiqueta + 'T12:00:00'); f.setDate(f.getDate() + k);
+    const iso = f.toISOString().slice(0, 10);
+    const e = obtenerEntregaTurno(['1'], iso, 'Noche').data.fichas[0].dispositivos.find(d => d.n === 'HME');
+    if (e && e.estado === 'cambiar') return iso;          // la noche en que avisa
+  }
+  return null;
+};
+const efectiva = iso => { const f = new Date(iso + 'T12:00:00'); f.setDate(f.getDate() + 1); return f.toISOString().slice(0, 10); };
+const dif = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+const et1 = '2026-08-01';
+const et2 = efectiva(nocheDeAviso(et1, 2));   // se cambia esa madrugada ⇒ etiqueta D+1
+const et3 = efectiva(nocheDeAviso(et2, 2));
+eq('🎯 entre dos cambios de HME pasan exactamente 2 días', dif(et1, et2), 2);
+eq('🎯 y del segundo al tercero, otros 2', dif(et2, et3), 2);
+DB.CAMAS_ESTADO[0].DISP_HME_FECHA = '2026-08-01';        // restaurar el escenario
 
 /* ── Parte 2 · cliente: el formulario fecha y cuenta con la efectiva ── */
 const { chromium } = require('playwright-core');

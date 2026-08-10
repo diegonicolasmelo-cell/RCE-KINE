@@ -12899,9 +12899,15 @@ function imprimirListaDelDia(){
    que está en cada sala, la fecha de cambio de cada filtro y una casilla por
    el filtro que toque cambiar ese día.
    La regla es la MISMA del servidor (estadoDispositivos, svc_eventos.gs): la
-   fecha de la etiqueta es el día 0 y el cambio se hace en el turno NOCHE del
-   día etiqueta + frecuencia. No se recalcula distinto acá para que la hoja no
-   contradiga al modal «Cambios de esta noche». */
+   fecha de la etiqueta es el día 0, el dispositivo cumple su plazo el día
+   etiqueta + frecuencia, y ese cambio se ejecuta en la MADRUGADA de ese día —
+   o sea en el turno NOCHE de la víspera. Por eso el aviso sale cuando han
+   pasado frec-1 días, una noche ANTES de la fecha de cambio.
+   (Corregido el 10-ago-2026: avisar recién el día del cambio estiraba el HME a
+   3 días, porque el filtro cambiado de madrugada se etiqueta con la fecha
+   efectiva del turno, que es D+1, y el error se acumulaba ciclo a ciclo.)
+   No se recalcula distinto acá para que la hoja no contradiga al modal
+   «Cambios de esta noche». */
 const _FL_DEF=[
   {k:'hme',  campo:'DISP_HME_FECHA',  nombre:'FILTRO HME',  sigla:'HME',  cfg:'FREC_HME_DIAS',   def:2},
   {k:'hepa', campo:'DISP_HEPA_FECHA', nombre:'FILTRO HEPA', sigla:'HEPA', cfg:'FREC_HEPA_DIAS',  def:3},

@@ -16,9 +16,11 @@
 //     —no solo las ocupadas: así se ve dónde hay ventiladores libres—, el
 //     equipo de cada sala y su estado, la fecha de cambio de cada filtro y una
 //     casilla por el filtro que toque cambiar. Lo que esta guardia cuida: que
-//     la regla de vencimiento sea la MISMA del servidor (etiqueta + frecuencia,
-//     cambio en el turno noche de ese día; NO el día anterior, que fue el
-//     desfase reportado en terreno), que el ventilador diga EN USO solo si hay
+//     la regla de vencimiento sea la MISMA del servidor (etiqueta + frecuencia
+//     = fecha de cambio, y el cambio se ejecuta en la MADRUGADA de esa fecha,
+//     o sea en el turno noche de la VÍSPERA → el aviso sale una noche antes,
+//     con frec-1 días cumplidos; corregido el 10-ago-2026 tras el reporte de
+//     Manuel desde el turno), que el ventilador diga EN USO solo si hay
 //     un paciente en VM, y que la casilla salga solo donde hay algo que hacer.
 //     Ésta es la excepción a lo anterior: se feche con el TURNO, porque lo que
 //     decide es qué filtro toca cambiar esta noche, y va rotulada «NOCHE DEL …»
