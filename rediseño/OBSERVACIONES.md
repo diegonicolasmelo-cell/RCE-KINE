@@ -84,7 +84,7 @@ comportamiento correcto es el de `v2/index.html`.
       prototipo tenga más de un turno real.
 - [ ] Los 39 bloques de TEXTO_BLOQUES si el texto generado se lleva a serio.
 
-## Fase 2 (paleta) — v0.4, EN EVALUACIÓN de Diego
+## Fase 2 (paleta) — v0.4, DECIDIDA
 
 Tres temas conmutables desde la cabecera (🎨), todos sobre las MISMAS
 variables CSS — ningún componente lleva colores sueltos:
@@ -99,8 +99,10 @@ variables CSS — ningún componente lleva colores sueltos:
 
 Reglas de la paleta: los colores SEMÁNTICOS no cambian de significado entre
 temas (rojo = peligro · ámbar = pendiente/heredado · verde = guardado/ok) y
-el banner de PROTOTIPO es rojo en los tres. Pendiente de Diego: elegir tema
-por defecto para el día (Tinta vs Clínica) o mantener los tres.
+el banner de PROTOTIPO es rojo en los tres.
+**DECISIÓN DE DIEGO (10-ago-2026): «Tinta» es el tema por defecto de día.**
+El turno Noche sigue partiendo en «noche» automático, y el selector 🎨 queda
+disponible (la elección personal persiste y gana al automático).
 
 ## Recordatorios duros
 
