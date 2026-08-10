@@ -125,7 +125,11 @@ ok_('…y el contador de VNI ya no cae a FECHA_INICIO_VA (que es el ingreso)',
 
 const esq = fs.readFileSync(path.join(v2, 'esquema.gs'), 'utf8');
 ok_('DIAS_VNI existe en EVOLUCIONES', /\['DIAS_VNI','entero'\]/.test(esq));
-ok_('…al final de la lista', /\['PRONO_HORAS','decimal'\],[\s\S]{0,700}\['DIAS_VNI','entero'\]\s*\];/.test(esq));
+// Se agregó en el TRAMO FINAL (después del último bloque conocido). Ya no se
+// exige que cierre la lista: detrás pueden ir columnas nacidas después —
+// RESP_SNT en ago-2026— y eso es justamente la regla de la casa, agregar
+// siempre al final para no desalinear los datos ya escritos.
+ok_('…en el tramo final de la lista', /\['PRONO_HORAS','decimal'\],[\s\S]{0,700}\['DIAS_VNI','entero'\]/.test(esq));
 
 console.log(fails.length ? `\n❌ ${fails.length} FALLOS` : '\n✅ dias_vni OK');
 process.exit(fails.length ? 1 : 0);

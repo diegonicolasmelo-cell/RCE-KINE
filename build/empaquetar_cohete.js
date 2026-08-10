@@ -13,7 +13,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const VERSION = '5.46-afinado';
+// 🪤 ESCRITO A MANO: hay que SUBIRLO en cada tanda que se pegue. Es el sello que
+// se ve en el editor y en la pantalla de carga, y es la única forma barata de
+// confirmar que lo pegado es lo nuevo (misma clase de trampa que el total de
+// columnas de testEsquema()).
+const VERSION = '5.48-terreno';
 const fuente = path.join(__dirname, '..', 'v2', 'index.html');
 const salida = process.argv[2] || path.join(__dirname, 'index_cohete.html');
 

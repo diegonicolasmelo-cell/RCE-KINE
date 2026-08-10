@@ -252,7 +252,14 @@ const _COLS_EVOLUCIONES = [
   // pacientes que solo tenían mascarilla (la detección miraba la interfaz de
   // vía aérea, no el soporte). Ahora es simétrico con DIAS_VM.
   // SIEMPRE AL FINAL.
-  ['DIAS_VNI','entero']
+  ['DIAS_VNI','entero'],
+  // SUCCIÓN NASOTRAQUEAL (ago-2026, pedido de Manuel). Cuarta técnica de
+  // permeabilización junto a SOF, SNF y SET. Es la del paciente SIN vía aérea
+  // artificial — la sonda entra por la nariz y pasa la glotis; con TOT o TQT
+  // no existe, ahí la succión es endotraqueal. El formulario la esconde
+  // cuando la vía aérea es invasiva, espejo de lo que ya hace SET al revés.
+  // SIEMPRE AL FINAL.
+  ['RESP_SNT','bool']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -823,7 +830,11 @@ function testEsquema() {
     if (set.size !== nombres.length) errs.push(hoja + ': nombres de columna duplicados');
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
-  if (TOTAL_COLS.EVOLUCIONES !== 386) errs.push("EVOLUCIONES != 386 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  // Salvaguarda contra el borrado accidental de columnas: el número va a mano
+  // y HAY QUE SUBIRLO al agregar una (387 = 386 + RESP_SNT, ago-2026). Si
+  // aparece este ❌ tras sumar una columna, la hoja está bien y lo que falta es
+  // actualizar esta línea.
+  if (TOTAL_COLS.EVOLUCIONES !== 387) errs.push("EVOLUCIONES != 387 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

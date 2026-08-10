@@ -189,12 +189,19 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   })();
 
   // ── Dispositivos de circuito por vencer (solo VM) ──
-  // SEMÁNTICA VALIDADA POR DIEGO (ago-2026): etiqueta = día 0 y el cambio se
-  // hace en el TURNO NOCHE del día etiqueta+frecuencia. «cambiar» = esta
-  // noche; «vencido» solo si amaneció después de esa noche sin cambio. Se
-  // mide contra la fecha del TURNO (no la efectiva: la noche del día D ES la
-  // que cambia lo del día D). Viaja además la fecha EXACTA del cambio, que es
-  // lo que la hoja impresa debe mostrar en vez de contadores de días.
+  // Etiqueta = día 0 y `cambio` = etiqueta + frecuencia. Ese cambio se ejecuta
+  // en la MADRUGADA de esa fecha, o sea en el turno NOCHE de la víspera: por eso
+  // «cambiar» sale cuando han pasado frec-1 días, y «vencido» al llegar a frec
+  // sin haberlo cambiado. Se mide contra la fecha del TURNO, no la efectiva.
+  // Viaja además la fecha EXACTA del cambio, que es lo que la hoja impresa debe
+  // mostrar en vez de contadores de días.
+  //
+  // ⚠️ 10-ago-2026: esta línea era `dias === frec ? 'cambiar'` y avisaba UNA
+  // NOCHE TARDE. El resto del sistema (estadoDispositivos en svc_eventos.gs, la
+  // hoja de control de filtros y el chip de la Hoja UCI) ya se había corregido a
+  // frec-1 esa madrugada; la entrega de turno se quedó atrás y durante unas
+  // horas dos papeles de la misma unidad dijeron fechas distintas del mismo
+  // filtro. Si vuelves a tocar la regla, tócala en LOS CUATRO lugares.
   const disp = [];
   if (String(c.SOPORTE) === 'VM') {
     [['HME', c.DISP_HME_FECHA, 2], ['HEPA', c.DISP_HEPA_FECHA, 3], ['T.Care', c.DISP_TC_FECHA, 3]].forEach(function (d) {
@@ -202,7 +209,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
       const dias = diasEntre(iso, fecha);
       const cambio = _sumarDiasISO(iso, d[2]);
       disp.push({ n: d[0], dia: dias + 1, dur: d[2], cambio: dd(cambio),
-                  estado: dias < d[2] ? 'ok' : (dias === d[2] ? 'cambiar' : 'vencido') });
+                  estado: dias >= d[2] ? 'vencido' : (dias === d[2] - 1 ? 'cambiar' : 'ok') });
     });
   }
 
@@ -344,7 +351,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
  * derivar la racha de turnos candidato sin PVE desde el episodio.
  */
 function _turnoCandidatoPve(e) {
-  if (String(e.VENT_SOPORTE) !== 'VM' || e.PVE_VAL === 'si') return false;
+  // 'nc' = no corresponde por causa de base no resuelta: corta la racha igual
+  // que una PVE hecha (ago-2026). Si no, el turno que declara «no procede»
+  // seguiría sumando a «candidato hace N turnos sin PVE».
+  if (String(e.VENT_SOPORTE) !== 'VM' || e.PVE_VAL === 'si' || e.PVE_VAL === 'nc') return false;
   const n = function (x) { return parseFloat(x); };
   const dva = String(e.HEMO_DVA || '');
   return n(e.VENT_FIO2) > 0 && n(e.VENT_FIO2) <= 50 &&
@@ -393,7 +403,8 @@ function _entParams(e) {
   // arrastrarlos ensuciaba la línea con restos del soporte anterior.
   const sop = String(e.VENT_SOPORTE || ''), modo = String(e.VENT_MODO || '');
   const esCNAF = sop === 'CNAF' || /^(CNAF|OAF\/CTAF)$/i.test(modo);
-  if (/^(NRC|Naricera(-NRC)?|Mascarilla)$/i.test(modo)) push('L', 'VENT_LITROS');
+  // MR = mascarilla de reservorio (antes de ago-2026 se registraba «Mascarilla»)
+  if (/^(NRC|Naricera(-NRC)?|MR|Mascarilla)$/i.test(modo)) push('L', 'VENT_LITROS');
   if (esCNAF) push('Flujo', 'VENT_FLUJO');
   return out.join(' · ');
 }

@@ -71,7 +71,7 @@ const { chromium } = require('playwright-core');
   eq('sin datos no está todo verde', R1.ningunaVerde, true);
   eq('una sección con datos se marca ✓', R1.verdesConDatos, true);
   // Con el paciente en TOT la PVE es obligatoria de declarar (ago-2026)
-  eq('con vía aérea quedan la firma y la PVE', R1.faltaSoloFirma, 'Falta: firma y PVE sí/no');
+  eq('con vía aérea quedan la firma y la PVE', R1.faltaSoloFirma, 'Falta: firma y PVE sí / no / no corresponde');
   eq('con firma y PVE declarada el aviso desaparece', R1.faltaVacio, '');
   eq('tocar un ítem salta sin error', R1.saltaOk, true);
 

@@ -404,9 +404,12 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   // Tamizaje de candidato a PVE con los parámetros de este turno (criterios de
   // screening clásicos, ABC trial). Si el turno ya trae PVE registrado, el
   // tamizaje ya se resolvió y no se marca. Con datos incompletos no se marca
-  // (conservador).
+  // (conservador). Tampoco se marca cuando el turno declaró que NO CORRESPONDE
+  // ('nc', ago-2026): el paciente cumple los números pero su causa de base no
+  // está resuelta, y el kinesiólogo del turno ya lo dijo — insistirle con el
+  // badge verde y con la alerta de racha sería ruido.
   let candPve = false;
-  if (sopNew === 'VM' && evo.PVE_VAL !== 'si') {
+  if (sopNew === 'VM' && evo.PVE_VAL !== 'si' && evo.PVE_VAL !== 'nc') {
     const _n = x => parseFloat(x);
     const dvaTxt = String(evo.HEMO_DVA || '');
     candPve = _n(evo.VENT_FIO2) > 0 && _n(evo.VENT_FIO2) <= 50 &&

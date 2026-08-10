@@ -112,17 +112,26 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**53 guardias** en `build/checks/*.js`; **33 usan navegador**
-(`chromium.launch`) y 20 son Node puro. No hay corredor en el repo: la batería
-completa se corre con un bucle, y **se juzga SOLO por el código de salida**
-(`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para demostrar que
-los detectan, así que leer el texto y no el exit code lleva a «arreglar» código
-sano.
+**64 guardias** en `build/checks/*.js`; **39 usan navegador**
+(`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
+salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
+demostrar que los detectan, así que leer el texto y no el exit code lleva a
+«arreglar» código sano.
 
 ```bash
-export CHROMIUM_PATH="$HOME/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
-for f in build/checks/*.js; do node "$f" >/dev/null 2>&1 || echo "FALLA: $f"; done
+node build/verificar.js                  # la batería entera, 4 en paralelo (~70 s)
+node build/verificar.js eventos          # solo las que contengan «eventos»
+node build/verificar.js --ver arranque   # la salida completa de una
 ```
+
+**Estado al 10-ago-2026: 64 verdes, 0 rojas.** El corredor
+(`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
+lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
+de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
+era la única guardia con la ruta escrita fija y por eso fallaba siempre en el
+Mac; ahora lee `CHROMIUM_PATH` como el resto. El corredor **no tiene lista de
+rojas conocidas** a propósito: una guardia que falla se arregla o se borra con
+su razón escrita.
 
 Las cabeceras: `convenciones.js` (estáticas), `arranque.js` (boot real en
 Chromium con puente simulado; acepta ruta del cohete como argumento),
@@ -133,11 +142,31 @@ Chromium con puente simulado; acepta ruta del cohete como argumento),
 `memo_episodio.js`, `rendimiento.js` (bucles de repintado con la unidad llena),
 `texto_bloques.js` (la etiqueta de bloque no altera el texto visible),
 `asincronia.js` (Ppl/AutoPEEP inhabilitados con paciente asincrónico).
-Enumerar aquí las 53 es garantía de desfase: la lista buena es `ls
+Enumerar aquí las 64 es garantía de desfase: la lista buena es `ls
 build/checks/`.
 
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
+
+## Buscador del proyecto (skill `rce-kine-rag`)
+
+`v2/index.html` pasa de las 10.000 líneas y este archivo de las 1.500: abrir
+cualquiera de los dos «para ver cómo se hace X» quema media sesión y encima
+suele devolver la parte equivocada. Hay un índice SQLite FTS5 **troceado por
+función** sobre los `.gs`, el index, las 64 guardias, esta bitácora, las skills
+y la memoria:
+
+```bash
+python3 ~/Documents/RCE-KINE-rag/rag_buscar.py "vencimiento de filtros HME"
+python3 ~/Documents/RCE-KINE-rag/rag_buscar.py "fechaEfectivaTurno" --tipo función
+python3 ~/Documents/RCE-KINE-rag/rag_index.py        # reindexar tras cada tanda
+```
+
+Vive **fuera del repo** para no ensuciar el proyecto de Diego con herramientas
+que no le sirven. Aborta el indexado si aparece un RUT fuera de su lista blanca
+de RUT de ejemplo. Su mejor uso no es buscar texto sino **encontrar todos los
+lugares donde vive una misma regla** antes de cambiarla — así apareció que la
+entrega de turno se había quedado con la regla vieja de los filtros.
 
 ## Hoja UCI (historial · jul-2026)
 
@@ -162,6 +191,221 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   truncaba — usar `_hjNum`. Guardia: `checks/hoja_uci.js`.
 
 ## Estado y pendientes (julio 2026)
+
+- **CUATRO PEDIDOS DE TERRENO DE MANUEL (9-ago-2026, rama
+  `mejoras-de-terreno-snt-pve-copiar-entrega`).** Index + `esquema.gs` +
+  `dominio_texto.gs` + `svc_evoluciones.gs` + `svc_entrega.gs`.
+  ✅ **EN PRODUCCIÓN: Versión 26 del 9-ago-2026, 23:33**, creada editando la
+  implementación existente (mismo ID, la URL del equipo no cambió), con
+  `cuadrarEncabezados()` ya corrido → **✅ Esquema OK (23 hojas)**.
+  🪤 Al correrlo saltó `❌ EVOLUCIONES != 386 columnas: 387`: **el total de
+  columnas está ESCRITO A MANO en `testEsquema()`** y hay que subirlo con cada
+  columna nueva (la planilla estaba bien; ya quedó en 387).
+  1. **SNT — succión nasotraqueal.** Cuarta técnica de permeabilización junto a
+     SOF/SNF/SET, con columna nueva **al final** del esquema (regla de la casa)
+     y narrativa en los dos generadores (cliente y `dominio_texto.gs`). Se
+     **esconde y se desmarca con TOT o TQT**: la sonda entra por la nariz y
+     pasa la glotis, así que con vía aérea artificial no existe — es el espejo
+     exacto de lo que ya hacía SET al revés (`_updateSinKTR`). Decisión de
+     Manuel, no supuesto: se le preguntó antes de programar.
+  2. **🚫 «No corresponde» en Extubación/PVE** (`PVE_VAL='nc'`, sin columna
+     nueva). Tercer botón del toggle para el paciente que sigue en VM porque su
+     causa de base no está resuelta: no procede ni PVE ni extubación. Apaga las
+     dos ramas y las limpia, satisface la declaración obligatoria, narra «No
+     procede PVE ni extubación en este turno: causa de base no resuelta», y
+     **corta el tamizaje y la racha de candidato a PVE** (`svc_evoluciones` no
+     marca `WEAN_CAND_PVE`; `_turnoCandidatoPve` lo trata como turno resuelto).
+     Vale **solo para ese turno** — el siguiente vuelve a preguntar, para que
+     nadie se olvide de reactivarlo cuando la causa se resuelva. Cuidado al
+     tocar consumidores de `PVE_VAL`: 'nc' NO es evento (`_renderEvStrip`,
+     `_evoEventoGuardado`) ni PVE hecha (Hoja UCI: chip «No corresponde»;
+     tabla del historial: «NC»).
+  3. **Copiar texto ya no marca la evolución como modificada.** El formulario
+     tenía un listener de clic que ponía `_formDirty=true` en **cualquier**
+     `<button>` de `#kf` — nació para los chips, que no emiten `input`/`change`
+     — y la barra de acciones vive dentro del mismo form: copiar el texto para
+     pegarlo en el BUDA dejaba el turno «sin guardar» y pedía guardar de nuevo.
+     Ahora se salta los botones con **`data-nodirty`** (copiar, preview,
+     guardar, cerrar). Es un atributo y no una lista en el JS a propósito: el
+     que agregue un botón decide en el mismo lugar donde lo escribe.
+  4. **La entrega de turno se imprime VERTICAL** (pedido: «1 o 2 hojas»). El
+     `@page` **global** pasó a `portrait` —manda también con Ctrl+P, que es
+     como imprime medio equipo— y lo que necesita ancho, el historial, inyecta
+     el suyo (`_imprimirApaisado`, antes era al revés). **Medido, no estimado**
+     (`build/medir_entrega.js`, 17 camas, la entrega real montada en Chromium):
+     carga normal **2,42 hojas apaisadas → 1,89 verticales**; carga alta 2,50 →
+     2,22 (o sea 3 hojas en un día malo, y así se dijo). El ahorro no vino de
+     achicar letra sino del interlineado, de la franja del plan (etiqueta y
+     pendientes **en línea**) y del encabezado/pie del documento, que se comían
+     271 px sin un solo dato de paciente. **De paso se arregló el diagnóstico**:
+     con la cabecera forzada a una línea se comprimía a 32 px —0 con muchos
+     chips—, o sea gastaba renglón sin decir nada; ahora pide un tercio del
+     ancho y si no lo tiene baja de línea y se lee entero.
+  - Guardias: `entrega_impresion.js` ampliada (orientación del papel, dx
+    legible, y **cuenta hojas de verdad** con el escenario de
+    `medir_entrega.js` en vez de proyectar con regla de tres).
+    `guardado_viajes.js` se hizo **tolerante a columnas nacidas después de la
+    ola**: deriva la lista comparando el esquema de los dos árboles y las
+    descuenta — si no, cada campo nuevo la haría fallar por una diferencia
+    ajena a lo que vigila. `dias_vni` ya no exige que `DIAS_VNI` cierre la
+    lista de columnas (detrás va RESP_SNT); `hojas_dia`, `panel_ux` y
+    `reporte_colega` se ajustaron al id del `<style>` de orientación y al nuevo
+    texto del aviso. Batería: **62 de 63** (la roja es `rendimiento.js`, de ruta
+    fija, como siempre).
+  - **Conocido y DEJADO ASÍ por decisión de Manuel (9-ago-2026)**: al reabrir
+    una evolución guardada, `fillForm` desmarca SOF/SNF/SET/A.Tos/inhalo aunque
+    su propio comentario diga que «carga exactamente lo que se registró» — si
+    alguien reabre el turno para corregir otra cosa y guarda, esas marcas **se
+    borran de la planilla**. Se le reportó con el detalle y respondió «deja
+    como está el punto de las succiones». No tocarlo sin pedírselo de nuevo (el
+    mismo patrón afecta al bloque KTM, que sí pesa en el REM).
+
+- **DOS HOJAS PARA LA RONDA (9-ago-2026, pedido de Manuel; misma rama).** Las
+  revisó **en maqueta antes de montarse** — pidió verlas primero, y de esa
+  revisión salieron la columna de ventilador, las 18 camas y el cambio de la
+  casilla al lugar de la firma. Solo index.
+  1. **🖨️ Lista del día — REEMPLAZA a «Hojas del día»** en la pestaña Registro
+     (decisión suya, explícita). Antes ese botón sacaba la hoja de registro
+     completa de CADA paciente: 17 pacientes = **34 carillas**. Ahora sale UNA
+     hoja vertical con todos los presentes, con la misma franja de
+     identificación del formato oficial (cama · edad · nombre · RUT · días ·
+     fecha), el diagnóstico debajo y las escalas **que estén registradas** —
+     APACHE II, Barthel, Charlson, FSS-ICU, MRC-ss; la que nadie midió no
+     aparece, no se inventa un «—». La hoja de registro oficial NO se perdió:
+     se imprime por paciente desde su historial (`imprimirHojaUCIpaciente`,
+     botón «🖨️ Hoja de registro», junto a Hoja PVE/APK/RHB). Medido: 17
+     pacientes = **0,79 hojas**.
+  2. **🖨️ Filtros** — la hoja de la ronda de la noche: HME, HEPA y Trach Care
+     de **las 18 camas** (no solo las ocupadas: así se ve dónde hay
+     ventiladores libres), con el **equipo de cada sala** y si está EN USO o
+     DISPONIBLE, la fecha de cambio de cada filtro, los vencidos marcados con
+     su atraso y una **casilla por filtro que toque cambiar** ese día — la
+     casilla quedó donde estaba la columna de firma, que se eliminó. Medido:
+     18 camas = **0,70 hojas**.
+  - Detalles que costaron una vuelta: el cliente **replica la regla del
+    servidor** (`estadoDispositivos`: etiqueta = día 0, cambio en el turno
+    NOCHE del día etiqueta+frecuencia) y lee las frecuencias de `CFG` — si se
+    calculara distinto, la hoja contradiría al modal «Cambios de esta noche».
+    Un ventilador **con falla que además está ventilando** muestra las dos
+    cosas («EN USO · FALLA»): al principio el estado tapaba el uso y eso
+    escondía justo el caso que hay que mirar. Y `white-space:nowrap` en la
+    marca desbordaba sobre la columna vecina: la solución fue **acortar el
+    texto** («VENCIDO (3d)»), no forzar la línea.
+  - Guardia: `checks/lista_y_filtros.js` (39 asserts, incluidas las cuentas de
+    hojas al ancho real del A4 vertical). `hojas_dia.js` pasó a verificar la
+    hoja de registro **desde el historial**.
+
+- **LA FECHA DE UN PAPEL ES LA DEL RELOJ, NO LA DEL TURNO (10-ago-2026,
+  reportado en terreno por Manuel: imprimió la lista a la 1 AM del 10 y salió
+  fechada el 9).** No era un huso horario. `gDate` guarda la fecha del **turno
+  lógico**, y `_turnoLogico()` la deja en el DÍA ANTERIOR entre las 00:00 y las
+  09:00 **a propósito**: la noche del 9 se sigue escribiendo hasta las 9 de la
+  mañana del 10 (ventana de gracia para la evolución atrasada). Eso es correcto
+  para el registro clínico y es un error para el papel que se lleva en la mano.
+  - **`_fechaPapel()`** (index) devuelve la fecha del calendario, y la usan la
+    **lista del día** y la **hoja de registro por paciente**: las dos llevan a
+    los pacientes que están presentes AHORA. Se recalcula en cada clic, así que
+    una app abierta desde ayer imprime bien igual. La lista además estampa la
+    **hora** («FECHA 10/08/2026 · 02:30 h»), que avisa qué tan fresca es la hoja
+    que anda dando vueltas por la unidad.
+  - **La excepción es el control de filtros**, que sigue fechándose con el
+    turno: ahí la fecha decide *qué filtro toca cambiar*, y a las 2 AM la ronda
+    en curso es todavía la noche del día anterior — la misma fecha que muestra
+    «Cambios de esta noche». Para que no se lea como un día atrasado, su
+    encabezado pasó de «FECHA …» a **«NOCHE DEL …»**.
+  - Al mirar la vista previa apareció un defecto **que no tiene que ver con la
+    fecha**: la columna RUT de la lista tenía **96 px** y un RUT real
+    («22.222.222-2») se partía en dos líneas — los datos de prueba de la guardia
+    eran RUT cortos («1-9») y por eso nunca se vio. Subida a **112 px**; el
+    nombre, que es la única columna flexible, absorbe la diferencia. Al probar
+    un imprimible, usa datos **del largo real**, no los mínimos.
+  - 🪤 **La guardia dependía del día en que se corriera:** sus asserts estaban
+    escritos contra el 09-08 y pasaban porque se escribió ese día (había un
+    `const FECHA` declarado y sin usar — la intención estaba, la ejecución no).
+    Hoy `lista_y_filtros.js` **fija el reloj** con un `Date` de clase derivada
+    en `addInitScript` (10-ago-2026 02:30, dentro de la ventana de gracia), que
+    es el escenario exacto del bug. Uno de los asserts nuevos comprueba que el
+    turno lógico **sigue** en la noche del 9: el arreglo es del papel, no de la
+    regla clínica.
+
+- **EL CAMBIO DE FILTROS SE AVISABA UNA NOCHE TARDE (10-ago-2026, reportado por
+  Manuel desde el turno; `svc_eventos.gs` + index).** Dijo que el HME etiquetado
+  el 08 y el HEPA/Trach Care del 07 debían cambiarse en la madrugada del 10 —
+  o sea en el turno noche del 09— y la app no los marcaba. Tenía razón, y la
+  prueba estaba en la propia guardia de validación de la regla anterior: HME
+  cambiado en la noche del 06 → se etiqueta **07** (fecha efectiva = la
+  madrugada en que se cambió) → volvía a pedirse la noche del 09 = madrugada del
+  10. **Tres días de HME cuando el HME dura dos.** El ejemplo con que se validó
+  aquella regla (ingreso el 04 en turno día → noches del 06 y 07) solo miraba el
+  PRIMER ciclo, donde la etiqueta es un día real y no una madrugada; ahí la
+  diferencia no se veía.
+  - Regla vigente: `fechaCambio` = etiqueta + frecuencia **se ejecuta en la
+    madrugada de esa fecha**, o sea en el turno noche de la víspera →
+    `cambiaEstaNoche` es `dias === frec-1`, `vence` es `dias >= frec` y el
+    atraso se cuenta desde `frec-1`. Espejado en `_flEstado` (index) y alineado
+    con `_hjDisp`, el chip de la Hoja UCI, **que ya usaba `frec-1`**: llevaba
+    semanas contradiciendo al servidor sin que nadie lo notara.
+  - Textos: la hoja dice «ESTA NOCHE» en vez de «CAMBIAR HOY» (la usan de
+    madrugada y «hoy» se leía como la víspera) y encabeza con «Ronda de la
+    madrugada del dd-mm»; el modal agrega «· madrugada del dd-mm».
+  - 🪤 **La guardia memorizaba fechas y por eso dejó pasar el error.**
+    `eventos.js` ahora encadena los ciclos y mide **el intervalo entre dos
+    cambios del mismo dispositivo** (2 días el HME, 3 el HEPA/TC), que es la
+    propiedad que de verdad importa. Un solo ciclo se ve bien y miente.
+  - ⚠️ Esto **invierte en un día** lo que se publicó el 7-ago con el visto bueno
+    de Diego: su ejemplo pasa de «noches del 06 y 07» a «noches del 05 y 06».
+    Avisarle antes de publicar.
+  - 🔴 **Y LA CORRECCIÓN LLEGÓ A TRES DE LOS CUATRO LUGARES.** Unas horas
+    después, buscando con el RAG recién construido, apareció que
+    `svc_entrega.gs` —**la entrega de turno**, el papel que se pasan los
+    kinesiólogos— seguía con `dias === frec ? 'cambiar'`, o sea avisando una
+    noche tarde, mientras `estadoDispositivos`, `_flEstado` y `_hjDisp` ya iban
+    en `frec-1`. Dos papeles de la misma unidad dando fechas distintas del mismo
+    filtro es exactamente lo que hace que el equipo deje de creerle a los dos.
+    Corregido a `dias >= frec ? 'vencido' : (dias === frec-1 ? 'cambiar' : 'ok')`,
+    con `disp_fecha.js` reescrita: sus asserts codificaban la regla vieja como
+    «SEMÁNTICA VALIDADA POR DIEGO» y ahora, además de las fechas, **miden el
+    intervalo entre dos cambios encadenados**.
+    👉 **Lección para la próxima regla clínica: búscala en TODAS partes antes de
+    tocarla.** Una regla de este sistema vive típicamente en cuatro sitios
+    —servidor, espejo del cliente, imprimible y chip— y el RAG los encuentra en
+    un comando.
+    ✅ **EN PRODUCCIÓN: Versión 28 del 10-ago-2026, 3:00, sello `5.48-terreno`**
+    (verificado con `fetch` al `/exec`: 200 y el sello nuevo), sobre la misma
+    implementación de siempre. Se pegaron **DOS** archivos —`index.html` y
+    `servicios.gs`—; `dominio.gs` no cambió en esta tanda y **no** hizo falta
+    `cuadrarEncabezados()`. Avisado a Diego en `#mejoras-rce`.
+    🪤 **Al pegar por Monaco, elegir el modelo por su URI, no por su contenido.**
+    Buscar «el modelo que contenga `obtenerEntregaTurno`» devolvió `api.gs`
+    —el dispatcher también nombra esa función— y le escribió encima el
+    `servicios.gs` entero. No llegó a guardarse, pero el modo de fallo es real y
+    silencioso: la comprobación que lo cazó fue **comparar las 13 longitudes
+    UTF-16 del editor contra el paquete, archivo por archivo, antes de ⌘S**.
+
+- **LA COLUMNA SOPORTE DICE CUÁL OXIGENOTERAPIA (10-ago-2026, pedido de Manuel;
+  solo index).** «Oxigenoterapia/OAF» a secas no sirve en la ronda. El dato ya
+  existía en `VENT_MODO` —el formulario lo pide— y la grilla lo tiraba: ahora la
+  etiqueta pasa a **«O2 · NRC»** (CNAF, NRC, MMV, mascarilla; con vía aérea
+  artificial, HME o tubo en T) y el nombre largo queda en el tooltip. Si no hay
+  modo registrado **no se inventa**: queda el genérico. VM y VNI no se tocan —
+  el pedido era la oxigenoterapia. Se lee igual que el soporte: manda la
+  evolución del turno, si no el estado de la cama (`c.MODO`).
+  - **Y «Mascarilla» pasó a llamarse «MR» (mascarilla de reservorio)**, que es
+    como la nombra la unidad; decisión de Manuel al preguntarle. El renombre va
+    en el catálogo `VMAPS`, en los selects de modo post-extubación y de soporte
+    previo a la reintubación, y en `_PE_META`. Tres capas para que nada se
+    rompa: **valor** guardado = `MR`; **etiqueta** del desplegable = «MR
+    (reservorio)» vía `_MODO_ETIQ`; y **nombre largo** dentro de la evolución
+    vía `_MODO_LARGO` (espejado en `dominio_texto.gs`) — «por MR» no le dice
+    nada a quien lee la ficha desde fuera de la unidad, «por mascarilla de
+    reservorio» sí. Ojo: `_MODO_LARGO` expande **solo MR**. Al principio expandí
+    también NRC y MMV y `via_aerea_previo.js` se puso roja: la narrativa ya
+    tenía esas siglas fijadas («Previo en naricera-NRC»). La guardia hizo su
+    trabajo — expandir de más es cambiar textos que nadie pidió cambiar. Las evoluciones anteriores guardaron `Mascarilla` y se
+    siguen leyendo en todos los consumidores y en la grilla.
+    NO se tocó el select de dispositivo post-decanulación (`fDecanQueda`): ahí
+    «Mascarilla de oxígeno» es otro vocabulario y no implica reservorio.
+  Guardia nueva: `checks/tabla_soporte.js` (13 asserts).
 
 - **VELOCIDAD · LA CONFIGURACIÓN SE LEE UNA VEZ POR PETICIÓN (ago-2026, sin
   cambio de index — NO exige `crearORepararEstructura()`).** Propuesto por

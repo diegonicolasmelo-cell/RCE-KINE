@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.46-afinado">
+<meta name="rce-version" content="5.47-terreno">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -357,7 +357,15 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ent-tag-pend{background:#ffedd5;color:#9a3412;}
 
 @media print{
-  @page{size:A4 landscape;margin:10mm;}
+  /* VERTICAL (ago-2026, pedido de Manuel): la entrega se imprime en A4 de pie.
+     Era apaisada, y esa orientación se decidió cuando la ficha compacta nació;
+     pero la hoja vertical tiene 281 mm de alto contra 190 mm, así que aunque
+     cada ficha crezca un poco al angostarse (194 mm contra 277 mm de ancho),
+     entran más por hoja. Este @page es el GLOBAL: manda también cuando alguien
+     imprime con Ctrl+P sin pasar por el botón, que es como lo hace medio
+     equipo. El historial, que sí necesita ancho, se lo da vuelta al imprimir
+     (tlImprimir → _imprimirApaisado). */
+  @page{size:A4 portrait;margin:8mm;}
   body *{visibility:hidden;}
   #tcE,#tcE *{visibility:visible;}
   .no-print{display:none!important;}
@@ -383,26 +391,49 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
      columnas agrega filas, estirar las líneas las quita.
      ───────────────────────────────────────────────────────────────────── */
   .ent-ficha{border-radius:4px;margin-bottom:0;}
-  .ent-fichas{gap:4px;}
+  .ent-fichas{gap:3px;}
+  /* Encabezado y pie: en pantalla respiran, en papel se apretan. Medido: entre
+     el título, las píldoras del resumen y las líneas de firma se iban 271 px
+     —una cuarta parte de hoja— sin un solo dato de paciente (ago-2026). */
+  .ent-head{padding-bottom:4px;margin-bottom:4px;border-bottom-width:1.5px;}
+  .ent-head-l h1{font-size:1rem;}
+  .ent-head-l .ent-sub{font-size:.66rem;margin-top:0;}
+  .ent-head-r{font-size:.64rem;line-height:1.3;}
+  .ent-resumen{margin:4px 0 5px;gap:4px;}
+  .ent-pill{padding:1px 8px;font-size:.6rem;border-radius:10px;}
+  .ent-foot{margin-top:8px;padding-top:5px;font-size:.62rem;}
+  .ent-foot .ent-sign-line{margin-top:16px;padding-top:2px;width:130px;}
+  /* Los chips son etiquetas, no botones: en papel no necesitan la píldora
+     entera, y su relleno vertical estiraba la línea de la cabecera. */
+  .ent-tag{padding:0 4px;font-size:.55rem;border-radius:3px;margin-right:2px;}
 
   /* Cabecera de UNA línea: cama · nombre · edad/días · chips · dx · ingreso */
-  .ent-fh{flex-wrap:nowrap;gap:6px;padding:1px 7px;align-items:baseline;}
+  .ent-fh{flex-wrap:wrap;gap:1px 6px;padding:1px 7px;align-items:baseline;}
   .ent-ficha-cama{font-size:.68rem;padding:0 5px;border-radius:3px;}
   .ent-ficha-nm{font-size:.68rem;flex-grow:0;white-space:nowrap;}
   .ent-ficha-meta{font-size:.58rem;}
   .ent-fh-chips{margin-left:0;flex-shrink:0;}
-  /* El dx toma el sobrante (era el blanco desperdiciado) y se recorta si no cabe */
-  .ent-fh-dx{flex-basis:auto;flex:1 1 auto;min-width:0;font-size:.59rem;
+  /* El dx toma el sobrante (era el blanco desperdiciado) y se recorta si no cabe.
+     En A4 vertical ese sobrante se acabó: con la cabecera en nowrap el
+     diagnóstico se comprimía hasta desaparecer —medido: 32 px en un turno
+     normal y 0 px en uno cargado de chips—, o sea gastaba línea sin decir
+     nada. Ahora pide un tercio del ancho: si lo tiene, la cabecera sigue
+     siendo UNA línea; si no, el dx baja al renglón de abajo y se lee entero.
+     Solo pagan ese renglón las fichas que vienen cargadas de alertas. */
+  .ent-fh-dx{flex:1 1 33%;min-width:33%;font-size:.575rem;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ent-fh-ing{display:inline;font-size:.56rem;color:#64748b;white-space:nowrap;flex-shrink:0;}
 
-  /* Cuerpo: los pisos dejan de ser rejilla; las celdas fluyen en línea */
+  /* Cuerpo: los pisos dejan de ser rejilla; las celdas fluyen en línea.
+     En vertical cada línea es 30% más corta, así que el ahorro se busca en el
+     INTERLINEADO y en lo que no es dato (etiquetas, píldoras, márgenes), no en
+     achicar el texto hasta volverlo ilegible (ago-2026). */
   .ent-p1,.ent-p2{display:block;border-bottom:none;}
   .ent-p1{border-bottom:1px dotted #e2e8f0;}
   .ent-c{display:inline;border-left:none;padding:0;}
-  .ent-p1,.ent-p2{padding:1px 7px;}
+  .ent-p1,.ent-p2{padding:0 7px;}
   .ent-k{display:none;}                    /* las etiquetas en mayúsculas sobran en papel */
-  .ent-v{display:inline;font-size:.6rem;line-height:1.4;}
+  .ent-v{display:inline;font-size:.575rem;line-height:1.22;}
   .ent-v br{display:none;}                 /* los eventos van seguidos, no apilados */
   .ent-c + .ent-c:before{content:" · ";color:#94a3b8;font-weight:700;}
   .ent-c-vacia{display:none;}              /* lo no registrado no gasta papel */
@@ -411,14 +442,19 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
   /* El plan conserva franja propia: es lo que el turno que entra viene a leer.
      En papel se muestra el ESPEJO (div) y no el textarea: éste imprime solo
      lo que cabe en sus 2 filas y cortaría los planes largos. El div crece con
-     el texto, así que además ocupa 1 línea cuando el plan es corto. */
-  .ent-p2 .ent-pend{display:block;padding:1px 7px;margin-top:1px;}
-  .ent-p2 .ent-pend .ent-k{display:block;font-size:.5rem;margin-bottom:0;}
+     el texto, así que además ocupa 1 línea cuando el plan es corto.
+     Su etiqueta y los pendientes van EN LÍNEA con el plan: en vertical, cada
+     uno en su renglón costaba dos líneas por paciente y ninguna traía dato. */
+  .ent-p2 .ent-pend{display:block;padding:0 7px;margin-top:0;line-height:1.22;}
+  .ent-p2 .ent-pend .ent-k{display:inline;font-size:.5rem;margin-bottom:0;margin-right:3px;}
   .ent-pend textarea{display:none;}
-  .ent-plan-print{display:block;font-size:.6rem;line-height:1.35;color:#78350f;
+  .ent-pends{display:inline!important;margin-bottom:0!important;}
+  .ent-pend-chip{background:none!important;border:none!important;border-radius:0!important;
+    padding:0 4px 0 0!important;font-size:.58rem!important;color:#92400e!important;}
+  .ent-plan-print{display:inline;font-size:.575rem;line-height:1.22;color:#78350f;
     white-space:pre-wrap;word-break:break-word;}
   .ent-plan-print:empty{display:none;}
-  .ent-firma{padding:0 7px 2px;font-size:.55rem;}
+  .ent-firma{padding:0 7px 1px;font-size:.52rem;line-height:1.1;}
   .ent-heredado{font-size:.58rem;padding:1px 7px;}
   .ent-sinevo-strip{font-size:.58rem;padding:1px 7px;}
 }
@@ -442,6 +478,60 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
   body.print-pve #pvePrint *{visibility:visible;}
   body.print-pve #tcE{display:none;}
 }
+/* ── LISTA DEL DÍA y CONTROL DE FILTROS (ago-2026, pedido de Manuel) ──
+   Dos hojas verticales que se llevan a la ronda. La lista del día reemplazó
+   en la pestaña Registro a las 34 carillas de las hojas de registro: es la
+   misma franja de identificación que ya usaba ese formato (cama · edad ·
+   nombre · RUT · días · fecha), pero de todos los pacientes en UNA hoja, con
+   el diagnóstico debajo y las escalas que estén registradas. ── */
+#listaPrint,#filtrosPrint{display:none;}
+@media print{
+  body.print-lista *{visibility:hidden;}
+  body.print-lista #listaPrint{display:block;visibility:visible;position:absolute;left:0;top:0;width:100%;}
+  body.print-lista #listaPrint *{visibility:visible;}
+  body.print-lista #tcE{display:none;}
+  body.print-filtros *{visibility:hidden;}
+  body.print-filtros #filtrosPrint{display:block;visibility:visible;position:absolute;left:0;top:0;width:100%;}
+  body.print-filtros #filtrosPrint *{visibility:visible;}
+  body.print-filtros #tcE{display:none;}
+}
+#listaPrint,#filtrosPrint{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;}
+/* Control de filtros */
+.fl-h1{text-align:center;font-weight:800;font-size:10.5pt;margin-bottom:2px;}
+.fl-h2{display:flex;align-items:center;gap:8px;font-size:8pt;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:4px;}
+.fl-h2 .fl-f{margin-left:auto;font-weight:800;font-size:9pt;border:1.5px solid #000;padding:1px 7px;}
+.fl-leg{font-size:7.5pt;margin-bottom:4px;}
+.fl-t{border-collapse:collapse;width:100%;table-layout:fixed;}
+.fl-th{border:1px solid #000;background:#e8e8e8;font-size:7.5pt;font-weight:800;padding:2px 3px;text-align:center;}
+.fl-frec{font-weight:400;font-size:6.5pt;}
+.fl-c{border:1px solid #000;font-size:7.5pt;padding:2px 4px;vertical-align:top;height:34px;}
+.fl-cama{text-align:center;font-size:11pt;font-weight:800;vertical-align:middle;}
+.fl-nom{font-size:8pt;font-weight:700;vertical-align:middle;}
+.fl-na{text-align:center;color:#888;vertical-align:middle;}
+.fl-et{font-size:6.8pt;color:#333;}
+.fl-mk{font-weight:800;font-size:7.2pt;margin:1px 0;}
+.fl-venc{background:#d9d9d9;}
+.fl-venc .fl-mk{text-decoration:underline;}
+.fl-hoy{background:#f2f2f2;}
+.fl-chks{vertical-align:middle;}
+.fl-chk{display:flex;align-items:center;gap:3px;font-size:7pt;color:#000;font-weight:700;}
+.fl-box{display:inline-block;width:10px;height:10px;border:1.2px solid #000;flex-shrink:0;}
+.fl-vm{vertical-align:middle;}
+.fl-vmn{font-size:7.5pt;font-weight:700;}
+.fl-libre{color:#666;font-weight:400;font-style:italic;}
+.fl-pie{margin-top:6px;font-size:7pt;}
+/* Lista del día */
+.ld-h1{text-align:center;font-weight:800;font-size:11pt;margin-bottom:2px;}
+.ld-h2{display:flex;align-items:center;gap:8px;font-size:8pt;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:5px;}
+.ld-h2 .ld-f{margin-left:auto;font-weight:800;font-size:9pt;border:1.5px solid #000;padding:1px 7px;}
+.ld-h2 .ld-n{font-weight:700;}
+.ld-pac{margin-bottom:4px;break-inside:avoid;}
+.ld-t{border-collapse:collapse;width:100%;table-layout:fixed;}
+.ld-c{border:1.2px solid #000;padding:1px 5px;font-size:6.8pt;}
+.ld-big{font-size:9.5pt;font-weight:800;}
+.ld-dx{border:1.2px solid #000;border-top:none;padding:1px 5px;font-size:7.5pt;display:flex;align-items:baseline;gap:6px;}
+.ld-escs{margin-left:auto;display:flex;gap:7px;flex-shrink:0;}
+.ld-esc{font-size:7pt;border:1px solid #000;padding:0 4px;white-space:nowrap;}
 /* ── Hoja APK (pauta de cotejo oficial de preparación para KTR — reflejo
    fiel del PDF APK 1.2 del hospital; solo se prellenan Ficha/RUN y
    Servicio, la grilla va en blanco para llenar a mano) ── */
@@ -1477,7 +1567,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" class="datein dashin" id="tblSearch" placeholder="🔍 Buscar paciente…" style="min-width:200px;" oninput="renderTabla()">
         <button class="dpset" id="btnDocs" onclick="docsAbrir()">📂 Documentos</button>
-        <button class="dpset" onclick="imprimirHojasDelDia()" title="Imprime la hoja de registro kinésico de cada paciente hospitalizado, con cama, edad, nombre, RUT, días y fecha ya impresos — reemplaza el recorte diario de la lista">🖨️ Hojas del día</button>
+        <button class="dpset" onclick="imprimirListaDelDia()" title="Una hoja con todos los pacientes presentes: cama, edad, nombre, RUT, días y fecha, con el diagnóstico y las escalas registradas — reemplaza el recorte diario de la lista">🖨️ Lista del día</button>
+        <button class="dpset" onclick="imprimirFiltros()" title="Hoja de la ronda: HME, HEPA y Trach Care de las 18 camas, con el ventilador de cada sala, los que toca cambiar y la casilla para marcarlo">🖨️ Filtros</button>
         <button class="dpset" onclick="cnAbrir()" title="Qué HME, HEPA y Trach Care se cambian en el turno noche de esta fecha, y cuáles quedaron atrasados">🌙 Cambios de esta noche</button>
         <button class="dpset" onclick="regCSV()">⬇️ CSV</button>
       </div>
@@ -2021,6 +2112,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
 <div id="rhbPrint"></div>
 <div id="apkPrint"></div>
 <div id="rkPrint"></div>
+<div id="listaPrint"></div>
+<div id="filtrosPrint"></div>
 <div id="pvePrint"></div>
 <!-- CONFIRMACIÓN PROPIA (reemplaza al confirm() del navegador) -->
 <div id="ucOvl" class="uc-ovl">
@@ -2794,12 +2887,25 @@ document.documentElement.setAttribute('data-piel', 'inst');
                     style="padding:3px 14px;border-radius:20px;border:1.5px solid #c4b5fd;background:#f5f3ff;color:#6d28d9;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;">Sí</button>
                   <button type="button" id="btnPVENo" onclick="hPVEtoggle('no')"
                     style="padding:3px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;">No</button>
+                  <!-- APAGAR EL BLOQUE (ago-2026, pedido de Manuel): el paciente
+                       sigue en VM porque su causa de base no está resuelta, así
+                       que no procede ni PVE ni extubación. Vale SOLO para este
+                       turno: el siguiente vuelve a preguntar. -->
+                  <button type="button" id="btnPVEnc" onclick="hPVEtoggle('nc')"
+                    title="No procede PVE ni extubación en este turno: la causa que motivó la ventilación no está resuelta"
+                    style="padding:3px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;">🚫 No corresponde</button>
                   <input type="hidden" id="fPVEval" value="">
                 </div>
                 <!-- Horas reales de VM (informativo, ago-2026): el gate por DIAS_VM
                      (calendario) bloqueaba a colegas que por horas reales SÍ cumplían
                      protocolo — ahora solo informa, nunca deshabilita el "Sí". -->
                 <div id="dPVEfueraProto" class="hidden" style="margin-bottom:6px;font-size:.72rem;font-weight:700;border-radius:6px;padding:6px 9px;"></div>
+
+                <!-- ── Rama NO CORRESPONDE ── -->
+                <div id="dPVEncRama" class="hidden" style="padding:8px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:7px;margin-bottom:6px;font-size:.74rem;color:#475569;line-height:1.45;">
+                  <b style="color:#334155;">Causa no resuelta.</b> No procede PVE ni extubación en este turno; el paciente mantiene soporte ventilatorio.
+                  <div style="font-size:.67rem;color:#94a3b8;margin-top:3px;">Queda registrado en la evolución. Vale solo para este turno — el próximo vuelve a preguntar.</div>
+                </div>
 
                 <!-- ── Rama SÍ PVE ── -->
                 <div id="dPVESiRama" class="hidden" style="padding:8px 10px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:7px;margin-bottom:6px;">
@@ -2829,7 +2935,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
                           <option value="Ambiente">Ambiente</option>
                           <option value="NRC">NRC</option>
                           <option value="MMV">MMV</option>
-                          <option value="Mascarilla">Mascarilla O2</option>
+                          <option value="MR">MR (reservorio)</option>
                           <option value="CNAF">CNAF</option>
                           <option value="S/T">VNI S/T</option>
                           <option value="AVAPS">VNI AVAPS</option>
@@ -2956,7 +3062,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
                         <option value="Ambiente">Ambiente</option>
                         <option value="NRC">NRC</option>
                         <option value="MMV">MMV</option>
-                        <option value="Mascarilla">Mascarilla O2</option>
+                        <option value="MR">MR (reservorio)</option>
                         <option value="CNAF">CNAF</option>
                         <option value="S/T">VNI S/T</option>
                         <option value="AVAPS">VNI AVAPS</option>
@@ -3059,7 +3165,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
                     <select id="fReintubSopPrev" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;min-width:130px;">
                       <option value="">-- Seleccionar --</option>
                       <option>CNAF</option><option>VNI</option><option>MMV</option><option>NRC</option>
-                      <option>Mascarilla</option><option>Naricera</option><option>Ambiente</option><option>VMI</option>
+                      <option value="MR">MR (reservorio)</option><option>Naricera</option><option>Ambiente</option><option>VMI</option>
                     </select>
                   </div>
                     <!-- El panel «Queda con» (módulo completo) se inserta aquí -->
@@ -3151,6 +3257,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
                     <div style="display:flex;flex-direction:column;gap:8px;">
                       <div class="check wa"><input type="checkbox" id="cSOF"><label for="cSOF" title="Succión Orofaríngea">SOF <span style="font-size:.65rem;color:var(--muted);">Succión orofaríngea</span></label></div>
                       <div class="check wa"><input type="checkbox" id="cSNF"><label for="cSNF" title="Succión Nasofaríngea">SNF <span style="font-size:.65rem;color:var(--muted);">Succión nasofaríngea</span></label></div>
+                      <div id="dSNT" class="check wa"><input type="checkbox" id="cSNT"><label for="cSNT" title="Succión Nasotraqueal — vía aérea natural">SNT <span style="font-size:.65rem;color:var(--muted);">Succión nasotraqueal</span></label></div>
                       <div id="dSET" class="check wa"><input type="checkbox" id="cSET"><label for="cSET" title="Succión Endotraqueal">SET <span style="font-size:.65rem;color:var(--muted);">Succión endotraqueal</span></label></div>
                       <div class="check wa"><input type="checkbox" id="cATos"><label for="cATos">A. Tos <span style="font-size:.65rem;color:var(--muted);">Asistencia de tos</span></label></div>
                     </div>
@@ -3629,9 +3736,9 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <div id="gFalta"></div>
       <div class="act-bar">
         <span id="gSinGuardar" class="hidden" style="align-self:center;font-size:.72rem;font-weight:800;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;border-radius:20px;padding:3px 10px;margin-right:6px;white-space:nowrap;">⚠️ Sin guardar</span>
-        <button type="button" id="btnGuardar" class="btn btn-p" onclick="guardar()">💾 Guardar Evolución</button>
-        <button type="button" class="btn btn-r" style="width:auto;padding:0 15px;flex-shrink:0;" onclick="previewTexto()">👁️ Preview</button>
-        <button type="button" id="btnCerrarPost" class="btn" style="width:auto;padding:0 15px;flex-shrink:0;background:#334155;color:#fff;display:none;" onclick="cerrarPanel()">✖ Cerrar</button>
+        <button type="button" id="btnGuardar" class="btn btn-p" data-nodirty onclick="guardar()">💾 Guardar Evolución</button>
+        <button type="button" class="btn btn-r" style="width:auto;padding:0 15px;flex-shrink:0;" data-nodirty onclick="previewTexto()">👁️ Preview</button>
+        <button type="button" id="btnCerrarPost" class="btn" style="width:auto;padding:0 15px;flex-shrink:0;background:#334155;color:#fff;display:none;" data-nodirty onclick="cerrarPanel()">✖ Cerrar</button>
       </div>
 
       <!-- TEXTO DE LA EVOLUCIÓN — editor real: se guarda tal como se ve -->
@@ -3640,7 +3747,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
           <span style="color:#94a3b8;font-size:.7rem;font-weight:700;">📄 TEXTO DE LA EVOLUCIÓN — editable; se guarda tal como lo ves<span id="rtxtEditBadge" style="display:none;color:#b45309;"> · ✍️ editado a mano</span></span>
           <div style="display:flex;gap:8px;">
             <button type="button" id="btnRegenTexto" style="display:none;width:auto;padding:8px 14px;font-size:.8rem;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:8px;cursor:pointer;" onclick="regenerarTexto()" title="Vuelve al texto del generador (descarta los retoques manuales)">🔄 Regenerar</button>
-            <button type="button" class="btn btn-c" style="width:auto;padding:8px 20px;font-size:.85rem;font-weight:800;" onclick="copiar()">📋 Copiar Texto</button>
+            <button type="button" class="btn btn-c" style="width:auto;padding:8px 20px;font-size:.85rem;font-weight:800;" data-nodirty onclick="copiar()">📋 Copiar Texto</button>
           </div>
         </div>
         <textarea id="rtxt" rows="20"></textarea>
@@ -3690,7 +3797,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <!-- Selector de variables (multi, solo en tabs Vent / Reh) -->
     <span id="tlVarLbl" class="hidden" style="font-size:.68rem;color:#64748b;font-weight:700;text-transform:uppercase;margin-left:8px;">Variables:</span>
     <div id="tlVarChips" class="tl-varchips hidden"></div>
-    <button class="hbtn" onclick="imprimirHojaRHB()" style="margin-left:auto;" title="Genera la Hoja de Seguimiento RHB con los datos del episodio">🖨️ Hoja RHB</button>
+    <button class="hbtn" onclick="imprimirHojaUCIpaciente()" style="margin-left:auto;" title="Hoja de registro kinésico UCI (formato oficial V0.2, dos carillas) de este paciente, con cama, edad, nombre, RUT, días y fecha ya impresos">🖨️ Hoja de registro</button>
+    <button class="hbtn" onclick="imprimirHojaRHB()" title="Genera la Hoja de Seguimiento RHB con los datos del episodio">🖨️ Hoja RHB</button>
     <button class="hbtn" onclick="imprimirHojaAPK()" title="Pauta de cotejo de preparación del paciente para KTR (APK), con ficha/RUN y servicio prellenados">🖨️ Hoja APK</button>
     <button class="hbtn" onclick="imprimirHojaPVE()" title="Hoja de registro de prueba de ventilación espontánea (protocolo de weaning), con nombre y RUT prellenados">🖨️ Hoja PVE</button>
   </div>
@@ -3896,7 +4004,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.46-afinado]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.47-terreno]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4348,7 +4456,7 @@ function _resetHiddenYEventos(){
     if(e.id==='cBed'||e.id==='cIng') return;
     e.value='';
   });
-  if(typeof _pveBtnReset==='function'){ _pveBtnReset(); hide('dPVESiRama'); hide('dPVENoRama'); _pveCleanSi(); _pveCleanNo(); }
+  if(typeof _pveBtnReset==='function'){ _pveBtnReset(); hide('dPVESiRama'); hide('dPVENoRama'); hide('dPVEncRama'); _pveCleanSi(); _pveCleanNo(); }
   const _decR=$('cDecanOcurrio'); if(_decR){ _decR.checked=false; if(typeof hDecan==='function') hDecan(); }
   const _tqR=$('cTqtO'); if(_tqR){ _tqR.checked=false; hide('dTqtDet'); }
   const _rtR=$('cReintubT'); if(_rtR) _rtR.checked=false;
@@ -4376,7 +4484,7 @@ function rielRender(){
   if(!v('fVA')) faltas.push('vía aérea');
   // Obligatorias nuevas (ago-2026, Diego): declarar la PVE con TOT y la
   // razón cuando la KTM no se realiza o está contraindicada.
-  if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltas.push('PVE sí/no');
+  if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltas.push('PVE sí / no / no corresponde');
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltas.push('razón de KTM no realizada');
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltas.push('contraindicación de KTM');
   const fEl=$('gFalta');
@@ -4946,7 +5054,7 @@ function fillForm(s) {
 
   // Respiratorio — KTR persiste como referencia; maniobras son acción diaria
   set('fKTRcnt',_ex.RESP_KTR_CANT);
-  ['cSOF','cSNF','cSET','cATos','cInhalo'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
+  ['cSOF','cSNF','cSNT','cSET','cATos','cInhalo'].forEach(id=>{ const e=$(id); if(e) e.checked=false; });
   _loadCultFechas(_ex.RESP_CULT_FECHAS||'');
   _renderExtBadge(_ex.EXT_TS||'');
 
@@ -5027,7 +5135,7 @@ function fillForm(s) {
   })();
   // Extubación / Decanulación / TQT — ACCIÓN DIARIA: siempre desmarcada
   (function(){
-    const fpve=$('fPVEval'); if(fpve) fpve.value=''; _pveBtnReset?.(); hide('dPVESiRama'); hide('dPVENoRama'); _pveCleanSi?.(); _pveCleanNo?.();
+    const fpve=$('fPVEval'); if(fpve) fpve.value=''; _pveBtnReset?.(); hide('dPVESiRama'); hide('dPVENoRama'); hide('dPVEncRama'); _pveCleanSi?.(); _pveCleanNo?.();
     const dec=$('cDecanOcurrio'); if(dec) dec.checked=false; hDecan();
     const dsv=$('cDesvinc'); if(dsv) dsv.checked=false; hDesvinc();
     const gsa=$('cGSA'); if(gsa) gsa.checked=false; hGSA();
@@ -5064,7 +5172,9 @@ function fillForm(s) {
   _renderEvStrip(s);
   _updCategorias();
   _abrirDetailsEval();
-  _evoEventoGuardado = s.EXT_OCURRIO===true||s.EXT_OCURRIO==='TRUE'||!!s.PVE_VAL||
+  // 'nc' (no corresponde) NO es un evento guardado: no hay PVE ni extubación
+  // que preservar al reabrir el turno para corregir otra cosa (ago-2026).
+  _evoEventoGuardado = s.EXT_OCURRIO===true||s.EXT_OCURRIO==='TRUE'||(!!s.PVE_VAL&&s.PVE_VAL!=='nc')||
     s.DECAN_OCURRIO===true||s.DECAN_OCURRIO==='TRUE'||s.INTUB_OCURRIO===true||s.INTUB_OCURRIO==='TRUE'||
     s.EXT_REINTUB===true||s.EXT_REINTUB==='TRUE'||s.TOT_CAMBIO===true||s.TOT_CAMBIO==='TRUE'||
     s.TQT_CAMBIO===true||s.TQT_CAMBIO==='TRUE'||s.TQT_OCURRIO===true||s.TQT_OCURRIO==='TRUE';
@@ -5511,9 +5621,10 @@ function guardar() {
   }
   // ★ PVE OBLIGATORIA DE DECLARAR (ago-2026, Diego): con el paciente en TOT
   // hay que decir SÍ se hizo o NO se hizo — sin contestar, el indicador de
-  // PVE queda ciego y la evolución no narra la prueba ★
+  // PVE queda ciego y la evolución no narra la prueba. Desde ago-2026 hay una
+  // tercera respuesta válida: «no corresponde» (causa de base no resuelta) ★
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')){
-    toast('⚠️ Define si se realizó o no la PVE este turno (botón Sí / No)');
+    toast('⚠️ Define la PVE de este turno: Sí, No o No corresponde');
     const bp=$('btnPVESi');
     if(bp){ bp.scrollIntoView({behavior:'smooth',block:'center'}); bp.style.outline='2px solid var(--danger)'; setTimeout(()=>{bp.style.outline='';},2500); }
     return;
@@ -5734,6 +5845,7 @@ function guardar() {
     RESP_SIN_KTR:   bv('cSinKTR'),
     RESP_SOF:       bv('cSOF'),
     RESP_SNF:       bv('cSNF'),
+    RESP_SNT:       bv('cSNT'),
     RESP_SET:       bv('cSET'),
     RESP_ATOS:      bv('cATos'),
     RESP_INHALO:    bv('cInhalo'),
@@ -6383,7 +6495,7 @@ function cnRender(d){
         <span style="color:var(--muted);">etiqueta ${_ddmm(x.etiqueta)}</span>
         <span style="flex:1;"></span>
         ${venc?`<b style="color:#b91c1c;">VENCIDO — debió cambiarse el ${_ddmm(x.fechaCambio)}${x.diasAtraso>1?` (hace ${x.diasAtraso} días)`:''}</b>`
-             :`<b style="color:#b45309;">se cambia esta noche</b>`}
+             :`<b style="color:#b45309;">se cambia esta noche · madrugada del ${_ddmm(x.fechaCambio)}</b>`}
       </div>`;
     }).join('');
   });
@@ -7056,7 +7168,8 @@ const HJ_F = {
             return _hjT(e.MUE_REALIZADAS)?_hjChip('Tomado','pur'):''; }},
   // Weaning
   pveVal:{l:'PVE del turno', per:'t', f:e=>{ const v=String(e.PVE_VAL||''); if(!v) return '';
-            return v==='si'?_hjChip('✓ Realizada','ok'):_hjChip('No','gray'); }},
+            if(v==='si') return _hjChip('✓ Realizada','ok');
+            return _hjChip(v==='nc'?'No corresponde':'No','gray'); }},
   pveRes:{l:'Resultado PVE', per:'t', f:e=>{ const r=String(e.PVE_RESULTADO||''); if(!r) return '';
             return /super/i.test(r)?_hjChip('✓ '+r,'ok'):_hjChip('✕ '+r,'bad'); }},
   pveMot:{l:'Motivo (fracaso / no PVE)', per:'t', f:e=>{
@@ -7275,11 +7388,9 @@ function tlImprimir(){
   h+=secc('Soporte ventilatorio',['VENT_PEEP','VENT_PS','CALC_DP']);
   h+=secc('Rehabilitación',['KTM_NIVEL_KTR','EVAL_IMS','EVAL_T_MRC','EVAL_T_FSS']);
   $('tlPrint').innerHTML=h;
-  document.body.classList.add('tl-printing');
-  const fin=()=>{ document.body.classList.remove('tl-printing'); window.removeEventListener('afterprint',fin); };
-  window.addEventListener('afterprint',fin);
-  window.print();
-  setTimeout(fin,2000);   // respaldo por si afterprint no dispara en el iframe
+  // Apaisada: son tablas de variables por turno y el ancho es lo que se lee
+  // (el @page global pasó a vertical con la entrega, ago-2026).
+  _imprimirApaisado('tl-printing');
 }
 function hjSetSeg(s){ HJ_SEG=s; renderTL(); }
 function hjSetRango(r){ HJ_RANGO=r; renderTL(); }
@@ -7635,8 +7746,15 @@ function _bindPanelListeners(){
   // «KTM contraindicada» hasta que tocara por casualidad un campo escrito.
   // Se engancha el CLIC para que cualquier chip, presente o futuro, quede
   // cubierto sin tener que acordarse de avisarle al generador.
+  // …pero NO todo <button> del formulario cambia la evolución: los de la barra
+  // de acciones (guardar, preview, copiar, cerrar) solo miran o mandan lo que
+  // ya está. Copiar el texto para pegarlo en el BUDA dejaba el turno marcado
+  // como «sin guardar» y pedía guardar de nuevo (ago-2026, reporte de Manuel).
+  // Se marcan con data-nodirty en vez de listarlos aquí, para que el que
+  // agregue un botón nuevo decida en el mismo lugar donde lo escribe.
   $('kf')?.addEventListener('click', ev=>{
-    if(!ev.target.closest('button')) return;
+    const b=ev.target.closest('button');
+    if(!b || b.hasAttribute('data-nodirty')) return;
     _formDirty=true; _rtxtLive(ev);
   });
   // Cualquier interacción del usuario marca el formulario como "con cambios"
@@ -7991,7 +8109,10 @@ function genTexto() {
       const _pb=_pjoin([_lit?`${_lit} Lpm`:null, fio2?`FiO2 ${fio2}%`:null, fr?`FR ${fr} rpm`:null, spo2?`SpO2 ${spo2}%`:null]);
       _B('param'); if(_pb) L.push(`Oxigenoterapia: ${_pb}.`);
     } else {
-      const _lit=_np('r_litros'), _dev=modo&&modo!=='Sin soporte'?modo:'';
+      // La evolución la lee un médico, no solo la unidad: la sigla se expande
+      // («por MR» no dice nada; «por mascarilla de reservorio», sí). Espejo de
+      // _MODO_LARGO en dominio_texto.gs — mantener en paridad.
+      const _lit=_np('r_litros'), _dev=modo&&modo!=='Sin soporte'?(_MODO_LARGO[modo]||modo):'';
       _B('sop'); L.push(`Ventila espontáneo con FiO2 adicional${_dev?` por ${_dev}`:''}.`);
       const _pb=_pjoin([_lit?`${_lit} Lpm`:null, fio2?`FiO2 ${fio2}%`:null, fr?`FR ${fr} rpm`:null, gv('r_uma')?`UMA ${gv('r_uma')}`:null, spo2?`SpO2 ${spo2}%`:null]);
       _B('param'); if(_pb) L.push(`Oxigenoterapia: ${_pb}.`);
@@ -8108,6 +8229,7 @@ function genTexto() {
     if($('cSET')?.checked) perm.push('SET');
     if($('cSOF')?.checked) perm.push('SOF');
     if($('cSNF')?.checked) perm.push('SNF');
+    if($('cSNT')?.checked) perm.push('SNT');
     if($('cATos')?.checked) perm.push('asistencia de tos');
     // Secreciones: consistencia primero, luego cantidad
     const reol=v('fSecrReol'), car=v('fSecrCar'), qty=v('fSecrQty');
@@ -8233,6 +8355,13 @@ function genTexto() {
   (function(){
     const _pve=v('fPVEval');
     if(!_pve || v('fVA')!=='TOT') return; // PVE/extubación solo existe con TOT
+    // NO CORRESPONDE: se narra la causa y se sale — no hay prueba ni evento que
+    // contar (ago-2026). Paridad con dominio_texto.gs.
+    if(_pve==='nc'){
+      _B('pve');
+      L.push('No procede PVE ni extubación en este turno: causa de base no resuelta. Mantiene soporte ventilatorio.');
+      return;
+    }
     const _et=_extTipo();
     const _mot=v('fExtMotivo');
     const _post=_extPostDet();
@@ -8438,15 +8567,28 @@ const VMAPS={
   // hasta que se registre la vía aérea — evita que un ingreso que llega con
   // tubo pase por "Natural" y dispare la lógica de transición (intubación).
   '':         {sops:[''],                              modos:{'':['']}},
-  'Natural':  {sops:['Ambiente','Oxigenoterapia/OAF'],  modos:{'Ambiente':['Sin soporte'],'Oxigenoterapia/OAF':['NRC','MMV','Mascarilla','CNAF']}},
+  'Natural':  {sops:['Ambiente','Oxigenoterapia/OAF'],  modos:{'Ambiente':['Sin soporte'],'Oxigenoterapia/OAF':['NRC','MMV','MR','CNAF']}},
   'TOT':      {sops:['VM','Oxigenoterapia/OAF'],         modos:{'VM':['ACVC','ACPC','CPAP/PS'],'Oxigenoterapia/OAF':['HME','Tubo T','CNAF']}},
   'TQT':      {sops:['VM','Oxigenoterapia/OAF','Ambiente'], modos:{'VM':['ACVC','ACPC','CPAP/PS','CPAP','S/T','AVAPS','CFLEX'],'Oxigenoterapia/OAF':['HME','Tubo T','OAF/CTAF','CNAF','Válvula de fonación'],'Ambiente':['Válvula de fonación','Sin soporte']}},
   'Full Face':{sops:['VNI'],                          modos:{'VNI':['S/T','AVAPS','CPAP']}},
   'Oronasal': {sops:['VNI'],                          modos:{'VNI':['S/T','AVAPS','CPAP']}},
 };
+/* Siglas de la unidad cuyo nombre completo no es obvio a primera vista. El
+   VALOR guardado sigue siendo la sigla (es lo que el equipo escribe y lee en
+   la grilla); esto es solo la etiqueta del desplegable. «MR» reemplazó a
+   «Mascarilla» el 10-ago-2026 a pedido de Manuel: en la unidad esa opción es
+   la mascarilla de reservorio, y llamarla «Mascarilla» la confundía con
+   cualquier otra. Las evoluciones viejas quedaron con «Mascarilla» y se
+   siguen leyendo — ver _MODO_LARGO. */
+const _MODO_ETIQ={ 'MR':'MR (reservorio)' };
+/* Cómo se escribe la sigla DENTRO de la evolución, que la leen también fuera de
+   la unidad: «por MR» no dice nada, «por mascarilla de reservorio» sí.
+   «Mascarilla» sigue mapeada por las evoluciones anteriores a ago-2026, cuando
+   MR se llamaba así. Espejo de _MODO_LARGO en dominio_texto.gs. */
+const _MODO_LARGO={ 'MR':'mascarilla de reservorio', 'Mascarilla':'mascarilla de reservorio' };
 function poblar(id, opts, def) {
   const s=$(id); if(!s) return; s.innerHTML='';
-  opts.forEach(o=>{ const op=document.createElement('option'); op.value=op.textContent=o; s.appendChild(op); });
+  opts.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=_MODO_ETIQ[o]||o; s.appendChild(op); });
   if(def&&opts.includes(def)) s.value=def;
 }
 function cascadeVA(preSop) {
@@ -9021,6 +9163,12 @@ function _updateSinKTR(){
   const dset=$('dSET');
   if(dset){ dset.style.display=vaInvasiva?'':'none'; }
   if(!vaInvasiva){ const c=$('cSET'); if(c) c.checked=false; }
+  // SNT es el espejo exacto: la sonda entra por la nariz y pasa la glotis, así
+  // que solo existe con vía aérea NATURAL. Con TOT o TQT la succión profunda
+  // es la endotraqueal (ago-2026, pedido de Manuel).
+  const dsnt=$('dSNT');
+  if(dsnt){ dsnt.style.display=vaInvasiva?'none':''; }
+  if(vaInvasiva){ const c=$('cSNT'); if(c) c.checked=false; }
 }
 // — Badge extubación: muestra en turnos siguientes si < 48h —
 function _renderExtBadge(jsonStr){
@@ -9504,7 +9652,7 @@ function hPVEtoggle(val){
   if(prev===val){ // deseleccionar
     $('fPVEval').value='';
     _pveBtnReset();
-    hide('dPVESiRama'); hide('dPVENoRama');
+    hide('dPVESiRama'); hide('dPVENoRama'); hide('dPVEncRama');
     _pveCleanSi(); _pveCleanNo();
     return;
   }
@@ -9512,19 +9660,28 @@ function hPVEtoggle(val){
   _pveBtnReset();
   if(val==='si'){
     $('btnPVESi').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #7c3aed;background:#7c3aed;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
-    show('dPVESiRama'); hide('dPVENoRama'); _pveCleanNo();
+    show('dPVESiRama'); hide('dPVENoRama'); hide('dPVEncRama'); _pveCleanNo();
     // extTipo implícito protocolo en rama SÍ
     $('fPVEval') && ($('fPVEval').dataset.extTipo='protocolo');
+  } else if(val==='nc'){
+    // NO CORRESPONDE: apaga las dos ramas y las deja limpias. No es una PVE
+    // que no se hizo (eso es el «No», que pide razón y puede traer extubación
+    // sin protocolo): aquí la prueba ni siquiera está sobre la mesa.
+    $('btnPVEnc').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #475569;background:#475569;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
+    hide('dPVESiRama'); hide('dPVENoRama'); show('dPVEncRama');
+    _pveCleanSi(); _pveCleanNo();
   } else {
     $('btnPVENo').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #dc2626;background:#dc2626;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
-    hide('dPVESiRama'); show('dPVENoRama'); _pveCleanSi();
+    hide('dPVESiRama'); show('dPVENoRama'); hide('dPVEncRama'); _pveCleanSi();
   }
-  // marca cExtOcurrio como compatibilidad con guardar()
-  const hid=$('cExtOcurrio'); if(hid) hid.value=val?'true':'';
+  // marca cExtOcurrio como compatibilidad con guardar() ('nc' no es extubación)
+  const hid=$('cExtOcurrio'); if(hid) hid.value=(val&&val!=='nc')?'true':'';
 }
 function _pveBtnReset(){
   $('btnPVESi').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #c4b5fd;background:#f5f3ff;color:#6d28d9;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
   $('btnPVENo').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
+  const nc=$('btnPVEnc');
+  if(nc) nc.style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
 }
 function _pveCleanSi(){
   document.querySelectorAll('input[name="pveRes"]').forEach(r=>r.checked=false);
@@ -9722,7 +9879,7 @@ function renderParamsPEno(){
   let html='';
   if(!modo){ box.innerHTML=''; return; }
   if(modo==='Ambiente'){ box.innerHTML='<div style="font-size:.72rem;color:#15803d;">Sin dispositivo</div>'; return; }
-  if(['NRC','MMV','Mascarilla'].includes(modo)){
+  if(['NRC','MMV','MR','Mascarilla'].includes(modo)){
     html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">Litros L/M</label><input id="peLtNo" type="number" min="0" max="15" step=".5" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">FR RPM</label><input id="peFRNo" type="number" min="0" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
@@ -9759,7 +9916,8 @@ const _PE_META={
   'Ambiente':  {va:'Natural',    sop:'Ambiente'},
   'NRC':       {va:'Natural',    sop:'Oxigenoterapia/OAF'},
   'MMV':       {va:'Natural',    sop:'Oxigenoterapia/OAF'},
-  'Mascarilla':{va:'Natural',    sop:'Oxigenoterapia/OAF'},
+  'MR':        {va:'Natural',    sop:'Oxigenoterapia/OAF'},
+  'Mascarilla':{va:'Natural',    sop:'Oxigenoterapia/OAF'},   // histórico: antes de ago-2026
   'CNAF':      {va:'Natural',    sop:'Oxigenoterapia/OAF'},
   'S/T':       {va:'Full Face',  sop:'VNI'},
   'AVAPS':     {va:'Full Face',  sop:'VNI'},
@@ -9779,7 +9937,7 @@ function renderParamsPE(){
   } else if(modo==='MMV'){
     h+=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">FiO2 prog. %</label><select id="pe_fio2" style="height:30px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;width:80px;"><option value="">--</option><option>24</option><option>26</option><option>28</option><option>30</option><option>35</option><option>40</option><option>50</option></select></div>`;
     h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+peUma;
-  } else if(['NRC','Mascarilla'].includes(modo)){
+  } else if(['NRC','MR','Mascarilla'].includes(modo)){
     h+=pef('pe_litros','Litros L/m',85)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_fio2calc','FiO2~')+peUma;
   } else if(modo==='CNAF'){
     h+=pef('pe_flujo','Flujo L/m',80)+peft('pe_temp','T° °C',68)+pef('pe_fr','FR rpm',70)+pef('pe_fio2','FiO2 %',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_irox','IROX')+peUma;
@@ -10995,6 +11153,10 @@ function renderTabla(){
       const edad=(evoRef&&evoRef.PAC_EDAD)||(ocu?c.EDAD:'');
       const diag=(evoRef&&evoRef.PAC_DIAGNOSTICO)||(ocu?c.DIAGNOSTICO:'');
       const sop=(evoRef&&evoRef.VENT_SOPORTE)||(ocu?c.SOPORTE:'');
+      // El MODO es el que dice CUÁL oxigenoterapia (CNAF · NRC · MMV ·
+      // mascarilla, y con vía aérea artificial HME o tubo en T). Se lee igual
+      // que el soporte: manda la evolución del día, si no el estado de la cama.
+      const modo=(evoRef&&evoRef.VENT_MODO)||(ocu?c.MODO:'');
       if(q&&!(String(nombre||'').toLowerCase().includes(q)||String(diag||'').toLowerCase().includes(q))) return;
 
       const tr=tb.insertRow();
@@ -11043,7 +11205,18 @@ function renderTabla(){
       const firmaCell=e=>e&&e.PLAN_FIRMA_KINE?`<span style="color:var(--kine);font-weight:800;">${e.PLAN_FIRMA_KINE}</span>`:dash;
       const pD=procsDe(evoD), pN=procsDe(evoN);
       const cD=cellsProc(pD,4), cN=cellsProc(pN,3);
-      const sopHtml=(x=>{ if(!x) return '-'; const map={'VM':'bs-VM','VNI':'bs-VNI','CNAF':'bs-CNAF','Oxigenoterapia/OAF':'bs-Ox'}; return `<span class="bs ${map[x]||'bs-def'}">${x}</span>`; })(sop);
+      // «Oxigenoterapia/OAF» a secas no decía nada útil en la ronda: el equipo
+      // necesita ver CUÁL (pedido de Manuel, ago-2026). Cuando hay modo, la
+      // etiqueta pasa a «O2 · NRC» y el nombre largo queda en el tooltip.
+      const sopHtml=((x,md)=>{ if(!x) return '-';
+        const map={'VM':'bs-VM','VNI':'bs-VNI','CNAF':'bs-CNAF','Oxigenoterapia/OAF':'bs-Ox'};
+        // Las evoluciones anteriores a ago-2026 guardaron «Mascarilla» donde hoy
+        // se registra «MR»: la grilla las muestra con la sigla de ahora.
+        const sg=md==='Mascarilla'?'MR':md;
+        const oxi=x==='Oxigenoterapia/OAF'&&sg;
+        const txt=oxi?`O2 · ${sg}`:x;
+        const tip=oxi?` title="${x} — ${_MODO_LARGO[md]||sg}"`:'';
+        return `<span class="bs ${map[x]||'bs-def'}"${tip}>${txt}</span>`; })(sop,modo);
 
       tr.innerHTML=`
         <td class="tc-c">${id}</td>
@@ -12317,7 +12490,7 @@ function _renderEvStrip(s){
   const el=$('evStrip'); if(!el) return;
   const esT=x=>x===true||x==='TRUE';
   const evs=[];
-  if(s.PVE_VAL||esT(s.EXT_OCURRIO)) evs.push(['pve_ext','✂️ PVE/Extubación'+(s.EXT_HORA?' '+s.EXT_HORA:'')]);
+  if((s.PVE_VAL&&s.PVE_VAL!=='nc')||esT(s.EXT_OCURRIO)) evs.push(['pve_ext','✂️ PVE/Extubación'+(s.EXT_HORA?' '+s.EXT_HORA:'')]);
   if(esT(s.EXT_REINTUB)) evs.push(['reintub','🔁 Reintubación']);
   if(esT(s.INTUB_OCURRIO)) evs.push(['intub','🫁 Intubación'+(s.INTUB_HORA?' '+s.INTUB_HORA:'')]);
   if(esT(s.TQT_OCURRIO)) evs.push(['tqt','🔪 Traqueostomía'+(s.TQT_HORA?' '+s.TQT_HORA:'')]);
@@ -12583,7 +12756,7 @@ function renderEntrega(d){
         ${_celda('🟠 Rehabilitación · Evaluaciones',rehab)}
         <div class="ent-c ent-pend">
           <div class="ent-k">📋 Plan · Pendientes</div>
-          ${(f.pendientes&&f.pendientes.length)?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">${f.pendientes.map(p=>`<span style="background:#fde68a;color:#78350f;border:1px solid #f59e0b55;border-radius:10px;padding:1px 8px;font-size:.66rem;font-weight:800;">⏳ ${p}</span>`).join('')}</div>`:''}
+          ${(f.pendientes&&f.pendientes.length)?`<div class="ent-pends" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">${f.pendientes.map(p=>`<span class="ent-pend-chip" style="background:#fde68a;color:#78350f;border:1px solid #f59e0b55;border-radius:10px;padding:1px 8px;font-size:.66rem;font-weight:800;">⏳ ${p}</span>`).join('')}</div>`:''}
           <textarea data-cama="${f.idCama}" rows="2" placeholder="📋 Planes / Pendientes…">${planVal}</textarea>
           <!-- Espejo del plan para el papel (ago-2026): un textarea imprime
                SOLO lo que cabe en sus filas, así que un plan largo se cortaba
@@ -12638,6 +12811,18 @@ const RK_PG1=`<div style="text-align:center;font-weight:800;font-size:11pt;margi
 <td style="border:1.5px solid #000;padding:2px 8px;font-size:8pt;width:96px;text-align:center;background:#f2f2f2;"><b>FECHA</b><br><span style="font-size:11pt;font-weight:800;">{{FECHA}}</span></td>
 </tr></table><div class="rk-band"><span>TURNO DÍA</span><span>TURNO NOCHE</span><span>VÍA AÉREA ARTIFICIAL</span></div><table class="rk-t"><tr><td class="rk-c">Sop. ventilatorio/O2</td><td colspan="4" class="rk-c">&nbsp;</td><td colspan="5" class="rk-c">&nbsp;</td><td class="rk-c">TOT</td><td class="rk-c">TQT</td><td class="rk-c">Calibre</td><td class="rk-c">&nbsp;</td></tr><tr><td rowspan="2" class="rk-c">Horario atención</td><td rowspan="2" class="rk-c">&nbsp;</td><td rowspan="2" class="rk-c">&nbsp;</td><td rowspan="2" class="rk-c">&nbsp;</td><td rowspan="2" class="rk-c">&nbsp;</td><td rowspan="2" class="rk-c">&nbsp;</td><td rowspan="2" class="rk-c">&nbsp;</td><td rowspan="2" class="rk-c">&nbsp;</td><td rowspan="2" class="rk-c">&nbsp;</td><td rowspan="2" class="rk-c">&nbsp;</td><td class="rk-c">Días</td><td class="rk-c">&nbsp;</td><td class="rk-c">Cms.</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Reintub.</td><td class="rk-c">&nbsp;</td><td class="rk-c">Dias VM</td><td class="rk-c">&nbsp;</td></tr><tr><td rowspan="2" class="rk-c">Auscultación</td><td colspan="4" class="rk-c">&nbsp;</td><td colspan="5" class="rk-c">&nbsp;</td><td colspan="4" class="rk-c">VOLUMEN TIDIAL AJUSTADO A TALLA</td></tr><tr><td colspan="4" class="rk-c">&nbsp;</td><td colspan="5" class="rk-c">&nbsp;</td><td colspan="2" class="rk-c">Talla cms.</td><td colspan="2" class="rk-c">Peso ideal</td></tr><tr><td rowspan="2" class="rk-c">Sec. Bronquiales</td><td colspan="4" class="rk-c">&nbsp;</td><td colspan="5" class="rk-c">&nbsp;</td><td colspan="2" class="rk-c">5 ml/kg</td><td colspan="2" class="rk-c">6 ml/kg</td></tr><tr><td colspan="4" class="rk-c">&nbsp;</td><td colspan="5" class="rk-c">&nbsp;</td><td colspan="2" class="rk-c">7 ml/kg</td><td colspan="2" class="rk-c">8 ml/kg</td></tr></table><div class="rk-tit">MONITORIZACIÓN</div><table class="rk-t"><tr><td class="rk-c">HORA</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Frec. Cardiaca</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">P. Arterial</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">P. A. Media</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">PIC/PPC</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Glasgow</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">S5Q</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">SAS/Escalón</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">DVA</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr></table><div class="rk-tit">TERAPIA VENTILATORIA</div><table class="rk-t"><tr><td class="rk-c">Modo</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Vol. Tidial</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">F Max/T ins</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Frecuencia</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">PEEP/EPAP</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">P Sop/IPAP</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">P. Máxima</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">P. Media</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">P. Plateau</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">P. Distensión</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Compliance</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Auto PEEP</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Relación I:E</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">I. Tobin</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Vol. Minuto</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">FiO2</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">SpO2</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">FIRMA</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr></table><div class="rk-tit">LABORATORIO &nbsp;·&nbsp; PROCEDIMIENTOS Y OBSERVACIONES</div><table class="rk-t"><tr><td class="rk-c">HORA</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">GSA: Ph</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">PaCO2</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">PaO2</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">HCO3</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">EB</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Sat O2</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">PaFi</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Lactato</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">PCR</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">PCT</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr></table><div class="rk-tit">FECHAS FILTROS Y SONDA DE ASPIRACIÓN CIRCUITO CERRADO</div><div class="rk-filtros">Trachcare: ______________ &nbsp;&nbsp;&nbsp; Filtro HEPA: ______________ &nbsp;&nbsp;&nbsp; Filtro HME: ______________</div>`;
 const RK_PG2=`<div class="rk-tit" style="text-align:center;font-size:10pt;">CUIDADOS NEUROMUSCULARES DIURNOS</div><table class="rk-t"><tr><td class="rk-c">Contraindicación Absoluta</td><td class="rk-c">SI &nbsp; NO</td><td class="rk-c">Observación:</td></tr><tr><td class="rk-c">Contraindicación Relativa</td><td class="rk-c">SI &nbsp; NO</td><td class="rk-c">Observación:</td></tr></table><div class="rk-tit">EVALUACIÓN DE FUERZA MUSCULAR - MRC-ss</div><table class="rk-t"><tr><td class="rk-c">MOVIMIENTO</td><td class="rk-c">HEMICUERPO DERECHO</td><td colspan="2" class="rk-c">HEMICUERPO IZQUIERDO</td></tr><tr><td class="rk-c">1. Abducción de hombro</td><td class="rk-c">&nbsp;</td><td colspan="2" class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">2. Flexión de codo</td><td class="rk-c">&nbsp;</td><td colspan="2" class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">3. Extensión de muñeca</td><td class="rk-c">&nbsp;</td><td colspan="2" class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">4. Flexión de cadera</td><td class="rk-c">&nbsp;</td><td colspan="2" class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">5. Extensión de rodilla</td><td class="rk-c">&nbsp;</td><td colspan="2" class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">6. Dorsiflexión tobillo</td><td class="rk-c">&nbsp;</td><td colspan="2" class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Fuerza subtotal:</td><td class="rk-c">/30 puntos</td><td colspan="2" class="rk-c">/30 puntos</td></tr><tr><td class="rk-c">MRC SUM SCORE TOTAL</td><td colspan="3" class="rk-c">/60 puntos</td></tr><tr><td colspan="3" class="rk-c"><b>DEBILIDAD ADQUIRIDA EN UCI (PUNTAJE &#8804; 48 PUNTOS)</b></td><td class="rk-c" style="text-align:center;">SI &nbsp;&nbsp; NO</td></tr></table><div class="rk-tit">ESCALA DEL ESTADO FUNCIONAL EN UCI (FSS-ICU)</div><table class="rk-t"><tr><td rowspan="2" class="rk-c">ACTIVIDADES</td><td colspan="8" class="rk-c">PUNTAJE</td></tr><tr><td class="rk-c">0</td><td class="rk-c">1</td><td class="rk-c">2</td><td class="rk-c">3</td><td class="rk-c">4</td><td class="rk-c">5</td><td class="rk-c">6</td><td class="rk-c">7</td></tr><tr><td class="rk-c">1. Girar en la cama</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">2. Transferencia de supino a sedente</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">3. Sedente al borde de la cama</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">4. Transferencia de sedente a bípedo</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">5. Marcha</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">TOTAL</td><td colspan="8" class="rk-c">/35 puntos</td></tr></table><div class="rk-tit">PROTOCOLO DE WEANING — EVALUACIÓN PREVIA DE VENTILACIÓN ESPONTÁNEA</div><table class="rk-t"><tr><td class="rk-c">PARÁMETROS</td><td class="rk-c">TURNO DIA</td><td class="rk-c">TURNO NOCHE</td></tr><tr><td class="rk-c">Resolución del cuadro</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Signos de infección</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">DVA</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">PaFi</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Volumen minuto</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">GCS / SAS</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">Estab. metab. o vías de corrección</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td><td class="rk-c">&nbsp;</td></tr><tr><td class="rk-c">INICIO PVE (cumple con 8 criterios)</td><td class="rk-c">SI &nbsp; NO</td><td class="rk-c">SI &nbsp; NO</td></tr><tr><td colspan="2" class="rk-c">Extubación fuera de protocolo por indicación médica</td><td class="rk-c">SI &nbsp; NO</td></tr></table><table class="rk-t"><colgroup><col style="width:17.50%"><col style="width:9.39%"><col style="width:0.50%"><col style="width:10.24%"><col style="width:12.38%"><col style="width:17.50%"><col style="width:9.39%"><col style="width:0.50%"><col style="width:10.24%"><col style="width:12.38%"></colgroup><tr><td colspan="2" class="rk-c"><p style="margin:1px 0;font-size:10.0pt;"><b>EVALUACIONES ADICIONALES DE FUERZA MUSCULAR</b></p></td><td class="rk-c"></td><td colspan="2" class="rk-c"><p style="margin:1px 0;font-size:10.0pt;"><b>EVALUACIONES PACIENTES NEUROLÓGICOS Y NEUROQUIRÚRGICOS</b></p></td></tr><tr><td class="rk-c"><p style="margin:1px 0;font-size:10.0pt;">Presión inspiratoria máxima</p></td><td class="rk-c"></td><td colspan="2" class="rk-c"><p style="margin:1px 0;font-size:10.0pt;">VISAGE                *Corte: ≥ 3 ptos</p></td><td class="rk-c"></td></tr><tr><td class="rk-c"><p style="margin:1px 0;font-size:10.0pt;">Flujo espiratorio máximo</p></td><td class="rk-c"></td><td colspan="2" class="rk-c"></td><td class="rk-c"></td></tr><tr><td class="rk-c"><p style="margin:1px 0;font-size:10.0pt;">Fracción de engrosamiento diafrag.</p></td><td class="rk-c"></td><td colspan="2" class="rk-c"><p style="margin:1px 0;font-size:10.0pt;">Scores cuidados de vía aérea *Corte  6 ptos</p></td><td class="rk-c"></td></tr><tr><td class="rk-c"><p style="margin:1px 0;font-size:10.0pt;">Excursión diafragmática</p></td><td class="rk-c"></td><td colspan="2" class="rk-c"></td><td class="rk-c"></td></tr></table>`;
+/* ══ LA FECHA DE UN PAPEL ES LA DEL CALENDARIO, NO LA DEL TURNO ══
+   `gDate` guarda la fecha del TURNO LÓGICO, y entre las 00:00 y las 09:00 esa
+   fecha es a propósito la del DÍA ANTERIOR: la noche del 9 se sigue escribiendo
+   hasta las 9 de la mañana del 10 (ventana de gracia de _turnoLogico). Eso es
+   correcto para el registro clínico y es un ERROR para la hoja que se lleva en
+   la mano: una lista impresa a la 1 AM del 10 de agosto salía fechada el 9
+   (reportado en terreno por Manuel, ago-2026). Estas hojas llevan a los
+   pacientes que están presentes AHORA, así que se fechan con el reloj, y la
+   fecha se recalcula en cada clic aunque la app lleve días abierta.
+   La que NO usa esto es el control de filtros: ahí la fecha decide qué filtro
+   toca cambiar, y esa decisión sí pertenece al turno noche en curso. */
+function _fechaPapel(){ return hoy(); }
 function rkHojaHTML(c, fechaISO){
   const f=(fechaISO||'').split('-').reverse().join('/');
   let dias='';
@@ -12651,30 +12836,193 @@ function rkHojaHTML(c, fechaISO){
   let p1=RK_PG1; fr.forEach(x=>{ p1=p1.split(x[0]).join(x[1]); });
   return `<div class="rk-page">${p1}</div><div class="rk-page">${RK_PG2}</div>`;
 }
-function imprimirHojasDelDia(){
+/* La hoja de registro COMPLETA (dos carillas por paciente, formato oficial
+   V0.2) se imprime desde el historial del paciente. En la pestaña Registro su
+   botón lo tomó la LISTA DEL DÍA (ago-2026, decisión de Manuel): el equipo
+   sale a la ronda con una hoja en vez de 34 carillas. */
+function imprimirHojaUCIpaciente(){
+  if(!TLC){ toast('Abre el historial de un paciente primero.'); return; }
+  const c=(DB||[]).find(x=>String(x.ID_CAMA)===String(TLC));
+  if(!c){ toast('No se encontró la cama.'); return; }
+  $('rkPrint').innerHTML=rkHojaHTML(c, _fechaPapel());
+  _imprimirVertical('print-rk');
+}
+
+/* ══ LISTA DEL DÍA — todos los pacientes presentes en UNA hoja vertical ══
+   Conserva la franja de identificación del formato oficial (cama · edad ·
+   nombre · RUT · días · fecha) y le agrega debajo el diagnóstico y las
+   escalas que estén registradas. Las escalas NO se inventan: la que no está
+   medida, no aparece. */
+const _LD_ESCALAS=[
+  {k:'APACHE2', l:'APACHE II'}, {k:'BARTHEL', l:'Barthel'}, {k:'CHARLSON', l:'Charlson'},
+  {k:'ULT_FSS', l:'FSS-ICU'},   {k:'ULT_MRC',  l:'MRC-ss'},
+];
+function listaDelDiaHTML(camas, fechaISO, horaTxt){
+  const f=(fechaISO||'').split('-').reverse().join('/');
+  const filas=camas.slice().sort((a,b)=>(parseInt(a.ID_CAMA)||0)-(parseInt(b.ID_CAMA)||0));
+  return `<div class="ld-h1">CUIDADOS RESPIRATORIOS — PACIENTES DEL DÍA</div>
+  <div class="ld-h2">Unidad de Paciente Crítico Adulto · Hospital San Pablo de Coquimbo
+    <span class="ld-f">FECHA ${f}${horaTxt?` · ${horaTxt} h`:''}</span> <span class="ld-n">${filas.length} pacientes</span></div>
+  ${filas.map(c=>{
+    let dias='';
+    try{ dias=(typeof diasCal==='function')?String(diasCal(c.TS_INGRESO||'',_isoDia(c.FECHA_INGRESO),fechaISO)):'';
+      if(dias==='null'||dias==='undefined'||dias==='NaN') dias=''; }catch(e){ dias=''; }
+    const esc=_LD_ESCALAS.filter(e=>c[e.k]!==''&&c[e.k]!=null&&c[e.k]!==undefined)
+      .map(e=>`<span class="ld-esc"><b>${e.l}</b> ${c[e.k]}</span>`).join('');
+    return `<div class="ld-pac">
+      <table class="ld-t"><tr>
+        <td class="ld-c" style="width:46px;text-align:center;"><b>CAMA</b><br><span class="ld-big">${c.ID_CAMA||''}</span></td>
+        <td class="ld-c" style="width:42px;text-align:center;"><b>EDAD</b><br><span class="ld-big">${c.EDAD||''}</span></td>
+        <td class="ld-c"><b>NOMBRE DE PACIENTE</b><br><span class="ld-big">${String(c.NOMBRE||'').toUpperCase()}</span></td>
+        <td class="ld-c" style="width:112px;text-align:center;"><b>RUT</b><br><span class="ld-big">${c.RUT||'&nbsp;'}</span></td>
+        <td class="ld-c" style="width:40px;text-align:center;"><b>DÍAS</b><br><span class="ld-big">${dias||'&nbsp;'}</span></td>
+        <td class="ld-c" style="width:80px;text-align:center;background:#f2f2f2;"><b>FECHA</b><br><span class="ld-big">${f}</span></td>
+      </tr></table>
+      <div class="ld-dx"><b>DIAGNÓSTICO:</b> ${c.DIAGNOSTICO||'—'}${esc?`<span class="ld-escs">${esc}</span>`:''}</div>
+    </div>`;
+  }).join('')}`;
+}
+function imprimirListaDelDia(){
   const ocupadas=(DB||[]).filter(c=>c.OCUPADA===true||c.OCUPADA==='TRUE')
     .slice().sort((a,b)=>(parseInt(a.ID_CAMA)||0)-(parseInt(b.ID_CAMA)||0));
   if(!ocupadas.length){ toast('No hay pacientes hospitalizados que imprimir.'); return; }
-  const fecha=v('gDate')||hoy();
-  $('rkPrint').innerHTML=ocupadas.map(c=>rkHojaHTML(c,fecha)).join('');
-  _imprimirVertical('print-rk');
-  toast('🖨️ '+ocupadas.length+' hoja'+(ocupadas.length>1?'s':'')+' de registro ('+ocupadas.length*2+' carillas)');
+  // Fecha y hora del reloj, no del turno: la lista es de quienes están AHORA.
+  // La hora impresa además avisa qué tan fresca es la hoja que anda dando vueltas.
+  $('listaPrint').innerHTML=listaDelDiaHTML(ocupadas, _fechaPapel(), _horaAhoraCli());
+  _imprimirVertical('print-lista');
+  toast('🖨️ Lista del día · '+ocupadas.length+' pacientes');
 }
-// Impresión en VERTICAL: el @page global es apaisado (entrega/historial);
-// estas hojas son verticales, así que se inyecta un @page portrait que gana
-// por cascada y se retira al cerrar la ventana de impresión.
-function _imprimirVertical(claseBody){
+
+/* ══ CONTROL DE FILTROS — HME, HEPA y Trach Care de TODA la unidad ══
+   La hoja que se lleva a la ronda de la noche. Va cama por cama (las 18, no
+   solo las ocupadas: así se ve dónde hay ventiladores libres) con el equipo
+   que está en cada sala, la fecha de cambio de cada filtro y una casilla por
+   el filtro que toque cambiar ese día.
+   La regla es la MISMA del servidor (estadoDispositivos, svc_eventos.gs): la
+   fecha de la etiqueta es el día 0, el dispositivo cumple su plazo el día
+   etiqueta + frecuencia, y ese cambio se ejecuta en la MADRUGADA de ese día —
+   o sea en el turno NOCHE de la víspera. Por eso el aviso sale cuando han
+   pasado frec-1 días, una noche ANTES de la fecha de cambio.
+   (Corregido el 10-ago-2026: avisar recién el día del cambio estiraba el HME a
+   3 días, porque el filtro cambiado de madrugada se etiqueta con la fecha
+   efectiva del turno, que es D+1, y el error se acumulaba ciclo a ciclo.)
+   No se recalcula distinto acá para que la hoja no contradiga al modal
+   «Cambios de esta noche». */
+const _FL_DEF=[
+  {k:'hme',  campo:'DISP_HME_FECHA',  nombre:'FILTRO HME',  sigla:'HME',  cfg:'FREC_HME_DIAS',   def:2},
+  {k:'hepa', campo:'DISP_HEPA_FECHA', nombre:'FILTRO HEPA', sigla:'HEPA', cfg:'FREC_HEPA_DIAS',  def:3},
+  {k:'tc',   campo:'DISP_TC_FECHA',   nombre:'TRACH CARE',  sigla:'T.C',  cfg:'FREC_SONDA_DIAS', def:3},
+];
+const _flFrec=d=>parseInt((window.CFG&&CFG[d.cfg])||d.def)||d.def;
+/* Suma días a una fecha ISO por mediodía UTC: sin esto, un huso horario corre
+   el día — la causa clásica del desfase (mismo truco que _sumarDiasISO en el
+   servidor). */
+function _flSumaDias(iso,n){
+  const d=new Date(String(iso).slice(0,10)+'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate()+(parseInt(n,10)||0));
+  return d.toISOString().slice(0,10);
+}
+function _flEstado(cama, def, fechaRef){
+  const et=String(cama[def.campo]||'').slice(0,10);
+  if(String(cama.SOPORTE)!=='VM' || !/^\d{4}-\d{2}-\d{2}$/.test(et)) return null;
+  const frec=_flFrec(def);
+  const dias=Math.round((new Date(String(fechaRef).slice(0,10)+'T12:00:00Z')-new Date(et+'T12:00:00Z'))/864e5);
+  // El cambio de la fecha `cambio` se hace en su MADRUGADA, o sea en el turno
+  // noche de la víspera → toca cuando faltan frec-1 días desde la etiqueta.
+  // Espejo exacto de estadoDispositivos (svc_eventos.gs); si se separan, la
+  // hoja contradice al modal «Cambios de esta noche».
+  return { etiqueta:et, cambio:_flSumaDias(et,frec), frec:frec,
+           hoy:dias===frec-1, vencido:dias>=frec, atraso:Math.max(0,dias-(frec-1)) };
+}
+function filtrosHojaHTML(camas, fechaISO, numCamas){
+  const f=(fechaISO||'').split('-').reverse().join('/');
+  const N=numCamas||18;
+  const porId={}; camas.forEach(c=>{ porId[String(c.ID_CAMA)]=c; });
+  const filas=[]; for(let i=1;i<=N;i++) filas.push(porId[String(i)]||{ID_CAMA:String(i),OCUPADA:false});
+  const ocupada=c=>c.OCUPADA===true||c.OCUPADA==='TRUE';
+  const celda=e=>{
+    if(!e) return `<td class="fl-c fl-na">—</td>`;
+    const cls=e.vencido?'fl-venc':(e.hoy?'fl-hoy':'');
+    // «ESTA NOCHE» y no «CAMBIAR HOY»: la hoja se usa de madrugada y el cambio
+    // lleva la fecha del día que empieza, así que «hoy» se prestaba para leerlo
+    // como el día de la víspera.
+    const marca=e.vencido?`VENCIDO${e.atraso>1?' ('+e.atraso+'d)':''}`
+              :(e.hoy?'ESTA NOCHE':'cambio '+_ddmm(e.cambio));
+    return `<td class="fl-c ${cls}"><div class="fl-et">puesto ${_ddmm(e.etiqueta)}</div>
+      <div class="fl-mk">${marca}</div></td>`;
+  };
+  // Dos datos distintos y los dos importan: si el equipo está ocupado por un
+  // paciente, y si está sano. Un ventilador marcado CON FALLA que además está
+  // ventilando a alguien es de las cosas que hay que ver en la ronda, así que
+  // salen juntos («EN USO · CON FALLA») en vez de que el estado tape el uso.
+  const vent=c=>{
+    const nom=String(c.VM_TAG||'').trim();
+    if(!nom) return `<td class="fl-c fl-vm fl-na">sin equipo</td>`;
+    const est=String(c.VM_TAG_ESTADO||''), malo=/falla|manten|baja/i.test(est);
+    const enUso=ocupada(c)&&String(c.SOPORTE)==='VM';
+    // El estado va abreviado («EN MANTENCIÓN» → MANTENCIÓN) para que quepa al
+    // lado del uso sin partirse en la columna angosta del ventilador.
+    const txt=(enUso?'EN USO':'DISPONIBLE')+(malo?' · '+est.toUpperCase().replace(/^EN /,''):'');
+    return `<td class="fl-c fl-vm${malo?' fl-venc':''}"><div class="fl-vmn">${nom}</div>
+      <div class="fl-mk">${txt}</div></td>`;
+  };
+  const tocan=c=>_FL_DEF.filter(d=>{ const e=_flEstado(c,d,fechaISO); return e&&(e.hoy||e.vencido); });
+  const chk=c=>{ const t=tocan(c); return t.length
+    ? `<td class="fl-c fl-chks">${t.map(d=>`<span class="fl-chk"><span class="fl-box"></span>${d.sigla}</span>`).join('')}</td>`
+    : `<td class="fl-c"></td>`; };
+  const pendientes=filas.reduce((n,c)=>n+tocan(c).length,0);
+  const libres=filas.filter(c=>String(c.VM_TAG||'').trim() && !(ocupada(c)&&String(c.SOPORTE)==='VM')).length;
+  return `<div class="fl-h1">CONTROL DE FILTROS Y SONDA DE ASPIRACIÓN — CIRCUITO DE VENTILACIÓN MECÁNICA</div>
+  <div class="fl-h2">Unidad de Paciente Crítico Adulto · Hospital San Pablo de Coquimbo
+    <span class="fl-f">NOCHE DEL ${f}</span></div>
+  <div class="fl-leg">Ronda de la <b>madrugada del ${_ddmm(_flSumaDias(fechaISO,1))}</b>: cada filtro se cambia en la
+    <b>madrugada</b> de la fecha que aparece en su casilla, o sea en el turno noche de la víspera.
+    HME cada ${_flFrec(_FL_DEF[0])} días · HEPA y Trach Care cada ${_flFrec(_FL_DEF[1])}. <b>${pendientes}</b> cambio(s) esta noche ·
+    <b>${libres}</b> ventilador(es) sin paciente.</div>
+  <table class="fl-t">
+    <tr><th class="fl-th" style="width:40px;">CAMA</th><th class="fl-th">PACIENTE</th>
+        <th class="fl-th" style="width:76px;">VENTILADOR</th>
+        ${_FL_DEF.map(d=>`<th class="fl-th" style="width:82px;">${d.nombre}<div class="fl-frec">cada ${_flFrec(d)} días</div></th>`).join('')}
+        <th class="fl-th" style="width:62px;">CAMBIADO</th></tr>
+    ${filas.map(c=>`<tr>
+      <td class="fl-c fl-cama">${c.ID_CAMA}</td>
+      <td class="fl-c fl-nom">${ocupada(c)?String(c.NOMBRE||'').toUpperCase():'<span class="fl-libre">cama libre</span>'}</td>
+      ${vent(c)}
+      ${_FL_DEF.map(d=>celda(_flEstado(c,d,fechaISO))).join('')}
+      ${chk(c)}</tr>`).join('')}
+  </table>
+  <div class="fl-pie">Marca la casilla al realizar el cambio y registra el evento en la app (evento rápido → cambio de filtro).</div>`;
+}
+function imprimirFiltros(){
+  if(!(DB||[]).length){ toast('Todavía no cargan las camas.'); return; }
+  // Ésta SÍ va con la fecha del turno (no con _fechaPapel): lo que decide es
+  // qué filtro toca cambiar, y a las 2 AM la ronda en curso sigue siendo la
+  // noche del día anterior — la misma fecha que muestra «Cambios de esta
+  // noche». Por eso el encabezado dice «NOCHE DEL …» y no «FECHA …»: así nadie
+  // lo lee como un día atrasado.
+  $('filtrosPrint').innerHTML=filtrosHojaHTML(DB, v('gDate')||hoy(), (window.CFG&&CFG.NUM_CAMAS)||18);
+  _imprimirVertical('print-filtros');
+}
+// Orientación por documento: el @page global es VERTICAL (la entrega y las
+// hojas del día), así que lo que necesita ancho —el historial— inyecta su
+// propio @page apaisado, que gana por cascada y se retira al cerrar la ventana
+// de impresión. Antes era al revés (ago-2026): el global era apaisado por la
+// entrega, y las hojas verticales eran las que inyectaban.
+function _imprimirConPagina(claseBody, orientacion){
   const st=document.createElement('style');
-  st.id='pgVertical';
-  st.textContent='@media print{@page{size:A4 portrait;margin:8mm;}}';
+  st.id='pgOrientacion';
+  st.textContent='@media print{@page{size:A4 '+orientacion+';margin:8mm;}}';
   document.head.appendChild(st);
-  document.body.classList.add(claseBody);
-  const limpiar=()=>{ document.body.classList.remove(claseBody);
-    const e=$('pgVertical'); if(e) e.remove();
+  if(claseBody) document.body.classList.add(claseBody);
+  const limpiar=()=>{ if(claseBody) document.body.classList.remove(claseBody);
+    const e=$('pgOrientacion'); if(e) e.remove();
     window.removeEventListener('afterprint',limpiar); };
   window.addEventListener('afterprint',limpiar);
   window.print();
+  setTimeout(limpiar,2000);   // respaldo por si afterprint no dispara
 }
+function _imprimirVertical(claseBody){ _imprimirConPagina(claseBody,'portrait'); }
+function _imprimirApaisado(claseBody){ _imprimirConPagina(claseBody,'landscape'); }
 
 // ══ HOJA PVE — «Hoja registro prueba de ventilación espontánea» (formato
 // oficial del protocolo de weaning V0.2). Fiel al PDF: logos, título, tabla
@@ -12825,7 +13173,7 @@ function imprimirHojaRHB(){
     ['Dosis de DVA',e=>dvaF(e.HEMO_DVA)],
     ['Modo ventilatorio / O2',e=>e.VENT_MODO||e.VENT_SOPORTE||''],
     ['Vía aérea artificial',e=>{const va=e.VENT_VIA_AEREA;return (va&&va!=='Natural')?va:'—';}],
-    ['PVE diaria',e=>e.PVE_VAL==='si'?(e.PVE_RESULTADO==='superada'?'S':'F'):'—'],
+    ['PVE diaria',e=>e.PVE_VAL==='si'?(e.PVE_RESULTADO==='superada'?'S':'F'):(e.PVE_VAL==='nc'?'NC':'—')],
     ['Reintubación',e=>esT(e.EXT_REINTUB)?'Sí':'—'],
     ['FiO2',e=>(e.VENT_FIO2!==''&&e.VENT_FIO2!=null)?e.VENT_FIO2:''],
     ['Nivel KTM',e=>esT(e.KTM_REALIZADA)?(e.KTM_NIVEL_KTR||''):(esT(e.KTM_SUSPENDIDA)?'C':(esT(e.KTM_NO_REALIZADA)?'NR':'')),true],

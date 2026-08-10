@@ -90,7 +90,7 @@ const { chromium } = require('playwright-core');
     r.bloqueaSinPve = llamadas === 0;
     // gFalta lo anuncia antes de apretar Guardar
     rielRender();
-    r.gFaltaPve = /PVE sí\/no/.test($('gFalta').textContent);
+    r.gFaltaPve = /PVE sí \/ no \/ no corresponde/.test($('gFalta').textContent);
 
     // ── OBLIGATORIA: la razón de KTM no realizada ──
     $('fPVEval').value = 'no';

@@ -6,7 +6,7 @@
 const { chromium } = require('playwright-core');
 const path = require('path');
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
   const p = await b.newPage({ viewport: { width: 1200, height: 850 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.addInitScript(() => {

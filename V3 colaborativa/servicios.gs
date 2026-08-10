@@ -1248,12 +1248,19 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   })();
 
   // ── Dispositivos de circuito por vencer (solo VM) ──
-  // SEMÁNTICA VALIDADA POR DIEGO (ago-2026): etiqueta = día 0 y el cambio se
-  // hace en el TURNO NOCHE del día etiqueta+frecuencia. «cambiar» = esta
-  // noche; «vencido» solo si amaneció después de esa noche sin cambio. Se
-  // mide contra la fecha del TURNO (no la efectiva: la noche del día D ES la
-  // que cambia lo del día D). Viaja además la fecha EXACTA del cambio, que es
-  // lo que la hoja impresa debe mostrar en vez de contadores de días.
+  // Etiqueta = día 0 y `cambio` = etiqueta + frecuencia. Ese cambio se ejecuta
+  // en la MADRUGADA de esa fecha, o sea en el turno NOCHE de la víspera: por eso
+  // «cambiar» sale cuando han pasado frec-1 días, y «vencido» al llegar a frec
+  // sin haberlo cambiado. Se mide contra la fecha del TURNO, no la efectiva.
+  // Viaja además la fecha EXACTA del cambio, que es lo que la hoja impresa debe
+  // mostrar en vez de contadores de días.
+  //
+  // ⚠️ 10-ago-2026: esta línea era `dias === frec ? 'cambiar'` y avisaba UNA
+  // NOCHE TARDE. El resto del sistema (estadoDispositivos en svc_eventos.gs, la
+  // hoja de control de filtros y el chip de la Hoja UCI) ya se había corregido a
+  // frec-1 esa madrugada; la entrega de turno se quedó atrás y durante unas
+  // horas dos papeles de la misma unidad dijeron fechas distintas del mismo
+  // filtro. Si vuelves a tocar la regla, tócala en LOS CUATRO lugares.
   const disp = [];
   if (String(c.SOPORTE) === 'VM') {
     [['HME', c.DISP_HME_FECHA, 2], ['HEPA', c.DISP_HEPA_FECHA, 3], ['T.Care', c.DISP_TC_FECHA, 3]].forEach(function (d) {
@@ -1261,7 +1268,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
       const dias = diasEntre(iso, fecha);
       const cambio = _sumarDiasISO(iso, d[2]);
       disp.push({ n: d[0], dia: dias + 1, dur: d[2], cambio: dd(cambio),
-                  estado: dias < d[2] ? 'ok' : (dias === d[2] ? 'cambiar' : 'vencido') });
+                  estado: dias >= d[2] ? 'vencido' : (dias === d[2] - 1 ? 'cambiar' : 'ok') });
     });
   }
 
@@ -1403,7 +1410,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
  * derivar la racha de turnos candidato sin PVE desde el episodio.
  */
 function _turnoCandidatoPve(e) {
-  if (String(e.VENT_SOPORTE) !== 'VM' || e.PVE_VAL === 'si') return false;
+  // 'nc' = no corresponde por causa de base no resuelta: corta la racha igual
+  // que una PVE hecha (ago-2026). Si no, el turno que declara «no procede»
+  // seguiría sumando a «candidato hace N turnos sin PVE».
+  if (String(e.VENT_SOPORTE) !== 'VM' || e.PVE_VAL === 'si' || e.PVE_VAL === 'nc') return false;
   const n = function (x) { return parseFloat(x); };
   const dva = String(e.HEMO_DVA || '');
   return n(e.VENT_FIO2) > 0 && n(e.VENT_FIO2) <= 50 &&
@@ -1452,7 +1462,8 @@ function _entParams(e) {
   // arrastrarlos ensuciaba la línea con restos del soporte anterior.
   const sop = String(e.VENT_SOPORTE || ''), modo = String(e.VENT_MODO || '');
   const esCNAF = sop === 'CNAF' || /^(CNAF|OAF\/CTAF)$/i.test(modo);
-  if (/^(NRC|Naricera(-NRC)?|Mascarilla)$/i.test(modo)) push('L', 'VENT_LITROS');
+  // MR = mascarilla de reservorio (antes de ago-2026 se registraba «Mascarilla»)
+  if (/^(NRC|Naricera(-NRC)?|MR|Mascarilla)$/i.test(modo)) push('L', 'VENT_LITROS');
   if (esCNAF) push('Flujo', 'VENT_FLUJO');
   return out.join(' · ');
 }
@@ -2213,14 +2224,25 @@ const _EVENTO_DISPS = [
 /**
  * Estado del reloj de una cama respecto de una fecha de referencia.
  *
- * SEMÁNTICA CORREGIDA (ago-2026, ejemplo validado por Diego): la fecha de
- * ETIQUETA es el día 0 y el cambio se hace en el TURNO NOCHE del día
- * etiqueta+frecuencia. O sea, un HME etiquetado el 04 (frec 2) se cambia la
- * noche del 06 — la app antigua lo daba «vencido» ese mismo día, un día
- * ANTES de lo que dicta la regla: ese era el desfase reportado en terreno.
- *   · cambiaEstaNoche: hoy es el día del cambio (dias === frec).
- *   · vence (vencido): amaneció DESPUÉS de la noche del cambio (dias > frec).
- *   · venceManana: el cambio es mañana en la noche (dias === frec - 1).
+ * La fecha de ETIQUETA es el día 0 y `fechaCambio` = etiqueta + frecuencia. Ese
+ * cambio se ejecuta en la MADRUGADA de esa fecha, o sea en el turno NOCHE de la
+ * VÍSPERA: el turno noche del día D trabaja en la madrugada de D+1 — el mismo
+ * mecanismo de «fecha efectiva» con que se etiqueta el dispositivo nuevo.
+ *
+ * 🪤 CORREGIDO EL 10-ago-2026 (reportado por Manuel desde el turno): el aviso
+ * salía en el turno noche del día etiqueta+frec, o sea una noche TARDE, y el
+ * error se acumulaba ciclo a ciclo. Se ve en la propia secuencia con que se
+ * validó la regla anterior: HME cambiado en la noche del 06 → se etiqueta 07
+ * (fecha efectiva = la madrugada en que se cambió) → volvía a pedirse la noche
+ * del 09, o sea la madrugada del 10. Son TRES días de HME cuando el HME dura
+ * DOS. Aquel ejemplo solo miraba el PRIMER ciclo (ingreso el 04 en turno día),
+ * donde la etiqueta es un día real y no una madrugada, y ahí no se notaba.
+ * La propiedad que hay que conservar: entre dos cambios pasan exactamente
+ * `frec` días — la cubre `eventos.js` midiendo el intervalo, no memorizando
+ * fechas.
+ *   · cambiaEstaNoche: la madrugada que viene es la del cambio (dias===frec-1).
+ *   · vence (vencido): esa madrugada pasó sin cambio (dias >= frec).
+ *   · venceManana: el cambio es en la madrugada siguiente (dias === frec - 2).
  *   · fechaCambio: la fecha EXACTA del cambio (etiqueta + frec), para que la
  *     interfaz muestre fechas y no contadores de días.
  */
@@ -2235,9 +2257,9 @@ function estadoDispositivos(cama, fechaRef) {
       k: d.k, nombre: d.nombre, icono: d.icono, fecha: fecha, frec: frec, dias: dias,
       fechaCambio: fecha ? _sumarDiasISO(fecha, frec) : '',
       aplica: enVM && !!fecha,
-      cambiaEstaNoche: enVM && dias !== null && dias === frec,
-      vence: enVM && dias !== null && dias > frec,
-      venceManana: enVM && dias !== null && dias === frec - 1,
+      cambiaEstaNoche: enVM && dias !== null && dias === frec - 1,
+      vence: enVM && dias !== null && dias >= frec,
+      venceManana: enVM && dias !== null && dias === frec - 2,
     };
   });
 }
@@ -2252,9 +2274,12 @@ function _sumarDiasISO(iso, n) {
 
 /**
  * Qué dispositivos se cambian ESTA NOCHE en toda la unidad (y cuáles quedaron
- * atrasados). fecha = el día D cuyo turno Noche hará los cambios: HME con
- * etiqueta D-2, HEPA y Trach Care con etiqueta D-3. El dispositivo nuevo se
- * etiqueta D+1 (fecha efectiva del turno noche — mecanismo ya existente).
+ * atrasados). fecha = el día D cuyo turno Noche hará los cambios, trabajando en
+ * la madrugada de D+1: HME con etiqueta D-1, HEPA y Trach Care con etiqueta D-2.
+ * El dispositivo nuevo se etiqueta D+1 (fecha efectiva del turno noche —
+ * mecanismo ya existente), y así entre dos cambios pasan exactamente `frec`
+ * días. Ver la nota de `estadoDispositivos`: hasta el 10-ago-2026 esto pedía
+ * etiqueta D-2 / D-3 y el aviso salía una noche tarde.
  */
 function cambiosEstaNoche(fecha) {
   try {
@@ -2267,7 +2292,8 @@ function cambiosEstaNoche(fecha) {
         .map(function (x) {
           return { k: x.k, nombre: x.nombre, icono: x.icono, etiqueta: x.fecha,
                    fechaCambio: x.fechaCambio, estado: x.vence ? 'vencido' : 'esta_noche',
-                   diasAtraso: x.vence ? (x.dias - x.frec) : 0 };
+                   // el atraso se cuenta desde la madrugada en que tocaba (frec-1)
+                   diasAtraso: x.vence ? (x.dias - (x.frec - 1)) : 0 };
         });
       if (disps.length) camas.push({ idCama: String(c.ID_CAMA), nombre: String(c.NOMBRE || ''), dispositivos: disps });
     });
@@ -2796,9 +2822,12 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   // Tamizaje de candidato a PVE con los parámetros de este turno (criterios de
   // screening clásicos, ABC trial). Si el turno ya trae PVE registrado, el
   // tamizaje ya se resolvió y no se marca. Con datos incompletos no se marca
-  // (conservador).
+  // (conservador). Tampoco se marca cuando el turno declaró que NO CORRESPONDE
+  // ('nc', ago-2026): el paciente cumple los números pero su causa de base no
+  // está resuelta, y el kinesiólogo del turno ya lo dijo — insistirle con el
+  // badge verde y con la alerta de racha sería ruido.
   let candPve = false;
-  if (sopNew === 'VM' && evo.PVE_VAL !== 'si') {
+  if (sopNew === 'VM' && evo.PVE_VAL !== 'si' && evo.PVE_VAL !== 'nc') {
     const _n = x => parseFloat(x);
     const dvaTxt = String(evo.HEMO_DVA || '');
     candPve = _n(evo.VENT_FIO2) > 0 && _n(evo.VENT_FIO2) <= 50 &&

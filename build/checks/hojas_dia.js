@@ -1,7 +1,9 @@
-// hojas_dia.js — Guardia de las HOJAS DEL DÍA y la HOJA PVE (v5.27):
-//   · La hoja de registro kinésico sale UNA por paciente hospitalizado, en
-//     DOS carillas, con la franja prellenada (cama · edad · nombre · RUT ·
-//     días · fecha) — reemplaza el recorte diario de la lista.
+// hojas_dia.js — Guardia de la HOJA DE REGISTRO y la HOJA PVE (v5.27):
+//   · La hoja de registro kinésico sale en DOS carillas con la franja
+//     prellenada (cama · edad · nombre · RUT · días · fecha). Desde ago-2026
+//     se imprime POR PACIENTE desde su historial: en la pestaña Registro su
+//     botón lo tomó la lista del día (34 carillas → 1 hoja), y esa hoja tiene
+//     guardia propia en lista_y_filtros.js.
 //   · La grilla va EN BLANCO y conserva las secciones oficiales del V0.2
 //     (vía aérea, monitorización, terapia ventilatoria, laboratorio, MRC-ss,
 //     FSS-ICU, protocolo de weaning).
@@ -45,23 +47,22 @@ const { chromium } = require('playwright-core');
     const h2 = rkHojaHTML({ ID_CAMA: '3', NOMBRE: 'Sin Datos', OCUPADA: true }, '2026-08-02');
     r.sinRutOk = h2.indexOf('undefined') === -1;
 
-    /* ── Hojas del día: una por ocupada, ninguna por libre ── */
+    /* ── Desde el historial del paciente: SOLO ese paciente ── */
     DB = [
       { ID_CAMA: '2', OCUPADA: true, NOMBRE: 'Uno', EDAD: 50, RUT: '1-9', FECHA_INGRESO: '2026-08-01' },
       { ID_CAMA: '1', OCUPADA: 'TRUE', NOMBRE: 'Dos', EDAD: 60, RUT: '2-7', FECHA_INGRESO: '2026-08-02' },
       { ID_CAMA: '3', OCUPADA: false, NOMBRE: '', EDAD: '', RUT: '' },
     ];
-    imprimirHojasDelDia();
+    TLC = '1';
+    imprimirHojaUCIpaciente();
     r.imprimio = window._PRINTS === 1;
     const html = $('rkPrint').innerHTML;
-    r.paginas = (html.match(/class="rk-page"/g) || []).length;    // 2 pacientes × 2 carillas
-    r.ordenCamas = html.indexOf('>Dos<'.toUpperCase()) < html.indexOf('>Uno<'.toUpperCase())
-      || html.indexOf('DOS') < html.indexOf('UNO');               // cama 1 antes que cama 2
-    r.libreExcluida = html.indexOf('Sin Datos') === -1;
+    r.paginas = (html.match(/class="rk-page"/g) || []).length;    // 1 paciente × 2 carillas
+    r.soloEse = html.indexOf('DOS') !== -1 && html.indexOf('UNO') === -1;
     r.claseRk = document.body.classList.contains('print-rk');
-    r.portrait = !!$('pgVertical') && $('pgVertical').textContent.indexOf('portrait') !== -1;
+    r.portrait = !!$('pgOrientacion') && $('pgOrientacion').textContent.indexOf('portrait') !== -1;
     window.dispatchEvent(new Event('afterprint'));
-    r.limpioTras = !document.body.classList.contains('print-rk') && !$('pgVertical');
+    r.limpioTras = !document.body.classList.contains('print-rk') && !$('pgOrientacion');
 
     /* ── Hoja PVE ── */
     const pv = pveHojaHTML('13.233.431-4', 'Ignacio Pepito');
@@ -80,7 +81,7 @@ const { chromium } = require('playwright-core');
     r.pveImprime = window._PRINTS === 2;
     r.pveClase = document.body.classList.contains('print-pve');
     window.dispatchEvent(new Event('afterprint'));
-    r.pveLimpio = !document.body.classList.contains('print-pve') && !$('pgVertical');
+    r.pveLimpio = !document.body.classList.contains('print-pve') && !$('pgOrientacion');
     return r;
   });
 
@@ -92,10 +93,10 @@ const { chromium } = require('playwright-core');
   eq('sin residuos undefined/null', R.sinDatosClinicos, true);
   eq('paciente sin RUT/TS no revienta', R.sinRutOk, true);
 
-  console.log('\n── Hojas del día ──');
+  console.log('\n── Hoja de registro desde el historial ──');
   eq('se abrió la impresión', R.imprimio, true);
-  eq('2 pacientes ⇒ 4 carillas', R.paginas, 4);
-  eq('la cama libre NO se imprime', R.libreExcluida, true);
+  eq('sale SOLO ese paciente (2 carillas)', R.paginas, 2);
+  eq('…y no se cuelan los demás', R.soloEse, true);
   eq('clase print-rk activa', R.claseRk, true);
   eq('se inyecta @page VERTICAL', R.portrait, true);
   eq('afterprint limpia clase y estilo', R.limpioTras, true);
