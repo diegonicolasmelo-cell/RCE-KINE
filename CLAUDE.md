@@ -1121,6 +1121,23 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `FECHA_INICIO_VA` en el display del formulario): su valor autoritativo es
     `DIAS_VM` del servidor y no es lo reportado.
 
+- **CELULAR · DIAGNÓSTICO MEDIDO Y FORMA ELEGIDA (10-ago-2026, mockup en
+  `scratchpad/mockup_movil.html`; NO programado aún).** Diego: «hoy está difícil
+  utilizar». Medido sobre la app real a 390×844, no estimado:
+  · el **encabezado ocupa 270 px, el 32% de la pantalla**, antes del primer dato;
+  · la tarjeta **Respiratorio abierta mide 1.325 px con 133 campos** dentro;
+  · las **once secciones del acordeón se ven idénticas** (sin resumen ni estado):
+    hay que abrirlas a ciegas;
+  · el **nombre del paciente no aparece** en ninguna parte del panel;
+  · el riel con los ✓ está **oculto bajo 1.100 px**, o sea nunca en un teléfono.
+  Propuesta: encabezado en una fila (270 → 46 px), cabecera con el paciente,
+  **resumen + estado por sección** (mismo criterio del riel del escritorio) y
+  números en grilla de tres.
+  ✅ **Diego eligió la OPCIÓN B** para la sección grande: Respiratorio se parte en
+  **sub-bloques dentro del acordeón** (vía aérea · ventilación · extubación/PVE ·
+  manejo), no en pantalla completa. Menos cambio para el equipo.
+  Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
+
 - **v5.49 · REDISEÑO SUAVE DE LA SÁBANA: LA FICHA SE PLIEGA Y LOS CAMPOS DICEN
   CÓMO ESTABAN (10-ago-2026, cohete v5.49-ficha; sin cambio de esquema — NO
   exige `crearORepararEstructura()`).** Los dos primeros puntos de los tres que
