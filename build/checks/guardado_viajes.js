@@ -137,8 +137,28 @@ for (const esc of Object.keys(TECHOS)) {
   const a = A[esc], b = B[esc];
   console.log('\n— ' + esc + ' (base ' + a.viajes + ' → ahora ' + b.viajes + ' viajes) —');
   si(esc + ' · las dos respuestas son ok', a.respuesta.ok === true && b.respuesta.ok === true);
+  // DIFERENCIA INTENCIONAL (ago-2026): GET_EVO_TURNO manda la evolución previa
+  // TAMBIÉN cuando el turno ya está guardado — antes solo la mandaba si no
+  // existía. La usa la línea «Antes: X → Y» de los campos de estado, y al
+  // re-editar es justo cuando se mira qué cambió. No cuesta ninguna lectura
+  // más: recorre el mismo episodio que ya está en memoria. Se descuenta del
+  // byte a byte y se verifica APARTE, abajo, para que quede demostrada en vez
+  // de disimulada.
+  const sinPrevia = r => { const c = JSON.parse(JSON.stringify(sinCamposNuevos(r)));
+    if (c && c.data && 'previa' in c.data) c.data.previa = '(comparada aparte)'; return c; };
   si(esc + ' · la respuesta de la API es IDÉNTICA',
-    JSON.stringify(sinCamposNuevos(a.respuesta)) === JSON.stringify(sinCamposNuevos(b.respuesta)));
+    JSON.stringify(sinPrevia(a.respuesta)) === JSON.stringify(sinPrevia(b.respuesta)));
+  if (esc === 'reabrir') {
+    si('reabrir · el BASE no mandaba la previa (control)', a.respuesta.data.previa === null);
+    si('reabrir · ahora sí viaja, y es el turno anterior de verdad',
+      !!(b.respuesta.data.previa && b.respuesta.data.previa.TURNO_KEY),
+      b.respuesta.data.previa && b.respuesta.data.previa.TURNO_KEY);
+  }
+  if (esc === 'abrir') {
+    si('abrir · la previa del turno nuevo no cambió',
+      JSON.stringify(sinCamposNuevos(a.respuesta.data.previa)) ===
+      JSON.stringify(sinCamposNuevos(b.respuesta.data.previa)));
+  }
 
   const hojasA = a.hojas, hojasB = b.hojas;
   const nombres = new Set(Object.keys(hojasA).concat(Object.keys(hojasB)));

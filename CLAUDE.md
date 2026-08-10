@@ -112,7 +112,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**65 guardias** en `build/checks/*.js`; **39 usan navegador**
+**66 guardias** en `build/checks/*.js`; **40 usan navegador**
 (`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -1120,6 +1120,90 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - NO se tocó la línea equivalente de la VM (que conserva el respaldo a
     `FECHA_INICIO_VA` en el display del formulario): su valor autoritativo es
     `DIAS_VM` del servidor y no es lo reportado.
+
+- **v5.49 · REDISEÑO SUAVE DE LA SÁBANA: LA FICHA SE PLIEGA Y LOS CAMPOS DICEN
+  CÓMO ESTABAN (10-ago-2026, cohete v5.49-ficha; sin cambio de esquema — NO
+  exige `crearORepararEstructura()`).** Los dos primeros puntos de los tres que
+  pidió Diego para traer del prototipo lo que sirve sin tocar lo que funciona
+  («sacar las mejores funcionalidades del rediseño a lo que ya tenemos»). El
+  tercero —guardado por bloques— quedó **explícitamente fuera por decisión suya**
+  tras el análisis (ver más abajo).
+  1. **«Antes: X → Y» bajo los campos de ESTADO.** El ámbar de `.heredado` cubre
+     las MEDICIONES y deja fuera a propósito vía aérea, soporte, modo y tubo
+     («son hechos que persisten entre turnos, no mediciones»). El ejemplo que dio
+     Diego —modo CPAP/PS → ACVC— es justo uno de los excluidos: **esto no duplica
+     el ámbar, cubre el hueco que deja**. Mientras el valor se mantiene la línea
+     dice «Antes: CPAP/PS»; al cambiar pasa a «CPAP/PS → ACVC» resaltado.
+     `_ANTES_CAMPOS` son SEIS (`fVA`, `fSop`, `fModo`, `fTOTn`, `fTOTcm`,
+     `fTQTn`) y la guardia fija que **ninguno esté además en `_HER_CAMPOS`**:
+     un campo con las dos marcas confunde en vez de avisar.
+     - **Sin evolución previa no se dibuja NADA** (primer turno del episodio,
+       ingreso): inventar un «antes» sería peor que callar.
+     - Es la red que habría delatado el incidente de la cama 16 (un GCS de una
+       paciente cooperadora arrastrado a otra que llegó intubada y sedada).
+     - ⚠️ **Cambio de servidor**: `obtenerEvoTurno` devuelve la previa
+       **SIEMPRE**, no solo cuando el turno no existe — al re-editar es cuando
+       más se mira qué cambió. **No cuesta una lectura más**: recorre el mismo
+       `evos` que la Ola 1 ya deja en memoria (medido: reabrir sigue en 3
+       viajes). `guardado_viajes.js` cazó la diferencia en el A/B y ahora la
+       **verifica aparte** en vez de disimularla (control: el base mandaba
+       `previa: null`).
+     - Trampa que NO mordió pero está fijada: `poblar()` cambia las OPCIONES de
+       los selects al cascadear, no el elemento, así que el span hermano
+       sobrevive. Si alguien reemplaza el contenedor, la guardia se pone roja.
+  2. **La ficha del episodio se pliega** («solo la primera vez se ingresa la
+     info más a detalle y luego queda solo lo clínico»). Las evaluaciones
+     pre-UCI de 📊 General —hora de ingreso, Barthel, Charlson, APACHE II,
+     ECF— viven ahora en `#fPreUci` y se resumen en una línea con el nombre y
+     los puntajes. **Día Estadía y AET quedan fuera**: el primero se mira todos
+     los turnos y el segundo se decide DURANTE la estadía.
+     - 🔴 **Lo peligroso, y por eso hay dos asserts con estrella**: plegar es
+       `display:none`, **no** sacar del DOM. Los campos siguen en el formulario
+       y su valor viaja igual al guardar. Si alguien los quitara, guardar un
+       turno **borraría los datos del paciente**. `display:contents` cuando está
+       abierto deja la maqueta idéntica a antes de envolverlos.
+     - En un INGRESO nunca se pliega, y sin datos tampoco (un resumen vacío
+       ocupa lo mismo que los campos y no dice nada).
+  3. **✏️ en la tarjeta de cama** (opción A de las dos que se ofrecieron; el pie
+     ya tenía cuatro botones). Abre el panel con la ficha desplegada —
+     `abrirPanel(id, esIng, verFicha)`. **Tapa un agujero que nadie había
+     reportado**: `abrirPanel` hace `esIng ? show('fcId') : hide('fcId')`, así
+     que pasado el ingreso **no existía ninguna vía para corregir un nombre mal
+     escrito, un RUT o el diagnóstico** hasta el egreso. El mismo control
+     destapa 👤 Identificación.
+     - 🪤 `.pname` tenía `overflow:hidden` + elipsis: el botón quedaba dentro y
+       un nombre largo se lo comía. Ahora el nombre va en su propio `<span>` que
+       trunca y el ✏️ es hermano suyo con `flex-shrink:0` — **lo cazó la propia
+       guardia**, que primero salió roja por el `flex-shrink` por defecto.
+  - Guardia `checks/ficha_y_antes.js` (10 bloques, servidor + cliente).
+    Batería: **66 verdes**.
+  - 🚫 **GUARDADO POR BLOQUES: ANALIZADO Y NO PROGRAMADO (decisión de Diego,
+    10-ago-2026).** Se midió antes de opinar y el veredicto es que **no es
+    imposible pero hoy no paga**:
+    · La mitad del mecanismo YA existe: `guardarEvolucion` rellena desde la fila
+      previa todo lo que el payload no trae (`if (!(k in datos))`), o sea que
+      escribir un payload parcial sin borrar el resto ya funciona.
+    · Lo caro es otra cosa: **el sistema no tiene el concepto de «turno a
+      medias»**. El REM cuenta cada fila de EVOLUCIONES como día-cama
+      (`DIAS_CAMA: evoMes.length`, svc_rem) y los indicadores como paciente-día;
+      además la grilla, la entrega y la alerta de «faltan evoluciones» leen
+      «existe» como «hecha». Un bloque guardado y nunca terminado ya suma.
+    · Habría que mapear las 387 columnas a diez bloques, y ese mapa **falla en
+      silencio**: la columna nueva que nadie mapee no se guarda nunca desde los
+      botones de bloque, sin error.
+    · **Sería más lento**: guardar cuesta ~3,4 s medidos (Ola 4); ocho bloques
+      por separado son ~27 s contra 3,4. Escribir menos columnas no ahorra nada
+      — eso ya lo demostró la Ola 3.
+    · Las obligatorias **cruzan bloques**: la firma vive en Planes y la vía aérea
+      en Respiratorio, así que guardar «solo la ventilación» exigiría relajarlas
+      y empezarían a existir evoluciones sin firma.
+    · Y lo que decide: **el navegador siempre tiene el formulario completo
+      cargado** (no es como el prototipo, donde cada bloque es otra pantalla),
+      así que mandar un pedazo no protege nada que el guardado completo no
+      proteja ya. Lo único que agrega el parcial es poder guardar ANTES de tener
+      el turno completo — que es a la vez el beneficio y el riesgo.
+    · Donde sí tendría futuro es **en el celular**, y eso es rediseño de la
+      captura, no un botón. Reabrir solo con datos nuevos de uso.
 
 - **v5.46 · AFINADO DE TERRENO: 12 PUNTOS DE DIEGO EN UNA RONDA (9-ago-2026,
   cohete v5.46-afinado; sin cambio de esquema — NO exige

@@ -630,11 +630,13 @@ function obtenerEvoTurno(idCama, turnoKey) {
     for (let i = 0; i < evos.length; i++) {
       if (String(evos[i].TURNO_KEY || '') === tk) { actual = evos[i]; break; }
     }
-    let previa = null;
-    if (!actual) {
-      const r = obtenerEvolucionPrevia(idCama, turnoKey, evos);
-      previa = (r.ok && r.data) ? r.data : null;
-    }
+    // La previa viaja SIEMPRE, también cuando el turno ya está guardado: el
+    // formulario la usa para mostrar «Antes: X → Y» bajo los campos de estado
+    // (vía aérea, soporte, modo, tubo), y al RE-EDITAR es justo cuando importa
+    // ver qué cambió respecto del turno anterior. No cuesta una lectura más —
+    // recorre el mismo `evos` que ya está en memoria (Ola 1).
+    const _rp = obtenerEvolucionPrevia(idCama, turnoKey, evos);
+    const previa = (_rp.ok && _rp.data) ? _rp.data : null;
     // La pronación abierta viaja SIEMPRE (también al re-editar un turno ya
     // guardado, donde la supinación puede agregarse recién ahora).
     return ok({ actual: actual, previa: previa, pronoAbierto: _pronoAbiertoTS(idCama, turnoKey, evos) });

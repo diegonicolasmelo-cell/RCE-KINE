@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.47-terreno">
+<meta name="rce-version" content="5.49-ficha">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -688,7 +688,10 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .d-empty{background:var(--border);}
 .d-busy{background:var(--danger);box-shadow:0 0 6px rgba(239,68,68,.45);}
 .d-done{background:var(--ok);box-shadow:0 0 6px rgba(5,150,105,.45);}
-.pname{font-size:.98rem;font-weight:700;color:var(--pdark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pname{font-size:.98rem;font-weight:700;color:var(--pdark);display:flex;align-items:center;gap:3px;}
+/* El nombre trunca; el ✏️ NO — sin esta separación un nombre largo se comía
+   el botón con la elipsis y la ficha quedaba otra vez inalcanzable. */
+.pname>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 /* Diagnóstico en la tarjeta de cama (reemplaza al código de paciente) */
 .bdx{font-size:.72rem;color:#64748b;font-style:italic;line-height:1.3;margin-top:2px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
@@ -787,6 +790,36 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .fcard-hdr{padding:12px 16px 10px;background:transparent;border-bottom:1px solid #eef2f6;display:flex;align-items:center;gap:8px;}
 .fcard-title{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--fc,#64748b);display:flex;align-items:center;gap:7px;}
 .fcard-title::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--fc,#94a3b8);flex-shrink:0;}
+/* ── Ficha del episodio plegada (ago-2026, pedido de Diego) ────────────────
+   `display:contents` deja los campos como hijos directos de la fila, así la
+   maqueta es idéntica a antes de envolverlos; plegado pasa a `display:none`
+   y los campos siguen en el formulario (su valor viaja igual al guardar). */
+.pre-uci{display:contents;}
+.pre-uci.plegado{display:none;}
+.ficha-chip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;
+  background:#fbfaf8;border:1px solid var(--border);border-radius:9px;
+  padding:7px 12px;margin-bottom:9px;font-size:.79rem;color:var(--muted);}
+.ficha-chip:hover{background:#f4f2ed;}
+.ficha-chip b{color:var(--txt);font-weight:700;}
+.ficha-lapiz{margin-left:auto;border:1px solid #cbd5e1;background:#fff;border-radius:8px;
+  padding:2px 9px;font-size:.72rem;font-weight:700;color:var(--primary);white-space:nowrap;}
+/* Lápiz de la tarjeta de cama: hasta ago-2026 no había forma de corregir el
+   nombre, el RUT o el diagnóstico después del ingreso (la tarjeta de
+   Identificación se esconde fuera del ingreso). */
+.pname-lap{border:none;background:transparent;cursor:pointer;font-size:.78rem;
+  padding:1px 4px;border-radius:5px;opacity:.5;line-height:1;flex-shrink:0;}
+.pname-lap:hover{opacity:1;background:#f1efe9;}
+/* ── «Antes: X → Y» bajo los campos de ESTADO (ago-2026, pedido de Diego) ──
+   El ámbar de .heredado cubre las MEDICIONES; los campos de estado —vía aérea,
+   soporte, modo, tubo— quedan fuera a propósito (son hechos que persisten, no
+   mediciones). Esta línea cubre justo ese hueco: dice cómo estaba el paciente
+   el turno anterior y, si cambió, lo muestra con la flecha. En los contenedores
+   flex (soporte/modo, que van en línea) el span se acomoda solo como un ítem
+   más; en las columnas normales cae debajo del campo. */
+.antes{display:block;font-size:.66rem;line-height:1.35;margin-top:3px;color:#8a8578;
+  letter-spacing:.01em;white-space:nowrap;}
+.antes:empty{display:none;}
+.antes.cambio{color:#b45309;font-weight:800;}
 /* Etapa 2: mediciones heredadas de la réplica — ámbar hasta tocarlas o confirmar el módulo */
 .heredado{background:#fffbeb !important;border-color:#f5b942 !important;}
 .her-chip{margin-left:auto;background:#fffbeb;color:#b45309;border:1px solid #f59e0b;border-radius:14px;padding:2px 10px;font-size:.66rem;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;}
@@ -2243,12 +2276,30 @@ document.documentElement.setAttribute('data-piel', 'inst');
 
       <div class="sp-2col"><div class="sp-col">
         <!-- DIAGNÓSTICO -->
-        <div class="fcard fc-g">
+        <div class="fcard fc-g" id="fcGen">
           <div class="fcard-hdr"><span class="fcard-title">📊 General</span></div>
           <div class="fcard-body">
+            <!-- FICHA DEL EPISODIO PLEGADA (ago-2026, pedido de Diego): las
+                 evaluaciones pre-UCI y los datos de identidad se llenan UNA vez
+                 al ingreso y después solo estorban arriba del formulario. Esta
+                 línea las resume y las despliega al tocarla; el mismo control
+                 destapa la tarjeta de Identificación, que fuera del ingreso
+                 estaba escondida y no había forma de corregir (un RUT mal
+                 escrito obligaba a esperar al egreso). -->
+            <div id="fichaChip" class="ficha-chip hidden" onclick="fichaToggle()"
+                 title="Datos del ingreso y evaluaciones pre-UCI — tócalos para revisarlos o corregirlos">
+              <span id="fichaChipTxt"></span>
+              <span class="ficha-lapiz">✏️ Editar ficha</span>
+            </div>
             <!-- Día estadía + Barthel + ECF + AET en la misma fila -->
             <div class="row" style="margin-bottom:6px;align-items:flex-end;flex-wrap:wrap;">
               <div class="col wa"><label>Día Estadía</label><input type="number" id="fDias" class="tc bold" style="width:64px;" disabled></div>
+              <!-- Lo de adentro es lo que se pliega. `display:contents` deja a
+                   los campos como hijos directos de la fila (la maqueta no
+                   cambia) y al plegar pasa a `display:none`, que es lo que
+                   corresponde: los campos SIGUEN en el formulario y su valor
+                   viaja igual al guardar — solo dejan de verse. -->
+              <div id="fPreUci" class="pre-uci">
               <div class="col wa" style="margin-right:18px;"><label>Hora ingreso</label>
                 <input type="time" id="fHoraIng" class="tc" style="width:96px;" title="Desde esta hora se cuentan los días (bloques de 24 h). Vacío = se cuenta por días calendario."></div>
               <div class="col wa" style="margin-right:34px;"><label>Barthel</label>
@@ -2285,6 +2336,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
                   <button type="button" onclick="abrirEscala('ecf','fEcf')" title="Abrir calculadora" style="height:30px;padding:0 8px;border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;cursor:pointer;font-size:.82rem;flex-shrink:0;">🧮</button>
                 </div>
               </div>
+              </div><!-- /fPreUci — el AET queda FUERA: la adecuación del
+                   esfuerzo terapéutico se decide durante la estadía, no antes -->
               <div class="col wa"><label>⚖️ AET</label>
                 <div style="display:flex;align-items:center;gap:6px;">
                   <input type="checkbox" id="cAET" onchange="hAET()" style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer;">
@@ -4004,7 +4057,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.47-terreno]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.49-ficha]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4404,7 +4457,13 @@ function renderGrid() {
           </button>
         </div>
         <div class="bbody">
-          <div class="pname" title="${c.NOMBRE||''}">${c.NOMBRE||'-'}</div>
+          ${/* El ✏️ abre el panel con la FICHA desplegada (Diego, ago-2026).
+                Antes de esto, pasado el ingreso no había ninguna vía para
+                corregir un nombre mal escrito, un RUT o el diagnóstico: la
+                tarjeta de Identificación se esconde fuera del ingreso. En la
+                vista retrospectiva no va — ahí no se edita nada. */''}
+          <div class="pname" title="${c.NOMBRE||''}"><span>${c.NOMBRE||'-'}</span>${c._RETRO?'':
+            `<button type="button" class="pname-lap" title="Editar la ficha del paciente (nombre, RUT, diagnóstico, evaluaciones de ingreso)" onclick="event.stopPropagation();abrirPanel('${c.ID_CAMA}',false,true)">✏️</button>`}</div>
           <div style="font-size:.78rem;color:var(--muted);">${c.EDAD||'?'}a · ${c.SEXO||''}</div>
           ${/* El DIAGNÓSTICO reemplaza al COD_PACIENTE en la tarjeta (Diego,
                 ago-2026): el código es plomería interna para cruzar datos sin
@@ -4516,7 +4575,14 @@ function rielIr(i){
 document.addEventListener('input', e=>{ if(e.target && e.target.closest && e.target.closest('#kf')) _rielDeb(); });
 document.addEventListener('change', e=>{ if(e.target && e.target.closest && e.target.closest('#kf')) _rielDeb(); });
 
-function abrirPanel(id, esIng) {
+/**
+ * Abre el panel de evolución.
+ * @param verFicha  true = arranca con la FICHA del episodio desplegada
+ *                  (datos de identidad + evaluaciones pre-UCI). Lo usa el ✏️
+ *                  de la tarjeta de cama, que es hoy la única vía para
+ *                  corregir un nombre o un RUT despues del ingreso.
+ */
+function abrirPanel(id, esIng, verFicha) {
   // Si esta cama quedó minimizada con un borrador, se restaura tal cual
   // (aunque se entre por el botón de la cama y no por la bandeja): lo
   // escrito manda por sobre el reset + recarga.
@@ -4544,6 +4610,7 @@ function abrirPanel(id, esIng) {
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   const _gClr=$('spGapAviso'); if(_gClr){_gClr.style.display='none';_gClr.innerHTML='';}
   _transAvisoOk=false; _iniVA=''; _iniSop='';
+  _fichaAbierta=!!verFicha;   // lo aplica fichaAplicar() cuando el form esté lleno
   _formDirty=false;           // panel recién abierto: sin cambios que perder
   _limpiarHeredados();
   _marcarTextoGenerado('');   // editor de texto: parte sin edición manual
@@ -4615,6 +4682,8 @@ function abrirPanel(id, esIng) {
         // ─── Turno YA guardado: carga exactamente lo que se registró ───
         fillForm(r.actual);
         _snapIniEstado();
+        _antesSnapshot(r.previa);   // al re-editar, «antes» = el turno anterior
+        fichaAplicar(_fichaAbierta);
         _mostrarEditorTexto(r.actual);
       } else if(r && r.previa) {
         // ─── Turno NUEVO: replica el turno inmediatamente anterior ───
@@ -4626,19 +4695,25 @@ function abrirPanel(id, esIng) {
         const _ri=$('spRepInfo'); if(_ri){_ri.textContent=`Datos replicados del turno ${_turnoLabel} del ${fl}`;_ri.style.display='';}
         $('repBannerTxt').innerHTML='';hide('repBanner');
         _snapIniEstado();
+        _antesSnapshot(r.previa);
+        fichaAplicar(_fichaAbierta);
         _avisoGapTurnos(String(r.previa.TURNO_KEY||''), fecha, c);
         _mostrarEditorTexto(null);
       } else {
         // Sin turno previo: arranca en blanco con datos del paciente
         if(c) fillCama(c,fecha);
         _snapIniEstado();
+        _antesSnapshot(null);   // sin turno anterior no hay «antes» que mostrar
+        fichaAplicar(_fichaAbierta);
         _avisoGapTurnos('', fecha, c);
         _mostrarEditorTexto(null);
       }
-    }, ()=>{ loading(false); const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha); _snapIniEstado(); _mostrarEditorTexto(null); });
+    }, ()=>{ loading(false); const c=DB.find(x=>String(x.ID_CAMA)===String(id)); if(c) fillCama(c,fecha); _snapIniEstado(); _antesSnapshot(null); fichaAplicar(_fichaAbierta); _mostrarEditorTexto(null); });
   } else {
     const c=DB.find(x=>String(x.ID_CAMA)===String(id));
     if(c) fillCama(c,fecha);
+    _antesSnapshot(null);   // un ingreso no tiene turno anterior con qué comparar
+    fichaAplicar(true);     // …y la ficha es justo lo que hay que llenar
     _mostrarEditorTexto(null);
   }
   $('ovl').classList.add('on');
@@ -5555,6 +5630,116 @@ const _HER_CAMPOS=['fSed','fSAS','fS5Q','fCoop','fGCSO','fGCSV','fGCSM',   // se
   'fSecrCar','fSecrReol'];                                                  // permeabilización — secreciones
 function _herPendientes(){
   return [...document.querySelectorAll('#sp .heredado')].filter(e=>e.offsetParent!==null).length;
+}
+
+// ── FICHA DEL EPISODIO: plegada por defecto (ago-2026, pedido de Diego) ─────
+// «Solo la primera vez se ingresa la info más a detalle y luego queda solo lo
+// clínico». La ficha son los datos de identidad (tarjeta 👤 Identificación, que
+// fuera del ingreso YA se escondía) y las evaluaciones pre-UCI de la tarjeta
+// 📊 General: hora de ingreso, Barthel, Charlson, APACHE II y ECF. Se llenan una
+// vez y después ocupan la parte de arriba del formulario sin aportar al turno.
+//
+// Día Estadía y AET NO se pliegan: el primero se mira todos los turnos y el
+// segundo se decide DURANTE la estadía, no antes de ella.
+//
+// Lo que esto ADEMÁS arregla: hasta hoy, pasado el ingreso, no había manera de
+// corregir un nombre mal escrito, un RUT o el diagnóstico — la tarjeta de
+// identificación quedaba oculta hasta el egreso. El mismo control la destapa,
+// y el ✏️ de la tarjeta de cama abre el panel directamente con la ficha a la
+// vista (petición textual de Diego).
+let _fichaAbierta=false;
+
+/** ¿Hay algo que plegar? Sin datos de ficha no se muestra el resumen: un chip
+ *  que dice «—» ocupa el mismo espacio que los campos y no informa nada. */
+function _fichaResumen(){
+  const p=[];
+  const nom=String(v('fNombre')||'').trim(); if(nom) p.push('<b>'+_escSt(nom)+'</b>');
+  const ed=String(v('fEdad')||'').trim(), sx=String(v('fSexo')||'').trim();
+  if(ed) p.push(_escSt(ed)+'a'+(sx?' · '+_escSt(sx):''));
+  else if(sx) p.push(_escSt(sx));
+  const ta=String(v('fTalla')||'').trim(); if(ta) p.push(_escSt(ta)+' cm');
+  const hi=String(v('fHoraIng')||'').trim(); if(hi) p.push('ingresó '+_escSt(hi));
+  [['fBarthel','Barthel'],['fCharlson','Charlson'],['fApache','APACHE II'],['fEcf','ECF']]
+    .forEach(([id,et])=>{ const x=String(v(id)||'').trim(); if(x) p.push(et+' <b>'+_escSt(x)+'</b>'); });
+  return p.join(' · ');
+}
+
+/** Aplica el estado (plegado/desplegado) a la ficha. */
+function fichaAplicar(abrir){
+  _fichaAbierta=!!abrir;
+  const pre=$('fPreUci'), chip=$('fichaChip'), txt=$('fichaChipTxt');
+  const esIng=v('cIng')==='true';
+  const resumen=_fichaResumen();
+  // En un INGRESO nunca se pliega: es justo lo que hay que llenar. Sin datos
+  // tampoco (paciente recién creado o cama sin ficha).
+  const puedePlegar=!esIng && !!resumen;
+  if(pre) pre.classList.toggle('plegado', puedePlegar && !_fichaAbierta);
+  if(chip){
+    chip.classList.toggle('hidden', !puedePlegar);
+    if(txt) txt.innerHTML=(_fichaAbierta?'▲ ':'')+resumen;
+  }
+  // La identificación (nombre/RUT/dx) solo se destapa a pedido.
+  if(!esIng){ const fi=$('fcId'); if(fi) fi.classList.toggle('hidden', !_fichaAbierta); }
+}
+function fichaToggle(){ fichaAplicar(!_fichaAbierta); }
+
+// ── «Antes: X → Y» en los campos de ESTADO (ago-2026, pedido de Diego) ──────
+// El ámbar de arriba cubre las MEDICIONES y deja fuera, a propósito, los campos
+// de estado: vía aérea, soporte, modo, tubo. Son hechos que persisten entre
+// turnos, así que marcarlos de «sin revisar» sería ruido. Pero sí importa ver
+// CÓMO ESTABA: «Antes: CPAP/PS» mientras se mantiene, y «CPAP/PS → ACVC» en
+// cuanto cambia. Es lo que pidió Diego y es la red que delata un valor heredado
+// que no calza con el paciente (el incidente de la cama 16, ago-2026: un GCS de
+// una paciente cooperadora arrastrado a otra que llegó intubada y sedada).
+//
+// Ningún campo lleva las DOS marcas: si está en _HER_CAMPOS va en ámbar y no
+// lleva «Antes», y al revés. Son dos lenguajes distintos y mezclarlos confunde.
+//
+// El dato sale de la evolución previa que el servidor ya manda en GET_EVO_TURNO
+// (viaja también al re-editar desde ago-2026, que es cuando más se mira).
+// No hay columna nueva ni viaje extra.
+const _ANTES_CAMPOS=[
+  {id:'fVA',   ks:['VENT_VIA_AEREA_FINAL','VENT_VIA_AEREA']},
+  {id:'fSop',  ks:['VENT_SOPORTE_FINAL','VENT_SOPORTE']},
+  {id:'fModo', ks:['VENT_MODO_FINAL','VENT_MODO']},
+  {id:'fTOTn', ks:['VENT_TOT_NUM']},
+  {id:'fTOTcm',ks:['VENT_TOT_CM']},
+  {id:'fTQTn', ks:['VENT_TQT_CALIBRE']},
+];
+let _ANTES_PREV=null;   // valores del turno anterior; null = no hay con qué comparar
+
+/** Guarda el estado del turno anterior. Sin previa (primer turno del episodio,
+ *  o un ingreso) no se dibuja NADA: inventar un «antes» sería peor que callar. */
+function _antesSnapshot(previa){
+  if(!previa || v('cIng')==='true'){ _ANTES_PREV=null; _antesPintar(); return; }
+  _ANTES_PREV={};
+  _ANTES_CAMPOS.forEach(c=>{
+    let val='';
+    for(const k of c.ks){ const x=previa[k]; if(x!==undefined&&x!==null&&String(x).trim()!==''){ val=String(x).trim(); break; } }
+    _ANTES_PREV[c.id]=val;
+  });
+  _antesPintar();
+}
+
+/** Dibuja (o actualiza) la línea bajo cada campo. Se llama en cada cambio del
+ *  formulario: los selects de soporte/modo se repueblan al cascadear, pero el
+ *  ELEMENTO sobrevive (poblar() cambia las opciones, no el select), así que el
+ *  span hermano no se pierde. */
+function _antesPintar(){
+  _ANTES_CAMPOS.forEach(c=>{
+    const el=$(c.id); if(!el) return;
+    let out=$('ant_'+c.id);
+    if(!out){
+      out=document.createElement('span');
+      out.className='antes'; out.id='ant_'+c.id;
+      el.insertAdjacentElement('afterend', out);
+    }
+    const antes=_ANTES_PREV?String(_ANTES_PREV[c.id]||''):'';
+    if(!antes){ out.textContent=''; out.className='antes'; return; }
+    const ahora=String(el.value||'').trim();
+    if(ahora===antes){ out.textContent='Antes: '+antes; out.className='antes'; }
+    else{ out.textContent=antes+' → '+(ahora||'—'); out.className='antes cambio'; }
+  });
 }
 function _limpiarHeredados(){
   document.querySelectorAll('#sp .heredado').forEach(e=>e.classList.remove('heredado'));
@@ -7734,6 +7919,11 @@ function _bindPanelListeners(){
   // Tocar un campo heredado (aunque quede igual) lo confirma
   $('kf')?.addEventListener('change', _herTouch);
   $('kf')?.addEventListener('input', _herTouch);
+  // «Antes: X → Y» de los campos de estado: se recalcula con cualquier cambio.
+  // Va por evento y no dentro de cascadeVA/cascadeSop para que también cubra
+  // los campos que no pasan por ahí (n° de tubo, fijación, calibre de TQT).
+  $('kf')?.addEventListener('change', _antesPintar);
+  $('kf')?.addEventListener('input', _antesPintar);
   // Editor de texto: regeneración en vivo mientras no haya edición manual
   $('kf')?.addEventListener('change', _rtxtLive);
   $('kf')?.addEventListener('input', _rtxtLive);
