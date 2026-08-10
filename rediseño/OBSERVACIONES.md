@@ -71,14 +71,17 @@ comportamiento correcto es el de `v2/index.html`.
 
 ## Pendientes de la adaptación (por orden)
 
-- [ ] Intubación con panel «queda con» completo (v4.3/v4.4: módulo ventilatorio
-      del estado posterior). Hoy el evento se registra y manda al bloque 2.
-- [ ] Reintubación con panel propio (v4.5) y decanulación con racha de válvula.
-- [ ] TQT ocurrida este turno (evento, no estado — v4.6) con su «queda con».
-- [ ] GSA opcional con interpretación (v4.2).
-- [ ] Desvinculación de VM en TQT (v4.2·7).
-- [ ] Dispositivos HME/HEPA/TC por fecha de etiqueta (v5.44) — decidir si van
-      en este formulario o quedan en la app principal.
+- [x] Intubación con panel «queda con» (v4.3/v4.4): N° TOT, cm de arcada,
+      modo y Vt/FR/PEEP/FiO₂/SpO₂ — el previo no se pisa. (v0.5)
+- [x] Reintubación con panel propio (v4.5). (v0.5)
+- [x] TQT ocurrida este turno (evento, no estado — v4.6) con su «queda con»
+      y el aviso «no repitas los parámetros arriba». (v0.5)
+- [x] GSA opcional con interpretación ácido-base y PaFi calculada. (v0.5)
+- [x] Desvinculación de VM en TQT con delta de horas que cruza medianoche. (v0.5)
+- [x] Dispositivos HME/HEPA/TC por fecha de etiqueta con la fecha EXACTA de
+      cambio (v5.44: cambio en turno noche de etiqueta+frec). (v0.5)
+- [ ] Decanulación con racha de válvula de fonación (necesita historial de
+      turnos reales — el prototipo aún vive en un solo turno).
 - [ ] Días de VM/estadía reales (aquí son demo); tramos v5.42 al migrar.
 - [ ] Réplica DÍA→DÍA de terapia física (regla de producción) cuando el
       prototipo tenga más de un turno real.

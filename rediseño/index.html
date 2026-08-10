@@ -187,13 +187,13 @@ var PESO_IDEAL=57.9;
 function turnoKey(){var d=new Date(),h=d.getHours(),f=new Date(d);if(h<8)f.setDate(f.getDate()-1);var t=(h>=8&&h<20)?'Dia':'Noche';return f.toISOString().slice(0,10)+'-'+t}
 var TK=turnoKey(),ES_DIA=TK.slice(-3)==='Dia';
 /* ================= réplica (turno anterior, demo con campos CANÓNICOS) ==== */
-var PREV={VIA:'TQT',TQT_CALIBRE:'8.0',TQT_TIPO:'Con balón',SOPORTE:'VM',MODO:'CPAP/PS',PS:'14',PEEP:'6',FIO2:'30',VT:'380',FR:'18',SPO2:'96',HUMIDIF:true,SED_TIPO:'Sin sedación',GCS_O:'4',GCS_M:'6',S5Q:'gte3',CAM:'neg',HEMO_ESTADO:'Estable',HEMO_DVA:'Sin requerimientos',EX_MP:'Disminuido en Bases',SECR_CAR:'Mucosas',SECR_REOL:'Fluidas',SECR_QTY:'+',KTR_CANT:'3',FASE:['Weaning','Rehabilitación'],DIAS_VM:21,N_REINTUB:2,POS:'Supino'};
+var PREV={VIA:'TQT',TQT_CALIBRE:'8.0',TQT_TIPO:'Con balón',SOPORTE:'VM',MODO:'CPAP/PS',PS:'14',PEEP:'6',FIO2:'30',VT:'380',FR:'18',SPO2:'96',HUMIDIF:true,SED_TIPO:'Sin sedación',GCS_O:'4',GCS_M:'6',S5Q:'gte3',CAM:'neg',HEMO_ESTADO:'Estable',HEMO_DVA:'Sin requerimientos',EX_MP:'Disminuido en Bases',SECR_CAR:'Mucosas',SECR_REOL:'Fluidas',SECR_QTY:'+',KTR_CANT:'3',FASE:['Weaning','Rehabilitación'],DIAS_VM:21,N_REINTUB:2,POS:'Supino',DISP_HME:'2026-08-09',DISP_HEPA:'2026-08-07',DISP_TC:'2026-08-08'};
 var HIST_VM=true;
 /* Estado del turno. REGLA DE RÉPLICA (producción): se hereda el ESTADO
    clínico; los EVENTOS/acciones parten en blanco (PVE, extubación, cultivo,
    cuff, prono-EVENTO, procedimientos). */
 var S={};Object.keys(PREV).forEach(function(k){S[k]=Array.isArray(PREV[k])?PREV[k].slice():PREV[k]});
-S.RUIDOS='';S.FIRMA='';S.PVE='';S.CUFF='';S.ADAPTADO='';S.POS_EV=false;
+S.RUIDOS='';S.FIRMA='';S.PVE='';S.CUFF='';S.ADAPTADO='';S.POS_EV=false;S.TQT_OCURR=false;S.GSA=false;S.DESVINC=false;
 /* ══ FICHA DEL EPISODIO (separada del registro del turno — Diego, ago-2026):
    datos personales + estado pre-UCI viven en SU PROPIA hoja, se llenan al
    ingreso UNA vez y quedan plegados/solo-lectura en los turnos siguientes.
@@ -235,6 +235,32 @@ function calcHTML(){var vt=n('VT'),fr=n('FR'),peep=n('PEEP'),ppl=n('PPL'),fio2=n
  var dp=(!asinc&&ppl!=null&&peepTot!=null)?+(ppl-peepTot).toFixed(0):null;
  var cesr=(vt&&dp)?+(vt/dp).toFixed(0):null;
  return c('mL/kg PI',mlkg,'',mlkg&&mlkg>8)+c('Vol/min',vm,'L')+c('Driving P.',dp,'cmH₂O',dp&&dp>15)+c('Cest',cesr,'mL/cmH₂O')}
+/* ── helpers de captura (fase captura de datos, ago-2026) ────────────────── */
+/* Interpretación GSA (v4.2): trastorno ácido-base simple + PaFi calculada */
+function _gsaInterpHTML(){var ph=parseFloat(S.GSA_PH),pc=parseFloat(S.GSA_PACO2),hc=parseFloat(S.GSA_HCO3);
+ var pao2=parseFloat(S.GSA_PAO2),fio2=parseFloat(S.GSA_FIO2);
+ var it=[];
+ if(!isNaN(ph)){
+  if(ph<7.35)it.push(!isNaN(pc)&&pc>45?'Acidosis respiratoria':(!isNaN(hc)&&hc<22?'Acidosis metabólica':'Acidosis'));
+  else if(ph>7.45)it.push(!isNaN(pc)&&pc<35?'Alcalosis respiratoria':(!isNaN(hc)&&hc>26?'Alcalosis metabólica':'Alcalosis'));
+  else it.push('pH en rango')}
+ if(!isNaN(pao2)&&!isNaN(fio2)&&fio2>0){var pafi=Math.round(pao2/(fio2/100));it.push('PaFi '+pafi+(pafi<300?(pafi<200?' (grave)':' (moderada)'):''));S.GSA_PAFI=String(pafi)}
+ return it.length?'<div class="calc">'+it.map(function(t){return'<div class="c"><b>'+esc(t)+'</b>interpretación automática</div>'}).join('')+'</div>':''}
+/* Delta de horas entre dos HH:MM que puede cruzar medianoche (v4.2·7) */
+function _deltaHoras(a,b){if(!a||!b)return'—';
+ var pa=a.split(':'),pb=b.split(':');var m=(+pb[0]*60+ +pb[1])-(+pa[0]*60+ +pa[1]);if(m<0)m+=1440;
+ return(Math.round(m/6)/10).toString().replace('.',',')+' h'}
+/* Dispositivo por FECHA DE ETIQUETA (v5.44): etiqueta = día 0; el cambio es
+   en el turno NOCHE del día etiqueta+frec. El chip muestra la FECHA EXACTA. */
+function _sumDias(iso,n){var d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+function _ddmm(iso){return iso?iso.slice(8,10)+'-'+iso.slice(5,7):''}
+function fdisp(k,l,frec){var f=S[k]||'';var chip='';
+ if(f){var hoy=TK.slice(0,10);var dias=Math.round((new Date(hoy+'T12:00:00')-new Date(f+'T12:00:00'))/864e5);
+  var cambio=_ddmm(_sumDias(f,frec));
+  chip=dias<frec?'<div class="antes">Cambio: '+cambio+(dias===frec-1?' (mañana en la noche)':'')+'</div>'
+   :dias===frec?'<div class="antes chg">Cambiar ESTA NOCHE ('+cambio+')</div>'
+   :'<div class="emsg">VENCIDO — debió cambiarse el '+cambio+'</div>'}
+ return'<div class="fld"><label>'+l+' · etiqueta</label><input type="date" data-k="'+k+'" value="'+esc(f)+'">'+chip+'</div>'}
 /* ================= B0 · FICHA DEL EPISODIO ================= */
 function ffld(k,l,tipo,ph){var t=tipo||'text';return'<div class="fld"><label>'+l+'</label><input type="'+t+'" data-f="'+k+'" value="'+esc(FICHA[k]||'')+'" placeholder="'+(ph||'')+'">'+'</div>'}
 function rB0(){
@@ -264,9 +290,24 @@ function rB1(){var via=S.VIA,h='';
  h+='<div class="gtit">Eventos del turno — parten SIEMPRE en blanco (no se replican)</div>';
  if(via==='Natural'||via==='Full Face'||via==='Oronasal'){
   h+=check('INTUB','🫁 Intubación este turno — el estado de arriba queda como PREVIO, no se pisa');
-  if(S.INTUB)h+='<div class="cond"><div class="grid">'+fhora('INTUB_HORA','Hora')+ftxt('INTUB_DET','Contexto / motivo')+'</div><div class="aviso amb">Regla v4.3: describe abajo (bloque 2) cómo QUEDA el paciente. El estado previo se conserva tal cual.</div></div>';
+  if(S.INTUB)h+='<div class="cond"><div class="grid">'+fhora('INTUB_HORA','Hora')+ftxt('INTUB_DET','Contexto / motivo')+'</div>'
+   +'<div class="gtit">✅ Queda con (post-intubación) — el estado previo de arriba NO se pisa (v4.3)</div>'
+   +'<div class="grid">'+fsel('QI_TOT_N','N° TOT',TOT_NUMS)+fnum('QI_TOT_CM',{l:'Fijación · cm arcada dental',u:'cm',min:18,max:26})+fsel('QI_MODO','Modo VM',['ACVC','ACPC','CPAP/PS'])+'</div>'
+   +'<div class="grid">'+fnum('QI_VT',PDEF.VT)+fnum('QI_FR',PDEF.FR)+fnum('QI_PEEP',PDEF.PEEP)+fnum('QI_FIO2',PDEF.FIO2)+fnum('QI_SPO2',PDEF.SPO2)+'</div>'
+   +'<div class="antes">El texto narrará: previo → intubación → cómo queda (con el módulo completo).</div></div>';
   if(HIST_VM){h+=check('REINTUB','🔁 Reintubación este turno (historial: '+PREV.DIAS_VM+' días de VM, '+PREV.N_REINTUB+' reintubaciones)');
-   if(S.REINTUB)h+='<div class="cond"><div class="grid">'+fhora('REINTUB_HORA','Hora')+ftxt('REINTUB_RAZ','Razón')+'</div></div>'}}
+   if(S.REINTUB)h+='<div class="cond"><div class="grid">'+fhora('REINTUB_HORA','Hora')+ftxt('REINTUB_RAZ','Razón')+'</div>'
+    +'<div class="gtit">✅ Queda con (post-reintubación, v4.5)</div>'
+    +'<div class="grid">'+fsel('QR_TOT_N','N° TOT',TOT_NUMS)+fnum('QR_TOT_CM',{l:'Fijación · cm arcada dental',u:'cm',min:18,max:26})+fsel('QR_MODO','Modo VM',['ACVC','ACPC','CPAP/PS'])+'</div>'
+    +'<div class="grid">'+fnum('QR_VT',PDEF.VT)+fnum('QR_FR',PDEF.FR)+fnum('QR_PEEP',PDEF.PEEP)+fnum('QR_FIO2',PDEF.FIO2)+fnum('QR_SPO2',PDEF.SPO2)+'</div></div>'}}
+ if(S.VIA==='TOT'){
+  /* TQT es EVENTO, no estado (v4.6): con la vía en TOT se declara aquí y el
+     estado ventilatorio del turno queda como PREVIO (no se llena dos veces). */
+  h+='<div class="gtit">🔪 Traqueostomía</div>'+check('TQT_OCURR','Ocurrió TQT este turno');
+  if(S.TQT_OCURR)h+='<div class="cond"><div class="grid">'+fhora('QT_HORA','Hora')+fsel('QT_TEC','Técnica',['Percutánea','Quirúrgica'])+ftxt('QT_DET','Operador / complicaciones (opcional)')+'</div>'
+   +'<div class="gtit">✅ Queda con (post-TQT)</div>'
+   +'<div class="grid">'+fsel('QT_CAN_N','Cánula N°',TOT_NUMS)+fsel('QT_CAN_TIPO','Tipo',TQT_TIPOS)+fsel('QT_SOP','Soporte',['VM','Oxigenoterapia/OAF','Ambiente'])+(S.QT_SOP==='VM'?fsel('QT_MODO','Modo',['ACVC','ACPC','CPAP/PS']):'')+'</div>'
+   +'<div class="aviso ver">Con esto basta: el texto narrará «Tras N días de VM, se realiza traqueostomía… queda conectado a VM en modo …». No repitas los parámetros arriba.</div></div>'}
  if(via==='TOT'){
   h+='<div class="gtit">✂️ PVE — OBLIGATORIA de declarar con TOT (v5.44)</div>';
   h+=seg('PVE','¿Se realizó PVE este turno?',[['si','Sí'],['no','No']]);
@@ -306,6 +347,16 @@ function rB2(){var r=VMAPS[S.VIA||'']||VMAPS[''],sops=r.sops,modos=(r.modos&&r.m
    h+='</div>'}
   if(S.POS==='Supino'&&PREV.POS==='Prono'){h+='<div class="cond">'+check('POS_EV','Se SUPINA este turno (cierra el ciclo de prono y calcula las horas)');
    if(S.POS_EV)h+='<div class="grid">'+fhora('SUPINO_HORA','Hora de supinación')+'</div>';h+='</div>'}}
+ /* GSA opcional (v4.2): momento puntual con hora — JAMÁS se replica */
+ if(S.SOPORTE){h+='<div class="gtit">🩸 Gases arteriales (opcional — no se replica)</div>'+check('GSA','Registrar GSA de este turno');
+  if(S.GSA)h+='<div class="cond"><div class="grid">'+fhora('GSA_HORA','Hora')+fnum('GSA_PH',{l:'pH',u:'',min:6.8,max:7.8})+fnum('GSA_PAO2',{l:'PaO₂',u:'mmHg',min:30,max:600})+fnum('GSA_PACO2',{l:'PaCO₂',u:'mmHg',min:10,max:120})+fnum('GSA_HCO3',{l:'HCO₃⁻',u:'mEq/L',min:5,max:50})+fnum('GSA_LACT',{l:'Lactato',u:'mmol/L',min:0,max:20})+fnum('GSA_FIO2',{l:'FiO₂ del examen',u:'%',min:21,max:100})+'</div>'+_gsaInterpHTML()+'</div>'}
+ /* Desvinculación de VM en TQT (v4.2·7) */
+ if(S.VIA==='TQT'&&S.SOPORTE==='VM'){h+='<div class="gtit">🔌 Desvinculación de VM</div>'+check('DESVINC','Se desvincula de la VM este turno');
+  if(S.DESVINC){h+='<div class="cond"><div class="grid">'+fhora('DESVINC_HORA','Hora de salida')+fsel('DESVINC_A','Queda a',['HME','Tubo T','CNAF','Válvula de fonación'])+ftxt('DESVINC_MOT','Motivo (opcional)')+'</div>'+check('DESVINC_RECON','Se reconecta en el turno');
+   if(S.DESVINC_RECON)h+='<div class="grid">'+fhora('DESVINC_HORA_RECON','Hora reconexión')+'</div><div class="calc"><div class="c"><b>'+_deltaHoras(S.DESVINC_HORA,S.DESVINC_HORA_RECON)+'</b>desvinculado (el delta cruza medianoche)</div></div>';
+   h+='</div>'}}
+ /* Dispositivos por FECHA DE ETIQUETA (v5.44): HME 2 días, HEPA y TC 3 */
+ if(S.SOPORTE==='VM'){h+='<div class="gtit">🧰 Circuito — fecha de ETIQUETA (etiqueta = día 0; el cambio es en el turno NOCHE)</div><div class="grid">'+fdisp('DISP_HME','HME',2)+fdisp('DISP_HEPA','HEPA',3)+fdisp('DISP_TC','Trach Care',3)+'</div>'}
  return h}
 /* ================= B3 · SEDACIÓN Y CONCIENCIA ================= */
 function rB3(){var h=fsel('SED_TIPO','Sedación (escalones de la unidad)',SED_ESC);
@@ -405,8 +456,8 @@ function rB7(){var h=chips('FASE','Fase clínica (persiste entre turnos; catálo
  return h}
 var BLQ=[
  {id:'b0',ic:'📇',nom:'Ficha del episodio',sub:'Datos personales · pre-UCI (una vez, hoja propia)',pref:[],render:rB0},
- {id:'b1',ic:'🫁',nom:'Vía aérea',sub:'Estado · cuff · eventos (previo→posterior)',pref:['VIA','TOT_','TQT_','CUFF','INTUB','REINTUB','PVE','EXT','DECAN'],render:rB1},
- {id:'b2',ic:'🌬️',nom:'Ventilación',sub:'VMAPS real: vía → soporte → modo → parámetros',pref:['SOPORTE','MODO','VT','FR','PEEP','FIO2','SPO2','PMAX','PPL','PMEDIA','TI','PINSP','PS','IPAP','EPAP','VT_ASEG','CPAP','FLUJO','LITROS','TEMP','AUTOPEEP','ADAPTADO','HUMIDIF','POS','PRONO_','SUPINO_'],render:rB2},
+ {id:'b1',ic:'🫁',nom:'Vía aérea',sub:'Estado · cuff · eventos (previo→posterior)',pref:['VIA','TOT_','TQT_','CUFF','INTUB','REINTUB','PVE','EXT','DECAN','QI_','QR_','QT_'],render:rB1},
+ {id:'b2',ic:'🌬️',nom:'Ventilación',sub:'VMAPS real: vía → soporte → modo → parámetros',pref:['SOPORTE','MODO','VT','FR','PEEP','FIO2','SPO2','PMAX','PPL','PMEDIA','TI','PINSP','PS','IPAP','EPAP','VT_ASEG','CPAP','FLUJO','LITROS','TEMP','AUTOPEEP','ADAPTADO','HUMIDIF','POS','PRONO_','SUPINO_','GSA','DESVINC','DISP_'],render:rB2},
  {id:'b3',ic:'🧠',nom:'Sedación y conciencia',sub:'Escalones · SAS · GCS con T · S5Q · CAM-ICU',pref:['SED_','SAS','BNM','GCS_','S5Q','CAM','COOP'],render:rB3},
  {id:'b4',ic:'❤️',nom:'Hemodinamia',sub:'DVA · meta PAM · tendencia · PIC/PPC',pref:['HEMO_','META_PAM','PAM_META','PIC','PPC'],render:rB4},
  {id:'b5',ic:'🩺',nom:'Respiratorio y KTR',sub:'Examen · secreciones · cultivo',pref:['EX_','RUIDOS','SECR_','KTR_','SIN_KTR','MUE','INHALO'],render:rB5},
@@ -540,6 +591,16 @@ function genTexto(){var L=[];
  if(S.MODO==='CNAF')L.push('Ventila espontáneo con apoyo de CNAF. Parámetros: '+[S.FLUJO?'Flujo '+S.FLUJO+' L/min':null,S.FIO2?'FiO2 '+S.FIO2+'%':null,S.SPO2?'SpO2 '+S.SPO2+'%':null].filter(Boolean).join(', ')+'.');
  if(S.MODO==='NRC')L.push('Ventila espontáneo con FiO2 adicional por NRC'+(S.LITROS?' a '+S.LITROS+' L/min':'')+'.');
  if(S.MODO==='MMV')L.push('Ventila espontáneo con mascarilla de Venturi'+(S.FIO2?' FiO₂ '+S.FIO2+'%':'')+'.');
+ /* Eventos de vía aérea con la regla previo → evento → posterior (v4.3-v4.6) */
+ if(S.INTUB)L.push('Paciente requiere intubación orotraqueal'+(S.INTUB_HORA?' a las '+S.INTUB_HORA+' hrs':'')+(S.INTUB_DET?' por '+S.INTUB_DET.charAt(0).toLowerCase()+S.INTUB_DET.slice(1):'')+'. Queda con TOT'+(S.QI_TOT_N?' N° '+S.QI_TOT_N:'')+(S.QI_TOT_CM?' a '+S.QI_TOT_CM+' cm de arcada dental':'')+', conectado a VM'+(S.QI_MODO?' en modo '+S.QI_MODO:'')+'. '+[S.QI_VT?'Vt '+S.QI_VT+' ml':null,S.QI_FR?'FR '+S.QI_FR+' rpm':null,S.QI_PEEP?'PEEP '+S.QI_PEEP+' cmH2O':null,S.QI_FIO2?'FiO2 '+S.QI_FIO2+'%':null,S.QI_SPO2?'SpO2 '+S.QI_SPO2+'%':null].filter(Boolean).join(', ')+'.');
+ if(S.REINTUB)L.push('Evolucionando con '+((S.REINTUB_RAZ||'falla respiratoria').toLowerCase())+' por lo que se reintuba'+(S.REINTUB_HORA?' a las '+S.REINTUB_HORA+' hrs':'')+'. Queda con TOT'+(S.QR_TOT_N?' N° '+S.QR_TOT_N:'')+(S.QR_TOT_CM?' a '+S.QR_TOT_CM+' cm de arcada dental':'')+(S.QR_MODO?', conectado a VM en modo '+S.QR_MODO:'')+'. '+[S.QR_VT?'Vt '+S.QR_VT+' ml':null,S.QR_FR?'FR '+S.QR_FR+' rpm':null,S.QR_PEEP?'PEEP '+S.QR_PEEP+' cmH2O':null,S.QR_FIO2?'FiO2 '+S.QR_FIO2+'%':null].filter(Boolean).join(', ')+'.');
+ if(S.TQT_OCURR)L.push('Tras '+(PREV.DIAS_VM||'?')+' días de VM, se realiza traqueostomía'+(S.QT_TEC?' '+S.QT_TEC.toLowerCase():'')+(S.QT_HORA?' a las '+S.QT_HORA+' hrs':'')+(S.QT_CAN_N?' con cánula N° '+S.QT_CAN_N:'')+(S.QT_CAN_TIPO?' '+S.QT_CAN_TIPO.toLowerCase():'')+(S.QT_SOP==='VM'?', queda conectado a VM'+(S.QT_MODO?' en modo '+S.QT_MODO:''):(S.QT_SOP?', queda en '+S.QT_SOP:''))+'.');
+ /* GSA con interpretación y PaFi (v4.2) */
+ if(S.GSA&&S.GSA_PH){var gph=parseFloat(S.GSA_PH),gpc=parseFloat(S.GSA_PACO2),ghc=parseFloat(S.GSA_HCO3);
+  var tras=gph<7.35?(!isNaN(gpc)&&gpc>45?'acidosis respiratoria':(!isNaN(ghc)&&ghc<22?'acidosis metabólica':'acidosis')):gph>7.45?(!isNaN(gpc)&&gpc<35?'alcalosis respiratoria':(!isNaN(ghc)&&ghc>26?'alcalosis metabólica':'alcalosis')):'';
+  L.push('GSA'+(S.GSA_HORA?' ('+S.GSA_HORA+' hrs)':'')+': pH '+S.GSA_PH+(S.GSA_PAO2?', PaO2 '+S.GSA_PAO2:'')+(S.GSA_PACO2?', PaCO2 '+S.GSA_PACO2:'')+(S.GSA_HCO3?', HCO3 '+S.GSA_HCO3:'')+(S.GSA_LACT?', lactato '+S.GSA_LACT:'')+(tras?' — '+tras:'')+(S.GSA_PAFI?'. PaFiO2 '+S.GSA_PAFI:'')+'.')}
+ /* Desvinculación de VM (v4.2·7) */
+ if(S.DESVINC)L.push('Se desvincula de la VM'+(S.DESVINC_HORA?' a las '+S.DESVINC_HORA+' hrs':'')+(S.DESVINC_A?' quedando a '+S.DESVINC_A:'')+(S.DESVINC_MOT?' por '+S.DESVINC_MOT.toLowerCase():'')+(S.DESVINC_RECON?'. Se reconecta'+(S.DESVINC_HORA_RECON?' a las '+S.DESVINC_HORA_RECON+' hrs':'')+(S.DESVINC_HORA&&S.DESVINC_HORA_RECON?' tras '+_deltaHoras(S.DESVINC_HORA,S.DESVINC_HORA_RECON)+' desvinculado':''):'')+'.');
  /* Prono/supino como EVENTO con hora (v5.44) o continuidad */
  if(S.POS==='Prono')L.push(S.POS_EV?('Se prona'+(S.PRONO_HORA?' a las '+S.PRONO_HORA+' hrs':' en este turno')+'.'):'Paciente continúa en prono.');
  if(S.POS==='Supino'&&S.POS_EV)L.push('Se supina'+(S.SUPINO_HORA?' a las '+S.SUPINO_HORA+' hrs':' en este turno')+'.');
