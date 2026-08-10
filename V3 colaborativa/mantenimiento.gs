@@ -607,6 +607,117 @@ function _pronoProcs(fila) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  EVOLUCIONES AJENAS EN LA HOJA VIVA (ago-2026)
+//  Desde que el alta y limpiarCama archivan POR CAMA, una cama que se cierra
+//  ya no deja nada atrás. Esto repara lo que quedó de ANTES de esa regla:
+//  camas cuya hoja viva mezcla filas de DOS pacientes (el ocupante actual y
+//  uno anterior que salió por limpiarCamasManual o por un alta sin
+//  PATIENT_ID). Esas filas ajenas alimentan la pronación heredada y la
+//  evolución previa del que está hoy en la cama.
+//
+//  QUÉ TOCA Y QUÉ NO (las reglas salen de la reversión del 6-ago):
+//  · Cama OCUPADA con PATIENT_ID: se archivan SOLO las filas con un
+//    PATIENT_ID distinto y no vacío — esas son de otra persona con certeza.
+//  · Las filas SIN PATIENT_ID no se tocan NUNCA, solo se informan: pueden
+//    ser del propio ocupante (el pid se regenera al re-ingresar tras una
+//    reparación de cama) y archivarlas escondería su historia real.
+//  · Cama OCUPADA sin PATIENT_ID: no hay contra qué comparar — solo informa.
+//  · Cama LIBRE con filas vivas: se archiva TODO (nadie las reclama y son
+//    exactamente lo que heredaría el próximo ocupante).
+//  Mismo alcance que _archivarEvolucionesDeCama: solo EVOLUCIONES. TIMELINE y
+//  PROCEDIMIENTOS quedan como historia del episodio, igual que en el alta.
+// ═══════════════════════════════════════════════════════════════════════
+
+/** Paso 1 — SIMULACRO: informa qué se archivaría. No modifica nada. */
+function repararEvolucionesAjenasSIMULACRO() { return _mtoRepararAjenas(false); }
+
+/** Paso 2 — REAL. Respalda primero; si el respaldo falla, cancela. */
+function repararEvolucionesAjenasCONFIRMAR() { return _mtoRepararAjenas(true); }
+
+function _mtoRepararAjenas(escribir) {
+  var camas = {};
+  (repoLeerTodos('CAMAS_ESTADO') || []).forEach(function (c) {
+    camas[String(c.ID_CAMA)] = {
+      ocupada: esVerdadero(c.OCUPADA),
+      pid: String(c.PATIENT_ID || ''),
+      nombre: String(c.NOMBRE || ''),
+    };
+  });
+
+  var archivar = [];   // filas que se van a EVOLUCIONES_ARCHIVO
+  var anonimas = [];   // filas no verificables en cama ocupada: SOLO se informan
+  (repoLeerTodos('EVOLUCIONES') || []).forEach(function (e) {
+    var cama = String(e.ID_CAMA || '');
+    var pidFila = String(e.PATIENT_ID || '');
+    var c = camas[cama];
+    if (!c || !c.ocupada) { archivar.push({ fila: e, motivo: 'cama libre' }); return; }
+    if (!c.pid) {
+      // El censo perdió el pid del ocupante: no hay contra qué comparar nada.
+      anonimas.push({ fila: e, motivo: 'la cama ocupada no tiene PATIENT_ID' });
+      return;
+    }
+    if (!pidFila) {
+      // Sin pid en la fila no se puede saber de quién es: jamás se archiva
+      // (el pid se regenera al re-ingresar; puede ser del propio ocupante).
+      anonimas.push({ fila: e, motivo: 'fila sin PATIENT_ID' });
+      return;
+    }
+    if (pidFila !== c.pid) {
+      archivar.push({ fila: e, motivo: 'de otro paciente (ocupa ' + (c.nombre || c.pid) + ')' });
+    }
+  });
+
+  var linea = function (x) {
+    var e = x.fila || x;
+    return '  · cama ' + e.ID_CAMA + ' · ' + e.TURNO_KEY + ' (' + (e.PLAN_FIRMA_KINE || 's/firma') + ')' +
+      (x.motivo ? ' — ' + x.motivo : '');
+  };
+  var detalle = archivar.map(linea).join('\n');
+  var detalleAnon = anonimas.map(linea).join('\n');
+  var aviso = anonimas.length
+    ? '\n\n⚠️ ' + anonimas.length + ' fila(s) no verificables en camas ocupadas NO se tocan ' +
+      '(pueden ser del propio ocupante). Revisarlas a mano:\n' + detalleAnon
+    : '';
+
+  if (!escribir) {
+    var msg = (archivar.length
+      ? 'SIMULACRO — se archivarían ' + archivar.length + ' evolución(es) ajena(s):\n' + detalle +
+        '\n\nNada se ha modificado. Para aplicarlo corre repararEvolucionesAjenasCONFIRMAR().'
+      : 'SIMULACRO — la hoja viva no tiene evoluciones ajenas.') + aviso;
+    Logger.log(msg);
+    return ok({ simulacro: true, archivar: archivar.length, anonimas: anonimas.length, mensaje: msg });
+  }
+
+  if (!archivar.length) {
+    Logger.log('Nada que archivar.' + aviso);
+    return ok({ archivadas: 0, anonimas: anonimas.length });
+  }
+
+  var resp = backupDiario();
+  if (!resp || !resp.ok) {
+    var eMsg = 'CANCELADO: el respaldo falló, no se modificó nada. ' + ((resp && resp.error) || '');
+    Logger.log(eMsg); return err(eMsg);
+  }
+
+  // Copiar ANTES de borrar, igual que el alta: nada se elimina sin archivar.
+  var ids = {};
+  archivar.forEach(function (x) {
+    repoInsertar('EVOLUCIONES_ARCHIVO', x.fila);
+    ids[String(x.fila.ID_EVOLUCION)] = true;
+  });
+  repoEliminarDonde('EVOLUCIONES', function (e) { return ids[String(e.ID_EVOLUCION)] === true; });
+
+  auditar({
+    accion: 'REPARAR_EVOS_AJENAS', entidad: 'EVOLUCIONES_ARCHIVO',
+    resumen: archivar.length + ' evolución(es) de ocupantes anteriores archivadas' +
+      (anonimas.length ? ' (' + anonimas.length + ' sin PATIENT_ID quedaron informadas)' : ''),
+  });
+  var fin = 'Listo: ' + archivar.length + ' evolución(es) ajena(s) archivada(s).\n' + detalle + aviso;
+  Logger.log(fin);
+  return ok({ archivadas: archivar.length, anonimas: anonimas.length, mensaje: fin });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  CAMAS DE PRUEBA (ago-2026)
 //  Pedido de Diego: quiere probar una versión nueva con la unidad llena de
 //  pacientes REALES, sin tocarles la evolución. Se agregan camas al final

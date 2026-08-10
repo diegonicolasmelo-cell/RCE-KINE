@@ -112,7 +112,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**64 guardias** en `build/checks/*.js`; **39 usan navegador**
+**65 guardias** en `build/checks/*.js`; **39 usan navegador**
 (`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -660,6 +660,21 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     historia en pantalla. Ahora **avisa por consola** cuántas filas vivas deja y
     recomienda dar el alta si la cama va a recibir a otro paciente. Los bloques
     1, 2 y 9 de `checks/prono_paciente.js` miden esa ruta con su número (87 h).
+  - ✅ **LA RESACA YA TIENE RUTINA (10-ago-2026, `mantenimiento.gs`, solo
+    servidor).** El archivado por cama impide que se ensucie de aquí en
+    adelante, pero no limpia lo que quedó de antes: camas cuya hoja viva mezcla
+    filas de DOS pacientes. `repararEvolucionesAjenasSIMULACRO()` /
+    `...CONFIRMAR()` archivan a EVOLUCIONES_ARCHIVO **solo lo inequívoco**:
+    filas con `PATIENT_ID` distinto y no vacío al del ocupante, o cualquier fila
+    en cama LIBRE. **Las filas sin `PATIENT_ID` no se tocan jamás** —y tampoco
+    las de una cama ocupada cuyo censo perdió el pid—: solo se informan al final
+    del registro. Es la lección de la reversión del 6-ago escrita en código; el
+    pid se regenera al re-ingresar, así que archivar una fila anónima puede
+    borrarle la historia al paciente que está en la cama. Respalda antes de
+    tocar nada (si el respaldo falla, cancela entero), copia al archivo ANTES de
+    borrar y deja `REPARAR_EVOS_AJENAS` en AUDIT_LOG. Idempotente. Guardia
+    `checks/reparar_ajenas.js` (26 asserts, **verificada fallando**: al
+    archivar también las filas anónimas se ponen 6 en rojo).
   - Ojo: **deroga la premisa «la hoja viva solo tiene el episodio en curso»**,
     que aparece escrita como verificada en revisiones anteriores y que sigue
     guiando a quien escriba un pipeline. Regla que la reemplaza, con su límite:
