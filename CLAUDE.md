@@ -349,8 +349,18 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     👉 **Lección para la próxima regla clínica: búscala en TODAS partes antes de
     tocarla.** Una regla de este sistema vive típicamente en cuatro sitios
     —servidor, espejo del cliente, imprimible y chip— y el RAG los encuentra en
-    un comando. **Este arreglo está commiteado pero NO desplegado**: producción
-    (Versión 27) sigue con la entrega de turno avisando tarde.
+    un comando.
+    ✅ **EN PRODUCCIÓN: Versión 28 del 10-ago-2026, 3:00, sello `5.48-terreno`**
+    (verificado con `fetch` al `/exec`: 200 y el sello nuevo), sobre la misma
+    implementación de siempre. Se pegaron **DOS** archivos —`index.html` y
+    `servicios.gs`—; `dominio.gs` no cambió en esta tanda y **no** hizo falta
+    `cuadrarEncabezados()`. Avisado a Diego en `#mejoras-rce`.
+    🪤 **Al pegar por Monaco, elegir el modelo por su URI, no por su contenido.**
+    Buscar «el modelo que contenga `obtenerEntregaTurno`» devolvió `api.gs`
+    —el dispatcher también nombra esa función— y le escribió encima el
+    `servicios.gs` entero. No llegó a guardarse, pero el modo de fallo es real y
+    silencioso: la comprobación que lo cazó fue **comparar las 13 longitudes
+    UTF-16 del editor contra el paquete, archivo por archivo, antes de ⌘S**.
 
 - **LA COLUMNA SOPORTE DICE CUÁL OXIGENOTERAPIA (10-ago-2026, pedido de Manuel;
   solo index).** «Oxigenoterapia/OAF» a secas no sirve en la ronda. El dato ya
