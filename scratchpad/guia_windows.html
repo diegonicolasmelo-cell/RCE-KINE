@@ -1,0 +1,512 @@
+<title>RCE-KINE · Subir el código desde Windows sin pegar archivo por archivo</title>
+<style>
+  :root{
+    --ground:#f7f5f2;
+    --surface:#ffffff;
+    --surface-2:#f1ede7;
+    --ink:#2f2b26;
+    --ink-soft:#6f6a61;
+    --ink-faint:#948d82;
+    --line:#e4e0d7;
+    --line-firm:#d3cdc1;
+    --accent:#2a6395;
+    --accent-deep:#1f4e77;
+    --accent-wash:#eaf1f8;
+    --warn:#a24a09;
+    --warn-wash:#fdf2e6;
+    --danger:#a81f16;
+    --danger-wash:#fcefee;
+    --ok:#276b43;
+    --ok-wash:#eaf5ee;
+    --code-bg:#232b33;
+    --code-ink:#e8eef4;
+    --code-dim:#8fa3b5;
+    --code-accent:#8fc4f0;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#1c1a18;
+      --surface:#262320;
+      --surface-2:#2f2b27;
+      --ink:#ece7e0;
+      --ink-soft:#aba59b;
+      --ink-faint:#8a8379;
+      --line:#3a3631;
+      --line-firm:#4a453e;
+      --accent:#7db0de;
+      --accent-deep:#a7cbec;
+      --accent-wash:#22303c;
+      --warn:#e2a061;
+      --warn-wash:#33281d;
+      --danger:#ef9088;
+      --danger-wash:#361f1d;
+      --ok:#7cc396;
+      --ok-wash:#1e2f25;
+      --code-bg:#141a20;
+      --code-ink:#e8eef4;
+      --code-dim:#8397a8;
+      --code-accent:#8fc4f0;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#1c1a18;
+    --surface:#262320;
+    --surface-2:#2f2b27;
+    --ink:#ece7e0;
+    --ink-soft:#aba59b;
+    --ink-faint:#8a8379;
+    --line:#3a3631;
+    --line-firm:#4a453e;
+    --accent:#7db0de;
+    --accent-deep:#a7cbec;
+    --accent-wash:#22303c;
+    --warn:#e2a061;
+    --warn-wash:#33281d;
+    --danger:#ef9088;
+    --danger-wash:#361f1d;
+    --ok:#7cc396;
+    --ok-wash:#1e2f25;
+    --code-bg:#141a20;
+    --code-ink:#e8eef4;
+    --code-dim:#8397a8;
+    --code-accent:#8fc4f0;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,"Helvetica Neue",sans-serif;
+    font-size:16px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:800px;margin:0 auto;padding:44px 22px 90px;}
+
+  /* ── cabecera ── */
+  .eyebrow{
+    font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;
+    color:var(--accent);margin:0 0 10px;
+  }
+  h1{
+    font-size:clamp(1.7rem,4.4vw,2.35rem);line-height:1.15;margin:0 0 14px;
+    font-weight:800;letter-spacing:-.02em;text-wrap:balance;
+  }
+  .bajada{font-size:1.03rem;color:var(--ink-soft);margin:0;max-width:62ch;}
+
+  .antes-despues{
+    display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;
+    margin:30px 0 8px;
+  }
+  @media (max-width:560px){ .antes-despues{grid-template-columns:1fr;gap:8px;} .ad-flecha{transform:rotate(90deg);} }
+  .ad{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+  }
+  .ad.ahora{border-color:var(--line-firm);}
+  .ad.meta{border-color:var(--accent);background:var(--accent-wash);}
+  .ad h3{
+    margin:0 0 5px;font-size:.66rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.11em;color:var(--ink-faint);
+  }
+  .ad.meta h3{color:var(--accent-deep);}
+  .ad p{margin:0;font-size:.92rem;line-height:1.5;}
+  .ad-flecha{display:flex;align-items:center;color:var(--ink-faint);font-size:1.3rem;}
+
+  /* ── secciones ── */
+  h2{
+    font-size:1.3rem;font-weight:800;letter-spacing:-.01em;margin:52px 0 6px;
+    padding-top:22px;border-top:1px solid var(--line);text-wrap:balance;
+  }
+  h2 .num{
+    display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--accent);vertical-align:middle;
+    margin-right:9px;padding:3px 8px;border:1px solid var(--accent);border-radius:20px;
+  }
+  .sec-intro{color:var(--ink-soft);margin:0 0 6px;max-width:64ch;}
+
+  /* ── pasos ── */
+  ol.pasos{list-style:none;margin:26px 0 0;padding:0 0 0 34px;position:relative;}
+  ol.pasos::before{
+    content:"";position:absolute;left:12px;top:6px;bottom:14px;width:2px;
+    background:var(--line);border-radius:2px;
+  }
+  ol.pasos > li{position:relative;margin:0 0 30px;}
+  ol.pasos > li::before{
+    counter-increment:paso;content:counter(paso);
+    position:absolute;left:-34px;top:-1px;
+    width:26px;height:26px;border-radius:50%;
+    background:var(--accent);color:#fff;
+    font-size:.8rem;font-weight:700;line-height:26px;text-align:center;
+    font-variant-numeric:tabular-nums;
+  }
+  ol.pasos{counter-reset:paso;}
+  ol.pasos > li > h3{
+    margin:0 0 6px;font-size:1.04rem;font-weight:700;letter-spacing:-.005em;
+  }
+  ol.pasos > li p{margin:0 0 10px;}
+  ol.pasos > li p:last-child{margin-bottom:0;}
+
+  /* ── comandos ── */
+  .cmd{
+    background:var(--code-bg);border-radius:10px;margin:12px 0;overflow:hidden;
+    border:1px solid rgba(0,0,0,.16);
+  }
+  .cmd-h{
+    display:flex;align-items:center;gap:8px;padding:7px 13px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--code-dim);
+  }
+  .cmd-h .pt{color:var(--code-accent);}
+  .cmd pre{
+    margin:0;padding:13px 15px;overflow-x:auto;
+    font-family:Consolas,"Cascadia Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:.89rem;line-height:1.7;color:var(--code-ink);
+  }
+  .cmd pre .c{color:var(--code-dim);}
+  .cmd pre .v{color:var(--code-accent);}
+
+  code{
+    font-family:Consolas,"Cascadia Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:.9em;background:var(--surface-2);color:var(--ink);
+    padding:1px 5px;border-radius:5px;border:1px solid var(--line);
+  }
+
+  /* ── avisos ── */
+  .aviso{
+    border-left:4px solid var(--accent);background:var(--accent-wash);
+    border-radius:0 10px 10px 0;padding:13px 17px;margin:18px 0;font-size:.94rem;
+  }
+  .aviso.ojo{border-left-color:var(--warn);background:var(--warn-wash);}
+  .aviso.peligro{border-left-color:var(--danger);background:var(--danger-wash);}
+  .aviso.bien{border-left-color:var(--ok);background:var(--ok-wash);}
+  .aviso p{margin:0;}
+  .aviso p + p{margin-top:9px;}
+  .aviso .tt{
+    display:block;font-size:.66rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.11em;margin-bottom:5px;color:var(--accent-deep);
+  }
+  .aviso.ojo .tt{color:var(--warn);}
+  .aviso.peligro .tt{color:var(--danger);}
+  .aviso.bien .tt{color:var(--ok);}
+
+  /* ── regla de oro ── */
+  .regla{
+    background:var(--surface);border:2px solid var(--accent);border-radius:14px;
+    padding:20px 22px;margin:34px 0;
+  }
+  .regla h3{margin:0 0 4px;font-size:1.06rem;font-weight:800;}
+  .regla p{margin:0 0 14px;color:var(--ink-soft);font-size:.95rem;}
+  .cadena{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .cadena b{
+    background:var(--accent-wash);border:1px solid var(--accent);color:var(--accent-deep);
+    border-radius:20px;padding:5px 13px;font-size:.83rem;font-weight:700;
+  }
+  .cadena i{color:var(--ink-faint);font-style:normal;font-size:1rem;}
+
+  /* ── tabla ── */
+  .tabla-wrap{overflow-x:auto;margin:20px 0;-webkit-overflow-scrolling:touch;}
+  table{
+    border-collapse:collapse;width:100%;min-width:520px;font-size:.92rem;
+    background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  }
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{
+    font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--ink-faint);background:var(--surface-2);
+  }
+  tr:last-child td{border-bottom:none;}
+  td b{color:var(--ink);}
+
+  ul.limpia{margin:14px 0;padding-left:22px;}
+  ul.limpia li{margin-bottom:9px;}
+
+  .cierre{
+    margin-top:50px;padding-top:22px;border-top:1px solid var(--line);
+    color:var(--ink-faint);font-size:.85rem;
+  }
+  a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px;}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+</style>
+
+<div class="page">
+
+  <p class="eyebrow">RCE-KINE · Guía para el notebook Windows</p>
+  <h1>Subir el código sin pegar archivo por archivo</h1>
+  <p class="bajada">Hoy cada entrega son trece archivos copiados a mano en el editor de Apps
+  Script, en el orden correcto, sin equivocarse de pestaña. Esta guía lo reemplaza por
+  un comando. Se hace una sola vez y después son dos minutos por entrega.</p>
+
+  <div class="antes-despues">
+    <div class="ad ahora">
+      <h3>Como es hoy</h3>
+      <p>Abrir el editor, pegar 13 archivos uno por uno, revisar que ninguno haya quedado
+      a medias, y recién ahí «Nueva versión».</p>
+    </div>
+    <div class="ad-flecha" aria-hidden="true">→</div>
+    <div class="ad meta">
+      <h3>Como queda</h3>
+      <p>Descomprimir la carpeta, escribir <code>clasp push -f</code>, mirar que quedó bien
+      en <code>/dev</code> y publicar.</p>
+    </div>
+  </div>
+
+  <div class="aviso">
+    <span class="tt">Antes de empezar</span>
+    <p>Necesitas el notebook Windows, tu cuenta de Google (la dueña de la planilla) y unos
+    30 minutos la primera vez. No hace falta saber programar: todo lo que sigue se escribe
+    tal cual en una ventana negra que se llama PowerShell.</p>
+  </div>
+
+  <h2><span class="num">Parte 1</span>El comando que reemplaza el pegado</h2>
+  <p class="sec-intro">Esta parte sola ya resuelve el 90% del problema. No necesitas GitHub
+  ni instalar Claude Code: yo te sigo mandando la carpeta comprimida como hasta ahora.</p>
+
+  <ol class="pasos">
+
+    <li>
+      <h3>Instalar Node.js</h3>
+      <p>Es el motor que necesita la herramienta de Google. Entra a
+      <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a>, descarga la
+      versión que dice <b>LTS</b> y ejecútala: es un instalador de Windows normal, siguiente
+      hasta terminar. Necesitas la versión 20 o superior; la LTS de hoy lo cumple de sobra.</p>
+      <p>Para comprobar que quedó, abre <b>PowerShell</b> (botón de Inicio, escribes
+      «PowerShell», Enter) y escribe:</p>
+      <div class="cmd">
+        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+<pre>node --version</pre>
+      </div>
+      <p>Si responde algo como <code>v22.11.0</code>, está listo. Si dice que no reconoce el
+      comando, cierra PowerShell, ábrelo de nuevo y prueba otra vez — recién instalado a
+      veces necesita eso.</p>
+    </li>
+
+    <li>
+      <h3>Instalar clasp, la herramienta oficial de Google</h3>
+      <p>Es lo que sabe escribir en tu proyecto de Apps Script. Se instala una vez:</p>
+      <div class="cmd">
+        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+<pre>npm install -g @google/clasp</pre>
+      </div>
+      <p>Demora un minuto y escribe bastante texto. Al terminar, comprueba con
+      <code>clasp --version</code>: debe decir <code>3.3.0</code> o superior.</p>
+    </li>
+
+    <li>
+      <h3>Autorizar tu cuenta de Google</h3>
+      <div class="cmd">
+        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+<pre>clasp login</pre>
+      </div>
+      <p>Se abre el navegador y te pide permiso, igual que cualquier aplicación de Google.
+      Autoriza con <b>la cuenta dueña de la planilla</b> — si te equivocas de cuenta, después
+      no va a encontrar el proyecto.</p>
+      <p>Si el navegador no se abre solo, usa <code>clasp login --no-localhost</code>: te da
+      un enlace para pegar en el navegador y un código para devolver a la ventana.</p>
+    </li>
+
+    <li>
+      <h3>Encender la API de Apps Script</h3>
+      <p>Es un interruptor que Google trae apagado por defecto y sin el cual nada de esto
+      funciona. Entra a
+      <a href="https://script.google.com/home/usersettings" target="_blank" rel="noopener">script.google.com/home/usersettings</a>
+      y activa <b>«API de Apps Script»</b>. Se hace una sola vez en la vida.</p>
+    </li>
+
+    <li>
+      <h3>Conectar una carpeta con tu proyecto</h3>
+      <p>Necesitas el <b>ID de tu proyecto</b>. Está en la dirección del editor de Apps
+      Script: es el tramo largo de letras y números entre <code>/projects/</code> y
+      <code>/edit</code>. No es una contraseña — es como el número de la planilla — pero
+      igual no hace falta que se lo mandes a nadie.</p>
+      <p>Crea una carpeta para el proyecto (por ejemplo <code>Documentos\RCE-KINE</code>),
+      entra a ella desde PowerShell y trae lo que hoy está publicado:</p>
+      <div class="cmd">
+        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+<pre>cd $env:USERPROFILE\Documents\RCE-KINE
+clasp clone <span class="v">EL_ID_DE_TU_PROYECTO</span></pre>
+      </div>
+      <p>Esto baja los archivos que hay ahora y deja la carpeta enlazada con tu proyecto.
+      Se hace una sola vez.</p>
+      <div class="aviso bien">
+        <span class="tt">Por qué conviene clonar primero</span>
+        <p>Porque te deja una copia de lo que está publicado hoy. Si algo sale mal más
+        adelante, tienes de dónde volver sin depender de nadie.</p>
+      </div>
+    </li>
+
+    <li>
+      <h3>Poner los archivos nuevos y mirar qué va a subir</h3>
+      <p>Cuando te mande una entrega, descomprime el ZIP y copia sus archivos <b>dentro de
+      esa carpeta</b>, reemplazando los que ya estaban. Antes de subir nada, pregunta qué
+      va a subir:</p>
+      <div class="cmd">
+        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+<pre>clasp status</pre>
+      </div>
+      <p>Te lista los archivos que va a mandar. <b>Míralos.</b> Tienen que estar los trece:
+      los nueve <code>.gs</code>, el <code>index.html</code>, el <code>spike_gis.html</code>
+      y el <code>appsscript.json</code>. Si falta alguno, no subas todavía.</p>
+    </li>
+
+    <li>
+      <h3>Subir</h3>
+      <div class="cmd">
+        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+<pre>clasp push -f</pre>
+      </div>
+      <p>Listo: en un par de segundos el editor tiene todo. Ábrelo y verifica el sello de
+      versión con Ctrl+F, como haces siempre.</p>
+      <div class="aviso peligro">
+        <span class="tt">Lo que hay que tener claro de este comando</span>
+        <p><code>clasp push</code> deja el proyecto <b>igual a tu carpeta</b>. Si en la
+        carpeta falta un archivo que sí está en el proyecto, <b>lo borra del proyecto</b>.
+        Por eso el paso anterior no es opcional: <code>clasp status</code> antes de cada
+        subida, siempre.</p>
+      </div>
+    </li>
+
+    <li>
+      <h3>Publicar (esto reemplaza a «Nueva versión»)</h3>
+      <p>Subir no publica: <code>/exec</code> sigue sirviendo lo anterior hasta que crees
+      una versión, igual que hoy. Primero averigua una sola vez el número de tu
+      implementación:</p>
+      <div class="cmd">
+        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+<pre>clasp deployments</pre>
+      </div>
+      <p>Anota el identificador de la implementación que usa el equipo (la que tiene la URL
+      que todos tienen guardada). Después, cada vez que publiques:</p>
+      <div class="cmd">
+        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+<pre><span class="c"># 1 · crear la versión</span>
+clasp version <span class="v">"v5.49-ficha"</span>
+
+<span class="c"># 2 · apuntar tu implementación a esa versión (responde con el número)</span>
+clasp redeploy <span class="v">EL_ID_DE_LA_IMPLEMENTACION</span> -V <span class="v">NUMERO</span> -d <span class="v">"v5.49-ficha"</span></pre>
+      </div>
+      <p>Como actualizas <b>la misma</b> implementación, <b>la URL del equipo no cambia</b>.
+      Es exactamente lo que consigues hoy editando la implementación existente a mano.</p>
+    </li>
+
+  </ol>
+
+  <div class="regla">
+    <h3>La regla de oro</h3>
+    <p>Con el pegado a mano había una persona mirando cada archivo. Con un comando eso
+    desaparece, así que el orden pasa a ser la protección. Nunca al revés, nunca saltándose
+    un eslabón:</p>
+    <div class="cadena">
+      <b>Batería verde</b><i>→</i><b>clasp status</b><i>→</i><b>clasp push -f</b><i>→</i>
+      <b>probar en /dev</b><i>→</i><b>recién ahí publicar</b>
+    </div>
+  </div>
+
+  <h2><span class="num">Parte 2</span>Claude Code en Windows</h2>
+  <p class="sec-intro">La Parte 1 te deja subiendo con un comando, pero lo escribes tú. Esta
+  parte es para que el trabajo completo —escribir el código, correr las 66 guardias, subir y
+  publicar— lo haga Claude en tu propio notebook. Es lo que tiene Manuel en su Mac.</p>
+
+  <ol class="pasos">
+
+    <li>
+      <h3>Instalar Claude Code</h3>
+      <p>Hay dos formas y las dos sirven. La aplicación de escritorio para Windows se baja
+      desde <a href="https://claude.com/code" target="_blank" rel="noopener">claude.com/code</a>.
+      Si prefieres la ventana de comandos, con Node ya instalado basta:</p>
+      <div class="cmd">
+        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+<pre>npm install -g @anthropic-ai/claude-code</pre>
+      </div>
+      <p>Después se abre escribiendo <code>claude</code> dentro de la carpeta del proyecto.
+      Entra con tu cuenta de Claude, la misma que usas ahora.</p>
+    </li>
+
+    <li>
+      <h3>Traer el repositorio</h3>
+      <p>Es donde vive el código de verdad. Instala
+      <a href="https://git-scm.com/download/win" target="_blank" rel="noopener">Git para Windows</a>
+      y después pídele a Claude, con tus palabras, que clone el repositorio de RCE-KINE y
+      configure el acceso. Él sabe hacerlo y te va guiando; la primera vez hay que
+      autorizar el acceso a GitHub una sola vez.</p>
+    </li>
+
+    <li>
+      <h3>Darle a Claude la llave del editor</h3>
+      <p>Acá está lo interesante: clasp <b>ya trae</b> un conector pensado para esto. Con la
+      Parte 1 hecha, Claude puede hablar directamente con tu proyecto de Apps Script sin que
+      tú escribas ningún comando.</p>
+      <p>No necesitas configurarlo a mano: abre Claude Code en la carpeta del proyecto y
+      pídeselo en español —«conéctate a mi proyecto de Apps Script usando el conector de
+      clasp»—. Él lo deja andando y te confirma cuando funciona.</p>
+      <div class="aviso">
+        <span class="tt">Qué cambia con esto</span>
+        <p>Que desaparece el ZIP. Yo escribo el código, corro la batería, subo al editor y
+        te digo «listo para publicar». Tú miras <code>/dev</code> y decides si se publica.
+        La decisión de publicar sigue siendo tuya, siempre.</p>
+      </div>
+    </li>
+
+  </ol>
+
+  <h2>Si algo falla</h2>
+  <div class="tabla-wrap">
+    <table>
+      <thead>
+        <tr><th>Lo que ves</th><th>Qué pasa</th><th>Qué hacer</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>No se reconoce «node» o «clasp»</b></td>
+          <td>PowerShell quedó abierto desde antes de la instalación.</td>
+          <td>Ciérralo y ábrelo de nuevo.</td>
+        </tr>
+        <tr>
+          <td><b>«User has not enabled the Apps Script API»</b></td>
+          <td>Falta el interruptor del paso 4.</td>
+          <td>Activarlo en script.google.com/home/usersettings y esperar un minuto.</td>
+        </tr>
+        <tr>
+          <td><b>«Script not found» o error 404</b></td>
+          <td>El ID está mal copiado, o entraste con otra cuenta de Google.</td>
+          <td>Revisa el ID en la URL del editor y prueba
+          <code>clasp show-authorized-user</code> para ver con qué cuenta estás.</td>
+        </tr>
+        <tr>
+          <td><b>«clasp status» muestra menos de 13 archivos</b></td>
+          <td>La carpeta quedó incompleta al descomprimir.</td>
+          <td><b>No subas.</b> Vuelve a descomprimir el ZIP completo y repite.</td>
+        </tr>
+        <tr>
+          <td><b>Subió, pero el equipo sigue viendo lo viejo</b></td>
+          <td>Falta publicar: <code>/exec</code> sirve la versión publicada.</td>
+          <td>Hacer el paso 8 (<code>version</code> + <code>redeploy</code>).</td>
+        </tr>
+        <tr>
+          <td><b>Publicaste y algo se ve mal</b></td>
+          <td>Se publicó sin probar en <code>/dev</code>.</td>
+          <td>Volver a la versión anterior con <code>clasp redeploy</code> apuntando al
+          número de versión de antes. Por eso conviene anotarlos.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Lo que nunca hay que hacer</h2>
+  <ul class="limpia">
+    <li><b>Publicar sin haber mirado <code>/dev</code>.</b> Subir es reversible en un minuto;
+    publicar algo roto lo ve el equipo en el turno.</li>
+    <li><b>Subir una carpeta a medias.</b> <code>clasp push</code> borra del proyecto lo que
+    no esté en la carpeta. Ese es el único modo de fallar en grande que tiene esto.</li>
+    <li><b>Compartir el archivo de credenciales</b> que crea <code>clasp login</code>
+    (se llama <code>.clasprc.json</code>). Es una llave con acceso a tu Drive completo:
+    no se manda por chat, ni por correo, ni se guarda en el repositorio.</li>
+    <li><b>Trabajar los dos sobre el editor a la vez.</b> Sigue valiendo la regla que ya
+    tienen con Manuel: avisar antes, y publica una sola persona.</li>
+  </ul>
+
+  <p class="cierre">Guía preparada para el proyecto RCE-KINE del Hospital San Pablo de
+  Coquimbo. Comandos verificados contra clasp 3.3.0.</p>
+
+</div>
