@@ -145,8 +145,13 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 - **CUATRO PEDIDOS DE TERRENO DE MANUEL (9-ago-2026, rama
   `mejoras-de-terreno-snt-pve-copiar-entrega`).** Index + `esquema.gs` +
-  `dominio_texto.gs` + `svc_evoluciones.gs` + `svc_entrega.gs`. **Exige correr
-  `cuadrarEncabezados()`** una vez: nace la columna `RESP_SNT`.
+  `dominio_texto.gs` + `svc_evoluciones.gs` + `svc_entrega.gs`.
+  ✅ **EN PRODUCCIÓN: Versión 26 del 9-ago-2026, 23:33**, creada editando la
+  implementación existente (mismo ID, la URL del equipo no cambió), con
+  `cuadrarEncabezados()` ya corrido → **✅ Esquema OK (23 hojas)**.
+  🪤 Al correrlo saltó `❌ EVOLUCIONES != 386 columnas: 387`: **el total de
+  columnas está ESCRITO A MANO en `testEsquema()`** y hay que subirlo con cada
+  columna nueva (la planilla estaba bien; ya quedó en 387).
   1. **SNT — succión nasotraqueal.** Cuarta técnica de permeabilización junto a
      SOF/SNF/SET, con columna nueva **al final** del esquema (regla de la casa)
      y narrativa en los dos generadores (cliente y `dominio_texto.gs`). Se
