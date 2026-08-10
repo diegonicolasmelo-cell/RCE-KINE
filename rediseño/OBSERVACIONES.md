@@ -84,10 +84,23 @@ comportamiento correcto es el de `v2/index.html`.
       prototipo tenga más de un turno real.
 - [ ] Los 39 bloques de TEXTO_BLOQUES si el texto generado se lleva a serio.
 
-## Para la fase 2 (paleta) — decidido por Diego
+## Fase 2 (paleta) — v0.4, EN EVALUACIÓN de Diego
 
-Primero la captura por bloques; la paleta después. La actual es la del
-arquetipo (tinta sobre fondo cálido) con fuentes del sistema.
+Tres temas conmutables desde la cabecera (🎨), todos sobre las MISMAS
+variables CSS — ningún componente lleva colores sueltos:
+
+- **Tinta** — la del arquetipo afinada: fondo cálido, tinta, descansada.
+- **Clínica** — clara tipo hospital, pariente visual de la app actual
+  (transición suave para el equipo).
+- **Noche** — oscura de bajo brillo para el turno de noche en la UCI:
+  menos luz hacia el paciente y menos deslumbramiento. **Sin elección
+  guardada, el turno Noche parte en este tema** (elegir siempre gana al
+  automático; la elección persiste en localStorage).
+
+Reglas de la paleta: los colores SEMÁNTICOS no cambian de significado entre
+temas (rojo = peligro · ámbar = pendiente/heredado · verde = guardado/ok) y
+el banner de PROTOTIPO es rojo en los tres. Pendiente de Diego: elegir tema
+por defecto para el día (Tinta vs Clínica) o mantener los tres.
 
 ## Recordatorios duros
 

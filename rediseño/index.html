@@ -7,78 +7,115 @@
 <style>
 /* Paleta del arquetipo (se afina en la fase 2 — primero la captura).
    SIN fuentes externas: la red del hospital no siempre deja salir. */
-:root{--ink:#17191c;--mut:#6b7075;--sua:#9a9ea3;--lin:#d4d4ce;--lin2:#e3e3df;--fondo:#e8e8e4;--azul:#1d6fc4;--rojo:#b42318;--ambar:#b25e09;--verde:#2e7d4f;--mono:ui-monospace,'Cascadia Mono',Consolas,monospace}
+/* ══ TEMAS (fase 2 · paleta) ══════════════════════════════════════════════
+   Tres paletas conmutables desde la cabecera, todas sobre las MISMAS
+   variables (nada de colores sueltos en los componentes):
+   · tinta   — la del arquetipo afinada: fondo cálido, tinta, descansada
+   · clinica — clara tipo hospital, pariente de la app actual (transición
+               suave para el equipo)
+   · noche   — oscura de bajo brillo para el turno de noche en la UCI:
+               menos luz hacia el paciente, menos deslumbramiento a las 3 AM.
+   Los colores SEMÁNTICOS no cambian de significado entre temas:
+   rojo = peligro · ámbar = pendiente/heredado · verde = guardado/ok.
+   Si nadie eligió tema, el turno Noche parte en «noche» (se puede cambiar). */
+:root{--ink:#17191c;--mut:#6b7075;--sua:#9a9ea3;--lin:#d4d4ce;--lin2:#e3e3df;--fondo:#e8e8e4;
+ --card:#ffffff;--card2:#fafaf8;--input:#ffffff;--hover:#ffffff;
+ --hdr:#17191c;--hdr-fg:#ffffff;--seg-on:#17191c;--seg-on-fg:#ffffff;
+ --chip-on:#eaf2fb;--chip-on-fg:#0c4f96;--calc:#f4f4f1;--texto-bg:#f4f4f1;--texto-fg:#2c2f33;
+ --azul:#1d6fc4;--azul-foco:rgba(29,111,196,.14);
+ --rojo:#b42318;--rojo-bg:#fdf1f0;--rojo-fg:#7a1a12;
+ --ambar:#b25e09;--ambar-bg:#fdf6ec;--ambar-fg:#7a5210;--ambar-lin:#ecd9b8;
+ --verde:#2e7d4f;--verde-bg:#eef6f0;--verde-fg:#1d5637;
+ --sombra:0 1px 2px rgba(0,0,0,.04),0 12px 34px rgba(0,0,0,.06);
+ --mono:ui-monospace,'Cascadia Mono',Consolas,monospace}
+[data-tema="clinica"]{--fondo:#eef2f6;--ink:#1e293b;--mut:#64748b;--sua:#94a3b8;--lin:#cbd5e1;--lin2:#e2e8f0;
+ --card:#ffffff;--card2:#f8fafc;--input:#ffffff;--hover:#f8fafc;
+ --hdr:#0e3a5f;--hdr-fg:#ffffff;--seg-on:#1d6fc4;--seg-on-fg:#ffffff;
+ --chip-on:#dbeafe;--chip-on-fg:#1d4ed8;--calc:#f1f5f9;--texto-bg:#f8fafc;--texto-fg:#334155;
+ --azul:#1d6fc4;--rojo:#dc2626;--rojo-bg:#fef2f2;--rojo-fg:#991b1b;
+ --ambar:#d97706;--ambar-bg:#fffbeb;--ambar-fg:#92400e;--ambar-lin:#fde68a;
+ --verde:#16a34a;--verde-bg:#f0fdf4;--verde-fg:#15803d;
+ --sombra:0 1px 3px rgba(15,42,71,.08),0 10px 28px rgba(15,42,71,.07)}
+[data-tema="noche"]{--fondo:#101418;--ink:#d6dade;--mut:#8b939b;--sua:#5e666e;--lin:#2e363e;--lin2:#262d34;
+ --card:#181e24;--card2:#141a1f;--input:#10161b;--hover:#1d242b;
+ --hdr:#0b0e12;--hdr-fg:#d6dade;--seg-on:#3b82c4;--seg-on-fg:#0b0e12;
+ --chip-on:#1b3350;--chip-on-fg:#8ec2f0;--calc:#141a1f;--texto-bg:#12181d;--texto-fg:#aeb6bd;
+ --azul:#4a94d8;--azul-foco:rgba(74,148,216,.2);
+ --rojo:#e0655a;--rojo-bg:#2a1613;--rojo-fg:#eba49d;
+ --ambar:#d99a4e;--ambar-bg:#241a0e;--ambar-fg:#e5c08a;--ambar-lin:#3d3020;
+ --verde:#5aab7f;--verde-bg:#12211a;--verde-fg:#9ed0b4;
+ --sombra:0 1px 2px rgba(0,0,0,.4),0 12px 34px rgba(0,0,0,.35)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--fondo);color:var(--ink);font:14px/1.5 system-ui,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
-header{position:sticky;top:0;z-index:20;background:#17191c;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header{position:sticky;top:0;z-index:20;background:var(--hdr);color:var(--hdr-fg);padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 header .logo{font-weight:600;font-size:15px}header .logo span{opacity:.55;font-weight:400}
 .hpill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:5px 10px;font-family:var(--mono);font-size:12.5px}
 .hpill b{color:#ffcf8a;font-weight:600;letter-spacing:.04em}
 header select{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:7px;padding:5px 8px;font:inherit;font-size:13px}
-header select option{color:#17191c}
+header select option{color:#17191c}\nheader .tema{display:flex;align-items:center;gap:6px;font-size:12px;opacity:.85}
 .protobanner{background:#7a1a12;color:#fff;text-align:center;font-size:12.5px;font-weight:700;padding:5px 10px;letter-spacing:.04em}
 .wrap{max-width:1180px;margin:0 auto;padding:18px 20px 80px;display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:start}
 nav.rail{position:sticky;top:66px;display:flex;flex-direction:column;gap:4px}
 .rbtn{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;border:1px solid transparent;background:transparent;cursor:pointer;font:inherit;text-align:left;color:var(--ink);width:100%}
-.rbtn:hover{background:#fff}
-.rbtn.on{background:#fff;border-color:var(--lin);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.rbtn:hover{background:var(--hover)}
+.rbtn.on{background:var(--card);border-color:var(--lin);box-shadow:0 1px 2px rgba(0,0,0,.05)}
 .rbtn .st{margin-left:auto;font-family:var(--mono);font-size:10.5px}
 .st.ok{color:var(--verde)}.st.dirty{color:var(--ambar)}.st.off{color:var(--sua)}
-.replica{grid-column:2;background:#fdf6ec;border:1px solid #ecd9b8;border-radius:10px;padding:10px 14px;font-size:13px;color:#7a5210;display:flex;gap:8px;align-items:center}
+.replica{grid-column:2;background:var(--ambar-bg);border:1px solid var(--ambar-lin);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--ambar-fg);display:flex;gap:8px;align-items:center}
 main{display:flex;flex-direction:column;gap:16px;min-width:0}
-.card{background:#fff;border:1px solid #dcdcd7;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 34px rgba(0,0,0,.06);overflow:hidden}
+.card{background:var(--card);border:1px solid var(--lin);border-radius:12px;box-shadow:var(--sombra);overflow:hidden}
 .chead{padding:13px 20px;border-bottom:1px solid var(--lin2);display:flex;align-items:center;gap:11px}
 .chead .ic{font-size:18px}
 .chead h2{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
 .chead .sub{font-size:12px;color:var(--mut)}
 .cbody{padding:16px 20px;display:flex;flex-direction:column;gap:16px}
-.cfoot{padding:11px 20px;border-top:1px solid var(--lin2);display:flex;align-items:center;gap:12px;background:#fafaf8}
+.cfoot{padding:11px 20px;border-top:1px solid var(--lin2);display:flex;align-items:center;gap:12px;background:var(--card2)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px}
 .fld{display:flex;flex-direction:column;gap:5px;min-width:0}
 .fld label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mut)}
-.fld input[type=text],.fld input[type=number],.fld input[type=time],.fld select,.fld textarea{border:1px solid var(--lin);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:14px;color:var(--ink);background:#fff;width:100%;min-height:40px}
+.fld input[type=text],.fld input[type=number],.fld input[type=time],.fld select,.fld textarea{border:1px solid var(--lin);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:14px;color:var(--ink);background:var(--input);width:100%;min-height:40px}
 .fld textarea{font-family:inherit;resize:vertical}
-.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px rgba(29,111,196,.14)}
-.fld input[disabled]{background:#f1f1ee;color:var(--sua)}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px var(--azul-foco)}
+.fld input[disabled]{background:var(--calc);color:var(--sua)}
 .fld.err input{border-color:var(--rojo);box-shadow:0 0 0 3px rgba(180,35,24,.1)}
 .antes{font-size:11.5px;color:var(--sua)}.antes.chg{color:var(--ambar);font-weight:500}
 .emsg{font-size:12px;color:var(--rojo);line-height:1.35}
 .seg{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--lin);border-radius:9px;overflow:hidden;width:fit-content;max-width:100%}
-.seg button{border:none;background:#fff;padding:9px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink);border-right:1px solid var(--lin);min-height:40px}
+.seg button{border:none;background:var(--input);padding:9px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink);border-right:1px solid var(--lin);min-height:40px}
 .seg button:last-child{border-right:none}
-.seg button.on{background:#17191c;color:#fff;font-weight:600}
+.seg button.on{background:var(--seg-on);color:var(--seg-on-fg);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:1px solid var(--lin);border-radius:99px;background:#fff;padding:7px 13px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink);min-height:36px}
-.chip.on{border-color:var(--azul);background:#eaf2fb;color:#0c4f96;font-weight:500}
+.chip{border:1px solid var(--lin);border-radius:99px;background:var(--input);padding:7px 13px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink);min-height:36px}
+.chip.on{border-color:var(--azul);background:var(--chip-on);color:var(--chip-on-fg);font-weight:500}
 .check{display:flex;align-items:center;gap:9px;font-size:13.5px;cursor:pointer;user-select:none}
 .check input{width:17px;height:17px;accent-color:var(--azul)}
 .gtit{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--lin2);padding-bottom:6px}
 .cond{border-left:3px solid var(--lin);padding:4px 0 4px 14px;display:flex;flex-direction:column;gap:12px}
 .calc{display:flex;flex-wrap:wrap;gap:8px}
-.calc .c{background:#f4f4f1;border:1px solid var(--lin2);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--mut)}
+.calc .c{background:var(--calc);border:1px solid var(--lin2);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--mut)}
 .calc .c b{font-family:var(--mono);font-size:13.5px;color:var(--ink);font-weight:600;display:block}
 .calc .c.warn b{color:var(--ambar)}
-.aviso{border-left:3px solid var(--rojo);background:#fdf1f0;border-radius:0 8px 8px 0;padding:9px 13px;font-size:13px;color:#7a1a12}
-.aviso.amb{border-color:#e08b2a;background:#fdf6ec;color:#7a5210}
-.aviso.ver{border-color:var(--verde);background:#eef6f0;color:#1d5637}
+.aviso{border-left:3px solid var(--rojo);background:var(--rojo-bg);border-radius:0 8px 8px 0;padding:9px 13px;font-size:13px;color:var(--rojo-fg)}
+.aviso.amb{border-color:var(--ambar);background:var(--ambar-bg);color:var(--ambar-fg)}
+.aviso.ver{border-color:var(--verde);background:var(--verde-bg);color:var(--verde-fg)}
 .bsave{margin-left:auto;border:none;border-radius:9px;background:var(--azul);color:#fff;font:inherit;font-size:13.5px;font-weight:600;padding:10px 18px;cursor:pointer;min-height:42px}
-.bsave:hover{background:#175da6}
+.bsave:hover{filter:brightness(1.12)}
 .sstat{font-size:12.5px;color:var(--mut)}.sstat b{color:var(--verde);font-weight:600}
 details.avz{border:1px solid var(--lin2);border-radius:10px;overflow:hidden}
 details.avz summary{cursor:pointer;padding:11px 14px;font-size:13px;font-weight:600;color:var(--mut);list-style:none;display:flex;align-items:center;gap:8px;user-select:none}
 details.avz summary::before{content:'▸';font-size:11px;transition:transform .15s}
 details.avz[open] summary::before{transform:rotate(90deg)}
 details.avz .inner{padding:4px 14px 16px;display:flex;flex-direction:column;gap:14px}
-.texto{background:#f4f4f1;border:1px solid var(--lin2);border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.6;white-space:pre-wrap;color:#2c2f33}
+.texto{background:var(--texto-bg);border:1px solid var(--lin2);border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.6;white-space:pre-wrap;color:var(--texto-fg)}
 .hist{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut)}
 .hist .h{font-family:var(--mono)}
 /* mini-diálogo propio: la convención del proyecto prohíbe confirm() nativo */
 #mdlg{position:fixed;inset:0;background:rgba(23,25,28,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
 #mdlg.on{display:flex}
-#mdlg .box{background:#fff;border-radius:12px;max-width:420px;width:100%;padding:18px 20px;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+#mdlg .box{background:var(--card);border-radius:12px;max-width:420px;width:100%;padding:18px 20px;box-shadow:0 24px 60px rgba(0,0,0,.25)}
 #mdlg .box p{margin:0 0 14px;font-size:14px;line-height:1.5}
 #mdlg .box .row{display:flex;gap:9px;justify-content:flex-end}
-#mdlg button{border:1px solid var(--lin);border-radius:8px;background:#fff;font:inherit;padding:9px 16px;cursor:pointer;min-height:40px}
+#mdlg button{border:1px solid var(--lin);border-radius:8px;background:var(--input);font:inherit;padding:9px 16px;cursor:pointer;min-height:40px}
 #mdlg button.pri{background:var(--azul);border-color:var(--azul);color:#fff;font-weight:600}
 @media(max-width:860px){.wrap{grid-template-columns:1fr}.replica{grid-column:1}nav.rail{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}.rbtn{white-space:nowrap;width:auto}.rbtn .nom{display:none}}
 </style>
@@ -89,7 +126,8 @@ details.avz .inner{padding:4px 14px 16px;display:flex;flex-direction:column;gap:
   <div class="logo">RCE<span> KINE</span> · <span style="color:#8ec2f0">rediseño</span></div>
   <div class="hpill"><span id="hFecha"></span><span style="width:1px;height:14px;background:rgba(255,255,255,.2)"></span><b id="hTurno"></b></div>
   <div class="hpill" style="white-space:nowrap">Cama <b style="color:#fff">7</b>&nbsp;· Paciente de Prueba</div>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+  <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+    <span class="tema">🎨 <select id="tema"><option value="tinta">Tinta</option><option value="clinica">Clínica</option><option value="noche">Noche</option></select></span>
     <span style="font-size:12px;opacity:.7">Firma</span>
     <select id="firma" data-k="FIRMA"><option value="">—</option><option>MOW</option><option>FGE</option><option>DMV</option><option>MFB</option></select>
   </div>
@@ -545,6 +583,15 @@ function genTexto(){var L=[];
     en cada guardado de bloque, con hora — mejor trazabilidad que en el texto. */
  return L.join('\n')}
 /* ================= init ================= */
+/* ── Tema: elección persistente; sin elección, el turno Noche parte oscuro
+   (menos luz hacia el paciente a las 3 AM). Elegir SIEMPRE gana al automático. */
+(function(){var sel=document.getElementById('tema');
+ var t='';try{t=localStorage.getItem('rediseno_tema')||''}catch(e){}
+ var efectivo=t||(ES_DIA?'tinta':'noche');
+ document.documentElement.setAttribute('data-tema',efectivo);sel.value=efectivo;
+ sel.addEventListener('change',function(){
+  document.documentElement.setAttribute('data-tema',sel.value);
+  try{localStorage.setItem('rediseno_tema',sel.value)}catch(e){}});})();
 (function(){var d=new Date(),M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
  document.getElementById('hFecha').textContent=d.getDate()+' '+M[d.getMonth()]+' '+d.getFullYear();
  document.getElementById('hTurno').textContent=ES_DIA?'DÍA':'NOCHE';
