@@ -344,7 +344,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
  * derivar la racha de turnos candidato sin PVE desde el episodio.
  */
 function _turnoCandidatoPve(e) {
-  if (String(e.VENT_SOPORTE) !== 'VM' || e.PVE_VAL === 'si') return false;
+  // 'nc' = no corresponde por causa de base no resuelta: corta la racha igual
+  // que una PVE hecha (ago-2026). Si no, el turno que declara «no procede»
+  // seguiría sumando a «candidato hace N turnos sin PVE».
+  if (String(e.VENT_SOPORTE) !== 'VM' || e.PVE_VAL === 'si' || e.PVE_VAL === 'nc') return false;
   const n = function (x) { return parseFloat(x); };
   const dva = String(e.HEMO_DVA || '');
   return n(e.VENT_FIO2) > 0 && n(e.VENT_FIO2) <= 50 &&

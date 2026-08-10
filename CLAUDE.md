@@ -143,6 +143,104 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
 
 ## Estado y pendientes (julio 2026)
 
+- **CUATRO PEDIDOS DE TERRENO DE MANUEL (9-ago-2026, rama
+  `mejoras-de-terreno-snt-pve-copiar-entrega`).** Index + `esquema.gs` +
+  `dominio_texto.gs` + `svc_evoluciones.gs` + `svc_entrega.gs`. **Exige correr
+  `cuadrarEncabezados()`** una vez: nace la columna `RESP_SNT`.
+  1. **SNT — succión nasotraqueal.** Cuarta técnica de permeabilización junto a
+     SOF/SNF/SET, con columna nueva **al final** del esquema (regla de la casa)
+     y narrativa en los dos generadores (cliente y `dominio_texto.gs`). Se
+     **esconde y se desmarca con TOT o TQT**: la sonda entra por la nariz y
+     pasa la glotis, así que con vía aérea artificial no existe — es el espejo
+     exacto de lo que ya hacía SET al revés (`_updateSinKTR`). Decisión de
+     Manuel, no supuesto: se le preguntó antes de programar.
+  2. **🚫 «No corresponde» en Extubación/PVE** (`PVE_VAL='nc'`, sin columna
+     nueva). Tercer botón del toggle para el paciente que sigue en VM porque su
+     causa de base no está resuelta: no procede ni PVE ni extubación. Apaga las
+     dos ramas y las limpia, satisface la declaración obligatoria, narra «No
+     procede PVE ni extubación en este turno: causa de base no resuelta», y
+     **corta el tamizaje y la racha de candidato a PVE** (`svc_evoluciones` no
+     marca `WEAN_CAND_PVE`; `_turnoCandidatoPve` lo trata como turno resuelto).
+     Vale **solo para ese turno** — el siguiente vuelve a preguntar, para que
+     nadie se olvide de reactivarlo cuando la causa se resuelva. Cuidado al
+     tocar consumidores de `PVE_VAL`: 'nc' NO es evento (`_renderEvStrip`,
+     `_evoEventoGuardado`) ni PVE hecha (Hoja UCI: chip «No corresponde»;
+     tabla del historial: «NC»).
+  3. **Copiar texto ya no marca la evolución como modificada.** El formulario
+     tenía un listener de clic que ponía `_formDirty=true` en **cualquier**
+     `<button>` de `#kf` — nació para los chips, que no emiten `input`/`change`
+     — y la barra de acciones vive dentro del mismo form: copiar el texto para
+     pegarlo en el BUDA dejaba el turno «sin guardar» y pedía guardar de nuevo.
+     Ahora se salta los botones con **`data-nodirty`** (copiar, preview,
+     guardar, cerrar). Es un atributo y no una lista en el JS a propósito: el
+     que agregue un botón decide en el mismo lugar donde lo escribe.
+  4. **La entrega de turno se imprime VERTICAL** (pedido: «1 o 2 hojas»). El
+     `@page` **global** pasó a `portrait` —manda también con Ctrl+P, que es
+     como imprime medio equipo— y lo que necesita ancho, el historial, inyecta
+     el suyo (`_imprimirApaisado`, antes era al revés). **Medido, no estimado**
+     (`build/medir_entrega.js`, 17 camas, la entrega real montada en Chromium):
+     carga normal **2,42 hojas apaisadas → 1,89 verticales**; carga alta 2,50 →
+     2,22 (o sea 3 hojas en un día malo, y así se dijo). El ahorro no vino de
+     achicar letra sino del interlineado, de la franja del plan (etiqueta y
+     pendientes **en línea**) y del encabezado/pie del documento, que se comían
+     271 px sin un solo dato de paciente. **De paso se arregló el diagnóstico**:
+     con la cabecera forzada a una línea se comprimía a 32 px —0 con muchos
+     chips—, o sea gastaba renglón sin decir nada; ahora pide un tercio del
+     ancho y si no lo tiene baja de línea y se lee entero.
+  - Guardias: `entrega_impresion.js` ampliada (orientación del papel, dx
+    legible, y **cuenta hojas de verdad** con el escenario de
+    `medir_entrega.js` en vez de proyectar con regla de tres).
+    `guardado_viajes.js` se hizo **tolerante a columnas nacidas después de la
+    ola**: deriva la lista comparando el esquema de los dos árboles y las
+    descuenta — si no, cada campo nuevo la haría fallar por una diferencia
+    ajena a lo que vigila. `dias_vni` ya no exige que `DIAS_VNI` cierre la
+    lista de columnas (detrás va RESP_SNT); `hojas_dia`, `panel_ux` y
+    `reporte_colega` se ajustaron al id del `<style>` de orientación y al nuevo
+    texto del aviso. Batería: **62 de 63** (la roja es `rendimiento.js`, de ruta
+    fija, como siempre).
+  - **Conocido y DEJADO ASÍ por decisión de Manuel (9-ago-2026)**: al reabrir
+    una evolución guardada, `fillForm` desmarca SOF/SNF/SET/A.Tos/inhalo aunque
+    su propio comentario diga que «carga exactamente lo que se registró» — si
+    alguien reabre el turno para corregir otra cosa y guarda, esas marcas **se
+    borran de la planilla**. Se le reportó con el detalle y respondió «deja
+    como está el punto de las succiones». No tocarlo sin pedírselo de nuevo (el
+    mismo patrón afecta al bloque KTM, que sí pesa en el REM).
+
+- **DOS HOJAS PARA LA RONDA (9-ago-2026, pedido de Manuel; misma rama).** Las
+  revisó **en maqueta antes de montarse** — pidió verlas primero, y de esa
+  revisión salieron la columna de ventilador, las 18 camas y el cambio de la
+  casilla al lugar de la firma. Solo index.
+  1. **🖨️ Lista del día — REEMPLAZA a «Hojas del día»** en la pestaña Registro
+     (decisión suya, explícita). Antes ese botón sacaba la hoja de registro
+     completa de CADA paciente: 17 pacientes = **34 carillas**. Ahora sale UNA
+     hoja vertical con todos los presentes, con la misma franja de
+     identificación del formato oficial (cama · edad · nombre · RUT · días ·
+     fecha), el diagnóstico debajo y las escalas **que estén registradas** —
+     APACHE II, Barthel, Charlson, FSS-ICU, MRC-ss; la que nadie midió no
+     aparece, no se inventa un «—». La hoja de registro oficial NO se perdió:
+     se imprime por paciente desde su historial (`imprimirHojaUCIpaciente`,
+     botón «🖨️ Hoja de registro», junto a Hoja PVE/APK/RHB). Medido: 17
+     pacientes = **0,79 hojas**.
+  2. **🖨️ Filtros** — la hoja de la ronda de la noche: HME, HEPA y Trach Care
+     de **las 18 camas** (no solo las ocupadas: así se ve dónde hay
+     ventiladores libres), con el **equipo de cada sala** y si está EN USO o
+     DISPONIBLE, la fecha de cambio de cada filtro, los vencidos marcados con
+     su atraso y una **casilla por filtro que toque cambiar** ese día — la
+     casilla quedó donde estaba la columna de firma, que se eliminó. Medido:
+     18 camas = **0,70 hojas**.
+  - Detalles que costaron una vuelta: el cliente **replica la regla del
+    servidor** (`estadoDispositivos`: etiqueta = día 0, cambio en el turno
+    NOCHE del día etiqueta+frecuencia) y lee las frecuencias de `CFG` — si se
+    calculara distinto, la hoja contradiría al modal «Cambios de esta noche».
+    Un ventilador **con falla que además está ventilando** muestra las dos
+    cosas («EN USO · FALLA»): al principio el estado tapaba el uso y eso
+    escondía justo el caso que hay que mirar. Y `white-space:nowrap` en la
+    marca desbordaba sobre la columna vecina: la solución fue **acortar el
+    texto** («VENCIDO (3d)»), no forzar la línea.
+  - Guardia: `checks/lista_y_filtros.js` (34 asserts, incluidas las cuentas de
+    hojas al ancho real del A4 vertical). `hojas_dia.js` pasó a verificar la
+    hoja de registro **desde el historial**.
+
 - **VELOCIDAD · LA CONFIGURACIÓN SE LEE UNA VEZ POR PETICIÓN (ago-2026, sin
   cambio de index — NO exige `crearORepararEstructura()`).** Propuesto por
   Manuel Fuentes trayendo el método de otro sistema Apps Script + Sheets (la

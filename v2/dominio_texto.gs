@@ -251,6 +251,15 @@ function generarTextoEvolucion(d) {
       if (peModo) txt.push(`Paciente queda con ${peModo === 'Ambiente' ? 'vía aérea natural sin soporte' : peModo}${postDet ? '. ' + postDet : ''}.`);
       else if (postDet) txt.push(postDet + '.');
     };
+    // NO CORRESPONDE (ago-2026, pedido de Manuel): el paciente sigue en VM
+    // porque la causa que lo llevó ahí no está resuelta, así que no procede ni
+    // PVE ni extubación. No es lo mismo que «no se hizo»: aquí la prueba
+    // todavía no está sobre la mesa, y por eso el turno no cuenta como
+    // candidato a PVE ni suma a la racha de la alerta.
+    if (pveVal === 'nc') {
+      txt.push('No procede PVE ni extubación en este turno: causa de base no resuelta. Mantiene soporte ventilatorio.');
+      return;
+    }
     if (pveVal === 'si') {
       if (pveRes === 'superada') {
         txt.push(`Se realiza PVE con resultado superado, progresando a extubación${horaTxt}.`);
@@ -389,6 +398,7 @@ function generarTextoEvolucion(d) {
     if (esVerdadero(d.RESP_SET)) perm.push('SET');
     if (esVerdadero(d.RESP_SOF)) perm.push('SOF');
     if (esVerdadero(d.RESP_SNF)) perm.push('SNF');
+    if (esVerdadero(d.RESP_SNT)) perm.push('SNT');
     if (esVerdadero(d.RESP_ATOS)) perm.push('asistencia de tos');
     const reol = v('RESP_SECR_REOL'), car = v('RESP_SECR_CAR'), qty = v('RESP_SECR_QTY');
     const qtyTxt = { '+': 'escasa cantidad', '++': 'moderada cantidad', '+++': 'abundante cantidad' }[qty] || '';

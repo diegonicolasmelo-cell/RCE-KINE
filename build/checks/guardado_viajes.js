@@ -61,6 +61,44 @@ function correr(dir) {
 const A = correr(baseDir);   // base (Ola 3)
 const B = correr(REPO);      // esta ola
 
+/* ── 2b · Campos nacidos DESPUÉS de la ola ────────────────────────────────
+   Esta guardia es un A/B contra un commit fijo, así que cada columna que se
+   agregue al esquema más adelante la haría fallar por una diferencia que no
+   tiene nada que ver con la ola (pasó con RESP_SNT en ago-2026: la fila del
+   mundo nuevo trae una celda más y la respuesta de la API una clave más).
+   La lista NO se escribe a mano: se deriva comparando el esquema de los dos
+   árboles, y esos campos se descuentan antes de comparar. Todo lo demás sigue
+   exigiéndose byte a byte. */
+function colsEvoluciones(dir) {
+  const src = fs.readFileSync(path.join(dir, 'v2', 'esquema.gs'), 'utf8');
+  const lista = /_COLS_EVOLUCIONES\s*=\s*\[([\s\S]*?)\n\];/.exec(src);
+  return lista ? Array.from(lista[1].matchAll(/\['([A-Z_0-9]+)'/g)).map(m => m[1]) : [];
+}
+const COLS_BASE = colsEvoluciones(baseDir);
+const COLS_HOY = colsEvoluciones(REPO);
+const NUEVOS = COLS_HOY.filter(c => COLS_BASE.indexOf(c) === -1);
+// Índices (1-based, como los usa el banco) de las columnas nuevas
+const IDX_NUEVOS = NUEVOS.map(c => COLS_HOY.indexOf(c)).sort((a, b) => b - a);
+si('el esquema de EVOLUCIONES se pudo leer en los dos árboles',
+  COLS_BASE.length > 0 && COLS_HOY.length >= COLS_BASE.length,
+  COLS_BASE.length + ' → ' + COLS_HOY.length + ' columnas');
+if (NUEVOS.length) console.log('   (campos posteriores a la ola, descontados: ' + NUEVOS.join(', ') + ')');
+/** Quita las claves nuevas de cualquier objeto de la respuesta, a cualquier nivel. */
+function sinCamposNuevos(x) {
+  if (Array.isArray(x)) return x.map(sinCamposNuevos);
+  if (x && typeof x === 'object') {
+    const o = {};
+    Object.keys(x).forEach(k => { if (NUEVOS.indexOf(k) === -1) o[k] = sinCamposNuevos(x[k]); });
+    return o;
+  }
+  return x;
+}
+/** Quita las celdas de las columnas nuevas de las filas de EVOLUCIONES. */
+function sinColumnasNuevas(hoja, filas) {
+  if (!/^EVOLUCIONES/.test(hoja) || !IDX_NUEVOS.length) return filas;
+  return filas.map(f => { const c = f.slice(); IDX_NUEVOS.forEach(i => { if (i < c.length) c.splice(i, 1); }); return c; });
+}
+
 /* ── 3 · Normalizaciones (ids autogenerados y orden físico de inserción) ──── */
 // TIMELINE y PROCEDIMIENTOS: mismos registros, otro mecanismo — el lote cambia
 // ID_* y el orden de fila. Se comparan como CONJUNTO sin la columna de id.
@@ -100,7 +138,7 @@ for (const esc of Object.keys(TECHOS)) {
   console.log('\n— ' + esc + ' (base ' + a.viajes + ' → ahora ' + b.viajes + ' viajes) —');
   si(esc + ' · las dos respuestas son ok', a.respuesta.ok === true && b.respuesta.ok === true);
   si(esc + ' · la respuesta de la API es IDÉNTICA',
-    JSON.stringify(a.respuesta) === JSON.stringify(b.respuesta));
+    JSON.stringify(sinCamposNuevos(a.respuesta)) === JSON.stringify(sinCamposNuevos(b.respuesta)));
 
   const hojasA = a.hojas, hojasB = b.hojas;
   const nombres = new Set(Object.keys(hojasA).concat(Object.keys(hojasB)));
@@ -114,7 +152,8 @@ for (const esc of Object.keys(TECHOS)) {
         JSON.stringify(camasComparables(fa, COL_TL)) === JSON.stringify(camasComparables(fb, COL_TL)));
     } else {
       si(esc + ' · ' + hoja + ' igual',
-        JSON.stringify(normalizada(hoja, fa)) === JSON.stringify(normalizada(hoja, fb)));
+        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, fa))) ===
+        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, fb))));
     }
   }
   si(esc + ' · hace MENOS viajes que el base', b.viajes < a.viajes, b.viajes + ' < ' + a.viajes);

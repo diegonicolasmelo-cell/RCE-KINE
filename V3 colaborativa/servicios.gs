@@ -1403,7 +1403,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
  * derivar la racha de turnos candidato sin PVE desde el episodio.
  */
 function _turnoCandidatoPve(e) {
-  if (String(e.VENT_SOPORTE) !== 'VM' || e.PVE_VAL === 'si') return false;
+  // 'nc' = no corresponde por causa de base no resuelta: corta la racha igual
+  // que una PVE hecha (ago-2026). Si no, el turno que declara «no procede»
+  // seguiría sumando a «candidato hace N turnos sin PVE».
+  if (String(e.VENT_SOPORTE) !== 'VM' || e.PVE_VAL === 'si' || e.PVE_VAL === 'nc') return false;
   const n = function (x) { return parseFloat(x); };
   const dva = String(e.HEMO_DVA || '');
   return n(e.VENT_FIO2) > 0 && n(e.VENT_FIO2) <= 50 &&
@@ -2796,9 +2799,12 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   // Tamizaje de candidato a PVE con los parámetros de este turno (criterios de
   // screening clásicos, ABC trial). Si el turno ya trae PVE registrado, el
   // tamizaje ya se resolvió y no se marca. Con datos incompletos no se marca
-  // (conservador).
+  // (conservador). Tampoco se marca cuando el turno declaró que NO CORRESPONDE
+  // ('nc', ago-2026): el paciente cumple los números pero su causa de base no
+  // está resuelta, y el kinesiólogo del turno ya lo dijo — insistirle con el
+  // badge verde y con la alerta de racha sería ruido.
   let candPve = false;
-  if (sopNew === 'VM' && evo.PVE_VAL !== 'si') {
+  if (sopNew === 'VM' && evo.PVE_VAL !== 'si' && evo.PVE_VAL !== 'nc') {
     const _n = x => parseFloat(x);
     const dvaTxt = String(evo.HEMO_DVA || '');
     candPve = _n(evo.VENT_FIO2) > 0 && _n(evo.VENT_FIO2) <= 50 &&

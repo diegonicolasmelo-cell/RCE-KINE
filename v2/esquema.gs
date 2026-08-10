@@ -252,7 +252,14 @@ const _COLS_EVOLUCIONES = [
   // pacientes que solo tenían mascarilla (la detección miraba la interfaz de
   // vía aérea, no el soporte). Ahora es simétrico con DIAS_VM.
   // SIEMPRE AL FINAL.
-  ['DIAS_VNI','entero']
+  ['DIAS_VNI','entero'],
+  // SUCCIÓN NASOTRAQUEAL (ago-2026, pedido de Manuel). Cuarta técnica de
+  // permeabilización junto a SOF, SNF y SET. Es la del paciente SIN vía aérea
+  // artificial — la sonda entra por la nariz y pasa la glotis; con TOT o TQT
+  // no existe, ahí la succión es endotraqueal. El formulario la esconde
+  // cuando la vía aérea es invasiva, espejo de lo que ya hace SET al revés.
+  // SIEMPRE AL FINAL.
+  ['RESP_SNT','bool']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────

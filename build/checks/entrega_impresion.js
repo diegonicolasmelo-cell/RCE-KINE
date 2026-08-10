@@ -1,23 +1,31 @@
 // entrega_impresion.js — La entrega es ANCHA en pantalla y COMPACTA en papel
-// (ago-2026).
+// (ago-2026), y sale en A4 VERTICAL.
 //
 // PEDIDO DE DIEGO: la entrega ocupaba ~4 hojas con 17 pacientes y «al fin y al
 // cabo es poca información». Decisión suya: compactar SOLO al imprimir — la
 // vista de pantalla (y la del celular, que le gusta) se queda igual.
+// PEDIDO DE MANUEL (9-ago-2026): que salga VERTICAL y en 1 o 2 hojas. La
+// orientación no es cosmética: al girar la hoja cada línea pierde 30% de ancho
+// (194 mm contra 277 mm) pero la página gana 48% de alto (281 contra 190), y
+// el saldo solo se conoce midiendo — por eso la última sección cuenta hojas de
+// verdad con build/medir_entrega.js en vez de confiar en el ojo.
 //
 // LO QUE ESTA GUARDIA CUIDA:
 //  1. Que la pantalla NO cambie (la rejilla de 4 y 3 columnas sigue viva).
-//  2. Que al imprimir la cabecera quepa en UNA línea, con el diagnóstico
-//     llenando el blanco de la derecha y la fecha de ingreso cerrándola.
+//  2. Que el papel sea VERTICAL y que el diagnóstico se LEA: con la cabecera
+//     en una sola línea forzada, el dx se comprimía hasta 0 px — gastaba
+//     renglón sin decir nada.
 //  3. Que las celdas VACÍAS desaparezcan en papel (lo no registrado no gasta
 //     hoja) sin dejar separadores « · » huérfanos.
 //  4. Que el PLAN conserve su franja propia: es lo que el turno que entra
 //     viene a leer, y comprimirlo hasta perderlo sería ahorrar papel al costo
 //     de la entrega.
+//  5. Que un turno de carga normal (17 camas) siga cabiendo en 2 hojas.
 //
 // Uso: node build/checks/entrega_impresion.js
 const path = require('path');
 const { chromium } = require('playwright-core');
+const { construirFichas, montarEntrega, medirHojas, MM } = require('../medir_entrega.js');
 const archivo = path.resolve(process.argv[2] || path.join(__dirname, '..', '..', 'v2', 'index.html'));
 const fails = [];
 const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk ? '✅' : '❌') + ' ' + l + ': ' + JSON.stringify(g) + (okk ? '' : ' (esperado ' + JSON.stringify(w) + ')')); if (!okk) fails.push(l); };
@@ -25,7 +33,9 @@ const ok = (l, c) => eq(l, !!c, true);
 
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
-  // Ancho equivalente a A4 apaisado con margen 8mm (≈281 mm ≈ 1062 px a 96 dpi)
+  // La parte de PANTALLA se mide en un monitor de verdad (la ficha ancha tiene
+  // su propio responsive); la de PAPEL, más abajo, al ancho útil del A4
+  // vertical (194 mm ≈ 733 px a 96 dpi).
   const p = await b.newPage({ viewport: { width: 1080, height: 900 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.addInitScript(()=>{
@@ -104,6 +114,7 @@ const ok = (l, c) => eq(l, !!c, true);
   console.log('\n2 · Al imprimir se compacta');
   await p.evaluate(() => { if (typeof _entEspejarPlanes === 'function') _entEspejarPlanes(); });
   await p.emulateMedia({ media: 'print' });
+  await p.setViewportSize({ width: Math.round(194 * MM), height: 900 });   // A4 vertical
   await p.waitForTimeout(150);
   const imp = await p.evaluate(() => {
     const disp = sel => { const e = document.querySelector(sel); return e ? getComputedStyle(e).display : '(no existe)'; };
@@ -119,9 +130,19 @@ const ok = (l, c) => eq(l, !!c, true);
       // ¿la cabecera cabe en UNA línea?
       cabeceraAlto: fh.getBoundingClientRect().height,
       lineaAlto: parseFloat(getComputedStyle(fh).fontSize) * 2.2,
-      dxCrece: dx.getBoundingClientRect().width > 60,   // se estiró, no quedó pegado
+      // En A4 vertical el dx pide un tercio del ancho: con menos, baja de línea
+      // y se lee entero. Lo que NO puede volver a pasar es que se comprima a
+      // nada — gastaba renglón sin decir nada (medido: 32 px, y 0 con muchos chips).
+      dxAncho: dx.getBoundingClientRect().width,
+      anchoFicha: fh.getBoundingClientRect().width,
       // el plan conserva franja propia
       planBloque: disp('.ent-pend') === 'block',
+      // La orientación del papel la fija el @page GLOBAL, porque medio equipo
+      // imprime con Ctrl+P sin pasar por el botón.
+      paginaVertical: [...document.querySelectorAll('style')]
+        .some(s => /@page\s*\{[^}]*A4\s+portrait/.test(s.textContent)) &&
+        ![...document.querySelectorAll('style')]
+          .some(s => /@page\s*\{[^}]*A4\s+landscape/.test(s.textContent)),
     };
   });
   eq('el piso deja de ser rejilla', imp.pisoDisplay, 'block');
@@ -129,8 +150,10 @@ const ok = (l, c) => eq(l, !!c, true);
   ok('las etiquetas en mayúsculas desaparecen', imp.etiquetaOculta);
   ok('la celda vacía no gasta papel', imp.vaciaOculta);
   ok('la fecha de ingreso aparece', imp.ingVisible);
-  ok('el diagnóstico se estira para llenar el blanco de la derecha', imp.dxCrece);
-  ok('la cabecera cabe en UNA línea', imp.cabeceraAlto <= imp.lineaAlto);
+  ok('el papel de la entrega es VERTICAL (también con Ctrl+P)', imp.paginaVertical);
+  ok('el diagnóstico se lee: ocupa al menos un tercio del ancho',
+     imp.dxAncho >= imp.anchoFicha * 0.33);
+  ok('la cabecera no se dispara (≤3 líneas)', imp.cabeceraAlto <= imp.lineaAlto * 1.6);
   ok('el PLAN conserva su franja propia (es lo que se viene a leer)', imp.planBloque);
 
   /* El plan LARGO no se puede cortar: el textarea imprimía solo sus 2 filas. */
@@ -162,10 +185,20 @@ const ok = (l, c) => eq(l, !!c, true);
   const altoPant = await p.evaluate(() =>
     Math.round(document.querySelector('.ent-ficha').getBoundingClientRect().height));
   console.log(`   alto de la ficha → pantalla ${altoPant} px · papel ${altoImp} px`);
-  const hojas = a => Math.round((a * 17) / 718 * 10) / 10;
-  console.log(`   proyectado a 17 pacientes → pantalla ${hojas(altoPant)} hojas · papel ${hojas(altoImp)} hojas`);
   ok('al imprimir la ficha ocupa MENOS que en pantalla', altoImp < altoPant);
   ok('…y el ahorro es de al menos un 30%', altoImp <= altoPant * 0.7);
+
+  /* ══ 4 · HOJAS DE VERDAD: 17 camas, carga normal ════════════════════ */
+  // Nada de proyectar con una regla de tres sobre una ficha: se monta la
+  // entrega completa y se mide el documento al ancho útil real del A4.
+  console.log('\n4 · Cuántas hojas salen con 17 pacientes');
+  await p.emulateMedia({ media: 'print' });
+  for (const [carga, techo] of [['tipica', 2], ['alta', 3]]) {
+    await montarEntrega(p, construirFichas(carga));
+    const r = await medirHojas(p, 194, 281);
+    console.log(`   carga ${carga}: ${r.hojas.toFixed(2)} hojas (ficha promedio ${Math.round(r.fichaProm)} px)`);
+    ok(`la entrega de carga ${carga} cabe en ${techo} hoja(s)`, r.hojas <= techo);
+  }
 
   eq('sin errores JS', errs.filter(e => !/favicon/.test(e)).join(' | '), '');
   await b.close();
