@@ -112,7 +112,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**66 guardias** en `build/checks/*.js`; **40 usan navegador**
+**67 guardias** en `build/checks/*.js`; **41 usan navegador**
 (`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -1134,9 +1134,55 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   **resumen + estado por sección** (mismo criterio del riel del escritorio) y
   números en grilla de tres.
   ✅ **Diego eligió la OPCIÓN B** para la sección grande: Respiratorio se parte en
-  **sub-bloques dentro del acordeón** (vía aérea · ventilación · extubación/PVE ·
-  manejo), no en pantalla completa. Menos cambio para el equipo.
-  Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
+  **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
+  el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
+
+- **v5.50 · EL PANEL EN EL CELULAR (10-ago-2026, cohete v5.50-celular; solo
+  index, sin cambio de esquema — NO exige `crearORepararEstructura()`).** La
+  opción B, programada. Todo vive bajo 740 px; en el escritorio no cambia nada
+  (allá manda el riel lateral, que dice lo mismo con más espacio).
+  1. **Cabecera del paciente** (`#mPac`, sticky): cama, nombre y el estado
+     clínico del turno (VA · soporte · modo) + días + fecha/turno. Antes el
+     panel decía «CAMA 4» y **el nombre no aparecía en ninguna parte**.
+  2. **El acordeón dice qué hay adentro.** Cada `.fcard` lleva estado
+     (`✓ con datos · ! falta algo obligatorio · — sin registrar`) y un resumen
+     de lo registrado. Los obligatorios son **los mismos del riel**, pero se
+     ubican por `contains(elemento)` en vez de por el título de la tarjeta —
+     un título se cambia y nadie se acuerda del riel.
+     - 🔴 **El resumen se DERIVA del formulario, no se escribe a mano.** Un
+       texto por sección se desactualiza en silencio en cuanto alguien agrega
+       un campo; esto siempre muestra lo que hay.
+     - 🪤 **Error cometido y corregido al escribirlo**: la primera versión
+       usaba `offsetParent` para saber si un campo cuenta, y con la tarjeta
+       PLEGADA todos los campos son invisibles ⇒ el encabezado decía «sin
+       registrar» encima de datos que sí estaban. `_mOculto()` distingue los
+       tres mecanismos de plegado (`.fcard-body`, `.msub-b`, `.pre-uci`) de un
+       gate de verdad (`.hidden` o `display:none` puestos a mano).
+  3. **Respiratorio en tres sub-bloques** (💨 Ventilación · ✂️ Eventos de vía
+     aérea · 🫁 Manejo respiratorio), cada uno con su estado y su resumen.
+     Ventilación arranca abierta; los otros dos plegados.
+     - 🔴 **Se agrupa POR RANGOS CONTIGUOS y no se mueve ni un bloque de
+       sitio.** El orden de la sábana es una decisión clínica tomada —la TQT
+       antes del módulo ventilatorio (v5.1), el prono al inicio de la terapia
+       (v5.44)— así que reordenar «para que quede más ordenado» sería deshacer
+       eso sin que nadie lo pidiera. Los cortes se declaran por ID (`M_SUBS`),
+       no por posición: un bloque nuevo cae solo en el grupo que le toca.
+     - El envoltorio **no pisa los gates**: ellos esconden el bloque de adentro
+       (`dVentBloque`), el plegado esconde el de afuera.
+  4. Medido: el encabezado de la tarjeta Respiratorio pasó de **113 a 76 px**
+     (el título largo se llevaba una línea entera y dejaba el ✓ y la flecha
+     solos en la suya; `flex:1 1 0` en vez de `auto` lo arregla — con
+     `flex-wrap` un ítem que no cabe se va a la línea siguiente en vez de
+     encogerse).
+  - Guardia `checks/movil_panel.js` (8 bloques, celular + escritorio).
+    Batería: **67 verdes**.
+  - ⏸️ **NO se tocó el encabezado de la app** (las tres filas que ocupan 270 px)
+    aunque el mockup lo proponía: esa maqueta es la **opción C que Diego eligió
+    en v5.13** entre tres, y `movil.js` la asserta entera. Cambiarla es
+    deshacer una decisión suya — hay que preguntarle primero.
+  - ⏸️ Pendiente de la misma ronda: los campos numéricos en grilla de tres
+    (~el doble por pantalla). Exige tocar el marcado que comparte `renderParams`
+    con el escritorio; se dejó para después de que el equipo pruebe esto.
 
 - **v5.49 · REDISEÑO SUAVE DE LA SÁBANA: LA FICHA SE PLIEGA Y LOS CAMPOS DICEN
   CÓMO ESTABAN (10-ago-2026, cohete v5.49-ficha; sin cambio de esquema — NO

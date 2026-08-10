@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.49-ficha">
+<meta name="rce-version" content="5.50-celular">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -820,6 +820,10 @@ table.rhb2 .rl{width:128px;text-align:left;}
   letter-spacing:.01em;white-space:nowrap;}
 .antes:empty{display:none;}
 .antes.cambio{color:#b45309;font-weight:800;}
+/* Lo del celular no existe en el escritorio: allá manda el riel lateral, que
+   dice lo mismo con más espacio. */
+#mPac{display:none;}
+.mst,.mres{display:none;}
 /* Etapa 2: mediciones heredadas de la réplica — ámbar hasta tocarlas o confirmar el módulo */
 .heredado{background:#fffbeb !important;border-color:#f5b942 !important;}
 .her-chip{margin-left:auto;background:#fffbeb;color:#b45309;border:1px solid #f59e0b;border-radius:14px;padding:2px 10px;font-size:.66rem;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;}
@@ -1280,6 +1284,53 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
   .msheet.on{transform:translateY(0);}
   .msheet .mit{display:flex;align-items:center;gap:12px;padding:13px 8px;font-size:.9rem;font-weight:600;color:var(--txt);border:none;border-bottom:1px solid #f1efe9;width:100%;background:none;cursor:pointer;text-align:left;}
   .msheet .mit:last-child{border-bottom:none;}
+  /* ── CELULAR · EL ACORDEÓN DICE QUÉ HAY ADENTRO (ago-2026) ──────────────
+     Medido antes de tocar nada: las once secciones se veían IDÉNTICAS, sin
+     resumen ni estado, así que había que abrirlas a ciegas. El riel del
+     escritorio ya calcula «esta sección tiene datos» y «a esta le falta algo
+     obligatorio», pero está oculto bajo 1.100 px — o sea, nunca en un
+     teléfono. Esto trae ese mismo criterio al encabezado de cada tarjeta. */
+  #mPac{display:block;position:sticky;top:0;z-index:7;background:var(--card);
+    border-bottom:1px solid var(--border);padding:7px 12px;}
+  #mPac .l1{display:flex;align-items:center;gap:7px;}
+  #mPac .cama{background:var(--pdark);color:#fff;border-radius:6px;padding:2px 7px;
+    font-size:.68rem;font-weight:800;flex-shrink:0;}
+  #mPac .nom{font-weight:800;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;min-width:0;}
+  #mPac .l2{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+  #mPac .ch{font-size:.65rem;background:#f1efe9;border:1px solid var(--border);
+    border-radius:10px;padding:1px 7px;color:#5f5a51;}
+  #mPac .ch.vm{background:#eef4fa;border-color:#c9dcef;color:var(--pdark);font-weight:700;}
+  .fcard-hdr{flex-wrap:wrap;}
+  /* Con el encabezado envolviendo, un título largo («Respiratorio — Terapia
+     ventilatoria») se llevaba una línea entera y dejaba el ✓ y la flecha
+     solos en la suya. El título toma el espacio que queda y parte adentro. */
+  .fcard-hdr>.fcard-title{flex:1 1 0;min-width:0;flex-wrap:nowrap;}
+  .fcard-hdr>.fcard-title::before{flex-shrink:0;}
+  .mst{display:flex;width:18px;height:18px;border-radius:50%;flex-shrink:0;
+    align-items:center;justify-content:center;font-size:.62rem;font-weight:800;}
+  .mst.ok{background:#dcfce7;color:#166534;}
+  .mst.req{background:#fee2e2;color:#b91c1c;}
+  .mst.no{background:#f1efe9;color:#a8a296;}
+  .mres{display:block;order:1;flex-basis:100%;font-size:.7rem;line-height:1.4;
+    color:#6b665d;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mres:empty{display:none;}
+  .mres.vacio{color:#b3ada2;font-style:italic;}
+  .mres b{color:var(--danger);font-weight:700;}
+  /* Sub-bloques de Respiratorio (opción B, elegida por Diego): la tarjeta
+     abierta medía 1.325 px con 133 campos. Se AGRUPA sin mover nada de sitio
+     — el orden clínico de la sábana es una decisión tomada, no un accidente. */
+  .msub{border:1px solid var(--border);border-radius:10px;margin:8px 0;overflow:hidden;
+    background:var(--card);}
+  .msub-h{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;
+    background:#f7f5f1;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .msub-t{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--resp);min-width:0;}
+  .msub-h::after{content:'▾';margin-left:auto;color:#b7b3a9;font-size:.75rem;}
+  .msub.cerrado .msub-h{border-bottom:none;}
+  .msub.cerrado .msub-h::after{content:'▸';}
+  .msub.cerrado .msub-b{display:none;}
+  .msub-b{padding:2px 9px 9px;}
   /* Panel de evolución: acordeón + botonera de guardado fija */
   .fcard-hdr{cursor:pointer;user-select:none;}
   .fcard-hdr::after{content:'▾';margin-left:auto;color:#b7b3a9;font-size:.8rem;}
@@ -2182,6 +2233,12 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <button class="xbtn" onclick="cerrarPanel()">×</button>
     </div>
   </div>
+  <!-- CELULAR: cabecera del paciente. En el teléfono la barra de arriba solo
+       dice «CAMA 4» y el nombre no aparece en ninguna parte del panel — se
+       está escribiendo la evolución de alguien sin verlo nunca. En el
+       escritorio no hace falta (el nombre va en la ficha y en el encabezado),
+       así que esto vive solo bajo 740 px. -->
+  <div id="mPac" aria-live="polite"></div>
   <div class="pcontent">
     <nav id="spRiel" aria-label="Secciones de la evolución"></nav>
     <form id="kf" onsubmit="return false;" autocomplete="off">
@@ -4057,7 +4114,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.49-ficha]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.50-celular]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4548,6 +4605,18 @@ function rielRender(){
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltas.push('contraindicación de KTM');
   const fEl=$('gFalta');
   if(fEl) fEl.textContent=faltas.length?('Falta: '+faltas.join(' y ')):'';
+  // Los MISMOS obligatorios, pero como elementos: en el celular el aviso va en
+  // el encabezado de la sección que lo contiene, no en una línea al final que
+  // en un teléfono queda fuera de la pantalla. Se deduce por `contains`, no por
+  // el título de la tarjeta — un título se cambia y nadie se acuerda del riel.
+  const faltaEls=[];
+  if(!v('fFirma')) faltaEls.push($('fFirma'));
+  if(!v('fVA')) faltaEls.push($('fVA'));
+  if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltaEls.push($('fPVEval'));
+  if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltaEls.push($('fKTMnoRaz'));
+  if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltaEls.push($('fKTMraz'));
+  _mPintarSecciones(faltaEls);
+  _mPacBar();
   const cards=Array.from(document.querySelectorAll('#kf .fcard')).filter(c=>c.offsetParent!==null);
   if(!cards.length){ nav.innerHTML=''; return; }
   nav.innerHTML='<div class="riel-t">Secciones</div>'+cards.map((c,i)=>{
@@ -9527,12 +9596,206 @@ function mSheet(abrir){
   $('msheet')?.classList.toggle('on', !!abrir);
   $('mvelo')?.classList.toggle('hidden', !abrir);
 }
+// ═══════════════════════════════════════════════════════════════════════
+//  EL PANEL EN EL CELULAR (ago-2026, pedido de Diego: «hoy está difícil
+//  utilizar»). Medido sobre la app real a 390×844 antes de tocar nada:
+//    · la tarjeta Respiratorio abierta mide 1.325 px con 133 campos dentro;
+//    · las once secciones del acordeón se ven IDÉNTICAS — sin resumen ni
+//      estado — así que hay que abrirlas a ciegas;
+//    · el nombre del paciente no aparece en ninguna parte del panel.
+//  Nada de esto cambia lo que se guarda: mismas columnas, mismo guardado.
+// ═══════════════════════════════════════════════════════════════════════
+
+/** Etiqueta corta de un control, para armar los resúmenes. */
+function _mEtiq(el){
+  let t='';
+  const cont=el.closest('.col,.check');
+  const lb=cont && cont.querySelector('label');
+  if(lb) t=lb.textContent;
+  if(!t && el.id){ const l2=document.querySelector('label[for="'+el.id+'"]'); if(l2) t=l2.textContent; }
+  // No todos los campos viven en una .col: varios llevan su etiqueta al lado
+  // (KTR, sesiones) y sin esto el resumen quedaba en un número suelto.
+  if(!t){ const ps=el.previousElementSibling; if(ps && ps.tagName==='LABEL') t=ps.textContent; }
+  if(!t && el.parentElement){ const pl=el.parentElement.querySelector('label'); if(pl) t=pl.textContent; }
+  if(!t) t=el.getAttribute('title')||el.getAttribute('aria-label')||'';
+  return String(t).trim().replace(/\s+/g,' ').replace(/[:*]+$/,'').slice(0,14);
+}
+
+/**
+ * Resumen de una zona del formulario: los primeros valores REGISTRADOS.
+ * Se deriva del propio formulario a propósito, en vez de escribir a mano un
+ * texto por sección: un resumen escrito a mano se desactualiza en silencio en
+ * cuanto alguien agrega un campo, y este proyecto ya pagó varias veces esa
+ * clase de error. Lo que se ve es siempre lo que hay.
+ */
+/**
+ * ¿Este campo está oculto porque NO CORRESPONDE, o solo porque la sección está
+ * plegada? La diferencia es todo el resumen: si se mira `offsetParent`, una
+ * tarjeta cerrada parece vacía y el encabezado dice «sin registrar» encima de
+ * datos que sí están. Por eso los tres mecanismos de PLEGADO se saltan y solo
+ * cuentan los gates de verdad (`.hidden` y `display:none` puestos a mano).
+ */
+function _mOculto(el, tope){
+  for(let n=el; n && n!==tope; n=n.parentElement){
+    const cl=n.classList;
+    if(!cl) continue;
+    if(cl.contains('fcard-body')||cl.contains('msub-b')||cl.contains('pre-uci')) continue;
+    if(cl.contains('hidden')) return true;
+    if(n.style && n.style.display==='none') return true;
+  }
+  return false;
+}
+function _mResumen(cont){
+  const out=[];
+  const ctrls=cont.querySelectorAll('input:not([type=hidden]),select,textarea');
+  for(const el of ctrls){
+    if(out.length>=4) break;
+    if(el.disabled||_mOculto(el,cont)) continue;
+    if(el.type==='checkbox'||el.type==='radio'){
+      if(el.checked){ const e=_mEtiq(el); if(e) out.push(e); }
+      continue;
+    }
+    const val=String(el.value||'').trim();
+    // '0' y los guiones son el estado «sin elegir» de los desplegables: en un
+    // resumen son ruido, no dato.
+    if(!val||val==='--'||val==='-'||val==='0') continue;
+    const lb=_mEtiq(el);
+    // Una fecha cruda («2026-08-10») en un resumen no dice nada y se come el
+    // ancho: va como dd-mm y SIEMPRE con su etiqueta, que es lo que la
+    // distingue de la fecha de al lado.
+    const esFecha=/^\d{4}-\d{2}-\d{2}$/.test(val);
+    const vv=esFecha ? val.slice(8,10)+'-'+val.slice(5,7) : val;
+    out.push(lb && (esFecha || /^[\d.,:]+$/.test(vv)) ? lb+' '+vv : vv);
+  }
+  return out.join(' · ');
+}
+
+/** Pinta estado y resumen en los encabezados del acordeón (celular). */
+function _mPintarSecciones(faltaEls){
+  if(!esMovil()) return;
+  document.querySelectorAll('#kf .fcard').forEach(c=>{
+    const hdr=c.querySelector('.fcard-hdr'); if(!hdr) return;
+    let st=hdr.querySelector('.mst');
+    if(!st){ st=document.createElement('span'); st.className='mst'; hdr.insertBefore(st, hdr.firstChild); }
+    let rs=hdr.querySelector('.mres');
+    if(!rs){ rs=document.createElement('span'); rs.className='mres'; hdr.appendChild(rs); }
+    const falta=faltaEls.find(e=>e && c.contains(e));
+    const txt=_mResumen(c);
+    if(falta){ st.className='mst req'; st.textContent='!'; }
+    else if(txt){ st.className='mst ok'; st.textContent='✓'; }
+    else { st.className='mst no'; st.textContent='—'; }
+    rs.className='mres'+(txt?'':' vacio');
+    rs.innerHTML = falta ? (txt?_escSt(txt)+' — ':'')+'<b>falta '+_escSt(_mFaltaTxt(falta))+'</b>'
+                         : (txt||'sin registrar');
+  });
+  document.querySelectorAll('#kf .msub').forEach(sb=>{
+    const h=sb.querySelector('.msub-h'), b=sb.querySelector('.msub-b');
+    if(!h||!b) return;
+    let rs=h.querySelector('.mres');
+    if(!rs){ rs=document.createElement('span'); rs.className='mres'; h.appendChild(rs); }
+    let st=h.querySelector('.mst');
+    if(!st){ st=document.createElement('span'); st.className='mst'; h.insertBefore(st,h.firstChild); }
+    const falta=faltaEls.find(e=>e && b.contains(e));
+    const txt=_mResumen(b);
+    if(falta){ st.className='mst req'; st.textContent='!'; }
+    else if(txt){ st.className='mst ok'; st.textContent='✓'; }
+    else { st.className='mst no'; st.textContent='—'; }
+    rs.className='mres'+(txt?'':' vacio');
+    rs.innerHTML = falta ? (txt?_escSt(txt)+' — ':'')+'<b>falta '+_escSt(_mFaltaTxt(falta))+'</b>'
+                         : (txt||'sin registrar');
+  });
+}
+/** Nombre corto de lo que falta, para el chip rojo. */
+function _mFaltaTxt(el){
+  const id=el&&el.id;
+  return id==='fFirma'?'la firma':id==='fVA'?'la vía aérea':
+         id==='fPVEval'?'declarar la PVE':id==='fKTMnoRaz'?'la razón de KTM':
+         id==='fKTMraz'?'la contraindicación':'un dato obligatorio';
+}
+
+/** Cabecera del paciente (solo celular). */
+function _mPacBar(){
+  const el=$('mPac'); if(!el) return;
+  if(!esMovil()){ el.innerHTML=''; return; }
+  const c=_camaPanel()||{};
+  const nom=String(v('fNombre')||c.NOMBRE||'').trim();
+  const cama=String(v('cBed')||'');
+  const chips=[];
+  const d=String(v('fDias')||'').trim(); if(d!=='') chips.push('Día '+_escSt(d));
+  const va=v('fVA'), sop=v('fSop'), modo=v('fModo');
+  const clin=[va,sop,modo].filter(x=>x&&x!=='--'&&x!=='-').map(_escSt).join(' · ');
+  if(clin) chips.push('<span class="ch vm">'+clin+'</span>');
+  const f=v('gDate')||hoy();
+  chips.push((SHIFT==='Noche'?'🌙 ':'☀️ ')+String(f).slice(8,10)+'-'+String(f).slice(5,7));
+  el.innerHTML='<div class="l1"><span class="cama">CAMA '+_escSt(cama)+'</span>'+
+    '<span class="nom">'+(nom?_escSt(nom):'—')+'</span></div>'+
+    '<div class="l2">'+chips.map(x=>x.indexOf('<span')===0?x:'<span class="ch">'+x+'</span>').join('')+'</div>';
+}
+
+/**
+ * OPCIÓN B (elegida por Diego): Respiratorio se parte en sub-bloques DENTRO
+ * del acordeón, no en pantalla completa.
+ *
+ * 🔴 Se agrupa POR RANGOS CONTIGUOS y no se mueve ni un bloque de sitio. El
+ * orden de la sábana es una decisión clínica tomada —la TQT va antes del
+ * módulo ventilatorio (v5.1) y el prono al inicio de la terapia (v5.44)—, así
+ * que reordenar para que quede «más ordenado» sería deshacer eso sin pedirlo.
+ * El envoltorio también deja intactos los gates: ellos esconden el bloque de
+ * adentro (`dVentBloque`), el plegado esconde el de afuera. No se pisan.
+ */
+const M_SUBS=[
+  {id:'msVent', t:'💨 Ventilación',                 sub:0, desde:'dTqtSec',     abierto:true},
+  {id:'msEvt',  t:'✂️ Eventos de vía aérea',        sub:0, desde:'dDesvincSec', abierto:false},
+  {id:'msMan',  t:'🫁 Manejo respiratorio',         sub:1, desde:null,          abierto:false},
+];
+function _mSubBloques(){
+  const anc=$('fSop'); if(!anc) return;
+  const card=anc.closest('.fcard'); if(!card) return;
+  if(!esMovil()){ _mDesarmarSubs(card); return; }
+  if(card.querySelector('.msub')) return;            // ya armado
+  const subs=[...card.querySelectorAll(':scope > .fcard-body > .sub-sec')];
+  if(subs.length<2) return;
+  // Los cortes se declaran por ID y no por posición: si mañana se agrega un
+  // bloque dentro de un rango, cae solo en el grupo que le toca.
+  M_SUBS.forEach(cfg=>{
+    const host=subs[cfg.sub]; if(!host) return;
+    const hijos=[...host.children].filter(x=>!x.classList.contains('msub'));
+    let ini=0;
+    if(cfg.desde){ const i=hijos.findIndex(x=>x.id===cfg.desde); if(i===-1) return; ini=i; }
+    // hasta el próximo corte declarado en la MISMA sub-sección
+    const cortes=M_SUBS.filter(o=>o.sub===cfg.sub && o.desde).map(o=>o.desde);
+    let fin=hijos.length;
+    for(let k=ini+1;k<hijos.length;k++){ if(cortes.indexOf(hijos[k].id)!==-1){ fin=k; break; } }
+    const trozo=hijos.slice(ini,fin);
+    if(!trozo.length) return;
+    const box=document.createElement('div');
+    box.className='msub'+(cfg.abierto?'':' cerrado'); box.id=cfg.id;
+    box.innerHTML='<div class="msub-h" onclick="mSubToggle(this)">'+
+      '<span class="msub-t">'+cfg.t+'</span></div><div class="msub-b"></div>';
+    host.insertBefore(box, trozo[0]);
+    const cuerpo=box.querySelector('.msub-b');
+    trozo.forEach(x=>cuerpo.appendChild(x));
+  });
+}
+/** Deshace el agrupado (al volver a pantalla grande). */
+function _mDesarmarSubs(card){
+  card.querySelectorAll('.msub').forEach(box=>{
+    const host=box.parentElement, cuerpo=box.querySelector('.msub-b');
+    while(cuerpo && cuerpo.firstChild) host.insertBefore(cuerpo.firstChild, box);
+    box.remove();
+  });
+}
+function mSubToggle(h){ h.closest('.msub')?.classList.toggle('cerrado'); }
+
 function mAcordeonInit(){
   const cards=document.querySelectorAll('#sp .fcard');
+  _mSubBloques();          // agrupa Respiratorio (o lo desarma en pantalla grande)
+  _mPacBar();              // cabecera con el paciente
   if(!esMovil()){ cards.forEach(f=>f.classList.remove('mcol')); return; }
   cards.forEach(f=>f.classList.add('mcol'));
   // En un INGRESO la identificación parte abierta (es lo primero que se llena)
   if(v('cIng')==='true'){ $('fcId')?.classList.remove('mcol'); }
+  _rielDeb();              // …y que los encabezados digan qué hay adentro
 }
 document.addEventListener('click', e=>{
   if(!esMovil()) return;
