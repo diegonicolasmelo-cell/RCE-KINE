@@ -24,12 +24,32 @@ navegador del hospital o de su casa.
 - Los eventos de vía aérea (intubación, extubación, TQT, decanulación) se
   registran **manualmente** por decisión clínica; las alertas solo detectan
   olvidos, nunca automatizan el registro.
-- **Rama `rediseno-formulario-bloques` = prototipo PARALELO del formulario**
-  (ago-2026, carpeta `rediseño/`): evolución por bloques con guardado
+- **Rama `rediseno-formulario-bloques` = prototipo PARALELO del formulario.
+  ⏸️ EN PAUSA desde el 10-ago-2026 por decisión de Diego** («el rediseño
+  empezó pero se dejará para después»): **no trabajar en ella salvo que él lo
+  pida**. Carpeta `rediseño/`, evolución por bloques con guardado
   independiente, proyecto de Apps Script APARTE con hojas propias. Diego lo
   pidió «encarecidamente paralelo, jamás lo principal»: esa rama **NO se
   fusiona a main** y nada suyo toca `v2/`. Leer su `OBSERVACIONES.md` antes
-  de tocarla (la forma se explora allá; el fondo clínico viene de `v2/`).
+  de retomarla (la forma se explora allá; el fondo clínico viene de `v2/`).
+  - Estado al pausar: **v0.5**. v0.2 arquetipo de Claude Design adaptado a
+    las reglas reales (traía catálogos inventados: extubación «sin
+    condiciones», sedación sin escalones, GCS sin T…); v0.3 **ficha del
+    episodio separada** (datos personales + pre-UCI en hoja propia, el turno
+    viaja sin nombre) y **evaluaciones fechadas** en vez de columnas del
+    turno; v0.4 tres temas (**Tinta** por defecto de día, Noche automático en
+    turno noche); v0.5 eventos con «queda con», GSA interpretado,
+    desvinculación con delta y circuito por fecha de etiqueta.
+  - 🪤 **TRAMPA VERIFICADA AL INTENTAR PROBARLO (10-ago)**: Diego copió la
+    planilla de producción (con sus scripts) para usarla de banco de pruebas.
+    **NO se puede pegar el rediseño junto a los 9 .gs de producción**: en
+    Apps Script el espacio de nombres es único y chocan `doGet` (decide qué
+    app se sirve) y sobre todo **`_hoja`** — la de `repo.gs` LANZA ERROR si
+    la hoja no existe y la del rediseño la CREA, así que pisarla haría que
+    producción fabrique hojas vacías sin sus 386 columnas en silencio. El
+    proyecto del prototipo debe tener SOLO sus 3 archivos.
+  - Pendiente único de captura: decanulación con racha de válvula de fonación
+    (exige historial de varios turnos reales).
 
 ## Arquitectura
 
