@@ -119,6 +119,68 @@ const { chromium } = require('playwright-core');
   await b.close();
   if (errs.length) { console.log('❌ errores JS: ' + errs.join(' | ')); fails.push('js'); }
   else console.log('\nsin errores JS');
+  
+// ══ EL TABLERO EN EL CELULAR (ago-2026, reportado por Diego: «en móvil no se
+// ve otros servicios») ══════════════════════════════════════════════════════
+// La grilla de 18 camas ocupaba más de una pantalla completa a 390 px, así que
+// pasillo, bodega, equipos en mantención y préstamos quedaban enterrados. Bajo
+// 760 px se muestran solo las camas CON equipo, con un botón para desplegar
+// las 18 cuando hay que soltar algo en una vacía.
+// Y el stock sin numerar (dispositivos de apoyo) dejó de vivir desplegado bajo
+// el tablero: va dentro del bloque plegado «Tarjetas y gestión».
+(async () => {
+  const b2 = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
+  const m = await b2.newPage({ viewport: { width: 390, height: 900 }, isMobile: true });
+  const errsM = []; m.on('pageerror', e => errsM.push(e.message));
+  await m.addInitScript(() => { window.google = { script: { run: { withSuccessHandler(o) { return { withFailureHandler() { return {
+    api(a) { setTimeout(() => o({ ok: true, data: (a === 'GET_CONFIG_UI' ? { NUM_CAMAS: 18, BANNERS: {} } : null) }), 5); } }; } }; } } } }; });
+  await m.goto('file://' + require('path').resolve(__dirname, '..', '..', 'v2', 'index.html'));
+  await m.waitForTimeout(600);
+  const RM = await m.evaluate(() => {
+    VM_ALL = [
+      { id: 'v1', nombre: 'Servo U', categoria: 'VMI', activo: true, ubicTipo: 'CAMA', ubicDetalle: '4', estado: 'Operativo' },
+      { id: 'v2', nombre: 'PB 980', categoria: 'VMI', activo: true, ubicTipo: 'PASILLO', ubicDetalle: '', estado: 'Operativo' },
+      { id: 'v3', nombre: 'V60', categoria: 'VNI', activo: true, ubicTipo: 'BODEGA', ubicDetalle: '', estado: 'Operativo' },
+      { id: 'v4', nombre: 'Mek 9', categoria: 'VMI', activo: true, ubicTipo: 'EQUIPOS', ubicDetalle: '', estado: 'En mantención' },
+      { id: 'v5', nombre: 'Airvo 2', categoria: 'CNAF', activo: true, ubicTipo: 'PRESTAMO', ubicDetalle: 'UTI', estado: 'Operativo' }];
+    STOCK_ALL = [{ id: 's1', nombre: 'Aerogen Pro-X', total: 10, disponible: 7, asignacion: { '4': 2 } }];
+    setTab('V'); vmRender();
+    // 🪤 offsetParent MIENTE dentro de un <details> cerrado (trampa v5.31):
+    // Chrome usa content-visibility, no display:none. Hay que preguntar por el
+    // <details> cerrado o los asserts pasan solos.
+    const oculto = el => !el || !!el.closest('details:not([open])');
+    const zona = t => [...document.querySelectorAll('.vmz-zona')].find(z => z.textContent.includes(t));
+    const y = el => Math.round(el.getBoundingClientRect().top + window.scrollY);
+    const slots = () => [...document.querySelectorAll('.vmz-slot')];
+    const visibles = () => slots().filter(s => s.offsetParent !== null).length;
+    const compacto = visibles(), yCompacto = y(zona('Otro servicio'));
+    document.querySelector('.vmz-vertodas').click();
+    const abierto = visibles(), yAbierto = y(zona('Otro servicio'));
+    const rotulo = document.querySelector('.vmz-vertodas').textContent;
+    document.querySelector('.vmz-vertodas').click();
+    return { compacto, abierto, totales: slots().length, rotulo,
+      vuelveACompacto: visibles(),
+      ahorroPx: yAbierto - yCompacto,
+      otroServicioExiste: !!zona('Otro servicio'),
+      equiposMedicosExiste: !!zona('Equipos médicos'),
+      stockPlegado: oculto(document.getElementById('stkBody')),
+      resumenNombraApoyo: /dispositivos de apoyo/i.test(
+        (document.querySelector('#vmBody details summary') || {}).textContent || '') };
+  });
+  eq('★ en el celular solo se ven las camas CON equipo', RM.compacto, 1);
+  eq('…de las 18 que existen', RM.totales, 18);
+  eq('★ «Otro servicio» está en el tablero', RM.otroServicioExiste, true);
+  eq('…y «Equipos médicos» también', RM.equiposMedicosExiste, true);
+  eq('★ esconder las vacías lo acerca >400 px', RM.ahorroPx > 400, true);
+  eq('el botón despliega las 18', RM.abierto, 18);
+  eq('…y cambia de rótulo', RM.rotulo, 'Solo con equipo');
+  eq('…y vuelve a plegarlas', RM.vuelveACompacto, 1);
+  eq('★ el stock queda PLEGADO dentro de «Tarjetas y gestión»', RM.stockPlegado, true);
+  eq('…y el resumen lo nombra', RM.resumenNombraApoyo, true);
+  if (errsM.length) { console.log('❌ errores JS (móvil): ' + errsM.join(' | ')); fails.push('js-movil'); }
+  await b2.close();
   console.log(fails.length ? `❌ ${fails.length} FALLOS` : '✅ TODO OK');
   process.exit(fails.length ? 1 : 0);
+})();
+
 })();

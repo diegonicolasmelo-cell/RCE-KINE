@@ -42,10 +42,16 @@ const SEMBRAR = () => {
     FECHA_INGRESO: '2026-08-04', TS_INGRESO: '2026-08-04 09:00', TALLA_CM: '158',
     VIA_AEREA: 'TOT', TOT_NUMERO: '8.0', TOT_CM_LABIO: '22', DIAS_VM: 6, DIAS_VA: 6,
     DISP_HME_FECHA: '2026-08-10', DISP_HEPA_FECHA: '2026-08-08', DISP_TC_FECHA: '2026-08-08',
-    APACHE2: 18, BARTHEL: 85, CHARLSON: 4, ULT_FSS: 22, ULT_MRC: 44, PATIENT_ID: 'p1' });
+    APACHE2: 18, BARTHEL: 85, CHARLSON: 4, ULT_FSS: 22, ULT_MRC: 44, PATIENT_ID: 'p1',
+    VM_TAG: 'Servo U', VM_TAG_ESTADO: 'Operativo',
+    EQUIPOS_PACIENTE: [{ n: 'Aerogen Pro-X', c: 'APOYO' }] });
   DB.push({ ID_CAMA: '7', OCUPADA: 'TRUE', NOMBRE: 'Pedro Soto', EDAD: 71, SEXO: 'M',
     RUT: '9.876.543-2', DIAGNOSTICO: 'NAVM', FECHA_INGRESO: '2026-08-01',
-    VIA_AEREA: 'TQT', TQT_CALIBRE: '8', DIAS_VM: 9, DIAS_VA: 9, PATIENT_ID: 'p2' });
+    VIA_AEREA: 'TQT', TQT_CALIBRE: '8', DIAS_VM: 9, DIAS_VA: 9, PATIENT_ID: 'p2',
+    VM_TAG: 'Mek 9', VM_TAG_ESTADO: 'Con falla', EQUIPOS_PACIENTE: [] });
+  // Un paciente SIN ningún equipo: su hoja no debe traer la caja del ventilador.
+  DB.push({ ID_CAMA: '8', OCUPADA: 'TRUE', NOMBRE: 'Sin Equipo', EDAD: 50,
+    FECHA_INGRESO: '2026-08-09', PATIENT_ID: 'p3' });
   DB.push({ ID_CAMA: '9', OCUPADA: 'FALSE' });
   imprimirHojasDelDia();
 };
@@ -75,9 +81,9 @@ const SEMBRAR = () => {
       // la carilla neuromuscular NO va en la tanda del día
       sinNeuro: !/CUIDADOS NEUROMUSCULARES/.test(h.textContent) };
   });
-  eq('dos pacientes presentes ⇒ dos carillas', R1.carillas, 2);
-  eq('…todas marcadas como carilla sola', R1.soloUna, 2);
-  eq('en orden de cama', R1.camas, '4,7');
+  eq('tres pacientes presentes ⇒ tres carillas', R1.carillas, 3);
+  eq('…todas marcadas como carilla sola', R1.soloUna, 3);
+  eq('en orden de cama', R1.camas, '4,7,8');
   eq('la cama libre no se imprime', R1.sinLibre, true);
   eq('★ la carilla neuromuscular NO va en la tanda del día', R1.sinNeuro, true);
 
@@ -119,7 +125,8 @@ const SEMBRAR = () => {
   });
   eq('el paciente con TOT sombrea TOT', R4.p1, 'TOT');
   eq('el paciente con TQT sombrea TQT', R4.p2, 'TQT');
-  eq('…y nunca los dos a la vez', R4.unoSolo.join(','), '1,1');
+  // el tercero no tiene vía aérea registrada: no se sombrea nada, tampoco a medias
+  eq('…nunca los dos a la vez, y sin vía aérea ninguno', R4.unoSolo.join(','), '1,1,0');
   eq('el calibre sale del campo que corresponde a cada vía', R4.calibreTQT, true);
 
   console.log('\n5 · ★ Lo que no se sabe NO se inventa');
@@ -144,7 +151,7 @@ const SEMBRAR = () => {
     return { pedido: (window.__ult && window.__ult.a === 'GET_REINTUB_N') ? (window.__ult.d.pids || []).join(',') : null,
       conDos: rt(pgs[0]) };
   });
-  eq('se le piden al servidor los pacientes presentes', R5b.pedido, 'p1,p2');
+  eq('se le piden al servidor los pacientes presentes', R5b.pedido, 'p1,p2,p3');
   eq('★ el paciente con dos reintubaciones imprime 2', R5b.conDos, '2');
 
   console.log('\n5c · Si el servidor falla, la hoja sale igual');
@@ -158,7 +165,36 @@ const SEMBRAR = () => {
     window.api = orig;
     return { carillas: n };
   });
-  eq('★ el conteo caído NO cancela la impresión', R5c.carillas, 2);
+  eq('★ el conteo caído NO cancela la impresión', R5c.carillas, 3);
+
+  console.log('\n5d · El ventilador, arriba a la derecha');
+  const R5d = await p.evaluate(() => {
+    const caja = document.getElementById('rkPrint');
+    caja.style.cssText = 'display:block;position:absolute;left:0;top:0;width:794px;background:#fff;';
+    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')];
+    const txt = i => { const e = pgs[i].querySelector('.rk-vent');
+      return e ? e.textContent.replace(/\s+/g, ' ').trim() : null; };
+    const r = e => e.getBoundingClientRect();
+    const v0 = pgs[0].querySelector('.rk-vent');
+    const res = {
+      p1: txt(0), p2: txt(1),
+      // ★ sin ningún equipo NO se dibuja la caja: un recuadro vacío en el papel
+      // se lee como «falta anotarlo»
+      p3SinEquipo: txt(2),
+      falla: !!pgs[1].querySelector('.rk-vfalla'),
+      // esquina superior derecha: en la mitad derecha y sobre el encabezado
+      mitadDerecha: r(v0).left > r(pgs[0]).left + r(pgs[0]).width * 0.5,
+      sobreLaFranja: r(v0).bottom <= r(pgs[0].querySelector('table')).top + 2,
+    };
+    caja.style.cssText = '';
+    return res;
+  });
+  eq('el VM de la cama, con los equipos del paciente debajo', R5d.p1, 'VENTILADORServo UAerogen Pro-X');
+  eq('…y el que tiene falla la muestra', R5d.p2, 'VENTILADORMek 9 (Con falla)');
+  eq('…marcada en rojo', R5d.falla, true);
+  eq('★ sin equipo NO se dibuja la caja', R5d.p3SinEquipo, null);
+  eq('va en la mitad derecha de la hoja', R5d.mitadDerecha, true);
+  eq('…y sobre la franja de identificación', R5d.sobreLaFranja, true);
 
   console.log('\n6 · Geometría medida en el papel oficial');
   const R6 = await p.evaluate(() => {

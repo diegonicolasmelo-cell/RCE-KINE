@@ -1137,6 +1137,39 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
 
+- **v5.54 · EL VENTILADOR EN LA HOJA + EL TABLERO USABLE EN EL CELULAR
+  (11-ago-2026, cohete v5.54-ventilador; solo index, sin cambio de esquema —
+  NO exige `crearORepararEstructura()`).** Tres pedidos de Diego en una ronda.
+  1. **El ventilador va en la esquina superior derecha de la hoja de registro**,
+     sobre el encabezado: el que llega a la ronda ve de una qué equipo tiene ese
+     paciente sin abrir la app. Manda el VM de la CAMA (`VM_TAG`) y debajo, en
+     letra chica, los equipos del PACIENTE (VNI, CNAF, apoyo), porque esos
+     acompañan a la persona y no a la sala. El estado de falla sale en rojo.
+     🔴 **Sin ningún equipo NO se dibuja la caja**: un recuadro vacío en el
+     papel se lee como «falta anotarlo».
+  2. **🔴 EN EL CELULAR LA GRILLA DE CAMAS TAPABA TODO EL RESTO DEL TABLERO**
+     («en móvil no se ve otros servicios»). Con 18 camas a dos por fila, el
+     pasillo, la bodega, los equipos en mantención y los préstamos quedaban a
+     más de una pantalla de scroll. **Medido: «Otro servicio» estaba a 1.428 px
+     y ahora está a 924 — 504 px menos.** Bajo 760 px se muestran solo las
+     camas CON equipo, y un botón despliega las 18 para cuando hay que soltar
+     algo en una vacía. El estado es de la vista: cada repintado vuelve a lo
+     compacto.
+  3. **Los dispositivos de apoyo (stock sin numerar) dejan de vivir
+     desplegados** bajo el tablero y se pliegan dentro de «📋 Tarjetas y
+     gestión», que ahora los nombra en su resumen. 🪤 Al moverlo quedaban DOS
+     `#stkBody` (el del marcado estático y el nuevo): se eliminó el viejo y
+     `stkRender` sale sin pintar si el contenedor todavía no existe, porque
+     ahora lo crea `vmRender`.
+  - 🪤 **`offsetParent` MIENTE dentro de un `<details>` cerrado** — Chrome usa
+    `content-visibility`, no `display:none`. Es la misma trampa de la v5.31 y
+    volvió a aparecer al verificar que el stock quedara plegado: hay que
+    preguntar por `closest('details:not([open])')` o los asserts pasan solos.
+  - Guardias: bloque 5d de `checks/hoja_registro_dia.js` (el ventilador, la
+    falla en rojo, y que sin equipo no haya caja) y bloque móvil nuevo en
+    `checks/tablero_equipos.js` (las camas vacías escondidas, el botón que las
+    despliega, los 400+ px de ahorro y el stock plegado). Batería: **69 verdes**.
+
 - 🔴 **v5.53 · LAS SECRECIONES SE DESCRIBÍAN DISTINTO EN CADA VISTA (11-ago-2026,
   cohete v5.53-secreciones; index + `svc_entrega.gs`, sin cambio de esquema —
   NO exige `crearORepararEstructura()`).** Reportado por Diego: «secreciones no
@@ -2407,7 +2440,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.53-secreciones**
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.54-ventilador**
   (antes v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja

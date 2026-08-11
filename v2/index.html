@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.53-secreciones">
+<meta name="rce-version" content="5.54-ventilador">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -490,6 +490,15 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .rk-page.rk-sola:last-child{page-break-after:auto;}
 .rk-inst{display:flex;align-items:center;gap:10px;margin-bottom:2px;}
 .rk-inst-t{font-size:8.5pt;font-weight:700;color:#5a5a5a;line-height:1.25;flex:1;}
+/* El ventilador de la cama, arriba a la derecha (pedido de Diego, ago-2026):
+   el que llega a la ronda ve de una qué equipo tiene ese paciente sin abrir la
+   app. Los equipos que NO son de la cama (VNI, CNAF, apoyo) van al lado, más
+   chicos, porque acompañan al paciente y no a la sala. */
+.rk-vent{border:1.5px solid #000;padding:1px 8px;font-size:8.5pt;line-height:1.25;
+  text-align:right;white-space:nowrap;}
+.rk-vent b{font-size:10pt;}
+.rk-vent .rk-vsub{font-size:7.5pt;color:#333;}
+.rk-vent .rk-vfalla{color:#a81f16;font-weight:800;}
 .rk-pie{display:flex;align-items:center;gap:9px;margin-top:6px;font-size:8.5pt;color:#333;}
 .rk-tricolor{display:inline-block;width:52px;height:7px;border:.5px solid #bbb;
   background:linear-gradient(to right,#0039a6 0 33.3%,#fff 33.3% 66.6%,#d52b1e 66.6% 100%);}
@@ -645,6 +654,22 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .vmz-fila2{display:flex;gap:12px;align-items:stretch;}
 .vmz-fila2>.vmz-zona{flex:1 1 0;min-width:0;}
 @media (max-width:760px){.vmz-fila2{flex-direction:column;}}
+/* 🔴 EN EL TELÉFONO LA GRILLA DE CAMAS TAPABA TODO LO DEMÁS (Diego, ago-2026:
+   «en móvil no se ve otros servicios»). Con 18 camas a dos por fila, el
+   pasillo, la bodega, los equipos en mantención y los préstamos quedaban a más
+   de una pantalla de scroll — o sea, invisibles. Bajo 760 px se muestran solo
+   las camas CON equipo, y un botón despliega las 18 para cuando hay que soltar
+   algo en una cama vacía. */
+.vmz-vertodas{display:none;}
+@media (max-width:760px){
+  .vmz-camas:not(.vmz-todas) .vmz-slot.vmz-vacia{display:none;}
+  .vmz-camas:not(.vmz-todas) .vmz-camgrid:empty::after{content:'Ninguna cama con equipo asignado.';
+    font-size:.76rem;color:var(--muted);}
+  .vmz-vertodas{display:inline-block;margin-left:auto;background:var(--card);
+    border:1px solid var(--border);border-radius:7px;padding:2px 9px;font-size:.68rem;
+    font-weight:700;color:var(--pdark);cursor:pointer;}
+  .vmz-zh{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+}
 .vmz-slot{border:1.5px dashed #cbd5e1;border-radius:9px;min-height:56px;padding:4px 6px;font-size:.62rem;color:#94a3b8;font-weight:700;cursor:pointer;}
 .vmz-slot .n{display:block;margin-bottom:3px;}
 .vmz-slot.occ{border-style:solid;border-color:#dde3ec;background:#fafcff;}
@@ -1868,7 +1893,6 @@ document.documentElement.setAttribute('data-piel', 'inst');
     </div>
     <div id="vmAlerta"></div>
     <div id="vmBody"><div class="pivot-empty">Cargando ventiladores…</div></div>
-    <div id="stkBody"></div>
   </div>
 </div>
 
@@ -4141,7 +4165,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.53-secreciones]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.54-ventilador]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -11925,7 +11949,11 @@ function stkCargar(){
   const pintar=()=>{ stkRender(); if(VM_ALL) vmRender(); };
   gs('GET_STOCK',{},r=>{ STOCK_ALL=r||[]; pintar(); }, ()=>{ STOCK_ALL=[]; pintar(); });
 }
+/* #stkBody vive DENTRO del bloque plegado «Tarjetas y gestión», que lo crea
+   vmRender. Si todavía no existe (el stock llegó antes que el tablero), se
+   sale sin pintar: vmRender vuelve a llamar a stkRender al final. */
 function stkRender(){
+  if(!document.getElementById('stkBody')) return;
   const cont=$('stkBody'); if(!cont) return;
   const arr=STOCK_ALL||[];
   if(!arr.length){ cont.innerHTML=''; return; }
@@ -12175,7 +12203,7 @@ function vmzTableroHTML(act){
     const pacVM=!!(c&&(c.OCUPADA===true||c.OCUPADA==='TRUE')&&c.SOPORTE==='VM');
     const xs=porCama[String(i)]||[];
     const stk=_stkChipsCama(i);
-    slots+=`<div class="vmz-slot${(xs.length||stk)?' occ':''}${pacVM?' pac':''}" data-tipo="CAMA" data-det="${i}"
+    slots+=`<div class="vmz-slot${(xs.length||stk)?' occ':' vmz-vacia'}${pacVM?' pac':''}" data-tipo="CAMA" data-det="${i}"
       ondragover="vmzOver(event)" ondragleave="vmzLeave(event)" ondrop="vmzDrop(event)" onclick="vmzZonaTap(this)">
       <span class="n">Cama ${i}${pacVM?' · 🫁 VM':''}</span>${xs.map(chip).join('')}${stk}</div>`;
   }
@@ -12209,7 +12237,8 @@ function vmzTableroHTML(act){
     </div>`;
   return `<div class="vmz-hint">🖐️ <b>Arrastra</b> un ventilador a su destino — o <b>tócalo y luego toca la zona</b> (tablet). Nada se mueve sin confirmar.</div>
   <div class="vmz-board">
-    <div class="vmz-zona vmz-camas"><div class="vmz-zh">🛏️ Camas <span class="vmz-zc">${act.filter(x=>x.ubicTipo==='CAMA').length} equipos en ${Object.keys(porCama).length} camas</span></div>
+    <div class="vmz-zona vmz-camas"><div class="vmz-zh">🛏️ Camas <span class="vmz-zc">${act.filter(x=>x.ubicTipo==='CAMA').length} equipos en ${Object.keys(porCama).length} camas</span>
+        <button class="vmz-vertodas" onclick="vmzTodasCamas(this)" title="En el teléfono se muestran solo las camas CON equipo: las 18 vacías tapaban el pasillo, la bodega y los préstamos">Ver las ${n} camas</button></div>
       <div class="vmz-camgrid">${slots}</div></div>
     <div class="vmz-col">
       ${zona('PASILLO','🚪','Pasillo',pasillo,'')}
@@ -12220,6 +12249,14 @@ function vmzTableroHTML(act){
       </div>
     </div>
   </div>`;
+}
+/* Despliega/pliega las camas vacías en el teléfono. El estado es de la vista,
+   no del dato: cada repintado del tablero vuelve a lo compacto. */
+function vmzTodasCamas(btn){
+  const z=btn.closest('.vmz-camas'); if(!z) return;
+  const abierto=z.classList.toggle('vmz-todas');
+  const n=(window.CFG&&CFG.NUM_CAMAS)||18;
+  btn.textContent=abierto?'Solo con equipo':('Ver las '+n+' camas');
 }
 function vmzDragStart(ev){ const id=ev.target.closest('.vmz-chip').dataset.id; if(!id){ ev.preventDefault(); return; } ev.dataTransfer.setData('text/plain', id); }
 function vmzOver(ev){ ev.preventDefault(); ev.currentTarget.classList.add('dropping'); }
@@ -12294,10 +12331,16 @@ function vmRender(){
   cards+=secc(`🏥 Otro servicio (${prest.length})`,prest,'Sin préstamos vigentes.');
   if(bajas.length) cards+=`<details style="margin-top:14px;"><summary style="font-size:.75rem;color:#94a3b8;cursor:pointer;">⛔ Dados de baja (${bajas.length})</summary>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:8px;opacity:.7;">${bajas.map(_vmCard).join('')}</div></details>`;
+  // El stock sin numerar (Aerogen, capnógrafos) vivía DESPLEGADO bajo el
+  // tablero y empujaba todo hacia abajo. Diego (ago-2026): «me molesta que los
+  // dispositivos de apoyo estén desplegados, deberían plegarse e incluirse con
+  // las tarjetas y gestión». Va dentro del mismo bloque plegado, al final.
   h+=`<details style="margin-top:16px;border:1px solid var(--border);border-radius:10px;padding:8px 14px;background:#fff;">
-    <summary style="font-size:.82rem;font-weight:800;color:var(--pdark);cursor:pointer;">📋 Tarjetas y gestión — editar · historial · mantención · baja</summary>
-    ${cards}</details>`;
+    <summary style="font-size:.82rem;font-weight:800;color:var(--pdark);cursor:pointer;">📋 Tarjetas y gestión — editar · historial · mantención · baja · dispositivos de apoyo</summary>
+    ${cards}<div id="stkBody"></div></details>`;
   $('vmBody').innerHTML=h;
+  // stkRender pinta dentro de #stkBody, que ahora vive en el bloque plegado.
+  if(typeof stkRender==='function' && STOCK_ALL) stkRender();
 }
 
 // ── Alta / edición ──
@@ -13287,7 +13330,7 @@ function entImprimir(){
 // Las carillas se generaron por conversión directa del .docx oficial
 // (python-docx, fusiones de celdas incluidas) — no son una imitación a ojo.
 const _RK_LOGO_HSP='data:image/png;base64,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';
-const RK_PG1=`<div class="rk-inst"><div class="rk-inst-t"><i>Hospital San Pablo &#8211; Coquimbo</i><br><i>Unidad de Paciente Cr&iacute;tico Adulto</i></div>{{LOGOS}}</div><div style="text-align:center;font-weight:800;font-size:11pt;margin:0 0 4px;">CUIDADOS RESPIRATORIOS</div>
+const RK_PG1=`<div class="rk-inst"><div class="rk-inst-t"><i>Hospital San Pablo &#8211; Coquimbo</i><br><i>Unidad de Paciente Cr&iacute;tico Adulto</i></div>{{VENT}}{{LOGOS}}</div><div style="text-align:center;font-weight:800;font-size:11pt;margin:0 0 4px;">CUIDADOS RESPIRATORIOS</div>
 <table style="border-collapse:collapse;width:100%;margin-bottom:0;"><tr>
 <td style="border:1.5px solid #000;padding:2px 6px;font-size:8pt;width:52px;text-align:center;"><b>CAMA</b><br><span style="font-size:11pt;font-weight:800;">{{CAMA}}</span></td>
 <td style="border:1.5px solid #000;padding:2px 6px;font-size:8pt;width:48px;text-align:center;"><b>EDAD</b><br><span style="font-size:11pt;font-weight:800;">{{EDAD}}</span></td>
@@ -13371,6 +13414,7 @@ function rkHojaHTML(c, fechaISO, soloCarilla1, nReintub){
     ['{{TOTCLS}}', esTOT?' rk-via':''], ['{{TQTCLS}}', esTQT?' rk-via':''],
     ['{{FTC}}',_dm(c.DISP_TC_FECHA)],['{{FHEPA}}',_dm(c.DISP_HEPA_FECHA)],
     ['{{FHME}}',_dm(c.DISP_HME_FECHA)],
+    ['{{VENT}}', _rkVentCaja(c)],
     ['{{LOGOS}}', `<img src="${_RK_LOGO_HSP}" alt="Hospital San Pablo" style="height:26px;width:auto;">`+
                   `<img src="${_APK_LOGO_GOB}" alt="Gobierno de Chile" style="height:26px;width:auto;">`],
     ['{{LOGOACR}}', `<img src="${_APK_LOGO_ACR}" alt="Acreditado" style="height:24px;width:auto;margin-left:auto;">`],
@@ -13378,6 +13422,24 @@ function rkHojaHTML(c, fechaISO, soloCarilla1, nReintub){
   let p1=RK_PG1; fr.forEach(x=>{ p1=p1.split(x[0]).join(x[1]); });
   return soloCarilla1 ? `<div class="rk-page rk-sola">${p1}</div>`
                       : `<div class="rk-page">${p1}</div><div class="rk-page">${RK_PG2}</div>`;
+}
+
+/**
+ * Caja del ventilador para la esquina superior derecha de la hoja.
+ * Manda el VM de la cama; los equipos del paciente (VNI, CNAF, apoyo) van
+ * debajo en letra chica porque acompañan a la persona, no a la sala. Si la
+ * cama no tiene ningún equipo NO se dibuja la caja — un recuadro vacío en el
+ * papel se lee como «falta anotarlo».
+ */
+function _rkVentCaja(c){
+  const vm=String(c.VM_TAG||'').trim();
+  const otros=(c.EQUIPOS_PACIENTE||[]).map(q=>String(q.n||'').trim()).filter(Boolean);
+  if(!vm && !otros.length) return '';
+  const est=String(c.VM_TAG_ESTADO||'');
+  const falla=/falla/i.test(est)?` <span class="rk-vfalla">(${_escSt(est)})</span>`:'';
+  const l1=vm?`<b>${_escSt(vm)}</b>${falla}`:'<b>Sin ventilador</b>';
+  const l2=otros.length?`<div class="rk-vsub">${_escSt(otros.join(' · '))}</div>`:'';
+  return `<div class="rk-vent">VENTILADOR<br>${l1}${l2}</div>`;
 }
 
 /* ══ HOJAS DEL DÍA — la carilla de registro de cada paciente presente ══
