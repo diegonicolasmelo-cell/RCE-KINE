@@ -329,10 +329,20 @@
       <code>/edit</code>. No es una contraseña — es como el número de la planilla — pero
       igual no hace falta que se lo mandes a nadie.</p>
       <p>Crea una carpeta para el proyecto (por ejemplo <code>Documentos\RCE-KINE</code>),
-      entra a ella desde el Símbolo del sistema y trae lo que hoy está publicado:</p>
+      entra a ella desde el Símbolo del sistema y trae lo que hoy está publicado. Las
+      comillas del <code>cd</code> son necesarias si la ruta tiene espacios:</p>
+      <div class="aviso ojo">
+        <p class="tt">Que no quede dentro de Google Drive</p>
+        <p>Evita <code>Mi unidad</code> o cualquier carpeta sincronizada. Drive descarga los
+        archivos a demanda y a veces los bloquea mientras sincroniza, justo cuando clasp los
+        está leyendo. Usa una carpeta local normal: no pierdes respaldo, porque el respaldo
+        de verdad son el repositorio y tu propio proyecto de Apps Script.</p>
+      </div>
       <div class="cmd">
         <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
-<pre>cd $env:USERPROFILE\Documents\RCE-KINE
+<pre>cd /d "%USERPROFILE%\Documents"
+mkdir RCE-KINE
+cd RCE-KINE
 clasp clone <span class="v">EL_ID_DE_TU_PROYECTO</span></pre>
       </div>
       <p>Esto baja los archivos que hay ahora y deja la carpeta enlazada con tu proyecto.
@@ -472,9 +482,12 @@ clasp redeploy <span class="v">EL_ID_DE_LA_IMPLEMENTACION</span> -V <span class=
           <code>npm</code> como <code>clasp</code> lo son.</td>
           <td>Cierra esa ventana y usa el <b>Símbolo del sistema</b> (Inicio →
           <code>cmd</code>). Ahí funcionan igual, sin cambiar nada del sistema.
-          <br><small>Si prefieres seguir en PowerShell, se desbloquea con
+          <br><small>Se reconoce a simple vista: si la línea empieza con <code>PS</code>,
+          estás en PowerShell. Como parche puntual sirve agregar <code>.cmd</code> al
+          comando (<code>clasp.cmd clone …</code>), pero hay que acordarse siempre. Y si
+          prefieres desbloquear PowerShell del todo, es
           <code>Set-ExecutionPolicy RemoteSigned -Scope CurrentUser</code>, que afecta solo
-          a tu usuario. No hace falta para nada de esta guía.</small></td>
+          a tu usuario — no hace falta para nada de esta guía.</small></td>
         </tr>
         <tr>
           <td><b>No se reconoce «node» o «clasp»</b></td>
