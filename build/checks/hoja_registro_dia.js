@@ -14,9 +14,12 @@
 //      columna de los bloques de abajo;
 //    · la banda de turnos NO lleva recuadro gris: en el papel es texto suelto.
 //
-// Lo que se prellena y lo que NO: el número de reintubaciones se deja en blanco
-// a propósito — la app guarda SI hubo, no CUÁNTAS, e inventarlo sería peor que
-// la casilla vacía.
+// Las reintubaciones se cuentan en el servidor (contarReintubaciones) y la
+// unidad es el EPISODIO. 🔴 Eso NO es el indicador de fracaso de extubación,
+// cuya unidad es la EXTUBACIÓN: un paciente extubado tres veces con dos
+// reintubaciones son 3 intentos y 2 fracasos. Mantener los dos conteos
+// separados es el punto — este proyecto ya pagó caro tener dos definiciones
+// del mismo número conviviendo («día con VM», `sin_condiciones`).
 //
 // Uso: node build/checks/hoja_registro_dia.js
 const path = require('path');
@@ -24,7 +27,9 @@ const { chromium } = require('playwright-core');
 
 const PUENTE = () => {
   window.google = { script: { run: { withSuccessHandler(okF) { return { withFailureHandler() { return {
-    api(a) { setTimeout(() => okF({ ok: true, data: (a === 'GET_CONFIG_UI' ? { NUM_CAMAS: 18, BANNERS: {} } : null) }), 5); }
+    api(a, d) { window.__ult = { a: a, d: d };
+      setTimeout(() => okF({ ok: true, data: (a === 'GET_CONFIG_UI' ? { NUM_CAMAS: 18, BANNERS: {} }
+        : a === 'GET_REINTUB_N' ? { p1: 2 } : null) }), 5); }
   }; } }; } } } };
 };
 
@@ -57,6 +62,7 @@ const SEMBRAR = () => {
   await p.goto(idx);
   await p.waitForTimeout(500);
   await p.evaluate(SEMBRAR);
+  await p.waitForTimeout(120);   // la impresión espera el conteo del servidor
 
   console.log('1 · Una carilla por paciente presente');
   const R1 = await p.evaluate(() => {
@@ -123,14 +129,36 @@ const SEMBRAR = () => {
     // Pedro no tiene escalas, ni talla, ni fechas de filtros
     return { sinEscalas: !/APACHE|Barthel|Charlson|FSS-ICU|MRC-ss/.test(t2),
       sinVolTidal: !/Talla cms\.\s*\d/.test(t2.replace(/\s+/g, ' ')),
-      // la casilla de reintubaciones va vacía a propósito en AMBOS
-      reintubVacia: pgs.every(pg => {
-        const m = pg.textContent.replace(/\s+/g, ' ').match(/Reintub\.\s*(\S*)\s*Dias VM/);
-        return m && (m[1] === '' || m[1] === 'Dias'); }) };
+      sinReintub: (() => { const m = pgs[1].textContent.replace(/\s+/g, ' ')
+        .match(/Reintub\.\s*(\S*)\s*Dias VM/); return m ? m[1] : '??'; })() };
   });
   eq('sin escalas medidas, no aparece ninguna', R5.sinEscalas, true);
   eq('sin talla, no se inventa el volumen tidal', R5.sinVolTidal, true);
-  eq('★ la casilla de reintubaciones queda vacía (la app no sabe cuántas)', R5.reintubVacia, true);
+  eq('★ sin reintubaciones la casilla va en blanco, no un 0', R5.sinReintub, '');
+
+  console.log('\n5b · Reintubaciones del EPISODIO, contadas por el servidor');
+  const R5b = await p.evaluate(() => {
+    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')];
+    const rt = pg => { const m = pg.textContent.replace(/\s+/g, ' ')
+      .match(/Reintub\.\s*(\S*)\s*Dias VM/); return m ? m[1] : '??'; };
+    return { pedido: (window.__ult && window.__ult.a === 'GET_REINTUB_N') ? (window.__ult.d.pids || []).join(',') : null,
+      conDos: rt(pgs[0]) };
+  });
+  eq('se le piden al servidor los pacientes presentes', R5b.pedido, 'p1,p2');
+  eq('★ el paciente con dos reintubaciones imprime 2', R5b.conDos, '2');
+
+  console.log('\n5c · Si el servidor falla, la hoja sale igual');
+  const R5c = await p.evaluate(async () => {
+    const orig = window.api;
+    window.api = (a, d) => a === 'GET_REINTUB_N' ? Promise.reject(new Error('caído')) : orig(a, d);
+    document.getElementById('rkPrint').innerHTML = '';
+    imprimirHojasDelDia();
+    await new Promise(r => setTimeout(r, 150));
+    const n = document.querySelectorAll('#rkPrint .rk-page').length;
+    window.api = orig;
+    return { carillas: n };
+  });
+  eq('★ el conteo caído NO cancela la impresión', R5c.carillas, 2);
 
   console.log('\n6 · Geometría medida en el papel oficial');
   const R6 = await p.evaluate(() => {

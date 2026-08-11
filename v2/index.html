@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.51-hojaregistro">
+<meta name="rce-version" content="5.52-reintub">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4141,7 +4141,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.51-hojaregistro]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.52-reintub]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -13318,14 +13318,16 @@ function _fechaPapel(){ return hoy(); }
  *  · Calibre, cm de fijación y días: es el estado AL IMPRIMIR. Diego pidió
  *    imprimirlos igual, y que se note con un sombreado si va por TOT o por TQT.
  *  · Fechas de filtros: las mismas que muestra el control de filtros.
- * Lo que NO se prellena: el número de reintubaciones, porque la app guarda si
- * hubo o no, pero no cuántas. Inventarlo sería peor que dejar la casilla.
+ *  · Reintubaciones del episodio: se cuentan en el servidor desde la hoja
+ *    REINTUBACIONES (una fila por evento). Ese número es del EPISODIO y NO es
+ *    el indicador de fracaso de extubación, cuya unidad es la EXTUBACIÓN.
  *
  * @param soloCarilla1  true = solo «Cuidados respiratorios». La carilla
  *   neuromuscular es DIURNA y no se llena todos los días para todos, así que
  *   la tanda del día imprime una carilla por paciente (decisión de Diego).
  */
-function rkHojaHTML(c, fechaISO, soloCarilla1){
+function rkHojaHTML(c, fechaISO, soloCarilla1, nReintub){
+  nReintub=parseInt(nReintub)||0;
   const f=(fechaISO||'').split('-').reverse().join('/');
   const _t=v=>{ const x=String(v==null?'':v).trim(); return x===''?'&nbsp;':_escSt(x); };
   const _dm=v=>{ const x=String(v||'').trim();
@@ -13357,7 +13359,10 @@ function rkHojaHTML(c, fechaISO, soloCarilla1){
     ['{{CALIBRE}}', _t(esTQT ? c.TQT_CALIBRE : c.TOT_NUMERO)],
     ['{{CMS}}', esTQT ? '&nbsp;' : _t(c.TOT_CM_LABIO)],
     ['{{DIASVA}}', _t(c.DIAS_VA)], ['{{DIASVM}}', _t(c.DIAS_VM)],
-    ['{{REINTUB}}','&nbsp;'],   // la app sabe SI hubo, no CUÁNTAS: no se inventa
+    // Cuántas veces se reintubó EN ESTE EPISODIO. Llega del servidor al apretar
+    // imprimir; si no llegó (o no hubo ninguna) la casilla queda en blanco, que
+    // es lo que corresponde: un 0 impreso se lee como «ya lo verifiqué».
+    ['{{REINTUB}}', (nReintub>0) ? String(nReintub) : '&nbsp;'],
     ['{{TOTCLS}}', esTOT?' rk-via':''], ['{{TQTCLS}}', esTQT?' rk-via':''],
     ['{{FTC}}',_dm(c.DISP_TC_FECHA)],['{{FHEPA}}',_dm(c.DISP_HEPA_FECHA)],
     ['{{FHME}}',_dm(c.DISP_HME_FECHA)],
@@ -13381,9 +13386,25 @@ function imprimirHojasDelDia(){
     .slice().sort((a,b)=>(parseInt(a.ID_CAMA)||0)-(parseInt(b.ID_CAMA)||0));
   if(!ocupadas.length){ toast('No hay pacientes hospitalizados que imprimir.'); return; }
   const fecha=_fechaPapel();
-  $('rkPrint').innerHTML=ocupadas.map(c=>rkHojaHTML(c, fecha, true)).join('');
-  _imprimirVertical('print-rk');
-  toast('🖨️ Hojas del día · '+ocupadas.length+' carillas');
+  const pids=ocupadas.map(c=>c.PATIENT_ID).filter(Boolean);
+  // El conteo de reintubaciones se pide AQUÍ y no en el censo: el censo corre en
+  // cada arranque y cada refresco, y este dato solo se usa al imprimir.
+  _rkConteo(pids, n=>{
+    $('rkPrint').innerHTML=ocupadas.map(c=>rkHojaHTML(c, fecha, true, n[c.PATIENT_ID])).join('');
+    _imprimirVertical('print-rk');
+    toast('🖨️ Hojas del día · '+ocupadas.length+' carillas');
+  });
+}
+/**
+ * Pide al servidor cuántas reintubaciones lleva cada episodio y sigue.
+ * Si el servidor falla NO se cancela la impresión: la hoja sale con la casilla
+ * en blanco, que es exactamente como salía antes y como está el papel hoy.
+ */
+function _rkConteo(pids, seguir){
+  if(!pids.length){ seguir({}); return; }
+  api('GET_REINTUB_N', {pids:pids})
+    .then(d=>seguir(d||{}))
+    .catch(()=>{ toast('No se pudo contar las reintubaciones; la casilla va en blanco.'); seguir({}); });
 }
 /* La hoja de registro COMPLETA (dos carillas por paciente, formato oficial
    V0.2) se imprime desde el historial del paciente. En la pestaña Registro su
@@ -13393,8 +13414,10 @@ function imprimirHojaUCIpaciente(){
   if(!TLC){ toast('Abre el historial de un paciente primero.'); return; }
   const c=(DB||[]).find(x=>String(x.ID_CAMA)===String(TLC));
   if(!c){ toast('No se encontró la cama.'); return; }
-  $('rkPrint').innerHTML=rkHojaHTML(c, _fechaPapel());
-  _imprimirVertical('print-rk');
+  _rkConteo(c.PATIENT_ID?[c.PATIENT_ID]:[], n=>{
+    $('rkPrint').innerHTML=rkHojaHTML(c, _fechaPapel(), false, n[c.PATIENT_ID]);
+    _imprimirVertical('print-rk');
+  });
 }
 
 /* ══ LISTA DEL DÍA — todos los pacientes presentes en UNA hoja vertical ══

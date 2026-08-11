@@ -1137,6 +1137,43 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
 
+- **v5.52 · LA HOJA CUENTA LAS REINTUBACIONES DEL EPISODIO (11-ago-2026, cohete
+  v5.52-reintub; index + `svc_evoluciones.gs` + `api.gs`, sin cambio de esquema
+  — NO exige `crearORepararEstructura()`).** La v5.51 dejaba esa casilla vacía
+  porque la app guardaba SI hubo reintubación, no cuántas. Diego pidió el
+  número y preguntó cómo contarlo cuando hay más de una. **La respuesta es que
+  son DOS conteos distintos y no hay que mezclarlos:**
+  · **La casilla del papel** es del **EPISODIO**: cuántas veces se reintubó a
+    ese paciente en esta estadía. `contarReintubaciones(pids)` filtra la hoja
+    REINTUBACIONES por `PATIENT_ID` — ya había **una fila por evento**, así que
+    no hizo falta ni una columna nueva.
+  · **El indicador de fracaso de extubación** tiene como unidad la
+    **EXTUBACIÓN**, no el paciente: cada extubación programada es un intento y
+    cada reintubación ≤48 h es el fracaso de ESE intento
+    (`svc_indicadores.gs:124`). Un paciente extubado tres veces con dos
+    reintubaciones son **3 intentos y 2 fracasos**, y su tasa es 67%, no 200%.
+    🔴 Ese código NO se tocó y no debe tocarse para «hacerlo calzar» con la
+    casilla: son preguntas distintas. Es el mismo error que ya se pagó con
+    «día con VM» y con `sin_condiciones` —dos definiciones del mismo número
+    conviviendo— y por eso quedó escrito en los dos lados.
+  - **No se cuenta en el censo, a propósito.** `obtenerTodasLasCamas` corre en
+    cada arranque y cada refresco, y este dato solo se usa al imprimir: va por
+    su propia acción `GET_REINTUB_N`, que se paga al apretar el botón. Si esa
+    llamada falla, **la impresión NO se cancela**: la hoja sale con la casilla
+    en blanco, igual que antes.
+  - **Cero no se imprime.** La casilla vacía significa «no ha habido»; un 0
+    impreso se lee como «alguien ya lo verificó», y eso es afirmar algo que la
+    hoja no sabe.
+  - ⚠️ **LÍMITE CONOCIDO, dejado así con razón**: la fila de REINTUBACIONES se
+    identifica por TURNO (`ID_EVOLUCION + '_REINTUB'`), así que **dos
+    reintubaciones en el MISMO turno cuentan como una**. Exige extubar y
+    reintubar dos veces en doce horas. Cambiarlo obliga a otro identificador y
+    con eso se pierde la idempotencia que hace que re-guardar una evolución no
+    duplique el evento — que es un riesgo mucho más frecuente. Consultado a
+    Diego.
+  - Guardia: bloques 5, 5b y 5c de `checks/hoja_registro_dia.js` (el conteo
+    llega, el 0 no se imprime, y el servidor caído no cancela la impresión).
+
 - **v5.51 · LA HOJA DE REGISTRO SALE CON EL PACIENTE YA ESCRITO (11-ago-2026,
   cohete v5.51-hojaregistro; solo index, sin cambio de esquema — NO exige
   `crearORepararEstructura()`).** Pedido de Diego: «fusiona el encabezado
@@ -2337,7 +2374,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.51-hojaregistro**
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.52-reintub**
   (antes v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja

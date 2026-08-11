@@ -2926,6 +2926,45 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   }
 }
 
+/**
+ * Cuántas veces se ha reintubado cada paciente EN SU EPISODIO EN CURSO.
+ *
+ * 🔴 La unidad es el EPISODIO, no la extubación. Esto NO es el indicador de
+ * fracaso de extubación: allá la unidad es la EXTUBACIÓN (cada una es un
+ * intento y cada reintubación ≤48 h es el fracaso de ESE intento), y por eso
+ * un paciente extubado tres veces con dos reintubaciones son 3 intentos y 2
+ * fracasos. Confundir los dos conteos es exactamente el error que este
+ * proyecto ya pagó con «día con VM» y con `sin_condiciones`: dos definiciones
+ * conviviendo y el tablero diciendo dos verdades del mismo mes.
+ *
+ * ⚠️ LÍMITE CONOCIDO: la fila se identifica por TURNO (ID_EVOLUCION +
+ * '_REINTUB'), así que dos reintubaciones en el MISMO turno cuentan como una.
+ * Es raro —exige extubar y reintubar dos veces en doce horas— y se deja así a
+ * propósito: el identificador por turno es lo que hace que re-guardar una
+ * evolución no duplique el evento.
+ *
+ * NO se llama desde obtenerTodasLasCamas a propósito: el censo es camino
+ * caliente (corre en cada arranque y cada refresco) y este dato solo se usa al
+ * imprimir. Se paga el viaje cuando se aprieta el botón, no siempre.
+ *
+ * @param  pids  arreglo de PATIENT_ID; si viene vacío devuelve {}.
+ * @return {ok:true, data:{ '<pid>': n }} — los pids sin reintubaciones no salen.
+ */
+function contarReintubaciones(pids) {
+  try {
+    const lista = (pids || []).map(String).filter(x => x !== '');
+    if (!lista.length) return ok({});
+    const quiero = {};
+    lista.forEach(p => { quiero[p] = true; });
+    const conteo = {};
+    repoLeerTodos('REINTUBACIONES').forEach(r => {
+      const pid = String(r.PATIENT_ID || '');
+      if (pid && quiero[pid]) conteo[pid] = (conteo[pid] || 0) + 1;
+    });
+    return ok(conteo);
+  } catch (e) { return err('contarReintubaciones: ' + e.message, ERR.INTERNO, e); }
+}
+
 // Registra un evento en la hoja REINTUBACIONES (idempotente por ID_EVOLUCION).
 function _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx, _evosFn) {
   const idReintub = idEvolucion + '_REINTUB';
