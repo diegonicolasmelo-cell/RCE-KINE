@@ -1171,8 +1171,14 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     con eso se pierde la idempotencia que hace que re-guardar una evolución no
     duplique el evento — que es un riesgo mucho más frecuente. Consultado a
     Diego.
-  - Guardia: bloques 5, 5b y 5c de `checks/hoja_registro_dia.js` (el conteo
-    llega, el 0 no se imprime, y el servidor caído no cancela la impresión).
+  - **VERIFICADO CONTRA EL CÓDIGO REAL, no razonado**: un paciente reintubado
+    DOS veces en el mismo episodio (extuba 03 → reintuba 04 a las 22 h; extuba
+    08 → reintuba 09 a las 35 h; extuba 14 y se va bien) da **casilla 2** ·
+    **3 extubaciones** · **2 fracasos** (1 precoz, 1 tardío) · **66,7%**.
+  - Guardias: bloques 5, 5b y 5c de `checks/hoja_registro_dia.js` (el conteo
+    llega, el 0 no se imprime, y el servidor caído no cancela la impresión), y
+    el bloque `dosEnElMismoPaciente` de `checks/indicadores.js`, que fija los
+    cuatro números de arriba para que nadie «haga calzar» los dos conteos.
 
 - **v5.51 · LA HOJA DE REGISTRO SALE CON EL PACIENTE YA ESCRITO (11-ago-2026,
   cohete v5.51-hojaregistro; solo index, sin cambio de esquema — NO exige

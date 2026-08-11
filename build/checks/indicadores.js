@@ -102,5 +102,43 @@ eq('egresos del rango', d.egresos, 2);
 eq('mortalidad 50%', d.mortalidadPct, 50);
 eq('tendencia incluye histórico sembrado (2026-05 = 20%)', JSON.stringify(d.tendencia[0]), JSON.stringify({mes:'2026-05',fuente:'planilla',fracasoPct:20}));
 eq('tendencia incluye mes RCE (2026-07 = 100%)', d.tendencia.some(t=>t.mes==='2026-07'&&t.fuente==='rce'&&t.fracasoPct===100), true);
+
+// ── UN paciente con DOS reintubaciones en el MISMO episodio ─────────────────
+// Pregunta de Diego (ago-2026) al pedir el número para la hoja de registro:
+// «¿cuando se dé más de 1 en el mismo paciente, cómo lo contabilizaremos?».
+// La respuesta es que son DOS conteos distintos y se mantienen separados:
+//   · la CASILLA DEL PAPEL es del EPISODIO — dice 2;
+//   · el INDICADOR tiene como unidad la EXTUBACIÓN — 3 intentos y 2 fracasos,
+//     o sea 67%, NO 200%.
+// Esta guardia existe para que nadie los «haga calzar»: es el mismo error que
+// ya se pagó con «día con VM» y con `sin_condiciones`.
+(function dosEnElMismoPaciente(){
+  const PID = 'dosveces';
+  Object.keys(DB).forEach(k => { DB[k] = []; });
+  DB.EVOLUCIONES = [
+    { PATIENT_ID:PID, FECHA:'2026-07-01', TURNO_KEY:'2026-07-01-Dia', VENT_SOPORTE:'VM' },
+    // extuba 03 10:00 → reintuba 04 08:00 (22 h ⇒ PRECOZ)
+    { PATIENT_ID:PID, FECHA:'2026-07-03', TURNO_KEY:'2026-07-03-Dia', VENT_SOPORTE:'VM',
+      EXT_OCURRIO:true, EXT_TIPO:'protocolo', EXT_HORA:'10:00' },
+    // extuba 08 09:00 → reintuba 09 20:00 (35 h ⇒ TARDÍO)
+    { PATIENT_ID:PID, FECHA:'2026-07-08', TURNO_KEY:'2026-07-08-Dia', VENT_SOPORTE:'VM',
+      EXT_OCURRIO:true, EXT_TIPO:'protocolo', EXT_HORA:'09:00' },
+    // extuba 14 10:00 y esta vez se va bien
+    { PATIENT_ID:PID, FECHA:'2026-07-14', TURNO_KEY:'2026-07-14-Dia', VENT_SOPORTE:'VM',
+      EXT_OCURRIO:true, EXT_TIPO:'protocolo', EXT_HORA:'10:00' },
+  ];
+  DB.REINTUBACIONES = [
+    { ID_REINTUB:'CAMA_4_2026-07-04-Dia_REINTUB',   PATIENT_ID:PID, FECHA:'2026-07-04', HORA_REINTUBACION:'08:00' },
+    { ID_REINTUB:'CAMA_4_2026-07-09-Noche_REINTUB', PATIENT_ID:PID, FECHA:'2026-07-09', HORA_REINTUBACION:'20:00' },
+  ];
+  const r = calcularIndicadores('2026-07-01','2026-07-31').data;
+  eq('★ dos en el mismo paciente: la casilla del papel dice 2',
+     DB.REINTUBACIONES.filter(x => x.PATIENT_ID === PID).length, 2);
+  eq('★ …y el indicador cuenta 3 INTENTOS, no 1 paciente', r.extubaciones, 3);
+  eq('★ …con 2 fracasos (uno precoz y uno tardío)',
+     r.fracaso + '/' + r.fracasoPrecoz + '/' + r.fracasoTardio, '2/1/1');
+  eq('★ …o sea 67%, jamás 200%', r.fracasoPct, 66.7);
+})();
+
 console.log(fails.length?('❌ '+fails.length+' FALLOS'):'✅ TODO OK');
 process.exit(fails.length?1:0);
