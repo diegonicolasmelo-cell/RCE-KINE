@@ -1,0 +1,45 @@
+.rk-t{border-collapse:collapse;width:100%;table-layout:fixed;margin:1px 0 4px;}
+.rk-c{border:1px solid #000;padding:1px 3px;font-size:7.2pt;vertical-align:middle;word-wrap:break-word;height:14px;color:#000;}
+.rk-tit{font-weight:800;font-size:8.5pt;margin:4px 0 1px;color:#000;}
+.rk-band{display:flex;font-weight:800;font-size:9pt;text-align:center;margin-bottom:1px;color:#000;}
+.rk-band span{flex:1;border:1px solid #000;padding:1px;background:#e8e8e8;}
+.rk-filtros{font-size:8.5pt;margin-top:3px;color:#000;}
+.rk-page{page-break-after:always;font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:4mm;}
+.rk-page p{margin:0;font-size:inherit;}
+.ld-h1{text-align:center;font-weight:800;font-size:11pt;margin-bottom:2px;}
+.ld-h2{display:flex;align-items:center;gap:8px;font-size:8pt;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:5px;}
+.ld-h2 .ld-f{margin-left:auto;font-weight:800;font-size:9pt;border:1.5px solid #000;padding:1px 7px;}
+.ld-h2 .ld-n{font-weight:700;}
+.ld-pac{margin-bottom:4px;break-inside:avoid;}
+.ld-t{border-collapse:collapse;width:100%;table-layout:fixed;}
+.ld-c{border:1.2px solid #000;padding:1px 5px;font-size:6.8pt;}
+.ld-big{font-size:9.5pt;font-weight:800;}
+.ld-dx{border:1.2px solid #000;border-top:none;padding:1px 5px;font-size:7.5pt;display:flex;align-items:baseline;gap:6px;}
+.ld-escs{margin-left:auto;display:flex;gap:7px;flex-shrink:0;}
+.ld-esc{font-size:7pt;border:1px solid #000;padding:0 4px;white-space:nowrap;}
+/* MEDIDO en el PDF oficial a 200 dpi: la fila mide 14 px y la letra es MÁS
+   GRANDE que la que traíamos (7,2 pt). Subir el alto a 20 px fue un error mío:
+   estiraba el bloque de vía aérea y lo volvía cuadrado —en el papel es 2,5:1—. */
+.rk-c{font-size:8.4pt;height:14px;padding:0 3px;}
+.rk-tit{font-size:9.5pt;}
+/* La banda de turnos en el papel oficial es TEXTO SUELTO en negrita, sin caja
+   ni fondo gris. Va en una tabla propia solo para quedar alineada. */
+.rk-sinborde td{border:none;background:none;font-weight:800;font-size:10pt;
+  text-align:center;padding:3px 0 2px;color:#000;}
+.rk-dx{border:1.5px solid #000;border-top:none;padding:2px 8px;font-size:8.5pt;
+  display:flex;align-items:baseline;gap:6px;margin-bottom:4px;}
+.rk-esc{border:1px solid #666;padding:0 5px;font-size:7.5pt;white-space:nowrap;}
+.rk-lleno{background:#eef4fa;}
+/* Sombreado que dice por dónde va la vía aérea */
+.rk-via{background:#d5e3f0;font-weight:800;}
+
+/* Encabezado y pie institucionales: estaban en el papel oficial y la
+   conversión del docx (v5.27) los había perdido. Los logos ya viajaban en el
+   index desde la Hoja APK, así que no suman peso nuevo. */
+.rk-inst{display:flex;align-items:center;gap:10px;margin-bottom:2px;}
+.rk-inst-t{font-size:8.5pt;font-weight:700;color:#5a5a5a;line-height:1.25;flex:1;}
+.rk-pie{display:flex;align-items:center;gap:9px;margin-top:6px;
+  font-size:8.5pt;color:#333;}
+.rk-tricolor{display:inline-block;width:52px;height:7px;
+  background:linear-gradient(to right,#0039a6 0 33.3%,#fff 33.3% 66.6%,#d52b1e 66.6% 100%);
+  border:.5px solid #bbb;}
