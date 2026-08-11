@@ -1,0 +1,26 @@
+.rk-t{border-collapse:collapse;width:100%;table-layout:fixed;margin:1px 0 4px;}
+.rk-c{border:1px solid #000;padding:1px 3px;font-size:7.2pt;vertical-align:middle;word-wrap:break-word;height:14px;color:#000;}
+.rk-tit{font-weight:800;font-size:8.5pt;margin:4px 0 1px;color:#000;}
+.rk-band{display:flex;font-weight:800;font-size:9pt;text-align:center;margin-bottom:1px;color:#000;}
+.rk-band span{flex:1;border:1px solid #000;padding:1px;background:#e8e8e8;}
+.rk-filtros{font-size:8.5pt;margin-top:3px;color:#000;}
+.rk-page{page-break-after:always;font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:4mm;}
+.rk-page p{margin:0;font-size:inherit;}
+.ld-h1{text-align:center;font-weight:800;font-size:11pt;margin-bottom:2px;}
+.ld-h2{display:flex;align-items:center;gap:8px;font-size:8pt;border-bottom:1.5px solid #000;padding-bottom:3px;margin-bottom:5px;}
+.ld-h2 .ld-f{margin-left:auto;font-weight:800;font-size:9pt;border:1.5px solid #000;padding:1px 7px;}
+.ld-h2 .ld-n{font-weight:700;}
+.ld-pac{margin-bottom:4px;break-inside:avoid;}
+.ld-t{border-collapse:collapse;width:100%;table-layout:fixed;}
+.ld-c{border:1.2px solid #000;padding:1px 5px;font-size:6.8pt;}
+.ld-big{font-size:9.5pt;font-weight:800;}
+.ld-dx{border:1.2px solid #000;border-top:none;padding:1px 5px;font-size:7.5pt;display:flex;align-items:baseline;gap:6px;}
+.ld-escs{margin-left:auto;display:flex;gap:7px;flex-shrink:0;}
+.ld-esc{font-size:7pt;border:1px solid #000;padding:0 4px;white-space:nowrap;}
+/* Fila de turnos: antes era un div flex de tres tercios, que NO calzaba con las
+   columnas de la tabla. Como fila comparte el colgroup y cuadra por construcción. */
+.rk-bandr td{border:1px solid #000;background:#e8e8e8;font-weight:800;font-size:9pt;
+  text-align:center;padding:2px;color:#000;}
+.rk-bandr td.rk-hueco{border:none;background:none;}
+/* Más aire donde se ESCRIBE a mano: soporte, auscultación y secreciones. */
+.rk-t1 .rk-c{height:20px;}
