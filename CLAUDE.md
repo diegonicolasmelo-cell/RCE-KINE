@@ -112,7 +112,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**67 guardias** en `build/checks/*.js`; **41 usan navegador**
+**68 guardias** en `build/checks/*.js`; **42 usan navegador**
 (`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -1136,6 +1136,67 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   ✅ **Diego eligió la OPCIÓN B** para la sección grande: Respiratorio se parte en
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
+
+- **v5.51 · LA HOJA DE REGISTRO SALE CON EL PACIENTE YA ESCRITO (11-ago-2026,
+  cohete v5.51-hojaregistro; solo index, sin cambio de esquema — NO exige
+  `crearORepararEstructura()`).** Pedido de Diego: «fusiona el encabezado
+  individual por paciente con la hoja de registro y así evitamos tener que
+  hacerla». Mata el ritual de fotocopiar hojas en blanco y escribirles la
+  identificación a mano. Botón **🖨️ Hojas del día** en el Registro Diario,
+  junto a «Lista del día» y «Filtros».
+  1. **La franja ya era la misma.** Hoja de registro y lista del día comparten
+     cama·edad·nombre·RUT·días·fecha desde la v5.27; lo único que le faltaba a
+     la hoja era la **línea de diagnóstico con las escalas medidas** (las que
+     nadie midió no aparecen, igual que en la lista de Manuel).
+  2. **Se prellena lo que la app ya sabe**: volumen tidal ajustado a talla (las
+     CUATRO multiplicaciones que se hacían a mano cada día; peso ideal por la
+     misma fórmula de Devine del resto de la app), calibre del tubo, cm de
+     fijación, días de VA y de VM, y las fechas de los tres filtros.
+     🔴 **La casilla de reintubaciones se deja VACÍA a propósito**: la app
+     guarda SI hubo, no CUÁNTAS, e inventar un número sería peor que el hueco.
+  3. **Sombreado en TOT o TQT** según la vía aérea del paciente (pedido de
+     Diego): se ve por dónde va sin leer el número.
+  4. **Solo la carilla 1** en la tanda del día (decisión de Diego): la
+     neuromuscular es DIURNA y no se llena todos los días para todos. La hoja
+     COMPLETA sigue saliendo del historial — `rkHojaHTML(c, fecha, soloCarilla1)`.
+     17 pacientes = 17 carillas.
+  - 🔴 **LA GEOMETRÍA SE MIDIÓ EN EL PDF OFICIAL A 200 dpi, no se estimó**, y
+    destapó cuatro infidelidades que venían de la conversión del docx de la
+    v5.27 y que nadie había notado en un año:
+    · **la banda de turnos NO lleva recuadro gris** — en el papel es texto en
+      negrita suelto sobre la tabla;
+    · **la letra estaba en 7,2 pt** cuando el original ronda los **8,4**;
+    · **faltaban el encabezado y el pie institucionales** (Hospital San Pablo,
+      Unidad de Paciente Crítico Adulto, «Departamento de Calidad y Seguridad
+      del Paciente» y los logos). Repuestos SIN peso nuevo: esos logos ya
+      viajaban en el index para la Hoja APK;
+    · **el laboratorio tenía DOS títulos** —«LABORATORIO» y «PROCEDIMIENTOS Y
+      OBSERVACIONES»— y una zona ancha de escritura con línea por fila; la
+      conversión los había fundido en una grilla pareja de 5 columnas. Repuesto
+      y, por pedido de Diego, con **6 casillas de gases** (el papel traía 4) y
+      el bloque de observaciones de 354 px.
+  - 🪤 **EL ALTO DE FILA ES 14 px Y NO SE SUBE.** Cuando Diego pidió más espacio
+    para soporte ventilatorio y auscultación lo subí a 20, y eso **estiró el
+    bloque de vía aérea** —que comparte esas filas— hasta volverlo cuadrado
+    (1,5:1) cuando en el papel es **2,5:1**. Él lo cazó a ojo. El espacio que
+    hacía falta era de **ancho**: la etiqueta pasó de 56 a 127 px. Regla para la
+    próxima: en esta hoja el aire se gana ensanchando la etiqueta, jamás
+    subiendo la fila.
+  - **Cuadratura**: las cuatro tablas comparten la etiqueta (16,6%) y el 83,4%
+    restante va en 9 columnas, que se dividen en **tres grupos de 3** — por eso
+    TURNO DÍA, TURNO NOCHE y VÍA AÉREA miden exactamente lo mismo y sus bordes
+    caen sobre bordes de columna de los bloques de abajo. La banda dejó de ser
+    un div flex de tres tercios (que solo coincidía por casualidad) y es una
+    **fila de la misma tabla**, así que se alinea por construcción.
+    Horario de atención quedó en **4 y 4** por decisión de Diego (el papel trae
+    4 en el día y 5 en la noche).
+  - Queda en **2,2:1** contra el 2,5:1 del papel: igualarlo exige darle más
+    ancho a vía aérea y ahí se pierde la cuadratura. Diego eligió la cuadratura.
+  - Guardia `checks/hoja_registro_dia.js` (11 bloques, incluidas la geometría
+    medida y que la hoja **cabe en una carilla** con nombre y diagnóstico
+    largos). 🪤 Al escribirla: `#rkPrint` vive oculto y solo se revela en
+    `@media print` — hay que destaparlo antes de medir o todo da 0 y los
+    asserts pasan solos. Batería: **68 verdes**.
 
 - **v5.50 · EL PANEL EN EL CELULAR (10-ago-2026, cohete v5.50-celular; solo
   index, sin cambio de esquema — NO exige `crearORepararEstructura()`).** La
@@ -2276,7 +2337,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.46-afinado**
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.51-hojaregistro**
   (antes v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
