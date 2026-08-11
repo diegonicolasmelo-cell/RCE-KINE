@@ -43,3 +43,10 @@
 .rk-tricolor{display:inline-block;width:52px;height:7px;
   background:linear-gradient(to right,#0039a6 0 33.3%,#fff 33.3% 66.6%,#d52b1e 66.6% 100%);
   border:.5px solid #bbb;}
+
+/* LABORATORIO · el papel oficial tiene DOS títulos y un bloque aparte de
+   observaciones con una línea por fila. La conversión del docx los había
+   fundido en una grilla pareja; esto lo repone y, por pedido de Diego, sube
+   las casillas de gases de 4 a 6 para que quepan más muestras. */
+.rk-labtit{display:flex;font-weight:800;font-size:9.5pt;margin:4px 0 1px;color:#000;}
+.rk-obs{text-align:left;}
