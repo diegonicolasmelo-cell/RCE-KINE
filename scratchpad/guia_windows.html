@@ -346,7 +346,9 @@ cd RCE-KINE
 clasp clone <span class="v">EL_ID_DE_TU_PROYECTO</span></pre>
       </div>
       <p>Esto baja los archivos que hay ahora y deja la carpeta enlazada con tu proyecto.
-      Se hace una sola vez.</p>
+      Se hace una sola vez. Para verlos en el Explorador, escribe <code>explorer .</code>
+      (con el punto) desde la misma ventana: te abre exactamente esa carpeta, sin que te
+      confunda que Windows muestre «Documentos» donde el disco dice <code>Documents</code>.</p>
       <div class="aviso bien">
         <span class="tt">Por qué conviene clonar primero</span>
         <p>Porque te deja una copia de lo que está publicado hoy. Si algo sale mal más
@@ -363,9 +365,19 @@ clasp clone <span class="v">EL_ID_DE_TU_PROYECTO</span></pre>
         <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>clasp status</pre>
       </div>
-      <p>Te lista los archivos que va a mandar. <b>Míralos.</b> Tienen que estar los trece:
-      los nueve <code>.gs</code>, el <code>index.html</code>, el <code>spike_gis.html</code>
-      y el <code>appsscript.json</code>. Si falta alguno, no subas todavía.</p>
+      <p>Te lista los archivos que va a mandar. <b>Míralos: tienen que ser trece.</b> Diez
+      de código, el <code>index.html</code>, el <code>spike_gis.html</code> y el
+      <code>appsscript.json</code>. Si falta alguno, no subas todavía.</p>
+      <div class="aviso ojo">
+        <p class="tt">Cuidado con la extensión: en tu disco son .js, no .gs</p>
+        <p>En el editor de Apps Script los archivos de código se ven como <code>.gs</code>,
+        pero clasp los guarda en el notebook como <code>.js</code> (<code>api.js</code>,
+        <code>repo.js</code>…). Si copias encima archivos <code>.gs</code>, no reemplazan a
+        los <code>.js</code>: <b>se suman</b>, y el push mandaría veintiséis archivos
+        duplicando cada función en el proyecto.</p>
+        <p>Por eso el conteo del <code>clasp status</code> no es un adorno: <b>si dice más
+        de trece, hay extensiones mezcladas</b>. Borra los sobrantes antes de subir.</p>
+      </div>
     </li>
 
     <li>
