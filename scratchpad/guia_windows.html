@@ -406,18 +406,27 @@ clasp clone <span class="v">EL_ID_DE_TU_PROYECTO</span></pre>
         <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>clasp deployments</pre>
       </div>
-      <p>Anota el identificador de la implementación que usa el equipo (la que tiene la URL
-      que todos tienen guardada). Después, cada vez que publiques:</p>
+      <p>Anota el identificador de la implementación que usa el equipo. <b>También está
+      dentro de la URL que todos tienen guardada</b>: es el tramo largo entre
+      <code>/s/</code> y <code>/exec</code>, el que empieza con <code>AKfycb…</code>.
+      Después, cada vez que publiques:</p>
       <div class="cmd">
         <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
-<pre><span class="c"># 1 · crear la versión</span>
-clasp version <span class="v">"v5.49-ficha"</span>
+<pre><span class="c"># 1 · crear la versión — RESPONDE con el número: "Created version 29."</span>
+clasp version <span class="v">"v5.50-celular"</span>
 
-<span class="c"># 2 · apuntar tu implementación a esa versión (responde con el número)</span>
-clasp redeploy <span class="v">EL_ID_DE_LA_IMPLEMENTACION</span> -V <span class="v">NUMERO</span> -d <span class="v">"v5.49-ficha"</span></pre>
+<span class="c"># 2 · apuntar la implementación a ESE número (todo en una línea)</span>
+clasp redeploy <span class="v">AKfycb…</span> -V <span class="v">29</span> -d <span class="v">"v5.50-celular"</span></pre>
       </div>
       <p>Como actualizas <b>la misma</b> implementación, <b>la URL del equipo no cambia</b>.
       Es exactamente lo que consigues hoy editando la implementación existente a mano.</p>
+      <div class="aviso bien">
+        <p class="tt">Tu botón de retroceso</p>
+        <p>El número de versión no se adivina: lo devuelve el comando 1, y el orden importa
+        —<code>version</code> congela lo que hay en el proyecto, así que el
+        <code>push</code> va antes—. <b>Anota el número de cada publicación</b>: volver
+        atrás es el mismo comando 2 apuntando al número anterior, y toma un minuto.</p>
+      </div>
     </li>
 
   </ol>
