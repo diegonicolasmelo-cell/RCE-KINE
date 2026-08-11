@@ -112,7 +112,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**68 guardias** en `build/checks/*.js`; **42 usan navegador**
+**69 guardias** en `build/checks/*.js`; **42 usan navegador**
 (`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -1136,6 +1136,33 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   ✅ **Diego eligió la OPCIÓN B** para la sección grande: Respiratorio se parte en
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
+
+- 🔴 **v5.53 · LAS SECRECIONES SE DESCRIBÍAN DISTINTO EN CADA VISTA (11-ago-2026,
+  cohete v5.53-secreciones; index + `svc_entrega.gs`, sin cambio de esquema —
+  NO exige `crearORepararEstructura()`).** Reportado por Diego: «secreciones no
+  sale las características mucosas etc». La misma regla vivía en TRES
+  consumidores y **cada uno perdía un campo DISTINTO**:
+  | | reología | características | cantidad |
+  |---|:---:|:---:|:---:|
+  | texto de la evolución | ✅ | ✅ | ✅ |
+  | **entrega de turno** | ✅ | ❌ | ✅ |
+  | **Hoja UCI (historial)** | ❌ | ✅ | ✅ |
+  - **Por qué era invisible**: como cada vista perdía un campo distinto, ninguna
+    salía vacía. La entrega decía «Secreciones fluidas +» sin decir NUNCA si
+    eran mucosas o purulentas —que es justo lo que orienta a infección— y la
+    Hoja UCI decía las características pero no si eran adherentes.
+  - Las tres pasan a **reología · características · cantidad**, el mismo orden
+    de la narrativa («secreciones fluidas mucosas en escasa cantidad»).
+  - **Es el patrón que este proyecto ya pagó dos veces**: la fecha de los
+    filtros vivía en cuatro lugares y uno se quedó atrás (10-ago), y «día con
+    VM» tenía dos definiciones conviviendo. 👉 **Antes de tocar una regla
+    clínica, buscarla en TODAS partes** — acá el `grep` de las tres columnas
+    bastó para destapar los dos sitios.
+  - Guardia nueva `checks/secreciones.js`: **no comprueba un texto, comprueba
+    que los tres consumidores nombren las tres columnas leyendo el fuente**, en
+    el mismo orden, y que el catálogo de 9 características y 3 reologías siga
+    completo. Verificada fallando: al revertir la entrega se pone roja en 2.
+    Batería: **69 verdes**.
 
 - **v5.52 · LA HOJA CUENTA LAS REINTUBACIONES DEL EPISODIO (11-ago-2026, cohete
   v5.52-reintub; index + `svc_evoluciones.gs` + `api.gs`, sin cambio de esquema
@@ -2380,7 +2407,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.52-reintub**
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.53-secreciones**
   (antes v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja

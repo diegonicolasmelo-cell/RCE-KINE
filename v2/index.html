@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.52-reintub">
+<meta name="rce-version" content="5.53-secreciones">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4141,7 +4141,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.52-reintub]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.53-secreciones]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -7427,7 +7427,12 @@ const HJ_F = {
   spo2:  {l:'SpO2', per:'t', f:e=>e.VENT_SPO2||'', spark:e=>_hjNum(e.VENT_SPO2)},
   pafi:  {l:'PaFi', per:'d', f:e=>{ const n=_hjNum(e.VENT_PAFI); if(n==null) return '';
             return n<150?_hjChip('✕ '+n,'bad'):(n<250?_hjChip('⚠ '+n,'warn'):_hjChip('✓ '+n,'ok')); }, spark:e=>_hjNum(e.VENT_PAFI)},
-  secr:  {l:'Sec. bronquiales', per:'t', f:e=>[e.RESP_SECR_QTY,e.RESP_SECR_CAR].filter(Boolean).join(' ')},
+  // Reología · características · cantidad, el mismo orden de la narrativa.
+  // Antes esta fila se saltaba la REOLOGÍA y la entrega se saltaba las
+  // CARACTERÍSTICAS: tres consumidores de la misma regla, cada uno perdiendo
+  // un campo distinto (ago-2026, reportado por Diego).
+  secr:  {l:'Sec. bronquiales', per:'t',
+          f:e=>[e.RESP_SECR_REOL,e.RESP_SECR_CAR,e.RESP_SECR_QTY].filter(Boolean).join(' ')},
   ktr:   {l:'KTR (sesiones)', per:'t', f:e=>{ const n=parseInt(e.RESP_KTR_CANT)||0; return n?'<b>'+n+'</b>':''; },
           spark:e=>parseInt(e.RESP_KTR_CANT)||null},
   firma: {l:'Firma', per:'t', f:e=>e.PLAN_FIRMA_KINE?('<span class="fkine">'+e.PLAN_FIRMA_KINE+'</span>'):''},

@@ -309,7 +309,14 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     // aquí porque la ficha lo antepone al renderizar (evita 'DVA DVA dosis media').
     dva: e ? String(e.HEMO_DVA || '').replace('Sin requerimientos', '').replace(/^DVA\s*/i, '') : '',
     hemoEstado: e ? val(e.HEMO_ESTADO) : '',
-    secr: e ? [e.RESP_SECR_REOL, e.RESP_SECR_QTY].filter(function (x) { return x; }).join(' ') : '',
+    // Secreciones: reología · características · cantidad, EN ESE ORDEN — el
+    // mismo de la narrativa («secreciones fluidas mucosas en escasa cantidad»).
+    // 🔴 Hasta ago-2026 esta línea se saltaba RESP_SECR_CAR y la entrega decía
+    // «Secreciones fluidas +» sin decir NUNCA si eran mucosas o purulentas, que
+    // es justo lo que decide si hay infección. Reportado por Diego. La Hoja UCI
+    // tenía el defecto espejo (se saltaba la reología): son tres consumidores
+    // de la misma regla y se habían separado sin que nadie lo notara.
+    secr: e ? [e.RESP_SECR_REOL, e.RESP_SECR_CAR, e.RESP_SECR_QTY].filter(function (x) { return x; }).join(' ') : '',
     ktmNivel: e ? val(e.KTM_NIVEL_KTR, '') : val(c.KTM_NIVEL, ''),
     ktmRealizada: e ? esVerdadero(e.KTM_REALIZADA) : false,
     ktmSuspendida: e ? esVerdadero(e.KTM_SUSPENDIDA) : esVerdadero(c.KTM_SUSP),
