@@ -256,7 +256,7 @@
     <span class="tt">Antes de empezar</span>
     <p>Necesitas el notebook Windows, tu cuenta de Google (la dueña de la planilla) y unos
     30 minutos la primera vez. No hace falta saber programar: todo lo que sigue se escribe
-    tal cual en una ventana negra que se llama PowerShell.</p>
+    tal cual en una ventana negra que se llama Símbolo del sistema.</p>
   </div>
 
   <h2><span class="num">Parte 1</span>El comando que reemplaza el pegado</h2>
@@ -271,14 +271,22 @@
       <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a>, descarga la
       versión que dice <b>LTS</b> y ejecútala: es un instalador de Windows normal, siguiente
       hasta terminar. Necesitas la versión 20 o superior; la LTS de hoy lo cumple de sobra.</p>
-      <p>Para comprobar que quedó, abre <b>PowerShell</b> (botón de Inicio, escribes
-      «PowerShell», Enter) y escribe:</p>
+      <p>Para comprobar que quedó, abre el <b>Símbolo del sistema</b> (botón de Inicio,
+      escribes <code>cmd</code>, Enter) y escribe:</p>
+      <div class="aviso ojo">
+        <p class="tt">Usa el Símbolo del sistema, no PowerShell</p>
+        <p>Windows viene de fábrica con la ejecución de scripts bloqueada, y en PowerShell
+        tanto <code>npm</code> como <code>clasp</code> son scripts: el primer comando falla
+        con «<i>la ejecución de scripts está deshabilitada en este sistema</i>». En el
+        Símbolo del sistema funcionan igual, sin tocar ninguna configuración de seguridad
+        del notebook.</p>
+      </div>
       <div class="cmd">
-        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+        <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>node --version</pre>
       </div>
       <p>Si responde algo como <code>v22.11.0</code>, está listo. Si dice que no reconoce el
-      comando, cierra PowerShell, ábrelo de nuevo y prueba otra vez — recién instalado a
+      comando, cierra la ventana, ábrela de nuevo y prueba otra vez — recién instalado a
       veces necesita eso.</p>
     </li>
 
@@ -286,7 +294,7 @@
       <h3>Instalar clasp, la herramienta oficial de Google</h3>
       <p>Es lo que sabe escribir en tu proyecto de Apps Script. Se instala una vez:</p>
       <div class="cmd">
-        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+        <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>npm install -g @google/clasp</pre>
       </div>
       <p>Demora un minuto y escribe bastante texto. Al terminar, comprueba con
@@ -296,7 +304,7 @@
     <li>
       <h3>Autorizar tu cuenta de Google</h3>
       <div class="cmd">
-        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+        <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>clasp login</pre>
       </div>
       <p>Se abre el navegador y te pide permiso, igual que cualquier aplicación de Google.
@@ -321,9 +329,9 @@
       <code>/edit</code>. No es una contraseña — es como el número de la planilla — pero
       igual no hace falta que se lo mandes a nadie.</p>
       <p>Crea una carpeta para el proyecto (por ejemplo <code>Documentos\RCE-KINE</code>),
-      entra a ella desde PowerShell y trae lo que hoy está publicado:</p>
+      entra a ella desde el Símbolo del sistema y trae lo que hoy está publicado:</p>
       <div class="cmd">
-        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+        <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>cd $env:USERPROFILE\Documents\RCE-KINE
 clasp clone <span class="v">EL_ID_DE_TU_PROYECTO</span></pre>
       </div>
@@ -342,7 +350,7 @@ clasp clone <span class="v">EL_ID_DE_TU_PROYECTO</span></pre>
       esa carpeta</b>, reemplazando los que ya estaban. Antes de subir nada, pregunta qué
       va a subir:</p>
       <div class="cmd">
-        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+        <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>clasp status</pre>
       </div>
       <p>Te lista los archivos que va a mandar. <b>Míralos.</b> Tienen que estar los trece:
@@ -353,7 +361,7 @@ clasp clone <span class="v">EL_ID_DE_TU_PROYECTO</span></pre>
     <li>
       <h3>Subir</h3>
       <div class="cmd">
-        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+        <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>clasp push -f</pre>
       </div>
       <p>Listo: en un par de segundos el editor tiene todo. Ábrelo y verifica el sello de
@@ -373,13 +381,13 @@ clasp clone <span class="v">EL_ID_DE_TU_PROYECTO</span></pre>
       una versión, igual que hoy. Primero averigua una sola vez el número de tu
       implementación:</p>
       <div class="cmd">
-        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+        <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>clasp deployments</pre>
       </div>
       <p>Anota el identificador de la implementación que usa el equipo (la que tiene la URL
       que todos tienen guardada). Después, cada vez que publiques:</p>
       <div class="cmd">
-        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+        <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre><span class="c"># 1 · crear la versión</span>
 clasp version <span class="v">"v5.49-ficha"</span>
 
@@ -416,7 +424,7 @@ clasp redeploy <span class="v">EL_ID_DE_LA_IMPLEMENTACION</span> -V <span class=
       desde <a href="https://claude.com/code" target="_blank" rel="noopener">claude.com/code</a>.
       Si prefieres la ventana de comandos, con Node ya instalado basta:</p>
       <div class="cmd">
-        <div class="cmd-h"><span class="pt">PS</span> PowerShell</div>
+        <div class="cmd-h"><span class="pt">C:\&gt;</span> Símbolo del sistema</div>
 <pre>npm install -g @anthropic-ai/claude-code</pre>
       </div>
       <p>Después se abre escribiendo <code>claude</code> dentro de la carpeta del proyecto.
@@ -458,9 +466,20 @@ clasp redeploy <span class="v">EL_ID_DE_LA_IMPLEMENTACION</span> -V <span class=
       </thead>
       <tbody>
         <tr>
+          <td><b>«la ejecución de scripts está deshabilitada en este sistema»</b>
+          (<code>UnauthorizedAccess</code>)</td>
+          <td>Estás en <b>PowerShell</b>, que por seguridad no ejecuta scripts, y tanto
+          <code>npm</code> como <code>clasp</code> lo son.</td>
+          <td>Cierra esa ventana y usa el <b>Símbolo del sistema</b> (Inicio →
+          <code>cmd</code>). Ahí funcionan igual, sin cambiar nada del sistema.
+          <br><small>Si prefieres seguir en PowerShell, se desbloquea con
+          <code>Set-ExecutionPolicy RemoteSigned -Scope CurrentUser</code>, que afecta solo
+          a tu usuario. No hace falta para nada de esta guía.</small></td>
+        </tr>
+        <tr>
           <td><b>No se reconoce «node» o «clasp»</b></td>
-          <td>PowerShell quedó abierto desde antes de la instalación.</td>
-          <td>Ciérralo y ábrelo de nuevo.</td>
+          <td>La ventana quedó abierta desde antes de la instalación.</td>
+          <td>Ciérrala y ábrela de nuevo.</td>
         </tr>
         <tr>
           <td><b>«User has not enabled the Apps Script API»</b></td>
