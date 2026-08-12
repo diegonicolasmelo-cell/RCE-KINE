@@ -1137,6 +1137,39 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
 
+- 🧠 **BRAINSTORM DE TERRENO — 6 HALLAZGOS DE DIEGO (11-ago-2026). ANOTADOS,
+  *NO* PROGRAMADOS NI ANALIZADOS** (pedido explícito suyo: «no programes ni
+  analices nada, haré un brainstorming»). Quedan aquí en sus palabras para
+  retomarlos cuando él lo decida.
+  1. **La desvinculación debería tener «estado previo → cómo queda», como la
+     extubación.** El turno anterior le entregó un paciente **desvinculado y
+     aún sin reconexión**, porque evolucionó favorablemente. Sale la hora de
+     desvinculación y todo el detalle de la VM, pero **como estado actual no
+     salía la cánula de alto flujo sino CPAP/PS todavía**; recién al evolucionar
+     él pudo cambiarlo a CNAF por TQT. Su lectura: la desvinculación debería
+     aplicar el último estado y funcionar como el mecanismo de intubación /
+     extubación / reintubación — **estado previo y cómo queda**.
+  2. **Entrega de turno: una intubación que no quedó registrada (CAMA 7).** Una
+     paciente que tenía VNI y se intubó: en la entrega **no salía la fecha de
+     intubación**. Venía de haber sido extubada a VNI y, tras días de VNI, se
+     intubó. 🔴 **No es reintubación sino intubación, por los días** que pasaron.
+  3. **Meta SAS ≠ SAS real.** Conviene agregar, **además de la meta SAS, el SAS
+     actual** — aplica sobre todo a los pacientes difíciles de sedar — y que
+     **en la entrega salga el SAS real**.
+  4. **La sedación vigil con precedex ensucia la interpretación.** En estricto
+     rigor es sedación y persigue un SAS, pero **lo que se persigue clínicamente
+     es saber cuándo se despertó o cuándo se suspendió la sedación profunda,
+     porque eso marca un antes y un después** para evaluar la respuesta a la
+     suspensión de hipnóticos, opiáceos y sedantes y para evaluar el GCS.
+     Quizás convenga agregar **combinación de sedantes**: fentanyl · propofol ·
+     midazolam · ketamina · precedex.
+  5. **FSS-ICU (y MRC) con descripción a la vista.** Hoy solo aparecen números;
+     existe la versión **con descripción** de cada ítem. Quizás se pueda evaluar
+     mejor con **feedback visual de qué se trata cada puntaje**: tener la info al
+     lado refresca la memoria y apoya el recuerdo.
+  6. **Las bases calefactoras de humidificación activa MR850 son STOCK y son
+     APOYO, y hoy no están determinadas así.** Son 5 (si no se equivoca).
+
 - **v5.54 · EL VENTILADOR EN LA HOJA + EL TABLERO USABLE EN EL CELULAR
   (11-ago-2026, cohete v5.54-ventilador; solo index, sin cambio de esquema —
   NO exige `crearORepararEstructura()`).** Tres pedidos de Diego en una ronda.
