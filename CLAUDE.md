@@ -1169,6 +1169,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      lado refresca la memoria y apoya el recuerdo.
   6. **Las bases calefactoras de humidificación activa MR850 son STOCK y son
      APOYO, y hoy no están determinadas así.** Son 5 (si no se equivoca).
+  7. **El INGRESO aparece DUPLICADO en la línea de tiempo**, una vez en verde y
+     otra en morado. Diego: «no sé a qué se debe». **Causa NO investigada** —
+     queda como reporte, pendiente de que él pida mirarlo.
 
 - **v5.54 · EL VENTILADOR EN LA HOJA + EL TABLERO USABLE EN EL CELULAR
   (11-ago-2026, cohete v5.54-ventilador; solo index, sin cambio de esquema —
