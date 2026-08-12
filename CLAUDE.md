@@ -1172,6 +1172,16 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   7. **El INGRESO aparece DUPLICADO en la línea de tiempo**, una vez en verde y
      otra en morado. Diego: «no sé a qué se debe». **Causa NO investigada** —
      queda como reporte, pendiente de que él pida mirarlo.
+  8. **Separar «marca un hito» de «cuenta en la estadística».** Hoy los eventos
+     y procedimientos manuales del turno van a la línea de tiempo *y* a la
+     estadística. Diego propone que algunos puedan ser **solo hito**, para
+     dejar constancia de algo que pasó sin que sume en los números. Sus
+     ejemplos, tal como los dio:
+     · **Ingreso a UCI** y **PCR** → se marcan **y sí van a estadística**;
+     · **EEG** → **no va a ninguna parte**, pero lo puede agregar para saber
+       que ocurrió;
+     · **Pabellón** → **sí va**, y encima quiere poder **agregarle a mano el
+       detalle**: «craniectomía descompresiva».
 
 - **v5.54 · EL VENTILADOR EN LA HOJA + EL TABLERO USABLE EN EL CELULAR
   (11-ago-2026, cohete v5.54-ventilador; solo index, sin cambio de esquema —
