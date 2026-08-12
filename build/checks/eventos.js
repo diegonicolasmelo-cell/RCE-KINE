@@ -45,6 +45,14 @@ global._fechaEfectivaTurno = (fecha, turno) => {
   return d.toISOString().slice(0, 10);
 };
 
+// El prefijo del hito de un procedimiento anexado vive en svc_timeline.gs
+// —junto a `_TIPOS_HITO_AUTO`, porque el guardado de la evolución lo usa para
+// reconocer el hito rico y no escribirle encima (ago-2026)—. Se copia aquí en
+// vez de cargar svc_timeline entero, que traería su `_agregarHitoInterno` real
+// y pisaría el espía de este arnés. Que los dos digan lo mismo lo vigila
+// `checks/hitos_unicos.js`, que sí usa el de verdad.
+global._hitoAnexoPrefijo = n => '🔧 ' + String(n || '');
+
 // svc_stats.gs aporta _statISO (misma normalización de fechas de producción).
 eval(['svc_stats.gs', 'svc_eventos.gs'].map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 

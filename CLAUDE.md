@@ -1137,6 +1137,138 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
 
+- **v5.55 · UN HECHO, UN HITO — Y EL HITO NO SE DEGRADA SOLO (12-ago-2026,
+  cohete v5.55-hitos; index + `svc_timeline.gs` + `svc_eventos.gs` +
+  `svc_entrega.gs` + `svc_evoluciones.gs` + `dominio_texto.gs` +
+  `mantenimiento.gs`, sin cambio de esquema — NO exige
+  `crearORepararEstructura()`).** Nace del reporte de Diego «el ingreso en el
+  timeline se duplica, una de color verde y otro color morado». No se
+  duplicaba: se escribía **TRES veces**, desde tres sitios que no se conocían.
+  1. **EL INGRESO TENÍA TRES AUTORES.** `ingresarPaciente`
+     (`svc_camas.gs:134`) y el bloque de ingreso de `guardarEvolucion`
+     (`svc_evoluciones.gs:319`) escriben cada uno su hito `tipo:'ingreso'`
+     (verde, `DOT_COLORS.ingreso` = #059669), y encima el procedimiento
+     `'INGRESO'` salía **morado**: el mapa `PROC_TO_HITO` tenía la clave
+     `'INGRESO UCI'` y el formulario manda `'INGRESO'` (`_autoProcs`,
+     index:5595), así que **nunca calzaba** y caía al respaldo genérico de la
+     v5.39 como «un procedimiento más». Y como `'ingreso'` NO está en
+     `_TIPOS_HITO_AUTO` —correcto: un re-guardado no debe borrar el ingreso—
+     nadie limpiaba el sobrante.
+     · Arreglo: la clave pasa a `'INGRESO'` y `_timelineDelGuardado`
+       **comprueba antes de escribir** si el episodio ya tiene su hito de
+       ingreso, sobre los datos que ya leyó (cero viajes nuevos).
+     · 🔴 **El alcance de esa comprobación es lo delicado**: TIMELINE **no se
+       limpia al dar el alta** (va con el cierre anual), así que mirar solo la
+       CAMA encontraría el ingreso del ocupante ANTERIOR y le escondería el
+       suyo al paciente nuevo — la trampa de la pronación heredada, y aquí
+       peor, porque borraría un hecho. Con `PATIENT_ID` se compara el
+       episodio; **sin pid** se cae a misma cama Y misma fecha, que cubre el
+       caso reportado sin poder tapar jamás un ingreso verdadero.
+  2. **CINCO PROCEDIMIENTOS NO TENÍAN NOMBRE CLÍNICO** y salían morados como
+     genéricos: asistencia en procedimiento médico, educación a usuario/
+     familia, evaluación intermedia, PCR COVID y **RECANULACIÓN** —esta
+     última es vía aérea y se leía igual que un traslado a imagenología—.
+     De paso, `DOT_COLORS` **no tenía color para `via_aerea` ni `kine`**: los
+     dos caían al celeste de 'general', o sea la intubación se veía igual que
+     una nota. Repuestos con los valores del CSS `.dot-*`.
+  3. **EL EVENTO RÁPIDO PERDÍA SU DETALLE AL RE-GUARDAR EL TURNO.**
+     `anexarEventoRapido` escribía «🔧 EEG 14:00 — control post crisis
+     (anexo) · Klgo. …» con `tipo:'procedimiento'`, que SÍ está en
+     `_TIPOS_HITO_AUTO`: el siguiente guardado lo borraba y lo regeneraba
+     como «Eeg» —sin hora, sin detalle, sin la marca (anexo) y sin firma—.
+     Ningún error, ningún dato clínico movido (la fila de PROCEDIMIENTOS
+     queda intacta): solo el registro diciendo menos. Ahora nace con tipo
+     propio `'anexo'` (fuera de la lista, igual que `'cultivo'`, que por eso
+     nunca se degradó) y el guardado **descuenta su procedimiento** por el
+     prefijo compartido `_hitoAnexoPrefijo` —que vive en `svc_timeline.gs`
+     junto a `_TIPOS_HITO_AUTO` a propósito: lo usan el que escribe y el que
+     regenera, y una sola definición es la lección ya pagada tres veces—.
+  4. **LA FIRMA DE LOS EVENTOS RÁPIDOS SE CORTABA EN 15 CARACTERES**
+     (`svc_eventos.gs:134`): «Klgo. Diego Melo» son 16 y en la línea de
+     tiempo salía «Klgo. Diego Mel». A 60, el mismo techo de la auditoría.
+  - 🪤 **`checks/eventos.js` se puso roja al mover el prefijo**: carga solo
+    `svc_stats` + `svc_eventos` a propósito (svc_timeline traería su
+    `_agregarHitoInterno` real y pisaría el espía del arnés). Lleva su stub,
+    documentado, y quien vigila que los dos digan lo mismo es
+    `hitos_unicos.js`, que usa el de verdad.
+
+- **v5.55 · LA REINTUBACIÓN DICE HORA Y CAUSA, Y EL TIEMPO EXTUBADO SE MIDE
+  CON EL RELOJ (12-ago-2026, misma tanda).** Sale del reporte de la cama 7:
+  «una paciente con VNI que se intubó y en la entrega no salía la fecha de
+  intubación». La primera hipótesis —el recorte de eventos— **la mató Diego
+  con un dato**: «la intubación fue reciente e igualmente no aparecía». Un
+  evento reciente va al final de la lista, no al principio.
+  - **La causa real**: `INTUB_OCURRIO` es, textualmente en `esquema.gs:111`,
+    «intubación NUEVA este turno (**paciente sin historial de VM**)», y
+    `index:9075-9076` lo aplica sin excepción: con vía aérea no invasiva, si
+    hubo VM alguna vez en el episodio **el bloque de intubación no aparece**
+    y en su lugar sale el de reintubación. Una vez que hubo VM, todo lo que
+    venga después es reintubación para siempre.
+  - ✅ **DECISIÓN DE DIEGO (12-ago)**: se **queda como reintubación**, sin
+    tocar la clasificación. Lo que se pidió es que quede anotada con **hora**,
+    **cómo quedó** y **causa**, «considerando las horas de VM; después en un
+    análisis posterior podemos discriminar si es una o la otra». Y para la
+    ENTREGA, explícitamente: **evento · hora · causa**; el «cómo queda» es del
+    formulario, con el resto de las transiciones de vía aérea, y **no va**.
+    Razón suya: «pueden preguntar por qué falló y uno puede decir por manejo
+    de secreciones o por mala mecánica».
+  - **Lo que ya se guardaba y solo no se mostraba**: hora, razón, soporte
+    previo, el panel «Queda con» (v4.5) y la columna `TIEMPO_EXTUBADO` de
+    REINTUBACIONES, que la app **calcula sola** desde hace meses.
+  - 🔴 **PERO EL TIEMPO EXTUBADO ESTABA MAL POR LOS DOS EXTREMOS.**
+    `_tiempoExtubado` fechaba la reintubación con la **FECHA DEL TURNO**, y el
+    turno Noche pertenece al día anterior hasta las 09:00 ⇒ una reintubación
+    de las 03:00 quedaba **24 h corta**. Y encima había un
+    `if (horas < 0) horas += 24`: el síntoma tapado en el resultado en vez de
+    arreglado en la fecha. Ahora los dos extremos se resuelven con
+    **`_tsEventoTurno`** (el mismo mecanismo del ciclo de prono, v5.33) y el
+    parche desapareció. Ejemplo fijado en la guardia: extubación el 09 en
+    turno Día a las 20:00 y reintubación a las 03:00 del turno Noche del 09
+    —que en el reloj es la madrugada del 10— son **7 h**, no 17.
+    · **NO se usa `EXT_TS`** aunque exista: lo arma el navegador con
+      `new Date()`, o sea con el día en que alguien ESCRIBIÓ la evolución, que
+      no tiene por qué ser el día en que se extubó. Sirve para el globito de
+      las 48 h, que es un aviso en vivo; no para medir.
+  - **La hora pasa a ser OBLIGATORIA al marcar reintubación**
+    (`_reintubHoraFalta`, en `guardar()` y en `#gFalta`/el acordeón móvil):
+    sin ella `_tiempoExtubado` devuelve '' y el análisis posterior no existe.
+    Las tres ramas tienen su propio campo (`fReintubHoraN1/N2/T`) y se decide
+    con las mismas condiciones de `_extReintub`, para no pedirle la hora a una
+    casilla que quedó marcada en una rama que ya no aplica.
+  - 🔴 **EL «QUEDA CON» SE NARRABA EN PANTALLA Y NO EN LO ARCHIVADO.** El
+    cliente lo dice en sus TRES ramas (`_reintubEquipoTxt`) y `dominio_texto.gs`
+    **en ninguna**: el colega leía «…se reintuba a las 03:20 con TOT N° 8.0 a
+    22 cm, quedando en modo ACVC» y lo guardado cortaba en la hora. Es el
+    patrón de las secreciones otra vez. Se agregó el espejo en el servidor,
+    **sin tocar el fraseo** de las ramas (que difiere del cliente desde antes:
+    eso es otra cosa y nadie pidió cambiar textos).
+  - **La entrega deja de recortar los eventos de vía aérea.** El corte a los
+    últimos 8 (`svc_entrega.gs`) no distinguía, así que en una estadía larga
+    lo primero que se caía era la intubación del día 1. Ahora los eventos
+    **fijos** —intubación, extubación, reintubación, TQT, decanulación,
+    desvinculación y RCP— no se sacrifican nunca y ceden espacio los
+    repetitivos más antiguos (PVE, prono/supino, cambios de tubo, traslados).
+    No era la causa de la cama 7, pero es un defecto real por su cuenta.
+  - **`corregirTiempoExtubadoSIMULACRO()` / `...CONFIRMAR()`**
+    (`mantenimiento.gs`): recalculan lo ya escrito con el reloj real, leyendo
+    EVOLUCIONES **y** EVOLUCIONES_ARCHIVO (los episodios cerrados también).
+    Respalda antes, y **lo que no se puede calcular no se toca y se lista** —
+    sin hora de reintubación o sin extubación registrada—. Idempotente.
+  - Guardia nueva `checks/hitos_unicos.js` (6 bloques, **verificada fallando:
+    33 asserts en rojo** contra el commit anterior). Deriva la lista de
+    procedimientos del FUENTE del formulario, así que el próximo que nadie
+    mapee la pone roja en vez de aparecer sin nombre. Batería: **70 verdes**.
+    🪤 Al escribirla: `Utilities` no es opcional en el arnés —`_restarDias` lo
+    usa y su try/catch devuelve la fecha SIN TOCAR cuando falla, así que sin
+    stub el corrimiento del turno Noche desaparece en silencio y los asserts
+    de horas dan el número equivocado con cara de correcto—. Y un
+    `global.Utilities = {formatDate: () => '2026-08-13'}` copiado de otra
+    guardia lo pisaba tres bloques más abajo.
+  - 👉 **Método, para la próxima**: la explicación de la cama 7 que yo tenía
+    era coherente y estaba equivocada. La tumbó **un dato de terreno de Diego
+    en una línea**. Antes de dar por buena una causa, preguntar el dato que la
+    puede matar.
+
 - 🧠 **BRAINSTORM DE TERRENO — 6 HALLAZGOS DE DIEGO (11-ago-2026). ANOTADOS,
   *NO* PROGRAMADOS NI ANALIZADOS** (pedido explícito suyo: «no programes ni
   analices nada, haré un brainstorming»). Quedan aquí en sus palabras para
@@ -1149,10 +1281,13 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      él pudo cambiarlo a CNAF por TQT. Su lectura: la desvinculación debería
      aplicar el último estado y funcionar como el mecanismo de intubación /
      extubación / reintubación — **estado previo y cómo queda**.
-  2. **Entrega de turno: una intubación que no quedó registrada (CAMA 7).** Una
-     paciente que tenía VNI y se intubó: en la entrega **no salía la fecha de
-     intubación**. Venía de haber sido extubada a VNI y, tras días de VNI, se
-     intubó. 🔴 **No es reintubación sino intubación, por los días** que pasaron.
+  2. ✅ **Entrega de turno: una intubación que no quedó registrada (CAMA 7).**
+     Una paciente que tenía VNI y se intubó: en la entrega **no salía la fecha
+     de intubación**. Venía de haber sido extubada a VNI y, tras días de VNI,
+     se intubó. 🔴 **No es reintubación sino intubación, por los días** que
+     pasaron. **ABORDADO en la v5.55** con la decisión que tomó él: se queda
+     como reintubación, pero con hora y causa en la entrega y con el tiempo
+     extubado bien medido para poder discriminar después. Ver más arriba.
   3. **Meta SAS ≠ SAS real.** Conviene agregar, **además de la meta SAS, el SAS
      actual** — aplica sobre todo a los pacientes difíciles de sedar — y que
      **en la entrega salga el SAS real**.
@@ -1169,9 +1304,10 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      lado refresca la memoria y apoya el recuerdo.
   6. **Las bases calefactoras de humidificación activa MR850 son STOCK y son
      APOYO, y hoy no están determinadas así.** Son 5 (si no se equivoca).
-  7. **El INGRESO aparece DUPLICADO en la línea de tiempo**, una vez en verde y
-     otra en morado. Diego: «no sé a qué se debe». **Causa NO investigada** —
-     queda como reporte, pendiente de que él pida mirarlo.
+  7. ✅ **El INGRESO aparece DUPLICADO en la línea de tiempo**, una vez en verde
+     y otra en morado. **RESUELTO en la v5.55**: eran TRES autores, no dos, y
+     el morado venía de una clave mal escrita en `PROC_TO_HITO`. Ver el bloque
+     de la v5.55 más arriba.
   8. **Separar «marca un hito» de «cuenta en la estadística».** Hoy los eventos
      y procedimientos manuales del turno van a la línea de tiempo *y* a la
      estadística. Diego propone que algunos puedan ser **solo hito**, para
@@ -2486,8 +2622,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.54-ventilador**
-  (antes v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.55-hitos**
+  (antes v5.54-ventilador, v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con

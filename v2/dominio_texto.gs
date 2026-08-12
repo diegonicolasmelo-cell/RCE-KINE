@@ -13,6 +13,32 @@ function _lcIni(s) {
   return s.charAt(0).toLowerCase() + s.slice(1);
 }
 
+/**
+ * «Queda con» de la reintubación — espejo exacto de `_reintubEquipoTxt` del
+ * cliente (index.html), que ya lo narraba en sus TRES ramas.
+ *
+ * 🔴 El servidor no lo decía en NINGUNA (detectado 12-ago-2026). O sea que el
+ * colega leía en pantalla «…se reintuba a las 03:20 con TOT N° 8.0 a 22 cm,
+ * quedando en modo ACVC (Vt 420 ml…)» y lo que quedaba ARCHIVADO en la
+ * evolución cortaba en «…a las 03:20.». El estado posterior es parte del
+ * registro desde la v4.3 —estado previo → evento → estado posterior— y la
+ * reintubación era la única transición que lo perdía al guardarse.
+ *
+ * Es el mismo patrón que ya se pagó con las secreciones y con la fecha de los
+ * filtros: dos generadores de la misma frase que se van separando. Si alguien
+ * toca uno, tiene que tocar el otro; la guardia lo vigila leyendo el fuente.
+ */
+function _reintubEquipoTxt(d) {
+  const val = k => String((d && d[k]) || '').trim();
+  const tn = val('REINTUB_TOT_N'), cm = val('REINTUB_TOT_CM');
+  const mo = val('REINTUB_MODO'), pa = val('REINTUB_PARAMS');
+  let t = '';
+  if (tn) t += ` con TOT N° ${tn}${cm ? ' a ' + cm + ' cm' : ''}`;
+  if (mo) t += `, quedando en modo ${mo}${pa ? ' (' + pa + ')' : ''}`;
+  else if (pa) t += `, quedando con ${pa}`;
+  return t;
+}
+
 function generarTextoEvolucion(d) {
   const v  = k => (d[k] !== undefined && d[k] !== null && d[k] !== '') ? String(d[k]) : null;
   const vn = k => parseFloat(d[k]) || 0;
@@ -270,7 +296,7 @@ function generarTextoEvolucion(d) {
         txt.push(`Se realiza PVE con resultado superado, progresando a extubación${horaTxt}.`);
         if (esVerdadero(d.EXT_REINTUB)) {
           const rz = v('EXT_REINTUB_RAZ'), rh = v('REINTUB_HORA');
-          txt.push(`Sin embargo, paciente evoluciona con ${(rz || 'falla respiratoria').toLowerCase()} por lo que se reintuba${rh ? ' a las ' + rh + ' hrs' : ''}.`);
+          txt.push(`Sin embargo, paciente evoluciona con ${(rz || 'falla respiratoria').toLowerCase()} por lo que se reintuba${rh ? ' a las ' + rh + ' hrs' : ''}${_reintubEquipoTxt(d)}.`);
         } else queda();
       } else if (pveRes === 'frustra') {
         let mots = [];
@@ -291,7 +317,7 @@ function generarTextoEvolucion(d) {
       txt.push(e2 + '.');
       if (esVerdadero(d.EXT_REINTUB)) {
         const rz = v('EXT_REINTUB_RAZ'), rh = v('REINTUB_HORA');
-        txt.push(`Posteriormente requiere reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}.`);
+        txt.push(`Posteriormente requiere reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}${_reintubEquipoTxt(d)}.`);
       } else queda();
     }
   })();
@@ -352,7 +378,7 @@ function generarTextoEvolucion(d) {
   // Reintubación sin extubación este turno (VA venía no invasiva)
   if (esVerdadero(d.EXT_REINTUB) && !esVerdadero(d.EXT_OCURRIO)) {
     const rh = v('REINTUB_HORA'), rz = v('EXT_REINTUB_RAZ');
-    txt.push(`Paciente requirió reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}.`);
+    txt.push(`Paciente requirió reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}${_reintubEquipoTxt(d)}.`);
   }
   // Intubación nueva este turno (sin historial de VM)
   if (esVerdadero(d.INTUB_OCURRIO)) {

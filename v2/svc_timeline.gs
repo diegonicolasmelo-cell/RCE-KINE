@@ -59,7 +59,13 @@ function obtenerTimeline(idCama) {
 
 // ── Hitos automáticos desde procedimientos ─────────────────
 const PROC_TO_HITO = {
-  'INGRESO UCI':            { tipo: 'ingreso',      label: 'Ingreso UCI' },
+  // 🪤 La clave DEBE ser el nombre que viaja en PROC_JSON, no el que se lee
+  // bonito: hasta ago-2026 decía 'INGRESO UCI' y el formulario manda 'INGRESO'
+  // (index, _autoProcs), así que NUNCA calzaba. El ingreso caía al respaldo
+  // genérico de la v5.39 y salía como un procedimiento más — morado, junto a
+  // los hitos verdes de ingreso que escriben ingresarPaciente y guardarEvolucion.
+  // Ese era el «ingreso duplicado» que reportó Diego (12-ago-2026).
+  'INGRESO':                { tipo: 'ingreso',      label: 'Ingreso a UCI' },
   'INTUBACIÓN':             { tipo: 'via_aerea',    label: 'Intubación orotraqueal' },
   'PVE':                    { tipo: 'via_aerea',    label: 'PVE (Prueba de Ventilación Espontánea)' },
   'EXTUBACIÓN C/PROTOCOLO': { tipo: 'via_aerea',    label: 'Extubación c/protocolo' },
@@ -72,6 +78,7 @@ const PROC_TO_HITO = {
   'TQT':                    { tipo: 'via_aerea',    label: 'Traqueostomía' },
   'CAMBIO TQT':             { tipo: 'via_aerea',    label: 'Cambio de TQT' },
   'DECANULACIÓN':           { tipo: 'via_aerea',    label: 'Decanulación' },
+  'RECANULACIÓN':           { tipo: 'via_aerea',    label: 'Recanulación' },
   'PRONO':                  { tipo: 'procedimiento', label: 'Decúbito prono' },
   'SUPINO':                 { tipo: 'procedimiento', label: 'Decúbito supino' },
   'IMAGENOLOGÍA':           { tipo: 'procedimiento', label: 'Imagenología' },
@@ -81,6 +88,14 @@ const PROC_TO_HITO = {
   'PABELLÓN':               { tipo: 'procedimiento', label: 'Traslado a pabellón' },
   'RCP':                    { tipo: 'general',       label: 'Reanimación cardiopulmonar (RCP)' },
   'FALLECE':                { tipo: 'egreso',        label: 'Fallece' },
+  // Los cuatro de abajo también los manda `_autoProcs` y tampoco estaban: caían
+  // al respaldo genérico y se leían como «procedimiento» sin nombre clínico
+  // (12-ago-2026). La recanulación es el caso que importa —es vía aérea— y por
+  // eso viaja arriba, junto a la decanulación.
+  'ASISTENCIA EN PROCEDIMIENTO MÉDICO': { tipo: 'procedimiento', label: 'Asistencia en procedimiento médico' },
+  'EDUCACIÓN A USUARIO/FAMILIA':        { tipo: 'kine',          label: 'Educación a usuario/familia' },
+  'EVALUACIÓN INTERMEDIA':              { tipo: 'kine',          label: 'Evaluación kinésica intermedia' },
+  'PCR COVID':                          { tipo: 'procedimiento', label: 'PCR COVID' },
   'Hito Motor 1':           { tipo: 'kine', label: 'Hito Motor 1 — Sedestación borde de cama' },
   'Hito Motor 2':           { tipo: 'kine', label: 'Hito Motor 2 — Bipedestación asistida' },
   'Hito Motor 3':           { tipo: 'kine', label: 'Hito Motor 3 — Marcha asistida' },
@@ -90,7 +105,22 @@ const PROC_TO_HITO = {
   'EMS':                    { tipo: 'kine', label: 'Electroestimulación muscular' },
 };
 
+// Tipos que el guardado de una evolución BORRA y vuelve a generar desde sus
+// procedimientos. Todo lo que no esté aquí sobrevive a un re-guardado — y esa
+// es la única protección que tienen los hitos escritos a mano: 'ingreso',
+// 'egreso', 'cultivo', 'evento' y 'anexo' están fuera a propósito.
 const _TIPOS_HITO_AUTO = ['via_aerea', 'procedimiento', 'kine', 'general'];
+
+/**
+ * Prefijo del texto con que se escribe el hito de un procedimiento ANEXADO
+ * por el botón ➕ (`anexarEventoRapido`).
+ *
+ * Vive aquí, y no en svc_eventos.gs, porque lo usan los dos lados: el que
+ * escribe el hito y el guardado de la evolución, que gracias a él reconoce el
+ * hito rico y no le escribe encima la etiqueta pelada. Una sola definición,
+ * que es la lección que este proyecto ya pagó tres veces.
+ */
+function _hitoAnexoPrefijo(nombreProc) { return '🔧 ' + String(nombreProc || ''); }
 
 /**
  * Clave de hito de un procedimiento. Varios se guardan con un dato pegado
@@ -159,6 +189,61 @@ function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, pa
   repoEliminarFilas('TIMELINE', todos.filter(function (t) { return esDelTurnoAuto(t.obj); })
     .map(function (t) { return t.fila; }));
 
+  // Lo que queda vivo tras el borrado. De aquí salen las DOS comprobaciones de
+  // abajo, sin una sola lectura más: la hoja ya está en la mano.
+  const sobreviven = todos.map(function (t) { return t.obj; })
+    .filter(function (h) { return !esDelTurnoAuto(h); });
+
+  // ── (a) El ingreso se anota UNA vez ────────────────────────────────────
+  // Tres sitios lo escriben —`ingresarPaciente`, el bloque de ingreso de
+  // `guardarEvolucion` y el procedimiento 'INGRESO'— y ninguno sabía de los
+  // otros (Diego, 12-ago-2026: «una de color verde y otro morado»). El tipo
+  // 'ingreso' NO está en `_TIPOS_HITO_AUTO`, a propósito: un re-guardado no
+  // debe borrar el ingreso. Por eso el que sobra no se limpia después — se
+  // evita antes de escribirlo.
+  //
+  // 🔴 El alcance es lo delicado: TIMELINE **no se limpia al dar el alta**
+  // (va con el cierre anual), así que mirar solo la CAMA encontraría el
+  // ingreso del ocupante ANTERIOR y le escondería el suyo al paciente nuevo
+  // — la trampa de la pronación heredada, otra vez. Con `patientId` se
+  // compara el episodio; sin él se cae a la misma cama Y la misma fecha, que
+  // cubre el caso reportado (los tres autores disparan el mismo día) sin
+  // poder tapar jamás un ingreso verdadero de otro episodio.
+  const pid = String(patientId || '');
+  const hayIngreso = sobreviven.some(function (h) {
+    if (String(h.TIPO) !== 'ingreso') return false;
+    if (pid) return String(h.PATIENT_ID || '') === pid;
+    return String(h.ID_CAMA) === id && String(h.FECHA) === String(fecha);
+  });
+
+  // ── (b) El evento rápido conserva su hito rico ─────────────────────────
+  // `anexarEventoRapido` escribe «🔧 EEG 14:00 — control post crisis (anexo)
+  // · Klgo. …» Y suma el procedimiento a PROC_JSON. Hasta ago-2026 ese hito
+  // nacía con TIPO 'procedimiento' —que SÍ está en `_TIPOS_HITO_AUTO`—, así
+  // que el siguiente guardado del turno lo borraba y lo regeneraba como
+  // «Eeg»: se perdían hora, detalle, la marca (anexo) y la firma, sin que
+  // nada fallara. Ahora nace con TIPO 'anexo' (fuera de la lista, igual que
+  // 'cultivo', que por eso nunca se degradó) y aquí se descuenta su
+  // procedimiento para no escribirle encima una segunda etiqueta pelada.
+  const anexosVivos = {};
+  sobreviven.forEach(function (h) {
+    if (String(h.TIPO) !== 'anexo') return;
+    if (String(h.ID_CAMA) !== id || String(h.FECHA) !== String(fecha) || h.TURNO !== turno) return;
+    // Se cuentan, no se marcan: dos anexos del mismo procedimiento en el
+    // mismo turno descuentan dos procedimientos, no uno.
+    const t = String(h.TEXTO || '');
+    anexosVivos[t] = (anexosVivos[t] || 0) + 1;
+  });
+  const descontarAnexo = function (proc) {
+    const pref = _hitoAnexoPrefijo(proc);
+    const clave = Object.keys(anexosVivos).find(function (t) {
+      return anexosVivos[t] > 0 && t.indexOf(pref) === 0;
+    });
+    if (!clave) return false;
+    anexosVivos[clave]--;
+    return true;
+  };
+
   const nuevos = [];
   const agregar = function (hito) {
     nuevos.push({
@@ -168,12 +253,21 @@ function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, pa
       AUTOR_EMAIL: hito.autorEmail || autorEmail || '', TIMESTAMP: ahoraTS(),
     });
   };
-  (hitosExtra || []).forEach(agregar);
+  let ingresoPuesto = hayIngreso;
+  const agregarUnico = function (hito) {
+    if (String(hito.tipo) === 'ingreso') {
+      if (ingresoPuesto) return;
+      ingresoPuesto = true;
+    }
+    agregar(hito);
+  };
+  (hitosExtra || []).forEach(agregarUnico);
   (Array.isArray(procs) ? procs : []).forEach(function (proc) {
+    if (descontarAnexo(proc)) return;   // ya tiene su hito, con hora y detalle
     const map = PROC_TO_HITO[_procClaveHito(proc)] ||
                 { tipo: 'procedimiento', label: _procLabelGenerico(proc), generico: true };
     if (!map.label) return;   // procedimiento vacío: nada que anotar
-    agregar({ tipo: map.tipo, texto: map.label });
+    agregarUnico({ tipo: map.tipo, texto: map.label });
   });
   repoInsertarVarios('TIMELINE', nuevos);
 

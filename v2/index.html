@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.54-ventilador">
+<meta name="rce-version" content="5.55-hitos">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4165,7 +4165,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.54-ventilador]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.55-hitos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4654,6 +4654,7 @@ function rielRender(){
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltas.push('PVE sí / no / no corresponde');
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltas.push('razón de KTM no realizada');
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltas.push('contraindicación de KTM');
+  if(typeof _reintubHoraFalta==='function' && _reintubHoraFalta()) faltas.push('hora de la reintubación');
   const fEl=$('gFalta');
   if(fEl) fEl.textContent=faltas.length?('Falta: '+faltas.join(' y ')):'';
   // Los MISMOS obligatorios, pero como elementos: en el celular el aviso va en
@@ -4666,6 +4667,7 @@ function rielRender(){
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltaEls.push($('fPVEval'));
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltaEls.push($('fKTMnoRaz'));
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltaEls.push($('fKTMraz'));
+  if(typeof _reintubHoraFalta==='function'){ const _rh=_reintubHoraFalta(); if(_rh) faltaEls.push(_rh); }
   _mPintarSecciones(faltaEls);
   _mPacBar();
   const cards=Array.from(document.querySelectorAll('#kf .fcard')).filter(c=>c.offsetParent!==null);
@@ -5946,6 +5948,19 @@ function guardar() {
     toast('⚠️ Indica la contraindicación de la KTM (protocolo o descripción)');
     const kc=$('fKTMcontra');
     if(kc){ kc.scrollIntoView({behavior:'smooth',block:'center'}); kc.focus(); kc.style.outline='2px solid var(--danger)'; setTimeout(()=>{kc.style.outline='';},2500); }
+    return;
+  }
+  // ★ LA HORA DE LA REINTUBACIÓN ES OBLIGATORIA (ago-2026, Diego) ★
+  // No es solo para leerla en la entrega: es el ÚNICO insumo con que el
+  // servidor puede medir cuántas horas llevaba el paciente fuera de VM
+  // (TIEMPO_EXTUBADO), que es el número con el que después se distingue una
+  // reintubación de una intubación nueva. Sin hora ese dato no existe y nada
+  // lo avisa.
+  const _rhFalta=_reintubHoraFalta();
+  if(_rhFalta){
+    toast('⚠️ Anota la hora de la reintubación');
+    _rhFalta.scrollIntoView({behavior:'smooth',block:'center'}); _rhFalta.focus();
+    _rhFalta.style.outline='2px solid var(--danger)'; setTimeout(()=>{_rhFalta.style.outline='';},2500);
     return;
   }
   // ★ El texto no puede contradecir lo registrado ★
@@ -7890,7 +7905,11 @@ function _renderTLEventos() {
   const byFecha = {};
   fechas.forEach(f => { byFecha[f] = lista.filter(h => (h.FECHA || '') === f); });
 
-  const DOT_COLORS = { ingreso:'#059669', egreso:'#dc2626', procedimiento:'#7c3aed', general:'#0284c7', nota:'#b45309' };
+  // 🔴 `via_aerea` y `kine` NO tenían color y caían al celeste de 'general'
+  // (12-ago-2026): la intubación, la extubación y la TQT se veían igual que
+  // una nota cualquiera. Los dos valores son los mismos del CSS `.dot-*`.
+  const DOT_COLORS = { ingreso:'#059669', egreso:'#dc2626', procedimiento:'#7c3aed',
+                       via_aerea:'#4f46e5', kine:'#0f766e', general:'#0284c7', nota:'#b45309' };
   const cellStyle = 'min-width:160px;max-width:220px;padding:8px 10px;vertical-align:top;border-right:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;';
   const headStyle = 'min-width:160px;padding:6px 10px;background:#f8fafc;border-right:1px solid #e2e8f0;border-bottom:2px solid #e2e8f0;text-align:center;font-size:.7rem;font-family:monospace;font-weight:700;color:#475569;white-space:nowrap;';
 
@@ -10483,6 +10502,21 @@ function _extHora(){ return v('fPVEval')==='si'?v('fExtHora'):v('fExtHoraNo'); }
 function _extReintub(){
   const nested = _extOcurrio() && (v('fPVEval')==='si' ? !!$('cReintub')?.checked : !!$('cReintubNo')?.checked);
   return nested || !!$('cReintubT')?.checked;
+}
+/**
+ * ¿Falta la hora de la reintubación? Devuelve el CAMPO que falta, o null.
+ *
+ * Las tres ramas tienen su propio campo de hora (anidada tras PVE superada,
+ * anidada sin PVE, y la standalone con vía aérea no invasiva) y se decide con
+ * las mismas condiciones que `_extReintub`, para no pedirle la hora a una
+ * casilla que quedó marcada en una rama que ya no aplica.
+ */
+function _reintubHoraFalta(){
+  if(!_extReintub()) return null;
+  if($('cReintubT')?.checked && !v('fReintubHoraT')) return $('fReintubHoraT');
+  if(_extOcurrio() && v('fPVEval')==='si'  && $('cReintub')?.checked   && !v('fReintubHoraN1')) return $('fReintubHoraN1');
+  if(_extOcurrio() && v('fPVEval')!=='si'  && $('cReintubNo')?.checked && !v('fReintubHoraN2')) return $('fReintubHoraN2');
+  return null;
 }
 function _extReintubRaz(){
   if(_extOcurrio() && (v('fPVEval')==='si' ? !!$('cReintub')?.checked : !!$('cReintubNo')?.checked))

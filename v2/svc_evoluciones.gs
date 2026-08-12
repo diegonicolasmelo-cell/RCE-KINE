@@ -555,7 +555,7 @@ function _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx, _ev
     ID_CAMA: String(idCama), ID_EVOLUCION: idEvolucion, NOMBRE: evo.PAC_NOMBRE || '', COD_PACIENTE: evo.PAC_COD || '',
     DIAGNOSTICO: evo.PAC_DIAGNOSTICO || '', TIPO_DESVINCULACION: evo.EXT_TIPO || '', MOTIVO: evo.EXT_REINTUB_RAZ || '',
     SOPORTE_PREVIO: evo.REINTUB_SOP_PREV || evo.EXT_PE_SOP || '',
-    TIEMPO_EXTUBADO: _tiempoExtubado(evo, idCama, fecha, _evosFn),
+    TIEMPO_EXTUBADO: _tiempoExtubado(evo, idCama, fecha, turno, _evosFn),
     HORA_REINTUBACION: evo.REINTUB_HORA || evo.EXT_HORA || '',
     KINESIOLOGO: evo.PLAN_FIRMA_KINE || '', AUTOR_EMAIL: (ctx && ctx.email) || '',
   };
@@ -563,34 +563,63 @@ function _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx, _ev
 }
 
 /**
- * Horas entre la extubación previa del episodio (EXT_TS) y la reintubación.
- * Mismo turno: EXT_TS viene en el propio payload; turno siguiente: se busca
- * el EXT_TS más reciente del episodio. Devuelve '' si no es computable.
+ * Horas entre la extubación previa del episodio y la reintubación.
+ *
+ * 🔴 MANDA EL RELOJ, NO EL TURNO (regla de Diego, 12-ago-2026). Este número es
+ * el que después permite distinguir una reintubación de una intubación nueva
+ * —«no es reintubación sino intubación, por los días»—, así que tiene que ser
+ * el tiempo REAL entre los dos momentos.
+ *
+ * Hasta ago-2026 se calculaba mal por los dos extremos:
+ *   · la reintubación se fechaba con la FECHA DEL TURNO, y el turno Noche
+ *     pertenece al día anterior hasta las 09:00 ⇒ una reintubación de las
+ *     03:00 quedaba **24 h corta**;
+ *   · y arriba de eso había un `if (horas < 0) horas += 24`, o sea el síntoma
+ *     tapado en el resultado en vez de arreglado en la fecha.
+ * Ahora los dos extremos se resuelven con `_tsEventoTurno`, el mismo mecanismo
+ * que fecha el ciclo de prono desde la v5.33.
+ *
+ * NO se usa `EXT_TS` para el momento de la extubación aunque exista: lo arma
+ * el navegador con `new Date()`, o sea con el día en que alguien ESCRIBIÓ la
+ * evolución, que no tiene por qué ser el día en que se extubó (turno noche,
+ * o una evolución corregida al día siguiente). Sirve para el globito de las
+ * 48 h, que es un aviso en vivo; no para medir.
+ *
+ * Devuelve '' si no es computable —falta la hora de la reintubación o no hay
+ * extubación registrada en el episodio—. Nunca un número inventado.
  *
  * `_evosFn` (opcional): lector perezoso del episodio ya bajado por quien
  * llama (el guardado), en la misma petición y sin escrituras a EVOLUCIONES
  * entre medio que cambien lo buscado (solo se miran turnos ANTERIORES).
  */
-function _tiempoExtubado(evo, idCama, fecha, _evosFn) {
+function _tiempoExtubado(evo, idCama, fecha, turno, _evosFn) {
   try {
     const horaRe = evo.REINTUB_HORA || evo.EXT_HORA || '';
     if (!horaRe) return '';
-    let extTs = evo.EXT_TS || '';
-    if (!extTs) {
+    const tsRe = _tsEventoTurno(fecha, turno, horaRe);
+
+    // (a) La extubación del MISMO turno (reintubación anidada tras la PVE).
+    let tsExt = (esVerdadero(evo.EXT_OCURRIO) && evo.EXT_HORA)
+      ? _tsEventoTurno(fecha, turno, evo.EXT_HORA) : '';
+
+    // (b) Si no, la extubación más reciente del episodio, con SU fecha y SU
+    //     turno. Solo se miran turnos anteriores o el propio.
+    if (!tsExt) {
       const evos = (_evosFn ? _evosFn() : repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama)))
-        .filter(function (e) { return e.EXT_TS && String(e.PATIENT_ID) === String(evo.PATIENT_ID || ''); });
+        .filter(function (e) {
+          return esVerdadero(e.EXT_OCURRIO) && e.EXT_HORA &&
+            String(e.PATIENT_ID) === String(evo.PATIENT_ID || '') &&
+            String(e.TURNO_KEY) <= String(evo.TURNO_KEY || '');
+        });
       evos.sort(function (a, b) { return String(b.TURNO_KEY).localeCompare(String(a.TURNO_KEY)); });
-      if (evos.length) extTs = evos[0].EXT_TS;
+      if (evos.length) {
+        tsExt = _tsEventoTurno(_statISO(evos[0].FECHA), evos[0].TURNO, evos[0].EXT_HORA);
+      }
     }
-    if (!extTs) return '';
-    let t0;
-    try { t0 = new Date(JSON.parse(extTs).ts); } catch (e) { return ''; }
-    const p = String(horaRe).split(':');
-    const t1 = new Date(fecha + 'T' + ('0' + p[0]).slice(-2) + ':' + ('0' + (p[1] || '0')).slice(-2) + ':00');
-    let horas = (t1 - t0) / 3600000;
-    if (isNaN(horas)) return '';
-    if (horas < 0) horas += 24; // reintubación cruzando medianoche
-    return (Math.round(horas * 10) / 10) + ' h';
+    if (!tsExt) return '';
+
+    const h = _horasEntreTS(tsExt, tsRe);
+    return h === '' ? '' : h + ' h';
   } catch (e) { return ''; }
 }
 

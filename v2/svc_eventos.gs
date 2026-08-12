@@ -131,7 +131,11 @@ function anexarEventoRapido(datos, ctx) {
       const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
       if (!cama || !esVerdadero(cama.OCUPADA)) return err('La cama ' + idCama + ' no está ocupada.', ERR.VALIDACION);
       const pid = String(cama.PATIENT_ID || '');
-      const firma = String(ctx.firma || datos.firma || '').slice(0, 15);
+      // 15 caracteres cortaban «Klgo. Diego Melo» (son 16) y la línea de tiempo
+      // mostraba «Klgo. Diego Mel». El límite existe solo para que un valor
+      // absurdo no reviente la celda; 60 es el mismo techo que usa la
+      // auditoría de firmas en mantenimiento.gs.
+      const firma = String(ctx.firma || datos.firma || '').slice(0, 60);
       const hrTxt = hora ? ' ' + hora + ' hrs' : '';
 
       let texto = '', tipoHito = 'evento';
@@ -163,8 +167,15 @@ function anexarEventoRapido(datos, ctx) {
           FECHA: fecha, TURNO: turno, TIPO_PROC: 'anexo', NOMBRE_PROC: nombreProc,
           DESCRIPCION: detalle, AUTOR_EMAIL: String(ctx.email || ''), TIMESTAMP: ahoraTS(),
         });
-        texto = '🔧 ' + nombreProc + hrTxt + (detalle ? ' — ' + detalle : '') + ' (anexo)';
-        tipoHito = 'procedimiento';
+        texto = _hitoAnexoPrefijo(nombreProc) + hrTxt + (detalle ? ' — ' + detalle : '') + ' (anexo)';
+        // 🔴 Hasta ago-2026 este hito nacía con TIPO 'procedimiento', que está
+        // en `_TIPOS_HITO_AUTO`: el siguiente guardado de la evolución lo
+        // borraba y lo regeneraba como la etiqueta pelada del procedimiento,
+        // perdiendo hora, detalle, la marca (anexo) y la firma — sin error, sin
+        // aviso y sin que el dato clínico se moviera (la fila de PROCEDIMIENTOS
+        // seguía intacta). Con tipo propio sobrevive, y `_timelineDelGuardado`
+        // reconoce su prefijo para no escribirle encima.
+        tipoHito = 'anexo';
       } else if (tipo === 'cultivo') {
         const cultTipo = String(datos.cultTipo || '').trim();
         if (!cultTipo) return err('Indica el tipo de cultivo.', ERR.VALIDACION);

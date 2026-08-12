@@ -101,36 +101,55 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
 
   // ── Eventos FECHADOS del episodio (con hora cuando existe) ──
   const eventos = [];
+  // Dos calidades de evento, porque la lista se recorta al final:
+  //   `hito` — los que NUNCA se sacrifican: las transiciones de vía aérea y el
+  //            RCP. Son pocos por episodio y son su columna vertebral.
+  //   `otro` — los repetitivos (PVE, prono/supino, cambios de tubo, traslados),
+  //            que sí ceden espacio cuando la lista crece.
+  // Hasta ago-2026 la lista se cortaba a los ÚLTIMOS 8 sin distinguir, así que
+  // en una estadía larga lo primero que se caía era la intubación del día 1.
+  const hito = t => eventos.push({ t: t, fijo: true });
+  const otro = t => eventos.push({ t: t, fijo: false });
   episodio.forEach(ev => {
     const f = dd(ev.FECHA);
-    if (esVerdadero(ev.INTUB_OCURRIO)) eventos.push('🫁 Intubación ' + f + (ev.INTUB_HORA ? ' ' + ev.INTUB_HORA : ''));
+    if (esVerdadero(ev.INTUB_OCURRIO)) hito('🫁 Intubación ' + f + (ev.INTUB_HORA ? ' ' + ev.INTUB_HORA : ''));
     if (ev.PVE_VAL === 'si' && ev.PVE_RESULTADO) {
       let mot = '';
       if (ev.PVE_RESULTADO === 'frustra') {
         try { const m = JSON.parse(ev.PVE_FR_MOTIVOS || '[]'); if (m.length) mot = ' (' + m.join(', ') + ')'; } catch (x) {}
       }
-      eventos.push((ev.PVE_RESULTADO === 'superada' ? '▲ PVE superada ' : '▼ PVE frustra ') + f + mot);
+      otro((ev.PVE_RESULTADO === 'superada' ? '▲ PVE superada ' : '▼ PVE frustra ') + f + mot);
     }
-    if (esVerdadero(ev.EXT_OCURRIO)) eventos.push('✂️ Extubación ' + f + (ev.EXT_HORA ? ' ' + ev.EXT_HORA : '') + (ev.EXT_TIPO ? ' (' + ev.EXT_TIPO + ')' : ''));
-    if (esVerdadero(ev.EXT_REINTUB)) eventos.push('⚠️ Reintubación ' + f);
-    if (esVerdadero(ev.TQT_OCURRIO)) eventos.push('🔪 TQT ' + f + (ev.TQT_HORA ? ' ' + ev.TQT_HORA : '') + (ev.TQT_TECNICA ? ' (' + String(ev.TQT_TECNICA).toLowerCase() + ')' : ''));
-    if (esVerdadero(ev.DECAN_OCURRIO)) eventos.push('⭕ Decanulación ' + f + (ev.DECAN_HORA ? ' ' + ev.DECAN_HORA : '') + (esVerdadero(ev.DECAN_RECANUL) ? ' → recanulado' : ''));
+    if (esVerdadero(ev.EXT_OCURRIO)) hito('✂️ Extubación ' + f + (ev.EXT_HORA ? ' ' + ev.EXT_HORA : '') + (ev.EXT_TIPO ? ' (' + ev.EXT_TIPO + ')' : ''));
+    // Reintubación: evento · hora · CAUSA (Diego, 12-ago-2026). Era el único
+    // evento de vía aérea que salía pelado —solo la fecha— y en la ronda se
+    // pregunta POR QUÉ falló: poder responder «por mal manejo de secreciones»
+    // o «por mala mecánica» sin ir a buscar la ficha es justamente para lo que
+    // sirve la entrega. Los tres datos ya se guardaban; solo no se mostraban.
+    // El «queda con» NO va aquí por decisión suya: eso es del formulario, con
+    // el resto de las transiciones de vía aérea.
+    if (esVerdadero(ev.EXT_REINTUB)) {
+      hito('⚠️ Reintubación ' + f + (ev.REINTUB_HORA ? ' ' + ev.REINTUB_HORA : '') +
+        (ev.EXT_REINTUB_RAZ ? ' · por ' + String(ev.EXT_REINTUB_RAZ).toLowerCase() : ''));
+    }
+    if (esVerdadero(ev.TQT_OCURRIO)) hito('🔪 TQT ' + f + (ev.TQT_HORA ? ' ' + ev.TQT_HORA : '') + (ev.TQT_TECNICA ? ' (' + String(ev.TQT_TECNICA).toLowerCase() + ')' : ''));
+    if (esVerdadero(ev.DECAN_OCURRIO)) hito('⭕ Decanulación ' + f + (ev.DECAN_HORA ? ' ' + ev.DECAN_HORA : '') + (esVerdadero(ev.DECAN_RECANUL) ? ' → recanulado' : ''));
     if (esVerdadero(ev.PROC_RCP)) {
       const ciclos = String(ev.PROC_RCP_CICLOS || '').trim();
-      eventos.push('🚨 RCP ' + f + (ev.PROC_RCP_HORA ? ' ' + ev.PROC_RCP_HORA : '') +
+      hito('🚨 RCP ' + f + (ev.PROC_RCP_HORA ? ' ' + ev.PROC_RCP_HORA : '') +
         (ciclos ? ' · ' + ciclos + ' ciclo' + (ciclos === '1' ? '' : 's') : '') +
         (ev.PROC_RCP_DET ? ' — ' + ev.PROC_RCP_DET : ''));
     }
-    if (esVerdadero(ev.PROC_PABELLON)) eventos.push('🏥 Traslado a pabellón ' + f);
-    if (esVerdadero(ev.PROC_IMAGEN)) eventos.push('🩻 Traslado a imagenología ' + f);
+    if (esVerdadero(ev.PROC_PABELLON)) otro('🏥 Traslado a pabellón ' + f);
+    if (esVerdadero(ev.PROC_IMAGEN)) otro('🩻 Traslado a imagenología ' + f);
     if (esVerdadero(ev.DESVINC_OCURRIO)) {
       const hrs = String(ev.DESVINC_HORAS || '').replace('.', ',');
-      eventos.push('🔌 Desvinculación de VM ' + f + (ev.DESVINC_HORA ? ' ' + ev.DESVINC_HORA : '') +
+      hito('🔌 Desvinculación de VM ' + f + (ev.DESVINC_HORA ? ' ' + ev.DESVINC_HORA : '') +
         (ev.DESVINC_A ? ' → ' + ev.DESVINC_A : '') +
         (esVerdadero(ev.DESVINC_RECONEXION) ? (' · reconectado' + (hrs ? ' tras ' + hrs + ' h' : '')) : ' · SIN reconexión registrada'));
     }
-    if (esVerdadero(ev.TOT_CAMBIO)) eventos.push('🔄 Cambio de tubo ' + f);
-    if (esVerdadero(ev.TQT_CAMBIO)) eventos.push('🔄 Cambio de cánula ' + f);
+    if (esVerdadero(ev.TOT_CAMBIO)) otro('🔄 Cambio de tubo ' + f);
+    if (esVerdadero(ev.TQT_CAMBIO)) otro('🔄 Cambio de cánula ' + f);
     // Esta lista es de lo que OCURRIÓ en el turno: va el cambio de posición,
     // no el hecho de seguir en la misma (antes se repetía turno a turno).
     // Los episodios anteriores a la separación no traen el campo del evento:
@@ -139,12 +158,25 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
       ? esVerdadero(ev.RESP_POS_PRONO) : esVerdadero(ev.RESP_PRONO_EVENTO);
     const _supEv = (ev.RESP_SUPINO_EVENTO === undefined || ev.RESP_SUPINO_EVENTO === '')
       ? esVerdadero(ev.RESP_POS_SUPINO) : esVerdadero(ev.RESP_SUPINO_EVENTO);
-    if (_pronoEv) eventos.push('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));
+    if (_pronoEv) otro('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));
     if (_supEv) {
       const _ph = String(ev.PRONO_HORAS === 0 ? '0' : (ev.PRONO_HORAS || '')).replace('.', ',');
-      eventos.push('🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : '') +
+      otro('🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : '') +
         (_ph ? ' · tras ' + _ph + ' h en prono' : ''));
     }
+  });
+
+  // El corte: la ficha no puede crecer sin fin, pero lo que se descarta son los
+  // repetitivos MÁS ANTIGUOS, nunca un evento fijo. Si el episodio tiene más de
+  // ocho transiciones de vía aérea, salen todas — el problema de esa ficha no
+  // es que sea larga. Se recorre en orden cronológico, así que lo primero que
+  // cede es lo más viejo, y el orden de lo que queda no se altera.
+  const _ENT_MAX_EVENTOS = 8;
+  let _porCeder = Math.max(0, eventos.length - _ENT_MAX_EVENTOS);
+  const eventosTxt = [];
+  eventos.forEach(function (x) {
+    if (_porCeder > 0 && !x.fijo) { _porCeder--; return; }
+    eventosTxt.push(x.t);
   });
 
   // ── Clasificación de weaning desde los PVE del episodio ──
@@ -322,7 +354,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     ktmSuspendida: e ? esVerdadero(e.KTM_SUSPENDIDA) : esVerdadero(c.KTM_SUSP),
     ktmContra: e ? val(e.KTM_CONTRA_RAZON, val(e.KTM_CONTRA_CAT)) : '',
     ktr: e ? val(e.RESP_KTR_CANT, '') : '',
-    eventos: eventos.slice(-8),
+    eventos: eventosTxt,
     evals: evals,
     dispositivos: disp,
     alertas: alertas,
