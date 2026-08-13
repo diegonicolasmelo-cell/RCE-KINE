@@ -11,8 +11,28 @@ navegador del hospital o de su casa.
 - Todo en **español**. Explicar sin jerga; él decide, tú propones opciones
   ANTES de tocar código cuando el cambio es de diseño/UX ("dame opciones").
 - **Cada entrega de archivos** debe decir: qué archivos pegar, si hay que
-  correr `crearORepararEstructura()`, y recordar el paso **Nueva versión**
-  (usar la skill `entrega-gas`; el index SIEMPRE en formato cohete).
+  correr `crearORepararEstructura()`, y cómo se publica (ver la regla de abajo;
+  usar la skill `entrega-gas`; el index SIEMPRE en formato cohete).
+
+### 🔴 CÓMO SE PUBLICA — regla vigente (12-ago-2026, la cambió Diego)
+
+Esto **reemplaza** a la regla anterior («una sola persona publica»), que quedó
+obsoleta y sigue citada más abajo en el bloque de la Ola 1 de Manuel.
+
+1. **Publican DOS personas: Manuel o Diego.** Ya no es una sola.
+2. **Quien publica AVISA**, sin excepción: en el repo (commit o nota) o por
+   Claude → Slack. El aviso es la mitad de la regla, no un extra — con dos
+   personas publicando, lo que evita el choque es que quede escrito.
+3. **NO se crea una implementación nueva.** Se **gestiona la implementación
+   existente**, apuntándola a la versión correcta, para que la URL del equipo
+   NO cambie. La implementación es:
+   `AKfycbxMKE6_C6-aU77BRKm-GczD5jIYDIC400hMJxoIL5BUNyxUJzuHL-Ax-HuXaX9BavqVzg`
+   (o sea `https://script.google.com/macros/s/AKfycbx…/exec`).
+   En el editor: Implementar → Administrar implementaciones → ✏️ sobre ESA
+   implementación → versión nueva. Crear una implementación aparte genera otra
+   URL y parte a la unidad en dos.
+4. `crearORepararEstructura()` **no se puede automatizar**: cuando la entrega
+   cambia el esquema, alguien la corre a mano desde el editor.
 - No agregar funcionalidades que no pidió (p. ej. rechazó envío de correos).
 - **Ramas de GitHub con nombre identificador** (pedido de Diego, ago-2026):
   toda rama nueva debe decir QUÉ contiene, en español y legible para él
@@ -2152,6 +2172,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     cuántas filas vivas deja.
   - Reglas de convivencia que SÍ funcionaron: fetch antes de trabajar, avisar
     por #mejoras-rce antes de pegar, una sola persona publica.
+    ⚠️ **«Una sola persona publica» quedó DEROGADO el 12-ago-2026** por Diego:
+    publican Manuel o él, y lo que sostiene la convivencia pasó a ser el
+    **aviso** (repo o Slack). Ver la regla vigente al inicio de este archivo.
 
 - **PRONO / POSICIONAMIENTO / HSA — DISEÑO EN CURSO, NO PROGRAMADO (ago-2026).**
   Nace del caso de Caterina (cama 4): María José prona a las 19:00 del 2-ago
