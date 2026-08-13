@@ -259,7 +259,23 @@ const _COLS_EVOLUCIONES = [
   // no existe, ahí la succión es endotraqueal. El formulario la esconde
   // cuando la vía aérea es invasiva, espejo de lo que ya hace SET al revés.
   // SIEMPRE AL FINAL.
-  ['RESP_SNT','bool']
+  ['RESP_SNT','bool'],
+  // SEDACIÓN: el SAS que TIENE el paciente y el que se PERSIGUE (ago-2026).
+  // `SED_SAS` pasa a ser oficialmente el ACTUAL —es como ya lo leían las
+  // cuatro decisiones automáticas del formulario, así que ningún registro
+  // viejo cambia de comportamiento— y la meta viaja aparte. ⚠️ Los registros
+  // anteriores a esta versión traen UN número que el equipo llenó de forma
+  // dispar (a veces la meta, a veces el actual): son ambiguos por origen y NO
+  // se recalculan. Ver PRD_SAS_REAL.md.
+  ['SED_SAS_META','texto'],
+  // Sedación que NO es profunda (vigil / control de agitación). Existe para
+  // que anotarla no cuente como volver a sedación profunda y borre la fecha
+  // de suspensión, que es el antes y el después para evaluar la respuesta a
+  // la suspensión de hipnóticos y para interpretar el GCS.
+  ['SED_VIGIL','bool'],
+  // Qué sedantes están puestos (JSON). Cuáles, no cuánto: las dosis viven en
+  // la ficha médica.
+  ['SED_FARMACOS','texto']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -831,10 +847,11 @@ function testEsquema() {
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
   // Salvaguarda contra el borrado accidental de columnas: el número va a mano
-  // y HAY QUE SUBIRLO al agregar una (387 = 386 + RESP_SNT, ago-2026). Si
+  // y HAY QUE SUBIRLO al agregar una (390 = 387 + SED_SAS_META, SED_VIGIL y
+  // SED_FARMACOS, ago-2026). Si
   // aparece este ❌ tras sumar una columna, la hoja está bien y lo que falta es
   // actualizar esta línea.
-  if (TOTAL_COLS.EVOLUCIONES !== 387) errs.push("EVOLUCIONES != 387 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 390) errs.push("EVOLUCIONES != 390 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

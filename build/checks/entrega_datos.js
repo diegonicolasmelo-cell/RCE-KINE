@@ -142,11 +142,14 @@ const { chromium } = require('playwright-core');
     fx.sedSusp = '03-08'; fx.bnmSusp = '02-08'; fx.bnm = false;
     renderEntrega({ fecha: '2026-08-05', turno: 'Dia', resumen: {}, fichas: [fx] });
     return {
-      sed: /💤 Sedación suspendida el 03-08/.test($('entDoc').innerHTML),
+      // «PROFUNDA» desde ago-2026: la fecha es de la suspensión de la sedación
+      // profunda, no de cualquier sedación — una vigil para controlar la
+      // agitación ya no la borra (ver checks/sas_real.js).
+      sed: /💤 Sedación profunda suspendida el 03-08/.test($('entDoc').innerHTML),
       bnm: /BNM suspendido el 02-08/.test($('entDoc').innerHTML),
     };
   }, ficha);
-  eq('«Sedación suspendida el dd-mm» en la ficha', R2.sed, true);
+  eq('«Sedación profunda suspendida el dd-mm» en la ficha', R2.sed, true);
   eq('«BNM suspendido el dd-mm» en la ficha', R2.bnm, true);
 
   await b.close();

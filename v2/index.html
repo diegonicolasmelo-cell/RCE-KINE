@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.56-desvinc">
+<meta name="rce-version" content="5.57-sas">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1068,6 +1068,9 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .ktm-asis-btn{padding:4px 11px;border-radius:14px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.74rem;font-weight:700;cursor:pointer;transition:all .15s;}
 .ktm-asis-btn:hover{border-color:var(--ac,#94a3b8);color:var(--ac,#475569);}
 .ktm-asis-btn.on{background:var(--ac,#64748b);border-color:var(--ac,#64748b);color:#fff;}
+.sedf-btn{padding:3px 10px;border-radius:14px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .15s;}
+.sedf-btn:hover{border-color:#8b5cf6;color:#6d28d9;}
+.sedf-btn.on{background:#8b5cf6;border-color:#8b5cf6;color:#fff;}
 .sub-sec{padding:10px 16px;border-bottom:1px solid #eef2f6;}
 .sub-sec:last-child{border-bottom:none;}
 .sub-sec-title{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;color:var(--muted);}
@@ -2304,8 +2307,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
           <div id="spTitle" style="font-size:.7rem;font-weight:600;color:var(--muted);margin-top:1px;">Registro Evolución</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <span id="catResp" title="" style="color:#fff;font-weight:800;font-size:.78rem;padding:7px 13px;border-radius:20px;background:#94a3b8;white-space:nowrap;cursor:default;">🫁 R: —</span>
-          <span id="catMotor" title="" style="color:#fff;font-weight:800;font-size:.78rem;padding:7px 13px;border-radius:20px;background:#94a3b8;white-space:nowrap;cursor:default;">🦾 M: —</span>
+          <span id="catResp" class="cat-etiq hidden" title="" style="color:#fff;font-weight:800;font-size:.78rem;padding:7px 13px;border-radius:20px;background:#94a3b8;white-space:nowrap;cursor:default;">🫁 R: —</span>
+          <span id="catMotor" class="cat-etiq hidden" title="" style="color:#fff;font-weight:800;font-size:.78rem;padding:7px 13px;border-radius:20px;background:#94a3b8;white-space:nowrap;cursor:default;">🦾 M: —</span>
         </div>
       </div>
 
@@ -2606,8 +2609,35 @@ document.documentElement.setAttribute('data-piel', 'inst');
                   <option>Fuera de escalón</option>
                 </select></div>
               <div class="check cr wa"><input type="checkbox" id="cBNM" onchange="autoCoopera()"><label for="cBNM">🔒 BNM</label></div>
-              <div id="gSAS" class="col wa hidden"><label>SAS</label>
+              <!-- SAS ACTUAL vs META (ago-2026). Antes había UN casillero: la
+                   evolución lo narraba como meta y cuatro decisiones de la app
+                   lo leían como el estado del paciente, así que con un paciente
+                   en 6 y meta 4 no había número correcto. `fSAS` es el ACTUAL
+                   —es como ya lo usaban esas cuatro decisiones— y la meta va
+                   aparte. Ver PRD_SAS_REAL.md. -->
+              <div id="gSAS" class="col wa hidden"><label>SAS actual</label>
                 <select id="fSAS" onchange="autoCoopera()"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+              <div id="gSASmeta" class="col wa hidden"><label>Meta SAS</label>
+                <select id="fSASmeta"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+            </div>
+            <!-- Sedación que NO es profunda + qué fármacos están puestos.
+                 Nace del caso de Diego: un paciente agitado con precedex para
+                 controlar la agitación. Anotarlo como sedación contaba como
+                 volver a sedación profunda y borraba la fecha de suspensión,
+                 que es lo que marca el antes y el después del despertar. -->
+            <div id="gSedVigil" class="hidden" style="margin:2px 0 6px;">
+              <div class="check wa" style="margin-bottom:5px;">
+                <input type="checkbox" id="cSedVigil" onchange="hSedVigil()">
+                <label for="cSedVigil" style="font-weight:700;color:var(--neuro);">😌 Sedación vigil / control de agitación <span style="font-weight:400;color:var(--muted);font-size:.72rem;">— no es sedación profunda</span></label>
+              </div>
+              <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px;">Sedantes en uso</div>
+              <div id="sedFarmacos" style="display:flex;flex-wrap:wrap;gap:5px;">
+                <button type="button" class="sedf-btn" data-f="Fentanyl"  onclick="sedFarmToggle(this)">Fentanyl</button>
+                <button type="button" class="sedf-btn" data-f="Propofol"  onclick="sedFarmToggle(this)">Propofol</button>
+                <button type="button" class="sedf-btn" data-f="Midazolam" onclick="sedFarmToggle(this)">Midazolam</button>
+                <button type="button" class="sedf-btn" data-f="Ketamina"  onclick="sedFarmToggle(this)">Ketamina</button>
+                <button type="button" class="sedf-btn" data-f="Precedex"  onclick="sedFarmToggle(this)">Precedex</button>
+              </div>
             </div>
             <!-- Fila 2: GCS -->
             <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--neuro);margin:4px 0 6px;">GCS</div>
@@ -4165,7 +4195,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.56-desvinc]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.57-sas]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4513,7 +4543,16 @@ function renderGrid() {
         const col={Baja:'#16a34a',Media:'#d97706',Alta:'#dc2626'}[nv]||'#64748b';
         return `<span class="abadge" style="background:${col}18;color:${col};border:1px solid ${col}55;" title="Categorización ${nom} SOCHIMI del último turno: complejidad ${nv}${p?` (${p} pts)`:''}">${letra} ${nv}</span>`;
       };
-      al+=_catChip(c.CAT_RESP_PJE,c.CAT_RESP_NIVEL,5,'R','respiratoria')+_catChip(c.CAT_MOTOR_PJE,c.CAT_MOTOR_NIVEL,4,'M','motora');
+      // ⏸️ LA ETIQUETA DE CATEGORIZACIÓN NO SE MUESTRA (Diego, ago-2026: «por
+      // ahora sigue categorizando pero saca de todos los lugares la etiqueta
+      // de categorización respiratoria y motora»). El cálculo sigue corriendo
+      // y las columnas se siguen guardando —por eso `_catChip` se queda aquí,
+      // listo para reponerse con una línea— pero el chip sale de la vista
+      // clínica. Los otros dos sitios eran el panel de evolución y la ficha de
+      // la entrega de turno; el gráfico agregado de Estadísticas SÍ se
+      // conserva, que es donde se mira la serie para decidir si vuelve.
+      if(_CAT_ETIQUETA_VISIBLE)
+        al+=_catChip(c.CAT_RESP_PJE,c.CAT_RESP_NIVEL,5,'R','respiratoria')+_catChip(c.CAT_MOTOR_PJE,c.CAT_MOTOR_NIVEL,4,'M','motora');
       // Weaning difícil/prolongado (Boles 2007) desde los PVE acumulados del
       // episodio. Solo mientras sigue en VM (weaning en curso).
       if(c.SOPORTE==='VM'&&c.WEAN_PVE_JSON){
@@ -5182,6 +5221,8 @@ function fillForm(s) {
   if(s.DIAS_VNI!==''&&s.DIAS_VNI!=null) _diasVNISellado=s.DIAS_VNI;
   if(s.VA_EXTERNO_DIAS!==undefined){ set('fVAExtDias',s.VA_EXTERNO_DIAS||0); actualizarDiasVA(); }
   set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
+  set('fSASmeta',s.SED_SAS_META); chk('cSedVigil',s.SED_VIGIL);
+  try{ _sedFarmSet(JSON.parse(s.SED_FARMACOS||'[]')||[]); }catch(e){ _sedFarmSet([]); }
   set('fGCSO',s.SED_GCS_O); set('fGCSV',s.SED_GCS_V); set('fGCSM',s.SED_GCS_M);
   chk('cBNM',s.SED_BNM);
   set('fHEst',s.HEMO_ESTADO); set('fDVA',s.HEMO_DVA);
@@ -5407,6 +5448,8 @@ function fillFormReplica(s) {
 
   // Sedación / neurológico
   set('fSed',s.SED_TIPO); set('fSAS',s.SED_SAS); set('fS5Q',s.SED_S5Q); set('fCoop',s.SED_COOPERACION);
+  set('fSASmeta',s.SED_SAS_META); chk('cSedVigil',s.SED_VIGIL);
+  try{ _sedFarmSet(JSON.parse(s.SED_FARMACOS||'[]')||[]); }catch(e){ _sedFarmSet([]); }
   set('fGCSO',s.SED_GCS_O); set('fGCSV',s.SED_GCS_V); set('fGCSM',s.SED_GCS_M);
   chk('cBNM',s.SED_BNM);
 
@@ -5746,7 +5789,7 @@ function _validarRangosCliente(){
 // reconstruye el campo (cambio de modo = el kine ya está editando ese módulo).
 // Los campos de ESTADO (vía aérea, soporte, modo, fase, dx) no se marcan:
 // son hechos que persisten entre turnos, no mediciones.
-const _HER_CAMPOS=['fSed','fSAS','fS5Q','fCoop','fGCSO','fGCSV','fGCSM',   // sedación / conciencia
+const _HER_CAMPOS=['fSed','fSAS','fSASmeta','fS5Q','fCoop','fGCSO','fGCSV','fGCSM',   // sedación / conciencia
   'fHEst','fDVA','fDVAcnt','fHTT',                                          // hemodinamia
   'fMPVal','fRuidosVal','fRuidosLoc',                                       // auscultación
   'r_vt','r_fr','r_peep','r_pmax','r_pmedia','r_ppl','r_fio2','r_spo2','r_pafi',
@@ -6103,6 +6146,10 @@ function guardar() {
     AET_ACTIVA:        $('cAET')?.checked||false,
     AET_NIVEL:         v('fAETnivel')||'',
     SED_TIPO:v('fSed'), SED_SAS:v('fSAS'), SED_S5Q:v('fS5Q'), SED_COOPERACION:v('fCoop'),
+    // `SED_SAS` es el ACTUAL; la meta viaja aparte (ago-2026, ver PRD_SAS_REAL.md)
+    SED_SAS_META:v('fSASmeta'),
+    SED_VIGIL:bv('cSedVigil'),
+    SED_FARMACOS:JSON.stringify(_sedFarmLista()),
     SED_CAM_ICU:       v('fCAMICU'),
     SED_GCS_O:v('fGCSO'), SED_GCS_V:v('fGCSV'), SED_GCS_M:v('fGCSM'),
     SED_GCS_TOT:$('lblGCS')?.textContent||'', SED_BNM:bv('cBNM'),
@@ -7444,7 +7491,9 @@ const HJ_F = {
             const n=parseInt(e.HEMO_NUM_DVA)||0; return d+(n>1?' ×'+n:''); }},
   gcs:   {l:'Glasgow', per:'t', f:e=>e.SED_GCS_TOT||'', spark:e=>_hjNum(e.SED_GCS_TOT)},
   s5q:   {l:'S5Q', per:'t', f:e=>e.SED_S5Q?e.SED_S5Q+'/5':''},
-  sas:   {l:'SAS', per:'t', f:e=>e.SED_SAS||'', spark:e=>_hjNum(e.SED_SAS)},
+  // El SAS de la fila es el ACTUAL; la meta va entre paréntesis cuando se
+  // registró. La curva sigue siendo del actual: es lo que evoluciona.
+  sas:   {l:'SAS', per:'t', f:e=>(e.SED_SAS||'')+((e.SED_SAS&&e.SED_SAS_META)?` (meta ${e.SED_SAS_META})`:''), spark:e=>_hjNum(e.SED_SAS)},
   pos:   {l:'Posicionamiento', per:'t', f:e=>{
             const p=[];
             if(_hjT(e.RESP_POS_PRONO)) p.push('Prono'+(e.RESP_PRONO_HORA?' '+e.RESP_PRONO_HORA:''));
@@ -8306,12 +8355,20 @@ function genTexto() {
   // El escalón SIEMPRE se narra con su SAS (ago-2026, reporte de Álvaro vía
   // Diego): la rama de BNM se comía el escalón y el SAS solo salía en dos
   // ramas — en paridad con el servidor.
-  const _sasTxt=sas?` para meta SAS ${sas}`:'';
+  // SAS ACTUAL y META son cosas distintas (ago-2026). Hasta esta versión había
+  // un solo número y se narraba como meta, así que con un paciente en SAS 6 y
+  // meta 4 no había forma de escribir la verdad.
+  const _meta=gv('fSASmeta');
+  const _sasTxt=sas?` con SAS ${sas}${_meta?` (meta ${_meta})`:''}`:(_meta?` para meta SAS ${_meta}`:'');
   const _escTxt=(sed&&sed!=='Sin sedación')?(sed==='Fuera de escalón'?'fuera de escalón':`en ${sed.toLowerCase()}`):'';
+  // La sedación vigil se nombra: es la que NO cuenta como sedación profunda.
+  const _vigilTxt=$('cSedVigil')?.checked?' vigil (control de agitación)':'';
+  const _farm=_sedFarmLista();
+  const _farmTxt=_farm.length?` con ${_farm.map(x=>x.toLowerCase()).join(', ')}`:'';
   let s;
-  if($('cBNM')?.checked) s=`Sedado${_escTxt?' '+_escTxt:''}+BNM${_sasTxt||' para meta SAS 1'}.`;
+  if($('cBNM')?.checked) s=`Sedado${_escTxt?' '+_escTxt:''}+BNM${_sasTxt||' para meta SAS 1'}${_farmTxt}.`;
   else if(sed==='Sin sedación') s='Sin sedoanalgesia.';
-  else s=`Sedado ${_escTxt}${_sasTxt}.`;
+  else s=`Sedado${_vigilTxt} ${_escTxt}${_sasTxt}${_farmTxt}.`;
   // GCS: en intubado el total ("11T") y la verbal ("1T") ya vienen con "T"
   // desde calcGCS; el sufijo /15 solo aplica a paciente sin vía aérea artificial.
   s+=` GCS ${gcsT}${intub?'':'/15'} (O:${gv('fGCSO')||'?'}, V:${gv('fGCSV')||'?'}, M:${gv('fGCSM')||'?'})`;
@@ -9323,10 +9380,28 @@ function renderParams(o) {
 //  HANDLERS UI
 function hSed(){
   const s=v('fSed');
-  if(s!=='Sin sedación'){show('gSAS');}else{const el=$('fSAS');if(el)el.value='';hide('gSAS');}
+  const sedado = s!=='Sin sedación';
+  if(sedado){show('gSAS');show('gSASmeta');show('gSedVigil');}
+  else{
+    const el=$('fSAS');if(el)el.value='';hide('gSAS');
+    // Sin sedación no hay meta que perseguir ni sedantes que declarar.
+    const m=$('fSASmeta');if(m)m.value='';hide('gSASmeta');
+    const cv=$('cSedVigil');if(cv)cv.checked=false;
+    _sedFarmSet([]); hide('gSedVigil');
+  }
   autoCoopera();
   aplicarGatesNeuro();
 }
+/** Chips de sedantes: cuáles están puestos, no cuánto. */
+function sedFarmToggle(b){ b.classList.toggle('on'); _formDirty=true; if(typeof _rtxtLive==='function') _rtxtLive(); }
+function _sedFarmLista(){
+  return Array.from(document.querySelectorAll('#sedFarmacos .sedf-btn.on')).map(b=>b.dataset.f);
+}
+function _sedFarmSet(arr){
+  const on=new Set(arr||[]);
+  document.querySelectorAll('#sedFarmacos .sedf-btn').forEach(b=>b.classList.toggle('on', on.has(b.dataset.f)));
+}
+function hSedVigil(){ _formDirty=true; if(typeof _rtxtLive==='function') _rtxtLive(); }
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function hArritmia(){ if($('cArritmia')?.checked) show('gArritmiaTipo'); else { hide('gArritmiaTipo'); const e=$('fArritmiaTipo'); if(e) e.value=''; } }
 function hMetaPAM(){ if($('cMetaPAM')?.checked) show('gPAM'); else { hide('gPAM'); const e=$('fPAM'); if(e) e.value=''; } }
@@ -13089,6 +13164,15 @@ function _calcMatriz(m){
   const nivel=_catNivel(pje,n);
   return {pje:pje,nivel:nivel,color:_CAT_COLORES[nivel],det:det,datos:datos,n:n};
 }
+/* ⏸️ LA ETIQUETA DE CATEGORIZACIÓN, RETIRADA DE LA VISTA (Diego, ago-2026).
+   «Por ahora sigue categorizando pero saca de todos los lugares la etiqueta de
+   categorización respiratoria y motora.» El cálculo, el guardado y la serie de
+   Estadísticas siguen intactos: lo único que se apaga es el chip que el equipo
+   ve en la tarjeta de cama, en el panel de evolución y en la ficha de la
+   entrega. Poner esto en `true` los devuelve los tres de una vez — por eso es
+   un interruptor y no código borrado. */
+const _CAT_ETIQUETA_VISIBLE = false;
+
 function calcCatResp(){ return _calcMatriz('RESP'); }
 function calcCatMotor(){ return _calcMatriz('MOTOR'); }
 
@@ -13101,8 +13185,12 @@ function _updCategorias(){
     el.style.background=c.color;
     el.title=nom+` · complejidad ${c.nivel} (${c.pje} pts) — `+c.det.map(d=>`${d[0]}: ${d[2]} = ${d[1]} pt`).join(' · ');
   };
-  pinta('catResp', calcCatResp(), '🫁 R', 'Matriz respiratoria');
-  pinta('catMotor', calcCatMotor(), '🦾 M', 'Matriz motora');
+  // El cálculo corre igual —el guardado necesita el puntaje y el nivel— pero
+  // el chip solo se pinta si la etiqueta está visible (ver _CAT_ETIQUETA_VISIBLE).
+  if(_CAT_ETIQUETA_VISIBLE){
+    pinta('catResp', calcCatResp(), '🫁 R', 'Matriz respiratoria');
+    pinta('catMotor', calcCatMotor(), '🦾 M', 'Matriz motora');
+  }
 }
 
 // ══════════ ANULAR EVENTO DE UN TURNO GUARDADO ══════════
@@ -13278,6 +13366,7 @@ function renderEntrega(d){
   <div class="ent-fichas">`;
 
   const catChip=(c,letra,n)=>{
+    if(!_CAT_ETIQUETA_VISIBLE) return '';   // retirada de la vista (ago-2026)
     if(!c||!c.nivel) return '';
     const col={Baja:'#16a34a',Media:'#d97706',Alta:'#dc2626'}[c.nivel]||'#64748b';
     return `<span class="ent-tag" style="background:${col}18;color:${col};border:1px solid ${col}55;">${letra} ${c.nivel}${c.pje?` (${c.pje})`:''}</span>`;
@@ -13342,12 +13431,19 @@ function renderEntrega(d){
     // de sedación/BNM (opción A de Diego, ago-2026).
     const neuro=_u([
       (f.gcs!==''&&f.gcs!=null)?`<b>GCS ${f.gcs}</b>${f.gcsOVM?` <span style="color:var(--muted);font-size:.9em;">(${f.gcsOVM})</span>`:''}`:'',
-      [f.sas!==''&&f.sas!=null?`SAS ${f.sas}`:'', f.sedTipo||''].filter(Boolean).join(' · '),
+      // El SAS que sale es el ACTUAL, con la meta al lado cuando existe: en la
+      // entrega lo que se pregunta es cómo está el paciente, no qué se busca
+      // (Diego, ago-2026). La sedación vigil se marca porque cambia cómo se
+      // lee la fecha de suspensión de más abajo.
+      [f.sas!==''&&f.sas!=null?`SAS ${f.sas}${(f.sasMeta!==''&&f.sasMeta!=null)?` <span style="color:var(--muted);font-size:.9em;">(meta ${f.sasMeta})</span>`:''}`:'',
+       (f.sedTipo||'')+(f.sedVigil?' <span style="color:var(--muted);font-size:.9em;">· vigil</span>':''),
+       (f.sedFarmacos&&f.sedFarmacos.length)?`<span style="color:var(--muted);font-size:.9em;">${f.sedFarmacos.join(', ')}</span>`:''
+      ].filter(Boolean).join(' · '),
       // La cooperación SALIÓ de la ficha (Diego, ago-2026): SAS y GCS ya la
       // dicen mejor. Se sigue registrando y sigue en el historial.
       f.bnm?'<b style="color:#be123c;">BNM ✓</b>':'',
       ((f.pic!==''&&f.pic!=null)||(f.ppc!==''&&f.ppc!=null))?[(f.pic!==''&&f.pic!=null)?`PIC ${f.pic}`:'',(f.ppc!==''&&f.ppc!=null)?`PPC ${f.ppc}`:''].filter(Boolean).join(' · ')+' mmHg':'',
-      f.sedSusp?`💤 Sedación suspendida el ${f.sedSusp}`:'',
+      f.sedSusp?`💤 Sedación profunda suspendida el ${f.sedSusp}`:'',
       f.bnmSusp&&!f.bnm?`BNM suspendido el ${f.bnmSusp}`:'',
       [f.dva?`DVA ${f.dva}`:'', f.hemoEstado==='Inestable'?'<b style="color:#be123c;">HDN inestable</b>':''].filter(Boolean).join(' · ')]);
     // Hito motor más alto del episodio (Diego, ago-2026): junto al KTM de HOY

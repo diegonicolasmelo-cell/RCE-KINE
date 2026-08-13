@@ -93,10 +93,33 @@ function sinCamposNuevos(x) {
   }
   return x;
 }
+/* ── 2c · La NARRATIVA evoluciona; los viajes y los datos no ──────────────
+   Esta guardia vigila que la Ola 4 no cambiara comportamiento: viajes, filas y
+   respuestas. El TEXTO de la evolución es otra cosa — se reescribe cada vez que
+   Diego pide una frase distinta, y tiene sus propias guardias (texto_bloques,
+   reporte_colega, sas_real…). Compararlo byte a byte aquí haría fallar esta
+   guardia con cada ajuste de redacción, por una diferencia que no es la que
+   vigila. Así que los campos de texto se descuentan del byte a byte y el cambio
+   se verifica APARTE, abajo — demostrado en vez de disimulado, igual que se
+   hizo con la evolución previa de GET_EVO_TURNO. */
+const COLS_TEXTO = ['TEXTO_GENERADO', 'TEXTO_AUTO', 'TEXTO_MANUAL'];
+const IDX_TEXTO = COLS_TEXTO.map(c => COLS_HOY.indexOf(c)).filter(i => i >= 0);
+const IDX_TEXTO_BASE = COLS_TEXTO.map(c => COLS_BASE.indexOf(c)).filter(i => i >= 0);
+
 /** Quita las celdas de las columnas nuevas de las filas de EVOLUCIONES. */
 function sinColumnasNuevas(hoja, filas) {
-  if (!/^EVOLUCIONES/.test(hoja) || !IDX_NUEVOS.length) return filas;
-  return filas.map(f => { const c = f.slice(); IDX_NUEVOS.forEach(i => { if (i < c.length) c.splice(i, 1); }); return c; });
+  if (!/^EVOLUCIONES/.test(hoja)) return filas;
+  return filas.map(f => {
+    const c = f.slice();
+    IDX_NUEVOS.forEach(i => { if (i < c.length) c.splice(i, 1); });
+    return c;
+  });
+}
+/** Vacía las columnas de texto (se comparan aparte, ver 2c). El índice es el
+ *  del árbol al que pertenece la fila: la base tiene menos columnas. */
+function sinTextos(hoja, filas, idx) {
+  if (!/^EVOLUCIONES/.test(hoja) || !idx.length) return filas;
+  return filas.map(f => { const c = f.slice(); idx.forEach(i => { if (i < c.length) c[i] = '(texto aparte)'; }); return c; });
 }
 
 /* ── 3 · Normalizaciones (ids autogenerados y orden físico de inserción) ──── */
@@ -117,6 +140,11 @@ function normalizada(hoja, filas, colmapNombre) {
 function camasComparables(filas, colTimeline) {
   return filas.map(f => {
     const c = f.slice();
+    // CAMAS_ESTADO guarda una copia del TEXTO de la evolución del turno
+    // (TEXTO_EVO_DIA / TEXTO_EVO_NOCHE) para pintar la tarjeta sin volver a
+    // leer EVOLUCIONES. Se descuenta por la misma razón que en 2c: la
+    // narrativa evoluciona y tiene sus propias guardias.
+    IDX_TEXTO_CAMAS.forEach(i => { if (i < c.length) c[i] = '(texto aparte)'; });
     let tl = [];
     try { tl = JSON.parse(c[colTimeline - 1] || '[]') || []; } catch (e) {}
     c[colTimeline - 1] = JSON.stringify(tl.map(h =>
@@ -129,6 +157,8 @@ const esquemaSrc = fs.readFileSync(path.join(REPO, 'v2', 'esquema.gs'), 'utf8');
 const colsCamas = /CAMAS_ESTADO:\s*{[\s\S]*?cols:\s*\[([\s\S]*?)\]\s*}/.exec(esquemaSrc)[1];
 const nombresCamas = Array.from(colsCamas.matchAll(/\['([A-Z_0-9]+)'/g)).map(m => m[1]);
 const COL_TL = nombresCamas.indexOf('TIMELINE_JSON') + 1;
+const IDX_TEXTO_CAMAS = ['TEXTO_EVO_DIA', 'TEXTO_EVO_NOCHE']
+  .map(c => nombresCamas.indexOf(c)).filter(i => i >= 0);
 si('la columna TIMELINE_JSON se ubicó en el esquema', COL_TL > 0, 'col ' + COL_TL);
 
 /* ── 4 · Escenario por escenario ──────────────────────────────────────────── */
@@ -145,7 +175,10 @@ for (const esc of Object.keys(TECHOS)) {
   // byte a byte y se verifica APARTE, abajo, para que quede demostrada en vez
   // de disimulada.
   const sinPrevia = r => { const c = JSON.parse(JSON.stringify(sinCamposNuevos(r)));
-    if (c && c.data && 'previa' in c.data) c.data.previa = '(comparada aparte)'; return c; };
+    if (c && c.data && 'previa' in c.data) c.data.previa = '(comparada aparte)';
+    // El texto viaja en la respuesta del guardado: mismo criterio que 2c.
+    if (c && c.data && 'TEXTO_GENERADO' in c.data) c.data.TEXTO_GENERADO = '(texto aparte)';
+    return c; };
   si(esc + ' · la respuesta de la API es IDÉNTICA',
     JSON.stringify(sinPrevia(a.respuesta)) === JSON.stringify(sinPrevia(b.respuesta)));
   if (esc === 'reabrir') {
@@ -168,16 +201,37 @@ for (const esc of Object.keys(TECHOS)) {
       // sinProcs es EL bug arreglado: el base retiene hitos fantasma en el
       // cache — ahí se exige la coherencia interna, no la igualdad (abajo).
       if (esc === 'sinProcs') continue;
-      si(esc + ' · CAMAS_ESTADO igual (cache de timeline normalizado)',
+      si(esc + ' · CAMAS_ESTADO igual (cache y narrativa aparte)',
         JSON.stringify(camasComparables(fa, COL_TL)) === JSON.stringify(camasComparables(fb, COL_TL)));
     } else {
-      si(esc + ' · ' + hoja + ' igual',
-        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, fa))) ===
-        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, fb))));
+      si(esc + ' · ' + hoja + ' igual (narrativa aparte)',
+        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, sinTextos(hoja, fa, IDX_TEXTO_BASE)))) ===
+        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, sinTextos(hoja, fb, IDX_TEXTO)))));
     }
   }
   si(esc + ' · hace MENOS viajes que el base', b.viajes < a.viajes, b.viajes + ' < ' + a.viajes);
   si(esc + ' · respeta el techo de ' + TECHOS[esc], b.viajes <= TECHOS[esc], String(b.viajes));
+}
+
+/* ── 4b · La narrativa cambió A PROPÓSITO, y aquí se demuestra ──────────────
+   Los campos de texto se descuentan del byte a byte (ver 2c) para que un
+   ajuste de redacción no haga fallar una guardia que vigila viajes y datos.
+   Descontarlos sin más los volvería un punto ciego, así que el cambio se
+   verifica aquí: el árbol base narraba el único SAS como si fuera la META, y
+   el de hoy narra el SAS ACTUAL con la meta al lado (ago-2026, Diego: paciente
+   en 6 con meta 4 — con un solo número no había forma de escribir la verdad).
+   Si algún día los dos textos vuelven a ser iguales, este bloque avisa. */
+console.log('\n— la narrativa: descontada del byte a byte, comprobada aquí —');
+{
+  const txt = r => String((r && r.data && r.data.TEXTO_GENERADO) || '');
+  const tA = txt(A.guardarNuevo.respuesta), tB = txt(B.guardarNuevo.respuesta);
+  si('el base narraba el SAS como meta', /para meta SAS/.test(tA), tA.slice(0, 0) || 'sí');
+  si('ahora narra el SAS actual', /con SAS \d/.test(tB), 'sí');
+  si('y los dos textos NO son iguales (el cambio existe)', tA !== tB);
+  // Control: lo que NO se tocó del texto sigue igual palabra por palabra.
+  const linea = (t, re) => (t.split('\n').find(l => re.test(l)) || '');
+  si('el resto de la narrativa quedó intacta (HDN)',
+    linea(tA, /HDN/) === linea(tB, /HDN/), linea(tB, /HDN/));
 }
 
 /* ── 5 · El bug del cache con hitos fantasma quedó cerrado ────────────────── */

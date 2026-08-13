@@ -1,6 +1,6 @@
 # PRD — El SAS que tiene el paciente y el SAS que se persigue
 
-**Estado:** Borrador, esperando cuatro decisiones de Diego
+**Estado:** ✅ Decidido y programado (v5.57-sas, 12-08-2026)
 **Dueño:** Diego Melo Villagrán (coordinador de kinesiología UCI)
 **Creado:** 12-08-2026
 **Alcance:** separar el SAS **actual** de la **meta**, y poder declarar una
@@ -241,35 +241,44 @@ CUANDO el colega marca «sedación vigil»
 
 ---
 
-## 7 · Lo que hay que decidir antes de programar
+## 7 · Las decisiones, resueltas por Diego (12-08-2026)
 
-**D1 · ¿El número que el equipo ha estado escribiendo es el actual o la meta?**
-La app lo narra como meta y lo usa como actual, así que cada colega pudo elegir
-distinto. Necesito saber qué han estado haciendo en la práctica para escribir
-la nota que acompañe a los registros anteriores. **No se van a recalcular**;
-solo se documenta.
+**D1 · Qué ha estado escribiendo el equipo.** Diego: «ha sido dispar, a veces
+la meta a veces lo actual». ⇒ Los registros anteriores a la v5.57 traen **un
+número ambiguo por origen**. NO se recalculan y no se puede: no hay forma de
+saber cuál escribió cada colega. Queda anotado en el esquema, junto a la
+columna, para que nadie lo interprete de más en un análisis futuro.
 
-**D2 · Cómo se declara que la sedación no es profunda.** Tres formas:
+**D2 · Cómo se declara que la sedación no es profunda.** Diego: «lo que sea
+más sencillo que cumpla con el objetivo» ⇒ se aplica la opción **(a)**: una
+casilla **«😌 Sedación vigil / control de agitación»** junto al escalón. Un
+clic, conserva el escalón, y dice explícitamente lo que hay que decir.
 
-- **(a) Una casilla** «sedación vigil / control de agitación» junto al escalón
-  — *mi recomendación*. Un clic, conserva el escalón, y dice explícitamente lo
-  que hay que decir.
-- **(b) Un tipo nuevo** en el desplegable de sedación. Más simple de ver, pero
-  se pierde el escalón.
-- **(c) Derivarlo de la meta**: si la meta es 3 o más, no es profunda. Cero
-  campos nuevos, pero la regla queda implícita — y este proyecto ya se quemó
-  derivando una regla clínica sin declararla (la interfaz que «decidía» que
-  había VNI, v5.41).
+**D3 · La meta se replica.** Diego: «se replica, es de cambio diario» ⇒ viaja
+al turno siguiente marcada en ámbar como heredada (mecanismo `.heredado`), que
+es justamente lo que hace que el colega la vea y la actualice cuando cambia.
 
-**D3 · ¿La meta se replica al turno siguiente?** Propongo que **sí** (es una
-indicación que persiste) y que el SAS actual **no** (es una medición). Si en la
-unidad la meta se revisa cada turno, mejor que no se replique.
+⚠️ **Corrección a lo que proponía este PRD**: yo dije que el SAS actual NO
+debía replicarse. Al implementarlo resultó que **ya se replica** y que está en
+la lista de campos heredados desde antes — o sea que viaja con la marca ámbar
+«viene del turno anterior», que es exactamente la protección que yo quería
+inventar. Se deja como está: cambiarlo habría sido deshacer un mecanismo que ya
+resuelve el problema.
 
-**D4 · La categorización SOCHIMI, que no es parte del pedido pero conviene
-mirar.** Con los cortes actuales, un SAS 6 —agitado— puntúa igual que un SAS 4
-—tranquilo y cooperador—: la matriz premia «más despierto». Con el SAS actual
-bien registrado eso se va a ver más seguido. Los cortes se configuran desde la
-planilla sin tocar código, así que es decisión de la coordinación si se ajusta.
+**D4 · La categorización.** Diego: «por ahora sigue categorizando pero saca de
+todos los lugares la etiqueta de categorización respiratoria y motora».
+
+⇒ El cálculo, las columnas y la serie agregada de Estadísticas **siguen
+intactos**; lo que se apaga es la ETIQUETA en las tres vistas clínicas: la
+tarjeta de cama, el panel de evolución y la ficha de la entrega de turno. Va
+con un interruptor único (`_CAT_ETIQUETA_VISIBLE`) para que reponerla sea una
+línea, y con guardia propia (`checks/cat_etiqueta.js`) que exige que los tres
+lugares lo consulten — quitar dos de tres es el modo de fallo de esta casa.
+
+El gráfico de Estadísticas se conserva a propósito: es donde se mira la serie
+para decidir si la etiqueta vuelve, y sacarlo también dejaría a la coordinación
+sin el dato que justifica la decisión. Si Diego lo quiere fuera igual, es otra
+línea.
 
 ---
 

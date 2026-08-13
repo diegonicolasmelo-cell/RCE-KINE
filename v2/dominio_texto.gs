@@ -75,11 +75,22 @@ function generarTextoEvolucion(d) {
   // El escalón SIEMPRE se narra si existe, con su SAS (ago-2026, reporte de
   // Álvaro vía Diego): la rama de BNM se comía el escalón y el SAS solo salía
   // en dos ramas. Con BNM el escalón va igual — el bloqueo no borra la pauta.
-  const sasTxt = sas ? ` para meta SAS ${sas}` : '';
+  // SAS ACTUAL y META son cosas distintas (ago-2026, PRD_SAS_REAL.md). Hasta
+  // esta versión había un solo número y se narraba como meta: con un paciente
+  // en SAS 6 y meta 4 no había forma de escribir la verdad. Espejo exacto del
+  // cliente — si se cambia uno hay que cambiar el otro (lección de las
+  // secreciones), y la guardia lo comprueba leyendo los dos fuentes.
+  const meta = v('SED_SAS_META');
+  const sasTxt = sas ? ` con SAS ${sas}${meta ? ` (meta ${meta})` : ''}` : (meta ? ` para meta SAS ${meta}` : '');
   const escTxt = (sed && sed !== 'Sin sedación') ? (sed === 'Fuera de escalón' ? 'fuera de escalón' : `en ${sed.toLowerCase()}`) : '';
-  let sedStr = bnm ? `Sedado${escTxt ? ' ' + escTxt : ''}+BNM${sasTxt || ' para meta SAS 1'}.`
+  // La sedación vigil se nombra: es la que NO cuenta como sedación profunda.
+  const vigilTxt = esVerdadero(d.SED_VIGIL) ? ' vigil (control de agitación)' : '';
+  let farm = [];
+  try { farm = JSON.parse(d.SED_FARMACOS || '[]') || []; } catch (e) { farm = []; }
+  const farmTxt = farm.length ? ` con ${farm.map(function (x) { return String(x).toLowerCase(); }).join(', ')}` : '';
+  let sedStr = bnm ? `Sedado${escTxt ? ' ' + escTxt : ''}+BNM${sasTxt || ' para meta SAS 1'}${farmTxt}.`
              : (sed === 'Sin sedación') ? 'Sin sedoanalgesia.'
-             : `Sedado ${escTxt}${sasTxt}.`;
+             : `Sedado${vigilTxt} ${escTxt}${sasTxt}${farmTxt}.`;
   // GCS: el total (SED_GCS_TOT="11T") y la verbal (SED_GCS_V="1T") ya vienen con
   // "T" desde el cliente en intubado; /15 solo para paciente sin VA artificial.
   sedStr += ` GCS ${gcsTot}${intubado ? '' : '/15'} (O:${gcsO}, V:${gcsV}, M:${gcsM})`;

@@ -57,7 +57,12 @@ const { chromium } = require('playwright-core');
     r.texto = txt;
     r.fase = /En proceso de weaning\./.test(txt);
     r.faseVieja = /Fase clínica:/.test(txt);
-    r.sedEscalonConBNM = /Sedado en escalón 2\+BNM para meta SAS 3\./.test(txt);
+    // La frase cambió en ago-2026 al separar el SAS ACTUAL de la META: antes
+    // el único número se narraba como «para meta SAS 3». Lo que esta línea
+    // vigila NO es la redacción sino que el escalón salga JUNTO a su SAS
+    // aunque haya BNM — la rama del bloqueo se comía el escalón (reporte de
+    // Álvaro vía Diego). Aquí `fSAS`=3 es ahora el SAS actual y no hay meta.
+    r.sedEscalonConBNM = /Sedado en escalón 2\+BNM con SAS 3\./.test(txt);
     r.hdnMetaPam = /HDN estable c\/DVA en dosis bajas para meta PAM 65 mmHg\./.test(txt);
     r.totArcada = /TOT N° 8\.0 a 22 cm de arcada dental/.test(txt);
     r.sinFijado = !/fijado a/.test(txt);

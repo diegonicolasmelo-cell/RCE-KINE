@@ -1197,6 +1197,71 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
 
+- **v5.57 · EL SAS QUE TIENE Y EL SAS QUE SE PERSIGUE + LA ETIQUETA DE
+  CATEGORIZACIÓN FUERA DE LA VISTA (12-ago-2026, cohete v5.57-sas; index +
+  `esquema.gs` + `dominio_texto.gs` + `svc_entrega.gs` — ⚠️ **EXIGE
+  `crearORepararEstructura()`**, EVOLUCIONES pasa a **390 columnas**).**
+  Segundo trabajo con el método PRD (`PRD_SAS_REAL.md`). Historia de Diego:
+  paciente en SAS 6 con meta 4, y un solo casillero donde escribirlo.
+  - 🔴 **EL PROBLEMA ERA MAYOR QUE LA ENTREGA.** El campo se narraba como
+    «meta SAS» y **CUATRO decisiones automáticas lo leían como el estado del
+    paciente**: el GCS automático con SAS 1, el límite de KTM al nivel 1, el
+    gate de S5Q/CAM-ICU bajo SAS 3 y la matriz SOCHIMI. Escribiendo el real la
+    evolución mentía sobre el objetivo; escribiendo la meta, la app le abría el
+    S5Q y el CAM-ICU a un paciente agitado y lo puntuaba de bajo riesgo. **No
+    había número correcto.**
+  - **Reparto elegido, y por qué es el barato**: `SED_SAS` pasa a ser
+    oficialmente el **ACTUAL** —que es como esas cuatro decisiones ya lo
+    leían, o sea **sin tocar ninguna** y sin que ningún registro viejo cambie
+    de comportamiento— y la meta viaja en `SED_SAS_META`. Lo único que cambia
+    es la narración: «Sedado en escalón 2 con SAS 6 (meta 4)».
+  - ⚠️ **Los registros anteriores traen un número AMBIGUO POR ORIGEN.** Diego:
+    «el equipo ha sido dispar, a veces la meta a veces lo actual». No se
+    recalculan y no se puede. Anotado junto a la columna en `esquema.gs` para
+    que nadie lo interprete de más en un análisis futuro.
+  - **La fecha de suspensión es de la sedación PROFUNDA.** Se calculaba con
+    «¿el escalón es distinto de *Sin sedación*?», así que anotar precedex para
+    controlar la agitación contaba como volver a sedación profunda y la fecha
+    —el antes y el después para evaluar la respuesta a la suspensión de
+    hipnóticos y para interpretar el GCS— **desaparecía de la entrega**. Ahora
+    la casilla **`SED_VIGIL`** («😌 Sedación vigil / control de agitación»,
+    opción más sencilla, elegida por Diego) la deja intacta. La etiqueta pasó a
+    «💤 Sedación **profunda** suspendida el dd-mm», que dice lo que mide.
+  - **`SED_FARMACOS`**: fentanyl · propofol · midazolam · ketamina · precedex,
+    varios a la vez. **Cuáles, no cuánto** — las dosis viven en la ficha médica.
+  - 🪤 **Corrección al propio PRD**: proponía que el SAS actual NO se replicara
+    al turno siguiente. Al implementarlo resultó que **ya se replica** y que
+    está en `_HER_CAMPOS` desde antes, o sea con la marca ámbar «viene del turno
+    anterior» — la protección exacta que yo quería inventar. Se dejó como
+    estaba; la meta se sumó a esa misma lista (Diego: «se replica, es de cambio
+    diario»).
+  - **⏸️ LA ETIQUETA DE CATEGORIZACIÓN, RETIRADA DE LA VISTA** (pedido suyo en
+    la misma ronda: «por ahora sigue categorizando pero saca de todos los
+    lugares la etiqueta de categorización respiratoria y motora»). El cálculo,
+    las columnas y la serie agregada de Estadísticas **siguen intactos**; se
+    apaga el chip en las TRES vistas clínicas: tarjeta de cama, panel de
+    evolución y ficha de la entrega. Interruptor único
+    **`_CAT_ETIQUETA_VISIBLE`** para que reponerla sea una línea. El gráfico de
+    Estadísticas se conserva a propósito: es donde se mira la serie para decidir
+    si vuelve.
+  - Guardias nuevas: `checks/sas_real.js` (la historia turno a turno, con
+    **control negativo**: con sedación profunda al día 5 la fecha SÍ se borra) y
+    `checks/cat_etiqueta.js` (los tres lugares consultan el interruptor —
+    quitar dos de tres es el modo de fallo de esta casa).
+  - 🪤 **`guardado_viajes.js` se puso roja, y el arreglo enseña algo.** Es un
+    A/B contra un commit fijo y comparaba **el texto de la evolución** byte a
+    byte; como la línea de sedación sale en TODAS, los 8 escenarios difirieron.
+    La narrativa se reescribe cada vez que Diego pide una frase distinta y tiene
+    sus propias guardias, así que ahora se **descuenta** del byte a byte —igual
+    que ya se hacía con la evolución previa de GET_EVO_TURNO— y el cambio se
+    **verifica aparte** (bloque 4b: el base narraba «para meta SAS», hoy narra
+    «con SAS», y el resto de la narrativa quedó palabra por palabra). Descontar
+    sin comprobar habría dejado un punto ciego.
+    OJO: CAMAS_ESTADO guarda una COPIA del texto (`TEXTO_EVO_DIA`/`_NOCHE`) para
+    pintar la tarjeta sin releer EVOLUCIONES — por eso la roja aparecía también
+    ahí y no solo en EVOLUCIONES.
+  - Batería: **73 verdes**.
+
 - **v5.56 · LA DESVINCULACIÓN DEJA AL PACIENTE DONDE QUEDÓ (12-ago-2026, cohete
   v5.56-desvinc; SOLO index, sin cambio de esquema — NO exige
   `crearORepararEstructura()`).** Punto 1 del brainstorm de Diego, y **el
@@ -1391,10 +1456,13 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      pasaron. **ABORDADO en la v5.55** con la decisión que tomó él: se queda
      como reintubación, pero con hora y causa en la entrega y con el tiempo
      extubado bien medido para poder discriminar después. Ver más arriba.
-  3. **Meta SAS ≠ SAS real.** Conviene agregar, **además de la meta SAS, el SAS
+  3. ✅ **Meta SAS ≠ SAS real.** **RESUELTO en la v5.57** — ver el bloque de
+     arriba y `PRD_SAS_REAL.md`. Conviene agregar, **además de la meta SAS, el SAS
      actual** — aplica sobre todo a los pacientes difíciles de sedar — y que
      **en la entrega salga el SAS real**.
-  4. **La sedación vigil con precedex ensucia la interpretación.** En estricto
+  4. ✅ **La sedación vigil con precedex ensucia la interpretación.**
+     **RESUELTO en la v5.57**: casilla de sedación vigil (no reinicia la fecha
+     de suspensión) + lista de sedantes. En estricto
      rigor es sedación y persigue un SAS, pero **lo que se persigue clínicamente
      es saber cuándo se despertó o cuándo se suspendió la sedación profunda,
      porque eso marca un antes y un después** para evaluar la respuesta a la
@@ -2725,8 +2793,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.56-desvinc**
-  (antes v5.55-hitos, v5.54-ventilador, v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.57-sas**
+  (antes v5.56-desvinc, v5.55-hitos, v5.54-ventilador, v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con

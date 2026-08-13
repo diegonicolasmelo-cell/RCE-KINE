@@ -205,11 +205,24 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   // ── Suspensión de sedación y de BNM (pedido de Diego, ago-2026): fecha de
   // la ÚLTIMA transición a «sin». Si después lo re-sedan, se recalcula sola —
   // un valor no vacío significa que HOY sigue suspendida. ──
+  //
+  // 🔴 LA FECHA ES DE LA SEDACIÓN **PROFUNDA** (Diego, ago-2026). Antes la
+  // borraba cualquier escalón distinto de «Sin sedación», así que anotar
+  // precedex para controlar la agitación —que es lo que corresponde
+  // clínicamente— contaba como volver a sedación profunda y la fecha
+  // desaparecía de la entrega. Y esa fecha es justamente el antes y el después
+  // para evaluar la respuesta a la suspensión de hipnóticos y para interpretar
+  // el GCS. Una sedación declarada como VIGIL ya no la toca.
+  const _profunda = function (ev) {
+    const tipo = String(ev.SED_TIPO || '');
+    if (!tipo || tipo === 'Sin sedación') return false;
+    return !esVerdadero(ev.SED_VIGIL);
+  };
   let sedSusp = '', bnmSusp = '', _sedAntes = false, _bnmAntes = false;
   episodio.forEach(function (ev) {
     const tipo = String(ev.SED_TIPO || '');
-    if (tipo && tipo !== 'Sin sedación') { _sedAntes = true; sedSusp = ''; }
-    else if (tipo === 'Sin sedación' && _sedAntes && !sedSusp) sedSusp = dd(ev.FECHA);
+    if (_profunda(ev)) { _sedAntes = true; sedSusp = ''; }
+    else if (tipo && _sedAntes && !sedSusp) sedSusp = dd(ev.FECHA);
     if (esVerdadero(ev.SED_BNM)) { _bnmAntes = true; bnmSusp = ''; }
     else if (_bnmAntes && !bnmSusp) bnmSusp = dd(ev.FECHA);
   });
@@ -334,7 +347,14 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     catResp: { pje: val(c.CAT_RESP_PJE), nivel: val(c.CAT_RESP_NIVEL) },
     catMotor: { pje: val(c.CAT_MOTOR_PJE), nivel: val(c.CAT_MOTOR_NIVEL) },
     sedTipo: e ? val(e.SED_TIPO) : '',
+    // SAS actual + la meta que se persigue, y los sedantes puestos (ago-2026).
     sas: e ? val(e.SED_SAS) : '',
+    sasMeta: e ? val(e.SED_SAS_META) : '',
+    sedVigil: e ? esVerdadero(e.SED_VIGIL) : false,
+    sedFarmacos: (function () {
+      try { const a = JSON.parse((e && e.SED_FARMACOS) || '[]'); return Array.isArray(a) ? a : []; }
+      catch (x) { return []; }
+    })(),
     bnm: e ? esVerdadero(e.SED_BNM) : false,
     cooperacion: val(e && e.SED_COOPERACION, c.ULT_COOP),
     // El valor guardado ya trae el prefijo 'DVA' ('DVA dosis media'); se quita
