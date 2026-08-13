@@ -51,6 +51,66 @@ navegador del hospital o de su casa.
   - Pendiente único de captura: decanulación con racha de válvula de fonación
     (exige historial de varios turnos reales).
 
+## Método PRD — «Escribe tu maldito PRD» (12-ago-2026, traído por Diego)
+
+Diego mandó el PDF del método y pidió dejarlo en memoria. Es una forma de
+**escribir la estructura ANTES de promptear**: el documento fija el
+razonamiento y recién después se pide «implementa al 100% @mi-prd.md».
+
+- **Qué contiene un PRD**: la historia (antes y después) · hoy → mañana ·
+  las tablas y entidades que se tocan · pseudo-código · la explicación de
+  los cambios.
+- **Qué NUNCA contiene**: código final, la implementación exacta, pantallas
+  terminadas, configuración.
+- **Todo empieza con una historia**, contable en palabras y sin tecnicismos.
+  No «escuchar el cambio de estado, agendar la tarea»; sí «Marta cerró su
+  compra un viernes a las 6 y nadie la llamó». La historia dice **quién es
+  el usuario, cómo lo usa, cuál es el dolor y qué experiencia quiere vivir**;
+  todo lo demás existe para hacerla realidad. Si la historia no convence, el
+  resto no importa.
+- **El tamaño lo decide el cambio**: un ajuste = 1 página · una
+  funcionalidad = 3-8 · una funcionalidad grande = 10+ · un producto nuevo =
+  varios PRDs anidados (cada uno con su propia historia; ninguno carga con
+  todo el peso).
+- **Anatomía, en orden**: 0 encabezado (estado · dueño · alcance, y qué
+  queda FUERA) · 1 resumen hoy/después en dos líneas · 2 la historia
+  (ANTES/DESPUÉS, con nombre y momento) · 3 objetivos y **no-objetivos** con
+  identificador, que las secciones siguientes citan y que frenan el «ya que
+  estamos…» · 4 el flujo dibujado dos veces (cómo funciona hoy → cómo va a
+  funcionar) · 5 los datos (qué dispara, qué interruptores hay, qué candado
+  evita hacerlo dos veces) · 6 pseudo-código como acuerdo (CUANDO… ¿guardas?
+  → ENTONCES…, más las promesas).
+- **La única regla dura**: el PRD fija la estructura en pseudo-código y
+  explicaciones, **nunca en código final**. «Si la estructura está bien en
+  papel, el código es la parte fácil; si está mal, ningún código la arregla.»
+
+**Cómo aterriza EN ESTE proyecto** (lectura propia, para no aplicarlo a
+ciegas):
+- La mitad del método ya se practica sin nombrarla: los mockups antes de
+  programar (hoja de registro, celular, entrega), las decisiones clínicas
+  cerradas con Diego antes de tocar código, y esta bitácora como memoria del
+  porqué. Lo que **falta** son los pasos 4-5-6 escritos ANTES: el flujo
+  hoy→mañana, el plano de datos y el pseudo-código.
+- 🔴 **Adaptación obligatoria**: aquí el trabajo típico no es software nuevo
+  sino **cambiar una regla clínica que ya vive en cuatro sitios** (servidor,
+  espejo del cliente, imprimible y chip). Un PRD que no traiga el
+  **inventario de consumidores** en su sección «los datos» repite el error de
+  los filtros, del «día con VM» y de las secreciones. El RAG los encuentra en
+  un comando: ése es el insumo de esa sección.
+- **Dónde habría cambiado el resultado**: la reversión del filtro por
+  `PATIENT_ID` (6-ago) se implementó, pasó su guardia y pasó las 54 de la
+  batería — y se revirtió porque escondía pronaciones verdaderas. Un PRD con
+  la historia («qué le pasa al paciente al que se le repara la cama y se
+  re-ingresa») y con no-objetivos lo habría cazado en papel, gratis.
+- **Dónde NO habría servido**: la cama 7 (12-ago). La causa no salió de
+  ningún documento sino de un dato de terreno de Diego en una línea.
+- **Cuándo se paga**: la mayoría de lo que pide Diego son ajustes de 1
+  página. El PRD completo vale la pena en lo que toca esquema y consumidores
+  repartidos — la desvinculación con estado posterior, el SAS real, el
+  rediseño de captura en el celular.
+- El PDF original **no quedó guardado en el repo** (el copiado no se pudo
+  aprobar en esa sesión); si hace falta tenerlo a mano, pedírselo de nuevo.
+
 ## Arquitectura
 
 - **Repo = verdad.** `v2/*.gs` + `v2/index.html` (fuente, sin minificar).
