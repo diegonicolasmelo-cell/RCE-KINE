@@ -1375,8 +1375,9 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   *NO* PROGRAMADOS NI ANALIZADOS** (pedido explícito suyo: «no programes ni
   analices nada, haré un brainstorming»). Quedan aquí en sus palabras para
   retomarlos cuando él lo decida.
-  1. **La desvinculación debería tener «estado previo → cómo queda», como la
-     extubación.** El turno anterior le entregó un paciente **desvinculado y
+  1. ✅ **La desvinculación debería tener «estado previo → cómo queda», como la
+     extubación.** **RESUELTO en la v5.56** — ver el bloque de arriba y
+     `PRD_DESVINCULACION.md`. El turno anterior le entregó un paciente **desvinculado y
      aún sin reconexión**, porque evolucionó favorablemente. Sale la hora de
      desvinculación y todo el detalle de la VM, pero **como estado actual no
      salía la cánula de alto flujo sino CPAP/PS todavía**; recién al evolucionar
