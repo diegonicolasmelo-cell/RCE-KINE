@@ -1,0 +1,233 @@
+<title>FSS-ICU sin inventar el total</title>
+<style>
+:root{
+  --bg:#f7f6f3; --card:#fff; --txt:#37352f; --muted:#787066; --border:#e9e5e0;
+  --primary:#2a6395; --pdark:#1f4e77; --ok:#2f7a4c; --danger:#dc2626; --warn:#d97706;
+  --fisico:#0d7f8c; --sombra:0 1px 2px rgba(55,53,47,.06), 0 10px 30px -18px rgba(55,53,47,.35);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1b1a18; --card:#252422; --txt:#e9e6e1; --muted:#a09991; --border:#3a3835;
+    --primary:#6aa3d8; --pdark:#8ab8e4; --ok:#5cb98a; --danger:#ef7f7f; --warn:#e0a44a;
+    --fisico:#4fb3bf; --sombra:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1b1a18; --card:#252422; --txt:#e9e6e1; --muted:#a09991; --border:#3a3835;
+  --primary:#6aa3d8; --pdark:#8ab8e4; --ok:#5cb98a; --danger:#ef7f7f; --warn:#e0a44a;
+  --fisico:#4fb3bf; --sombra:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:15px; line-height:1.6;
+}
+.wrap{max-width:760px;margin:0 auto;padding:40px 20px 80px;}
+h1{font-size:1.6rem;line-height:1.2;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance;}
+h2{font-size:1.02rem;margin:0 0 10px;letter-spacing:-.005em;}
+p{margin:0 0 12px;}
+.lede{color:var(--muted);margin-bottom:0;}
+.eyebrow{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;margin-bottom:10px;}
+header{border-bottom:2px solid var(--txt);padding-bottom:18px;margin-bottom:30px;}
+section{margin-top:38px;}
+.tag{display:inline-block;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;font-weight:800;padding:2px 8px;border-radius:3px;font-family:ui-monospace,Menlo,monospace;}
+.tag-ok{background:#2f7a4c1f;color:var(--ok);border:1px solid #2f7a4c55;}
+.tag-prop{background:#d976061f;color:var(--warn);border:1px solid #d9760655;}
+
+/* ── Réplica del modal de la app ─────────────────────────── */
+.modal{background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--sombra);overflow:hidden;margin-bottom:14px;}
+.phdr{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--card) 92%,var(--txt));}
+.ptitle{font-size:.9rem;font-weight:800;flex:1 1 0;}
+.xbtn{border:none;background:none;color:var(--muted);font-size:1.2rem;cursor:default;line-height:1;}
+.mbody{padding:15px 16px;}
+.row{display:flex;flex-wrap:wrap;gap:10px;}
+.col{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.col.full{flex:1 1 100%;}
+label.f{font-size:.72rem;font-weight:700;color:var(--muted);}
+select{
+  height:31px;font-size:.79rem;font-family:inherit;border:1px solid var(--border);
+  border-radius:6px;padding:0 8px;background:var(--card);color:var(--txt);max-width:100%;
+}
+select:focus-visible{outline:2px solid var(--primary);outline-offset:1px;}
+select.ne{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--card));color:var(--warn);font-weight:700;}
+.resumen{margin-top:12px;padding:9px 12px;border-radius:7px;font-size:.82rem;font-weight:700;border:1px solid;}
+.r-ok{background:color-mix(in srgb,var(--ok) 10%,var(--card));border-color:#2f7a4c55;color:var(--ok);}
+.r-parcial{background:color-mix(in srgb,var(--muted) 10%,var(--card));border-color:var(--border);color:var(--muted);}
+.r-no{background:color-mix(in srgb,var(--danger) 9%,var(--card));border-color:#dc262655;color:var(--danger);}
+.reglas{margin-top:11px;padding:10px 12px;background:color-mix(in srgb,var(--card) 94%,var(--txt));border:1px solid var(--border);border-radius:7px;font-size:.73rem;color:var(--muted);line-height:1.55;}
+.reglas b{color:var(--txt);}
+.mpie{padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--txt);font:inherit;font-size:.8rem;font-weight:700;padding:5px 14px;border-radius:6px;cursor:default;}
+
+.nota{margin-top:14px;padding-left:14px;border-left:2px solid var(--border);color:var(--muted);font-size:.9rem;}
+.opcion{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--border);border-radius:6px;padding:15px 17px;margin-bottom:12px;box-shadow:var(--sombra);}
+.opcion.rec{border-left-color:var(--ok);}
+.opcion h3{margin:0 0 6px;font-size:.95rem;}
+.opcion p:last-child{margin-bottom:0;}
+ul{margin:0 0 12px;padding-left:20px;} li{margin-bottom:5px;}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary);padding:1px 5px;border-radius:3px;}
+.demo-nota{font-size:.76rem;color:var(--muted);margin-top:8px;font-style:italic;}
+@media (max-width:620px){ .wrap{padding:28px 15px 60px;} select{width:100%;} .col{flex:1 1 100%;} }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">RCE-KINE · mockup · 12 de agosto de 2026</div>
+  <h1>El total que hoy se inventa</h1>
+  <p class="lede">Arriba, cómo quedó la ventana con las descripciones de la tarjeta de bolsillo — eso ya está en el archivo que te mandé. Abajo, lo único que falta: qué hacer cuando una actividad no se pudo evaluar. Prueba los desplegables.</p>
+</header>
+
+<section>
+  <h2><span class="tag tag-ok">Ya programado</span> &nbsp;Cómo se ve ahora</h2>
+  <p>Cada puntaje se lee completo. Los ítems 1 a 4 comparten escala; la marcha tiene la suya, con las distancias.</p>
+
+  <div class="modal">
+    <div class="phdr"><span class="ptitle">📏 FSS-ICU por ítem</span><button class="xbtn" aria-hidden="true">×</button></div>
+    <div class="mbody">
+      <div class="row" id="filaA"></div>
+      <div class="resumen r-parcial" id="sumA">Sin puntajes todavía</div>
+      <div class="reglas">
+        <b>Reglas de puntuación</b> — versión chilena de bolsillo<br>
+        · Se puntúa lo que el paciente hace <b>en esta sesión</b>, no lo que se le vio hacer antes.<br>
+        · La asistencia de <b>equipos y monitorización</b> del evaluador no cuenta como asistencia física.<br>
+        · Lo completado <b>con tecle o grúa por debilidad</b> puntúa <b>0</b>.<br>
+        · Marcha: mayor distancia <b>sin descanso sentado</b>. En silla de ruedas el máximo es <b>6</b>.<br>
+        · Si una actividad no se hace <b>por una razón distinta a la debilidad</b> no se puntúa: con hasta 2 así, se les asigna el promedio de las realizadas; con más de 2, el total no se puede calcular.
+      </div>
+    </div>
+    <div class="mpie"><button class="btn">Cerrar</button></div>
+  </div>
+  <p class="demo-nota">Esta ventana suma a secas: si dejas ítems vacíos dice «faltan N». La regla del último punto está escrita, pero la app todavía no la aplica.</p>
+</section>
+
+<section>
+  <h2><span class="tag tag-prop">Propuesta</span> &nbsp;Lo que falta</h2>
+
+  <p>El <b>0</b> de la escala significa una cosa muy concreta: <b>incapaz por debilidad</b>. No es lo mismo que «no se pudo evaluar» — el paciente rechazó, estaba en pabellón, un equipo lo impedía. Hoy la app no distingue las dos, y quien deja el casillero vacío se queda sin total.</p>
+
+  <div class="opcion rec">
+    <h3>Opción A — una opción más en el desplegable <span class="tag tag-ok" style="vertical-align:2px;">recomendada</span></h3>
+    <p>«No evaluado» entra como una opción más, arriba del 0. Ningún elemento nuevo en pantalla, ninguna columna nueva, y el colega elige en el mismo gesto de siempre.</p>
+  </div>
+
+  <div class="opcion">
+    <h3>Opción B — una casilla al lado de cada ítem</h3>
+    <p>Una casillita «no evaluado» junto a cada desplegable. Se ve más explícito, pero son cinco controles nuevos y dos clics en vez de uno.</p>
+  </div>
+
+  <p><b>Así se comportaría la opción A.</b> Marca uno o dos ítems como «no evaluado» y mira el total; después marca un tercero.</p>
+
+  <div class="modal">
+    <div class="phdr"><span class="ptitle">📏 FSS-ICU por ítem</span><button class="xbtn" aria-hidden="true">×</button></div>
+    <div class="mbody">
+      <div class="row" id="filaB"></div>
+      <div class="resumen r-parcial" id="sumB">Sin puntajes todavía</div>
+      <div class="reglas" id="explicaB">El detalle del cálculo aparece aquí.</div>
+    </div>
+    <div class="mpie"><button class="btn">Cerrar</button></div>
+  </div>
+
+  <p class="nota">El promedio se aplica <b>al puntaje</b>, no al registro: en la planilla el ítem queda marcado como no evaluado, y el total anota que se calculó con la regla oficial. Así el dato sigue diciendo la verdad y el número sigue siendo comparable.</p>
+</section>
+
+<section>
+  <h2>Lo que necesito que decidas</h2>
+  <ul>
+    <li><b>A o B</b> — cómo se declara el «no evaluado».</li>
+    <li>Cuando el total <b>no se puede calcular</b> (más de dos sin evaluar): ¿el campo FSS queda <b>vacío</b>, como propongo, o prefieres que guarde el parcial con una marca?</li>
+    <li>¿Quieres que la <b>razón</b> del no evaluado se anote (rechazo · pabellón · inestabilidad · equipo)? Es una columna más y un clic más; sin ella el registro solo dice que no se hizo.</li>
+  </ul>
+  <p class="nota">Nada de esto está programado. Con tu respuesta escribo el PRD corto y lo aplico — no toca lo que ya te mandé.</p>
+</section>
+
+</div>
+
+<script>
+const ITEMS=[
+  {n:'1. Girar en cama',      esc:'comun'},
+  {n:'2. Supino → sedente',   esc:'comun'},
+  {n:'3. Sedente borde cama', esc:'comun'},
+  {n:'4. Sedente → bípedo',   esc:'comun'},
+  {n:'5. Marcha',             esc:'marcha'},
+];
+const COMUN=[
+  ['0','0 — Incapaz de intentar o completar por debilidad'],
+  ['1','1 — Dependiente: se realiza, no asiste en absoluto'],
+  ['2','2 — Asistencia máxima: realiza ≤25%'],
+  ['3','3 — Asistencia moderada: realiza 26-74%'],
+  ['4','4 — Asistencia mínima: realiza ≥75%'],
+  ['5','5 — Supervisión: indicaciones, sin asistencia física'],
+  ['6','6 — Independiente modificado: usa baranda o dispositivo'],
+  ['7','7 — Independiente: sin asistencia ni dispositivos'],
+];
+const MARCHA=[
+  ['0','0 — Incapaz de intentar o completar por debilidad'],
+  ['1','1 — Menos de 15 m con 1 persona, o cualquier distancia con 2'],
+  ['2','2 — ≥15 m con asistencia de 1 persona'],
+  ['3','3 — ≥45 m, realiza 50-74%'],
+  ['4','4 — ≥45 m, realiza ≥75%'],
+  ['5','5 — ≥45 m con supervisión, sin asistencia física'],
+  ['6','6 — ≥45 m con bastón, andador, órtesis o prótesis'],
+  ['7','7 — ≥45 m sin asistencia ni dispositivos'],
+];
+function pintar(cont, conNE, onch){
+  ITEMS.forEach((it,i)=>{
+    const col=document.createElement('div'); col.className='col full';
+    const lb=document.createElement('label'); lb.className='f'; lb.textContent=it.n;
+    const s=document.createElement('select'); s.dataset.i=i;
+    s.appendChild(new Option('--',''));
+    if(conNE) s.appendChild(new Option('⊘ No evaluado (razón distinta a debilidad)','ne'));
+    (it.esc==='marcha'?MARCHA:COMUN).forEach(([v,t])=>s.appendChild(new Option(t,v)));
+    s.addEventListener('change',()=>{ s.classList.toggle('ne', s.value==='ne'); onch(); });
+    col.appendChild(lb); col.appendChild(s); cont.appendChild(col);
+  });
+}
+const vals = cont => Array.from(cont.querySelectorAll('select')).map(s=>s.value);
+
+// ── Ventana A: como está hoy, suma a secas ──
+const filaA=document.getElementById('filaA'), sumA=document.getElementById('sumA');
+function calcA(){
+  const v=vals(filaA).filter(x=>x!=='');
+  if(!v.length){ sumA.className='resumen r-parcial'; sumA.textContent='Sin puntajes todavía'; return; }
+  const s=v.reduce((a,x)=>a+parseInt(x),0);
+  if(v.length===5){ sumA.className='resumen r-ok'; sumA.textContent='Total FSS-ICU: '+s+'/35 (copiado al campo FSS)'; }
+  else { sumA.className='resumen r-parcial'; sumA.textContent='Parcial: '+s+' — faltan '+(5-v.length)+' ítem(s) para el total'; }
+}
+pintar(filaA,false,calcA); calcA();
+
+// ── Ventana B: con «no evaluado» y la regla oficial ──
+const filaB=document.getElementById('filaB'), sumB=document.getElementById('sumB'), expB=document.getElementById('explicaB');
+function calcB(){
+  const v=vals(filaB);
+  const puntuados=v.filter(x=>x!=='' && x!=='ne').map(Number);
+  const ne=v.filter(x=>x==='ne').length;
+  const vacios=v.filter(x=>x==='').length;
+  if(!puntuados.length && !ne){ sumB.className='resumen r-parcial'; sumB.textContent='Sin puntajes todavía';
+    expB.textContent='El detalle del cálculo aparece aquí.'; return; }
+  if(vacios){ sumB.className='resumen r-parcial';
+    sumB.textContent='Parcial — faltan '+vacios+' ítem(s) por registrar';
+    expB.innerHTML='Registra los cinco ítems (con puntaje o como <b>no evaluado</b>) para cerrar el total.'; return; }
+  if(ne>2){
+    sumB.className='resumen r-no';
+    sumB.textContent='El total FSS-ICU NO se puede calcular';
+    expB.innerHTML='<b>'+ne+' actividades sin evaluar</b> por razones distintas a la debilidad. La regla oficial dice que con más de 2 el total no es válido, así que <b>el campo FSS queda vacío</b> en vez de guardar un número que no significa nada.';
+    return;
+  }
+  const suma=puntuados.reduce((a,x)=>a+x,0);
+  if(!ne){
+    sumB.className='resumen r-ok'; sumB.textContent='Total FSS-ICU: '+suma+'/35';
+    expB.innerHTML='Los cinco ítems puntuados. Suma directa.'; return;
+  }
+  const prom=suma/puntuados.length;
+  const total=Math.round((suma+prom*ne)*10)/10;
+  sumB.className='resumen r-ok';
+  sumB.textContent='Total FSS-ICU: '+String(total).replace('.',',')+'/35';
+  expB.innerHTML='<b>'+ne+' actividad'+(ne===1?'':'es')+' sin evaluar.</b> Se le'+(ne===1?'':'s')+
+    ' asigna el promedio de las '+puntuados.length+' realizadas ('+String(Math.round(prom*10)/10).replace('.',',')+
+    ' puntos cada una), como manda la versión de bolsillo. '+suma+' + '+String(Math.round(prom*ne*10)/10).replace('.',',')+
+    ' = <b>'+String(total).replace('.',',')+'</b>.';
+}
+pintar(filaB,true,calcB); calcB();
+</script>
