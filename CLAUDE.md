@@ -1197,6 +1197,48 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
 
+- **v5.58 · FSS-ICU Y MRC CON LA DESCRIPCIÓN A LA VISTA (12-ago-2026, cohete
+  v5.58-escalas; SOLO index, sin cambio de esquema — NO exige
+  `crearORepararEstructura()`).** Punto 5 del brainstorm de Diego. No es
+  cosmética: **toda la confiabilidad interobservador publicada de las dos
+  escalas se midió con evaluadores usando las definiciones operacionales
+  estandarizadas**, así que un equipo que puntúa de memoria está usando una
+  escala distinta de la que se validó — y con turnos rotando, ése es el
+  escenario donde la concordancia se cae.
+  - **FSS-ICU · versión chilena DE BOLSILLO** (PocketCard 28.08.18 —
+    González-Seguel, Camus-Molina, Guimarães, Needham, Zanni y el grupo OACIS
+    de Johns Hopkins), que mandó Diego. Cada opción se lee completa
+    («4 — Asistencia mínima: realiza ≥75%») y los ítems **1 a 4 comparten
+    escala**; la **marcha tiene la suya**, con distancias. Más un recuadro con
+    las reglas de puntuación: se puntúa la sesión y no lo visto antes; la
+    asistencia de equipos del evaluador no cuenta; lo completado con tecle o
+    grúa por debilidad puntúa 0; la marcha es la mayor distancia sin descanso
+    sentado y en silla de ruedas el máximo es 6; y la actividad no realizada
+    **por una razón distinta a la debilidad no se puntúa** —hasta 2 se les
+    asigna el promedio de las realizadas, con más de 2 el total NO se puede
+    calcular—.
+  - ✅ **EL ORDEN DE LOS ÍTEMS ES EL DE LA UNIDAD, NO EL DEL DOCUMENTO LARGO.**
+    Al comparar salió que el documento oficial pone «sedente a bípedo» de 3 y
+    «mantenerse sentado» de 4, al revés que la app. Diego: «el FSS-ICU es como
+    sale en nuestra plataforma». Se deja como está — el total es la suma, así
+    que el orden no mueve ningún número.
+  - **MRC: la escala va como LEYENDA ÚNICA**, no repetida en los 12
+    casilleros (peso del index y, sobre todo, doce copias que se
+    desincronizan al primer cambio). ⚠️ Es la graduación estándar 0-5: Diego
+    no encontró una traducción oficial de la unidad («es la comúnmente
+    usada»), así que si el protocolo local dice otra cosa **se cambia en un
+    solo lugar**.
+  - 🔴 **El modo de fallo que la guardia existe para impedir**: el VALOR
+    guardado sigue siendo el NÚMERO (`<option value="4">4 — …</option>`). Si
+    alguien escribe la descripción sin `value`, la planilla empieza a guardar
+    la frase entera y se rompen el total, la interpretación y el histórico.
+    `checks/escalas_desc.js` lo asserta opción por opción.
+  - ⏳ **Pendiente anotado, no programado**: la regla oficial del promedio /
+    «no se puede calcular» está a la VISTA pero `sumFSS` sigue sumando a secas,
+    y el `0` de la app no distingue «incapaz por debilidad» de «no evaluado».
+    Programarlo exige decidir con Diego cómo se declara el «no evaluado».
+  - Batería: **74 verdes**.
+
 - **v5.57 · EL SAS QUE TIENE Y EL SAS QUE SE PERSIGUE + LA ETIQUETA DE
   CATEGORIZACIÓN FUERA DE LA VISTA (12-ago-2026, cohete v5.57-sas; index +
   `esquema.gs` + `dominio_texto.gs` + `svc_entrega.gs` — ⚠️ **EXIGE
@@ -1469,7 +1511,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      suspensión de hipnóticos, opiáceos y sedantes y para evaluar el GCS.
      Quizás convenga agregar **combinación de sedantes**: fentanyl · propofol ·
      midazolam · ketamina · precedex.
-  5. **FSS-ICU (y MRC) con descripción a la vista.** Hoy solo aparecen números;
+  5. ✅ **FSS-ICU (y MRC) con descripción a la vista.** **RESUELTO en la
+     v5.58** con la versión chilena de bolsillo que mandó Diego. Hoy solo aparecen números;
      existe la versión **con descripción** de cada ítem. Quizás se pueda evaluar
      mejor con **feedback visual de qué se trata cada puntaje**: tener la info al
      lado refresca la memoria y apoya el recuerdo.
@@ -2793,8 +2836,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.57-sas**
-  (antes v5.56-desvinc, v5.55-hitos, v5.54-ventilador, v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.58-escalas**
+  (antes v5.57-sas, v5.56-desvinc, v5.55-hitos, v5.54-ventilador, v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con

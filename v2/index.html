@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.57-sas">
+<meta name="rce-version" content="5.58-escalas">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4032,6 +4032,21 @@ document.documentElement.setAttribute('data-piel', 'inst');
         <td><select id="fMrcI6" onchange="sumMRC()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></td></tr>
     </table>
     <div class="resumen" id="mrcItSum" style="font-size:.8rem;color:var(--muted);margin-top:10px;"></div>
+    <!-- La escala es la MISMA para los 12 casilleros, así que va como leyenda y
+         no repetida doce veces (peso del index). ⚠️ Es la graduación MRC
+         estándar: Diego no encontró una versión traducida oficial de la unidad
+         («es la comúnmente usada»). Si el protocolo local usa otra redacción,
+         se cambia AQUÍ y en ningún otro lado. -->
+    <div style="margin-top:10px;padding:9px 11px;background:#f8fafc;border:1px solid var(--line);border-radius:7px;font-size:.72rem;color:var(--muted);line-height:1.6;">
+      <b style="color:#334155;">Graduación MRC (0-5)</b><br>
+      <b>0</b> — sin contracción visible ni palpable ·
+      <b>1</b> — contracción visible o palpable, sin movimiento ·
+      <b>2</b> — movimiento completo eliminando la gravedad<br>
+      <b>3</b> — movimiento completo contra gravedad ·
+      <b>4</b> — movimiento contra gravedad y resistencia ·
+      <b>5</b> — fuerza normal<br>
+      <span style="color:#94a3b8;">Requiere cooperación (S5Q ≥3). Debilidad adquirida en UCI con total ≤48; severa bajo 36.</span>
+    </div>
   </div>
   <div style="padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;">
     <button type="button" id="mMrcEdit" class="btn btn-r hidden" style="width:auto;padding:0 16px;" onclick="_setEvalReadonly('mrc',false)">✏️ Editar</button>
@@ -4045,14 +4060,28 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <button class="xbtn" onclick="cerrarEvalModal('fss')" aria-label="Cerrar">×</button>
   </div>
   <div id="mFssBody" style="padding:16px 18px;overflow-y:auto;">
+    <!-- Descripciones de la VERSIÓN DE BOLSILLO chilena de la FSS-ICU (Diego,
+         ago-2026: «el FSS-ICU es como sale en nuestra plataforma, considera la
+         versión pocket»). El ORDEN de los ítems es el de la unidad, que no es
+         el del documento largo — el total es la suma, así que no cambia nada.
+         Los ítems 1 a 4 comparten escala; la marcha tiene la suya.
+         El VALOR sigue siendo el número: lo que cambia es lo que se lee. -->
     <div class="row" style="flex-wrap:wrap;">
-      <div class="col wa"><label>1. Girar en cama</label><select id="fFssIt1" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-      <div class="col wa"><label>2. Supino → sedente</label><select id="fFssIt2" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-      <div class="col wa"><label>3. Sedente borde cama</label><select id="fFssIt3" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-      <div class="col wa"><label>4. Sedente → bípedo</label><select id="fFssIt4" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
-      <div class="col wa"><label>5. Marcha</label><select id="fFssIt5" onchange="sumFSS()"><option value="">--</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></div>
+      <div class="col wa"><label>1. Girar en cama</label><select id="fFssIt1" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa baranda o dispositivo</option><option value="7">7 — Independiente: sin asistencia ni dispositivos</option></select></div>
+      <div class="col wa"><label>2. Supino → sedente</label><select id="fFssIt2" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa baranda o dispositivo</option><option value="7">7 — Independiente: sin asistencia ni dispositivos</option></select></div>
+      <div class="col wa"><label>3. Sedente borde cama</label><select id="fFssIt3" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa manos o baranda</option><option value="7">7 — Independiente: manos libres, sin apoyarse</option></select></div>
+      <div class="col wa"><label>4. Sedente → bípedo</label><select id="fFssIt4" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa apoyabrazos o baranda</option><option value="7">7 — Independiente: sin empujarse de nada</option></select></div>
+      <div class="col wa"><label>5. Marcha</label><select id="fFssIt5" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Menos de 15 m con 1 persona, o cualquier distancia con 2 (asistencia total)</option><option value="2">2 — ≥15 m con asistencia de 1 persona (asistencia máxima)</option><option value="3">3 — ≥45 m, realiza 50-74% (asistencia moderada)</option><option value="4">4 — ≥45 m, realiza ≥75% (asistencia mínima o contacto manual)</option><option value="5">5 — ≥45 m con supervisión, sin asistencia física</option><option value="6">6 — ≥45 m con bastón, andador, órtesis o prótesis</option><option value="7">7 — ≥45 m sin asistencia ni dispositivos</option></select></div>
     </div>
     <div class="resumen" id="fssItSum" style="font-size:.8rem;color:var(--muted);margin-top:10px;"></div>
+    <div style="margin-top:10px;padding:9px 11px;background:#f8fafc;border:1px solid var(--line);border-radius:7px;font-size:.72rem;color:var(--muted);line-height:1.5;">
+      <b style="color:#334155;">Reglas de puntuación</b> — versión chilena de bolsillo<br>
+      · Se puntúa lo que el paciente hace <b>en esta sesión</b>, no lo que se le vio hacer antes.<br>
+      · La asistencia de <b>equipos y monitorización</b> del evaluador no cuenta como asistencia física.<br>
+      · Lo completado <b>con tecle o grúa por debilidad</b> puntúa <b>0</b>.<br>
+      · Marcha: mayor distancia <b>sin descanso sentado</b>. En silla de ruedas el máximo es <b>6</b>.<br>
+      · Si una actividad no se hace <b>por una razón distinta a la debilidad</b> (rechazo, un equipo lo impide) <b>no se puntúa</b>: con hasta 2 así, se les asigna el promedio de las realizadas; con más de 2, el total no se puede calcular.
+    </div>
   </div>
   <div style="padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;">
     <button type="button" id="mFssEdit" class="btn btn-r hidden" style="width:auto;padding:0 16px;" onclick="_setEvalReadonly('fss',false)">✏️ Editar</button>
@@ -4195,7 +4224,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.57-sas]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.58-escalas]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
