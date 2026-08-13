@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.55-hitos">
+<meta name="rce-version" content="5.56-desvinc">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -2939,13 +2939,13 @@ document.documentElement.setAttribute('data-piel', 'inst');
                     <div class="col wa"><label>Hora desvinculación</label>
                       <input type="time" id="fDesvincHora" onchange="calcDesvinc()" style="height:30px;"></div>
                     <div class="col wa"><label>Queda con</label>
-                      <select id="fDesvincA" style="height:30px;min-width:170px;">
+                      <select id="fDesvincA" onchange="_rtxtLive&&_rtxtLive()" style="height:30px;min-width:170px;">
                         <option value="">-- Seleccionar --</option>
                         <option>Tubo T</option>
                         <option>HME</option>
-                        <option>Válvula de fonación</option>
-                        <option>Traqueostomía con O2 (naricera/máscara)</option>
-                        <option>CNAF / OAF</option>
+                        <option>CTAF</option>
+                        <option>Válvula de fonación con O2</option>
+                        <option>Válvula de fonación sin O2</option>
                         <option>Ambiente</option>
                       </select></div>
                     <div class="col wa"><label>Motivo</label>
@@ -4165,7 +4165,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.55-hitos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.56-desvinc]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5646,7 +5646,11 @@ function _podarEventosPayload(p){
   // El estado FINAL de VA y el pliegue de contadores se derivan de los eventos:
   // si el turno guardado ya tiene un evento y ahora no hay ninguno activo
   // (reapertura para corregir otra cosa), no se recalculan — se preservan.
-  const algunEvento=pveActivo||decanActivo||tqtActivo||$('cIntubO')?.checked||$('cReintubT')?.checked||$('cReintub')?.checked||$('cReintubNo')?.checked;
+  // 🪤 La desvinculación entra aquí desde ago-2026, cuando pasó a decidir el
+  // estado final del turno. Sin ella, reabrir el turno para corregir la firma
+  // borraba del payload los VENT_*_FINAL y la cama volvía a decir VM — el
+  // mismo modo de fallo que ya se pagó con la TQT en la v4.6.
+  const algunEvento=pveActivo||decanActivo||tqtActivo||$('cIntubO')?.checked||$('cReintubT')?.checked||$('cReintub')?.checked||$('cReintubNo')?.checked||$('cDesvinc')?.checked;
   if(_evoEventoGuardado && !algunEvento)
     del(['VENT_VIA_AEREA_FINAL','VENT_SOPORTE_FINAL','VENT_MODO_FINAL','DIAS_VM_PREVIOS','FECHA_INICIO_VM','FECHA_INICIO_VNI','DIAS_VNI_PREVIOS']);
 }
@@ -6290,16 +6294,22 @@ function guardar() {
                         : (_extOcurrio() && !_extReintub()) ? peVAext()
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'Natural')
                         : v('fVA'),
+    // La DESVINCULACIÓN entra a esta cascada (ago-2026). No estaba, y por eso
+    // la cama seguía diciendo «VM · CPAP/PS» con el paciente ya respirando por
+    // su cuenta: no era un cálculo malo, era una pregunta que nadie hacía.
+    // Va al final a propósito — solo manda si no hubo una transición de vía
+    // aérea, que es un cambio mayor. Y no toca VENT_VIA_AEREA_FINAL: al
+    // desvincularse el paciente sigue traqueostomizado.
     VENT_SOPORTE_FINAL:   $('cIntubO')?.checked ? (v('poIntubSop')||'VM')
                         : $('cTqtO')?.checked ? (v('poTqtSop')||'VM')
                         : (_extOcurrio() && !_extReintub()) ? peSopext()
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? 'Oxigenoterapia/OAF'
-                        : v('fSop'),
+                        : (_desvincQueda() ? _desvincQueda().sop : v('fSop')),
     VENT_MODO_FINAL:      $('cIntubO')?.checked ? (v('poIntubModo')||'')
                         : $('cTqtO')?.checked ? (v('poTqtModo')||'')
                         : (_extOcurrio() && !_extReintub()) ? (_extPeModo()||'')
                         : ($('cDecanOcurrio')?.checked && !$('cRecanul')?.checked) ? (v('fDecanQueda')||'')
-                        : v('fModo'),
+                        : (_desvincQueda() ? _desvincQueda().modo : v('fModo')),
     // Estado POSTERIOR del evento de vía aérea (el previo vive en VENT_*)
     INTUB_VA_POST:   bv('cIntubO') ? (v('poIntubVA')||'TOT') : '',
     INTUB_SOP_POST:  bv('cIntubO') ? (v('poIntubSop')||'VM') : '',
@@ -8903,7 +8913,12 @@ const VMAPS={
   '':         {sops:[''],                              modos:{'':['']}},
   'Natural':  {sops:['Ambiente','Oxigenoterapia/OAF'],  modos:{'Ambiente':['Sin soporte'],'Oxigenoterapia/OAF':['NRC','MMV','MR','CNAF']}},
   'TOT':      {sops:['VM','Oxigenoterapia/OAF'],         modos:{'VM':['ACVC','ACPC','CPAP/PS'],'Oxigenoterapia/OAF':['HME','Tubo T','CNAF']}},
-  'TQT':      {sops:['VM','Oxigenoterapia/OAF','Ambiente'], modos:{'VM':['ACVC','ACPC','CPAP/PS','CPAP','S/T','AVAPS','CFLEX'],'Oxigenoterapia/OAF':['HME','Tubo T','OAF/CTAF','CNAF','Válvula de fonación'],'Ambiente':['Válvula de fonación','Sin soporte']}},
+  // El alto flujo POR TRAQUEOSTOMÍA se llama CTAF (cánula traqueal de alto
+  // flujo) — decisión de Diego, ago-2026: «así nos entendemos». Antes decía
+  // «OAF/CTAF», que mezcla el término general (oxigenoterapia de alto flujo)
+  // con la interfaz. Las evoluciones que guardaron «OAF/CTAF» se siguen
+  // leyendo: `poblar` conserva el valor guardado aunque salga del catálogo.
+  'TQT':      {sops:['VM','Oxigenoterapia/OAF','Ambiente'], modos:{'VM':['ACVC','ACPC','CPAP/PS','CPAP','S/T','AVAPS','CFLEX'],'Oxigenoterapia/OAF':['HME','Tubo T','CTAF','CNAF','Válvula de fonación'],'Ambiente':['Válvula de fonación','Sin soporte']}},
   'Full Face':{sops:['VNI'],                          modos:{'VNI':['S/T','AVAPS','CPAP']}},
   'Oronasal': {sops:['VNI'],                          modos:{'VNI':['S/T','AVAPS','CPAP']}},
 };
@@ -8914,16 +8929,62 @@ const VMAPS={
    la mascarilla de reservorio, y llamarla «Mascarilla» la confundía con
    cualquier otra. Las evoluciones viejas quedaron con «Mascarilla» y se
    siguen leyendo — ver _MODO_LARGO. */
-const _MODO_ETIQ={ 'MR':'MR (reservorio)' };
+const _MODO_ETIQ={ 'MR':'MR (reservorio)', 'CTAF':'CTAF (alto flujo por TQT)' };
+
+/* ── El estado con que QUEDA el paciente al desvincularse de la VM ──────────
+   La desvinculación no cambia la vía aérea (sigue en TQT): cambia el SOPORTE.
+   Este traductor convierte el «Queda con» que el colega ya elegía —y que hasta
+   ago-2026 solo servía para narrar— en el soporte y el modo con que termina el
+   turno, para que la cama y el turno siguiente hereden lo que de verdad pasó.
+
+   Reportado por Diego: recibió un paciente desvinculado y con cánula de alto
+   flujo, y la ficha seguía diciendo «VM · CPAP/PS» porque la desvinculación no
+   entraba en la cascada de VENT_*_FINAL. La válvula de fonación va en DOS
+   entradas porque «puede ir con o sin O2 adicional» (decisión suya): con O2 es
+   oxigenoterapia, sin O2 es ambiente. El destino «TQT con naricera/máscara»
+   salió del desplegable —«no tiene mucho sentido», dijo—: el paso previo a la
+   decanulación es el O2 adicional por válvula de fonación. */
+const _DESVINC_ESTADO={
+  'Tubo T':                      {sop:'Oxigenoterapia/OAF', modo:'Tubo T'},
+  'HME':                         {sop:'Oxigenoterapia/OAF', modo:'HME'},
+  'CTAF':                        {sop:'Oxigenoterapia/OAF', modo:'CTAF'},
+  'Válvula de fonación con O2':  {sop:'Oxigenoterapia/OAF', modo:'Válvula de fonación'},
+  'Válvula de fonación sin O2':  {sop:'Ambiente',           modo:'Válvula de fonación'},
+  'Ambiente':                    {sop:'Ambiente',           modo:'Sin soporte'},
+  // Destinos de registros anteriores al ajuste: se siguen entendiendo.
+  'CNAF / OAF':                            {sop:'Oxigenoterapia/OAF', modo:'CTAF'},
+  'Válvula de fonación':                   {sop:'Oxigenoterapia/OAF', modo:'Válvula de fonación'},
+  'Traqueostomía con O2 (naricera/máscara)':{sop:'Oxigenoterapia/OAF', modo:'CTAF'},
+};
+/** ¿El turno TERMINA desvinculado? Una reconexión en el mismo turno manda: el
+ *  paciente cierra el turno ventilado y así debe quedar la cama. */
+function _desvincQueda(){
+  if(!$('cDesvinc')?.checked) return null;
+  if($('cDesvincRecon')?.checked) return null;   // se reconectó: termina en VM
+  return _DESVINC_ESTADO[v('fDesvincA')] || null;   // sin destino: no se inventa
+}
 /* Cómo se escribe la sigla DENTRO de la evolución, que la leen también fuera de
    la unidad: «por MR» no dice nada, «por mascarilla de reservorio» sí.
    «Mascarilla» sigue mapeada por las evoluciones anteriores a ago-2026, cuando
    MR se llamaba así. Espejo de _MODO_LARGO en dominio_texto.gs. */
 const _MODO_LARGO={ 'MR':'mascarilla de reservorio', 'Mascarilla':'mascarilla de reservorio' };
+/* 🔴 Un valor GUARDADO que ya no está en el catálogo se conserva como opción.
+   Sin esto, renombrar una opción le borra el dato a las evoluciones viejas EN
+   SILENCIO: al reabrirlas el select se va a la primera opción y el re-guardado
+   escribe esa. Era un riesgo vivo desde el renombre de «Mascarilla» → «MR»
+   (v5.40) y se destapó al pasar «OAF/CTAF» a «CTAF» (ago-2026, decisión de
+   Diego: «así nos entendemos»). La opción rescatada se marca para que el
+   colega vea que viene de un registro anterior y pueda actualizarla. */
 function poblar(id, opts, def) {
   const s=$(id); if(!s) return; s.innerHTML='';
-  opts.forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=_MODO_ETIQ[o]||o; s.appendChild(op); });
-  if(def&&opts.includes(def)) s.value=def;
+  const lista=opts.slice();
+  if(def && !lista.includes(def)) lista.push(def);
+  lista.forEach(o=>{
+    const op=document.createElement('option'); op.value=o;
+    op.textContent=(_MODO_ETIQ[o]||o)+(opts.includes(o)?'':' (registro anterior)');
+    s.appendChild(op);
+  });
+  if(def) s.value=def;
 }
 function cascadeVA(preSop) {
   const va=v('fVA'); const r=VMAPS[va]||VMAPS[''];

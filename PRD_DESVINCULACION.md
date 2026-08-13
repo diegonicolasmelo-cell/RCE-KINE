@@ -1,6 +1,6 @@
 # PRD — La desvinculación deja al paciente donde quedó
 
-**Estado:** Borrador, esperando cuatro decisiones de Diego
+**Estado:** ✅ Decidido y programado (v5.56-desvinc, 12-08-2026)
 **Dueño:** Diego Melo Villagrán (coordinador de kinesiología UCI)
 **Creado:** 12-08-2026
 **Alcance:** el estado ventilatorio con que el paciente QUEDA tras desvincularse
@@ -246,39 +246,82 @@ CUANDO se anula la desvinculación
 
 ---
 
-## 7 · Lo que hay que decidir antes de programar
+## 7 · Las decisiones, resueltas por Diego (12-08-2026)
 
-**D1 · El traductor.** Tres casillas del cuadro de §5 tienen ❓:
+**D1 · El traductor.** Resuelto, y con una corrección de vocabulario:
 
-- **«CNAF / OAF»** → ¿el modo es `CNAF` o `OAF/CTAF`? El catálogo de la TQT
-  tiene los dos y no sé cuál usa la unidad para un traqueostomizado.
-- **«Válvula de fonación»** → ¿soporte `Ambiente` u `Oxigenoterapia/OAF`? El
-  catálogo la ofrece en los dos, y la diferencia es si además lleva oxígeno.
-- **«Traqueostomía con O2 (naricera/máscara)»** → hoy **no existe** un modo
-  equivalente en el catálogo de la TQT. Salidas posibles: (a) mapearla al modo
-  más cercano, (b) agregar el modo al catálogo, (c) sacar esa opción del
-  desplegable si en la práctica no se usa.
+> «CNAF, CTAF/OAF son iguales. OAF es oxigenoterapia de alto flujo, CTAF es una
+> forma coloquial de decir cánula traqueal de alto flujo y CNAF es cánula nasal
+> de alto flujo. Debería en este caso llamarla solamente **CTAF** porque así nos
+> entendemos.»
+>
+> «[La válvula de fonación] puede ir **con o sin O2 adicional**.»
+>
+> «TQT con NRC no tiene mucho sentido. El paso previo a la decanulación es el
+> **O2 adicional por válvula de fonación**.»
 
-**D2 · ¿La desvinculación corta el tramo de VM?** Es la decisión que mueve
-números. Con la regla de tramos de la v5.42, si el paciente termina el turno
-fuera de VM:
+⇒ El desplegable «Queda con» queda así, y el traductor con él:
 
-- el turno de la desvinculación **sigue contando** como día con VM (empezó
-  ventilado) — eso no cambia;
-- pero los turnos siguientes en que siga desvinculado **dejarían de contar**,
-  y si se reconecta a los dos días se abriría un tramo nuevo.
+| «Queda con» | → soporte | → modo |
+|---|---|---|
+| Tubo T | Oxigenoterapia/OAF | Tubo T |
+| HME | Oxigenoterapia/OAF | HME |
+| **CTAF** | Oxigenoterapia/OAF | CTAF |
+| **Válvula de fonación con O2** | Oxigenoterapia/OAF | Válvula de fonación |
+| **Válvula de fonación sin O2** | Ambiente | Válvula de fonación |
+| Ambiente | Ambiente | Sin soporte |
 
-Clínicamente parece correcto para una desvinculación definitiva y discutible
-para un entrenamiento de weaning de varias horas. Diego decide, y hay que
-avisarle al equipo porque cambia cifras que ya vieron.
+- «Traqueostomía con O2 (naricera/máscara)» **sale del desplegable**.
+- En el catálogo de la TQT, el modo `OAF/CTAF` pasa a llamarse **`CTAF`**.
+- Los destinos de registros anteriores («CNAF / OAF», «Válvula de fonación» a
+  secas, la naricera) **se siguen entendiendo**: están en el traductor aunque
+  ya no se ofrezcan.
 
-**D3 · La reconexión en el mismo turno.** Propongo que termine en VM con el
-modo que traía (O3). Si en la práctica el paciente se reconecta a un modo
-distinto del que tenía, esto necesita un campo y deja de ser gratis.
+**D2 · Los días de VM — resuelto, y no necesitó ni una línea de código.**
 
-**D4 · ¿La desvinculación sin reconexión debería avisar en la entrega?** Hoy la
-entrega ya dice «SIN reconexión registrada». Con este cambio el casillero de
-soporte dirá además CNAF. ¿Basta, o quiere un chip aparte como el de prono?
+> «8vo día de estadía en UCI, si se desvinculó hace 2 días y logró estar 6 días
+> con VM incluyendo el día de la desvinculación, se consideran solo los 6 días
+> de VM para el cálculo. Si requiere reconexión **se retoma esos 6 días y
+> empieza a sumar** a medida que pase el tiempo. En resumen, los días
+> siguientes suman al previo y **no se cuentan desde 0**.»
+
+Esa es, textualmente, la regla de tramos que la app implementa desde la v5.42:
+el contador se congela al salir del soporte y al volver retoma el acumulado más
+el tramo abierto. Lo único que faltaba era que la desvinculación cerrara el
+tramo — que es lo que este PRD agrega. **Cero cambios en el conteo**, y la
+guardia lo fija con los números del ejemplo.
+
+⚠️ **Un matiz que conviene tener escrito**: Diego contó «6 días» de forma
+inclusiva (01 a 06). La app usa la convención **Día 0 = día de conexión**, la
+misma de la lista oficial de BUDA validada en la v5.35, así que ese mismo
+episodio se muestra como **5**. No es un desacuerdo con su regla —lo que él
+fijó es que el contador no se reinicia— pero si algún día se decide contar
+inclusivo, hay que cambiarlo aquí y en los días de estadía a la vez.
+
+**D3 · La reconexión en el mismo turno.** Se aplica O3: si el paciente se
+reconecta antes de que termine el turno, la cama **no se cambia** — cierra el
+turno ventilado, como estaba.
+
+**D4 · La entrega.** Sin chip nuevo. La entrega ya dice «→ queda con …» y
+«SIN reconexión registrada»; con este cambio el casillero de soporte concuerda
+con esa frase, que era justamente lo que no pasaba.
+
+---
+
+## 9 · Lo que apareció al programarlo
+
+**🔴 Renombrar una opción le borraba el dato a las evoluciones viejas.** Al
+pasar `OAF/CTAF` a `CTAF` se destapó que la función que llena los desplegables
+descartaba un valor guardado si ya no estaba en el catálogo: al reabrir una
+evolución antigua el select se iba a la primera opción y el re-guardado escribía
+ésa. **Era un riesgo vivo desde el renombre de «Mascarilla» → «MR» (v5.40)**, no
+lo introdujo este cambio. Ahora el valor guardado se conserva como opción,
+marcado «(registro anterior)» para que el colega lo vea y pueda actualizarlo.
+
+**La poda de eventos.** Al pasar la desvinculación a decidir el estado final,
+hubo que sumarla a la lista de «eventos activos» del payload: sin eso, reabrir
+el turno para corregir la firma borraba el estado final y la cama volvía a decir
+VM. Es el mismo modo de fallo que ya se pagó con la TQT en la v4.6.
 
 ---
 

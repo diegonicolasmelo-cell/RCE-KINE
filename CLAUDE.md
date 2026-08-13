@@ -1197,6 +1197,48 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
 
+- **v5.56 · LA DESVINCULACIÓN DEJA AL PACIENTE DONDE QUEDÓ (12-ago-2026, cohete
+  v5.56-desvinc; SOLO index, sin cambio de esquema — NO exige
+  `crearORepararEstructura()`).** Punto 1 del brainstorm de Diego, y **el
+  primer trabajo escrito con el método PRD** (`PRD_DESVINCULACION.md` en la
+  raíz, con la historia, el inventario de consumidores y las decisiones).
+  - **La causa no era un cálculo malo: era una pregunta que nadie hacía.** La
+    cascada que decide `VENT_*_FINAL` (index ~6288) pregunta por intubación,
+    TQT, extubación y decanulación — y **no por la desvinculación**. Por eso la
+    cama seguía en «VM · CPAP/PS» con el paciente ya en alto flujo, y el turno
+    siguiente lo replicaba.
+  - **El dato ya se capturaba**: `DESVINC_A` es un desplegable desde la v4.2 y
+    solo servía para narrar. Por eso salió **sin campos nuevos, sin columnas
+    nuevas y sin tocar el servidor** — la estimación previa (un día + esquema)
+    estaba equivocada y el PRD la corrigió antes de programar.
+  - **Vocabulario, decidido por Diego**: el alto flujo por traqueostomía se
+    llama **CTAF** (cánula traqueal de alto flujo); CNAF es la nasal y OAF el
+    término general. `OAF/CTAF` pasó a `CTAF` en el catálogo de la TQT. La
+    **válvula de fonación va con o sin O2 adicional** ⇒ son dos destinos y dan
+    soportes distintos (Oxigenoterapia vs Ambiente). «TQT con naricera/máscara»
+    **salió del desplegable**: «no tiene mucho sentido; el paso previo a la
+    decanulación es el O2 adicional por válvula de fonación».
+  - **Los días de VM: cero cambios de código.** Su regla —«si requiere
+    reconexión se retoma esos días y empieza a sumar; los siguientes suman al
+    previo y no se cuentan desde 0»— **ES** la regla de tramos de la v5.42.
+    Faltaba solo que la desvinculación cerrara el tramo. ⚠️ Él contó «6 días»
+    de forma inclusiva; la app usa Día 0 = día de conexión (convención BUDA,
+    v5.35) y muestra 5 en ese mismo episodio. Anotado en la guardia.
+  - 🔴 **HALLAZGO PREEXISTENTE DESTAPADO AL RENOMBRAR: `poblar` descartaba un
+    valor guardado que ya no estuviera en el catálogo.** Al reabrir una
+    evolución antigua el select se iba a la primera opción y el re-guardado
+    escribía ésa — o sea **renombrar una opción le borraba el dato a los
+    registros viejos, en silencio**. Era un riesgo vivo desde «Mascarilla» →
+    «MR» (v5.40), no lo introdujo esta tanda. Ahora el valor guardado se
+    conserva como opción, marcado «(registro anterior)».
+  - 🪤 Hubo que sumar `cDesvinc` a `algunEvento` en `_podarEventosPayload`: sin
+    eso, reabrir el turno para corregir la firma borraba los `VENT_*_FINAL` y
+    la cama volvía a decir VM. Mismo modo de fallo que la TQT en la v4.6.
+  - Guardia nueva `checks/desvinculacion.js` (5 bloques: catálogo y
+    desplegable, el rescate de valores viejos, la cascada y la poda, el
+    traductor corriendo en Chromium con la historia de Diego, y el ejemplo de
+    los días de VM turno a turno). Batería: **71 verdes**.
+
 - **v5.55 · UN HECHO, UN HITO — Y EL HITO NO SE DEGRADA SOLO (12-ago-2026,
   cohete v5.55-hitos; index + `svc_timeline.gs` + `svc_eventos.gs` +
   `svc_entrega.gs` + `svc_evoluciones.gs` + `dominio_texto.gs` +
@@ -2682,8 +2724,8 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     versión».
 
 - En marcha blanca con DATOS DE PRUEBA; **implementación real el 1-ago-2026**
-  (ahí se afina el registro con uso real). Deployment: cohete **v5.55-hitos**
-  (antes v5.54-ventilador, v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
+  (ahí se afina el registro con uso real). Deployment: cohete **v5.56-desvinc**
+  (antes v5.55-hitos, v5.54-ventilador, v5.45-datos, v5.44-terreno, v5.43-cierres, v5.42-tramos, v5.41-vni, v5.40-equipos, v5.39-timeline, v5.38-entrega,
   v5.37-vivo). Exige `crearORepararEstructura()` (VENTILADORES con `CATEGORIA` +
   EVOLUCIONES 386 columnas con `DIAS_VNI` + hoja
   SUGERENCIAS ⇒ 20 hojas + CAMAS_ESTADO con `TQT_CALIBRE` + CONFIG con
