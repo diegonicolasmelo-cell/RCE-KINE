@@ -1533,6 +1533,31 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
      · **Pabellón** → **sí va**, y encima quiere poder **agregarle a mano el
        detalle**: «craniectomía descompresiva».
 
+  9. 🔴 **AL REABRIR UNA EVOLUCIÓN YA GUARDADA SE DESMARCAN LOS BOTONES QUE NO
+     SE HEREDAN (12-ago-2026, reportado por Diego desde el uso).** Sus palabras:
+     «en los pacientes que estamos evolucionando en el modal de evolución, una
+     vez que guardamos la evolución del día y necesitamos registrar algo más,
+     los botones que son seleccionables y no heredables se desmarcan; por lo
+     que al re-guardar esa evolución no conserva los botones no heredables.
+     Requiero algún ajuste u otra vía para que se pueda hacer esta acción».
+     · O sea: el turno se guarda bien la primera vez, pero **reabrirlo para
+       agregar algo cuesta lo que ya estaba marcado** en esos botones. El
+       colega no pierde el turno entero: pierde justo las marcas que no se
+       replican solas.
+     · ⚠️ **NO ES NUEVO Y YA ESTÁ DOCUMENTADO EN ESTA BITÁCORA**: es el mismo
+       comportamiento que se le reportó a Manuel el 9-ago-2026 con el detalle
+       (`fillForm` desmarca SOF/SNF/SET/A.Tos/inhalo al reabrir, y el mismo
+       patrón afecta al bloque KTM, que sí pesa en el REM). Él respondió «deja
+       como está el punto de las succiones» y quedó anotado como conocido y
+       aceptado. **Que ahora lo reporte Diego desde el terreno reabre esa
+       decisión**: son dos personas distintas tropezando con lo mismo, y la
+       segunda es el dueño del proyecto.
+     · Queda en el brainstorm, **sin programar ni analizar** (pedido explícito
+       suyo). Cuando lo retome, es candidato claro a PRD: hay que decidir qué
+       botones deben conservarse al reabrir y cuáles no, y eso es una regla
+       clínica —no todos son iguales: una succión ocurrida es un hecho, y una
+       casilla de estado puede no serlo—.
+
 - **v5.54 · EL VENTILADOR EN LA HOJA + EL TABLERO USABLE EN EL CELULAR
   (11-ago-2026, cohete v5.54-ventilador; solo index, sin cambio de esquema —
   NO exige `crearORepararEstructura()`).** Tres pedidos de Diego en una ronda.
