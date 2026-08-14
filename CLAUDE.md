@@ -317,6 +317,19 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
 
 ### Esperando decisión de Diego
 
+- 🛡️ **HEPA FIJO EN PB Y AVEA (hallazgo de Diego, 14-ago)**: los ventiladores
+  PB (Puritan Bennett) y AVEA **no ocupan HEPA intercambiable cada 3 días** —
+  se mantiene desde la instalación y no requiere cambio. La regla del ciclo
+  vive en OCHO consumidores (estadoDispositivos, entrega, modal «Cambios de
+  esta noche», hoja de filtros de la unidad, hoja diaria impresa, formulario
+  de dispositivos, Hoja UCI y el evento rápido «Cambio de HEPA»). Propuesta:
+  UNA función que decida por el ventilador asignado (`VM_TAG` contra una lista
+  en CONFIG, `HEPA_FIJO_EQUIPOS`, por defecto «PB,Avea» — editable sin código,
+  como las frecuencias). Tres preguntas abiertas: si la fecha de instalación
+  se sigue mostrando como referencia; si el Vela (Vyaire) SÍ usa HEPA
+  intercambiable (no lo nombró); y qué pasa con la cama sin ventilador
+  asignado (propuesta: ciclo normal, conservador).
+
 - **FSS-ICU · el «no evaluado»** (mockup en `scratchpad/mockup_fss_no_evaluado.html`).
   La app suma a secas: falta distinguir «incapaz por debilidad» (que es el 0 de
   la escala) de «no se pudo evaluar», y aplicar la regla oficial —hasta 2 sin
