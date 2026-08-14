@@ -33,6 +33,15 @@ const GRUPOS = [
   ['spike.gs', ['spike.gs']],
 ];
 
+// El mapa se EXPORTA para que `que_pegar.js` calcule con él qué archivos del
+// editor hay que pegar. Una sola definición: si alguien agrega un grupo aquí y
+// la otra herramienta usara una copia, mentiría — y mentir sobre qué pegar es
+// exactamente el error que se cometió el 14-ago (se entregaron 2 de 5).
+module.exports = { GRUPOS };
+
+// Generar solo cuando se ejecuta directamente, no al importarlo.
+if (require.main !== module) return;
+
 fs.rmSync(salida, { recursive: true, force: true });
 fs.mkdirSync(salida, { recursive: true });
 
