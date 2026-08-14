@@ -3119,3 +3119,36 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
     fue re-numerar sino FILTRAR (solo carillas con «NOMBRE DE PACIENTE»):
     los bloques son por PACIENTE, no por página. Bloque 12 nuevo con los
     cuatro pedidos. Batería: **75 verdes**.
+
+- 📮 **LAS SUGERENCIAS DEL EQUIPO, AUDITADAS CONTRA EL CÓDIGO (14-ago-2026).**
+  Diego pegó las 24 filas del buzón (19 únicas; firman MCC, SOG, AWE, CMF y
+  DMV). Veredicto verificado, no supuesto:
+  - **Ya resueltas (6)**: motivo de KTM obligatorio (v5.46) · el ciclo de los
+    dispositivos (rehecho el 10-ago) · días de VM/VAA «desfasados» (convención
+    día 0 = conexión, BUDA, v5.35-42) · el texto editado que se refrescaba al
+    guardar (4-ago) · estadía 0 con VM 1 (era pre-tramos, resellado corrido) ·
+    **«mostrar qué SAS tuvo y no la meta» (AWE) = la v5.57 tal cual** — el
+    terreno pidió lo mismo que Diego, validación independiente del cambio.
+  - 🔴 **DOS RAÍCES REALES CONFIRMADAS**, ambas de la partición al archivo:
+    (1) `obtenerEvosDelDia` lee SOLO la hoja viva ⇒ **el registro retrospectivo
+    pierde a los egresados** (MCC: cama 7 estaba el 2-ago, egresó el 3, y
+    desapareció del registro del 2). (2) La estadística tampoco los ve (la
+    trampa documentada de `obtenerStats`) ⇒ **dos reportes de KTM marcada que
+    «no aparece»** (2-ago y 11-ago). No se pierde ningún dato: se deja de
+    MOSTRAR. Arreglo candidato: leer también EVOLUCIONES_ARCHIVO cuando la
+    fecha consultada es pasada.
+  - **Familia del punto 9 del brainstorm**: «al modificar los dispositivos
+    pide de nuevo la PVE» (AWE) — otro caso de los botones que se desmarcan al
+    reabrir. Se suma al PRD de ese punto.
+  - **Candidatos nuevos**: checkbox «tiene un solo apellido» (MCC) · DVE en
+    neuro (CMF — falta definición clínica: ¿presencia, altura, débito?) ·
+    pendientes al texto de la evolución (AWE — hoy van SOLO a la entrega, por
+    diseño; decidir si pertenecen al texto clínico) · procedimientos
+    post-egreso (MCC — toca episodio cerrado y estadística, regla de Diego) ·
+    revisar el cálculo de PaFi vs GSA (AWE — reproducir primero).
+  - **Seguridad (AWE, 4 sugerencias)**: usuario/contraseña EXISTE completo
+    detrás de `LOGIN_UI_ACTIVO` (encenderlo es decisión, no desarrollo) · el
+    CSV «para evitar la nube» no la evita (los datos viven en Sheets; respaldo
+    diario y archivo anual ya existen) · data masking: el RUT ya jamás sale en
+    REM/tablero/exportaciones y el episodio viaja por PATIENT_ID · `.env` no
+    aplica a Apps Script y no hay credenciales en el código.
