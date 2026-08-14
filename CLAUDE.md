@@ -291,12 +291,29 @@ está allá.
 
 ### Dónde está el código
 
-- **Publicado en producción**: cohete **v5.48-terreno** (Versión 28, 10-ago).
-- **Listo en el repo y SIN publicar**: v5.55 a **v5.58-escalas**. La rama es
-  `claude/code-review-assessment-wwnhhb` — **`main` NO tiene nada de esto**.
+🔴 **NUNCA suponer qué está publicado: preguntárselo a Diego o mirar el editor.**
+El 14-ago yo di por publicada la v5.48 (lo decía la bitácora) y en realidad
+corría la **v5.50**; encima `main` iba en la v5.54. Con las dos cifras malas, la
+entrega que armé se calculó contra la referencia equivocada y salió incompleta
+DOS veces seguidas. La cifra de abajo se actualiza cuando alguien publica —
+si tiene más de unos días, se confirma antes de usarla.
+
+- **Publicado en producción**: cohete **v5.50-celular** (confirmado por Diego el
+  14-ago; commit `e48dcf4`).
+- **`main`** va en la v5.54-ventilador.
+- **Listo en el repo y SIN publicar**: v5.51 a **v5.58-escalas** — o sea ocho
+  versiones. La rama es `claude/code-review-assessment-wwnhhb`.
 - ⚠️ La v5.57 **exige `crearORepararEstructura()`**: EVOLUCIONES pasa a 390
   columnas (`SED_SAS_META`, `SED_VIGIL`, `SED_FARMACOS`).
 - Marcha blanca con datos reales desde el 1-ago-2026.
+
+### 🔴 Antes de armar una entrega: `node build/que_pegar.js <ref-publicada>`
+
+El repo tiene 31 `.gs` y el editor 9, así que **qué archivos pegar no se
+recuerda: se calcula**. La herramienta agrupa los cambios por archivo del
+editor y avisa si cambió el esquema. Se le pasa **la referencia de lo que está
+publicado de verdad** (`e48dcf4` para la v5.50), no `main` — main puede ir
+adelante de producción, que es exactamente lo que pasó el 14-ago.
 
 ### Esperando decisión de Diego
 
