@@ -348,6 +348,24 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
 - **Guardado por bloques** — analizado y descartado por ahora, con los números
   en la bitácora. Reabrir solo con datos nuevos de uso.
 
+### Reglas clínicas que conviene tener a mano
+
+- 🫁 **«VM» ES SIEMPRE VENTILACIÓN MECÁNICA INVASIVA.** La VNI es ventilación
+  mecánica en lo clínico, pero **aquí cuenta aparte y jamás suma a los días de
+  VM** (confirmado con Diego el 14-ago: «VM solo es VMI, para que no se
+  confundan los conceptos»). Auditado en los siete consumidores que cuentan —
+  contador de tramos, indicadores, archivo del episodio, REM, tarjeta de cama y
+  las dos rutinas de resellado— y fijado por `checks/vm_no_es_vni.js`.
+  · **La garantía real no es la guardia, es el catálogo**: `Full Face` y
+    `Oronasal` solo ofrecen el soporte `VNI`, y `VM` solo se ofrece con TOT o
+    TQT. Marcar VNI como VM no está prohibido: **no se puede**.
+  · VM y VNI SÍ comparten una cosa, y está bien: el reloj
+    `FECHA_INICIO_SOPORTE` que se estampa al ingresar. Es el reloj del soporte
+    ventilatorio, no un contador de días — y el tramo de VM solo arranca de ese
+    reloj cuando la cama YA está en VM.
+  · Y manda el SOPORTE registrado, nunca la interfaz: una Full Face puesta con
+    oxigenoterapia o CNAF no es VNI (v5.41).
+
 ### Trampas que siguen activas
 
 - **`limpiarCamasManual` no archiva**, a propósito: es reparación y puede
