@@ -3089,3 +3089,33 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
   Mockup antes de código.
 - Privacidad: datos clínicos reales NO salen a APIs externas sin
   anonimización + aprobación institucional (Ley 19.628).
+
+- **v5.59 · LA HOJA DIARIA CON SUS DOS CARAS (14-ago-2026, cohete
+  v5.59-hoja2caras; SOLO index — NO exige `crearORepararEstructura()`).**
+  Ronda de terreno de Diego tras publicar él mismo la v5.58.
+  - **«VT AJUSTADO A TALLA»**: el título largo del volumen tidal partía la
+    fila y desfasaba el bloque. Abreviado, medido en la guardia.
+  - **La fecha de cambio de cada dispositivo, impresa**: junto a la etiqueta
+    va la fecha que se le ESCRIBE al dispositivo nuevo («hoy en la noche
+    cambian los HME del 13 y se les pone fecha del 15»). La cuenta es LA MISMA
+    de `_flEstado`/`estadoDispositivos` (cambio = etiqueta + frecuencia) — se
+    reusó, no se re-escribió, para que la hoja impresa no contradiga jamás al
+    modal «Cambios de esta noche» ni a la entrega. A diferencia de la hoja de
+    filtros de la unidad, aquí NO se exige soporte VM: la hoja imprime la
+    etiqueta siempre, y una etiqueta sin su cambio sería media verdad.
+  - **El nombre largo ya no parte la línea**: la letra baja por tramos (11 →
+    9.5 → 8.5 → 7.5pt) hasta caber. La guardia lo mide con un nombre de 50
+    caracteres, no lo supone.
+  - ⏪ **LA CARILLA 2 VUELVE A LA TANDA DEL DÍA** («me gustaría incluir la
+    parte posterior de la hoja que ocupa mi unidad»— revierte el «solo
+    carilla 1» de la v5.51). Es la RK_PG2 de siempre (MRC-ss, FSS-ICU,
+    protocolo de weaning/PVE, del docx v5.27) más lo nuevo: **la última
+    medición de MRC y FSS-ICU impresa con su fecha** («44/60 (10-08)»),
+    desde ULT_MRC/ULT_FSS de la cama. Sin medición: «—», nunca un número
+    inventado. Toast: «N pacientes × 2 carillas».
+  - 🪤 Las carillas 2 CORRIERON LOS ÍNDICES de la guardia
+    (`hoja_registro_dia.js`): página [1] pasó a ser el reverso de la cama 4 y
+    ocho asserts quedaron mirando la página equivocada. El arreglo bueno no
+    fue re-numerar sino FILTRAR (solo carillas con «NOMBRE DE PACIENTE»):
+    los bloques son por PACIENTE, no por página. Bloque 12 nuevo con los
+    cuatro pedidos. Batería: **75 verdes**.

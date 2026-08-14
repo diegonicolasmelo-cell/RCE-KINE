@@ -42,7 +42,8 @@ const SEMBRAR = () => {
     FECHA_INGRESO: '2026-08-04', TS_INGRESO: '2026-08-04 09:00', TALLA_CM: '158',
     VIA_AEREA: 'TOT', TOT_NUMERO: '8.0', TOT_CM_LABIO: '22', DIAS_VM: 6, DIAS_VA: 6,
     DISP_HME_FECHA: '2026-08-10', DISP_HEPA_FECHA: '2026-08-08', DISP_TC_FECHA: '2026-08-08',
-    APACHE2: 18, BARTHEL: 85, CHARLSON: 4, ULT_FSS: 22, ULT_MRC: 44, PATIENT_ID: 'p1',
+    APACHE2: 18, BARTHEL: 85, CHARLSON: 4, ULT_FSS: 22, ULT_FSS_FECHA: '2026-08-09',
+    ULT_MRC: 44, ULT_MRC_FECHA: '2026-08-10', PATIENT_ID: 'p1',
     VM_TAG: 'Servo U', VM_TAG_ESTADO: 'Operativo',
     EQUIPOS_PACIENTE: [{ n: 'Aerogen Pro-X', c: 'APOYO' }] });
   DB.push({ ID_CAMA: '7', OCUPADA: 'TRUE', NOMBRE: 'Pedro Soto', EDAD: 71, SEXO: 'M',
@@ -77,15 +78,18 @@ const SEMBRAR = () => {
       soloUna: h.querySelectorAll('.rk-page.rk-sola').length,
       // la cama libre no sale
       sinLibre: !/CAMA<\/b>?\s*9/.test(h.innerHTML),
-      camas: [...h.querySelectorAll('.rk-page')].map(x => (x.textContent.match(/CAMA\s*(\d+)/) || [])[1]).join(','),
+      camas: [...h.querySelectorAll('.rk-page')].map(x => (x.textContent.match(/CAMA\s*(\d+)/) || [])[1]).filter(Boolean).join(','),
       // la carilla neuromuscular NO va en la tanda del día
       sinNeuro: !/CUIDADOS NEUROMUSCULARES/.test(h.textContent) };
   });
-  eq('tres pacientes presentes ⇒ tres carillas', R1.carillas, 3);
-  eq('…todas marcadas como carilla sola', R1.soloUna, 3);
+  // ⏪ DECISIÓN REVERTIDA (Diego, 14-ago): la tanda del día vuelve a llevar la
+  // parte posterior — MRC-ss, FSS-ICU y protocolo de weaning/PVE—, así que son
+  // DOS carillas por paciente. El «solo carilla 1» duró de la v5.51 a la v5.58.
+  eq('tres pacientes presentes ⇒ seis carillas (2 por paciente)', R1.carillas, 6);
+  eq('…ninguna marcada como carilla sola', R1.soloUna, 0);
   eq('en orden de cama', R1.camas, '4,7,8');
   eq('la cama libre no se imprime', R1.sinLibre, true);
-  eq('★ la carilla neuromuscular NO va en la tanda del día', R1.sinNeuro, true);
+  eq('★ la carilla neuromuscular SÍ va en la tanda del día (14-ago)', R1.sinNeuro, false);
 
   console.log('\n2 · El encabezado que armó Manuel, ahora en la hoja');
   const R2 = await p.evaluate(() => {
@@ -117,7 +121,11 @@ const SEMBRAR = () => {
 
   console.log('\n4 · El sombreado dice por dónde va la vía aérea');
   const R4 = await p.evaluate(() => {
-    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')];
+    // Solo las carillas 1 (las que traen el encabezado del paciente): desde el
+    // 14-ago cada paciente imprime también su parte posterior, y los índices de
+    // este bloque son por PACIENTE, no por página.
+    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')]
+      .filter(x => /NOMBRE DE PACIENTE/.test(x.textContent));
     const via = i => { const e = pgs[i].querySelector('.rk-via'); return e ? e.textContent.trim() : null; };
     return { p1: via(0), p2: via(1), unoSolo: pgs.map(x => x.querySelectorAll('.rk-via').length),
       // el de TQT lleva su calibre en la misma casilla, y sin cm de fijación
@@ -131,7 +139,11 @@ const SEMBRAR = () => {
 
   console.log('\n5 · ★ Lo que no se sabe NO se inventa');
   const R5 = await p.evaluate(() => {
-    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')];
+    // Solo las carillas 1 (las que traen el encabezado del paciente): desde el
+    // 14-ago cada paciente imprime también su parte posterior, y los índices de
+    // este bloque son por PACIENTE, no por página.
+    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')]
+      .filter(x => /NOMBRE DE PACIENTE/.test(x.textContent));
     const t2 = pgs[1].textContent;
     // Pedro no tiene escalas, ni talla, ni fechas de filtros
     return { sinEscalas: !/APACHE|Barthel|Charlson|FSS-ICU|MRC-ss/.test(t2),
@@ -145,7 +157,11 @@ const SEMBRAR = () => {
 
   console.log('\n5b · Reintubaciones del EPISODIO, contadas por el servidor');
   const R5b = await p.evaluate(() => {
-    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')];
+    // Solo las carillas 1 (las que traen el encabezado del paciente): desde el
+    // 14-ago cada paciente imprime también su parte posterior, y los índices de
+    // este bloque son por PACIENTE, no por página.
+    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')]
+      .filter(x => /NOMBRE DE PACIENTE/.test(x.textContent));
     const rt = pg => { const m = pg.textContent.replace(/\s+/g, ' ')
       .match(/Reintub\.\s*(\S*)\s*Dias VM/); return m ? m[1] : '??'; };
     return { pedido: (window.__ult && window.__ult.a === 'GET_REINTUB_N') ? (window.__ult.d.pids || []).join(',') : null,
@@ -165,13 +181,17 @@ const SEMBRAR = () => {
     window.api = orig;
     return { carillas: n };
   });
-  eq('★ el conteo caído NO cancela la impresión', R5c.carillas, 3);
+  eq('★ el conteo caído NO cancela la impresión', R5c.carillas, 6);
 
   console.log('\n5d · El ventilador, arriba a la derecha');
   const R5d = await p.evaluate(() => {
     const caja = document.getElementById('rkPrint');
     caja.style.cssText = 'display:block;position:absolute;left:0;top:0;width:794px;background:#fff;';
-    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')];
+    // Solo las carillas 1 (las que traen el encabezado del paciente): desde el
+    // 14-ago cada paciente imprime también su parte posterior, y los índices de
+    // este bloque son por PACIENTE, no por página.
+    const pgs = [...document.querySelectorAll('#rkPrint .rk-page')]
+      .filter(x => /NOMBRE DE PACIENTE/.test(x.textContent));
     const txt = i => { const e = pgs[i].querySelector('.rk-vent');
       return e ? e.textContent.replace(/\s+/g, ' ').trim() : null; };
     const r = e => e.getBoundingClientRect();
@@ -300,6 +320,61 @@ const SEMBRAR = () => {
   });
   eq('★ la hoja cabe en una carilla en los tres casos', R95.todosCaben, true);
   eq('…y el peor caso deja margen (<1000 px)', R95.peor < 1000, true);
+
+  console.log('\n12 · Los cuatro pedidos del 14-ago');
+  await p.evaluate(SEMBRAR);
+  await p.waitForTimeout(120);
+  const R12 = await p.evaluate(() => {
+    const h = document.getElementById('rkPrint');
+    const pg1 = h.querySelectorAll('.rk-page')[0];   // carilla 1 de la cama 4
+    const pg2 = h.querySelectorAll('.rk-page')[1];   // su parte posterior
+    const t1 = pg1.textContent, t2 = pg2.textContent;
+    const htmlSembrado = h.innerHTML;
+    const sinDato = /Último registrado: —/.test(h.querySelectorAll('.rk-page')[5].textContent);
+    // El nombre en UNA línea: se mide de verdad, con la caja revelada.
+    const caja = document.getElementById('rkPrint');
+    caja.style.cssText = 'display:block;position:absolute;left:0;top:0;width:794px;background:#fff;';
+    const span = [...pg1.querySelectorAll('span')].find(x => /MARÍA DEL CARMEN/.test(x.textContent));
+    const td = span && span.closest('td');
+    const cabe = !!span && span.getBoundingClientRect().width <= td.getBoundingClientRect().width + 1;
+    const unaLinea = !!span && span.getBoundingClientRect().height < 30;
+    // Y el caso extremo: 50 caracteres.
+    const gigante = rkHojaHTML({ OCUPADA:'TRUE', ID_CAMA:'2', FECHA_INGRESO:'2026-08-10',
+      NOMBRE:'María de los Ángeles Fernández Villagrán del Solar' }, '2026-08-14', true);
+    caja.innerHTML = gigante;
+    const sp2 = [...caja.querySelectorAll('span')].find(x => /MARÍA DE LOS ÁNGELES/.test(x.textContent));
+    const td2 = sp2 && sp2.closest('td');
+    const cabeGigante = !!sp2 && sp2.getBoundingClientRect().width <= td2.getBoundingClientRect().width + 1
+      && sp2.getBoundingClientRect().height < 30;
+    caja.style.cssText = ''; caja.innerHTML = htmlSembrado;   // se restaura lo sembrado
+    return {
+      vtCorto: /VT AJUSTADO A TALLA/.test(t1),
+      vtLargo: /VOLUMEN TIDIAL/.test(t1),
+      // cama 4: HME etiqueta 10-08 (frec 2 ⇒ cambio 12-08); HEPA y TC 08-08
+      // (frec 3 ⇒ cambio 11-08). La regla es la de _flEstado: etiqueta+frec.
+      cambioHME: /10-08[\s\S]{0,60}?cambio: 12-08/.test(t1.replace(/\s+/g,' ')),
+      cambioHEPA: /08-08[\s\S]{0,60}?cambio: 11-08/.test(t1.replace(/\s+/g,' ')),
+      nCambios: (pg1.innerHTML.match(/rk-cambio/g) || []).length,
+      cabe, unaLinea, cabeGigante,
+      // Las etiquetas de la carilla 2, con valor, tope y fecha.
+      mrcUlt: /MRC-ss[\s\S]{0,80}?44\/60 \(10-08\)/.test(t2.replace(/\s+/g,' ')),
+      fssUlt: /FSS-ICU[\s\S]{0,80}?22\/35 \(09-08\)/.test(t2.replace(/\s+/g,' ')),
+      // El paciente SIN mediciones no inventa un número (medido antes del
+      // ensayo del nombre gigante, que pisa la caja).
+      sinDato,
+    };
+  });
+  eq('★ «VT AJUSTADO A TALLA», abreviado', R12.vtCorto, true);
+  eq('…y el texto largo se fue', R12.vtLargo, false);
+  eq('★ HME: etiqueta 10-08 → cambio 12-08 (frec 2)', R12.cambioHME, true);
+  eq('★ HEPA: etiqueta 08-08 → cambio 11-08 (frec 3)', R12.cambioHEPA, true);
+  eq('los tres dispositivos traen su cambio', R12.nCambios, 3);
+  eq('★ el nombre cabe en su celda', R12.cabe, true);
+  eq('…en una sola línea', R12.unaLinea, true);
+  eq('★ y el nombre de 50 caracteres también', R12.cabeGigante, true);
+  eq('★ carilla 2 · MRC con valor y fecha: 44/60 (10-08)', R12.mrcUlt, true);
+  eq('★ carilla 2 · FSS-ICU con valor y fecha: 22/35 (09-08)', R12.fssUlt, true);
+  eq('sin medición no se inventa: «—»', R12.sinDato, true);
 
   console.log('\n11 · Sin pacientes no revienta');
   const R10 = await p.evaluate(() => {
