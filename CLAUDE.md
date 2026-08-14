@@ -298,13 +298,13 @@ entrega que armé se calculó contra la referencia equivocada y salió incomplet
 DOS veces seguidas. La cifra de abajo se actualiza cuando alguien publica —
 si tiene más de unos días, se confirma antes de usarla.
 
-- **Publicado en producción**: cohete **v5.50-celular** (confirmado por Diego el
-  14-ago; commit `e48dcf4`).
-- **`main`** va en la v5.54-ventilador.
-- **Listo en el repo y SIN publicar**: v5.51 a **v5.58-escalas** — o sea ocho
-  versiones. La rama es `claude/code-review-assessment-wwnhhb`.
-- ⚠️ La v5.57 **exige `crearORepararEstructura()`**: EVOLUCIONES pasa a 390
-  columnas (`SED_SAS_META`, `SED_VIGIL`, `SED_FARMACOS`).
+- **Publicado en producción**: cohete **v5.58-escalas** — lo pegó Diego el
+  14-ago con la entrega de 6 archivos (este apunte ES el aviso que pide la
+  regla de publicación). `main` y la rama de trabajo van en lo mismo.
+- ⚠️ Pendiente de CONFIRMAR con Diego: que tras pegar corriera
+  `crearORepararEstructura()` (la v5.57 lo exige: EVOLUCIONES pasa a 390
+  columnas). Sin eso, el SAS meta/vigil/fármacos se escribe a columnas que no
+  existen y se pierde en silencio.
 - Marcha blanca con datos reales desde el 1-ago-2026.
 
 ### 🔴 Antes de armar una entrega: `node build/que_pegar.js <ref-publicada>`
@@ -323,8 +323,11 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   evaluar se les asigna el promedio, con más de 2 el total no se calcula—.
   Tres preguntas abiertas: cómo se declara, qué pasa con el campo cuando no se
   puede calcular, y si se anota la razón.
-- **Cuántas MR850 son** (punto 6 del brainstorm): hay UNA cargada con nombre
-  propio en VENTILADORES y deberían ser stock por cantidad, categoría APOYO.
+- ✅ **MR850 (punto 6 del brainstorm): SON 4, categoría APOYO** (Diego,
+  14-ago) — 1 en la cama 2 y 3 en bodega. Falta solo la acción de DATOS en el
+  tablero: dar de baja la única cargada con nombre propio y crear el stock por
+  cantidad con su reparto (el stock sin numerar existe desde la v5.17 y va a
+  camas desde la v5.18).
 - **`PRD_PUBLICAR_SIN_PC.md`** — cuatro decisiones, la primera es dónde vive la
   credencial de Google (alcanza al Drive, o sea a la planilla con los RUT).
 - **MRC**: la leyenda usa la graduación estándar. Si el protocolo de la unidad
