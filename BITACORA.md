@@ -3205,3 +3205,19 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
   el ciclo también para días en que el paciente estuvo en un PB/Avea — el
   historial no guarda qué ventilador había cada día. Es lectura retrospectiva,
   no alerta; se anota por si algún día molesta.
+- **v5.60b, mismo día (precisión de Diego sobre los vencidos)**: «si se cambia
+  a 3 días y han pasado 5, la fecha del cambio sería la de HOY — la fecha se
+  corre, no se le pone la de antes de ayer». El reloj real ya hacía lo
+  correcto (el dispositivo nuevo se fecha con el día real del cambio, vía
+  fecha efectiva); lo que mentía era lo MOSTRADO: la hoja diaria imprimía
+  «→ cambio: 10-08» tres días después. Ahora un vencido lidera con la acción
+  en los cuatro lugares: hoja diaria «→ cambiar HOY (venció el dd-mm)» ·
+  chip del formulario «VENCIDO — cambiar hoy (debió el dd-mm)» · entrega
+  «VENCIDO — cambiar hoy (debió el dd-mm)» · modal «VENCIDO — cambiar ESTA
+  NOCHE (debió el dd-mm, hace N días)». La fecha teórica pasada queda como
+  dato, nunca como plan. Sección 7 de `dispositivos_reglas.js`.
+  🪤 Del arreglo salió una trampa de arnés: el bloque 12 de
+  `hoja_registro_dia.js` medía las fechas de cambio sobre la tanda sembrada,
+  que se imprime con el RELOJ REAL — con el tag dependiente del día, la
+  guardia cambiaba de opinión según el día en que corriera. Las fechas ahora
+  se miden en un render de fecha fija (11-08).

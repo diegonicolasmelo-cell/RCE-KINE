@@ -6902,7 +6902,7 @@ function cnRender(d){
         ${x.icono||'🔧'} <b>${_docsEsc(x.nombre)}</b>
         <span style="color:var(--muted);">etiqueta ${_ddmm(x.etiqueta)}</span>
         <span style="flex:1;"></span>
-        ${venc?`<b style="color:#b91c1c;">VENCIDO — debió cambiarse el ${_ddmm(x.fechaCambio)}${x.diasAtraso>1?` (hace ${x.diasAtraso} días)`:''}</b>`
+        ${venc?`<b style="color:#b91c1c;">VENCIDO — cambiar ESTA NOCHE (debió el ${_ddmm(x.fechaCambio)}${x.diasAtraso>1?`, hace ${x.diasAtraso} días`:''})</b>`
              :`<b style="color:#b45309;">se cambia esta noche · madrugada del ${_ddmm(x.fechaCambio)}</b>`}
       </div>`;
     }).join('');
@@ -11445,7 +11445,7 @@ function calcInsumosDias(){
     const cambio=_ddmm(_sumDiasISO(f,dur));   // fecha EXACTA de cambio
     if(d<dur){ e.textContent=`Cambio: ${cambio}${d===dur-1?' (mañana en la noche)':''}`; e.classList.add('disp-ok'); }
     else if(d===dur){ e.textContent=`Cambiar ESTA NOCHE (${cambio})`; e.classList.add('disp-warn'); }
-    else { e.textContent=`VENCIDO — debió cambiarse el ${cambio}`; e.classList.add('disp-bad'); }
+    else { e.textContent=`VENCIDO — cambiar hoy (debió el ${cambio})`; e.classList.add('disp-bad'); }
   });
 }
 //  Al conectar a VM (ingreso ventilado o cambio de soporte) se fechan HME/HEPA/Trach Care
@@ -13493,7 +13493,7 @@ function renderEntrega(d){
       (f.dispositivos&&f.dispositivos.length)?f.dispositivos.map(x=>{
         // Fecha EXACTA de cambio (ago-2026): «HME cambio 05-08», «cambiar ESTA
         // NOCHE» o «VENCIDO — debió cambiarse el dd-mm». Los días se fueron.
-        const mk=x.estado==='vencido'?` <b style="color:#b91c1c;">VENCIDO${x.cambio?' — debió cambiarse el '+x.cambio:''}</b>`
+        const mk=x.estado==='vencido'?` <b style="color:#b91c1c;">VENCIDO — cambiar hoy${x.cambio?' (debió el '+x.cambio+')':''}</b>`
                 :(x.estado==='cambiar'?` <b style="color:#b45309;">cambiar ESTA NOCHE${x.cambio?' ('+x.cambio+')':''}</b>`
                 :(x.cambio?` cambio ${x.cambio}`:''));
         return `${x.n}${mk}`; }).join(' · '):'']);
@@ -13686,8 +13686,8 @@ function rkHojaHTML(c, fechaISO, soloCarilla1, nReintub){
     // 15»). Misma regla de _flEstado / estadoDispositivos — cambio = etiqueta
     // + frecuencia, ejecutado en la madrugada de esa fecha — para que la hoja
     // impresa no contradiga al modal «Cambios de esta noche» ni a la entrega.
-    ['{{FTCC}}',_rkCambioTag(c,'tc')],['{{FHEPAC}}',_rkCambioTag(c,'hepa')],
-    ['{{FHMEC}}',_rkCambioTag(c,'hme')],
+    ['{{FTCC}}',_rkCambioTag(c,'tc',fechaISO)],['{{FHEPAC}}',_rkCambioTag(c,'hepa',fechaISO)],
+    ['{{FHMEC}}',_rkCambioTag(c,'hme',fechaISO)],
     ['{{VENT}}', _rkVentCaja(c)],
     ['{{LOGOS}}', `<img src="${_RK_LOGO_HSP}" alt="Hospital San Pablo" style="height:26px;width:auto;">`+
                   `<img src="${_APK_LOGO_GOB}" alt="Gobierno de Chile" style="height:26px;width:auto;">`],
@@ -13710,7 +13710,7 @@ function rkHojaHTML(c, fechaISO, soloCarilla1, nReintub){
 }
 
 /* Fecha de cambio de un dispositivo del circuito, para la hoja impresa. */
-function _rkCambioTag(c,k){
+function _rkCambioTag(c,k,fechaRef){
   const def=_FL_DEF.find(d=>d.k===k); if(!def) return '';
   const et=String(c[def.campo]||'').slice(0,10);
   // A diferencia de la hoja de filtros de la unidad, aquí NO se exige soporte
@@ -13722,6 +13722,13 @@ function _rkCambioTag(c,k){
   if(k==='hepa' && _hepaFijoEquipo(c.VM_TAG))
     return ` <span class="rk-cambio">→ <b>fija</b> (no se cambia)</span>`;
   const iso=_flSumaDias(et,_flFrec(def));
+  // Vencido: la fecha impresa SE CORRE a hoy (Diego, 14-ago: «si han pasado 5
+  // días, la fecha del cambio sería la de hoy — no se le pone la fecha de
+  // antes de ayer»). El cambio atrasado se hace HOY, el dispositivo nuevo se
+  // fecha con el día real y el ciclo siguiente corre desde ahí.
+  const ref=String(fechaRef||'').slice(0,10);
+  if(ref && iso<=ref)
+    return ` <span class="rk-cambio">→ <b>cambiar HOY</b> (venció el ${iso.slice(8,10)+'-'+iso.slice(5,7)})</span>`;
   return ` <span class="rk-cambio">→ cambio: <b>${iso.slice(8,10)+'-'+iso.slice(5,7)}</b></span>`;
 }
 

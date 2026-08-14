@@ -130,7 +130,8 @@ const { chromium } = require('playwright-core');
     ] });
     const cnHtml = $('cnLista').innerHTML;
     r.cnEstaNoche = /se cambia esta noche/.test(cnHtml) && /05-08/.test(cnHtml);
-    r.cnVencido = /VENCIDO — debió cambiarse el 06-08/.test(cnHtml);
+    // v5.60 (Diego): el vencido lidera con la acción — cambiar ESTA NOCHE.
+    r.cnVencido = /VENCIDO — cambiar ESTA NOCHE \(debió el 06-08\)/.test(cnHtml);
     cnRender({ fecha: '2026-08-07', camas: [] });
     r.cnVacio = /Ningún dispositivo/.test($('cnLista').innerHTML);
     return r;

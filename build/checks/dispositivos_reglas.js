@@ -251,5 +251,18 @@ eq('…y activar la humidificación sigue borrando el HME del formulario',
 eq('la Hoja UCI no muestra reloj de HME en turnos con humidificación activa',
   /dispo:\['DISP_HME_FECHA','FREC_HME_DIAS',2\], si:e=>!_hjT\(e\.VENT_H_ACTIVA\)/.test(idx), true);
 
+// v5.60b (Diego, mismo día): «si se cambia a 3 días y han pasado 5, la fecha
+// del cambio sería la de HOY — la fecha se corre, no se le pone la de antes
+// de ayer». La fecha teórica pasada no se imprime nunca como plan.
+console.log('\n7 · Un vencido nunca anuncia una fecha del pasado');
+eq('★ la hoja diaria recibe la fecha de referencia y corre el vencido a HOY',
+  /function _rkCambioTag\(c,k,fechaRef\)\{/.test(idx) && /cambiar HOY<\/b> \(venció el /.test(idx), true);
+eq('el chip del formulario lidera con la acción',
+  idx.includes('VENCIDO — cambiar hoy (debió el ${cambio})'), true);
+eq('la entrega impresa también',
+  idx.includes("VENCIDO — cambiar hoy${x.cambio?' (debió el '+x.cambio+')':''}"), true);
+eq('y el modal «Cambios de esta noche» también',
+  idx.includes('VENCIDO — cambiar ESTA NOCHE (debió el '), true);
+
 console.log(fails.length ? `\n❌ ${fails.length} FALLOS` : '\n✅ TODO OK — cada dispositivo sigue a lo suyo');
 process.exit(fails.length ? 1 : 0);

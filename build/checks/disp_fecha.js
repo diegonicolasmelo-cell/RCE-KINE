@@ -151,7 +151,9 @@ const { chromium } = require('playwright-core');
   eq('el 2-ago avisa que el cambio es mañana en la noche', /Cambio: 03-08 \(mañana en la noche\)/.test(R.hme02), true);
   eq('la noche del 3-ago dice CAMBIAR ESTA NOCHE', /Cambiar ESTA NOCHE \(03-08\)/.test(R.hme03), true);
   eq('…y el HEPA de la misma cama aún no (su noche es la del 4)', /Cambio: 04-08/.test(R.hepa03), true);
-  eq('el 4-ago sin cambio queda VENCIDO con la fecha que se saltó', /VENCIDO — debió cambiarse el 03-08/.test(R.hme04), true);
+  // v5.60 (Diego): el vencido dice CAMBIAR HOY primero — la fecha del cambio
+  // real se corre a hoy; la que se saltó queda como dato, no como plan.
+  eq('el 4-ago sin cambio queda VENCIDO: cambiar hoy (debió el 03-08)', /VENCIDO — cambiar hoy \(debió el 03-08\)/.test(R.hme04), true);
 
   await b.close();
   if (errs.length) { console.log('❌ errores JS: ' + errs.join(' | ')); fails.push('js'); }

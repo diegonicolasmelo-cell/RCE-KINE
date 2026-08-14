@@ -338,6 +338,14 @@ const SEMBRAR = () => {
     const td = span && span.closest('td');
     const cabe = !!span && span.getBoundingClientRect().width <= td.getBoundingClientRect().width + 1;
     const unaLinea = !!span && span.getBoundingClientRect().height < 30;
+    // Las fechas de cambio se prueban con una hoja de FECHA FIJA (11-08): la
+    // tanda sembrada se imprime con el reloj real, y con la v5.60 el tag
+    // depende del día (un vencido dice «cambiar HOY») — medirlo ahí haría que
+    // la guardia cambiara de opinión según el día en que corra.
+    caja.innerHTML = rkHojaHTML({ OCUPADA:'TRUE', ID_CAMA:'4', FECHA_INGRESO:'2026-08-08',
+      NOMBRE:'Prueba Fechas', DISP_HME_FECHA:'2026-08-10', DISP_HEPA_FECHA:'2026-08-08',
+      DISP_TC_FECHA:'2026-08-08' }, '2026-08-11', true);
+    const tF = caja.textContent.replace(/\s+/g,' ');
     // Y el caso extremo: 50 caracteres.
     const gigante = rkHojaHTML({ OCUPADA:'TRUE', ID_CAMA:'2', FECHA_INGRESO:'2026-08-10',
       NOMBRE:'María de los Ángeles Fernández Villagrán del Solar' }, '2026-08-14', true);
@@ -350,10 +358,12 @@ const SEMBRAR = () => {
     return {
       vtCorto: /VT AJUSTADO A TALLA/.test(t1),
       vtLargo: /VOLUMEN TIDIAL/.test(t1),
-      // cama 4: HME etiqueta 10-08 (frec 2 ⇒ cambio 12-08); HEPA y TC 08-08
-      // (frec 3 ⇒ cambio 11-08). La regla es la de _flEstado: etiqueta+frec.
-      cambioHME: /10-08[\s\S]{0,60}?cambio: 12-08/.test(t1.replace(/\s+/g,' ')),
-      cambioHEPA: /08-08[\s\S]{0,60}?cambio: 11-08/.test(t1.replace(/\s+/g,' ')),
+      // Hoja fechada 11-08: HME etiqueta 10-08 (frec 2 ⇒ cambio 12-08, aún
+      // futuro) y HEPA 08-08 (frec 3 ⇒ cambio 11-08 = el día de la hoja: su
+      // madrugada YA pasó sin cambio ⇒ v5.60, Diego: la fecha SE CORRE —
+      // «cambiar HOY», no la fecha teórica). La regla base sigue etiqueta+frec.
+      cambioHME: /HME:\s*10-08[\s\S]{0,40}?cambio: 12-08/.test(tF),
+      cambioHEPA: /HEPA:\s*08-08[\s\S]{0,40}?cambiar HOY \(venció el 11-08\)/.test(tF),
       nCambios: (pg1.innerHTML.match(/rk-cambio/g) || []).length,
       cabe, unaLinea, cabeGigante,
       // Las etiquetas de la carilla 2, con valor, tope y fecha.
@@ -367,7 +377,7 @@ const SEMBRAR = () => {
   eq('★ «VT AJUSTADO A TALLA», abreviado', R12.vtCorto, true);
   eq('…y el texto largo se fue', R12.vtLargo, false);
   eq('★ HME: etiqueta 10-08 → cambio 12-08 (frec 2)', R12.cambioHME, true);
-  eq('★ HEPA: etiqueta 08-08 → cambio 11-08 (frec 3)', R12.cambioHEPA, true);
+  eq('★ HEPA vencido: la fecha se corre — «cambiar HOY (venció el 11-08)»', R12.cambioHEPA, true);
   eq('los tres dispositivos traen su cambio', R12.nCambios, 3);
   eq('★ el nombre cabe en su celda', R12.cabe, true);
   eq('…en una sola línea', R12.unaLinea, true);
