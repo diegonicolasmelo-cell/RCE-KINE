@@ -17,7 +17,7 @@ function _lcIni(s) {
  * «Queda con» de la reintubación — espejo exacto de `_reintubEquipoTxt` del
  * cliente (index.html), que ya lo narraba en sus TRES ramas.
  *
- * 🔴 El servidor no lo decía en NINGUNA (detectado 12-ago-2026). O sea que el
+ * 🔴 El servidor no lo decía en NINGUNA (detectado 14-ago-2026). O sea que el
  * colega leía en pantalla «…se reintuba a las 03:20 con TOT N° 8.0 a 22 cm,
  * quedando en modo ACVC (Vt 420 ml…)» y lo que quedaba ARCHIVADO en la
  * evolución cortaba en «…a las 03:20.». El estado posterior es parte del

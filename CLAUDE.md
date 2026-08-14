@@ -14,7 +14,7 @@ navegador del hospital o de su casa.
   correr `crearORepararEstructura()`, y cómo se publica (ver la regla de abajo;
   usar la skill `entrega-gas`; el index SIEMPRE en formato cohete).
 
-### 🔴 CÓMO SE PUBLICA — regla vigente (12-ago-2026, la cambió Diego)
+### 🔴 CÓMO SE PUBLICA — regla vigente (14-ago-2026, la cambió Diego)
 
 Esto **reemplaza** a la regla anterior («una sola persona publica»), que quedó
 obsoleta y sigue citada más abajo en el bloque de la Ola 1 de Manuel.
@@ -71,7 +71,7 @@ obsoleta y sigue citada más abajo en el bloque de la Ola 1 de Manuel.
   - Pendiente único de captura: decanulación con racha de válvula de fonación
     (exige historial de varios turnos reales).
 
-## Método PRD — «Escribe tu maldito PRD» (12-ago-2026, traído por Diego)
+## Método PRD — «Escribe tu maldito PRD» (14-ago-2026, traído por Diego)
 
 Diego mandó el PDF del método y pidió dejarlo en memoria. Es una forma de
 **escribir la estructura ANTES de promptear**: el documento fija el
@@ -122,7 +122,7 @@ ciegas):
   batería — y se revirtió porque escondía pronaciones verdaderas. Un PRD con
   la historia («qué le pasa al paciente al que se le repara la cama y se
   re-ingresa») y con no-objetivos lo habría cazado en papel, gratis.
-- **Dónde NO habría servido**: la cama 7 (12-ago). La causa no salió de
+- **Dónde NO habría servido**: la cama 7 (14-ago). La causa no salió de
   ningún documento sino de un dato de terreno de Diego en una línea.
 - **Cuándo se paga**: la mayoría de lo que pide Diego son ajustes de 1
   página. El PRD completo vale la pena en lo que toca esquema y consumidores
@@ -1217,7 +1217,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   **sub-bloques dentro del acordeón**, no en pantalla completa. Menos cambio para
   el equipo. Nada de esto toca lo que se guarda: mismas columnas, mismo guardado.
 
-- **v5.58 · FSS-ICU Y MRC CON LA DESCRIPCIÓN A LA VISTA (12-ago-2026, cohete
+- **v5.58 · FSS-ICU Y MRC CON LA DESCRIPCIÓN A LA VISTA (14-ago-2026, cohete
   v5.58-escalas; SOLO index, sin cambio de esquema — NO exige
   `crearORepararEstructura()`).** Punto 5 del brainstorm de Diego. No es
   cosmética: **toda la confiabilidad interobservador publicada de las dos
@@ -1260,7 +1260,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
   - Batería: **74 verdes**.
 
 - **v5.57 · EL SAS QUE TIENE Y EL SAS QUE SE PERSIGUE + LA ETIQUETA DE
-  CATEGORIZACIÓN FUERA DE LA VISTA (12-ago-2026, cohete v5.57-sas; index +
+  CATEGORIZACIÓN FUERA DE LA VISTA (14-ago-2026, cohete v5.57-sas; index +
   `esquema.gs` + `dominio_texto.gs` + `svc_entrega.gs` — ⚠️ **EXIGE
   `crearORepararEstructura()`**, EVOLUCIONES pasa a **390 columnas**).**
   Segundo trabajo con el método PRD (`PRD_SAS_REAL.md`). Historia de Diego:
@@ -1324,7 +1324,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     ahí y no solo en EVOLUCIONES.
   - Batería: **73 verdes**.
 
-- **v5.56 · LA DESVINCULACIÓN DEJA AL PACIENTE DONDE QUEDÓ (12-ago-2026, cohete
+- **v5.56 · LA DESVINCULACIÓN DEJA AL PACIENTE DONDE QUEDÓ (14-ago-2026, cohete
   v5.56-desvinc; SOLO index, sin cambio de esquema — NO exige
   `crearORepararEstructura()`).** Punto 1 del brainstorm de Diego, y **el
   primer trabajo escrito con el método PRD** (`PRD_DESVINCULACION.md` en la
@@ -1366,7 +1366,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     traductor corriendo en Chromium con la historia de Diego, y el ejemplo de
     los días de VM turno a turno). Batería: **71 verdes**.
 
-- **v5.55 · UN HECHO, UN HITO — Y EL HITO NO SE DEGRADA SOLO (12-ago-2026,
+- **v5.55 · UN HECHO, UN HITO — Y EL HITO NO SE DEGRADA SOLO (14-ago-2026,
   cohete v5.55-hitos; index + `svc_timeline.gs` + `svc_eventos.gs` +
   `svc_entrega.gs` + `svc_evoluciones.gs` + `dominio_texto.gs` +
   `mantenimiento.gs`, sin cambio de esquema — NO exige
@@ -1422,7 +1422,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     `hitos_unicos.js`, que usa el de verdad.
 
 - **v5.55 · LA REINTUBACIÓN DICE HORA Y CAUSA, Y EL TIEMPO EXTUBADO SE MIDE
-  CON EL RELOJ (12-ago-2026, misma tanda).** Sale del reporte de la cama 7:
+  CON EL RELOJ (14-ago-2026, misma tanda).** Sale del reporte de la cama 7:
   «una paciente con VNI que se intubó y en la entrega no salía la fecha de
   intubación». La primera hipótesis —el recorte de eventos— **la mató Diego
   con un dato**: «la intubación fue reciente e igualmente no aparecía». Un
@@ -1433,7 +1433,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     hubo VM alguna vez en el episodio **el bloque de intubación no aparece**
     y en su lugar sale el de reintubación. Una vez que hubo VM, todo lo que
     venga después es reintubación para siempre.
-  - ✅ **DECISIÓN DE DIEGO (12-ago)**: se **queda como reintubación**, sin
+  - ✅ **DECISIÓN DE DIEGO (14-ago)**: se **queda como reintubación**, sin
     tocar la clasificación. Lo que se pidió es que quede anotada con **hora**,
     **cómo quedó** y **causa**, «considerando las horas de VM; después en un
     análisis posterior podemos discriminar si es una o la otra». Y para la
@@ -1554,7 +1554,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
        detalle**: «craniectomía descompresiva».
 
   9. 🔴 **AL REABRIR UNA EVOLUCIÓN YA GUARDADA SE DESMARCAN LOS BOTONES QUE NO
-     SE HEREDAN (12-ago-2026, reportado por Diego desde el uso).** Sus palabras:
+     SE HEREDAN (14-ago-2026, reportado por Diego desde el uso).** Sus palabras:
      «en los pacientes que estamos evolucionando en el modal de evolución, una
      vez que guardamos la evolución del día y necesitamos registrar algo más,
      los botones que son seleccionables y no heredables se desmarcan; por lo
@@ -2172,7 +2172,7 @@ ya trae vivas + archivadas); no hubo cambios de servidor.
     cuántas filas vivas deja.
   - Reglas de convivencia que SÍ funcionaron: fetch antes de trabajar, avisar
     por #mejoras-rce antes de pegar, una sola persona publica.
-    ⚠️ **«Una sola persona publica» quedó DEROGADO el 12-ago-2026** por Diego:
+    ⚠️ **«Una sola persona publica» quedó DEROGADO el 14-ago-2026** por Diego:
     publican Manuel o él, y lo que sostiene la convivencia pasó a ser el
     **aviso** (repo o Slack). Ver la regla vigente al inicio de este archivo.
 

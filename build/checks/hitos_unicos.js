@@ -1,6 +1,6 @@
 // hitos_unicos.js — Un hecho, un hito. Y el hito no se degrada solo.
 //
-// 🔴 DE DÓNDE SALE (12-ago-2026, reporte de Diego: «el ingreso en el timeline
+// 🔴 DE DÓNDE SALE (14-ago-2026, reporte de Diego: «el ingreso en el timeline
 // se duplica, una de color verde y otro color morado»). El ingreso lo
 // escribían TRES sitios que no se conocían entre sí:
 //
@@ -137,7 +137,7 @@ global.Utilities = {
 // hacen falta deterministas (el mismo patrón de las otras guardias).
 let _n = 0;
 global.uid = p => p + '_' + (++_n);
-global.ahoraTS = () => '2026-08-12 10:00:00';
+global.ahoraTS = () => '2026-08-14 10:00:00';
 
 const hitos = (cama, tipo) => (DB.TIMELINE || [])
   .filter(h => String(h.ID_CAMA) === String(cama) && (!tipo || h.TIPO === tipo));

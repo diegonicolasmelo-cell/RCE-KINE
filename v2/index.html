@@ -7994,7 +7994,7 @@ function _renderTLEventos() {
   fechas.forEach(f => { byFecha[f] = lista.filter(h => (h.FECHA || '') === f); });
 
   // 🔴 `via_aerea` y `kine` NO tenían color y caían al celeste de 'general'
-  // (12-ago-2026): la intubación, la extubación y la TQT se veían igual que
+  // (14-ago-2026): la intubación, la extubación y la TQT se veían igual que
   // una nota cualquiera. Los dos valores son los mismos del CSS `.dot-*`.
   const DOT_COLORS = { ingreso:'#059669', egreso:'#dc2626', procedimiento:'#7c3aed',
                        via_aerea:'#4f46e5', kine:'#0f766e', general:'#0284c7', nota:'#b45309' };

@@ -1,7 +1,7 @@
 // sas_real.js — El SAS que TIENE el paciente y el que se PERSIGUE, y la
 // sedación que no es profunda.
 //
-// 🔴 DE DÓNDE SALE (Diego, 12-ago-2026). Su historia, textual: «tiene un
+// 🔴 DE DÓNDE SALE (Diego, 14-ago-2026). Su historia, textual: «tiene un
 // paciente en SAS 6, sin embargo el objetivo es lograr el SAS 4, pero a pesar
 // de las medidas no se logra de forma consistente. Diego no tiene cómo decir
 // que la sedación que tiene es para este fin, ya que si lo anota como sedación

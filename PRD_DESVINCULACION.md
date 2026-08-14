@@ -1,8 +1,8 @@
 # PRD — La desvinculación deja al paciente donde quedó
 
-**Estado:** ✅ Decidido y programado (v5.56-desvinc, 12-08-2026)
+**Estado:** ✅ Decidido y programado (v5.56-desvinc, 14-08-2026)
 **Dueño:** Diego Melo Villagrán (coordinador de kinesiología UCI)
-**Creado:** 12-08-2026
+**Creado:** 14-08-2026
 **Alcance:** el estado ventilatorio con que el paciente QUEDA tras desvincularse
 de la VM, y que ese estado sea el que hereda el turno siguiente.
 
@@ -246,7 +246,7 @@ CUANDO se anula la desvinculación
 
 ---
 
-## 7 · Las decisiones, resueltas por Diego (12-08-2026)
+## 7 · Las decisiones, resueltas por Diego (14-08-2026)
 
 **D1 · El traductor.** Resuelto, y con una corrección de vocabulario:
 

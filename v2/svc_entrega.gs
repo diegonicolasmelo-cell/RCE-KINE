@@ -121,7 +121,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
       otro((ev.PVE_RESULTADO === 'superada' ? '▲ PVE superada ' : '▼ PVE frustra ') + f + mot);
     }
     if (esVerdadero(ev.EXT_OCURRIO)) hito('✂️ Extubación ' + f + (ev.EXT_HORA ? ' ' + ev.EXT_HORA : '') + (ev.EXT_TIPO ? ' (' + ev.EXT_TIPO + ')' : ''));
-    // Reintubación: evento · hora · CAUSA (Diego, 12-ago-2026). Era el único
+    // Reintubación: evento · hora · CAUSA (Diego, 14-ago-2026). Era el único
     // evento de vía aérea que salía pelado —solo la fecha— y en la ronda se
     // pregunta POR QUÉ falló: poder responder «por mal manejo de secreciones»
     // o «por mala mecánica» sin ir a buscar la ficha es justamente para lo que

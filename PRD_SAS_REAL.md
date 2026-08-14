@@ -1,8 +1,8 @@
 # PRD — El SAS que tiene el paciente y el SAS que se persigue
 
-**Estado:** ✅ Decidido y programado (v5.57-sas, 12-08-2026)
+**Estado:** ✅ Decidido y programado (v5.57-sas, 14-08-2026)
 **Dueño:** Diego Melo Villagrán (coordinador de kinesiología UCI)
-**Creado:** 12-08-2026
+**Creado:** 14-08-2026
 **Alcance:** separar el SAS **actual** de la **meta**, y poder declarar una
 sedación que no es sedación profunda sin que ensucie la fecha en que se
 suspendió la sedación profunda de verdad.
@@ -241,7 +241,7 @@ CUANDO el colega marca «sedación vigil»
 
 ---
 
-## 7 · Las decisiones, resueltas por Diego (12-08-2026)
+## 7 · Las decisiones, resueltas por Diego (14-08-2026)
 
 **D1 · Qué ha estado escribiendo el equipo.** Diego: «ha sido dispar, a veces
 la meta a veces lo actual». ⇒ Los registros anteriores a la v5.57 traen **un

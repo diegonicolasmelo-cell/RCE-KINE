@@ -11,7 +11,7 @@
 // decanulación — y **no preguntaba por la desvinculación**. El dato «Queda
 // con» ya se capturaba desde la v4.2 y solo servía para narrar.
 //
-// DECISIONES DE DIEGO QUE ESTA GUARDIA FIJA (12-ago-2026):
+// DECISIONES DE DIEGO QUE ESTA GUARDIA FIJA (14-ago-2026):
 //   · El alto flujo por traqueostomía se llama **CTAF**, no «OAF/CTAF» ni
 //     «CNAF» — «así nos entendemos». CNAF es nasal; CTAF es traqueal.
 //   · La válvula de fonación **puede ir con o sin O2 adicional** ⇒ son dos

@@ -64,7 +64,7 @@ const PROC_TO_HITO = {
   // (index, _autoProcs), así que NUNCA calzaba. El ingreso caía al respaldo
   // genérico de la v5.39 y salía como un procedimiento más — morado, junto a
   // los hitos verdes de ingreso que escriben ingresarPaciente y guardarEvolucion.
-  // Ese era el «ingreso duplicado» que reportó Diego (12-ago-2026).
+  // Ese era el «ingreso duplicado» que reportó Diego (14-ago-2026).
   'INGRESO':                { tipo: 'ingreso',      label: 'Ingreso a UCI' },
   'INTUBACIÓN':             { tipo: 'via_aerea',    label: 'Intubación orotraqueal' },
   'PVE':                    { tipo: 'via_aerea',    label: 'PVE (Prueba de Ventilación Espontánea)' },
@@ -90,7 +90,7 @@ const PROC_TO_HITO = {
   'FALLECE':                { tipo: 'egreso',        label: 'Fallece' },
   // Los cuatro de abajo también los manda `_autoProcs` y tampoco estaban: caían
   // al respaldo genérico y se leían como «procedimiento» sin nombre clínico
-  // (12-ago-2026). La recanulación es el caso que importa —es vía aérea— y por
+  // (14-ago-2026). La recanulación es el caso que importa —es vía aérea— y por
   // eso viaja arriba, junto a la decanulación.
   'ASISTENCIA EN PROCEDIMIENTO MÉDICO': { tipo: 'procedimiento', label: 'Asistencia en procedimiento médico' },
   'EDUCACIÓN A USUARIO/FAMILIA':        { tipo: 'kine',          label: 'Educación a usuario/familia' },
@@ -197,7 +197,7 @@ function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, pa
   // ── (a) El ingreso se anota UNA vez ────────────────────────────────────
   // Tres sitios lo escriben —`ingresarPaciente`, el bloque de ingreso de
   // `guardarEvolucion` y el procedimiento 'INGRESO'— y ninguno sabía de los
-  // otros (Diego, 12-ago-2026: «una de color verde y otro morado»). El tipo
+  // otros (Diego, 14-ago-2026: «una de color verde y otro morado»). El tipo
   // 'ingreso' NO está en `_TIPOS_HITO_AUTO`, a propósito: un re-guardado no
   // debe borrar el ingreso. Por eso el que sobra no se limpia después — se
   // evita antes de escribirlo.

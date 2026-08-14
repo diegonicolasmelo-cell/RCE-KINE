@@ -2,7 +2,7 @@
 
 **Estado:** Borrador, esperando cuatro decisiones de Diego
 **Dueño:** Diego Melo Villagrán (coordinador de kinesiología UCI)
-**Creado:** 12-08-2026
+**Creado:** 14-08-2026
 **Alcance:** que un cambio de código llegue a la unidad **sin pegar archivos a
 mano y sin necesitar un computador**, conservando quién decide publicar.
 
@@ -88,7 +88,7 @@ la noche que corresponde.
 
 | | |
 |---|---|
-| **NO1** | **No se publica solo al subir código.** Que yo deje un cambio listo no lo pone en la unidad. Es el no-objetivo que sostiene la regla del 12-ago: publican Manuel o Diego. |
+| **NO1** | **No se publica solo al subir código.** Que yo deje un cambio listo no lo pone en la unidad. Es el no-objetivo que sostiene la regla del 14-ago: publican Manuel o Diego. |
 | **NO2** | **La credencial de Google no vive en el contenedor de Claude ni pasa por el chat.** Ver §5 y D1. |
 | **NO3** | **No** se automatiza `crearORepararEstructura()`. |
 | **NO4** | **No** se crea una implementación nueva, nunca. |

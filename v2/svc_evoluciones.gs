@@ -565,7 +565,7 @@ function _registrarReintubacion(evo, idCama, idEvolucion, fecha, turno, ctx, _ev
 /**
  * Horas entre la extubación previa del episodio y la reintubación.
  *
- * 🔴 MANDA EL RELOJ, NO EL TURNO (regla de Diego, 12-ago-2026). Este número es
+ * 🔴 MANDA EL RELOJ, NO EL TURNO (regla de Diego, 14-ago-2026). Este número es
  * el que después permite distinguir una reintubación de una intubación nueva
  * —«no es reintubación sino intubación, por los días»—, así que tiene que ser
  * el tiempo REAL entre los dos momentos.
