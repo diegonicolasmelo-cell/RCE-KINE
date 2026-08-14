@@ -393,7 +393,18 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   // HME está retirado del circuito — su fecha se fuerza vacía en la cama (si
   // no, val() haría arrastre desde el episodio y "resucitaría" un filtro que
   // ya no está puesto, igual que dejaVM para el resto del circuito).
+  // 🪤 14-ago-2026 (reportado por Diego desde el uso): la humidificación vive
+  // en DOS campos del formulario —el checkbox (VENT_H_ACTIVA) y la fecha
+  // (DISP_HUMID_FECHA)— y aquí solo mandaba el checkbox. Fechar la
+  // humidificación SIN marcar el checkbox dejaba hactOn falso y el HME seguía
+  // contando días de un filtro retirado. Ahora manda CUALQUIERA de los dos; y
+  // al revés, desmarcarla con la fecha vacía la RETIRA de la cama de verdad
+  // (antes val() con '' hacía arrastre y la resucitaba desde el episodio).
   const hactOn = esVerdadero(evo.VENT_H_ACTIVA);
+  const humidNueva = String(evo.DISP_HUMID_FECHA || '').slice(0, 10);
+  const humidFinal = (hactOn || humidNueva)
+    ? (humidNueva || String(cama.DISP_HUMID_FECHA || '').slice(0, 10) || fecha)
+    : '';
 
   // PVE del episodio, acumulados por turnoKey (idempotente al re-guardar un
   // turno: la clave se sobreescribe). De aquí se deriva la clase de weaning.
@@ -465,13 +476,19 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     ULT_FSS: val(evo.EVAL_T_FSS, cama.ULT_FSS),
     ULT_FSS_FECHA: val(evo.EVAL_T_FSS, '') !== '' ? fecha : (cama.ULT_FSS_FECHA || ''),
     ULT_DINAMO: val(evo.EVAL_T_DINAMO, cama.ULT_DINAMO),
-    // Dispositivos de circuito VM: estado del episodio. Al salir de VM (weaning/
-    // extubación) se limpian — el circuito se descarta; una reintubación fecha
-    // circuito nuevo desde el cliente (force=true).
-    DISP_HME_FECHA: (dejaVM || hactOn) ? '' : val(evo.DISP_HME_FECHA, cama.DISP_HME_FECHA),
+    // Dispositivos del circuito: cada uno sigue a lo que le da sentido, no
+    // todos al soporte VM (Diego, 14-ago-2026). Al salir de VM el circuito se
+    // descarta, PERO el Trach Care pertenece a la VÍA AÉREA y sobrevive si el
+    // paciente queda con TOT/TQT (weaning a CTAF, por ejemplo), y el HME
+    // sobrevive si queda respirando POR el HME (modo HME). El HEPA es del
+    // ventilador: al salir de VM se limpia siempre. La humidificación activa
+    // manda sobre el HME (excluyentes) y sigue al paciente (CNAF humidificada
+    // la conserva); una reintubación fecha circuito nuevo desde el cliente
+    // (force=true).
+    DISP_HME_FECHA: (humidFinal || (dejaVM && modoFin !== 'HME')) ? '' : val(evo.DISP_HME_FECHA, cama.DISP_HME_FECHA),
     DISP_HEPA_FECHA: dejaVM ? '' : val(evo.DISP_HEPA_FECHA, cama.DISP_HEPA_FECHA),
-    DISP_TC_FECHA: dejaVM ? '' : val(evo.VENT_FECHA_SONDA, cama.DISP_TC_FECHA),
-    DISP_HUMID_FECHA: dejaVM ? '' : val(evo.DISP_HUMID_FECHA, cama.DISP_HUMID_FECHA),
+    DISP_TC_FECHA: (dejaVM && vaNew !== 'TOT' && vaNew !== 'TQT') ? '' : val(evo.VENT_FECHA_SONDA, cama.DISP_TC_FECHA),
+    DISP_HUMID_FECHA: humidFinal,
     WEAN_PVE_JSON: JSON.stringify(weanPve),
     WEAN_CAND_PVE: candPve,
     ULTIMO_TURNO_KEY: turnoKey,

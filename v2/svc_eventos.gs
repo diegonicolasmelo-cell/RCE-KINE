@@ -14,6 +14,16 @@
  *    termina el 28 — misma lógica de turnos de la plataforma).
  *  - El reloj parte al conectar a VM (dispositivos asumidos instalados ese
  *    día, DISP_CONFIRMADO=false hasta que el kine acepte o ajuste).
+ *  - CADA DISPOSITIVO SIGUE A LO QUE LE DA SENTIDO, no todos al soporte VM
+ *    (Diego, 14-ago-2026): el Trach Care va con la VÍA AÉREA artificial
+ *    (TOT/TQT, esté o no en VM); el HME va con el circuito de gas (VM sin
+ *    humidificación activa, o respirando por HME — modo HME con TOT/TQT); el
+ *    HEPA va con el VENTILADOR (solo VM y solo si la cama tiene equipo
+ *    asignado — sin ventilador no hay dónde ponerlo).
+ *  - HEPA FIJO: los equipos de CONFIG HEPA_FIJO_EQUIPOS (por defecto PB y
+ *    Avea) llevan filtro HEPA propio que se mantiene desde su instalación —
+ *    la fecha se muestra como referencia y NUNCA entra al ciclo de cambio.
+ *    La Vela y el resto siguen con el ciclo normal.
  */
 
 const _EVENTO_DISPS = [
@@ -55,19 +65,71 @@ const _EVENTO_DISPS = [
 function estadoDispositivos(cama, fechaRef) {
   const ref = String(fechaRef || hoyISO()).slice(0, 10);
   const enVM = String(cama.SOPORTE) === 'VM';
+  const va = String(cama.VIA_AEREA || '');
+  const humid = !!_statISO(cama.DISP_HUMID_FECHA);
+  const modoHME = String(cama.MODO) === 'HME';
+  const ventNom = enVM ? _ventNombreDeCama(cama.ID_CAMA) : '';
+  const hepaFija = !!ventNom && _hepaFijoEquipo(ventNom);
   return _EVENTO_DISPS.map(d => {
     const fecha = _statISO(cama[d.campo]);
     const frec = parseInt(leerConfig(d.confKey, String(d.frecDef))) || d.frecDef;
     const dias = fecha ? Math.round((new Date(ref) - new Date(fecha)) / 864e5) : null;
+    // Regla por dispositivo (Diego, 14-ago-2026 — ver cabecera del archivo).
+    let aplica, fija = false;
+    if (d.k === 'hepa') { aplica = enVM && !!ventNom && !!fecha; fija = aplica && hepaFija; }
+    else if (d.k === 'hme') { aplica = ((enVM && !humid) || modoHME) && !!fecha; }
+    else { aplica = (va === 'TOT' || va === 'TQT') && !!fecha; }
+    const cicla = aplica && !fija;   // el HEPA fijo se muestra pero no vence
     return {
       k: d.k, nombre: d.nombre, icono: d.icono, fecha: fecha, frec: frec, dias: dias,
-      fechaCambio: fecha ? _sumarDiasISO(fecha, frec) : '',
-      aplica: enVM && !!fecha,
-      cambiaEstaNoche: enVM && dias !== null && dias === frec - 1,
-      vence: enVM && dias !== null && dias >= frec,
-      venceManana: enVM && dias !== null && dias === frec - 2,
+      fechaCambio: (fecha && !fija) ? _sumarDiasISO(fecha, frec) : '',
+      aplica: aplica, fija: fija,
+      cambiaEstaNoche: cicla && dias !== null && dias === frec - 1,
+      vence: cicla && dias !== null && dias >= frec,
+      venceManana: cicla && dias !== null && dias === frec - 2,
     };
   });
+}
+
+/**
+ * Nombre del ventilador (categoría VM) asignado a una cama, para la regla del
+ * HEPA. Lee VENTILADORES UNA vez por ejecución (memo): la entrega y
+ * cambiosEstaNoche recorren la unidad entera y no pueden pagar una lectura por
+ * cama. Mismo criterio del censo (svc_camas.gs): ACTIVO, ubicado en CAMA y
+ * de categoría VM — el V60/Airvo acompaña al paciente, no ocupa el casillero.
+ */
+// `var` a propósito: en GAS cada ejecución parte con el memo vacío, y en los
+// arneses de las guardias (que cargan este archivo con eval) `var` deja el
+// memo alcanzable para resetearlo entre escenarios.
+var _ventPorCamaMemo = null;
+function _ventNombreDeCama(idCama) {
+  if (_ventPorCamaMemo === null) {
+    _ventPorCamaMemo = {};
+    try {
+      repoLeerTodos('VENTILADORES').forEach(function (x) {
+        if (!esVerdadero(x.ACTIVO) || x.UBIC_TIPO !== 'CAMA' || !x.UBIC_DETALLE) return;
+        if (!_vmEsDeCama(_vmCategoria(x))) return;
+        _ventPorCamaMemo[String(x.UBIC_DETALLE)] = String(x.NOMBRE || '');
+      });
+    } catch (e) { /* sin inventario legible: se comporta como «sin equipo» */ }
+  }
+  return _ventPorCamaMemo[String(idCama)] || '';
+}
+
+/**
+ * ¿Este ventilador lleva HEPA FIJO (sin ciclo de cambio)? Se decide por
+ * PREFIJO del nombre contra CONFIG HEPA_FIJO_EQUIPOS («PB,Avea» si la fila no
+ * existe): así «PB 1», «PB 2», «Avea 1» y «Avea 3» calzan sin enumerarlos, y
+ * un equipo nuevo se agrega editando CONFIG, sin tocar código. El espejo del
+ * cliente es _hepaFijoEquipo en index.html — si cambias la regla, en ambos.
+ */
+function _hepaFijoEquipo(nombre) {
+  const n = String(nombre || '').trim().toUpperCase();
+  if (!n) return false;
+  return String(leerConfig('HEPA_FIJO_EQUIPOS', 'PB,Avea')).split(',')
+    .map(function (s) { return s.trim().toUpperCase(); })
+    .filter(Boolean)
+    .some(function (p) { return n.indexOf(p) === 0; });
 }
 
 /** fecha ISO + n días, sin pasar por Date del navegador (mediodía UTC evita

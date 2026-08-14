@@ -53,6 +53,12 @@ global._fechaEfectivaTurno = (fecha, turno) => {
 // `checks/hitos_unicos.js`, que sí usa el de verdad.
 global._hitoAnexoPrefijo = n => '🔧 ' + String(n || '');
 
+// La categoría del ventilador vive en svc_equipos.gs; cargarlo entero traería
+// todo el tablero de equipos a este arnés. Se copian las dos líneas que usa
+// _ventNombreDeCama (la regla real la vigila equipos_categoria.js).
+global._vmCategoria = x => String(x.CATEGORIA || 'VM').trim().toUpperCase();
+global._vmEsDeCama = cat => String(cat) === 'VM';
+
 // svc_stats.gs aporta _statISO (misma normalización de fechas de producción).
 eval(['svc_stats.gs', 'svc_eventos.gs'].map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 
@@ -129,7 +135,15 @@ eq('confirmar con fecha ajusta los 3 relojes', DB.CAMAS_ESTADO[0].DISP_HME_FECHA
 // (la madrugada), el error se acumulaba: el HME terminaba durando 3 días. Lo
 // reportó Manuel desde el turno; el intervalo real se mide en la sección 6b.
 // Referencia de todos estos casos: 27-07 (turno noche del 27 = madrugada del 28).
-const cama = { SOPORTE: 'VM', DISP_HME_FECHA: '2026-07-26', DISP_HEPA_FECHA: '2026-07-26', DISP_TC_FECHA: '' };
+// Desde la v5.60 cada dispositivo tiene su propia condición (HEPA = ventilador
+// asignado, HME = VM sin humid activa o modo HME, TC = vía aérea artificial),
+// así que las camas de este arnés llevan TOT y un ventilador DE CICLO (Vela).
+DB.VENTILADORES = [
+  { NOMBRE: 'Vela 9', ACTIVO: 'TRUE', UBIC_TIPO: 'CAMA', UBIC_DETALLE: '3', CATEGORIA: 'VM' },
+  { NOMBRE: 'Vela 7', ACTIVO: 'TRUE', UBIC_TIPO: 'CAMA', UBIC_DETALLE: '5', CATEGORIA: 'VM' },
+];
+_ventPorCamaMemo = null;   // las secciones 2-5 ya lo poblaron sin inventario
+const cama = { ID_CAMA: '3', SOPORTE: 'VM', VIA_AEREA: 'TOT', DISP_HME_FECHA: '2026-07-26', DISP_HEPA_FECHA: '2026-07-26', DISP_TC_FECHA: '' };
 const est = estadoDispositivos(cama, '2026-07-27');
 const hme = est.find(d => d.k === 'hme'), hepa = est.find(d => d.k === 'hepa'), tc = est.find(d => d.k === 'sonda');
 eq('HME etiqueta de ayer (frec 2) → se cambia ESTA NOCHE, no vencido', hme.cambiaEstaNoche && !hme.vence, true);
@@ -139,13 +153,13 @@ eq('HEPA días=1', hepa.dias, 1);
 eq('…con fecha de cambio etiqueta+3', hepa.fechaCambio, '2026-07-29');
 eq('…y avisa que le toca la madrugada SIGUIENTE', hepa.venceManana, true);
 eq('sonda sin fecha → no aplica', tc.aplica, false);
-const est2 = estadoDispositivos({ SOPORTE: 'VM', DISP_HME_FECHA: '2026-07-27', DISP_HEPA_FECHA: '2026-07-26', DISP_TC_FECHA: '2026-07-25' }, '2026-07-27');
+const est2 = estadoDispositivos({ ID_CAMA: '3', SOPORTE: 'VM', VIA_AEREA: 'TOT', DISP_HME_FECHA: '2026-07-27', DISP_HEPA_FECHA: '2026-07-26', DISP_TC_FECHA: '2026-07-25' }, '2026-07-27');
 eq('HME etiquetado hoy (frec 2) → le toca la madrugada siguiente', est2.find(d => d.k === 'hme').venceManana, true);
 eq('TC hace 2 días (frec 3) → se cambia ESTA NOCHE', est2.find(d => d.k === 'sonda').cambiaEstaNoche, true);
-const est4 = estadoDispositivos({ SOPORTE: 'VM', DISP_HME_FECHA: '2026-07-25' }, '2026-07-27');
+const est4 = estadoDispositivos({ ID_CAMA: '3', SOPORTE: 'VM', VIA_AEREA: 'TOT', DISP_HME_FECHA: '2026-07-25' }, '2026-07-27');
 eq('HME hace 2 días (frec 2): pasó su madrugada sin cambio → vencido', est4.find(d => d.k === 'hme').vence, true);
-const est3 = estadoDispositivos({ SOPORTE: 'VMNI', DISP_HME_FECHA: '2026-07-20' }, '2026-07-27');
-eq('sin VM → nada aplica ni vence', est3.every(d => !d.aplica && !d.vence), true);
+const est3 = estadoDispositivos({ ID_CAMA: '3', SOPORTE: 'VMNI', DISP_HME_FECHA: '2026-07-20' }, '2026-07-27');
+eq('sin VM → el HME no aplica ni vence', (() => { const h = est3.find(d => d.k === 'hme'); return !h.aplica && !h.vence; })(), true);
 
 // ── 6b. cambiosEstaNoche, ciclo completo — LA PROPIEDAD ES EL INTERVALO ──
 // Lo que hay que conservar no es una lista de fechas, es que entre dos cambios
@@ -156,7 +170,7 @@ eq('sin VM → nada aplica ni vence', est3.every(d => !d.aplica && !d.vence), tr
 // el aviso se calculaba sobre la fecha nominal del turno.
 // Paciente ingresa el 04/08: sus 3 dispositivos quedan etiquetados 04/08.
 DB.CAMAS_ESTADO = [
-  { ID_CAMA: '5', OCUPADA: 'TRUE', NOMBRE: 'Paciente Ejemplo', SOPORTE: 'VM',
+  { ID_CAMA: '5', OCUPADA: 'TRUE', NOMBRE: 'Paciente Ejemplo', SOPORTE: 'VM', VIA_AEREA: 'TOT',
     DISP_HME_FECHA: '2026-08-04', DISP_HEPA_FECHA: '2026-08-04', DISP_TC_FECHA: '2026-08-04' },
   { ID_CAMA: '6', OCUPADA: 'TRUE', NOMBRE: 'Sin VM', SOPORTE: 'Ambiente',
     DISP_HME_FECHA: '2026-08-01' },

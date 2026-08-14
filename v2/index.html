@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.59-hoja2caras">
+<meta name="rce-version" content="5.60-dispositivos">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -2814,10 +2814,10 @@ document.documentElement.setAttribute('data-piel', 'inst');
             </div>
             <div class="row" style="align-items:flex-end;">
               <div class="check cr wa"><input type="checkbox" id="cHAct" onchange="syncHumidFecha(this.checked)"><label for="cHAct">🌡️ Humidificación Activa</label></div>
-              <div class="col wa"><label>Desde</label><input type="date" id="fFecHumid" onchange="calcInsumosDias()"></div>
+              <div class="col wa"><label>Desde</label><input type="date" id="fFecHumid" onchange="humidFechaManual(this.value)"></div>
               <span id="sHumidDias" class="disp-chip disp-none" style="align-self:flex-end;margin-bottom:8px;">—</span>
             </div>
-            <div style="font-size:.68rem;color:var(--muted);">Se fechan solos al conectar a VM (ingreso, intubación o reintubación). HME se cambia en su día 2; HEPA y Trach Care en su día 3 (por fecha, no horas). Al activar humidificación activa se retira el filtro HME (humidificación pasiva↔activa son excluyentes); la humidificación activa no vence.</div>
+            <div style="font-size:.68rem;color:var(--muted);">Se fechan solos al conectar a VM (ingreso, intubación o reintubación). HME se cambia en su día 2; HEPA y Trach Care en su día 3 (por fecha, no horas). En los equipos con HEPA fijo (PB, Avea) el filtro es del ventilador y no se cambia: su fecha es solo referencia. Al activar humidificación activa se retira el filtro HME (humidificación pasiva↔activa son excluyentes) — fechar la humidificación también la activa; la humidificación activa no vence. El Trach Care acompaña a la vía aérea artificial aunque el paciente ya no esté en VM.</div>
           </div>
         </div>
 
@@ -4226,7 +4226,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.59-hoja2caras]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.60-dispositivos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -7576,7 +7576,10 @@ const HJ_F = {
             return /30|45/.test(c)?_hjChip('✓ '+c,'ok'):_hjChip('⚠ '+c,'warn'); }},
   tc:    {l:'🌀 Trachcare', per:'d', dispo:['DISP_TC_FECHA','FREC_SONDA_DIAS',3]},
   hepa:  {l:'🛡️ Filtro HEPA', per:'d', dispo:['DISP_HEPA_FECHA','FREC_HEPA_DIAS',3]},
-  hme:   {l:'🌫️ Filtro HME', per:'d', dispo:['DISP_HME_FECHA','FREC_HME_DIAS',2]},
+  // Con humidificación activa el HME está RETIRADO: el turno que la trae no
+  // muestra reloj de HME aunque una fecha vieja haya quedado guardada en la
+  // evolución (14-ago-2026, va con el arreglo de humidFinal en el servidor).
+  hme:   {l:'🌫️ Filtro HME', per:'d', dispo:['DISP_HME_FECHA','FREC_HME_DIAS',2], si:e=>!_hjT(e.VENT_H_ACTIVA)},
   humid: {l:'💧 Humidificación', per:'d', f:e=>_hjT(e.VENT_H_ACTIVA)?_hjChip('Activa','blue'):''},
   cult:  {l:'🧫 Cultivo', per:'d', f:e=>{ const r=e.EX_CULT_RESULTADO||'';
             if(r) return _hjChip('✕ '+r,'bad');
@@ -7670,6 +7673,7 @@ function _hjDias(){
 function _hjValor(fila, e, fecha){
   if(!e) return '';
   if(fila.dispo){
+    if(fila.si && !fila.si(e)) return '';
     const [campo,cfgKey,def]=fila.dispo;
     const frec=parseInt((window.CFG&&CFG[cfgKey]))||def;
     return _hjDisp(fecha, e[campo], frec);
@@ -9331,7 +9335,14 @@ function hAdapt(limpiar){
 function _gateDispositivos(){
   const sopFin = $('cIntubO')?.checked ? (v('poIntubSop')||'VM')
                : $('cTqtO')?.checked ? (v('poTqtSop')||'VM') : v('fSop');
-  const dc=$('fcDisp'); if(dc) dc.classList.toggle('hidden', sopFin!=='VM');
+  // El circuito ya no es solo de VM (Diego, 14-ago-2026): el Trach Care sigue
+  // a la vía aérea artificial (TOT/TQT aunque no haya VM) y el HME también se
+  // usa respirando POR él (modo HME), así que la tarjeta se muestra en esos
+  // casos — si no, el reloj del Trach Care de un decanulando a CTAF no tendría
+  // dónde mantenerse.
+  const _vaG=v('fVA'), _modoG=v('fModo');
+  const conDisp = sopFin==='VM' || _vaG==='TOT' || _vaG==='TQT' || _modoG==='HME';
+  const dc=$('fcDisp'); if(dc) dc.classList.toggle('hidden', !conDisp);
   if(sopFin==='VM' && typeof autoFechasDispositivos==='function') autoFechasDispositivos(false);
 }
 
@@ -11416,10 +11427,18 @@ function calcInsumosDias(){
   // Se mide contra la FECHA DEL TURNO (no la efectiva): la noche del 03 ES la
   // noche de cambio de lo etiquetado el 01 (frec 2) — igual que el servidor.
   const ref=_isoDia(v('gDate')||hoy());
+  // HEPA fijo del equipo (PB/Avea): el chip no anuncia ciclo — el filtro es
+  // del ventilador y se mantiene desde su instalación (Diego, 14-ago-2026).
+  const _fijaHEPA = typeof _camaPanel==='function' && typeof _hepaFijoEquipo==='function'
+    && _hepaFijoEquipo(((_camaPanel()||{}).VM_TAG));
   _DISP_DEFS.forEach(([inp,lbl,dur])=>{
     const e=$(lbl); if(!e) return;
     const f=v(inp);
     e.classList.remove('disp-ok','disp-warn','disp-bad','disp-none');
+    if(inp==='fFecHEPA' && _fijaHEPA){
+      e.textContent = f ? 'Fija — no se cambia' : 'Fija (del equipo)';
+      e.classList.add('disp-ok'); return;
+    }
     if(!f){ e.textContent='—'; e.classList.add('disp-none'); return; }
     if(!dur){ e.textContent='No vence'; e.classList.add('disp-ok'); return; }
     const d=dias(f,ref);                      // días desde la etiqueta (etiqueta = día 0)
@@ -11440,8 +11459,16 @@ function autoFechasDispositivos(force, aunSinVM){
   // fecha con el turno. Así visualizar otro día no re-fecha los dispositivos.
   const _c=_camaPanel();
   const camaF={fFecHME:_c.DISP_HME_FECHA, fFecHEPA:_c.DISP_HEPA_FECHA, fFecSonda:_c.DISP_TC_FECHA};
+  const fijaHEPA=typeof _hepaFijoEquipo==='function' && _hepaFijoEquipo(_c.VM_TAG);
   let ch=false;
   ['fFecHME','fFecHEPA','fFecSonda'].forEach(id=>{ const e=$(id); if(!e) return;
+    // El HEPA fijo es del EQUIPO, no del circuito del paciente: un circuito
+    // nuevo (force, reintubación) no lo cambia, y fecharlo con el turno le
+    // inventaría una instalación. Solo se arrastra la referencia ya guardada.
+    if(id==='fFecHEPA' && fijaHEPA){
+      if(!e.value && _isoDia(camaF[id])){ e.value=_isoDia(camaF[id]); ch=true; }
+      return;
+    }
     if(force){ e.value=f; ch=true; }
     else if(!e.value){ e.value=_isoDia(camaF[id])||f; ch=true; } });
   if(ch) calcInsumosDias();
@@ -11458,6 +11485,18 @@ function syncHumidFecha(on){
   if(!on) e.value='';
   const hme=$('fFecHME');
   if(hme){ hme.disabled=on; if(on) hme.value=''; }
+  calcInsumosDias();
+}
+//  🪤 14-ago-2026 (reportado por Diego): fechar la humidificación SIN marcar el
+//  checkbox dejaba el HME con su fecha viva — un filtro retirado seguía
+//  pidiendo cambio. La fecha y el checkbox son el mismo hecho clínico, así que
+//  escribir una fecha MARCA el checkbox (y dispara el retiro del HME), y
+//  borrarla lo desmarca. El servidor además cierra el mismo hoyo por su lado
+//  (humidFinal en svc_evoluciones.gs), por si un guardado viejo trae fecha sin
+//  checkbox.
+function humidFechaManual(val){
+  const c=$('cHAct');
+  if(c && !!val!==c.checked){ c.checked=!!val; syncHumidFecha(!!val); return; }
   calcInsumosDias();
 }
 
@@ -13678,6 +13717,10 @@ function _rkCambioTag(c,k){
   // VM: esta hoja imprime la etiqueta siempre que exista, y una etiqueta sin
   // su fecha de cambio al lado sería una hoja que dice la mitad.
   if(!/^\d{4}-\d{2}-\d{2}$/.test(et)) return '';
+  // HEPA fijo del equipo (PB/Avea): la fecha impresa es la instalación de
+  // referencia; anunciarle un «cambio» programaría cambiar lo que no se cambia.
+  if(k==='hepa' && _hepaFijoEquipo(c.VM_TAG))
+    return ` <span class="rk-cambio">→ <b>fija</b> (no se cambia)</span>`;
   const iso=_flSumaDias(et,_flFrec(def));
   return ` <span class="rk-cambio">→ cambio: <b>${iso.slice(8,10)+'-'+iso.slice(5,7)}</b></span>`;
 }
@@ -13814,6 +13857,29 @@ const _FL_DEF=[
   {k:'tc',   campo:'DISP_TC_FECHA',   nombre:'TRACH CARE',  sigla:'T.C',  cfg:'FREC_SONDA_DIAS', def:3},
 ];
 const _flFrec=d=>parseInt((window.CFG&&CFG[d.cfg])||d.def)||d.def;
+/* HEPA FIJO: los PB y Avea llevan filtro HEPA propio del equipo que se
+   mantiene desde su instalación, sin ciclo de cambio (Diego, 14-ago-2026);
+   la Vela y el resto siguen con el ciclo. La lista vive en CONFIG
+   HEPA_FIJO_EQUIPOS (prefijos separados por coma; sin esa fila rige
+   'PB,Avea') — un equipo nuevo se agrega editando CONFIG, sin código.
+   Espejo del servidor: _hepaFijoEquipo en svc_eventos.gs. */
+function _hepaFijoEquipo(nom){
+  const n=String(nom||'').trim().toUpperCase(); if(!n) return false;
+  return String((window.CFG&&CFG.HEPA_FIJO_EQUIPOS)||'PB,Avea').split(',')
+    .map(s=>s.trim().toUpperCase()).filter(Boolean).some(p=>n.indexOf(p)===0);
+}
+/* ¿A esta cama le corresponde este dispositivo? Cada uno sigue a lo que le da
+   sentido, no todos al soporte VM (Diego, 14-ago-2026): HEPA = ventilador
+   (solo VM con equipo asignado) · HME = circuito de gas (VM sin humidificación
+   activa, o respirando por HME) · Trach Care = vía aérea artificial (TOT/TQT,
+   esté o no en VM). Espejo de estadoDispositivos (svc_eventos.gs). */
+function _dispAplicaCama(cama,k){
+  const enVM=String(cama.SOPORTE)==='VM';
+  if(k==='hepa') return enVM && !!String(cama.VM_TAG||'').trim();
+  if(k==='hme')  return (enVM && !String(cama.DISP_HUMID_FECHA||'').trim()) || String(cama.MODO)==='HME';
+  const va=String(cama.VIA_AEREA||'');
+  return va==='TOT'||va==='TQT';
+}
 /* Suma días a una fecha ISO por mediodía UTC: sin esto, un huso horario corre
    el día — la causa clásica del desfase (mismo truco que _sumarDiasISO en el
    servidor). */
@@ -13824,7 +13890,11 @@ function _flSumaDias(iso,n){
 }
 function _flEstado(cama, def, fechaRef){
   const et=String(cama[def.campo]||'').slice(0,10);
-  if(String(cama.SOPORTE)!=='VM' || !/^\d{4}-\d{2}-\d{2}$/.test(et)) return null;
+  if(!_dispAplicaCama(cama,def.k) || !/^\d{4}-\d{2}-\d{2}$/.test(et)) return null;
+  // HEPA fijo del equipo: la instalación se muestra como REFERENCIA y nada
+  // más — sin fecha de cambio, sin «esta noche», sin vencido (Diego, 14-ago).
+  if(def.k==='hepa' && _hepaFijoEquipo(cama.VM_TAG))
+    return { etiqueta:et, fija:true, cambio:'', frec:0, hoy:false, vencido:false, atraso:0 };
   const frec=_flFrec(def);
   const dias=Math.round((new Date(String(fechaRef).slice(0,10)+'T12:00:00Z')-new Date(et+'T12:00:00Z'))/864e5);
   // El cambio de la fecha `cambio` se hace en su MADRUGADA, o sea en el turno
@@ -13842,6 +13912,10 @@ function filtrosHojaHTML(camas, fechaISO, numCamas){
   const ocupada=c=>c.OCUPADA===true||c.OCUPADA==='TRUE';
   const celda=e=>{
     if(!e) return `<td class="fl-c fl-na">—</td>`;
+    // HEPA fijo del equipo: referencia sin ciclo — no lleva casilla ni fecha
+    // de cambio, y jamás sale VENCIDO.
+    if(e.fija) return `<td class="fl-c"><div class="fl-et">puesto ${_ddmm(e.etiqueta)}</div>
+      <div class="fl-mk">FIJA (del equipo)</div></td>`;
     const cls=e.vencido?'fl-venc':(e.hoy?'fl-hoy':'');
     // «ESTA NOCHE» y no «CAMBIAR HOY»: la hoja se usa de madrugada y el cambio
     // lleva la fecha del día que empieza, así que «hoy» se prestaba para leerlo
@@ -13878,7 +13952,8 @@ function filtrosHojaHTML(camas, fechaISO, numCamas){
   <div class="fl-leg">Ronda de la <b>madrugada del ${_ddmm(_flSumaDias(fechaISO,1))}</b>: cada filtro se cambia en la
     <b>madrugada</b> de la fecha que aparece en su casilla, o sea en el turno noche de la víspera.
     HME cada ${_flFrec(_FL_DEF[0])} días · HEPA y Trach Care cada ${_flFrec(_FL_DEF[1])}. <b>${pendientes}</b> cambio(s) esta noche ·
-    <b>${libres}</b> ventilador(es) sin paciente.</div>
+    <b>${libres}</b> ventilador(es) sin paciente. Los equipos <b>${String((window.CFG&&CFG.HEPA_FIJO_EQUIPOS)||'PB,Avea').split(',').map(s=>s.trim()).filter(Boolean).join(' y ')}</b> llevan
+    HEPA fijo: su instalación es referencia, no se cambia.</div>
   <table class="fl-t">
     <tr><th class="fl-th" style="width:40px;">CAMA</th><th class="fl-th">PACIENTE</th>
         <th class="fl-th" style="width:76px;">VENTILADOR</th>

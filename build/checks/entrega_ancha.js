@@ -64,6 +64,12 @@ global.Utilities = { formatDate: () => '2026-08-03' };
 global.ok = d => ({ ok: true, data: d });
 global.err = (m, c) => ({ ok: false, error: m, codigo: c });
 global.ERR = { VALIDACION: 'V', INTERNO: 'I' };
+// La regla del HEPA por ventilador (v5.60) vive en svc_eventos.gs; cargarlo
+// entero traería el reloj de dispositivos a un arnés que no mira dispositivos
+// (estas fichas no traen fechas de circuito). Sin inventario ⇒ sin HEPA, que
+// es exactamente la regla.
+global._ventNombreDeCama = () => '';
+global._hepaFijoEquipo = () => false;
 eval(['infra_fechas.gs', 'svc_stats.gs', 'svc_entrega.gs']
   .map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 

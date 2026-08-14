@@ -38,6 +38,13 @@ eq('turno Noche del 31: la fecha efectiva es el 1 de agosto', _fechaEfectivaTurn
 DB.CAMAS_ESTADO = [{ ID_CAMA: '1', OCUPADA: 'TRUE', PATIENT_ID: 'p1', NOMBRE: 'Prueba',
   SOPORTE: 'VM', VIA_AEREA: 'TOT', FECHA_INGRESO: '2026-07-31',
   DISP_HME_FECHA: '2026-08-01', DISP_HEPA_FECHA: '2026-08-01', DISP_TC_FECHA: '2026-08-01' }];
+// Desde la v5.60 el HEPA solo aplica con ventilador asignado, y si es de la
+// lista fija (PB/Avea) no cicla: esta guardia mide el CICLO, así que la cama
+// lleva una Vela. La categoría vive en svc_equipos.gs; se copia lo mínimo.
+DB.VENTILADORES = [{ NOMBRE: 'Vela 9', ACTIVO: 'TRUE', UBIC_TIPO: 'CAMA', UBIC_DETALLE: '1', CATEGORIA: 'VM' }];
+global._vmCategoria = x => String(x.CATEGORIA || 'VM').trim().toUpperCase();
+global._vmEsDeCama = c => String(c) === 'VM';
+_ventPorCamaMemo = null;
 
 // Turno Día del 1-ago: mismo día calendario ⇒ día 1
 let r = obtenerEntregaTurno(['1'], '2026-08-01', 'Dia');

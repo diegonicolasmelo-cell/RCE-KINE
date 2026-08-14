@@ -3152,3 +3152,56 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
     diario y archivo anual ya existen) · data masking: el RUT ya jamás sale en
     REM/tablero/exportaciones y el episodio viaja por PATIENT_ID · `.env` no
     aplica a Apps Script y no hay credenciales en el código.
+
+## v5.60-dispositivos (14-ago-2026) — cada dispositivo sigue a lo que le da sentido
+
+- 🛡️ **HEPA FIJO EN PB Y AVEA** (hallazgo de Diego: «no ocupan HEPA
+  intercambiable cada 3 días — se mantiene desde su instalación»). Sus tres
+  respuestas de borde: la fecha de instalación se muestra como referencia sin
+  cambio · la Vela SÍ sigue con el ciclo · la cama sin ventilador asignado no
+  aplica HEPA («podría ser HME si está con TQT o tubo a HME, y con vía aérea
+  artificial podría tener Trach Care»).
+- **La regla quedó en UNA función por lado**: `_hepaFijoEquipo` (servidor en
+  `svc_eventos.gs`, espejo en el index) decide por PREFIJO del nombre del
+  ventilador contra **CONFIG `HEPA_FIJO_EQUIPOS`** (por defecto `PB,Avea` —
+  no hace falta crear la fila; si Diego la crea, manda la suya, editable sin
+  código como las frecuencias). El ventilador de la cama lo resuelve
+  `_ventNombreDeCama` (memo: UNA lectura de VENTILADORES por ejecución,
+  mismo criterio del censo — categoría VM, ubicado en CAMA).
+- **Y cada dispositivo dejó de colgar del soporte VM**: HEPA = del
+  VENTILADOR (solo VM con equipo asignado; fijo ⇒ referencia sin ciclo) ·
+  HME = del CIRCUITO (VM sin humidificación activa, o respirando por HME —
+  modo HME con TOT/TQT aunque no haya VM) · Trach Care = de la VÍA AÉREA
+  artificial (TOT/TQT, esté o no en VM — el decanulando a CTAF ahora SÍ
+  aparece en la ronda y en la entrega; antes salía de todos los radares al
+  salir de VM). Consumidores tocados: `estadoDispositivos` + ronda nocturna,
+  entrega de turno, hoja de control de filtros (celda «FIJA (del equipo)» y
+  leyenda), hoja diaria impresa («→ fija (no se cambia)»), chips del
+  formulario, tarjeta Dispositivos visible también con TQT/tubo a HME sin VM,
+  y el sync al salir de VM (el Trach Care sobrevive si queda TOT/TQT, el HME
+  si queda a modo HME, el HEPA se descarta siempre).
+- 🪤 **EL BUG DE LA HUMIDIFICACIÓN ACTIVA** (reporte de Diego: «al instalarla
+  no borra la fecha del HME y sigue manteniendo la fecha de cambio»; su
+  «cambio de hepa» del final era el HME). La causa fue ESTADO REDUNDANTE: la
+  humidificación vive en un checkbox (`VENT_H_ACTIVA`) y en una fecha
+  (`DISP_HUMID_FECHA`), y el retiro del HME solo escuchaba al checkbox —
+  fechar sin marcar dejaba el filtro retirado pidiendo cambio. Arreglo por
+  los dos lados: en el cliente, escribir la fecha marca el checkbox (y
+  borrarla lo desmarca — `humidFechaManual`); en el servidor, `humidFinal`
+  obedece a CUALQUIERA de los dos, y desmarcarla con fecha vacía la retira
+  DE VERDAD (antes `val('')` la resucitaba desde el episodio). La Hoja UCI
+  tampoco muestra ya reloj de HME en turnos con humidificación activa.
+- **Guardia nueva `dispositivos_reglas.js`** (verificada por mutación: 27
+  fallos contra la v5.59): las reglas por dispositivo, la ronda que ignora el
+  HEPA fijo, el bug de la humidificación de punta a punta (guardado real),
+  extubación vs weaning por TQT, la entrega, y el espejo del cliente.
+  Arneses ajustados: `eventos.js` (inventario con Vela + vía aérea en las
+  camas), `disp_fecha.js` (ídem) y `entrega_ancha.js` (stubs). Batería: **76
+  verdes, 0 rojas**.
+- **Sin cambio de esquema**: NO hay que correr `crearORepararEstructura()`.
+  Entrega calculada con `que_pegar` contra la v5.58 publicada: dominio +
+  index (cohete v5.60) + servicios.
+- Límite conocido y aceptado: la fila HEPA de la Hoja UCI (historial) muestra
+  el ciclo también para días en que el paciente estuvo en un PB/Avea — el
+  historial no guarda qué ventilador había cada día. Es lectura retrospectiva,
+  no alerta; se anota por si algún día molesta.

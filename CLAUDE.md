@@ -203,7 +203,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**69 guardias** en `build/checks/*.js`; **42 usan navegador**
+**76 guardias** en `build/checks/*.js`; **44 usan navegador**
 (`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -215,7 +215,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 10-ago-2026: 64 verdes, 0 rojas.** El corredor
+**Estado al 14-ago-2026: 76 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -233,7 +233,7 @@ Chromium con puente simulado; acepta ruta del cohete como argumento),
 `memo_episodio.js`, `rendimiento.js` (bucles de repintado con la unidad llena),
 `texto_bloques.js` (la etiqueta de bloque no altera el texto visible),
 `asincronia.js` (Ppl/AutoPEEP inhabilitados con paciente asincrónico).
-Enumerar aquí las 64 es garantía de desfase: la lista buena es `ls
+Enumerar aquí las 76 es garantía de desfase: la lista buena es `ls
 build/checks/`.
 
 Correr antes de entregar o commitear. Un bug que costó más de un
@@ -244,7 +244,7 @@ intercambio merece guardia nueva.
 `v2/index.html` pasa de las 10.000 líneas y este archivo de las 1.500: abrir
 cualquiera de los dos «para ver cómo se hace X» quema media sesión y encima
 suele devolver la parte equivocada. Hay un índice SQLite FTS5 **troceado por
-función** sobre los `.gs`, el index, las 64 guardias, esta bitácora, las skills
+función** sobre los `.gs`, el index, las guardias, esta bitácora, las skills
 y la memoria:
 
 ```bash
@@ -299,12 +299,12 @@ DOS veces seguidas. La cifra de abajo se actualiza cuando alguien publica —
 si tiene más de unos días, se confirma antes de usarla.
 
 - **Publicado en producción**: cohete **v5.58-escalas** — lo pegó Diego el
-  14-ago con la entrega de 6 archivos (este apunte ES el aviso que pide la
-  regla de publicación). `main` y la rama de trabajo van en lo mismo.
-- ⚠️ Pendiente de CONFIRMAR con Diego: que tras pegar corriera
-  `crearORepararEstructura()` (la v5.57 lo exige: EVOLUCIONES pasa a 390
-  columnas). Sin eso, el SAS meta/vigil/fármacos se escribe a columnas que no
-  existen y se pierde en silencio.
+  14-ago con la entrega de 6 archivos, y confirmó que corrió
+  `crearORepararEstructura()` (EVOLUCIONES en 390 columnas).
+- **Entregadas y pendientes de pegar**: la **v5.59** (hoja diaria a 2 caras) y
+  la **v5.60-dispositivos** (HEPA fijo + bug de humidificación; la v5.60
+  CONTIENE a la v5.59, así que pegar la v5.60 basta). `main` y la rama de
+  trabajo van en la v5.60. Sin cambio de esquema en ninguna de las dos.
 - Marcha blanca con datos reales desde el 1-ago-2026.
 
 ### 🔴 Antes de armar una entrega: `node build/que_pegar.js <ref-publicada>`
@@ -317,18 +317,12 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
 
 ### Esperando decisión de Diego
 
-- 🛡️ **HEPA FIJO EN PB Y AVEA (hallazgo de Diego, 14-ago)**: los ventiladores
-  PB (Puritan Bennett) y AVEA **no ocupan HEPA intercambiable cada 3 días** —
-  se mantiene desde la instalación y no requiere cambio. La regla del ciclo
-  vive en OCHO consumidores (estadoDispositivos, entrega, modal «Cambios de
-  esta noche», hoja de filtros de la unidad, hoja diaria impresa, formulario
-  de dispositivos, Hoja UCI y el evento rápido «Cambio de HEPA»). Propuesta:
-  UNA función que decida por el ventilador asignado (`VM_TAG` contra una lista
-  en CONFIG, `HEPA_FIJO_EQUIPOS`, por defecto «PB,Avea» — editable sin código,
-  como las frecuencias). Tres preguntas abiertas: si la fecha de instalación
-  se sigue mostrando como referencia; si el Vela (Vyaire) SÍ usa HEPA
-  intercambiable (no lo nombró); y qué pasa con la cama sin ventilador
-  asignado (propuesta: ciclo normal, conservador).
+- ✅ **HEPA fijo en PB y Avea: RESUELTO en la v5.60** (14-ago, con las tres
+  respuestas de Diego: instalación como referencia sin cambio · la Vela sigue
+  con ciclo · sin ventilador no aplica HEPA). La regla vive en
+  `_hepaFijoEquipo` + `_dispAplicaCama` contra CONFIG `HEPA_FIJO_EQUIPOS`
+  (defecto `PB,Avea`, por prefijo, editable sin código). Detalle en la
+  bitácora; guardia `dispositivos_reglas.js`.
 
 - **FSS-ICU · el «no evaluado»** (mockup en `scratchpad/mockup_fss_no_evaluado.html`).
   La app suma a secas: falta distinguir «incapaz por debilidad» (que es el 0 de

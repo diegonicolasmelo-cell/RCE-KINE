@@ -233,7 +233,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     catch (x) { return []; }
   })();
 
-  // ── Dispositivos de circuito por vencer (solo VM) ──
+  // ── Dispositivos de circuito por vencer (por dispositivo, ya no solo VM) ──
   // Etiqueta = día 0 y `cambio` = etiqueta + frecuencia. Ese cambio se ejecuta
   // en la MADRUGADA de esa fecha, o sea en el turno NOCHE de la víspera: por eso
   // «cambiar» sale cuando han pasado frec-1 días, y «vencido» al llegar a frec
@@ -247,16 +247,28 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   // frec-1 esa madrugada; la entrega de turno se quedó atrás y durante unas
   // horas dos papeles de la misma unidad dijeron fechas distintas del mismo
   // filtro. Si vuelves a tocar la regla, tócala en LOS CUATRO lugares.
+  // Cada dispositivo sigue a lo que le da sentido, no todos al soporte VM
+  // (Diego, 14-ago-2026): T.Care con la vía aérea artificial (TOT/TQT, esté o
+  // no en VM) · HME con el circuito de gas (VM sin humidificación activa, o
+  // respirando por HME) · HEPA con el ventilador (solo VM con equipo asignado,
+  // y si el equipo lo lleva FIJO —PB/Avea, CONFIG HEPA_FIJO_EQUIPOS— no entra
+  // aquí: no vence nunca, su instalación es referencia y no aviso). Espejo de
+  // estadoDispositivos (svc_eventos.gs).
   const disp = [];
-  if (String(c.SOPORTE) === 'VM') {
-    [['HME', c.DISP_HME_FECHA, 2], ['HEPA', c.DISP_HEPA_FECHA, 3], ['T.Care', c.DISP_TC_FECHA, 3]].forEach(function (d) {
-      const iso = _statISO(d[1]); if (!iso) return;
-      const dias = diasEntre(iso, fecha);
-      const cambio = _sumarDiasISO(iso, d[2]);
-      disp.push({ n: d[0], dia: dias + 1, dur: d[2], cambio: dd(cambio),
-                  estado: dias >= d[2] ? 'vencido' : (dias === d[2] - 1 ? 'cambiar' : 'ok') });
-    });
-  }
+  const _enVM = String(c.SOPORTE) === 'VM';
+  const _vaC = String(c.VIA_AEREA || '');
+  const _humidC = !!_statISO(c.DISP_HUMID_FECHA);
+  const _ventC = _enVM ? _ventNombreDeCama(c.ID_CAMA) : '';
+  [['HME', c.DISP_HME_FECHA, 2, (_enVM && !_humidC) || String(c.MODO) === 'HME'],
+   ['HEPA', c.DISP_HEPA_FECHA, 3, _enVM && !!_ventC && !_hepaFijoEquipo(_ventC)],
+   ['T.Care', c.DISP_TC_FECHA, 3, _vaC === 'TOT' || _vaC === 'TQT']].forEach(function (d) {
+    if (!d[3]) return;
+    const iso = _statISO(d[1]); if (!iso) return;
+    const dias = diasEntre(iso, fecha);
+    const cambio = _sumarDiasISO(iso, d[2]);
+    disp.push({ n: d[0], dia: dias + 1, dur: d[2], cambio: dd(cambio),
+                estado: dias >= d[2] ? 'vencido' : (dias === d[2] - 1 ? 'cambiar' : 'ok') });
+  });
 
   // ── Alertas ──
   const diasVM = e ? val(e.DIAS_VM, '') : ((String(c.SOPORTE) === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, fecha) : '');
