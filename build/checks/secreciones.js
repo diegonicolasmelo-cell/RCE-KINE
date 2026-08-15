@@ -82,5 +82,35 @@ const REOL = ['Fluidas', 'Ligosas', 'Adherentes'];
 const selR = bloque(idx, 'id="fSecrReol"', 500);
 REOL.forEach(c => eq('  reología ' + c, selR.includes('<option>' + c + '</option>'), true));
 
+console.log('\n5 · El tercer estado: «tose, moviliza y deglute» (v5.61, del SmartEvo)');
+// Redacción textual de Diego (15-ago-2026): hay secreciones pero NO se
+// aspiran — el paciente las tose, moviliza y deglute. Solo con vía aérea
+// artificial. Los CUATRO consumidores deben conocer el valor 'auto': si uno
+// se queda atrás, muestra la palabra «auto» pelada o esconde el hallazgo.
+eq('narrativa servidor: la frase dentro de la línea KTR',
+  dom.includes(`qty === 'auto' ? ', tose, moviliza y deglute secreciones'`), true);
+eq('narrativa servidor: la frase sola cuando no hubo KTR',
+  dom.includes(`else if (qty === 'auto') linea = 'Tose, moviliza y deglute secreciones';`), true);
+eq('narrativa cliente: la frase dentro de la línea KTR',
+  idx.includes(`qty==='auto'?', tose, moviliza y deglute secreciones'`), true);
+eq('narrativa cliente: la frase sola cuando no hubo KTR',
+  idx.includes(`else if(qty==='auto') ktrLine='Tose, moviliza y deglute secreciones';`), true);
+eq('entrega de turno traduce auto (no muestra la palabra pelada)',
+  ent.includes(`'auto' ? 'tose, moviliza y deglute'`), true);
+eq('Hoja UCI traduce auto',
+  idx.includes(`'auto'?'Tose, moviliza y deglute'`), true);
+eq('sin nada aspirado no se narra reología (servidor)',
+  dom.includes(`if (qty !== '-' && qty !== 'auto') {`), true);
+eq('…ni en el cliente',
+  idx.includes(`if(qty!=='-'&&qty!=='auto'){`), true);
+eq('el botón existe y guarda auto',
+  /id="sqBtn4" onclick="hSecrQty\('auto'\)"/.test(idx), true);
+eq("…y 'auto' está en el catálogo de valores",
+  idx.includes(`const _SECR_VALS=['-','+','++','+++','auto'];`), true);
+eq('★ solo con vía aérea artificial (hSecrAutoVis mira TOT/TQT)',
+  /function hSecrAutoVis\(\)\{\s*\n?\s*const va=v\('fVA'\), esArt=\(va==='TOT'\|\|va==='TQT'\);/.test(idx), true);
+eq('★ marcado, apaga características y reología (hSecrAuto)',
+  /function hSecrAuto\(\)\{[\s\S]{0,240}car\.disabled=auto/.test(idx), true);
+
 console.log(fails.length ? `❌ ${fails.length} FALLOS` : '✅ TODO OK');
 process.exit(fails.length ? 1 : 0);

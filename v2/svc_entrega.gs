@@ -380,7 +380,12 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     // es justo lo que decide si hay infección. Reportado por Diego. La Hoja UCI
     // tenía el defecto espejo (se saltaba la reología): son tres consumidores
     // de la misma regla y se habían separado sin que nadie lo notara.
-    secr: e ? [e.RESP_SECR_REOL, e.RESP_SECR_CAR, e.RESP_SECR_QTY].filter(function (x) { return x; }).join(' ') : '',
+    // 'auto' en la cantidad = «tose, moviliza y deglute» (15-ago-2026): no hay
+    // reología ni características que mostrar — la frase ES el hallazgo.
+    secr: e ? (function () {
+      var s = [e.RESP_SECR_REOL, e.RESP_SECR_CAR, e.RESP_SECR_QTY].filter(function (x) { return x; }).join(' ');
+      return String(e.RESP_SECR_QTY) === 'auto' ? 'tose, moviliza y deglute' : s;
+    })() : '',
     ktmNivel: e ? val(e.KTM_NIVEL_KTR, '') : val(c.KTM_NIVEL, ''),
     ktmRealizada: e ? esVerdadero(e.KTM_REALIZADA) : false,
     ktmSuspendida: e ? esVerdadero(e.KTM_SUSPENDIDA) : esVerdadero(c.KTM_SUSP),

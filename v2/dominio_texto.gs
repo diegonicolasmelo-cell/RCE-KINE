@@ -450,18 +450,24 @@ function generarTextoEvolucion(d) {
     // como «sin secreciones» (Diego, ago-2026, mismo criterio de la UMA (−)):
     // evaluar y no encontrar nada es un hallazgo, no una omisión. Solo el
     // no-registro ('') queda en silencio.
+    // Y 'auto' (15-ago-2026, rescatado del SmartEvo, redacción de Diego): hay
+    // secreciones pero NO se aspiran — el paciente las tose, moviliza y
+    // deglute. Solo se ofrece con vía aérea artificial; sin nada aspirado, no
+    // hay reología ni características que narrar.
     const secrParts = [];
-    if (qty !== '-') {
+    if (qty !== '-' && qty !== 'auto') {
       if (reol) secrParts.push(reol.toLowerCase());
       if (car) secrParts.push(car.toLowerCase());
       if (qtyTxt) secrParts.push('en ' + qtyTxt);
     }
-    const secrTxt = secrParts.length ? `, secreciones ${secrParts.join(' ')}` : (qty === '-' ? ', sin secreciones' : '');
+    const secrTxt = secrParts.length ? `, secreciones ${secrParts.join(' ')}`
+      : (qty === '-' ? ', sin secreciones' : (qty === 'auto' ? ', tose, moviliza y deglute secreciones' : ''));
     if (v('EX_CULT_RESULTADO')) txt.push('Resultado de cultivo: ' + v('EX_CULT_RESULTADO') + '.');
     let linea = '';
     if (perm.length) linea = `KTR + ${perm.join(' + ')}${secrTxt}`;
     else if (secrParts.length) linea = `Secreciones ${secrParts.join(' ')}`;
     else if (qty === '-') linea = 'Sin secreciones';
+    else if (qty === 'auto') linea = 'Tose, moviliza y deglute secreciones';
     if (linea) txt.push(linea + '.');
     if (esVerdadero(d.RESP_INHALO)) txt.push('Se administra inhaloterapia según indicación médica (SOS).');
     // «Posicionamiento:» SALIÓ del generador (ago-2026, Bloque C de Diego):

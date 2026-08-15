@@ -203,7 +203,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**76 guardias** en `build/checks/*.js`; **44 usan navegador**
+**77 guardias** en `build/checks/*.js`; **45 usan navegador**
 (`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -215,7 +215,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 14-ago-2026: 76 verdes, 0 rojas.** El corredor
+**Estado al 15-ago-2026: 77 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -233,7 +233,7 @@ Chromium con puente simulado; acepta ruta del cohete como argumento),
 `memo_episodio.js`, `rendimiento.js` (bucles de repintado con la unidad llena),
 `texto_bloques.js` (la etiqueta de bloque no altera el texto visible),
 `asincronia.js` (Ppl/AutoPEEP inhabilitados con paciente asincrónico).
-Enumerar aquí las 76 es garantía de desfase: la lista buena es `ls
+Enumerar aquí las 77 es garantía de desfase: la lista buena es `ls
 build/checks/`.
 
 Correr antes de entregar o commitear. Un bug que costó más de un
@@ -301,10 +301,12 @@ si tiene más de unos días, se confirma antes de usarla.
 - **Publicado en producción**: cohete **v5.58-escalas** — lo pegó Diego el
   14-ago con la entrega de 6 archivos, y confirmó que corrió
   `crearORepararEstructura()` (EVOLUCIONES en 390 columnas).
-- **Entregadas y pendientes de pegar**: la **v5.59** (hoja diaria a 2 caras) y
-  la **v5.60-dispositivos** (HEPA fijo + bug de humidificación; la v5.60
-  CONTIENE a la v5.59, así que pegar la v5.60 basta). `main` y la rama de
-  trabajo van en la v5.60. Sin cambio de esquema en ninguna de las dos.
+- **Entregadas y pendientes de pegar**: v5.59 (hoja diaria a 2 caras),
+  v5.60-dispositivos (HEPA fijo + bug de humidificación) y
+  **v5.61-smartevo** (tercer estado de secreciones + FiO₂ + rueda). Cada una
+  CONTIENE a las anteriores: **pegar la v5.61 basta** (dominio + index +
+  servicios). `main` y la rama de trabajo van en la v5.61. Sin cambio de
+  esquema en ninguna de las tres.
 - Marcha blanca con datos reales desde el 1-ago-2026.
 
 ### 🔴 Antes de armar una entrega: `node build/que_pegar.js <ref-publicada>`

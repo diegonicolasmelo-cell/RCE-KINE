@@ -3221,3 +3221,48 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
   que se imprime con el RELOJ REAL — con el tag dependiente del día, la
   guardia cambiaba de opinión según el día en que corriera. Las fechas ahora
   se miden en un render de fecha fija (11-08).
+
+## v5.61-smartevo (15-ago-2026) — lo bueno del SmartEvo, sin sus vicios
+
+- Diego trajo el **SmartEvoGen v10** (el generador de texto que usaba el
+  equipo antes de la plataforma) y pidió comparar y «hacer algo mejor uniendo
+  criterios». El diagnóstico completo quedó en la conversación; lo esencial:
+  varias de sus gracias YA estaban (catálogo de contraindicaciones de KTM,
+  tendencia HD, PIM/PEM con interpretación, cálculos automáticos), y sus
+  vicios NO se trajeron — su «coherencia clínica» corrige datos sola con
+  toast (aquí lo incoherente no se puede elegir, VMAPS), mezcla vía aérea con
+  soporte, todos los días van digitados a mano, y su GCS bloquea V=1 con tubo
+  (lo nuestro es 1T). Dato curioso: la frase que un colega recordaba («tose,
+  moviliza y deglute») NO está en el v10 — dice «Secreciones: No se
+  observan» — pero el concepto valía oro y se adoptó.
+- **Rescate 1 · El tercer estado de secreciones** (redacción textual de
+  Diego): «tose, moviliza y deglute secreciones». Valor `'auto'` en
+  RESP_SECR_QTY (sin cambio de esquema), botón «tose y deglute» junto al −,
+  **solo con vía aérea artificial** (TOT/TQT; si la vía deja de ser
+  artificial, se desmarca y esconde solo). Marcado apaga características y
+  reología (no hay nada aspirado que caracterizar). Decisión de Diego: NO
+  aplicar el rescate 4 (descripciones en el GCS). Los CUATRO consumidores en
+  paridad: narrativa servidor y cliente (frase en la línea KTR o sola),
+  entrega de turno y Hoja UCI (traducen 'auto' a la frase, nunca la palabra
+  pelada). `secreciones.js` sección 5 vigila la paridad.
+- **Rescate 2 · FiO₂ como fracción se convierte sola** al salir del campo
+  (0.5→50, 0,21→21, 1→100; 55 no se toca), con toast. Delegado al documento
+  (los parámetros se reconstruyen con innerHTML) sobre cualquier id con
+  «fio2». Solo convierte fracciones: un valor fuera de rango se sigue
+  frenando al guardar — no se inventan datos.
+- **Rescate 3 · La rueda del mouse no mueve números**: sobre un campo
+  numérico enfocado, la rueda lo desenfoca en vez de cambiarle el valor.
+- **Guardia nueva `smartevo_rescates.js`** (navegador, verificada por
+  mutación): candado de vía aérea de punta a punta, apagado y reactivación de
+  características, conversiones de FiO₂ y el desenfoque por rueda.
+  🪤 Trampas de arnés pagadas: un `type=number` RECHAZA la asignación de
+  «0,21» por script (la coma se prueba en un input de texto propio del
+  arnés), y fPIM no recibe foco dentro de su `<details>` cerrado.
+  Batería: **77 verdes, 0 rojas**.
+- Pendientes del SmartEvo que quedaron ANOTADOS y no programados: editor
+  grande para textos largos en celular (rescate 5) y Blue Dye / presión VA al
+  egreso con TQT (rescate 6, amarrado al protocolo de decanulación que Diego
+  aún no manda).
+- Sin cambio de esquema. Entrega calculada contra la v5.58 publicada:
+  dominio + index (cohete v5.61) + servicios — la v5.61 CONTIENE a la v5.59
+  y la v5.60.

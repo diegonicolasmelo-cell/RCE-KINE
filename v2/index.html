@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.60-dispositivos">
+<meta name="rce-version" content="5.61-smartevo">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3496,6 +3496,10 @@ document.documentElement.setAttribute('data-piel', 'inst');
                         <button type="button" class="secr-qty" id="sqBtn1" onclick="hSecrQty('+')"   data-tip="Escasas"         style="width:30px;height:28px;font-size:.82rem;">+</button>
                         <button type="button" class="secr-qty" id="sqBtn2" onclick="hSecrQty('++')"  data-tip="Moderadas"       style="width:36px;height:28px;font-size:.78rem;">++</button>
                         <button type="button" class="secr-qty" id="sqBtn3" onclick="hSecrQty('+++')" data-tip="Abundantes"      style="width:42px;height:28px;font-size:.75rem;">+++</button>
+                        <!-- Tercer estado (rescatado del SmartEvo, 15-ago-2026): hay
+                             secreciones pero NO se aspiran — el paciente las maneja solo.
+                             Solo existe con vía aérea artificial (hSecrAutoVis). -->
+                        <button type="button" class="secr-qty hidden" id="sqBtn4" onclick="hSecrQty('auto')" data-tip="No se aspiran: las tose, moviliza y deglute (solo TOT/TQT)" style="width:auto;padding:0 9px;height:28px;font-size:.68rem;">tose y deglute</button>
                       </div>
                     </div>
                     <input type="hidden" id="fSecrQty" value="">
@@ -4226,7 +4230,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.60-dispositivos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.61-smartevo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4766,6 +4770,29 @@ function rielIr(i){
 // al documento: sobrevive a los innerHTML que reconstruyen los módulos).
 document.addEventListener('input', e=>{ if(e.target && e.target.closest && e.target.closest('#kf')) _rielDeb(); });
 document.addEventListener('change', e=>{ if(e.target && e.target.closest && e.target.closest('#kf')) _rielDeb(); });
+
+// ── Dos rescates del SmartEvo (15-ago-2026, aprobados por Diego) ──
+// 1) FiO₂ escrita como fracción se convierte sola a porcentaje (0.4 → 40):
+//    la intención es inequívoca y antes obligaba a corregir recién al guardar.
+//    Delegado al documento porque los campos de parámetros se reconstruyen
+//    con innerHTML (mismo motivo que el riel de arriba). Solo convierte; un
+//    valor fuera de rango se sigue frenando en el guardado, sin inventar datos.
+document.addEventListener('change', e=>{
+  const t=e.target; if(!t || !/fio2/i.test(t.id||'')) return;
+  const x=parseFloat(String(t.value).replace(',','.'));
+  if(!isNaN(x) && x>0 && x<=1){
+    t.value=Math.round(x*100);
+    toast('FiO₂ convertida a porcentaje: '+t.value+'%');
+    if(typeof calcResp==='function' && /^r_/.test(t.id)) calcResp(t);
+  }
+});
+// 2) La rueda del mouse sobre un campo numérico enfocado lo DESENFOCA en vez
+//    de cambiarle el valor: un scroll distraído movía un PEEP sin que nadie
+//    lo notara.
+document.addEventListener('wheel', ()=>{
+  const a=document.activeElement;
+  if(a && a.type==='number') a.blur();
+},{passive:true});
 
 /**
  * Abre el panel de evolución.
@@ -5505,6 +5532,7 @@ function fillFormReplica(s) {
     _SECR_VALS.forEach((v,i)=>{ const b=$('sqBtn'+i); if(b) b.classList.toggle('active',v===_secrQty); });
     const h=$('fSecrQty'); if(h) h.value=_secrQty;
     _secrHeredado=true;
+    hSecrAuto();   // 'auto' replicado apaga características/reología también al cargar
   }
 
   // Vía aérea — prioriza estado FINAL si hubo extubación en turno anterior.
@@ -7561,7 +7589,8 @@ const HJ_F = {
   // CARACTERÍSTICAS: tres consumidores de la misma regla, cada uno perdiendo
   // un campo distinto (ago-2026, reportado por Diego).
   secr:  {l:'Sec. bronquiales', per:'t',
-          f:e=>[e.RESP_SECR_REOL,e.RESP_SECR_CAR,e.RESP_SECR_QTY].filter(Boolean).join(' ')},
+          f:e=>{ const s=[e.RESP_SECR_REOL,e.RESP_SECR_CAR,e.RESP_SECR_QTY].filter(Boolean).join(' ');
+            return String(e.RESP_SECR_QTY)==='auto'?'Tose, moviliza y deglute':s; }},
   ktr:   {l:'KTR (sesiones)', per:'t', f:e=>{ const n=parseInt(e.RESP_KTR_CANT)||0; return n?'<b>'+n+'</b>':''; },
           spark:e=>parseInt(e.RESP_KTR_CANT)||null},
   firma: {l:'Firma', per:'t', f:e=>e.PLAN_FIRMA_KINE?('<span class="fkine">'+e.PLAN_FIRMA_KINE+'</span>'):''},
@@ -8671,15 +8700,18 @@ function genTexto() {
     const reol=v('fSecrReol'), car=v('fSecrCar'), qty=v('fSecrQty');
     const qtyTxt={'':null,'+':'escasa cantidad','++':'moderada cantidad','+++':'abundante cantidad'};
     const secrParts=[];
-    if(qty!=='-'){
+    if(qty!=='-'&&qty!=='auto'){
       if(reol) secrParts.push(reol.toLowerCase());
       if(car) secrParts.push(car.toLowerCase());
       if(qtyTxt[qty]) secrParts.push('en '+qtyTxt[qty]);
     }
     // «−» = EVALUADO sin secreciones (Diego, ago-2026): se narra, igual que la
     // UMA (−). Solo el no-registro ('') queda en silencio — evaluar y no
-    // encontrar nada es un hallazgo, no una omisión.
-    const secrTxt=secrParts.length?`, secreciones ${secrParts.join(' ')}`:(qty==='-'?', sin secreciones':'');
+    // encontrar nada es un hallazgo, no una omisión. Y 'auto' (15-ago-2026,
+    // rescatado del SmartEvo) = hay secreciones pero NO se aspiran: el
+    // paciente las tose, moviliza y deglute — solo con vía aérea artificial.
+    const secrTxt=secrParts.length?`, secreciones ${secrParts.join(' ')}`
+      :(qty==='-'?', sin secreciones':(qty==='auto'?', tose, moviliza y deglute secreciones':''));
     // Cultivo nuevo en este turno (se integra al final de la línea KTR)
     const _res=(_tiState['fCultTags']||[]).filter(Boolean);
     _B('cult');
@@ -8696,6 +8728,7 @@ function genTexto() {
     if(perm.length) ktrLine=`KTR + ${perm.join(' + ')}${secrTxt}`;
     else if(secrParts.length) ktrLine=`Secreciones ${secrParts.join(' ')}`;
     else if(qty==='-') ktrLine='Sin secreciones';
+    else if(qty==='auto') ktrLine='Tose, moviliza y deglute secreciones';
     _B('ktr');
     if(ktrLine){ L.push(ktrLine+(_cultSuffix||'')+'.'); }
     else if(_cultSuffix){ L.push(_cultSuffix.replace(/^: /,'')+'.'); }
@@ -9135,6 +9168,8 @@ function cascadeVA(preSop) {
   const _pm=$('dPmantVA'); if(_pm) _pm.style.display=(va==='TQT'?'':'none');
   // Cuff: solo con vía aérea artificial (TOT o TQT)
   cuffGate();
+  // «Tose, moviliza y deglute»: solo con vía aérea artificial
+  hSecrAutoVis();
 }
 
 /* ── Cuff: verificación 1 vez por turno (paquete de prevención de NAVM) ──
@@ -9464,15 +9499,32 @@ function hSecrCond(){
 }
 let _secrQty='';
 let _secrHeredado=false;   // la cantidad de secreciones viene replicada del turno anterior (heredada, sin confirmar)
-const _SECR_VALS=['-','+','++','+++'];
+const _SECR_VALS=['-','+','++','+++','auto'];
 function hSecrQty(val){
   _secrQty=(_secrQty===val)?'':val;
   _SECR_VALS.forEach((v,i)=>{
     const b=$('sqBtn'+i); if(b) b.classList.toggle('active',v===_secrQty);
   });
   const h=$('fSecrQty'); if(h) h.value=_secrQty;
+  hSecrAuto();
   // Interactuar con la cantidad la confirma (deja de estar heredada)
   _secrHeredado=false; $('secrQtyRow')?.classList.remove('heredado');
+}
+// «Tose, moviliza y deglute» (valor 'auto'): hay secreciones pero no se
+// aspiran — no hay nada recogido que caracterizar, así que características y
+// reología se apagan mientras el estado esté marcado.
+function hSecrAuto(){
+  const auto=_secrQty==='auto', car=$('fSecrCar');
+  if(car){ car.disabled=auto; if(auto){ car.value=''; car.classList.remove('heredado'); } }
+  hSecrCond();
+}
+// El estado solo existe CON vía aérea artificial (Diego, 15-ago-2026): en un
+// paciente sin TOT/TQT, toser y deglutir secreciones es lo normal y no se
+// narra. Si la vía deja de ser artificial con el estado marcado, se desmarca.
+function hSecrAutoVis(){
+  const va=v('fVA'), esArt=(va==='TOT'||va==='TQT');
+  const b=$('sqBtn4'); if(b) b.classList.toggle('hidden',!esArt);
+  if(!esArt && _secrQty==='auto') hSecrQty('auto');
 }
 
 // — Posicionamiento colapsable —
