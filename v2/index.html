@@ -3498,8 +3498,9 @@ document.documentElement.setAttribute('data-piel', 'inst');
                         <button type="button" class="secr-qty" id="sqBtn3" onclick="hSecrQty('+++')" data-tip="Abundantes"      style="width:42px;height:28px;font-size:.75rem;">+++</button>
                         <!-- Tercer estado (rescatado del SmartEvo, 15-ago-2026): hay
                              secreciones pero NO se aspiran — el paciente las maneja solo.
-                             Solo existe con vía aérea artificial (hSecrAutoVis). -->
-                        <button type="button" class="secr-qty hidden" id="sqBtn4" onclick="hSecrQty('auto')" data-tip="No se aspiran: las tose, moviliza y deglute (solo TOT/TQT)" style="width:auto;padding:0 9px;height:28px;font-size:.68rem;">tose y deglute</button>
+                             Solo existe SIN vía aérea artificial (hSecrAutoVis): con
+                             TOT/TQT se aspira y se ve. -->
+                        <button type="button" class="secr-qty hidden" id="sqBtn4" onclick="hSecrQty('auto')" data-tip="No se aspiran: las tose, moviliza y deglute (sin vía aérea artificial)" style="width:auto;padding:0 9px;height:28px;font-size:.68rem;">tose y deglute</button>
                       </div>
                     </div>
                     <input type="hidden" id="fSecrQty" value="">
@@ -8709,7 +8710,8 @@ function genTexto() {
     // UMA (−). Solo el no-registro ('') queda en silencio — evaluar y no
     // encontrar nada es un hallazgo, no una omisión. Y 'auto' (15-ago-2026,
     // rescatado del SmartEvo) = hay secreciones pero NO se aspiran: el
-    // paciente las tose, moviliza y deglute — solo con vía aérea artificial.
+    // paciente las tose, moviliza y deglute — solo SIN vía aérea artificial
+    // (con TOT/TQT se aspira y se ve).
     const secrTxt=secrParts.length?`, secreciones ${secrParts.join(' ')}`
       :(qty==='-'?', sin secreciones':(qty==='auto'?', tose, moviliza y deglute secreciones':''));
     // Cultivo nuevo en este turno (se integra al final de la línea KTR)
@@ -9518,13 +9520,15 @@ function hSecrAuto(){
   if(car){ car.disabled=auto; if(auto){ car.value=''; car.classList.remove('heredado'); } }
   hSecrCond();
 }
-// El estado solo existe CON vía aérea artificial (Diego, 15-ago-2026): en un
-// paciente sin TOT/TQT, toser y deglutir secreciones es lo normal y no se
-// narra. Si la vía deja de ser artificial con el estado marcado, se desmarca.
+// El estado solo existe SIN vía aérea artificial (Diego, 15-ago-2026,
+// corrigiendo la primera lectura): con TOT/TQT las secreciones SE ASPIRAN y
+// se ven — ahí van cantidad y características. Toser, movilizarlas y
+// deglutirlas es el manejo del extubado/decanulado. Si aparece una vía
+// artificial con el estado marcado, se desmarca solo.
 function hSecrAutoVis(){
   const va=v('fVA'), esArt=(va==='TOT'||va==='TQT');
-  const b=$('sqBtn4'); if(b) b.classList.toggle('hidden',!esArt);
-  if(!esArt && _secrQty==='auto') hSecrQty('auto');
+  const b=$('sqBtn4'); if(b) b.classList.toggle('hidden',esArt);
+  if(esArt && _secrQty==='auto') hSecrQty('auto');
 }
 
 // — Posicionamiento colapsable —

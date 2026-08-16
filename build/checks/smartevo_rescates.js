@@ -40,18 +40,21 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
     const disparar = (el, tipo) => el.dispatchEvent(new Event(tipo, { bubbles: true }));
 
     // ── 1 · El tercer estado, con su candado de vía aérea ──
-    $('fVA').value = 'Natural'; cascadeVA();
-    r.ocultoNatural = $('sqBtn4').classList.contains('hidden');
+    // Regla corregida por Diego el mismo 15-ago: con TOT/TQT las secreciones
+    // SE ASPIRAN y se ven — el manejo autónomo es del paciente SIN vía
+    // aérea artificial (extubado/decanulado).
     $('fVA').value = 'TQT'; cascadeVA();
-    r.visibleTQT = !$('sqBtn4').classList.contains('hidden');
+    r.ocultoTQT = $('sqBtn4').classList.contains('hidden');
+    $('fVA').value = 'Natural'; cascadeVA();
+    r.visibleNatural = !$('sqBtn4').classList.contains('hidden');
     // Con características cargadas, marcar «tose y deglute» las apaga y limpia
     $('fSecrCar').value = 'Mucosas'; hSecrCond();
     hSecrQty('auto');
     r.qtyAuto = v('fSecrQty');
     r.carApagada = $('fSecrCar').disabled && $('fSecrCar').value === '';
     r.reolApagada = $('fSecrReol').disabled;
-    // Si la vía aérea deja de ser artificial, el estado se desmarca solo
-    $('fVA').value = 'Natural'; cascadeVA();
+    // Si aparece una vía aérea artificial, el estado se desmarca solo
+    $('fVA').value = 'TOT'; cascadeVA();
     r.autoDesmarcado = v('fSecrQty') === '' && $('sqBtn4').classList.contains('hidden');
     r.carVuelve = !$('fSecrCar').disabled;
 
@@ -85,13 +88,13 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
     return r;
   });
 
-  console.log('── 1 · «Tose, moviliza y deglute» solo con vía aérea artificial ──');
-  eq('con vía Natural el botón no existe', R.ocultoNatural, true);
-  eq('con TQT aparece', R.visibleTQT, true);
+  console.log('── 1 · «Tose, moviliza y deglute» solo SIN vía aérea artificial ──');
+  eq('con TQT el botón no existe (ahí se aspira y se ve)', R.ocultoTQT, true);
+  eq('con vía Natural aparece', R.visibleNatural, true);
   eq("marcarlo guarda 'auto'", R.qtyAuto, 'auto');
   eq('★ y apaga características (limpias)', R.carApagada, true);
   eq('★ …y reología', R.reolApagada, true);
-  eq('★ al volver la vía a Natural se desmarca y se esconde solo', R.autoDesmarcado, true);
+  eq('★ si aparece un TOT se desmarca y se esconde solo', R.autoDesmarcado, true);
   eq('…y las características se reactivan', R.carVuelve, true);
 
   console.log('── 2 · FiO₂ como fracción se convierte sola ──');

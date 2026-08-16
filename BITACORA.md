@@ -3266,3 +3266,14 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 - Sin cambio de esquema. Entrega calculada contra la v5.58 publicada:
   dominio + index (cohete v5.61) + servicios — la v5.61 CONTIENE a la v5.59
   y la v5.60.
+- 🔴 **CORRECCIÓN DE DIEGO EL MISMO DÍA (v5.61, antes de pegar)**: el candado
+  del tercer estado iba AL REVÉS. «Tose, moviliza y deglute» es precisamente
+  para cuando NO hay vía aérea artificial — con TOT/TQT las secreciones se
+  aspiran y se ven, y ahí van cantidad y características. Su mensaje original
+  («est**n**aplica solo **son** vía aérea artificial») se había leído como
+  «con» siendo «sin». Invertido en el botón, en hSecrAutoVis (con TOT/TQT se
+  esconde y se desmarca solo) y en las dos guardias; la narración no cambió.
+  Lección para la próxima: ante un mensaje con tecleo ambiguo en una regla
+  clínica, confirmar la dirección ANTES de programarla — la lógica clínica
+  (¿quién puede deglutir sus secreciones? el que no tiene cuff inflado) habría
+  delatado la lectura equivocada.

@@ -452,8 +452,9 @@ function generarTextoEvolucion(d) {
     // no-registro ('') queda en silencio.
     // Y 'auto' (15-ago-2026, rescatado del SmartEvo, redacción de Diego): hay
     // secreciones pero NO se aspiran — el paciente las tose, moviliza y
-    // deglute. Solo se ofrece con vía aérea artificial; sin nada aspirado, no
-    // hay reología ni características que narrar.
+    // deglute. Solo se ofrece SIN vía aérea artificial (con TOT/TQT se aspira
+    // y se ve); sin nada aspirado, no hay reología ni características que
+    // narrar.
     const secrParts = [];
     if (qty !== '-' && qty !== 'auto') {
       if (reol) secrParts.push(reol.toLowerCase());

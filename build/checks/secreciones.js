@@ -107,8 +107,11 @@ eq('el botón existe y guarda auto',
   /id="sqBtn4" onclick="hSecrQty\('auto'\)"/.test(idx), true);
 eq("…y 'auto' está en el catálogo de valores",
   idx.includes(`const _SECR_VALS=['-','+','++','+++','auto'];`), true);
-eq('★ solo con vía aérea artificial (hSecrAutoVis mira TOT/TQT)',
-  /function hSecrAutoVis\(\)\{\s*\n?\s*const va=v\('fVA'\), esArt=\(va==='TOT'\|\|va==='TQT'\);/.test(idx), true);
+// 🔴 CORREGIDO EL MISMO 15-ago por Diego: es justo AL REVÉS de la primera
+// lectura — con TOT/TQT las secreciones SE ASPIRAN y se ven (ahí van cantidad
+// y características); el manejo autónomo es del paciente SIN vía artificial.
+eq('★ solo SIN vía aérea artificial (con TOT/TQT el botón se esconde)',
+  /function hSecrAutoVis\(\)\{[\s\S]{0,120}esArt=\(va==='TOT'\|\|va==='TQT'\);[\s\S]{0,120}toggle\('hidden',esArt\)/.test(idx), true);
 eq('★ marcado, apaga características y reología (hSecrAuto)',
   /function hSecrAuto\(\)\{[\s\S]{0,240}car\.disabled=auto/.test(idx), true);
 
