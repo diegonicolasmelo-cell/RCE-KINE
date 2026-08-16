@@ -145,10 +145,15 @@ const { chromium } = require('playwright-core');
     fillFormReplica({ DIAS_VM: 6, DIAS_VNI: '' });
     actualizarContadores();
     r.vmCongelado = $('fDiasVM').value;
-    // ── Aviso de desfase (opción B): detalle plegado ──
+    // ── Guardar no se detiene (15-ago-2026, reemplaza a la «opción B») ──
+    // El cuadro de desfase con «Ver diferencias» SALIÓ por pedido de Diego:
+    // guardar guarda al tiro lo de pantalla y el desfase se avisa con un
+    // toast que no bloquea. El comportamiento completo lo vigila
+    // texto_manual.js; aquí, que el cuadro no vuelva a colarse.
     const fuente = guardar.toString() + (typeof _bloquesDesfasados === 'function' ? '1' : '0');
-    r.avisoPlegado = /<details/.test(fuente) && /Ver diferencias/.test(fuente);
-    r.avisoUnaLinea = /parte[s]? quedó|partes quedaron/.test(fuente) || /quedó contando|quedaron contando/.test(fuente);
+    r.sinCuadroDesfase = !/Ver diferencias/.test(fuente) && /tu texto tal como está/.test(fuente);
+    r.avisoUnaLinea = /parte quedó distinta|partes quedaron distintas/.test(fuente);
+    r.desfaseSeCalcula = /_bloquesDesfasados\(\)/.test(fuente) && fuente.slice(-1) === '1';
     return r;
   });
 
@@ -166,8 +171,9 @@ const { chromium } = require('playwright-core');
   eq('de noche la KTM queda NEUTRA (no «no realizada»)', R.ktmNocheNeutra, true);
   eq('…y el texto nocturno no menciona KTM', R.ktmNocheSinFrase, true);
   eq('la extubada muestra sus días de VM congelados', R.vmCongelado, '6');
-  eq('aviso de desfase: detalle plegado en «Ver diferencias»', R.avisoPlegado, true);
-  eq('…y mensaje de una línea', R.avisoUnaLinea, true);
+  eq('guardar ya NO abre el cuadro de desfase (avisa con toast)', R.sinCuadroDesfase, true);
+  eq('…con mensaje de una línea', R.avisoUnaLinea, true);
+  eq('…y el desfase se sigue calculando (para el conteo del aviso)', R.desfaseSeCalcula, true);
 
   await b.close();
   if (errs.length) { console.log('❌ errores JS: ' + errs.join(' | ')); fails.push('js'); }

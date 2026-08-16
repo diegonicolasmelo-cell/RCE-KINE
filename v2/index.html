@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.61-smartevo">
+<meta name="rce-version" content="5.62-guardado">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -918,6 +918,8 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .riel-i.req{color:#b91c1c;}
 #gFalta{text-align:right;font-size:.75rem;font-weight:800;color:#b45309;min-height:15px;padding:0 4px;}
 .act-bar .btn{height:46px;border-radius:12px;}
+/* El botón de guardar GRANDE (Diego, 15-ago-2026): es la acción del panel. */
+.act-bar #btnGuardar{height:52px;font-size:1.02rem;}
 #btnGuardar{background:linear-gradient(135deg,#5856d6,#4338ca);font-size:.95rem;box-shadow:0 5px 16px rgba(79,70,229,.32);}
 #btnGuardar:hover{filter:brightness(1.08);background:linear-gradient(135deg,#5856d6,#4338ca);}
 #btnGuardar:disabled{background:#94a3b8;box-shadow:none;filter:none;}
@@ -3930,15 +3932,6 @@ document.documentElement.setAttribute('data-piel', 'inst');
         </div>
       </div>
 
-      <!-- ACCIONES -->
-      <div id="gFalta"></div>
-      <div class="act-bar">
-        <span id="gSinGuardar" class="hidden" style="align-self:center;font-size:.72rem;font-weight:800;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;border-radius:20px;padding:3px 10px;margin-right:6px;white-space:nowrap;">⚠️ Sin guardar</span>
-        <button type="button" id="btnGuardar" class="btn btn-p" data-nodirty onclick="guardar()">💾 Guardar Evolución</button>
-        <button type="button" class="btn btn-r" style="width:auto;padding:0 15px;flex-shrink:0;" data-nodirty onclick="previewTexto()">👁️ Preview</button>
-        <button type="button" id="btnCerrarPost" class="btn" style="width:auto;padding:0 15px;flex-shrink:0;background:#334155;color:#fff;display:none;" data-nodirty onclick="cerrarPanel()">✖ Cerrar</button>
-      </div>
-
       <!-- TEXTO DE LA EVOLUCIÓN — editor real: se guarda tal como se ve -->
       <div id="rarea" class="hidden">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">
@@ -3949,6 +3942,19 @@ document.documentElement.setAttribute('data-piel', 'inst');
           </div>
         </div>
         <textarea id="rtxt" rows="20"></textarea>
+      </div>
+
+      <!-- ACCIONES — al FINAL del formulario y pegadas abajo (Diego,
+           15-ago-2026): la barra es sticky y AHORA el texto vive arriba de
+           ella, así el botón de guardar queda a la vista siempre — también
+           mientras se lee o edita el texto, que era donde había que
+           devolverse a buscarlo. -->
+      <div id="gFalta"></div>
+      <div class="act-bar">
+        <span id="gSinGuardar" class="hidden" style="align-self:center;font-size:.72rem;font-weight:800;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;border-radius:20px;padding:3px 10px;margin-right:6px;white-space:nowrap;">⚠️ Sin guardar</span>
+        <button type="button" id="btnGuardar" class="btn btn-p" data-nodirty onclick="guardar()">💾 Guardar Evolución</button>
+        <button type="button" class="btn btn-r" style="width:auto;padding:0 15px;flex-shrink:0;" data-nodirty onclick="previewTexto()">👁️ Preview</button>
+        <button type="button" id="btnCerrarPost" class="btn" style="width:auto;padding:0 15px;flex-shrink:0;background:#334155;color:#fff;display:none;" data-nodirty onclick="cerrarPanel()">✖ Cerrar</button>
       </div>
     </form>
   </div>
@@ -4231,7 +4237,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.61-smartevo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.62-guardado]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -6070,55 +6076,21 @@ function guardar() {
     _rhFalta.style.outline='2px solid var(--danger)'; setTimeout(()=>{_rhFalta.style.outline='';},2500);
     return;
   }
-  // ★ El texto no puede contradecir lo registrado ★
-  // Al retocar el texto a mano la regeneración queda en pausa (para no pisar
-  // lo escrito), así que desde ahí el texto puede quedar narrando una versión
-  // vieja del turno. NO se corrige a la fuerza: se muestra la diferencia
-  // bloque a bloque y decide el colega. Sin edición manual no aplica — ahí el
-  // texto se regenera solo y al guardar sale fresco.
-  if(_textoManual && !_txtDesfaseVisto){
+  // ★ El texto editado a mano SE GUARDA TAL CUAL, sin preguntar ★
+  // (Diego, 15-ago-2026: «que solo guarde» — reemplaza al cuadro de tres
+  // salidas de la v5.34/v5.4x). Al retocar el texto a mano la regeneración
+  // queda en pausa, así que puede quedar narrando una versión vieja del
+  // turno; antes eso abría un cuadro que DETENÍA cada guardado para proteger
+  // un caso raro. La protección de fondo no cambia: lo escrito a mano jamás
+  // se pierde — es exactamente lo que se guarda (y la salida del motor viaja
+  // aparte en TEXTO_AUTO). El desfase ahora se AVISA sin bloquear: un toast
+  // con el conteo de partes distintas, y 🔄 Regenerar a la vista para quien
+  // quiera el texto al día. Las CIFRAS clínicas nunca corren riesgo: viven en
+  // sus columnas, no en la narración.
+  if(_textoManual){
     const _des=_bloquesDesfasados();
-    if(_des.length){
-      const _esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      _txtDesfaseVisto=true;
-      // AVISO DE UNA LÍNEA (opción B de Diego, ago-2026): con muchas ediciones
-      // el detalle bloque a bloque tapaba los botones y no se veía cómo
-      // guardar. Ahora el mensaje es corto y el detalle queda PLEGADO en «Ver
-      // diferencias», con su propio scroll — quien lo quiera lo abre.
-      uiConfirm({
-        icono:'📝', titulo:'El texto no coincide con lo registrado',
-        mensaje:`Editaste el texto a mano y después cambiaste el formulario — <b>${_des.length===1?'1 parte quedó':_des.length+' partes quedaron'} contando otra cosa</b>. ¿Guardar tu texto tal como está?`,
-        detalle:`<details style="text-align:left;"><summary style="cursor:pointer;font-size:.78rem;font-weight:700;color:#b45309;">🔍 Ver diferencias (${_des.length})</summary>
-          <div style="max-height:32vh;overflow-y:auto;margin-top:4px;">${_des.map(d=>`<div style="margin:6px 0;padding:6px 9px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:0 5px 5px 0;text-align:left;font-size:.8rem;">
-            <b>${_esc(d.bloque)}</b><br>
-            <span style="color:#b91c1c;font-weight:700;">El texto dice:</span> ${_esc(d.antes)||'<i>(nada)</i>'}<br>
-            <span style="color:#15803d;font-weight:700;">Registraste:</span> ${_esc(d.ahora)||'<i>(nada)</i>'}
-          </div>`).join('')}</div></details>`,
-        // TRES salidas, no dos (corregido ago-2026 — reporte de Diego: «el
-        // texto se reinicia al guardar y no queda lo editado a mano»). Antes
-        // el ÚNICO camino que guardaba era regenerar, así que el colega que
-        // había redactado a mano perdía lo escrito por apretar el botón que
-        // parecía «guardar». Lo que se escribió a mano JAMÁS se descarta sin
-        // que alguien lo elija explícitamente.
-        confirmar:'✍️ Guardar mi texto tal como está',
-        alterno:'🔄 Usar el texto actualizado',
-      }).then(r=>{
-        if(r===true){
-          // Respeta lo redactado: se guarda tal cual está en pantalla. Al
-          // reentrar, _txtDesfaseVisto ya está en true y el aviso no se
-          // repite; _textoManual sigue en true, así que el payload lleva el
-          // texto de pantalla y NO el del motor.
-          guardar();
-        } else if(r==='alt'){
-          $('rtxt').value=genTexto(); _marcarTextoGenerado($('rtxt').value); guardar();
-        } else {
-          _txtDesfaseVisto=false; show('rarea'); $('rtxt')?.scrollIntoView({behavior:'smooth',block:'center'});
-        }
-      });
-      return;
-    }
+    if(_des.length) toast(`✍️ Se guarda tu texto tal como está — ${_des.length===1?'1 parte quedó distinta':_des.length+' partes quedaron distintas'} de lo registrado (🔄 Regenerar lo actualiza)`, 6000);
   }
-  _txtDesfaseVisto=false;
   // ★ APACHE II: opcional, pero si viene debe ser entero 0-71 ★
   const _apv=v('fApache');
   if(_apv!=='' && (!/^\d+$/.test(String(_apv).trim()) || +_apv>71)){
@@ -6482,7 +6454,10 @@ function guardar() {
       _marcarTextoGenerado($('rtxt').value);
     }
     show('rarea');
-    $('rarea').scrollIntoView({behavior:'smooth', block:'start'});
+    // SIN desplazarse al texto (Diego, 15-ago-2026: «que solo guarde antes
+    // de progresar»): guardar es para seguir con el próximo paciente. El
+    // texto queda disponible arriba de la barra por si hay que copiarlo, y
+    // ✖ Cerrar aparece en la misma barra pegada abajo, a mano.
     _formDirty=false;   // guardado: ya no hay cambios que perder
     // Mostrar botón cerrar y actualizar grid en background (sin overlay)
     show('btnCerrarPost');
@@ -8243,7 +8218,6 @@ function copiar() {
 let _rtxtGen='';          // último texto salido del motor (para detectar edición)
 let _rtxtGenBloq=[];      // etiquetas de bloque alineadas 1:1 con _rtxtGen
 let _textoManual=false;   // el texto en pantalla tiene retoques manuales
-let _txtDesfaseVisto=false; // el aviso de desfase ya se mostró en este guardado
 function _marcarTextoGenerado(t){
   _rtxtGen = t||'';
   _rtxtGenBloq = (window._TXB_ULT||[]).slice();

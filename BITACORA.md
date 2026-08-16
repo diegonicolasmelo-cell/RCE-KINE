@@ -3277,3 +3277,33 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
   clínica, confirmar la dirección ANTES de programarla — la lógica clínica
   (¿quién puede deglutir sus secreciones? el que no tiene cuff inflado) habría
   delatado la lectura equivocada.
+
+## v5.62-guardado (15-ago-2026) — guardar sin fricción
+
+- Reporte de Diego desde el uso: el botón de guardado quedaba ARRIBA del
+  texto (leyendo/editando el texto había que devolverse a buscarlo) y el
+  cuadro de comparación del texto editado detenía cada guardado. Pidió botón
+  grande abajo o al costado y «que solo guarde antes de progresar». Se
+  implementó la recomendación A+1+2:
+- **A · La botonera se movió AL FINAL del formulario** (después del texto) y
+  sigue pegada abajo (sticky): el botón queda a la vista SIEMPRE, incluso
+  leyendo o editando el texto — que era exactamente donde desaparecía, porque
+  el sticky se despega al pasar su posición natural y el texto vivía después.
+  El botón además creció (52px). En celular, mismo comportamiento.
+- **1 · Guardar guarda AL TIRO, sin preguntar.** El cuadro de desfase de tres
+  salidas (v5.34→v5.4x) SALIÓ: se guarda exactamente lo que está en pantalla
+  — lo escrito a mano jamás se pierde, que era la invariante por la que ese
+  cuadro nació — y el desfase texto↔formulario se avisa con un toast que NO
+  bloquea (con el conteo de partes distintas y el recordatorio de 🔄
+  Regenerar). Regenerar sigue pidiendo confirmación: ese SÍ destruye la
+  redacción. Las cifras clínicas nunca corrieron riesgo: viven en columnas.
+- **2 · Después de guardar ya no te arrastra al texto**: éxito por toast, el
+  texto queda disponible arriba de la barra por si hay que copiarlo, y
+  ✖ Cerrar aparece en la misma barra para pasar al siguiente paciente.
+- Guardias: `texto_manual.js` REESCRITA para la regla nueva (guarda sin
+  cuadro + toast de aviso + Regenerar con confirmación + geometría de la
+  barra: después del texto, sticky, botón ≥50px) y `afinado.js` actualizada
+  (fijaba el cuadro viejo «Ver diferencias»; ahora fija que NO vuelva).
+  Batería: **77 verdes, 0 rojas**.
+- Solo cambió el index (sin esquema, sin .gs). La v5.62 CONTIENE a la v5.59,
+  v5.60 y v5.61.

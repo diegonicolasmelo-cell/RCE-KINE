@@ -1,18 +1,25 @@
-// texto_manual.js — Lo redactado a mano NO se pierde al guardar (ago-2026).
+// texto_manual.js — Lo redactado a mano NO se pierde al guardar, y guardar
+// NO se detiene a preguntar (regla vigente desde el 15-ago-2026).
 //
-// REPORTE DE DIEGO: «el texto se reinicia al momento de guardar y no queda el
-// texto editado a mano». REPRODUCIDO: la culpa era del aviso de desfase que
-// se agregó en v5.34. Ese aviso compara bloque a bloque el texto retocado
-// contra lo que registró el formulario y — bien — deja decidir al colega.
-// Pero uiConfirm es binario, así que las salidas reales eran:
-//    · «🔄 Actualizar el texto y guardar»  → REGENERA (borra lo escrito)
-//    · Cancelar                            → no guarda nada
-// Es decir: el ÚNICO camino que guardaba destruía la redacción, y encima el
-// botón se leía como «guardar». El colega perdía su evolución por apretar lo
-// que parecía correcto.
+// HISTORIA EN DOS CAPÍTULOS:
+//  · ago-2026, reporte de Diego: «el texto se reinicia al guardar y no queda
+//    lo editado a mano». La culpa era el aviso de desfase binario de la
+//    v5.34: el único camino que guardaba REGENERABA. Se arregló con un cuadro
+//    de TRES salidas cuya primaria conservaba lo escrito.
+//  · 15-ago-2026, Diego pide eliminar la fricción: ese cuadro detenía CADA
+//    guardado con texto editado para proteger un caso raro. Regla nueva:
+//    guardar guarda AL TIRO lo que está en pantalla (lo escrito a mano es
+//    exactamente lo que se guarda; la salida del motor viaja aparte en
+//    TEXTO_AUTO), y el desfase se avisa con un toast que NO bloquea.
+//    Regenerar sigue existiendo y sigue pidiendo confirmación, porque ese SÍ
+//    destruye la redacción.
 //
-// AHORA son TRES salidas y la que conserva es la primaria. Regla: lo escrito
-// a mano jamás se descarta sin que alguien lo elija explícitamente.
+// La invariante que las dos épocas comparten y esta guardia fija: LO ESCRITO
+// A MANO JAMÁS SE DESCARTA SIN QUE ALGUIEN LO ELIJA EXPLÍCITAMENTE.
+//
+// De pasada fija la geometría nueva de la botonera (mismo pedido de Diego):
+// la barra de guardar vive DESPUÉS del texto y pegada abajo (sticky), para no
+// tener que devolverse a buscar el botón mientras se lee o edita el texto.
 //
 // Uso: node build/checks/texto_manual.js [ruta.html]
 const path = require('path');
@@ -45,7 +52,7 @@ const MANUAL = 'EVOLUCION REDACTADA A MANO POR EL COLEGA - no debe perderse.';
   await p.waitForTimeout(2200);
 
   // Deja el panel listo para guardar y con el texto del motor en pantalla.
-  const preparar = () => p.evaluate((MAN) => {
+  const preparar = () => p.evaluate(() => {
     window.__guardado = null;
     $('rarea').classList.remove('hidden');
     $('cBed').value = '4'; $('gDate').value = '2026-08-04';
@@ -53,8 +60,7 @@ const MANUAL = 'EVOLUCION REDACTADA A MANO POR EL COLEGA - no debe perderse.';
     $('fVA').value = 'TOT';
     setKTMstate('s'); $('fKTMraz').value = 'inestabilidad hemodinámica';
     $('rtxt').value = genTexto(); _marcarTextoGenerado($('rtxt').value);
-    _txtDesfaseVisto = false;
-  }, MANUAL);
+  });
 
   // El colega redacta a mano y DESPUÉS cambia el formulario (desfase).
   const editarYDesfasar = async () => {
@@ -67,72 +73,52 @@ const MANUAL = 'EVOLUCION REDACTADA A MANO POR EL COLEGA - no debe perderse.';
     await p.waitForTimeout(450);   // debounce de _rtxtLive
   };
 
-  /* ══ 1 · El aviso aparece y ofrece TRES salidas ══════════════════════ */
-  console.log('\n1 · El aviso de desfase ofrece conservar, regenerar o volver');
+  /* ══ 1 · Guardar con desfase: SIN cuadro, guarda lo escrito a mano ═══ */
+  console.log('\n1 · Guardar no se detiene: se guarda la redacción del colega');
   await preparar(); await editarYDesfasar();
   eq('la edición manual queda marcada', await p.evaluate(() => _textoManual), true);
   eq('tocar el formulario NO pisa lo escrito a mano', await p.evaluate(() => $('rtxt').value), MANUAL);
   await p.evaluate(() => guardar());
-  await p.waitForTimeout(250);
-  // Null-safe a propósito: contra el código anterior #ucAlt NO existe, y la
-  // guardia tiene que decirlo con un ❌ legible en vez de reventar.
-  const dlg = await p.evaluate(() => ({
-    abierto: !!$('ucOvl') && $('ucOvl').classList.contains('on'),
-    ok: $('ucOk') ? $('ucOk').textContent : '(no existe)',
-    alt: $('ucAlt') ? $('ucAlt').textContent : '(no existe la tercera salida)',
-    altVisible: !!$('ucAlt') && $('ucAlt').style.display !== 'none',
-    cancel: $('ucCancel') ? $('ucCancel').textContent : '(no existe)',
-  }));
-  eq('se abre el aviso', dlg.abierto, true);
-  eq('la salida PRIMARIA conserva lo redactado', /mi texto tal como está/i.test(dlg.ok), true);
-  eq('hay una tercera salida visible', dlg.altVisible, true);
-  eq('…que es la de regenerar', /texto actualizado/i.test(dlg.alt), true);
-  eq('y sigue existiendo volver atrás', /cancelar/i.test(dlg.cancel), true);
-
-  /* ══ 2 · La salida primaria GUARDA lo escrito a mano ═════════════════ */
-  console.log('\n2 · Conservar: se guarda la redacción, no la del motor');
-  await p.evaluate(() => $('ucOk').click());
   await p.waitForTimeout(700);
   const cons = await p.evaluate(() => ({
+    dialogo: !!$('ucOvl') && $('ucOvl').classList.contains('on'),
     guardado: window.__guardado ? String(window.__guardado.TEXTO_GENERADO || '') : '(no se guardó)',
     manual: window.__guardado ? window.__guardado.TEXTO_MANUAL : null,
+    auto: window.__guardado ? String(window.__guardado.TEXTO_AUTO || '') : '',
     pantalla: $('rtxt').value,
+    toast: $('toast') ? $('toast').textContent : (document.querySelector('.toast') ? document.querySelector('.toast').textContent : ''),
   }));
-  eq('lo que viaja al servidor es la redacción del colega', cons.guardado, MANUAL);
+  eq('★ NO se abre ningún cuadro', cons.dialogo, false);
+  eq('★ lo que viaja al servidor es la redacción del colega', cons.guardado, MANUAL);
   eq('queda marcada como texto manual', cons.manual, true);
   eq('la pantalla NO se reinicia con el texto del servidor', cons.pantalla, MANUAL);
+  eq('la salida del motor viaja aparte (trazabilidad)', /KTM/i.test(cons.auto), true);
+  eq('★ y el desfase se AVISA sin bloquear (toast)', /tu texto tal como está/i.test(cons.toast), true);
 
-  /* ══ 3 · La salida alterna SÍ regenera (pero hay que elegirla) ═══════ */
-  console.log('\n3 · Regenerar: solo si el colega lo elige explícitamente');
+  /* ══ 2 · Regenerar sigue pidiendo permiso (ese SÍ destruye) ══════════ */
+  console.log('\n2 · Regenerar: solo con confirmación explícita');
   await preparar(); await editarYDesfasar();
-  await p.evaluate(() => guardar());
+  await p.evaluate(() => regenerarTexto());
   await p.waitForTimeout(250);
-  await p.evaluate(() => { if ($('ucAlt')) $('ucAlt').click(); else $('ucOk').click(); });
-  await p.waitForTimeout(700);
-  const regen = await p.evaluate(() => ({
-    guardado: window.__guardado ? String(window.__guardado.TEXTO_GENERADO || '') : '(no se guardó)',
-    manual: window.__guardado ? window.__guardado.TEXTO_MANUAL : null,
+  const dlg = await p.evaluate(() => ({
+    abierto: !!$('ucOvl') && $('ucOvl').classList.contains('on'),
+    avisa: $('ucOvl') ? /descartan tus retoques/i.test($('ucOvl').textContent) : false,
   }));
-  eq('al elegir regenerar, la redacción se reemplaza', regen.guardado !== MANUAL, true);
-  eq('…y el texto sale del motor (menciona la KTM realizada)', /KTM/i.test(regen.guardado), true);
+  eq('regenerar abre confirmación', dlg.abierto, true);
+  eq('…y avisa que descarta los retoques', dlg.avisa, true);
+  await p.evaluate(() => $('ucCancel').click());
+  await p.waitForTimeout(300);
+  eq('cancelar conserva la redacción', await p.evaluate(() => $('rtxt').value), MANUAL);
+  await p.evaluate(() => regenerarTexto());
+  await p.waitForTimeout(250);
+  await p.evaluate(() => $('ucOk').click());
+  await p.waitForTimeout(300);
+  const regen = await p.evaluate(() => ({ pantalla: $('rtxt').value, manual: _textoManual }));
+  eq('aceptar regenera desde el motor (menciona la KTM)', /KTM/i.test(regen.pantalla), true);
   eq('…y deja de estar marcado como manual', regen.manual, false);
 
-  /* ══ 4 · Cancelar no guarda NADA y conserva lo escrito ═══════════════ */
-  console.log('\n4 · Cancelar: vuelve a editar, sin guardar ni perder');
-  await preparar(); await editarYDesfasar();
-  await p.evaluate(() => guardar());
-  await p.waitForTimeout(250);
-  await p.evaluate(() => $('ucCancel').click());
-  await p.waitForTimeout(500);
-  const canc = await p.evaluate(() => ({
-    guardado: window.__guardado, pantalla: $('rtxt').value, manual: _textoManual,
-  }));
-  eq('no se guardó nada', canc.guardado, null);
-  eq('la redacción sigue en pantalla', canc.pantalla, MANUAL);
-  eq('y sigue marcada como manual', canc.manual, true);
-
-  /* ══ 5 · Sin edición manual el guardado no cambia ════════════════════ */
-  console.log('\n5 · Sin retoques a mano, el flujo de siempre');
+  /* ══ 3 · Sin edición manual el guardado no cambia ════════════════════ */
+  console.log('\n3 · Sin retoques a mano, el flujo de siempre');
   await preparar();
   await p.evaluate(() => { $('bKTMr').click(); });
   await p.waitForTimeout(450);
@@ -147,8 +133,27 @@ const MANUAL = 'EVOLUCION REDACTADA A MANO POR EL COLEGA - no debe perderse.';
   eq('guarda directo', auto.guardado, true);
   eq('y no queda marcado como manual', auto.manual, false);
 
+  /* ══ 4 · La botonera vive DESPUÉS del texto y pegada abajo ═══════════ */
+  console.log('\n4 · El botón de guardar, abajo del texto y siempre a la vista');
+  const barra = await p.evaluate(() => {
+    const act = document.querySelector('.act-bar'), ra = $('rarea');
+    const pos = ra.compareDocumentPosition(act);
+    const st = getComputedStyle(act);
+    const r = act.getBoundingClientRect();
+    return {
+      despuesDelTexto: !!(pos & Node.DOCUMENT_POSITION_FOLLOWING),
+      sticky: st.position === 'sticky',
+      aLaVista: r.top < window.innerHeight && r.bottom > 0,
+      grande: document.getElementById('btnGuardar').getBoundingClientRect().height >= 50,
+    };
+  });
+  eq('★ la barra está DESPUÉS del texto en el flujo', barra.despuesDelTexto, true);
+  eq('★ y es pegajosa (sticky)', barra.sticky, true);
+  eq('…o sea queda a la vista', barra.aLaVista, true);
+  eq('★ el botón de guardar es grande (≥50px)', barra.grande, true);
+
   eq('sin errores JS', errs.filter(e => !/favicon/.test(e)).join(' | '), '');
   await b.close();
-  console.log(fails.length ? `\n❌ ${fails.length} FALLOS` : '\n✅ texto_manual OK');
+  console.log(fails.length ? `\n❌ ${fails.length} FALLOS` : '\n✅ texto_manual OK — guarda al tiro y no pierde nada');
   process.exit(fails.length ? 1 : 0);
 })();

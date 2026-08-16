@@ -302,11 +302,11 @@ si tiene más de unos días, se confirma antes de usarla.
   14-ago con la entrega de 6 archivos, y confirmó que corrió
   `crearORepararEstructura()` (EVOLUCIONES en 390 columnas).
 - **Entregadas y pendientes de pegar**: v5.59 (hoja diaria a 2 caras),
-  v5.60-dispositivos (HEPA fijo + bug de humidificación) y
-  **v5.61-smartevo** (tercer estado de secreciones + FiO₂ + rueda). Cada una
-  CONTIENE a las anteriores: **pegar la v5.61 basta** (dominio + index +
-  servicios). `main` y la rama de trabajo van en la v5.61. Sin cambio de
-  esquema en ninguna de las tres.
+  v5.60-dispositivos (HEPA fijo + bug de humidificación), v5.61-smartevo
+  (tercer estado de secreciones + FiO₂ + rueda) y **v5.62-guardado** (botón
+  al final sticky + guardar sin cuadro de desfase). Cada una CONTIENE a las
+  anteriores: **pegar la v5.62 basta** (dominio + index + servicios). `main`
+  y la rama de trabajo van en la v5.62. Sin cambio de esquema en ninguna.
 - Marcha blanca con datos reales desde el 1-ago-2026.
 
 ### 🔴 Antes de armar una entrega: `node build/que_pegar.js <ref-publicada>`
