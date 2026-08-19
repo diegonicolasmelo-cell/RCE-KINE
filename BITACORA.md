@@ -19,6 +19,37 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## ✅ EN PRODUCCIÓN: Versión 35, sello 5.63-coordinacion (19-ago-2026, 11:18)
+
+Publicó Manuel, con Diego avisado antes de empezar. Se editó la implementación
+EXISTENTE (mismo ID `AKfycbxMKE6…`), así que la URL del equipo no cambió.
+Verificado con `fetch` al `/exec` real: sirve `5.63-coordinacion`.
+
+Pegados 4 archivos (calculados con `que_pegar.js`, no de memoria): `index`,
+`servicios`, `api`, `esquema`. Después `crearORepararEstructura()` →
+«Todas las hojas existían; estructura verificada», y `coordSembrarClaves()`
+(lo corrió Manuel: las temporales salen por el registro de ejecución y no
+deben pasar por el chat).
+
+**⚠️ EL PORTAPAPELES CORROMPE LOS ACENTOS EN ARCHIVOS GRANDES.** Al copiar
+`servicios.gs` (377 KB) con `pbcopy`, llegaron 366 KB: `Diagnóstico` →
+`Diagnostico`, `única` → `nica`. El `cmp` contra el original falla en el
+byte 21. **No se detecta a ojo** — el archivo «se ve bien» pegado. Lo que
+funcionó: servir los archivos desde un **HTTP local con CORS** y traerlos con
+`fetch()` + `monaco.editor.getModels()` desde la consola del editor, y después
+verificar cada modelo (longitud, primeros/últimos 60 caracteres, y que los
+acentos siguieran ahí). El cohete del index sí sobrevive al portapapeles
+porque es ASCII puro — por eso el formato cohete existe.
+
+🪤 Se confirmaron dos trampas ya documentadas: **hay tres proyectos llamados
+«RCE KINE 3.0»** (se eligió comparando el ID de implementación carácter por
+carácter, no por la fecha ni el nombre); y **el selector de funciones ejecutó
+la anterior** en vez de la elegida — sin daño porque `crearORepararEstructura`
+es idempotente, pero confirma que hay que leer el log antes de creerle a una
+ejecución.
+
+---
+
 ## Usuario de login ≠ firma clínica, claves de 12 (19-ago-2026)
 
 Manuel, sobre la marcha: «cuando estemos ahí, usuarios serán coord1/coord2/coord3»
