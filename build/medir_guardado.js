@@ -132,14 +132,20 @@ const ARCHIVOS = [
   'esquema.gs', 'repo.gs',
   'infra_respuesta.gs', 'infra_util.gs', 'infra_fechas.gs', 'infra_lock.gs', 'infra_log.gs', 'infra_auth.gs',
   'dominio_validacion.gs', 'dominio_calculos.gs', 'dominio_texto.gs',
-  'svc_camas.gs', 'svc_evoluciones.gs', 'svc_procedimientos.gs', 'svc_timeline.gs',
+  'svc_camas.gs', 'svc_coordinacion.gs', 'svc_evoluciones.gs', 'svc_procedimientos.gs', 'svc_timeline.gs',
   'svc_turnos.gs', 'svc_stats.gs', 'svc_indicadores.gs', 'svc_auditoria.gs',
   'svc_entrega.gs', 'svc_eventos.gs', 'svc_equipos.gs',
   'api.gs',
 ];
 // Las `const` de esquema.gs (ESQUEMA/COL/…) no cuelgan de globalThis con eval
 // indirecto — solo function/var lo hacen. El apéndice las exporta a mano.
-(0, eval)(ARCHIVOS.map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n') +
+//
+// Los que faltan se SALTAN, no revientan: guardado_viajes.js corre este mismo
+// archivo contra un árbol histórico (checkout de un commit base en /tmp) para
+// medir el A/B, y ahí los servicios nacidos después todavía no existen. Sin
+// esta tolerancia, agregar un svc_* nuevo pone roja una guardia que no mide
+// nada de él.
+(0, eval)(ARCHIVOS.map(f => path.join(v2, f)).filter(p => fs.existsSync(p)).map(p => fs.readFileSync(p, 'utf8')).join('\n;\n') +
   '\n;globalThis.ESQUEMA = ESQUEMA; globalThis.COL = COL; globalThis.TOTAL_COLS = TOTAL_COLS;' +
   ' globalThis.FILA_DATOS = FILA_DATOS; globalThis.SH = SH;');
 

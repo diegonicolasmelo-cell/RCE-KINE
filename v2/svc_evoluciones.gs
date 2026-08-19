@@ -134,8 +134,15 @@ function guardarEvolucion(datos, ctx) {
       }
       if (!cama.TS_INGRESO) {
         cama.TS_INGRESO = _tsIng || _tsAhora();
-      } else if (_hFormIng && _hFormIng !== _tsHora(cama.TS_INGRESO)) {
+      } else if (_hFormIng && _hFormIng !== _tsHora(cama.TS_INGRESO)
+                 && !coordCampoCorregido(cama, 'FECHA_INGRESO')) {
         // Corrección a mano: se conserva el día del momento ya guardado.
+        //
+        // ARRASTRE (D7, ago-2026): si la coordinación ya corrigió la fecha de
+        // ingreso, el turno la HEREDA y no la pisa — «normalmente no se
+        // modifica, así que no debería poder modificarla» (Manuel, 18-ago).
+        // Sin esta guardia, la corrección de un egresado de 28 días duraba
+        // hasta que alguien guardara el turno siguiente con otra hora.
         cama.TS_INGRESO = _tsFecha(cama.TS_INGRESO) + ' ' + _hFormIng;
       }
       if (cama.FECHA_INGRESO) {
@@ -374,7 +381,20 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   const sopAnt = cama.SOPORTE || '';
   const esVent = (sopNew === 'VM' || sopNew === 'VNI');
   let fechaSoporte, horaSoporte;
+  // ARRASTRE (D7): una fecha corregida por la coordinación no la pisa el turno.
+  // Pero si CAMBIA el tipo de soporte hay un tramo clínico nuevo de verdad
+  // (VM→VNI→VM), y entonces la marca se suelta: congelarla ahí sería peor que
+  // el error original, porque el contador arrancaría en una fecha que ya no
+  // describe este tramo.
+  // Se sueltan EN MEMORIA y viajan en el sync único del final: este guardado
+  // ya está medido al viaje (Ola 4) y no admite una escritura suelta más.
+  const _sopCorregido = coordCampoCorregido(cama, 'FECHA_INICIO_SOPORTE');
+  const _vaCorregidoPrev = coordCampoCorregido(cama, 'FECHA_INICIO_VA');
+  let _marcasSueltas = null;
   if (!esVent) { fechaSoporte = cama.FECHA_INICIO_SOPORTE || ''; horaSoporte = cama.TS_INICIO_SOPORTE || ''; }
+  else if (_sopCorregido && sopNew === sopAnt) {
+    fechaSoporte = cama.FECHA_INICIO_SOPORTE; horaSoporte = cama.TS_INICIO_SOPORTE || '';
+  }
   else if (sopNew !== sopAnt || !cama.FECHA_INICIO_SOPORTE) {
     // Arranca (o se reinicia) el contador: se guarda también la HORA para que
     // los días de VM cuenten bloques de 24 h reales. La hora del evento manda
@@ -437,12 +457,26 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   let fechaVA, horaVA;
   if (!esVA) {
     fechaVA = ''; horaVA = '';
+  } else if (_vaCorregidoPrev && vaNew === vaAnt) {
+    // ARRASTRE (D7): corregida y sin cambio de vía aérea → se hereda intacta.
+    fechaVA = cama.FECHA_INICIO_VA; horaVA = cama.TS_INICIO_VA || '';
   } else if (vaNew !== vaAnt || !cama.FECHA_INICIO_VA) {
     const diasPrev = parseInt(evo.VA_EXTERNO_DIAS) || 0;
     fechaVA = (esVerdadero(evo.VA_EXTERNO) && diasPrev > 0) ? _restarDias(fecha, diasPrev) : fecha;
     horaVA = _tsDesdeHora(_horaValida(evo.INTUB_HORA) || _horaValida(evo.REINTUB_HORA) || _horaValida(evo.TQT_HORA)) || _tsAhora();
   } else {
     fechaVA = cama.FECHA_INICIO_VA; horaVA = cama.TS_INICIO_VA || '';
+  }
+
+  // ARRASTRE (D7) — soltar las marcas de los tramos que SÍ arrancaron de nuevo.
+  // Un cambio de soporte o de vía aérea abre un tramo clínico distinto: la
+  // fecha corregida describía el tramo anterior y mantenerla congelada dejaría
+  // el contador arrancando donde ya no corresponde.
+  if ((_sopCorregido && sopNew !== sopAnt) || (_vaCorregidoPrev && vaNew !== vaAnt)) {
+    let _corr = coordCorrecciones(cama);
+    if (_sopCorregido && sopNew !== sopAnt) _corr = _corr.filter(function (x) { return !x || x.c !== 'FECHA_INICIO_SOPORTE'; });
+    if (_vaCorregidoPrev && vaNew !== vaAnt) _corr = _corr.filter(function (x) { return !x || x.c !== 'FECHA_INICIO_VA'; });
+    _marcasSueltas = _corr.length ? JSON.stringify(_corr) : '';
   }
 
   const campos = {
@@ -499,6 +533,9 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     TS_INICIO_SOPORTE: horaSoporte,
     TS_INGRESO: cama.TS_INGRESO || '',
   };
+  // Solo viaja si un tramo nuevo soltó su marca: si no, ni se menciona la
+  // columna y el sello de correcciones queda intacto.
+  if (_marcasSueltas !== null) campos.CORRECCIONES_JSON = _marcasSueltas;
 
   // Snapshot por turno (para la tabla de Registro Diario)
   const ktrCant = parseInt(evo.RESP_KTR_CANT) || 0;
@@ -900,8 +937,15 @@ function anularEvento(datos, ctx) {
       };
       const campos = {};
       const dvm = parseInt(evo.DIAS_VM) || 0, dva = parseInt(evo.DIAS_VA) || 0;
-      if (evo.VENT_SOPORTE === 'VM' && fecha) campos.FECHA_INICIO_SOPORTE = rest(fecha, dvm);
-      if (evo.VENT_VIA_AEREA && evo.VENT_VIA_AEREA !== 'Natural' && fecha) campos.FECHA_INICIO_VA = rest(fecha, dva);
+      // ARRASTRE (D7): esta restauración deriva la fecha de inicio RESTANDO los
+      // días que traía la evolución. Sobre una fecha corregida por la
+      // coordinación eso la deshace en silencio — y era el segundo camino por
+      // el que la corrección de un egresado de 28 días se perdía. Aquí no se
+      // suelta la marca: anular un evento no abre un tramo clínico nuevo, lo
+      // que hace es borrar uno que se había marcado por error.
+      const _camaAct = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama) || {};
+      if (evo.VENT_SOPORTE === 'VM' && fecha && !coordCampoCorregido(_camaAct, 'FECHA_INICIO_SOPORTE')) campos.FECHA_INICIO_SOPORTE = rest(fecha, dvm);
+      if (evo.VENT_VIA_AEREA && evo.VENT_VIA_AEREA !== 'Natural' && fecha && !coordCampoCorregido(_camaAct, 'FECHA_INICIO_VA')) campos.FECHA_INICIO_VA = rest(fecha, dva);
       if (Object.keys(campos).length) repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, campos);
     }
 

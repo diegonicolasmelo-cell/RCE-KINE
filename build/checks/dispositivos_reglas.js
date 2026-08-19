@@ -79,7 +79,7 @@ global.ERR = { VALIDACION: 'V', INTERNO: 'I', NO_ENCONTRADO: 'NE' };
 // _ventNombreDeCama (la regla real la vigila equipos_categoria.js).
 global._vmCategoria = x => String(x.CATEGORIA || 'VM').trim().toUpperCase();
 global._vmEsDeCama = c => String(c) === 'VM';
-eval(['infra_fechas.gs', 'dominio_texto.gs', 'svc_stats.gs', 'svc_camas.gs', 'svc_evoluciones.gs', 'svc_eventos.gs', 'svc_entrega.gs', 'mantenimiento_manuel.gs']
+eval(['infra_fechas.gs', 'dominio_texto.gs', 'svc_stats.gs', 'svc_camas.gs', 'svc_coordinacion.gs', 'svc_evoluciones.gs', 'svc_eventos.gs', 'svc_entrega.gs', 'mantenimiento_manuel.gs']
   .map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 
 // Inventario con los nombres REALES del hospital (mantenimiento.gs): un PB

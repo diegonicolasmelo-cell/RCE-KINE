@@ -398,6 +398,30 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
 - **Antes de nombrar una función nueva**: `grep -rn "function nombre" v2/`.
   Apps Script comparte un único espacio global y una colisión pisa en silencio.
 
+### Modo Coordinación — corregir fichas desde la app (ago-2026)
+
+Tres personas con clave propia (`COORD_FIRMAS` en `svc_coordinacion.gs`): `MCC`
+(Magdalena, uso diario), `DMV` y `MFB` (respaldo). Corrigen fechas semilla y
+datos administrativos de cualquier paciente, en cama o egresado, desde la
+pestaña 🔐 COORDINACIÓN — sin abrir el editor.
+
+- **El candado vive en el SERVIDOR, en cada acción.** Con `AUTH_DEV_MODE=TRUE`
+  cualquiera con el enlace llega al dispatcher: esconder la pestaña no protege
+  nada. Toda acción `COORD_*` vuelve a exigir la sesión dentro del servicio.
+- **Las claves NO van a CONFIG**: su huella vive en `PropertiesService`. CONFIG
+  es una hoja de la planilla y se lee —o se exporta— sin querer.
+- **`CORRECCIONES_JSON` (CAMAS_ESTADO y ARCHIVO_PACIENTES) es el sello visible
+  Y la marca de arrastre.** Una fecha que figura ahí **el guardado del turno no
+  la pisa** (decisión de Manuel, 18-ago). Se suelta sola cuando cambia el TIPO
+  de soporte o de vía aérea, porque eso abre un tramo clínico nuevo.
+  ⚠️ Al tocar cualquier fecha semilla en `svc_evoluciones.gs`, preguntar
+  primero por `coordCampoCorregido()`.
+- **Los días se recalculan con `diasEntre`** (calendario, BUDA), nunca con
+  bloques de 24 h. Solo hace falta en el ARCHIVO: ahí están congelados.
+- Antes de usarlo: correr **`coordSembrarClaves()`** una vez desde el editor y
+  entregar las temporales en persona. Sin segundo factor por ahora (aplazado);
+  si alguien pierde la clave, otra de las tres se la restablece.
+
 ### Rutinas de mantenimiento disponibles (simulacro primero, siempre)
 
 `repararEvolucionesAjenasSIMULACRO/CONFIRMAR` · `corregirTiempoExtubadoSIMULACRO/CONFIRMAR`

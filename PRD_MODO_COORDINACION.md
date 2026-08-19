@@ -463,12 +463,25 @@ ENTONCES
 | **D5** | **Tres personas** con la misma capacidad: `MCC` (uso diario), `DMV` y `MFB` (respaldo), para que la unidad no dependa de una sola. |
 | **D6** | **La recuperación lleva segundo factor**, y solo la recuperación — no la entrada de todos los días. |
 
-### Derivadas del inventario, para que Diego las confirme
+### Derivadas del inventario
 
 | | |
 |---|---|
-| **D7** | Una fecha **corregida por la coordinación queda marcada**, y el guardado del turno no la pisa en silencio. Sin esto, la corrección dura hasta el próximo turno (ver el inventario: la hora de ingreso y el anular-evento sí pisan). ¿Debe **avisar** al del turno que esa fecha fue corregida, o simplemente respetarla sin decir nada? |
-| **D8** | El **segundo factor es un código en el teléfono** (TOTP), no un correo — porque Diego rechazó el envío de correos y el sistema hoy no manda ninguno. Si prefiere el correo, lo dice y el resto no cambia. **Es la única decisión que no se puede tomar sin él.** |
+| **D7** ✅ | **La fecha corregida es de arrastre: el turno la hereda y NO la puede cambiar.** Resuelto por Manuel (18-08): «normalmente no se modifica, así que no debería poder modificarla». Es más fuerte que avisar — se bloquea. Una vez corregida, esa fecha solo la vuelve a tocar la coordinación. |
+| **D8** ⏸️ | **El segundo factor queda para más adelante** (Manuel, 18-08). Se implementa sin él: la recuperación es que **otra de las tres restablezca la clave**, que era el camino normal de todos modos, y el fondo del pozo sigue siendo el editor de Apps Script. El punto de enganche queda preparado, sin código muerto. |
+
+**El matiz de D7 que hay que respetar para no romper la clínica.** «No se puede modificar» no
+puede significar «se congela para siempre», porque hay fechas que **deben** reiniciarse por
+motivos clínicos legítimos:
+
+| Fecha | ¿Hay tramo nuevo legítimo? | Qué se hace |
+|---|---|---|
+| ingreso (`FECHA_INGRESO` / `TS_INGRESO`) | **No.** El ingreso del episodio es uno solo | Se bloquea entero: ni el formulario ni anular un evento la tocan |
+| inicio de soporte (`FECHA_INICIO_SOPORTE`) | **Sí:** si el paciente pasa de VM a VNI y vuelve a VM, arranca un tramo nuevo de verdad | Se bloquea el pisado silencioso (anular evento, y el caso «no cambió el soporte»). Si el **tipo de soporte cambia**, el reinicio ocurre igual — y la marca de corregida **cae**, porque ya no describe ese tramo |
+| inicio de vía aérea (`FECHA_INICIO_VA`) | **Sí:** un cambio de TOT a TQT es otro tramo | Mismo criterio |
+
+Sin este matiz, corregir la fecha de VM de un paciente lo dejaría con esa fecha para siempre
+aunque se extubara y se reintubara una semana después.
 
 ---
 

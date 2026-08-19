@@ -149,13 +149,35 @@ function camasComparables(filas, colTimeline) {
     try { tl = JSON.parse(c[colTimeline - 1] || '[]') || []; } catch (e) {}
     c[colTimeline - 1] = JSON.stringify(tl.map(h =>
       [h.FECHA, h.TURNO, h.TIPO, h.TEXTO, h.AUTOR, String(h.ID_CAMA), h.PATIENT_ID].join('|')).sort());
+    // Las columnas nacidas DESPUES de la ola se QUITAN de la fila, no se
+    // rellenan con un marcador: el arbol base no las tiene, asi que dejarles
+    // cualquier contenido las haria MAS distintas, no menos. IDX_CAMAS_NUEVAS
+    // viene en orden descendente para que un splice no desplace al siguiente.
+    IDX_CAMAS_NUEVAS.forEach(i => { if (i < c.length) c.splice(i, 1); });
     return c.join('');
   });
 }
 // La columna de TIMELINE_JSON en CAMAS_ESTADO se lee del esquema real:
+const camasDe = dir => {
+  const src = fs.readFileSync(path.join(dir, 'v2', 'esquema.gs'), 'utf8');
+  const m = /CAMAS_ESTADO:\s*{[\s\S]*?cols:\s*\[([\s\S]*?)\]\s*}/.exec(src);
+  return m ? Array.from(m[1].matchAll(/\['([A-Z_0-9]+)'/g)).map(x => x[1]) : [];
+};
 const esquemaSrc = fs.readFileSync(path.join(REPO, 'v2', 'esquema.gs'), 'utf8');
-const colsCamas = /CAMAS_ESTADO:\s*{[\s\S]*?cols:\s*\[([\s\S]*?)\]\s*}/.exec(esquemaSrc)[1];
-const nombresCamas = Array.from(colsCamas.matchAll(/\['([A-Z_0-9]+)'/g)).map(m => m[1]);
+const nombresCamas = camasDe(REPO);
+// Columnas de CAMAS_ESTADO nacidas DESPUÉS de la ola — mismo criterio que en
+// 2b para EVOLUCIONES, que solo cubría esa hoja: la lista se DERIVA comparando
+// los dos árboles, nunca se escribe a mano. Sin esto, agregar una columna a
+// CAMAS_ESTADO (CORRECCIONES_JSON, ago-2026) ponía roja la comparación por una
+// diferencia que no tiene nada que ver con los viajes que esta guardia mide.
+const CAMAS_BASE = camasDe(baseDir);
+const IDX_CAMAS_NUEVAS = nombresCamas
+  .map((c, i) => (CAMAS_BASE.indexOf(c) === -1 ? i : -1)).filter(i => i >= 0)
+  .sort((a, b) => b - a);
+if (IDX_CAMAS_NUEVAS.length) {
+  console.log('   (columnas de CAMAS_ESTADO posteriores a la ola, descontadas: ' +
+    IDX_CAMAS_NUEVAS.map(i => nombresCamas[i]).join(', ') + ')');
+}
 const COL_TL = nombresCamas.indexOf('TIMELINE_JSON') + 1;
 const IDX_TEXTO_CAMAS = ['TEXTO_EVO_DIA', 'TEXTO_EVO_NOCHE']
   .map(c => nombresCamas.indexOf(c)).filter(i => i >= 0);
