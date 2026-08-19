@@ -1579,6 +1579,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
   <button class="tab" id="tabE" onclick="setTab('E')">📑 ENTREGA</button>
   <button class="tab" id="tabA" onclick="setTab('A')">🗃️ ARCHIVADOS</button>
   <button class="tab" id="tabV" onclick="setTab('V')">🔧 VENTILADORES</button>
+  <button class="tab" id="tabC" onclick="setTab('C')">🔐 COORDINACIÓN</button>
 </div>
 
 <!-- NAVEGACIÓN MÓVIL: barra inferior (4 pestañas diarias) + hoja «Más» -->
@@ -1594,6 +1595,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
   <div style="width:36px;height:4px;background:#dcd8d0;border-radius:2px;margin:0 auto 8px;"></div>
   <button type="button" class="mit" onclick="mSheet(false);setTab('A')">🗃️ Archivados</button>
   <button type="button" class="mit" onclick="mSheet(false);setTab('V')">🔧 Ventiladores</button>
+  <button type="button" class="mit" onclick="mSheet(false);setTab('C')">🔐 Coordinación</button>
   <button type="button" class="mit" onclick="mSheet(false);recargar()">🔄 Actualizar datos</button>
   <button type="button" class="mit" id="mitMasc" onclick="mascToggle()">🧑 Cambiar a kinesiólogo</button>
   <button type="button" class="mit" onclick="mSheet(false);tutAbrir()">❓ Tutorial</button>
@@ -1965,6 +1967,57 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMod()">Cancelar</button>
       <button type="button" id="vmfBtn" class="btn btn-p" onclick="vmGuardar()">💾 Guardar ventilador</button>
     </div>
+  </div>
+</div>
+
+<!-- TAB COORDINACION (ago-2026): buscar cualquier paciente y corregir su ficha.
+     La pantalla es COMODIDAD, no proteccion: el candado vive en el servidor
+     (svc_coordinacion.gs), porque con AUTH_DEV_MODE cualquiera con el enlace
+     llega al dispatcher y esconder esta pestana no protegeria nada. -->
+<div class="tc-wrap" id="tcC">
+  <div class="tbanner" id="bnC">
+    <div class="tb-cover"></div>
+    <div class="tb-icon">&#128274;</div>
+    <button type="button" class="tb-btn no-print" onclick="bannerMenu('C')">&#128444;&#65039; Portada</button>
+  </div>
+
+  <!-- 1 &middot; Puerta -->
+  <div class="dash" id="coordPuerta">
+    <div style="max-width:420px;margin:26px auto;background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;">
+      <div style="font-weight:800;font-size:1.05rem;margin-bottom:4px;">&#128274; Modo Coordinaci&oacute;n</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px;">
+        Permite corregir fechas y datos de cualquier paciente, en cama o egresado.
+        Toda correcci&oacute;n queda firmada y a la vista.
+      </div>
+      <label style="font-size:.78rem;font-weight:700;">Tu firma</label>
+      <select id="coordFirma" class="datein" style="width:100%;height:36px;margin:4px 0 10px;">
+        <option value="MCC">MCC &mdash; Klga. Magdalena Contardo Cisternas</option>
+        <option value="DMV">DMV &mdash; Klgo. Diego Melo Villagr&aacute;n</option>
+        <option value="MFB">MFB &mdash; Klgo. Manuel Fuentes Blanco</option>
+      </select>
+      <label style="font-size:.78rem;font-weight:700;">Clave</label>
+      <input type="password" id="coordClave" class="datein" style="width:100%;height:36px;margin:4px 0 14px;"
+             onkeydown="if(event.key==='Enter')coordEntrar()" autocomplete="off">
+      <button type="button" class="btn btn-p" style="width:100%;" onclick="coordEntrar()">Entrar</button>
+      <div id="coordErr" style="color:var(--danger);font-size:.8rem;margin-top:10px;min-height:18px;"></div>
+    </div>
+  </div>
+
+  <!-- 2 &middot; Panel -->
+  <div class="dash hidden" id="coordPanel">
+    <div class="dash-bar">
+      <div class="dash-bar-title">&#128269; Buscar paciente &mdash; <span id="coordQuien" style="color:var(--pdark);"></span></div>
+      <div class="dash-range">
+        <input type="text" id="coordQ" class="datein dashin" style="min-width:280px;"
+               placeholder="Nombre, apellido, RUT o n&uacute;mero de cama&hellip;" oninput="coordBuscar()">
+        <button class="dpset" onclick="coordCambiarClavePedir()">&#128273; Mi clave</button>
+        <button class="dpset" onclick="coordSalir()">Salir</button>
+      </div>
+    </div>
+    <div id="coordRes" style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:6px;min-height:60px;">
+      <div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>
+    </div>
+    <div id="coordFicha" style="margin-top:14px;"></div>
   </div>
 </div>
 
@@ -6841,10 +6894,10 @@ const BN_PRESETS={
   rosa:    'radial-gradient(circle at 70% 20%, rgba(255,255,255,.35) 0, transparent 45%), linear-gradient(115deg,#ad3d80,#c86a9e 60%,#8d6cc3 140%)',
   papel:   'linear-gradient(115deg,#e9e5e0,#d6d0c6 60%,#b8b1a5 140%)',
 };
-const BN_DEF={G:'azul',P:'papel',D:'purpura',E:'verde',A:'tierra',V:'carbon'};
+const BN_DEF={G:'azul',P:'papel',D:'purpura',E:'verde',A:'tierra',V:'carbon',C:'carbon'};
 function _bnValor(tab){ return (window.CFG&&CFG.BANNERS&&CFG.BANNERS[tab])||''; }
 function aplicarBanners(){
-  ['G','P','D','E','A','V'].forEach(tab=>{
+  ['G','P','D','E','A','V','C'].forEach(tab=>{
     const cov=document.querySelector('#bn'+tab+' .tb-cover'); if(!cov) return;
     const val=_bnValor(tab);
     if(/^https?:\/\//i.test(val)){
@@ -10935,7 +10988,7 @@ window.Turnos = (function () {
     { n: 'Manuel Fuentes Blanco',       f: 'MFB', t: 'Klgo.' },
     { n: 'Aline Campos Rivera',         f: 'ACR', t: 'Klga.' },
     { n: 'Rodrigo Caamaño',             f: 'RC',  t: 'Klgo.' },
-    { n: 'Magdalena Contando Cisternas', f: 'MCC', t: 'Klga.', aux: true },
+    { n: 'Magdalena Contardo Cisternas', f: 'MCC', t: 'Klga.', aux: true },
   ];
   /** Firma → «Klgo./Klga. Nombre Apellido» para el texto clínico. */
   function firmaTexto(f) {
@@ -11815,13 +11868,13 @@ function chequearReloj(tsServidor){
 // ══════════ ESTADÍSTICAS (tab 📊) ══════════
 function setTab(t){
   ATAB=t;
-  ['G','P','D','E','A','V'].forEach(k=>{
+  ['G','P','D','E','A','V','C'].forEach(k=>{
     $('tc'+k).classList.toggle('on', t===k);
     $('tab'+k).classList.toggle('on', t===k);
   });
   // Barra móvil: refleja la pestaña activa («Más» cubre Archivados/Ventiladores)
   ['G','P','D','E'].forEach(k=>{ const b=$('mnav'+k); if(b) b.classList.toggle('on', t===k); });
-  const _mm=$('mnavMas'); if(_mm) _mm.classList.toggle('on', t==='A'||t==='V');
+  const _mm=$('mnavMas'); if(_mm) _mm.classList.toggle('on', t==='A'||t==='V'||t==='C');
   // En móvil la barra de pestañas es deslizable: centrar la activa por si
   // quedó fuera de vista (p. ej. Archivados/Ventiladores al final).
   const _bar=document.querySelector('.tabs'), _bt=$('tab'+t);
@@ -11834,6 +11887,7 @@ function setTab(t){
   if(t==='A') initArchivados();
   if(t==='P') renderTabla();
   if(t==='V') initVentiladores();
+  if(t==='C') coordInit();
 }
 
 // ══ REGISTRO DIARIO (pestaña 📋, portado de v1 "Pacientes") ═══════════════
@@ -12197,6 +12251,177 @@ function arcCSV(){
 // ══ VENTILADORES (pestaña 🔧) — inventario vivo + movimientos ═════════════
 let VM_ALL=null;
 const VM_EST_COL={'Operativo':'#16a34a','En mantención':'#d97706','Con falla':'#dc2626','De baja':'#64748b'};
+
+// ══ MODO COORDINACIÓN (ago-2026) ═══════════════════════════════════════════
+// Buscar cualquier paciente —en cama o egresado— y corregir sus fechas semilla
+// y sus datos administrativos, con la huella a la vista.
+//
+// Nace del caso de la cama 10: un paciente estuvo 28 días y al egresar quedó
+// archivado con UN día de estadía, porque los días se congelan al dar de alta
+// y su fecha de ingreso estaba mal. Corregirlo obligaba a abrir el editor de
+// Apps Script.
+//
+// ⚠️ ESTA PANTALLA NO PROTEGE NADA: es comodidad. El candado vive en el
+// servidor y se vuelve a exigir en CADA guardado (svc_coordinacion.gs).
+let COORD_TK = null, COORD_FIRMA = '', COORD_PID = '', _coordTmr = null;
+// Escape propio: todo lo que se pinta aqui viene de la planilla (nombres,
+// diagnosticos) y va dentro de atributos onclick, asi que ademas de los
+// signos hay que neutralizar la comilla simple.
+function _cEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+
+function coordInit(){
+  $('coordPuerta').classList.toggle('hidden', !!COORD_TK);
+  $('coordPanel').classList.toggle('hidden', !COORD_TK);
+  if(COORD_TK) $('coordQuien').textContent = COORD_FIRMA;
+  else { const c=$('coordClave'); if(c){ c.value=''; setTimeout(()=>c.focus(),80); } }
+}
+
+function coordEntrar(){
+  const firma=$('coordFirma').value, clave=$('coordClave').value;
+  $('coordErr').textContent='';
+  if(!clave){ $('coordErr').textContent='Escribe tu clave.'; return; }
+  gs('COORD_ENTRAR',{firma:firma, clave:clave}, r=>{
+    COORD_TK=r.token; COORD_FIRMA=r.firma; $('coordClave').value='';
+    coordInit(); toast('🔐 Modo Coordinación · '+r.firma);
+    if(r.debeCambiarClave) coordCambiarClavePedir(true);
+  }, m=>{ $('coordErr').textContent=m; });
+}
+
+function coordSalir(){
+  COORD_TK=null; COORD_FIRMA=''; COORD_PID='';
+  $('coordRes').innerHTML='<div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>';
+  $('coordFicha').innerHTML=''; $('coordQ').value='';
+  coordInit(); toast('Saliste del modo Coordinación');
+}
+
+// Búsqueda con freno: teclear rápido no manda una llamada por letra.
+function coordBuscar(){
+  clearTimeout(_coordTmr);
+  _coordTmr=setTimeout(()=>{
+    const q=$('coordQ').value.trim();
+    if(q.length<2){ $('coordRes').innerHTML='<div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>'; return; }
+    gs('GET_BUSCAR_PACIENTE',{q:q}, r=>{
+      const L=r||[];
+      if(!L.length){ $('coordRes').innerHTML='<div class="pivot-empty">Sin resultados para «'+_cEsc(q)+'».</div>'; return; }
+      $('coordRes').innerHTML=L.map(p=>{
+        const tag = p.tipo==='activo'
+          ? '<span class="hsr-tag act">cama '+_cEsc(p.cama)+'</span>'
+          : '<span class="hsr-tag egr">egresado</span>';
+        const fechas = p.tipo==='activo'
+          ? ('ingreso '+_cEsc(p.fIngreso||'—'))
+          : (_cEsc(p.fIngreso||'—')+' → '+_cEsc(p.fEgreso||'—'));
+        return '<div class="hsr-item" onclick="coordAbrir(\''+_cEsc(p.patientId)+'\',\''+_cEsc(p.cama)+'\')">'
+          +'<div class="hsr-top"><span class="hsr-nm">'+_cEsc(p.nombre||'(sin nombre)')+'</span>'+tag+'</div>'
+          +'<div class="hsr-sub">'+fechas+(p.dx?' · '+_cEsc(p.dx):'')+'</div></div>';
+      }).join('');
+    });
+  },260);
+}
+
+function coordAbrir(pid, cama){
+  COORD_PID=pid;
+  $('coordFicha').innerHTML='<div class="pivot-empty">Cargando ficha…</div>';
+  gs('COORD_FICHA',{token:COORD_TK, patientId:pid, idCama:cama}, r=>{
+    coordPintarFicha(r);
+  }, m=>{ $('coordFicha').innerHTML='<div class="pivot-empty" style="color:var(--danger);">'+_cEsc(m)+'</div>';
+          if(/sesión/i.test(m)){ COORD_TK=null; coordInit(); } });
+}
+
+function coordPintarFicha(f){
+  const esEgr = f.tipo==='egresado';
+  const filas = (f.campos||[]).map(c=>{
+    const id='cf_'+c.campo;
+    const marca = c.corregido
+      ? '<span class="hsr-tag egr" title="Corregida por la coordinación: el turno ya no la modifica">✔ corregido</span>' : '';
+    const hora = (c.tipo==='fecha')
+      ? '<input type="time" id="'+id+'_h" class="datein" value="'+_cEsc(c.hora||'')+'" style="width:110px;">' : '';
+    const inp = (c.tipo==='fecha')
+      ? '<input type="date" id="'+id+'" class="datein" value="'+_cEsc(c.valor||'')+'" style="width:150px;">'
+      : '<input type="text" id="'+id+'" class="datein" value="'+_cEsc(c.valor||'')+'" style="min-width:220px;">';
+    return '<tr><td style="padding:6px 10px;font-weight:700;white-space:nowrap;">'+_cEsc(c.etiqueta)+' '+marca+'</td>'
+      +'<td style="padding:6px 10px;">'+inp+' '+hora+'</td></tr>';
+  }).join('');
+
+  const hist = (f.correcciones||[]).length
+    ? '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">'
+      +'<div style="font-weight:700;font-size:.82rem;margin-bottom:6px;">Correcciones de esta ficha</div>'
+      +(f.correcciones||[]).map(x=>'<div style="font-size:.78rem;color:var(--muted);">· '
+        +_cEsc(_coordEtiqueta(f,x.c))+': «'+_cEsc(x.a||'(vacío)')+'» → «'+_cEsc(x.n)+'» — '
+        +_cEsc(x.f)+', '+_cEsc(String(x.ts||'').slice(0,16))+'</div>').join('')
+      +'</div>'
+    : '';
+
+  $('coordFicha').innerHTML =
+    '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;">'
+    +'<div style="font-weight:800;font-size:1rem;">'+_cEsc(f.nombre||'Paciente')+' '
+      +(esEgr?'<span class="hsr-tag egr">egresado</span>':'<span class="hsr-tag act">cama '+_cEsc(f.idCama)+'</span>')+'</div>'
+    +(esEgr&&f.dias!==null&&f.dias!==undefined
+        ? '<div style="font-size:.8rem;color:var(--muted);margin-top:2px;">Días de estadía registrados: <b>'+_cEsc(String(f.dias))+'</b></div>' : '')
+    +'<table style="width:100%;margin-top:10px;">'+filas+'</table>'
+    +'<div style="font-size:.76rem;color:var(--muted);margin-top:10px;">'
+    +'Los días se recalculan solos a partir de las fechas: no se escriben a mano.</div>'
+    +'<button type="button" class="btn btn-p" style="margin-top:12px;" onclick="coordGuardar()">💾 Guardar correcciones</button>'
+    +hist+'</div>';
+  window._COORD_F = f;
+}
+
+function _coordEtiqueta(f, campo){
+  const c=(f.campos||[]).find(x=>x.campo===campo);
+  return c?c.etiqueta:campo;
+}
+
+async function coordGuardar(){
+  const f=window._COORD_F; if(!f) return;
+  const cambios={}, horas={};
+  (f.campos||[]).forEach(c=>{
+    const el=$('cf_'+c.campo); if(!el) return;
+    const v=String(el.value||'').trim();
+    if(v!==String(c.valor||'')) cambios[c.campo]=v;
+    if(c.tipo==='fecha'){ const h=$('cf_'+c.campo+'_h'); if(h&&h.value) horas[c.campo]=h.value; }
+  });
+  const n=Object.keys(cambios).length;
+  if(!n){ toast('No cambiaste ningún dato.'); return; }
+  const lista=Object.keys(cambios).map(k=>'· '+_coordEtiqueta(f,k)+': «'+(_coordValorPrevio(f,k)||'(vacío)')+'» → «'+(cambios[k]||'(vacío)')+'»').join('<br>');
+  const ok = await uiConfirm({
+    icono:'📝', titulo:'Corregir la ficha',
+    mensaje:'Se van a corregir <b>'+n+'</b> dato'+(n===1?'':'s')+' de <b>'+_cEsc(f.nombre||'')+'</b>.',
+    detalle: lista+'<br><br>Queda firmado por <b>'+_cEsc(COORD_FIRMA)+'</b> y a la vista en la ficha.',
+    confirmar:'Corregir' });
+  if(!ok) return;
+  gs('COORD_CORREGIR',{token:COORD_TK, patientId:COORD_PID, cambios:cambios, horas:horas}, r=>{
+    if(r.sinCambios){ toast('No había nada que cambiar.'); return; }
+    let msg='✅ '+r.corregidos+' dato'+(r.corregidos===1?'':'s')+' corregido'+(r.corregidos===1?'':'s');
+    if(r.diasTotal!==null&&r.diasTotal!==undefined) msg+=' · días recalculados: '+r.diasTotal;
+    toast(msg, 5200);
+    if(r.avisoVM) toast('⚠️ Los días de VM del archivo no se pueden recalcular (no guardan su fecha de inicio): revísalos a mano.', 7000);
+    coordAbrir(COORD_PID, r.idCama||'');
+    recargar();
+  }, m=>{ toast('❌ '+m, 5200); if(/sesión/i.test(m)){ COORD_TK=null; coordInit(); } });
+}
+
+function _coordValorPrevio(f, campo){
+  const c=(f.campos||[]).find(x=>x.campo===campo);
+  return c?c.valor:'';
+}
+
+async function coordCambiarClavePedir(obligatorio){
+  const ok = await uiConfirm({
+    icono:'🔑', titulo: obligatorio?'Tienes que cambiar tu clave':'Cambiar mi clave',
+    mensaje: obligatorio
+      ? 'Entraste con una clave temporal. Elige una propia antes de seguir.'
+      : 'Vas a cambiar tu clave del modo Coordinación.',
+    detalle:'<label style="font-size:.78rem;font-weight:700;">Clave actual (déjala vacía si la tuya es temporal)</label>'
+      +'<input type="password" id="ccActual" class="datein" style="width:100%;height:34px;margin:4px 0 8px;" autocomplete="off">'
+      +'<label style="font-size:.78rem;font-weight:700;">Clave nueva (mínimo 8 caracteres)</label>'
+      +'<input type="password" id="ccNueva" class="datein" style="width:100%;height:34px;margin:4px 0 0;" autocomplete="off">',
+    confirmar:'Cambiar clave' });
+  if(!ok) return;
+  const actual=($('ccActual')||{}).value||'', nueva=($('ccNueva')||{}).value||'';
+  gs('COORD_CAMBIAR_CLAVE',{token:COORD_TK, actual:actual, nueva:nueva},
+    ()=>toast('🔑 Clave cambiada'), m=>toast('❌ '+m, 5200));
+}
 
 function initVentiladores(){ if(VM_ALL===null) vmCargar(); else vmRender(); }
 

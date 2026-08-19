@@ -598,21 +598,42 @@ function buscarPacientes(q) {
     const iso = v => { const s = String(v || ''); return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : s; };
     const norm = s => _sinAcentos(String(s || '')).toLowerCase();
     const mCama = t.match(/^(?:cama\s*)?(\d{1,2})$/);
+
+    // ── RUT (ago-2026) ────────────────────────────────────────────────────
+    // La columna existía en las dos hojas desde jul-2026 pero el buscador no la
+    // miraba: al que solo tenía el RUT a mano no le servía de nada. Se compara
+    // NORMALIZADO en ambos lados, así da igual cómo venga escrito (con puntos,
+    // sin puntos, con guion o sin él).
+    const qRut = /^[\d.]{6,}-?[\dkK]$/.test(String(q || '').trim()) ? _rutNormal(q) : '';
+
+    // ── Palabras sueltas, en cualquier orden (ago-2026) ───────────────────
+    // Antes se buscaba la frase entera pegada: «Melo Villagrán» encontraba a
+    // Diego Melo Villagrán, pero «Diego Villagrán» no. Ahora se exigen TODAS
+    // las palabras, cada una en cualquier parte y en cualquier orden — que es
+    // como uno recuerda a un paciente: el nombre y un apellido, no la frase.
+    const palabras = t.split(/\s+/).filter(function (p) { return p.length >= 2; });
+    const casa = function (heno) {
+      const h = norm(heno);
+      if (!palabras.length) return h.indexOf(t) !== -1;
+      for (let i = 0; i < palabras.length; i++) if (h.indexOf(palabras[i]) === -1) return false;
+      return true;
+    };
+    const coincide = function (o, campoRut) {
+      if (qRut && o[campoRut] && _rutNormal(o[campoRut]) === qRut) return true;
+      return casa(o.NOMBRE) || casa(o.COD_PACIENTE) || casa(o.DIAGNOSTICO);
+    };
+
     const activos = [];
     repoLeerTodos('CAMAS_ESTADO').forEach(function (c) {
       if (!esVerdadero(c.OCUPADA)) return;
-      const hit = (mCama && String(c.ID_CAMA).trim() === mCama[1]) ||
-        norm(c.NOMBRE).indexOf(t) !== -1 || norm(c.COD_PACIENTE).indexOf(t) !== -1 ||
-        norm(c.DIAGNOSTICO).indexOf(t) !== -1;
+      const hit = (mCama && String(c.ID_CAMA).trim() === mCama[1]) || coincide(c, 'RUT');
       if (hit) activos.push({ tipo: 'activo', patientId: c.PATIENT_ID || '', cama: String(c.ID_CAMA),
         nombre: c.NOMBRE, cod: c.COD_PACIENTE, edad: c.EDAD, dx: c.DIAGNOSTICO,
         fIngreso: iso(c.FECHA_INGRESO), fEgreso: '' });
     });
     const egresados = [];
     repoLeerTodos('ARCHIVO_PACIENTES').forEach(function (a) {
-      const hit = (mCama && String(a.CAMA_ORIGEN).trim() === mCama[1]) ||
-        norm(a.NOMBRE).indexOf(t) !== -1 || norm(a.COD_PACIENTE).indexOf(t) !== -1 ||
-        norm(a.DIAGNOSTICO).indexOf(t) !== -1;
+      const hit = (mCama && String(a.CAMA_ORIGEN).trim() === mCama[1]) || coincide(a, 'RUT');
       if (hit) egresados.push({ tipo: 'egresado', patientId: a.PATIENT_ID || '', cama: String(a.CAMA_ORIGEN || ''),
         nombre: a.NOMBRE, cod: a.COD_PACIENTE, edad: a.EDAD, dx: a.DIAGNOSTICO,
         fIngreso: iso(a.FECHA_INGRESO), fEgreso: iso(a.FECHA_EGRESO) });

@@ -56,7 +56,7 @@ global._registrarReintubacion = () => {}; global.calcularPI = () => 60; global.c
 global.auditar = () => {}; global.Logger = { log: () => {} };
 global.ok = d => ({ ok: true, data: d }); global.err = (m, c) => ({ ok: false, error: m, codigo: c });
 global.ERR = { VALIDACION: 'V', INTERNO: 'I', NO_ENCONTRADO: 'NE' };
-eval(['infra_fechas.gs', 'dominio_texto.gs', 'svc_stats.gs', 'svc_camas.gs', 'svc_evoluciones.gs', 'mantenimiento_manuel.gs']
+eval(['infra_fechas.gs', 'dominio_texto.gs', 'svc_stats.gs', 'svc_camas.gs', 'svc_coordinacion.gs', 'svc_evoluciones.gs', 'mantenimiento_manuel.gs']
   .map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 
 const guardar = (idCama, tk, campos) => guardarEvolucion(

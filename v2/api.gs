@@ -129,6 +129,18 @@ function api(accion, datos, token) {
       case 'ASIGNAR_STOCK':
         return _auditar(ctx, accion, () => asignarStockACama(datos, ctx));
 
+      // ── MODO COORDINACIÓN (ago-2026) ────────────────────────────────────
+      // Cada una vuelve a exigir la sesión DENTRO de svc_coordinacion, no aquí:
+      // con AUTH_DEV_MODE=TRUE cualquiera llega a este dispatcher, así que la
+      // pantalla no protege nada y el candado tiene que vivir en el servicio.
+      // Tampoco pasan por _auditar: se auditan solas, con la firma de quien
+      // entró al modo (MCC/DMV/MFB), no con la del turno.
+      case 'COORD_ENTRAR':       return coordEntrar(datos);
+      case 'COORD_CAMBIAR_CLAVE':return coordCambiarClave(datos);
+      case 'COORD_RESTABLECER':  return coordRestablecerClave(datos);
+      case 'COORD_FICHA':        return coordFicha(datos);
+      case 'COORD_CORREGIR':     return coordCorregirFicha(datos);
+
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);
     }

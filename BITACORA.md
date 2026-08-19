@@ -19,6 +19,80 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## Modo Coordinación — buscar y corregir fichas (18/19-ago-2026)
+
+Rama `feature/modo-coordinacion-buscador-y-correcciones`, desde `develop`.
+PRD: `PRD_MODO_COORDINACION.md`. **Batería: 78/78 verdes** (76 previas + 2
+nuevas). **Sin publicar** — espera el visto bueno de Diego.
+
+**De dónde sale.** El paciente de la cama 10 estuvo 28 días y al egresar quedó
+archivado con **UN día de estadía**: los días se congelan al dar de alta
+(`svc_camas.gs`, `DIAS_TOTAL: cama.DIA_ESTADIA`) y su fecha de ingreso estaba
+mal. Corregirlo obligaba a abrir el editor de Apps Script y escribir una
+función de mantenimiento a mano — para cambiar una fecha.
+
+**Qué trae.**
+
+1. **Tres usuarios con clave propia** (`svc_coordinacion.gs`): `MCC` (Magdalena,
+   uso diario), `DMV` y `MFB` (respaldo). Tres, para que la unidad no dependa de
+   una persona. La huella de la clave (SHA-256 con sal por persona) vive en
+   `PropertiesService`, **no en CONFIG**: CONFIG es una hoja de la planilla y
+   cualquiera con acceso al archivo la lee, o la exporta sin querer.
+2. **Pestaña 🔐 COORDINACIÓN**: buscador + ficha editable con el historial de
+   correcciones a la vista.
+3. **El buscador acepta RUT y palabras sueltas** — esto lo gana TODO el equipo,
+   no solo la coordinación. Antes «Melo Villagrán» encontraba a Diego pero
+   «Diego Villagrán» no, y el RUT no se buscaba pese a estar en las dos hojas.
+4. **Corregir una fecha de un egresado recalcula sus días** con `diasEntre`
+   (calendario, regla BUDA) — **no** con bloques de 24 h, que es la regla que
+   se revirtió en la v5.37.
+
+**🪤 Lo que encontró el inventario de consumidores, y por qué existe esa sección.**
+Antes de escribir una línea, el método pide listar quién más toca el dato. Salió
+que `svc_evoluciones.gs` **reescribe las fechas semilla en el guardado normal**:
+la hora de ingreso desde el formulario (`:137`) y `anularEvento` restando los
+días de la evolución (`:903`). Sin eso, la corrección de un egresado de 28 días
+**duraba hasta que alguien guardara el turno de esa noche**. Es el error de los
+filtros otra vez, cazado en papel en vez de en producción.
+
+**La marca de arrastre (D7, decisión de Manuel).** «Normalmente no se modifica,
+así que no debería poder modificarla»: una fecha corregida queda marcada en
+`CORRECCIONES_JSON` y el turno la **hereda sin poder cambiarla**. Pero se suelta
+cuando arranca un **tramo clínico nuevo de verdad** (VM→VNI, TOT→TQT), porque
+ahí la fecha corregida ya no describe ese tramo y congelarla sería peor que el
+error original. La misma columna sirve para las dos cosas: el sello visible y
+la marca.
+
+**🪤 Trampas del camino.**
+- `node --check` **rechaza la extensión `.gs`** y devuelve un error de módulo
+  que se lee como éxito si uno encadena `&&`. Hay que copiar a `.js` primero.
+- El `CacheService` del simulador **devolvía `null` siempre**: no era un caché,
+  era su ausencia. Las sesiones viven ahí, así que ninguna guardia habría podido
+  probar que expiran. Ahora tiene memoria real con TTL. Igual `computeDigest`,
+  que no existía: con un digest de mentira, «la clave no se guarda» pasaba en
+  verde sin probar nada.
+- **Diez guardias arman su propia lista de `.gs`**, así que un `svc_*` nuevo del
+  que dependa `svc_evoluciones` las pone rojas a todas.
+- `guardado_viajes.js` es un A/B contra un commit fijo y corre el
+  `medir_guardado.js` de HOY contra el árbol de ENTONCES: los archivos que aún
+  no existían allá se saltan, no revientan. Y su descuento de columnas nuevas
+  solo cubría `EVOLUCIONES`; ahora también `CAMAS_ESTADO`. Ojo: hay que
+  **quitar** la celda con `splice`, no rellenarla — rellenarla la hace más
+  distinta, no menos. Las filas se unen con `\x01`, no con cadena vacía.
+
+**Pendiente antes de publicar:** correr `coordSembrarClaves()` UNA vez desde el
+editor y entregar las temporales en persona. **D8 (segundo factor) quedó
+aplazado** por Manuel: la recuperación es que otra de las tres restablezca la
+clave, y el fondo del pozo sigue siendo el editor.
+
+De paso, arreglo suelto: el apellido de Magdalena estaba escrito **«Contando»**
+en `esquema.gs` y en `index.html`, y ese nombre alimenta la firma del texto
+clínico — cada evolución suya salía con el apellido mal. Corregido a
+**«Contardo»**. Falta verificar cómo está en la hoja `KINESIOLOGOS` real: la
+semilla solo se aplica si la hoja está vacía.
+
+---
+
 ## Estado y pendientes (julio 2026)
 
 - **CUATRO PEDIDOS DE TERRENO DE MANUEL (9-ago-2026, rama

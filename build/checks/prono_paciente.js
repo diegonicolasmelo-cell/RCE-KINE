@@ -122,7 +122,7 @@ global.PropertiesService = { getScriptProperties: () => ({ getProperty: () => nu
 (0, eval)([
   'infra_respuesta.gs', 'infra_util.gs', 'infra_fechas.gs',
   'dominio_validacion.gs', 'dominio_calculos.gs', 'dominio_texto.gs',
-  'svc_camas.gs', 'svc_evoluciones.gs', 'svc_procedimientos.gs', 'svc_timeline.gs',
+  'svc_camas.gs', 'svc_coordinacion.gs', 'svc_evoluciones.gs', 'svc_procedimientos.gs', 'svc_timeline.gs',
 ].map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 
 let _n = 0;
