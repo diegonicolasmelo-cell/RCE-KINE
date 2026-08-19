@@ -28,21 +28,35 @@ const si = (l, c, d) => { console.log((c?'✅':'❌')+' '+l+(d!==undefined?': '+
   si('la vista queda activa', await pg.evaluate(() => document.getElementById('tcC').classList.contains('on')));
   si('se ve la PUERTA (pide clave)', await pg.locator('#coordPuerta').isVisible());
   si('el panel está oculto mientras no haya sesión', await pg.locator('#coordPanel').isHidden());
-  si('las tres firmas están en el selector',
-    (await pg.locator('#coordFirma option').count()) === 3,
-    String(await pg.locator('#coordFirma option').count()));
+  // La puerta pide un USUARIO genérico (coord1/2/3), no un nombre — la
+  // pantalla no debe revelar quién tiene acceso con solo mirarla (19-ago).
+  si('el usuario se pide con un campo de texto, no un selector con nombres',
+    await pg.locator('#coordUsuario').count() === 1);
+  si('…y NO quedó ningún selector viejo de firma en la puerta',
+    await pg.locator('#coordPuerta select').count() === 0);
   si('la clave se escribe enmascarada',
     await pg.getAttribute('#coordClave', 'type') === 'password');
-  si('el nombre de Magdalena está bien escrito',
-    (await pg.locator('#coordFirma').innerText()).includes('Contardo'));
-  si('…y NO con la errata vieja',
-    !(await pg.locator('#coordFirma').innerText()).includes('Contando'));
 
-  // Entrar sin clave no debe llamar al servidor
+  // El HTML servido no debe traer nombres reales en la puerta: ni el de
+  // Magdalena (ninguna forma) ni ninguna sigla clínica, sea cual sea.
+  const puertaHTML = await pg.locator('#coordPuerta').innerHTML();
+  si('el HTML de la puerta no menciona a Magdalena', !/Magdalena|Contardo|Contando/i.test(puertaHTML));
+  si('…ni ninguna de las tres firmas clínicas (MCC/DMV/MFB)',
+    !/\bMCC\b|\bDMV\b|\bMFB\b/.test(puertaHTML));
+
+  // Entrar sin usuario ni clave no debe llamar al servidor
   await pg.click('#coordPuerta button.btn-p');
   await pg.waitForTimeout(300);
-  si('entrar sin clave avisa y no llama al servidor',
+  si('entrar sin nada avisa y no llama al servidor',
     (await pg.locator('#coordErr').innerText()).length > 0,
+    await pg.locator('#coordErr').innerText());
+
+  // Con usuario pero sin clave, el aviso es el de la clave (orden de validación).
+  await pg.fill('#coordUsuario', 'coord1');
+  await pg.click('#coordPuerta button.btn-p');
+  await pg.waitForTimeout(300);
+  si('con usuario y sin clave, avisa específicamente por la clave',
+    (await pg.locator('#coordErr').innerText()).toLowerCase().includes('clave'),
     await pg.locator('#coordErr').innerText());
 
   // El enlace de recuperacion por correo NO debe ofrecerse mientras el

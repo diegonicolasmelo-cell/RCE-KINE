@@ -19,6 +19,30 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## Usuario de login ≠ firma clínica, claves de 12 (19-ago-2026)
+
+Manuel, sobre la marcha: «cuando estemos ahí, usuarios serán coord1/coord2/coord3»
+y «dame una combinación alfanumérica de 12 dígitos cambiable después por el
+usuario». Dos cambios al modo Coordinación, antes de la primera entrega:
+
+- **La puerta pide `coord1/coord2/coord3`, no MCC/DMV/MFB.** `COORD_USUARIOS`
+  en `svc_coordinacion.gs` es la única tabla que conoce el emparejamiento
+  (coord1→MCC, coord2→DMV, coord3→MFB). Todo lo de credenciales (claves,
+  intentos fallidos, sesión) se guarda y busca por USUARIO; todo lo de
+  trazabilidad (correcciones, AUDIT_LOG) sigue firmando con la FIRMA real —
+  se separaron las dos identidades a propósito, no por accidente de nombres.
+  El selector de nombres reales en la puerta se reemplazó por un campo de
+  texto; hay guardia (`coordinacion_ui.js`) que confirma que el HTML servido
+  **no menciona ningún nombre ni sigla clínica** antes de entrar.
+- **Claves temporales de 12 caracteres alfanuméricos**, agrupadas 4-4-4
+  (antes 10). Se cambian al primer ingreso, como siempre.
+- **Botón «Restablecer otra»** en el panel: existía la función del lado del
+  servidor desde el 18-ago pero no tenía UI. Ahora cualquiera de las tres
+  puede generarle una temporal a otra sin salir de la pantalla.
+
+Batería: 79/79 (misma cuenta — se reescribieron los tests existentes, no se
+sumaron guardias nuevas).
+
 ## Modo Coordinación — buscar y corregir fichas (18/19-ago-2026)
 
 Rama `feature/modo-coordinacion-buscador-y-correcciones`, desde `develop`.

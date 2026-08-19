@@ -1989,12 +1989,13 @@ document.documentElement.setAttribute('data-piel', 'inst');
         Permite corregir fechas y datos de cualquier paciente, en cama o egresado.
         Toda correcci&oacute;n queda firmada y a la vista.
       </div>
-      <label style="font-size:.78rem;font-weight:700;">Tu firma</label>
-      <select id="coordFirma" class="datein" style="width:100%;height:36px;margin:4px 0 10px;">
-        <option value="MCC">MCC &mdash; Klga. Magdalena Contardo Cisternas</option>
-        <option value="DMV">DMV &mdash; Klgo. Diego Melo Villagr&aacute;n</option>
-        <option value="MFB">MFB &mdash; Klgo. Manuel Fuentes Blanco</option>
-      </select>
+      <label style="font-size:.78rem;font-weight:700;">Usuario</label>
+      <!-- Campo de texto, no un selector con nombres: la pantalla de entrada
+           no tiene por qu&eacute; revelar qui&eacute;n tiene acceso privilegiado con solo
+           mirarla (pedido de Manuel, 19-ago-2026). El servidor resuelve el
+           usuario a la firma cl&iacute;nica real por dentro. -->
+      <input type="text" id="coordUsuario" class="datein" placeholder="coord1, coord2&hellip;"
+             style="width:100%;height:36px;margin:4px 0 10px;" autocomplete="off" autocapitalize="off">
       <label style="font-size:.78rem;font-weight:700;">Clave</label>
       <input type="password" id="coordClave" class="datein" style="width:100%;height:36px;margin:4px 0 14px;"
              onkeydown="if(event.key==='Enter')coordEntrar()" autocomplete="off">
@@ -2017,6 +2018,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
         <input type="text" id="coordQ" class="datein dashin" style="min-width:280px;"
                placeholder="Nombre, apellido, RUT o n&uacute;mero de cama&hellip;" oninput="coordBuscar()">
         <button class="dpset" onclick="coordCambiarClavePedir()">&#128273; Mi clave</button>
+        <button class="dpset" onclick="coordRestablecerPedir()">&#128101; Restablecer otra</button>
         <button class="dpset" onclick="coordSalir()">Salir</button>
       </div>
     </div>
@@ -12269,7 +12271,12 @@ const VM_EST_COL={'Operativo':'#16a34a','En mantención':'#d97706','Con falla':'
 //
 // ⚠️ ESTA PANTALLA NO PROTEGE NADA: es comodidad. El candado vive en el
 // servidor y se vuelve a exigir en CADA guardado (svc_coordinacion.gs).
-let COORD_TK = null, COORD_FIRMA = '', COORD_PID = '', _coordTmr = null;
+let COORD_TK = null, COORD_FIRMA = '', COORD_USUARIO = '', COORD_PID = '', _coordTmr = null;
+// Solo los HANDLES de login (coord1/2/3), nunca a quién pertenecen — eso lo
+// resuelve el servidor. Sirve para el selector de «restablecer otra clave»;
+// si algún día cambia la cantidad de usuarios, se actualiza aquí y en
+// COORD_USUARIOS de svc_coordinacion.gs (son independientes a propósito).
+const COORD_USUARIOS_UI = ['coord1', 'coord2', 'coord3'];
 // Escape propio: todo lo que se pinta aqui viene de la planilla (nombres,
 // diagnosticos) y va dentro de atributos onclick, asi que ademas de los
 // signos hay que neutralizar la comilla simple.
@@ -12291,18 +12298,19 @@ function coordInit(){
 }
 
 function coordEntrar(){
-  const firma=$('coordFirma').value, clave=$('coordClave').value;
+  const usuario=$('coordUsuario').value.trim(), clave=$('coordClave').value;
   $('coordErr').textContent='';
+  if(!usuario){ $('coordErr').textContent='Escribe tu usuario.'; return; }
   if(!clave){ $('coordErr').textContent='Escribe tu clave.'; return; }
-  gs('COORD_ENTRAR',{firma:firma, clave:clave}, r=>{
-    COORD_TK=r.token; COORD_FIRMA=r.firma; $('coordClave').value='';
+  gs('COORD_ENTRAR',{usuario:usuario, clave:clave}, r=>{
+    COORD_TK=r.token; COORD_FIRMA=r.firma; COORD_USUARIO=usuario; $('coordClave').value='';
     coordInit(); toast('🔐 Modo Coordinación · '+r.firma);
     if(r.debeCambiarClave) coordCambiarClavePedir(true);
   }, m=>{ $('coordErr').textContent=m; });
 }
 
 function coordSalir(){
-  COORD_TK=null; COORD_FIRMA=''; COORD_PID='';
+  COORD_TK=null; COORD_FIRMA=''; COORD_USUARIO=''; COORD_PID='';
   $('coordRes').innerHTML='<div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>';
   $('coordFicha').innerHTML=''; $('coordQ').value='';
   coordInit(); toast('Saliste del modo Coordinación');
@@ -12422,14 +12430,15 @@ function _coordValorPrevio(f, campo){
 // servidor dijo que está encendido; aun así el servidor vuelve a comprobarlo,
 // porque la pantalla no decide nada.
 async function coordOlvideClave(){
-  const firma=$('coordFirma').value;
+  const usuario=$('coordUsuario').value.trim();
+  if(!usuario){ $('coordErr').textContent='Escribe tu usuario primero.'; return; }
   const ok1 = await uiConfirm({
     icono:'&#128231;', titulo:'Recuperar tu clave',
-    mensaje:'Se enviar&aacute; un c&oacute;digo de 6 d&iacute;gitos al correo registrado de <b>'+_cEsc(firma)+'</b>.',
+    mensaje:'Se enviar&aacute; un c&oacute;digo de 6 d&iacute;gitos al correo registrado de <b>'+_cEsc(usuario)+'</b>.',
     detalle:'Vence en unos minutos y sirve una sola vez.',
     confirmar:'Enviar c&oacute;digo' });
   if(!ok1) return;
-  gs('COORD_PEDIR_CODIGO',{firma:firma}, async r=>{
+  gs('COORD_PEDIR_CODIGO',{usuario:usuario}, async r=>{
     const ok2 = await uiConfirm({
       icono:'&#128273;', titulo:'C&oacute;digo enviado',
       mensaje:'Revisa <b>'+_cEsc(r.enviadoA)+'</b>. Vence en '+_cEsc(String(r.minutos))+' minutos.',
@@ -12440,7 +12449,7 @@ async function coordOlvideClave(){
       confirmar:'Fijar clave' });
     if(!ok2) return;
     const cod=($('rcCod')||{}).value||'', nueva=($('rcNueva')||{}).value||'';
-    gs('COORD_RECUPERAR',{firma:firma, codigo:cod, nueva:nueva},
+    gs('COORD_RECUPERAR',{usuario:usuario, codigo:cod, nueva:nueva},
       ()=>{ toast('&#128273; Clave actualizada. Ya puedes entrar.'); $('coordClave').value=''; $('coordClave').focus(); },
       m=>toast('&#10060; '+m, 5200));
   }, m=>{ $('coordErr').textContent=m; });
@@ -12461,6 +12470,30 @@ async function coordCambiarClavePedir(obligatorio){
   const actual=($('ccActual')||{}).value||'', nueva=($('ccNueva')||{}).value||'';
   gs('COORD_CAMBIAR_CLAVE',{token:COORD_TK, actual:actual, nueva:nueva},
     ()=>toast('🔑 Clave cambiada'), m=>toast('❌ '+m, 5200));
+}
+
+// Camino normal cuando alguien pierde su clave (D8): otra de las tres se la
+// restablece. No pide segundo factor — esa protección aplica a la
+// recuperación por correo (aplazada), no a esta, que ya exige sesión viva.
+async function coordRestablecerPedir(){
+  const otros = COORD_USUARIOS_UI.filter(u=>u!==COORD_USUARIO);
+  const ok = await uiConfirm({
+    icono:'👥', titulo:'Restablecer la clave de otra persona',
+    mensaje:'Elige el usuario y se le genera una clave temporal.',
+    detalle:'<label style="font-size:.78rem;font-weight:700;">Usuario</label>'
+      +'<select id="rsUsuario" class="datein" style="width:100%;height:34px;margin:4px 0;">'
+      +otros.map(u=>'<option value="'+u+'">'+u+'</option>').join('')
+      +'</select>',
+    confirmar:'Restablecer' });
+  if(!ok) return;
+  const usuario=($('rsUsuario')||{}).value||'';
+  gs('COORD_RESTABLECER',{token:COORD_TK, usuario:usuario}, r=>{
+    uiConfirm({ icono:'🔑', titulo:'Clave temporal generada',
+      mensaje:'Para <b>'+_cEsc(r.usuario)+'</b> ('+_cEsc(r.firma)+'):',
+      detalle:'<div style="font-size:1.3rem;font-weight:800;text-align:center;letter-spacing:1px;padding:10px;background:#f1f5f9;border-radius:8px;">'+_cEsc(r.temporal)+'</div>'
+        +'<div style="font-size:.76rem;color:var(--muted);margin-top:8px;">Entr&eacute;gasela EN PERSONA. Se cambia sola al entrar.</div>',
+      confirmar:'Listo' });
+  }, m=>toast('❌ '+m, 5200));
 }
 
 function initVentiladores(){ if(VM_ALL===null) vmCargar(); else vmRender(); }

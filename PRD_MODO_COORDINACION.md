@@ -526,3 +526,26 @@ quedó a la vista con la firma correcta.
 - [ ] Al desplegar: `crearORepararEstructura()`, subir el número de columnas escrito a mano en
       `testEsquema()`, y **avisar** — publican Manuel o Diego, y quien publica avisa (regla del
       14-ago). No se crea implementación nueva: se apunta la existente.
+
+---
+
+## 10 · Cambio del 19-ago-2026: usuario de login ≠ firma clínica
+
+Manuel pidió que, en la puerta, se entre como **coord1 / coord2 / coord3** —
+no como MCC/DMV/MFB. Es una separación deliberada: la pantalla de entrada no
+tiene por qué revelar quién tiene acceso privilegiado con solo mirarla.
+
+- `coord1` → MCC (Magdalena) · `coord2` → DMV (Diego) · `coord3` → MFB (Manuel).
+- El servidor resuelve el usuario a la firma real al validar la clave; **la
+  firma real sigue siendo la que queda estampada** en cada corrección y en
+  `AUDIT_LOG` — nada de la trazabilidad se pierde, solo se esconde de la
+  pantalla de login.
+- Un usuario que no existe y una clave incorrecta dan el **mismo mensaje**
+  («Usuario o clave incorrectos.»): antes se distinguía «esa firma no tiene
+  acceso», que ya delataba cuáles firmas eran válidas.
+- Las claves temporales pasan a ser **12 caracteres alfanuméricos**
+  (agrupados 4-4-4 para dictarlos fácil), pedido explícito de Manuel — antes
+  eran 10. Siguen siendo de un solo uso: la persona las cambia al entrar.
+- Se agregó al panel un botón **«Restablecer otra»**: elegís el usuario (sin
+  mostrarte a ti mismo) y el sistema genera su temporal — es el camino normal
+  de D8, que ya existía en el servidor pero no tenía botón en la pantalla.

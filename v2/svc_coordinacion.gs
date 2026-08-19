@@ -9,6 +9,17 @@
  * Tres personas con clave propia (PRD_MODO_COORDINACION.md, D5): MCC (uso
  * diario), DMV y MFB (respaldo), para que la unidad no dependa de una sola.
  *
+ * ── USUARIO DE LOGIN ≠ FIRMA CLÍNICA (19-ago-2026, pedido de Manuel) ───────
+ * Lo que se escribe en la puerta es `coord1` / `coord2` / `coord3` — no un
+ * nombre ni una sigla. La pantalla de entrada no tiene por qué revelar quién
+ * tiene acceso privilegiado con solo mirarla. Adentro, cada usuario resuelve
+ * a su firma real (MCC/DMV/MFB), que es la que queda estampada en cada
+ * corrección y en AUDIT_LOG — la trazabilidad no se pierde, solo se esconde
+ * de la pantalla de login. COORD_USUARIOS es la única tabla que conoce el
+ * emparejamiento; el resto del servicio trabaja con lo que corresponda según
+ * el momento: `usuario` para todo lo de credenciales, `firma` para todo lo
+ * que queda escrito en la ficha del paciente.
+ *
  * ── EL CANDADO VIVE AQUÍ, NO EN LA PANTALLA ───────────────────────────────
  * Con AUTH_DEV_MODE=TRUE cualquiera con el enlace llega al dispatcher: esconder
  * la pestaña no protege nada, porque quien conozca el nombre de la acción la
@@ -20,8 +31,9 @@
  * lee — o la exporta sin darse cuenta.
  */
 
-// Las tres firmas autorizadas. Cambiar esta lista es dar o quitar el acceso.
-var COORD_FIRMAS = ['MCC', 'DMV', 'MFB'];
+// El único lugar donde vive el emparejamiento usuario→firma. Cambiar esto es
+// dar o quitar el acceso, o renombrar quién es quién en la pantalla.
+var COORD_USUARIOS = { coord1: 'MCC', coord2: 'DMV', coord3: 'MFB' };
 
 var _COORD_SESION_MIN   = 30;   // minutos de vida de una sesión
 var _COORD_MAX_INTENTOS = 3;    // fallidos antes de la espera
@@ -45,45 +57,52 @@ var COORD_CAMPOS = {
   DESTINO_EGRESO:  { tipo: 'texto',  soloArchivo: true, etiqueta: 'Destino de egreso' },
 };
 
+/** Normaliza un usuario de login: minúsculas, sin espacios. */
+function _coordUsuarioNorm(u) { return String(u || '').toLowerCase().trim(); }
+
+/** Firma clínica de un usuario de login, o '' si no existe. */
+function _coordFirmaDe(usuario) { return COORD_USUARIOS[_coordUsuarioNorm(usuario)] || ''; }
+
 // ─────────────────────────────────────────────────────────────────────────────
-// CLAVES
+// CLAVES  (todo aquí se guarda y se busca por USUARIO, nunca por firma — así
+// ni las claves internas de PropertiesService dejan un rastro con nombres)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Huella de una clave. La sal es por persona: dos claves iguales no coinciden. */
-function _coordHuella(firma, clave, sal) {
-  const crudo = String(sal) + '|' + String(firma).toUpperCase() + '|' + String(clave);
+function _coordHuella(usuario, clave, sal) {
+  const crudo = String(sal) + '|' + _coordUsuarioNorm(usuario) + '|' + String(clave);
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, crudo, Utilities.Charset.UTF_8);
   return Utilities.base64Encode(bytes);
 }
 
 function _coordProps() { return PropertiesService.getScriptProperties(); }
 
-/** Escribe la clave de una firma. Genera una sal nueva en cada cambio. */
-function _coordGuardarClave(firma, clave) {
-  const f = String(firma).toUpperCase();
+/** Escribe la clave de un usuario. Genera una sal nueva en cada cambio. */
+function _coordGuardarClave(usuario, clave) {
+  const u = _coordUsuarioNorm(usuario);
   const sal = Utilities.getUuid();
-  _coordProps().setProperty('coord_sal_' + f, sal);
-  _coordProps().setProperty('coord_hash_' + f, _coordHuella(f, clave, sal));
-  _coordProps().deleteProperty('coord_fallidos_' + f);
+  _coordProps().setProperty('coord_sal_' + u, sal);
+  _coordProps().setProperty('coord_hash_' + u, _coordHuella(u, clave, sal));
+  _coordProps().deleteProperty('coord_fallidos_' + u);
   return true;
 }
 
-/** ¿La clave enviada es la de esa firma? */
-function _coordClaveOk(firma, clave) {
-  const f = String(firma).toUpperCase();
-  const sal = _coordProps().getProperty('coord_sal_' + f);
-  const hash = _coordProps().getProperty('coord_hash_' + f);
+/** ¿La clave enviada es la de ese usuario? */
+function _coordClaveOk(usuario, clave) {
+  const u = _coordUsuarioNorm(usuario);
+  const sal = _coordProps().getProperty('coord_sal_' + u);
+  const hash = _coordProps().getProperty('coord_hash_' + u);
   if (!sal || !hash) return false;
-  return _coordHuella(f, clave, sal) === hash;
+  return _coordHuella(u, clave, sal) === hash;
 }
 
 /** Marca temporal de un solo uso: obliga a cambiar la clave al entrar. */
-function _coordMarcarTemporal(firma, esTemporal) {
-  const k = 'coord_temp_' + String(firma).toUpperCase();
+function _coordMarcarTemporal(usuario, esTemporal) {
+  const k = 'coord_temp_' + _coordUsuarioNorm(usuario);
   if (esTemporal) _coordProps().setProperty(k, '1'); else _coordProps().deleteProperty(k);
 }
-function _coordEsTemporal(firma) {
-  return _coordProps().getProperty('coord_temp_' + String(firma).toUpperCase()) === '1';
+function _coordEsTemporal(usuario) {
+  return _coordProps().getProperty('coord_temp_' + _coordUsuarioNorm(usuario)) === '1';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -91,67 +110,74 @@ function _coordEsTemporal(firma) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Los fallidos se cuentan POR FIRMA, nunca globales: si fueran globales,
+ * Los fallidos se cuentan POR USUARIO, nunca globales: si fueran globales,
  * cualquiera podría dejar afuera a las tres tecleando mal a propósito.
  */
-function _coordFallidos(firma) {
-  const v = _coordProps().getProperty('coord_fallidos_' + String(firma).toUpperCase());
+function _coordFallidos(usuario) {
+  const v = _coordProps().getProperty('coord_fallidos_' + _coordUsuarioNorm(usuario));
   if (!v) return { n: 0, hasta: 0 };
   try { return JSON.parse(v); } catch (e) { return { n: 0, hasta: 0 }; }
 }
 
-function _coordSumarFallido(firma) {
-  const f = String(firma).toUpperCase();
-  const est = _coordFallidos(f);
+function _coordSumarFallido(usuario) {
+  const u = _coordUsuarioNorm(usuario);
+  const est = _coordFallidos(u);
   est.n = (est.n || 0) + 1;
   if (est.n >= _COORD_MAX_INTENTOS) {
     est.hasta = Date.now() + _COORD_ESPERA_MIN * 60000;
     est.n = 0;
   }
-  _coordProps().setProperty('coord_fallidos_' + f, JSON.stringify(est));
+  _coordProps().setProperty('coord_fallidos_' + u, JSON.stringify(est));
   return est;
 }
 
 /** Minutos que faltan de espera, o 0 si puede intentar. */
-function _coordEsperaRestante(firma) {
-  const est = _coordFallidos(firma);
+function _coordEsperaRestante(usuario) {
+  const est = _coordFallidos(usuario);
   if (!est.hasta || est.hasta <= Date.now()) return 0;
   return Math.ceil((est.hasta - Date.now()) / 60000);
 }
 
-/** Abre una sesión atada a una firma y devuelve su token. */
-function _coordAbrirSesion(firma) {
+/** Abre una sesión atada a un usuario+firma y devuelve su token. */
+function _coordAbrirSesion(usuario, firma) {
   const token = Utilities.getUuid();
   const seg = _COORD_SESION_MIN * 60;
   CacheService.getScriptCache().put('coordses_' + token,
-    JSON.stringify({ firma: String(firma).toUpperCase(), desde: Date.now() }), seg);
+    JSON.stringify({ usuario: _coordUsuarioNorm(usuario), firma: String(firma).toUpperCase(), desde: Date.now() }), seg);
   return token;
 }
 
 /**
- * Resuelve un token a su firma, o null. Renueva la ventana en cada uso: la
- * sesión muere por INACTIVIDAD, no a los 30 minutos de haber entrado.
+ * Resuelve un token a {usuario, firma}, o null. Renueva la ventana en cada
+ * uso: la sesión muere por INACTIVIDAD, no a los 30 minutos de haber entrado.
  */
-function coordSesionFirma(token) {
+function coordSesion(token) {
   if (!token) return null;
   const cache = CacheService.getScriptCache();
   const hit = cache.get('coordses_' + token);
   if (!hit) return null;
   let s;
   try { s = JSON.parse(hit); } catch (e) { return null; }
-  if (!s || !s.firma) return null;
+  if (!s || !s.firma || !s.usuario) return null;
   cache.put('coordses_' + token, hit, _COORD_SESION_MIN * 60);
-  return s.firma;
+  return s;
+}
+
+/** Atajo cuando solo hace falta la firma (lo que usan casi todas las acciones). */
+function coordSesionFirma(token) {
+  const s = coordSesion(token);
+  return s ? s.firma : null;
 }
 
 /**
- * Guardia de TODA acción del modo. Devuelve {ok:true, firma} o una respuesta
- * de error lista para retornar. Es el candado real del que habla la cabecera.
+ * Guardia de TODA acción del modo. Devuelve {ok:true, firma, usuario} o una
+ * respuesta de error lista para retornar. Es el candado real del que habla
+ * la cabecera.
  */
 function coordExigirSesion(token) {
-  const firma = coordSesionFirma(token);
-  if (!firma) return { ok: false, error: 'Tu sesión de coordinación expiró. Vuelve a entrar con tu clave.', codigo: ERR.NO_AUTORIZADO };
-  return { ok: true, firma: firma };
+  const s = coordSesion(token);
+  if (!s) return { ok: false, error: 'Tu sesión de coordinación expiró. Vuelve a entrar con tu clave.', codigo: ERR.NO_AUTORIZADO };
+  return { ok: true, firma: s.firma, usuario: s.usuario };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -160,27 +186,29 @@ function coordExigirSesion(token) {
 
 function coordEntrar(datos) {
   try {
-    const firma = String((datos && datos.firma) || '').toUpperCase().trim();
+    const usuario = _coordUsuarioNorm(datos && datos.usuario);
     const clave = String((datos && datos.clave) || '');
-    if (COORD_FIRMAS.indexOf(firma) === -1) {
-      return err('Esa firma no tiene acceso al modo Coordinación.', ERR.NO_AUTORIZADO);
-    }
-    const espera = _coordEsperaRestante(firma);
+    const firma = _coordFirmaDe(usuario);
+    // Mismo mensaje siempre, exista o no ese usuario: si «no existe» se
+    // dijera distinto de «clave mala», probar nombres serviría para
+    // descubrir cuáles son válidos.
+    if (!firma) return err('Usuario o clave incorrectos.', ERR.NO_AUTORIZADO);
+
+    const espera = _coordEsperaRestante(usuario);
     if (espera > 0) {
       return err('Demasiados intentos. Vuelve a probar en ' + espera + ' minuto' + (espera === 1 ? '' : 's') + '.', ERR.NO_AUTORIZADO);
     }
-    if (!_coordClaveOk(firma, clave)) {
-      _coordSumarFallido(firma);
+    if (!_coordClaveOk(usuario, clave)) {
+      _coordSumarFallido(usuario);
       auditar({ email: 'coordinacion', firma: firma, accion: 'COORD_INTENTO_FALLIDO',
-        entidad: 'COORDINACION', idEntidad: '', patientId: '', resumen: 'clave incorrecta' });
-      // Mismo mensaje siempre: decir «esa firma no tiene clave» delata cuáles sí.
-      return err('Clave incorrecta.', ERR.NO_AUTORIZADO);
+        entidad: 'COORDINACION', idEntidad: usuario, patientId: '', resumen: 'clave incorrecta' });
+      return err('Usuario o clave incorrectos.', ERR.NO_AUTORIZADO);
     }
-    _coordProps().deleteProperty('coord_fallidos_' + firma);
-    const token = _coordAbrirSesion(firma);
+    _coordProps().deleteProperty('coord_fallidos_' + usuario);
+    const token = _coordAbrirSesion(usuario, firma);
     auditar({ email: 'coordinacion', firma: firma, accion: 'COORD_ENTRADA',
-      entidad: 'COORDINACION', idEntidad: '', patientId: '', resumen: 'entró al modo coordinación' });
-    return ok({ token: token, firma: firma, minutos: _COORD_SESION_MIN, debeCambiarClave: _coordEsTemporal(firma) });
+      entidad: 'COORDINACION', idEntidad: usuario, patientId: '', resumen: 'entró al modo coordinación' });
+    return ok({ token: token, firma: firma, minutos: _COORD_SESION_MIN, debeCambiarClave: _coordEsTemporal(usuario) });
   } catch (e) { return err('coordEntrar: ' + e.message, ERR.INTERNO, e); }
 }
 
@@ -241,7 +269,7 @@ function coordEstado() {
 }
 
 /**
- * Manda un código de un solo uso al correo de esa firma.
+ * Manda un código de un solo uso al correo de ese usuario.
  * Del código se guarda su HUELLA, nunca el código; y jamás vuelve en la
  * respuesta — si volviera, pedirlo sería suficiente para entrar y el correo
  * no estaría probando nada.
@@ -251,21 +279,22 @@ function coordPedirCodigo(datos) {
     if (!coordRecuperaPorCorreo()) {
       return err('La recuperación por correo está desactivada. Pídele a otra persona de coordinación que te restablezca la clave.', ERR.NO_AUTORIZADO);
     }
-    const firma = String((datos && datos.firma) || '').toUpperCase().trim();
-    if (COORD_FIRMAS.indexOf(firma) === -1) return err('Esa firma no tiene acceso al modo Coordinación.', ERR.NO_AUTORIZADO);
+    const usuario = _coordUsuarioNorm(datos && datos.usuario);
+    const firma = _coordFirmaDe(usuario);
+    if (!firma) return err('Usuario o clave incorrectos.', ERR.NO_AUTORIZADO);
 
-    const espera = _coordEsperaRestante(firma);
+    const espera = _coordEsperaRestante(usuario);
     if (espera > 0) return err('Demasiados intentos. Vuelve a probar en ' + espera + ' minuto' + (espera === 1 ? '' : 's') + '.', ERR.NO_AUTORIZADO);
 
     const mail = _coordEmailDeFirma(firma);
     if (!mail) {
-      return err('La firma ' + firma + ' no tiene correo registrado en KINESIOLOGOS. Pídele a otra persona de coordinación que te restablezca la clave.', ERR.VALIDACION);
+      return err('Ese usuario no tiene correo registrado en KINESIOLOGOS. Pídele a otra persona de coordinación que te restablezca la clave.', ERR.VALIDACION);
     }
 
     const codigo = _coordCodigo6();
     const sal = Utilities.getUuid();
-    CacheService.getScriptCache().put('coordcod_' + firma,
-      JSON.stringify({ h: _coordHuella(firma, codigo, sal), s: sal, n: 0 }), _COORD_COD_MIN * 60);
+    CacheService.getScriptCache().put('coordcod_' + usuario,
+      JSON.stringify({ h: _coordHuella(usuario, codigo, sal), s: sal, n: 0 }), _COORD_COD_MIN * 60);
 
     try {
       MailApp.sendEmail({
@@ -274,16 +303,16 @@ function coordPedirCodigo(datos) {
         body: 'Tu código es ' + codigo + '\n\n' +
               'Sirve una sola vez y vence en ' + _COORD_COD_MIN + ' minutos.\n\n' +
               'Si no pediste este código, ignora el mensaje y avísale a la coordinación: ' +
-              'alguien está intentando entrar con tu firma.\n',
+              'alguien está intentando entrar con tu usuario.\n',
       });
     } catch (e) {
-      CacheService.getScriptCache().remove('coordcod_' + firma);
+      CacheService.getScriptCache().remove('coordcod_' + usuario);
       console.error('coordPedirCodigo · envío', e);
       return err('No se pudo enviar el correo. Pídele a otra persona de coordinación que te restablezca la clave.', ERR.INTERNO);
     }
 
     auditar({ email: 'coordinacion', firma: firma, accion: 'COORD_PIDE_CODIGO',
-      entidad: 'COORDINACION', idEntidad: '', patientId: '', resumen: 'código enviado por correo' });
+      entidad: 'COORDINACION', idEntidad: usuario, patientId: '', resumen: 'código enviado por correo' });
     return ok({ enviadoA: _coordEmailOculto(mail), minutos: _COORD_COD_MIN });
   } catch (e) { return err('coordPedirCodigo: ' + e.message, ERR.INTERNO, e); }
 }
@@ -302,36 +331,37 @@ function coordRecuperarConCodigo(datos) {
     if (!coordRecuperaPorCorreo()) {
       return err('La recuperación por correo está desactivada.', ERR.NO_AUTORIZADO);
     }
-    const firma = String((datos && datos.firma) || '').toUpperCase().trim();
+    const usuario = _coordUsuarioNorm(datos && datos.usuario);
     const codigo = String((datos && datos.codigo) || '').trim();
     const nueva = String((datos && datos.nueva) || '');
-    if (COORD_FIRMAS.indexOf(firma) === -1) return err('Esa firma no tiene acceso al modo Coordinación.', ERR.NO_AUTORIZADO);
+    const firma = _coordFirmaDe(usuario);
+    if (!firma) return err('Usuario o clave incorrectos.', ERR.NO_AUTORIZADO);
     if (nueva.length < 8) return err('La clave nueva debe tener al menos 8 caracteres.', ERR.VALIDACION);
 
     const cache = CacheService.getScriptCache();
-    const hit = cache.get('coordcod_' + firma);
+    const hit = cache.get('coordcod_' + usuario);
     if (!hit) return err('El código venció o no se pidió. Pide uno nuevo.', ERR.NO_AUTORIZADO);
     let est;
     try { est = JSON.parse(hit); } catch (e) { return err('El código venció. Pide uno nuevo.', ERR.NO_AUTORIZADO); }
 
-    if (_coordHuella(firma, codigo, est.s) !== est.h) {
+    if (_coordHuella(usuario, codigo, est.s) !== est.h) {
       est.n = (est.n || 0) + 1;
       if (est.n >= _COORD_COD_INTENTOS) {
-        cache.remove('coordcod_' + firma);
-        _coordSumarFallido(firma);
+        cache.remove('coordcod_' + usuario);
+        _coordSumarFallido(usuario);
         auditar({ email: 'coordinacion', firma: firma, accion: 'COORD_CODIGO_AGOTADO',
-          entidad: 'COORDINACION', idEntidad: '', patientId: '', resumen: 'código invalidado por intentos' });
+          entidad: 'COORDINACION', idEntidad: usuario, patientId: '', resumen: 'código invalidado por intentos' });
         return err('Código incorrecto demasiadas veces. Pide uno nuevo.', ERR.NO_AUTORIZADO);
       }
-      cache.put('coordcod_' + firma, JSON.stringify(est), _COORD_COD_MIN * 60);
+      cache.put('coordcod_' + usuario, JSON.stringify(est), _COORD_COD_MIN * 60);
       return err('Código incorrecto.', ERR.NO_AUTORIZADO);
     }
 
-    cache.remove('coordcod_' + firma);          // un solo uso, sin excepciones
-    _coordGuardarClave(firma, nueva);
-    _coordMarcarTemporal(firma, false);
+    cache.remove('coordcod_' + usuario);          // un solo uso, sin excepciones
+    _coordGuardarClave(usuario, nueva);
+    _coordMarcarTemporal(usuario, false);
     auditar({ email: 'coordinacion', firma: firma, accion: 'COORD_RECUPERA_CLAVE',
-      entidad: 'COORDINACION', idEntidad: '', patientId: '', resumen: 'recuperó su clave con código por correo' });
+      entidad: 'COORDINACION', idEntidad: usuario, patientId: '', resumen: 'recuperó su clave con código por correo' });
     return ok({ firma: firma });
   } catch (e) { return err('coordRecuperarConCodigo: ' + e.message, ERR.INTERNO, e); }
 }
@@ -345,15 +375,16 @@ function coordDiagnosticoCorreo() {
   const out = ['── Recuperación por correo ──',
     'Interruptor COORD_RECUPERA_CORREO: ' + (coordRecuperaPorCorreo() ? 'ENCENDIDO' : 'apagado')];
   let faltan = 0;
-  COORD_FIRMAS.forEach(function (f) {
-    const m = _coordEmailDeFirma(f);
+  Object.keys(COORD_USUARIOS).forEach(function (u) {
+    const firma = COORD_USUARIOS[u];
+    const m = _coordEmailDeFirma(firma);
     if (!m) faltan++;
-    out.push('  ' + f + ': ' + (m ? m : '⚠️ SIN CORREO en KINESIOLOGOS'));
+    out.push('  ' + u + ' (' + firma + '): ' + (m ? m : '⚠️ SIN CORREO en KINESIOLOGOS'));
   });
   try {
     out.push('Correos que quedan hoy en la cuota: ' + MailApp.getRemainingDailyQuota());
   } catch (e) { out.push('⚠️ No se pudo leer la cuota de correo: ' + e.message); }
-  if (faltan) out.push('\n⚠️ Faltan ' + faltan + ' correo(s). Con el interruptor encendido, esas firmas no podrán recuperar su clave por esta vía.');
+  if (faltan) out.push('\n⚠️ Faltan ' + faltan + ' correo(s). Con el interruptor encendido, esos usuarios no podrán recuperar su clave por esta vía.');
   console.log(out.join('\n'));
   return out;
 }
@@ -366,13 +397,13 @@ function coordCambiarClave(datos) {
     if (nueva.length < 8) return err('La clave nueva debe tener al menos 8 caracteres.', ERR.VALIDACION);
     // Sin sesión temporal hay que confirmar la actual: una sesión olvidada
     // abierta en un box no puede servir para quedarse con la cuenta.
-    if (!_coordEsTemporal(g.firma) && !_coordClaveOk(g.firma, String((datos && datos.actual) || ''))) {
+    if (!_coordEsTemporal(g.usuario) && !_coordClaveOk(g.usuario, String((datos && datos.actual) || ''))) {
       return err('La clave actual no coincide.', ERR.NO_AUTORIZADO);
     }
-    _coordGuardarClave(g.firma, nueva);
-    _coordMarcarTemporal(g.firma, false);
+    _coordGuardarClave(g.usuario, nueva);
+    _coordMarcarTemporal(g.usuario, false);
     auditar({ email: 'coordinacion', firma: g.firma, accion: 'COORD_CAMBIO_CLAVE',
-      entidad: 'COORDINACION', idEntidad: '', patientId: '', resumen: 'cambió su clave' });
+      entidad: 'COORDINACION', idEntidad: g.usuario, patientId: '', resumen: 'cambió su clave' });
     return ok({ firma: g.firma });
   } catch (e) { return err('coordCambiarClave: ' + e.message, ERR.INTERNO, e); }
 }
@@ -386,26 +417,33 @@ function coordRestablecerClave(datos) {
   try {
     const g = coordExigirSesion(datos && datos.token);
     if (!g.ok) return g;
-    const destino = String((datos && datos.firma) || '').toUpperCase().trim();
-    if (COORD_FIRMAS.indexOf(destino) === -1) return err('Esa firma no tiene acceso al modo Coordinación.', ERR.VALIDACION);
-    if (destino === g.firma) return err('Para cambiar tu propia clave usa «Cambiar mi clave».', ERR.VALIDACION);
+    const destino = _coordUsuarioNorm(datos && datos.usuario);
+    const firmaDestino = _coordFirmaDe(destino);
+    if (!firmaDestino) return err('Ese usuario no existe.', ERR.VALIDACION);
+    if (destino === g.usuario) return err('Para cambiar tu propia clave usa «Cambiar mi clave».', ERR.VALIDACION);
     const temporal = _coordClaveTemporal();
     _coordGuardarClave(destino, temporal);
     _coordMarcarTemporal(destino, true);
     auditar({ email: 'coordinacion', firma: g.firma, accion: 'COORD_RESTABLECE_CLAVE',
       entidad: 'COORDINACION', idEntidad: destino, patientId: '',
-      resumen: g.firma + ' le restableció la clave a ' + destino });
-    return ok({ firma: destino, temporal: temporal });
+      resumen: g.firma + ' le restableció la clave a ' + firmaDestino + ' (' + destino + ')' });
+    return ok({ usuario: destino, firma: firmaDestino, temporal: temporal });
   } catch (e) { return err('coordRestablecerClave: ' + e.message, ERR.INTERNO, e); }
 }
 
-/** Clave temporal legible: se dicta en voz alta una vez y se cambia al entrar. */
+/**
+ * Clave temporal: 12 caracteres alfanuméricos (pedido de Manuel, 19-ago-2026),
+ * agrupados de a 4 para dictarla fácil. Sin I/O/0/1, que se confunden al leer
+ * en voz alta. Es de un solo uso: `_coordEsTemporal` obliga a cambiarla en el
+ * primer ingreso, con `coordCambiarClave` — la persona la reemplaza por la
+ * suya, nadie más vuelve a saberla.
+ */
 function _coordClaveTemporal() {
-  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';  // sin I, O, 0, 1: se confunden al dictar
+  const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';  // sin I, O, 0, 1
   let s = '';
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, Utilities.getUuid());
-  for (let i = 0; i < 10; i++) s += abc.charAt(Math.abs(bytes[i]) % abc.length);
-  return s.slice(0, 5) + '-' + s.slice(5);
+  for (let i = 0; i < 12; i++) s += abc.charAt(Math.abs(bytes[i]) % abc.length);
+  return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12);
 }
 
 /**
@@ -415,12 +453,13 @@ function _coordClaveTemporal() {
  */
 function coordSembrarClaves() {
   const out = [];
-  COORD_FIRMAS.forEach(function (f) {
-    if (_coordProps().getProperty('coord_hash_' + f)) { out.push(f + ': ya tiene clave (no se toca)'); return; }
+  Object.keys(COORD_USUARIOS).forEach(function (u) {
+    const firma = COORD_USUARIOS[u];
+    if (_coordProps().getProperty('coord_hash_' + u)) { out.push(u + ' (' + firma + '): ya tiene clave (no se toca)'); return; }
     const t = _coordClaveTemporal();
-    _coordGuardarClave(f, t);
-    _coordMarcarTemporal(f, true);
-    out.push(f + ': ' + t + '  (temporal — la cambia al entrar)');
+    _coordGuardarClave(u, t);
+    _coordMarcarTemporal(u, true);
+    out.push(u + ' (' + firma + '): ' + t + '  (temporal — la cambia al entrar)');
   });
   console.log('── Claves del modo Coordinación ──\n' + out.join('\n') +
     '\n\nEntrégalas EN PERSONA. No las dejes escritas en un chat ni en la planilla.');
