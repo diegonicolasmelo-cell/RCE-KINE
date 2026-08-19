@@ -45,6 +45,13 @@ const si = (l, c, d) => { console.log((c?'✅':'❌')+' '+l+(d!==undefined?': '+
     (await pg.locator('#coordErr').innerText()).length > 0,
     await pg.locator('#coordErr').innerText());
 
+  // El enlace de recuperacion por correo NO debe ofrecerse mientras el
+  // interruptor este apagado: prometer un camino que el servidor va a rechazar
+  // es peor que no ofrecerlo. Sin servidor, COORD_ESTADO nunca responde, asi
+  // que debe seguir oculto — que es exactamente el comportamiento seguro.
+  si('el enlace «¿Olvidaste tu clave?» existe pero está oculto',
+    await pg.locator('#coordOlvide').count() === 1 && await pg.locator('#coordOlvide').isHidden());
+
   si('sin errores JS en toda la corrida', errs.length === 0, errs.join(' | '));
   await b.close();
   console.log(fails.length ? `\n❌ ${fails.length} FALLOS` : '\n✅ UI de coordinación OK');

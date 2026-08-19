@@ -419,8 +419,16 @@ pestaña 🔐 COORDINACIÓN — sin abrir el editor.
 - **Los días se recalculan con `diasEntre`** (calendario, BUDA), nunca con
   bloques de 24 h. Solo hace falta en el ARCHIVO: ahí están congelados.
 - Antes de usarlo: correr **`coordSembrarClaves()`** una vez desde el editor y
-  entregar las temporales en persona. Sin segundo factor por ahora (aplazado);
-  si alguien pierde la clave, otra de las tres se la restablece.
+  entregar las temporales en persona. Si alguien pierde la clave, otra de las
+  tres se la restablece.
+- **Recuperar la clave por CORREO: escrito y APAGADO.** El interruptor es
+  `CONFIG.COORD_RECUPERA_CORREO` (nace en `FALSE` porque Diego rechazó el envío
+  de correos y el sistema no manda ninguno). Encenderlo es cambiar ese valor,
+  no programar. **Antes de encenderlo**: llenar la columna `EMAIL` de las tres
+  firmas en `KINESIOLOGOS` y correr **`coordDiagnosticoCorreo()`**, que verifica
+  los correos y la cuota. Los correos saldrían desde la cuenta dueña del
+  proyecto. Apagado, `COORD_PEDIR_CODIGO` y `COORD_RECUPERAR` rechazan y **no
+  se manda nada** — hay guardia que lo prueba en los dos estados.
 
 ### Rutinas de mantenimiento disponibles (simulacro primero, siempre)
 

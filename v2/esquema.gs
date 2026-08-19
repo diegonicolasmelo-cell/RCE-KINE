@@ -715,6 +715,12 @@ function _sembrar(ss) {
     // DEBE quedar en FALSE en producción.
     ['AUTH_DEV_MODE', 'FALSE'],
     ['AUTH_DEV_FIRMA', 'DMV'],
+    // Modo Coordinación · recuperar la clave por correo (ago-2026).
+    // APAGADO a propósito: Diego rechazó el envío de correos y hoy el sistema
+    // no manda ninguno. El mecanismo está escrito y probado; encenderlo es
+    // poner TRUE aquí, no programar. Antes de encenderlo hay que llenar la
+    // columna EMAIL de las tres firmas en KINESIOLOGOS.
+    ['COORD_RECUPERA_CORREO', 'FALSE'],
     // Ventanas de turno (hora en que PARTE cada turno; la madrugada previa al
     // inicio del día sigue contando como la noche del día anterior)
     ['TURNO_DIA_INICIO', '9'],

@@ -135,7 +135,12 @@ function api(accion, datos, token) {
       // pantalla no protege nada y el candado tiene que vivir en el servicio.
       // Tampoco pasan por _auditar: se auditan solas, con la firma de quien
       // entró al modo (MCC/DMV/MFB), no con la del turno.
+      case 'COORD_ESTADO':       return coordEstado();
       case 'COORD_ENTRAR':       return coordEntrar(datos);
+      // Recuperación por correo: escrita y APAGADA (CONFIG.COORD_RECUPERA_CORREO).
+      // Las dos rechazan mientras el interruptor esté en FALSE.
+      case 'COORD_PEDIR_CODIGO': return coordPedirCodigo(datos);
+      case 'COORD_RECUPERAR':    return coordRecuperarConCodigo(datos);
       case 'COORD_CAMBIAR_CLAVE':return coordCambiarClave(datos);
       case 'COORD_RESTABLECER':  return coordRestablecerClave(datos);
       case 'COORD_FICHA':        return coordFicha(datos);

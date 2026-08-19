@@ -2000,6 +2000,12 @@ document.documentElement.setAttribute('data-piel', 'inst');
              onkeydown="if(event.key==='Enter')coordEntrar()" autocomplete="off">
       <button type="button" class="btn btn-p" style="width:100%;" onclick="coordEntrar()">Entrar</button>
       <div id="coordErr" style="color:var(--danger);font-size:.8rem;margin-top:10px;min-height:18px;"></div>
+      <!-- Solo aparece si CONFIG.COORD_RECUPERA_CORREO esta en TRUE. Apagado
+           (lo normal hoy), quien pierde la clave se la pide a otra persona. -->
+      <div id="coordOlvide" class="hidden" style="margin-top:6px;">
+        <a href="javascript:void(0)" onclick="coordOlvideClave()"
+           style="font-size:.78rem;color:#0058A0;font-weight:700;">&iquest;Olvidaste tu clave?</a>
+      </div>
     </div>
   </div>
 
@@ -12272,6 +12278,12 @@ function _cEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</
 
 
 function coordInit(){
+  // El servidor manda: si la recuperacion por correo esta apagada, el enlace ni
+  // se ofrece. Preguntarlo evita prometer un camino que va a rechazar.
+  if(window._COORD_EST===undefined){
+    gs('COORD_ESTADO',{},r=>{ window._COORD_EST=r||{};
+      const e=$('coordOlvide'); if(e) e.classList.toggle('hidden', !r.recuperaCorreo); });
+  }
   $('coordPuerta').classList.toggle('hidden', !!COORD_TK);
   $('coordPanel').classList.toggle('hidden', !COORD_TK);
   if(COORD_TK) $('coordQuien').textContent = COORD_FIRMA;
@@ -12404,6 +12416,34 @@ async function coordGuardar(){
 function _coordValorPrevio(f, campo){
   const c=(f.campos||[]).find(x=>x.campo===campo);
   return c?c.valor:'';
+}
+
+// Recuperar la clave por correo. El enlace que llama aquí solo existe si el
+// servidor dijo que está encendido; aun así el servidor vuelve a comprobarlo,
+// porque la pantalla no decide nada.
+async function coordOlvideClave(){
+  const firma=$('coordFirma').value;
+  const ok1 = await uiConfirm({
+    icono:'&#128231;', titulo:'Recuperar tu clave',
+    mensaje:'Se enviar&aacute; un c&oacute;digo de 6 d&iacute;gitos al correo registrado de <b>'+_cEsc(firma)+'</b>.',
+    detalle:'Vence en unos minutos y sirve una sola vez.',
+    confirmar:'Enviar c&oacute;digo' });
+  if(!ok1) return;
+  gs('COORD_PEDIR_CODIGO',{firma:firma}, async r=>{
+    const ok2 = await uiConfirm({
+      icono:'&#128273;', titulo:'C&oacute;digo enviado',
+      mensaje:'Revisa <b>'+_cEsc(r.enviadoA)+'</b>. Vence en '+_cEsc(String(r.minutos))+' minutos.',
+      detalle:'<label style="font-size:.78rem;font-weight:700;">C&oacute;digo de 6 d&iacute;gitos</label>'
+        +'<input type="text" id="rcCod" class="datein" inputmode="numeric" maxlength="6" style="width:100%;height:34px;margin:4px 0 8px;" autocomplete="off">'
+        +'<label style="font-size:.78rem;font-weight:700;">Clave nueva (m&iacute;nimo 8 caracteres)</label>'
+        +'<input type="password" id="rcNueva" class="datein" style="width:100%;height:34px;margin:4px 0 0;" autocomplete="off">',
+      confirmar:'Fijar clave' });
+    if(!ok2) return;
+    const cod=($('rcCod')||{}).value||'', nueva=($('rcNueva')||{}).value||'';
+    gs('COORD_RECUPERAR',{firma:firma, codigo:cod, nueva:nueva},
+      ()=>{ toast('&#128273; Clave actualizada. Ya puedes entrar.'); $('coordClave').value=''; $('coordClave').focus(); },
+      m=>toast('&#10060; '+m, 5200));
+  }, m=>{ $('coordErr').textContent=m; });
 }
 
 async function coordCambiarClavePedir(obligatorio){

@@ -20,7 +20,7 @@
 //   4. La clave no se guarda ni viaja en ninguna parte legible.
 //
 // Uso: node build/checks/coordinacion.js
-const { api, DB, SIM, CONFIG } = require('../sim/sim_srv.js');
+const { api, DB, SIM, CONFIG, MAILS } = require('../sim/sim_srv.js');
 
 const fails = [];
 const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk ? '✅' : '❌') + ' ' + l + ': ' + JSON.stringify(g)); if (!okk) fails.push(l); };
@@ -254,6 +254,81 @@ ok_('…y se le exige cambiarla', r.ok && r.data.debeCambiarClave === true);
 
 r = api('COORD_RESTABLECER', { token: TK, firma: 'MCC' }, null);
 ok_('nadie se restablece a sí mismo por esta vía', r.ok === false, r.error);
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10 · RECUPERAR LA CLAVE POR CORREO — escrita y APAGADA
+   ───────────────────────────────────────────────────────────────────────────
+   Diego rechazó el envío de correos, así que el mecanismo nace en FALSE. Lo
+   que más importa probar es lo primero: que APAGADO no manda absolutamente
+   nada. Una funcionalidad «lista para encender» que igual manda correos no
+   está apagada, está suelta.
+   ═══════════════════════════════════════════════════════════════════════════ */
+console.log('\n10 · Recuperación por correo (apagada por defecto)');
+
+eq('el interruptor nace apagado', global.coordRecuperaPorCorreo(), false);
+eq('la puerta no ofrece ese camino', api('COORD_ESTADO', {}, null).data.recuperaCorreo, false);
+
+const _mails0 = MAILS.length;
+r = api('COORD_PEDIR_CODIGO', { firma: 'MCC' }, null);
+ok_('apagada, pedir código se rechaza', r.ok === false, r.error);
+ok_('…y NO se mandó ningún correo', MAILS.length === _mails0, String(MAILS.length - _mails0));
+ok_('…y el mensaje dice qué hacer en su lugar', /restablezca la clave/i.test(r.error || ''));
+
+r = api('COORD_RECUPERAR', { firma: 'MCC', codigo: '123456', nueva: 'otra-clave-larga' }, null);
+ok_('apagada, recuperar con código también se rechaza', r.ok === false);
+ok_('…y la clave de MCC sigue siendo la suya',
+  api('COORD_ENTRAR', { firma: 'MCC', clave: claves.MCC }, null).ok === true);
+
+console.log('\n10b · …y encendida funciona entera');
+CONFIG.COORD_RECUPERA_CORREO = 'TRUE';
+eq('el interruptor quedó encendido', global.coordRecuperaPorCorreo(), true);
+eq('ahora la puerta sí lo ofrece', api('COORD_ESTADO', {}, null).data.recuperaCorreo, true);
+
+// Sin correo cargado no se puede: la semilla de KINESIOLOGOS los deja vacíos.
+r = api('COORD_PEDIR_CODIGO', { firma: 'MCC' }, null);
+ok_('sin correo en KINESIOLOGOS avisa y no manda nada', r.ok === false, r.error);
+ok_('…sin gastar un envío', MAILS.length === _mails0);
+
+DB.KINESIOLOGOS.push({ FIRMA: 'MCC', NOMBRE: 'Magdalena Contardo Cisternas',
+  TRATAMIENTO: 'Klga.', EMAIL: 'magdalena@hospital.cl', ACTIVO: true });
+
+r = api('COORD_PEDIR_CODIGO', { firma: 'MCC' }, null);
+ok_('con correo cargado sí manda', r.ok === true, r.error);
+eq('…un solo correo', MAILS.length - _mails0, 1);
+const mail = MAILS[MAILS.length - 1];
+eq('…al correo correcto', mail.to, 'magdalena@hospital.cl');
+ok_('el correo que se muestra viene OCULTO', /…/.test(r.data.enviadoA), r.data.enviadoA);
+ok_('…y no revela el correo entero', r.data.enviadoA.indexOf('magdalena@') === -1);
+ok_('EL CÓDIGO NO VUELVE EN LA RESPUESTA',
+  !/\d{6}/.test(JSON.stringify(r.data)), JSON.stringify(r.data));
+
+const cod = (String(mail.body || '').match(/\b(\d{6})\b/) || [])[1];
+ok_('el código viaja en el cuerpo del correo', !!cod, cod);
+ok_('…y dice que vence', /vence en \d+ minutos/.test(String(mail.body || '')));
+
+r = api('COORD_RECUPERAR', { firma: 'MCC', codigo: '000000', nueva: 'clave-nueva-larga' }, null);
+ok_('un código equivocado se rechaza', r.ok === false, r.error);
+
+r = api('COORD_RECUPERAR', { firma: 'MCC', codigo: cod, nueva: 'corta' }, null);
+ok_('una clave nueva muy corta se rechaza', r.ok === false, r.error);
+
+r = api('COORD_RECUPERAR', { firma: 'MCC', codigo: cod, nueva: 'clave-nueva-larga' }, null);
+ok_('con el código correcto se fija la clave nueva', r.ok === true, r.error);
+ok_('…y la vieja ya no sirve',
+  api('COORD_ENTRAR', { firma: 'MCC', clave: claves.MCC }, null).ok === false);
+ok_('…y la nueva sí',
+  api('COORD_ENTRAR', { firma: 'MCC', clave: 'clave-nueva-larga' }, null).ok === true);
+
+r = api('COORD_RECUPERAR', { firma: 'MCC', codigo: cod, nueva: 'otra-mas-larga-aun' }, null);
+ok_('EL CÓDIGO ES DE UN SOLO USO', r.ok === false, r.error);
+
+const audC = DB.AUDIT_LOG.filter(x => x.accion === 'COORD_RECUPERA_CLAVE');
+eq('la recuperación quedó en AUDIT_LOG', audC.length, 1);
+ok_('ningún código quedó escrito en AUDIT_LOG',
+  JSON.stringify(DB.AUDIT_LOG).indexOf(cod) === -1);
+
+CONFIG.COORD_RECUPERA_CORREO = 'FALSE';   // se deja como estaba
 
 console.log(fails.length ? `\n❌ ${fails.length} FALLOS:\n  - ${fails.join('\n  - ')}` : '\n✅ coordinacion OK');
 process.exit(fails.length ? 1 : 0);

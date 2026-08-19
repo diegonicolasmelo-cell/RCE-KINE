@@ -81,9 +81,21 @@ la marca.
   distinta, no menos. Las filas se unen con `\x01`, no con cadena vacía.
 
 **Pendiente antes de publicar:** correr `coordSembrarClaves()` UNA vez desde el
-editor y entregar las temporales en persona. **D8 (segundo factor) quedó
-aplazado** por Manuel: la recuperación es que otra de las tres restablezca la
-clave, y el fondo del pozo sigue siendo el editor.
+editor y entregar las temporales en persona.
+
+**Recuperación por correo: escrita y APAGADA** (19-ago, pedido de Manuel «déjalo
+listo si fuéramos a cambiar las contraseñas a correo»). Está completa —código de
+6 dígitos de un solo uso, con vencimiento, límite de intentos, correo ofuscado
+en pantalla y traza en `AUDIT_LOG`— detrás de `CONFIG.COORD_RECUPERA_CORREO`,
+que nace en `FALSE`. Encenderla es cambiar ese valor; queda como decisión de
+Diego, que fue quien rechazó los correos. `coordDiagnosticoCorreo()` chequea
+correos y cuota antes de encender.
+🪤 Lo que más importaba probar no era que funcione encendida sino que **apagada
+no mande absolutamente nada**: una funcionalidad «lista para encender» que igual
+manda correos no está apagada, está suelta. La guardia lo verifica en los dos
+estados, y también que el código **nunca vuelve en la respuesta** —si volviera,
+pedirlo bastaría para entrar y el correo no probaría nada— ni queda escrito en
+`AUDIT_LOG`. El `MailApp` del simulador se agregó para eso.
 
 De paso, arreglo suelto: el apellido de Magdalena estaba escrito **«Contando»**
 en `esquema.gs` y en `index.html`, y ese nombre alimenta la firma del texto

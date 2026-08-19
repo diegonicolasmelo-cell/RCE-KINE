@@ -468,7 +468,7 @@ ENTONCES
 | | |
 |---|---|
 | **D7** ✅ | **La fecha corregida es de arrastre: el turno la hereda y NO la puede cambiar.** Resuelto por Manuel (18-08): «normalmente no se modifica, así que no debería poder modificarla». Es más fuerte que avisar — se bloquea. Una vez corregida, esa fecha solo la vuelve a tocar la coordinación. |
-| **D8** ⏸️ | **El segundo factor queda para más adelante** (Manuel, 18-08). Se implementa sin él: la recuperación es que **otra de las tres restablezca la clave**, que era el camino normal de todos modos, y el fondo del pozo sigue siendo el editor de Apps Script. El punto de enganche queda preparado, sin código muerto. |
+| **D8** ⏸️→✅ | **El segundo factor queda para más adelante** (Manuel, 18-08). Se implementó sin él: la recuperación normal es que **otra de las tres restablezca la clave**. **El 19-08 Manuel pidió dejarlo listo por correo**, así que el camino por correo quedó **escrito, probado y APAGADO** tras `CONFIG.COORD_RECUPERA_CORREO=FALSE`. Encenderlo es cambiar ese valor — la decisión sigue siendo de Diego, que fue quien rechazó los correos. |
 
 **El matiz de D7 que hay que respetar para no romper la clínica.** «No se puede modificar» no
 puede significar «se congela para siempre», porque hay fechas que **deben** reiniciarse por

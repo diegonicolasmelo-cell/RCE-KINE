@@ -184,6 +184,180 @@ function coordEntrar(datos) {
   } catch (e) { return err('coordEntrar: ' + e.message, ERR.INTERNO, e); }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RECUPERAR LA CLAVE POR CORREO  —  ESCRITO Y APAGADO
+//
+// Está completo y con guardias, pero **no se ejecuta**: el interruptor
+// `COORD_RECUPERA_CORREO` nace en FALSE porque Diego rechazó el envío de
+// correos y hoy el sistema no manda ninguno. Encenderlo es una decisión suya,
+// de un solo valor en CONFIG — no un desarrollo.
+//
+// Cuando se encienda, sustituye al segundo factor que quedó aplazado (D8): el
+// código llega al correo institucional en vez de a una app del teléfono.
+//
+// ANTES DE ENCENDERLO:
+//   1. Llenar la columna EMAIL de MCC, DMV y MFB en la hoja KINESIOLOGOS
+//      (la semilla las deja vacías). `coordDiagnosticoCorreo()` lo verifica.
+//   2. Poner CONFIG.COORD_RECUPERA_CORREO = TRUE.
+//   3. Saber que los correos salen desde la cuenta DUEÑA del proyecto (la de
+//      Diego), con la cuota diaria de Apps Script. Para tres personas que
+//      olvidan la clave de vez en cuando sobra, pero conviene que él lo sepa.
+// ─────────────────────────────────────────────────────────────────────────────
+
+var _COORD_COD_MIN      = 10;   // minutos de vida del código
+var _COORD_COD_INTENTOS = 3;    // intentos antes de invalidarlo
+
+/** ¿Está encendida la recuperación por correo? */
+function coordRecuperaPorCorreo() {
+  return esVerdadero(configVal('COORD_RECUPERA_CORREO', 'FALSE'));
+}
+
+/** Correo de una firma, desde KINESIOLOGOS. Vacío si no está cargado. */
+function _coordEmailDeFirma(firma) {
+  const f = String(firma || '').toUpperCase();
+  const kines = repoLeerTodos('KINESIOLOGOS', 'FIRMA', f);
+  for (let i = 0; i < kines.length; i++) {
+    const mail = String(kines[i].EMAIL || '').trim();
+    if (mail) return mail.toLowerCase();
+  }
+  return '';
+}
+
+/** «ma…a@hospital.cl» — para confirmar a cuál se mandó sin publicarlo entero. */
+function _coordEmailOculto(mail) {
+  const s = String(mail || '');
+  const i = s.indexOf('@');
+  if (i < 1) return '(correo no registrado)';
+  const u = s.slice(0, i), d = s.slice(i);
+  if (u.length <= 2) return u.charAt(0) + '…' + d;
+  return u.slice(0, 2) + '…' + u.charAt(u.length - 1) + d;
+}
+
+/** Estado público de la puerta: qué caminos de recuperación ofrecer. */
+function coordEstado() {
+  try {
+    return ok({ recuperaCorreo: coordRecuperaPorCorreo() });
+  } catch (e) { return ok({ recuperaCorreo: false }); }
+}
+
+/**
+ * Manda un código de un solo uso al correo de esa firma.
+ * Del código se guarda su HUELLA, nunca el código; y jamás vuelve en la
+ * respuesta — si volviera, pedirlo sería suficiente para entrar y el correo
+ * no estaría probando nada.
+ */
+function coordPedirCodigo(datos) {
+  try {
+    if (!coordRecuperaPorCorreo()) {
+      return err('La recuperación por correo está desactivada. Pídele a otra persona de coordinación que te restablezca la clave.', ERR.NO_AUTORIZADO);
+    }
+    const firma = String((datos && datos.firma) || '').toUpperCase().trim();
+    if (COORD_FIRMAS.indexOf(firma) === -1) return err('Esa firma no tiene acceso al modo Coordinación.', ERR.NO_AUTORIZADO);
+
+    const espera = _coordEsperaRestante(firma);
+    if (espera > 0) return err('Demasiados intentos. Vuelve a probar en ' + espera + ' minuto' + (espera === 1 ? '' : 's') + '.', ERR.NO_AUTORIZADO);
+
+    const mail = _coordEmailDeFirma(firma);
+    if (!mail) {
+      return err('La firma ' + firma + ' no tiene correo registrado en KINESIOLOGOS. Pídele a otra persona de coordinación que te restablezca la clave.', ERR.VALIDACION);
+    }
+
+    const codigo = _coordCodigo6();
+    const sal = Utilities.getUuid();
+    CacheService.getScriptCache().put('coordcod_' + firma,
+      JSON.stringify({ h: _coordHuella(firma, codigo, sal), s: sal, n: 0 }), _COORD_COD_MIN * 60);
+
+    try {
+      MailApp.sendEmail({
+        to: mail,
+        subject: 'RCE-KINE · código para recuperar tu clave',
+        body: 'Tu código es ' + codigo + '\n\n' +
+              'Sirve una sola vez y vence en ' + _COORD_COD_MIN + ' minutos.\n\n' +
+              'Si no pediste este código, ignora el mensaje y avísale a la coordinación: ' +
+              'alguien está intentando entrar con tu firma.\n',
+      });
+    } catch (e) {
+      CacheService.getScriptCache().remove('coordcod_' + firma);
+      console.error('coordPedirCodigo · envío', e);
+      return err('No se pudo enviar el correo. Pídele a otra persona de coordinación que te restablezca la clave.', ERR.INTERNO);
+    }
+
+    auditar({ email: 'coordinacion', firma: firma, accion: 'COORD_PIDE_CODIGO',
+      entidad: 'COORDINACION', idEntidad: '', patientId: '', resumen: 'código enviado por correo' });
+    return ok({ enviadoA: _coordEmailOculto(mail), minutos: _COORD_COD_MIN });
+  } catch (e) { return err('coordPedirCodigo: ' + e.message, ERR.INTERNO, e); }
+}
+
+/** Seis dígitos, con el primero distinto de 0 para que no se pierda al dictar. */
+function _coordCodigo6() {
+  const b = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, Utilities.getUuid());
+  let s = '';
+  for (let i = 0; i < 6; i++) s += String(Math.abs(b[i]) % 10);
+  return (s.charAt(0) === '0' ? '7' : s.charAt(0)) + s.slice(1);
+}
+
+/** Con el código válido, la persona fija su clave nueva sin ayuda de nadie. */
+function coordRecuperarConCodigo(datos) {
+  try {
+    if (!coordRecuperaPorCorreo()) {
+      return err('La recuperación por correo está desactivada.', ERR.NO_AUTORIZADO);
+    }
+    const firma = String((datos && datos.firma) || '').toUpperCase().trim();
+    const codigo = String((datos && datos.codigo) || '').trim();
+    const nueva = String((datos && datos.nueva) || '');
+    if (COORD_FIRMAS.indexOf(firma) === -1) return err('Esa firma no tiene acceso al modo Coordinación.', ERR.NO_AUTORIZADO);
+    if (nueva.length < 8) return err('La clave nueva debe tener al menos 8 caracteres.', ERR.VALIDACION);
+
+    const cache = CacheService.getScriptCache();
+    const hit = cache.get('coordcod_' + firma);
+    if (!hit) return err('El código venció o no se pidió. Pide uno nuevo.', ERR.NO_AUTORIZADO);
+    let est;
+    try { est = JSON.parse(hit); } catch (e) { return err('El código venció. Pide uno nuevo.', ERR.NO_AUTORIZADO); }
+
+    if (_coordHuella(firma, codigo, est.s) !== est.h) {
+      est.n = (est.n || 0) + 1;
+      if (est.n >= _COORD_COD_INTENTOS) {
+        cache.remove('coordcod_' + firma);
+        _coordSumarFallido(firma);
+        auditar({ email: 'coordinacion', firma: firma, accion: 'COORD_CODIGO_AGOTADO',
+          entidad: 'COORDINACION', idEntidad: '', patientId: '', resumen: 'código invalidado por intentos' });
+        return err('Código incorrecto demasiadas veces. Pide uno nuevo.', ERR.NO_AUTORIZADO);
+      }
+      cache.put('coordcod_' + firma, JSON.stringify(est), _COORD_COD_MIN * 60);
+      return err('Código incorrecto.', ERR.NO_AUTORIZADO);
+    }
+
+    cache.remove('coordcod_' + firma);          // un solo uso, sin excepciones
+    _coordGuardarClave(firma, nueva);
+    _coordMarcarTemporal(firma, false);
+    auditar({ email: 'coordinacion', firma: firma, accion: 'COORD_RECUPERA_CLAVE',
+      entidad: 'COORDINACION', idEntidad: '', patientId: '', resumen: 'recuperó su clave con código por correo' });
+    return ok({ firma: firma });
+  } catch (e) { return err('coordRecuperarConCodigo: ' + e.message, ERR.INTERNO, e); }
+}
+
+/**
+ * Chequeo previo a encender el interruptor. Se corre desde el editor: dice si
+ * las tres firmas tienen correo y si el envío está permitido — antes de que
+ * alguien descubra que no, justo cuando perdió la clave.
+ */
+function coordDiagnosticoCorreo() {
+  const out = ['── Recuperación por correo ──',
+    'Interruptor COORD_RECUPERA_CORREO: ' + (coordRecuperaPorCorreo() ? 'ENCENDIDO' : 'apagado')];
+  let faltan = 0;
+  COORD_FIRMAS.forEach(function (f) {
+    const m = _coordEmailDeFirma(f);
+    if (!m) faltan++;
+    out.push('  ' + f + ': ' + (m ? m : '⚠️ SIN CORREO en KINESIOLOGOS'));
+  });
+  try {
+    out.push('Correos que quedan hoy en la cuota: ' + MailApp.getRemainingDailyQuota());
+  } catch (e) { out.push('⚠️ No se pudo leer la cuota de correo: ' + e.message); }
+  if (faltan) out.push('\n⚠️ Faltan ' + faltan + ' correo(s). Con el interruptor encendido, esas firmas no podrán recuperar su clave por esta vía.');
+  console.log(out.join('\n'));
+  return out;
+}
+
 function coordCambiarClave(datos) {
   try {
     const g = coordExigirSesion(datos && datos.token);

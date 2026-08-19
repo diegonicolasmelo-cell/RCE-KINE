@@ -174,6 +174,16 @@ global.CacheService = { getScriptCache: () => ({
   remove: k => { delete _CACHE[k]; },
 }) };
 global.__simCacheReset = () => { for (const k in _CACHE) delete _CACHE[k]; };
+// MailApp doble (ago-2026): la recuperacion por correo del modo Coordinacion
+// esta escrita pero APAGADA. Sin este doble no se podria probar ni que manda el
+// codigo cuando se enciende, ni —lo que mas importa— que NO manda nada mientras
+// siga apagada. Los envios quedan en MAILS para inspeccionarlos.
+const MAILS = [];
+global.MailApp = {
+  sendEmail: o => { MAILS.push(typeof o === 'string' ? { to: o } : o); },
+  getRemainingDailyQuota: () => 1500,
+};
+global.__simMails = MAILS;
 global.LockService = { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) };
 const PROPS = {};
 global.PropertiesService = { getScriptProperties: () => ({ getProperty: k => (k in PROPS ? PROPS[k] : null), setProperty: (k, v) => { PROPS[k] = String(v); }, deleteProperty: k => { delete PROPS[k]; } }) };
@@ -210,4 +220,4 @@ DB.VENTILADORES.push(
   { ID_VM: 'vm2', NOMBRE: 'PB-840', MARCA: 'Medtronic', ESTADO: 'Operativo', ACTIVO: true, UBIC_TIPO: 'BODEGA', UBIC_DETALLE: '' },
 );
 
-module.exports = { api: global.api, DB, SIM, CONFIG };
+module.exports = { api: global.api, DB, SIM, CONFIG, MAILS };
