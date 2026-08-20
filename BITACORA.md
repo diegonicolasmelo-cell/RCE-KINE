@@ -19,7 +19,62 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
-## ✅ EN PRODUCCIÓN: Versión 36, sello 5.64-coordinacion (20-ago-2026, 15:07)
+## ✅ EN PRODUCCIÓN: Versión 37, sello 5.65-coordinacion (20-ago-2026, 15:27)
+
+Misma implementación `AKfycbxMKE6…`. Verificada contra el `/exec` real
+(`Cargando RCE-KINE (5.65-coordinacion)`, HTTP 200) **y decodificando los 93 trozos
+del base64 del cohete publicado**, para probar que el arreglo viaja de verdad dentro
+y no solo que el sello subió. Batería 80/80, 0 errores en el registro de ejecuciones.
+
+### 🔴 Los campos de coordinación eran invisibles, y la guardia dijo que no
+
+Manuel mandó una captura de la ficha: las etiquetas se leían, los **valores** no.
+La causa:
+
+```css
+.datein{ background:rgba(255,255,255,.12); color:#f2f2f7; }
+```
+
+`.datein` nació para la **barra oscura** del dashboard —texto casi blanco sobre fondo
+oscuro, ahí se lee perfecto—. Pero la **puerta de coordinación**, la **ficha** y los
+**diálogos de clave** (`.uc-card`) son fondo BLANCO. Ese mismo texto daba **1,12:1**.
+
+Traducido a lo que le pasaba a una persona: **escribía su usuario y su clave sin ver
+lo que escribía**, y al abrir una ficha no veía ni una fecha de las que venía a
+corregir. Magdalena entró el 20-ago y cambió su clave a las 13:05 con esos campos.
+
+### 🪤 Y la lección real: la guardia de contraste dio VERDE con esto en pantalla
+
+`coordinacion_contraste.js` se escribió esa misma tarde, midió 16 textos, dio verde y
+con eso se publicó la V36. Tenía **dos agujeros**:
+
+1. **Medía solo NODOS DE TEXTO.** Un `<input value="…">` no tiene ninguno ⇒ la guardia
+   era ciega a todos los campos de formulario… que es exactamente de lo que está hecha
+   la pantalla donde se corrigen fichas.
+2. **Montaba una ficha INVENTADA** (`innerHTML` con markup a mano) en vez de llamar a
+   `coordPintarFicha`. Medía una maqueta, no la pantalla.
+
+Reescrita: llama a la función real que pinta la ficha, monta el diálogo de clave con
+`coordCambiarClavePedir`, y mide **valor, placeholder y campo vacío** de cada input,
+además del texto. Pasó de 16 elementos medidos a **45**, y contra el código publicado
+se pone **roja con 9 hallazgos a 1,12:1** — la prueba de que ahora sirve.
+
+👉 Es la regla de siempre de este proyecto, otra vez y en su forma más pura: **verde no
+es correcto**. Una guardia que no reproduce la pantalla real solo se mide a sí misma.
+Antes de creerle a una guardia nueva, hay que verla FALLAR contra el bug que dice cazar.
+
+**El arreglo** no toca `.datein` global (en la barra oscura está bien): re-tematiza solo
+donde el fondo es claro — `#coordPuerta`, `#coordFicha` y `.uc-card` — con fondo blanco,
+texto normal, placeholder legible y el icono del calendario sin invertir. De paso,
+`.uc-det` (el bloque donde los diálogos ponen sus instrucciones, incluidas las etiquetas
+de los campos de clave) pasó de `#94a3b8` (2,45:1) a `#475569`.
+
+🔶 Queda anotado: `--muted` tiene el mismo problema de contraste en el resto de la app.
+No se tocó global porque afecta a todas las vistas y merece su propia tanda.
+
+---
+
+## Versión 36, sello 5.64-coordinacion (20-ago-2026, 15:07) — reemplazada por la V37
 
 Publicada sobre la implementación existente — mismo ID `AKfycbxMKE6…`, la URL del
 equipo no cambió. Verificada contra el `/exec` real: HTTP 200 y
