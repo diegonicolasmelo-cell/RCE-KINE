@@ -128,6 +128,9 @@ global.Utilities = {
 global._agregarHitoInterno = h => { HITOS.push(Object.assign({ via: 'sync' }, h)); };
 global._agregarHitoInternoSinSync = h => { HITOS.push(Object.assign({ via: 'sinsync' }, h)); };
 global._hitoAnexoPrefijo = n => '🔬 ' + n;
+// El motor de texto vive en dominio_texto.gs; aquí solo interesa que anular
+// llegue (o no llegue) al camino de escritura, no qué narra.
+global.generarTextoEvolucion = () => 'texto de prueba';
 
 eval(fs.readFileSync(path.join(v2, 'infra_fechas.gs'), 'utf8'));
 eval(fs.readFileSync(path.join(v2, 'svc_evoluciones.gs'), 'utf8'));
@@ -257,6 +260,40 @@ const r6b = _auditar(ctx6, 'ANEXAR_EVENTO', () => anexarEventoRapido(datos6b, ct
 si('el anexo correcto se acepta', r6b.ok);
 eq('y deja una sola fila, sin sufijo de rechazo', (AUDIT[0] || {}).accion, 'ANEXAR_EVENTO');
 eq('con el pid del episodio corregido', (AUDIT[0] || {}).patientId, 'pANA');
+
+/* ══ 7 · Anular no le reescribe el estado al de al lado ═══════════════════
+   `anularEvento` termina llamando a `_syncCamaDesdeEvolucion`, que vuelca vía
+   aérea, soporte, modo y fechas de inicio sobre CAMAS_ESTADO. Si la evolución
+   es de un episodio que ya no ocupa la cama, eso le reescribe el censo AL
+   OCUPANTE ACTUAL — escribe más lejos que el bug que esta tanda vino a cerrar. */
+console.log('\n7 · Anular un evento de un episodio anterior no toca al ocupante de ahora');
+reset();
+const camaAntes = JSON.stringify(DB.CAMAS_ESTADO.find(c => c.ID_CAMA === '6'));
+const r7 = anularEvento({ idCama: '6', turnoKey: '2026-08-06-Noche', tipo: 'pve_ext', patientId: 'pANA' },
+  { firma: 'Klgo. Prueba' });
+eq('la anulación sobre el episodio anterior se rechaza', r7.ok, false);
+si('y el mensaje explica que le reescribiría el estado a otro',
+  /paciente que está ahora|episodio anterior/i.test(String(r7.error || '')));
+eq('la fila de la cama del ocupante actual queda byte a byte igual',
+  JSON.stringify(DB.CAMAS_ESTADO.find(c => c.ID_CAMA === '6')), camaAntes);
+si('el mensaje no nombra al otro paciente',
+  !/Ana|Bruno|pANA|pBRUNO/.test(String(r7.error || '')));
+
+console.log('\n7b · Y sobre su propio episodio el candado no se mete');
+reset();
+/* Se envuelve en try/catch a propósito: anular arrastra medio motor de texto y
+   de censo, que este arnés no monta. Lo que hay que probar aquí NO es que anular
+   funcione entero —eso lo cubren otras guardias— sino que el candado de
+   identidad NO se dispare sobre el propio episodio. Un candado que también frena
+   al paciente correcto es tan malo como no tenerlo. */
+let msg7b = '';
+try {
+  const r7b = anularEvento({ idCama: '9', turnoKey: '2026-08-06-Noche', tipo: 'pve_ext' },
+    { firma: 'Klgo. Prueba' });
+  msg7b = String((r7b && r7b.error) || '');
+} catch (e) { msg7b = String(e.message || ''); }
+si('no lo frena el candado de identidad (puede fallar por otra cosa, no por esto)',
+  !/paciente que está ahora|episodio anterior/i.test(msg7b));
 
 console.log('\n' + (fails.length ? '❌ FALLARON ' + fails.length + ': ' + fails.join(' · ')
   : '✅ evento_paciente: el ➕ le escribe a quien corresponde'));

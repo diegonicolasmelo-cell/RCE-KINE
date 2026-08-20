@@ -877,10 +877,18 @@ function _ubicarEvolucionDeTurno(patientId, turnoKey, idCama) {
   return halladas[0];
 }
 
-function obtenerEvolucion(idCama, turnoKey) {
+function obtenerEvolucion(idCama, turnoKey, patientId) {
   try {
-    const id = 'CAMA_' + idCama + '_' + turnoKey;
-    return ok(repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', id));
+    /* Antes resolvía con `repoBuscarPorId` sobre la clave de la cama, y solo en
+       la hoja viva: en una cama rotada devolvía LA PRIMERA —la del otro
+       paciente— y de un egresado no devolvía nada. Ahora lo ubica el localizador,
+       que mira las dos hojas y AVISA cuando no puede decidir en vez de elegir. */
+    const ubic = _ubicarEvolucionDeTurno(String(patientId || ''), turnoKey, idCama);
+    if (ubic && ubic.ambigua) {
+      return err('La cama ' + idCama + ' tuvo dos pacientes en ese turno: hay que indicar de cuál ' +
+        'se está hablando.', ERR.VALIDACION);
+    }
+    return ok(ubic ? ubic.obj : null);
   } catch (e) { return err('obtenerEvolucion: ' + e.message, ERR.INTERNO, e); }
 }
 
@@ -1074,9 +1082,24 @@ function anularEvento(datos, ctx) {
   const tipo = String(datos.tipo || '');
   if (!idCama || !turnoKey || !tipo) return err('Faltan idCama/turnoKey/tipo.', ERR.VALIDACION);
 
-  const evoR = obtenerEvolucion(idCama, turnoKey);
-  if (!evoR.ok || !evoR.data) return err('No existe evolución para ese turno.', ERR.VALIDACION);
+  const evoR = obtenerEvolucion(idCama, turnoKey, datos.patientId);
+  if (!evoR.ok) return evoR;   // p. ej. la cama tuvo dos pacientes ese turno
+  if (!evoR.data) return err('No existe evolución para ese turno.', ERR.VALIDACION);
   const evo = evoR.data;
+
+  /* 🔴 CANDADO MÍNIMO. Al final, `anularEvento` llama a `_syncCamaDesdeEvolucion`
+     con los datos de la evolución: vía aérea, soporte, modo, fechas de inicio.
+     Si esa evolución es de un episodio que ya no ocupa la cama, ese sync le
+     reescribe el censo AL OCUPANTE ACTUAL — escribe más lejos que el bug que
+     esta tanda vino a cerrar. Anular sobre episodios cerrados es deuda conocida
+     y queda fuera (NO3 del PRD); lo que no puede pasar es que toque a un tercero. */
+  const _camaAnu = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+  const _pidCama = String((_camaAnu && _camaAnu.PATIENT_ID) || '');
+  const _pidEvo = String(evo.PATIENT_ID || '');
+  if (_pidCama && _pidEvo && _pidCama !== _pidEvo) {
+    return err('Esa evolución es de un episodio anterior de la cama ' + idCama + '. Anular desde ' +
+      'aquí le reescribiría el estado al paciente que está ahora.', ERR.VALIDACION);
+  }
 
   // Guard: sin evoluciones posteriores del mismo paciente
   const posteriores = repoLeerTodos('EVOLUCIONES', 'PATIENT_ID', evo.PATIENT_ID)

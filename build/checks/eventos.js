@@ -13,7 +13,12 @@ const v2 = path.join(__dirname, '..', '..', 'v2');
 // ── Stubs de infraestructura ──
 const DB = {};
 const HITOS = [];
-global.repoLeerTodos = h => (DB[h] || []).slice();
+/* 🪤 Este stub IGNORABA el filtro que se le pasa: `repoLeerTodos(h, k, v)`
+   devolvía la hoja entera. Cualquier arreglo que empezara a leer filtrado daba
+   verde sobre datos SIN filtrar — o sea, la guardia confirmaba que el filtro
+   daba igual. Ahora filtra como el de verdad (repo.gs:22). */
+global.repoLeerTodos = (h, k, v) => (DB[h] || [])
+  .filter(r => k === undefined || String(r[k]) === String(v)).slice();
 global.repoBuscarPorId = (h, campo, id) =>
   (DB[h] || []).find(r => String(r[campo]) === String(id)) || null;
 global.repoActualizar = (h, campo, id, cambios) => {
