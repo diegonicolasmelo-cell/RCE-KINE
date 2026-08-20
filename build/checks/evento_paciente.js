@@ -229,6 +229,35 @@ reset();
 const r5b = anexarEventoRapido({ idCama: '9', turnoKey: '2026-08-06-Noche', tipo: 'hme' }, { firma: 'K' });
 si('el cambio de HME normal se acepta', r5b.ok);
 
+/* ══ 6 · El rechazo deja rastro ═══════════════════════════════════════════
+   Sin esto, alguien intenta corregir un turno, el candado lo rechaza, abandona
+   — y no queda ni una línea de que haya pasado. Es el riesgo que el propio
+   diseño del candado reconoce y que, sin auditar, es indetectable después. */
+console.log('\n6 · Un rechazo del candado queda escrito en AUDIT_LOG');
+reset();
+const AUDIT = [];
+global.auditar = a => { AUDIT.push(a); };
+eval(fs.readFileSync(path.join(v2, 'api.gs'), 'utf8'));
+const ctx6 = { email: 'kine@hospital.cl', firma: 'Klgo. Prueba' };
+const datos6 = anexo();
+const r6 = _auditar(ctx6, 'ANEXAR_EVENTO', () => anexarEventoRapido(datos6, ctx6), datos6);
+eq('el anexo sigue rechazándose', r6.ok, false);
+eq('y deja exactamente UNA fila de auditoría', AUDIT.length, 1);
+eq('con la acción marcada como rechazo', (AUDIT[0] || {}).accion, 'ANEXAR_EVENTO_RECHAZADO');
+eq('apuntando a la cama del intento', (AUDIT[0] || {}).idEntidad, '6');
+si('con el motivo tal como lo vio la persona', /dos pacientes/.test((AUDIT[0] || {}).resumen || ''));
+si('y sin el nombre ni el pid del otro paciente',
+  !/Ana|Bruno|pANA|pBRUNO/.test((AUDIT[0] || {}).resumen || ''));
+
+console.log('\n6b · Un anexo que SÍ entra sigue auditándose como antes');
+reset();
+AUDIT.length = 0;
+const datos6b = anexo({ patientId: 'pANA' });
+const r6b = _auditar(ctx6, 'ANEXAR_EVENTO', () => anexarEventoRapido(datos6b, ctx6), datos6b);
+si('el anexo correcto se acepta', r6b.ok);
+eq('y deja una sola fila, sin sufijo de rechazo', (AUDIT[0] || {}).accion, 'ANEXAR_EVENTO');
+eq('con el pid del episodio corregido', (AUDIT[0] || {}).patientId, 'pANA');
+
 console.log('\n' + (fails.length ? '❌ FALLARON ' + fails.length + ': ' + fails.join(' · ')
   : '✅ evento_paciente: el ➕ le escribe a quien corresponde'));
 process.exit(fails.length ? 1 : 0);
