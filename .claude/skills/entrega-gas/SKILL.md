@@ -29,9 +29,37 @@ debe acompañar a cada envío. Saltarse pasos ya costó días de depuración
    9 archivos .gs; los 11 `svc_*.gs` del repo viajan como un solo
    `servicios.gs` generado por `build/fusionar_servicios.js` (falla solo si
    hay funciones duplicadas — no ignorar ese fallo).
-5. **Verificar antes de enviar.** Correr la skill `verificar` (o al menos
-   `build/checks/convenciones.js` + `arranque.js` sobre el archivo generado).
-   Nunca enviar un archivo que no arrancó en el simulador.
+5. **Verificar antes de enviar.** Correr la batería completa (skill `rce-kine`,
+   `references/verificacion.md`; o directo `node build/verificar.js` si ya estás
+   en el repo) o al menos `build/checks/convenciones.js` + `arranque.js` sobre
+   el archivo generado. Nunca enviar un archivo que no arrancó en el simulador.
+6. **Qué archivos pegar SE CALCULA, no se recuerda:** `node build/que_pegar.js
+   origin/main` (o contra la referencia de producción, que puede ir detrás de
+   `main`). Recordarlo ya dejó dos entregas incompletas: faltaron `esquema` —y
+   sin él las columnas nuevas no existen, así que el formulario manda datos a
+   ninguna parte, en silencio— `dominio` y `mantenimiento`.
+7. 🔴 **EL PORTAPAPELES CORROMPE LOS ACENTOS EN ARCHIVOS GRANDES** (19-ago-2026).
+   `pbcopy` con `servicios.gs` (377 KB) entregó 366 KB: `Diagnóstico` llegó como
+   `Diagnostico`, `única` como `nica`. **No se detecta a ojo** — pegado en el
+   editor el archivo se ve perfecto. Se caza con `cmp` contra el original, nunca
+   mirando. Es la misma familia del mojibake de ago-2026 (`FALLÓ` → `FALL√ì`) y
+   **la razón de fondo por la que el index viaja como cohete ASCII puro**: ese
+   formato sí sobrevive el viaje.
+
+   Para pegar un `.gs` grande con acentos, la vía que funcionó: **servidor HTTP
+   local con CORS** + `fetch()` desde la consola del editor hacia
+   `monaco.editor.getModels()`, y **verificar cada modelo después** (longitud,
+   primeros/últimos 60 caracteres, y que los acentos sigan ahí). Ojo: la
+   longitud que informa JS cuenta unidades UTF-16, así que un archivo con emoji
+   da menos caracteres que bytes — comparar contra `len(texto)` de Python, no
+   contra el tamaño en disco.
+8. **Elegir el modelo del editor por URI o por cabecera, no por contenido**: hay
+   tres proyectos llamados «RCE KINE 3.0» y buscar «el que contenga tal función»
+   devuelve el dispatcher, que también la nombra. Antes de pegar, confirmar el
+   proyecto comparando el **ID de implementación** carácter por carácter.
+9. **El selector de funciones puede ejecutar la ANTERIOR.** Tras elegir una
+   función, confirmar que el botón cambió, y después leer el registro de
+   ejecución para ver qué corrió de verdad. No creerle al clic.
 
 ## Pipeline
 
