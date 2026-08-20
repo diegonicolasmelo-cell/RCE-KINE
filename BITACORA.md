@@ -19,7 +19,68 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
-## ✅ EN PRODUCCIÓN: Versión 35, sello 5.63-coordinacion (19-ago-2026, 11:18)
+## ✅ EN PRODUCCIÓN: Versión 36, sello 5.64-coordinacion (20-ago-2026, 15:07)
+
+Publicada sobre la implementación existente — mismo ID `AKfycbxMKE6…`, la URL del
+equipo no cambió. Verificada contra el `/exec` real: HTTP 200 y
+`Cargando RCE-KINE (5.64-coordinacion)`. Batería **80/80**.
+
+**1 · Cerrar sesión cerraba solo la pantalla.** `coordSalir()` ponía `COORD_TK=null`
+en el navegador y nada más: el token seguía vivo en `CacheService` hasta 30 minutos
+de inactividad. O sea que la tablet del office que quedaba abierta en la pestaña que
+puede corregir fechas de cualquier paciente **no se cerraba** — ni tocando «Salir» en
+otro equipo, ni tocándolo en ella misma. Ahora hay `coordCerrarSesion` (acción
+`COORD_SALIR`), simétrica de `_coordAbrirSesion`: borra la clave del caché y audita
+`COORD_SALIDA` con la firma de quien tenía la sesión. Cerrar algo ya cerrado responde
+ok igual —si fuera error, el front podría quedar atrapado en una sesión que cree
+abierta— pero solo audita cuando había algo que cerrar. Cierra el dispositivo donde se
+toca; cerrar todas las sesiones de una persona exigiría un índice de sesiones vivas
+que hoy no existe.
+
+**2 · El panel no se leía, y se midió en vez de opinarlo.** Reporte de Manuel: «tiene
+texto que no se ve o se ve muy claro». Medido en Chromium sobre el index real:
+
+- `.pivot-empty` → **2,30:1** (mínimo legible 4,5:1). No es decorativo: es la ÚNICA
+  instrucción que ve quien acaba de entrar («Escribe al menos dos letras, o un RUT»).
+- `.dpset` → **4,27:1**, y ahí vivía el botón de cerrar sesión, gris y sin icono entre
+  dos botones que sí tenían emoji.
+- Con la ficha montada aparecieron dos más: `.sub-sec-title` 4,18:1 y `.ficha-chip` 4,47:1.
+
+Guardia nueva `coordinacion_contraste.js`: monta la pestaña entera —puerta, panel y
+ficha— y exige WCAG AA (4,5:1, o 3:1 para texto grande) a **cada** texto, calculando el
+fondo efectivo subiendo por los padres hasta el primero opaco. Un color se aclara de
+nuevo sin que nadie lo note, porque en la pantalla del que lo escribe casi siempre se ve.
+
+🔶 `--muted` tiene el MISMO problema fuera de esta pestaña. Se acotó a `#tcC` a
+propósito: cambiarlo global toca todas las vistas y merece su propia tanda.
+
+**3 · 🔴 La Versión 35 se publicó SIN el arreglo v5.61 de Diego.** Al comparar el editor
+contra el repo antes de pegar, `dominio.gs` difería en 484 caracteres — y nadie lo había
+tocado desde entonces. La causa: la V35 se publicó sin pegar `dominio.gs`, así que
+producción llevaba **4 días** sin «el candado de *tose, moviliza y deglute* iba al revés»
+(corrección clínica de Diego del 16-ago: ese estado es para el paciente SIN vía aérea
+artificial, porque con TOT/TQT las secreciones se aspiran y se ven). **Es exactamente la
+trampa de la Versión 24**, que se llamó «ola 4 manuel+bodega dividida» y no llevaba la
+bodega. Diego lo cree publicado desde el 16-ago.
+
+👉 Lección, otra vez: **comparar el editor contra el repo archivo por archivo ANTES de
+publicar**, por longitud UTF-16. Un −1 es solo el `\n` final que el editor recorta;
+cualquier otra diferencia es código que falta.
+
+**Cómo se pegó.** Cuatro archivos (`index`, `api`, `servicios`, `dominio`) por **servidor
+HTTP local con CORS + `fetch()`** hacia `monaco.editor.getModels()`, nunca por
+portapapeles. Verificado por archivo: longitud exacta contra el origen, primeros y
+últimos 40 caracteres, y conteo de acentos. `servicios.gs` conserva sus **1.752** acentos
+— es el mismo archivo que el 19-ago llegó corrupto con `pbcopy` (377 KB → 366 KB,
+`Diagnóstico` → `Diagnostico`, sin que se note a ojo).
+
+**Lo que NO se pegó:** `mantenimiento_manuel.gs`, borrado del editor ese mismo día
+(llevaba 17 apellidos de pacientes reales). 🪤 `que_pegar.js` lo va a seguir pidiendo
+porque compara contra `main` y no sabe que se borró a propósito.
+
+---
+
+## Versión 35, sello 5.63-coordinacion (19-ago-2026, 11:18) — reemplazada por la V36
 
 Publicó Manuel, con Diego avisado antes de empezar. Se editó la implementación
 EXISTENTE (mismo ID `AKfycbxMKE6…`), así que la URL del equipo no cambió.
