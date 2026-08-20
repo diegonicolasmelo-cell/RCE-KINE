@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.64-coordinacion">
+<meta name="rce-version" content="5.65-coordinacion">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -181,6 +181,29 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
    color, mismos fondos claros). No se cambia global aqui porque toca todas las
    vistas y merece su propia tanda con la bateria completa mirandolo. */
 #tcC .sub-sec-title, #tcC .ficha-chip{color:#455c73;}
+/* 🔴 `.datein` NACIO PARA LA BARRA OSCURA del dashboard: fondo blanco al 12% y
+   texto #f2f2f7 (casi blanco). Ahi se lee perfecto. Pero la PUERTA de
+   coordinacion y la FICHA tienen fondo BLANCO, y ese mismo texto daba 1,12:1
+   — o sea invisible: quien entraba escribia su usuario y su clave A CIEGAS, y
+   despues no veia ni una fecha de la ficha que venia a corregir.
+   Reportado por Manuel con captura (20-ago-2026) DESPUES de publicar la V36:
+   la primera version de la guardia de contraste no lo caz  porque solo miraba
+   nodos de texto, y un <input value> no tiene ninguno.
+   NO se toca `.datein` global (en la barra esta bien): se re-tematiza solo
+   donde el fondo es claro. */
+/* `.uc-card` va incluida y NO es un detalle: los dialogos de clave viven ahi
+   (cambiar mi clave, recuperar por codigo, restablecer la de otra persona) y
+   tambien son fondo blanco. Magdalena cambio su clave el 20-ago escribiendo en
+   campos que no se veian. */
+#coordPuerta .datein, #coordFicha .datein, .uc-card .datein{
+  background:#fff;color:var(--txt);border-color:var(--border);}
+#coordPuerta .datein::placeholder, #coordFicha .datein::placeholder,
+.uc-card .datein::placeholder{color:#5b6b7c;}
+/* El icono del calendario viene invertido para fondo oscuro; sobre blanco
+   desaparece igual que el texto. */
+#coordPuerta .datein::-webkit-calendar-picker-indicator,
+#coordFicha .datein::-webkit-calendar-picker-indicator,
+.uc-card .datein::-webkit-calendar-picker-indicator{filter:none;}
 .dpset.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .dash-dates{display:flex;align-items:center;gap:6px;}
 .dashin{background:#fff!important;color:#1e293b!important;border:1px solid #cbd5e1!important;height:33px;}
@@ -1307,7 +1330,10 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
 .uc-card.uc-rojo .uc-ico{background:#fef2f2;}
 .uc-tit{font-size:1.02rem;font-weight:800;color:#0f172a;margin-bottom:6px;}
 .uc-msg{font-size:.88rem;color:#475569;line-height:1.55;}
-.uc-det{font-size:.78rem;color:#94a3b8;margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;
+/* #94a3b8 sobre #f8fafc daba 2,45:1 — la mitad del minimo legible. Este bloque
+   no es decorativo: es donde los dialogos ponen sus INSTRUCCIONES, incluidas
+   las etiquetas de los campos de clave («Clave actual», «Clave nueva»). */
+.uc-det{font-size:.78rem;color:#475569;margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;
   border-radius:8px;padding:7px 12px;}
 .uc-btns{display:flex;gap:9px;margin-top:18px;}
 .uc-cancel{flex:1;height:40px;border:1px solid #e2e8f0;background:#f8fafc;color:#374151;border-radius:9px;
@@ -4317,7 +4343,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.64-coordinacion]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.65-coordinacion]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
