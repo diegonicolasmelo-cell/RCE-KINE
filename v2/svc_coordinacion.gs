@@ -212,6 +212,40 @@ function coordEntrar(datos) {
   } catch (e) { return err('coordEntrar: ' + e.message, ERR.INTERNO, e); }
 }
 
+/**
+ * CERRAR SESIÓN — la operación simétrica de `_coordAbrirSesion` (20-ago-2026).
+ *
+ * POR QUÉ EXISTE: el botón «Salir» del panel solo limpiaba variables del
+ * NAVEGADOR. El token seguía vivo en el caché hasta 30 minutos de inactividad,
+ * así que la tablet del office que quedaba abierta NO se cerraba tocando Salir
+ * en otro equipo — y ni siquiera tocándolo en la propia tablet. La sesión da
+ * acceso a corregir fechas de cualquier paciente de la unidad: cerrarla tiene
+ * que cerrarla de verdad, en el servidor, que es donde vive el candado.
+ *
+ * Cerrar algo que ya no existe NO es un error: se responde ok igual, para que
+ * el front nunca se quede atrapado en una sesión que cree abierta. Lo que sí
+ * cambia es que solo se audita cuando había algo que cerrar.
+ *
+ * Cierra la sesión de ESTE token, o sea el dispositivo donde se tocó. Cerrar
+ * todas las de una persona a la vez exigiría un índice de sesiones vivas por
+ * usuario, que hoy no existe.
+ */
+function coordCerrarSesion(datos) {
+  try {
+    const token = String((datos && datos.token) || '');
+    if (!token) return ok({ cerrada: false, motivo: 'sin token' });
+
+    const ses = coordSesion(token);
+    if (!ses) return ok({ cerrada: false, motivo: 'la sesión ya no estaba abierta' });
+
+    CacheService.getScriptCache().remove('coordses_' + token);
+    auditar({ email: 'coordinacion', firma: ses.firma, accion: 'COORD_SALIDA',
+      entidad: 'COORDINACION', idEntidad: ses.usuario, patientId: '',
+      resumen: 'cerró la sesión de coordinación' });
+    return ok({ cerrada: true, firma: ses.firma });
+  } catch (e) { return err('coordCerrarSesion: ' + e.message, ERR.INTERNO, e); }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // RECUPERAR LA CLAVE POR CORREO  —  ESCRITO Y APAGADO
 //

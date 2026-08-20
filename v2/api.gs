@@ -137,6 +137,9 @@ function api(accion, datos, token) {
       // entró al modo (MCC/DMV/MFB), no con la del turno.
       case 'COORD_ESTADO':       return coordEstado();
       case 'COORD_ENTRAR':       return coordEntrar(datos);
+      // Simétrica de ENTRAR: mata el token en el servidor. Sin esto, «Salir»
+      // solo limpiaba el navegador y la sesión seguía viva hasta 30 min.
+      case 'COORD_SALIR':        return coordCerrarSesion(datos);
       // Recuperación por correo: escrita y APAGADA (CONFIG.COORD_RECUPERA_CORREO).
       // Las dos rechazan mientras el interruptor esté en FALSE.
       case 'COORD_PEDIR_CODIGO': return coordPedirCodigo(datos);

@@ -165,14 +165,32 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .dash-bar-title{font-size:1.05rem;font-weight:800;color:var(--pdark);letter-spacing:-.01em;}
 .dash-range{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .dash-presets{display:flex;gap:4px;background:#eef2f7;padding:3px;border-radius:8px;}
-.dpset{background:transparent;border:none;padding:5px 12px;font-size:.76rem;font-weight:700;color:#64748b;border-radius:6px;cursor:pointer;transition:all .12s;}
+/* #475569 y no #64748b: el anterior daba 4,27:1 sobre la barra (#eef3f9), bajo
+   el minimo legible de 4,5:1. Medido en Chromium, no estimado. */
+.dpset{background:transparent;border:none;padding:5px 12px;font-size:.76rem;font-weight:700;color:#475569;border-radius:6px;cursor:pointer;transition:all .12s;}
 .dpset:hover{color:var(--primary);}
+/* El cierre de sesion de coordinacion es lo unico rojo de esa barra: da acceso
+   a corregir fechas de cualquier paciente, asi que tiene que verse de lejos.
+   Antes era una palabra gris entre dos botones con emoji. */
+.dpset.coord-salir{background:var(--danger);color:#fff;}
+.dpset.coord-salir:hover{background:#b91c1c;color:#fff;}
+/* Los subtitulos y los chips de la ficha usan --muted, que en la paleta activa
+   (#5b7793) da 4,18-4,47:1 — apenas por debajo del minimo. Se oscurecen DENTRO
+   de la pestaña de coordinacion, que es lo que este cambio se comprometio a
+   tocar. 🔶 OJO: --muted tiene el MISMO problema en el resto de la app (mismo
+   color, mismos fondos claros). No se cambia global aqui porque toca todas las
+   vistas y merece su propia tanda con la bateria completa mirandolo. */
+#tcC .sub-sec-title, #tcC .ficha-chip{color:#455c73;}
 .dpset.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .dash-dates{display:flex;align-items:center;gap:6px;}
 .dashin{background:#fff!important;color:#1e293b!important;border:1px solid #cbd5e1!important;height:33px;}
 
 /* mensaje vacío/cargando del dashboard */
-.pivot-empty{color:#94a3b8;text-align:center;padding:50px;font-style:italic;}
+/* Era #94a3b8 = 2,30:1, la MITAD del minimo legible. No es decorativo: en el
+   panel de coordinacion este texto es la unica instruccion que ve quien acaba
+   de entrar («Escribe al menos dos letras, o un RUT»). Pedido de Manuel
+   (20-ago-2026): que se lea. Ahora usa el color de texto normal. */
+.pivot-empty{color:var(--txt);text-align:center;padding:50px;font-style:italic;}
 
 /* KPI cards */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;margin-bottom:22px;}
@@ -2019,7 +2037,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
                placeholder="Nombre, apellido, RUT o n&uacute;mero de cama&hellip;" oninput="coordBuscar()">
         <button class="dpset" onclick="coordCambiarClavePedir()">&#128273; Mi clave</button>
         <button class="dpset" onclick="coordRestablecerPedir()">&#128101; Restablecer otra</button>
-        <button class="dpset" onclick="coordSalir()">Salir</button>
+        <button class="dpset coord-salir" onclick="coordSalir()"
+                title="Cierra la sesi&oacute;n en el servidor, no solo en esta pantalla">&#128274; Cerrar sesi&oacute;n <span id="coordSalirFirma"></span></button>
       </div>
     </div>
     <div id="coordRes" style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:6px;min-height:60px;">
@@ -12293,6 +12312,9 @@ function coordInit(){
   }
   $('coordPuerta').classList.toggle('hidden', !!COORD_TK);
   $('coordPanel').classList.toggle('hidden', !COORD_TK);
+  // La firma va tambien DENTRO del boton de cierre: quien mira la pantalla tiene
+  // que ver de quien es la sesion que esta abierta, no solo que hay una.
+  const fb=$('coordSalirFirma'); if(fb) fb.textContent = COORD_TK ? '('+COORD_FIRMA+')' : '';
   if(COORD_TK) $('coordQuien').textContent = COORD_FIRMA;
   else { const c=$('coordClave'); if(c){ c.value=''; setTimeout(()=>c.focus(),80); } }
 }
@@ -12309,11 +12331,24 @@ function coordEntrar(){
   }, m=>{ $('coordErr').textContent=m; });
 }
 
+// Cierra la sesión DE VERDAD: pide al servidor que mate el token y recién
+// después limpia la pantalla. Antes solo hacía lo segundo, así que la sesión
+// seguía viva en el caché hasta 30 min y la tablet del office no se cerraba.
+// Pase lo que pase con la llamada se limpia el navegador —quedarse dentro por
+// un fallo de red sería peor—, pero si el servidor no confirmó NO se dice
+// «sesión cerrada»: se avisa que puede seguir abierta.
 function coordSalir(){
-  COORD_TK=null; COORD_FIRMA=''; COORD_USUARIO=''; COORD_PID='';
-  $('coordRes').innerHTML='<div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>';
-  $('coordFicha').innerHTML=''; $('coordQ').value='';
-  coordInit(); toast('Saliste del modo Coordinación');
+  const tk=COORD_TK;
+  const limpiar=()=>{
+    COORD_TK=null; COORD_FIRMA=''; COORD_USUARIO=''; COORD_PID='';
+    $('coordRes').innerHTML='<div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>';
+    $('coordFicha').innerHTML=''; $('coordQ').value='';
+    coordInit();
+  };
+  if(!tk){ limpiar(); toast('Saliste del modo Coordinación'); return; }
+  gs('COORD_SALIR',{token:tk},
+    r=>{ limpiar(); toast(r&&r.cerrada?'🔒 Sesión cerrada':'Saliste del modo Coordinación'); },
+    ()=>{ limpiar(); toast('⚠️ Saliste en este equipo, pero la sesión puede seguir abierta hasta 30 min'); });
 }
 
 // Búsqueda con freno: teclear rápido no manda una llamada por letra.

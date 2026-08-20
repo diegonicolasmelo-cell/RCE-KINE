@@ -362,5 +362,50 @@ ok_('ningún código quedó escrito en AUDIT_LOG',
 
 CONFIG.COORD_RECUPERA_CORREO = 'FALSE';   // se deja como estaba
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   CERRAR SESIÓN — TIENE QUE MORIR EN EL SERVIDOR (20-ago-2026)
+
+   Antes, «Salir» solo limpiaba variables del navegador: el token seguía vivo
+   en el caché hasta 30 min de inactividad. O sea que la tablet del office que
+   quedaba abierta NO se cerraba, ni tocando Salir en otro equipo ni en ella
+   misma. Y esa sesión puede corregir fechas de cualquier paciente.
+
+   Lo que se fija acá es que el token quede INSERVIBLE, que es lo único que
+   importa: la pantalla se limpia sola, el candado vive en el servidor.
+   ═════════════════════════════════════════════════════════════════════════ */
+console.log('\n7 · Cerrar sesión mata el token en el SERVIDOR');
+
+const rEnt = api('COORD_ENTRAR', { usuario: 'coord2', clave: claves.coord2 }, null);
+const tkVivo = rEnt.ok ? rEnt.data.token : null;
+ok_('se abre una sesión para la prueba', !!tkVivo);
+
+// Antes de cerrar, el token sirve para una acción real.
+ok_('con el token abierto, la ficha responde',
+  api('COORD_FICHA', { token: tkVivo, patientId: 'PID_ERNESTO' }, null).ok === true);
+
+const rSal = api('COORD_SALIR', { token: tkVivo }, null);
+ok_('cerrar sesión responde ok', rSal.ok === true, rSal.error);
+eq('…y dice que efectivamente cerró una', rSal.ok && rSal.data.cerrada, true);
+
+// 🔴 EL ASSERT QUE IMPORTA: el mismo token, después, ya no abre nada.
+const rDespues = api('COORD_FICHA', { token: tkVivo, patientId: 'PID_ERNESTO' }, null);
+ok_('EL MISMO TOKEN YA NO SIRVE PARA NADA', rDespues.ok === false, rDespues.error);
+ok_('tampoco sirve para corregir',
+  api('COORD_CORREGIR', { token: tkVivo, patientId: 'PID_ERNESTO',
+    campos: { FECHA_INGRESO: '2026-07-06' } }, null).ok === false);
+
+const audS = DB.AUDIT_LOG.filter(x => x.accion === 'COORD_SALIDA');
+eq('la salida quedó en AUDIT_LOG', audS.length, 1);
+eq('…firmada por quien tenía la sesión, no por el turno', audS[0] && audS[0].firma, 'DMV');
+
+// Cerrar dos veces, o cerrar algo que no existe, NO es un error: si lo fuera,
+// el front podría quedar atrapado en una sesión que cree abierta.
+const rOtra = api('COORD_SALIR', { token: tkVivo }, null);
+ok_('cerrar una sesión ya cerrada responde ok igual', rOtra.ok === true);
+eq('…pero avisa que no había nada que cerrar', rOtra.ok && rOtra.data.cerrada, false);
+ok_('cerrar sin token tampoco revienta', api('COORD_SALIR', {}, null).ok === true);
+eq('y ninguna de esas dos ensució AUDIT_LOG',
+  DB.AUDIT_LOG.filter(x => x.accion === 'COORD_SALIDA').length, 1);
+
 console.log(fails.length ? `\n❌ ${fails.length} FALLOS:\n  - ${fails.join('\n  - ')}` : '\n✅ coordinacion OK');
 process.exit(fails.length ? 1 : 0);
