@@ -62,23 +62,53 @@ function guardarEvolucion(datos, ctx) {
       // fusión de abajo, los históricos de BDT/apnea y la escritura final
       // hablan todos de ESTA misma fila. Válido porque todo ocurre dentro del
       // mismo lock y nada borra/inserta en EVOLUCIONES antes del upsert.
+      // La cama se ubica una vez; su ÚNICA escritura es el sync del final (las
+      // que había repartidas por el camino se fusionaron ahí — de paso el
+      // guardado quedó todo-o-nada: si algo revienta a mitad, la cama no queda
+      // a medio actualizar).
+      // 🔴 Se lee ANTES de la fusión (20-ago-2026): la fusión necesita saber de
+      // qué episodio es la fila previa, y eso solo lo dice la cama.
+      const filaCama = repoBuscarFila('CAMAS_ESTADO', 'ID_CAMA', idCama);
+      const cama = filaCama === -1 ? {} : repoLeerFila('CAMAS_ESTADO', filaCama);
+
       const filaEvo = repoBuscarFila('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
       const _prev = filaEvo === -1 ? null : repoLeerFila('EVOLUCIONES', filaEvo);
       if (_prev) {
-        Object.keys(_prev).forEach(function (k) { if (!(k in datos)) datos[k] = _prev[k]; });
-        // «Si se registró, quedó»: la marca de ingreso del turno JAMÁS se
-        // pierde al re-editar. El cliente reabre con el modo ingreso apagado
-        // y mandaba ES_INGRESO en falso — eso des-marcaba el ingreso ante el
-        // REM (ingresos del mes), la estadística y el hito del historial.
-        if (esVerdadero(_prev.ES_INGRESO)) datos.ES_INGRESO = true;
-      }
+        // 🔴 LA IDENTIDAD NO SE HEREDA (20-ago-2026). La copia de abajo traía
+        // TODA clave ausente del payload, `PATIENT_ID` incluido, y cinco líneas
+        // más abajo `datos.PATIENT_ID || cama.PATIENT_ID` hacía GANAR al pid
+        // heredado. Consecuencia medida en la planilla real: el episodio del
+        // ocupante NUEVO quedaba atribuido al paciente ANTERIOR, y
+        // `_syncCamaDesdeEvolucion` le escribía ese pid al censo — la cama
+        // terminaba con el nombre de uno y el PATIENT_ID de otro, y el
+        // historial (que se lee por pid) mezclaba los dos episodios.
+        // La clave `CAMA_<n>_<turnoKey>` NO lleva paciente dentro, así que una
+        // cama que rota sin archivar deja la fila del anterior bajo la misma
+        // clave: por ahí entraba.
+        const _pidPrev = String(_prev.PATIENT_ID || '');
+        const _pidCama = String(cama.PATIENT_ID || '');
+        // «Otro episodio» solo cuando los dos pids existen y difieren. Si
+        // alguno falta es una fila legacy o una cama sin ingreso formal: ahí se
+        // fusiona como siempre, para no esconder datos verdaderos (misma regla
+        // «distinto Y no vacío» de `_mtoRepararAjenas`).
+        const _otroEpisodio = !!_pidPrev && !!_pidCama && _pidPrev !== _pidCama;
 
-      // La cama también se ubica una vez; su ÚNICA escritura es el sync del
-      // final (las que había repartidas por el camino se fusionaron ahí —
-      // de paso el guardado quedó todo-o-nada: si algo revienta a mitad, la
-      // cama no queda a medio actualizar).
-      const filaCama = repoBuscarFila('CAMAS_ESTADO', 'ID_CAMA', idCama);
-      const cama = filaCama === -1 ? {} : repoLeerFila('CAMAS_ESTADO', filaCama);
+        if (!_otroEpisodio) {
+          Object.keys(_prev).forEach(function (k) {
+            // La identidad se decide abajo desde la CAMA, nunca por herencia.
+            if (k === 'PATIENT_ID' || k === 'PAC_COD') return;
+            if (!(k in datos)) datos[k] = _prev[k];
+          });
+          // «Si se registró, quedó»: la marca de ingreso del turno JAMÁS se
+          // pierde al re-editar. El cliente reabre con el modo ingreso apagado
+          // y mandaba ES_INGRESO en falso — eso des-marcaba el ingreso ante el
+          // REM (ingresos del mes), la estadística y el hito del historial.
+          if (esVerdadero(_prev.ES_INGRESO)) datos.ES_INGRESO = true;
+        }
+        // Si ES de otro episodio no se hereda NADA: ni identidad ni datos
+        // clínicos. Que el turno de este paciente arranque limpio es lo único
+        // que no puede atribuirle a nadie lo que no hizo.
+      }
 
       // PATIENT_ID — ruta única: se toma de la cama; si no existe (episodio sin
       // ingreso formal) se genera UNA vez (el sync final lo fija en la cama).
