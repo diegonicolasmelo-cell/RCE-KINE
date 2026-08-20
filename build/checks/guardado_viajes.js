@@ -103,6 +103,18 @@ function sinCamposNuevos(x) {
    se verifica APARTE, abajo — demostrado en vez de disimulado, igual que se
    hizo con la evolución previa de GET_EVO_TURNO. */
 const COLS_TEXTO = ['TEXTO_GENERADO', 'TEXTO_AUTO', 'TEXTO_MANUAL'];
+
+/* 🔴 KTM_CANT — cambio DELIBERADO del 20-ago-2026, descontado del byte a byte y
+   demostrado aparte (bloque «KTM_CANT» al final), igual que se hizo con el texto.
+   El servidor no acotaba la cantidad de sesiones de KTM en NINGUNA parte: la
+   fórmula vivía solo en el navegador, así que por API (y por el botón ➕, que no
+   pasa por el formulario) entraba cualquier valor —o ninguno— al REM B.4.
+   Ahora el servidor rellena 1 cuando la KTM está realizada y acota a 1..9, que
+   es exactamente lo que el front ya hacía. Comparar esta columna byte a byte
+   contra el base haría fallar esta guardia por el arreglo que se quería. */
+const COLS_KTM = ['KTM_CANT'];
+const IDX_KTM = COLS_KTM.map(c => COLS_HOY.indexOf(c)).filter(i => i >= 0);
+const IDX_KTM_BASE = COLS_KTM.map(c => COLS_BASE.indexOf(c)).filter(i => i >= 0);
 const IDX_TEXTO = COLS_TEXTO.map(c => COLS_HOY.indexOf(c)).filter(i => i >= 0);
 const IDX_TEXTO_BASE = COLS_TEXTO.map(c => COLS_BASE.indexOf(c)).filter(i => i >= 0);
 
@@ -120,6 +132,12 @@ function sinColumnasNuevas(hoja, filas) {
 function sinTextos(hoja, filas, idx) {
   if (!/^EVOLUCIONES/.test(hoja) || !idx.length) return filas;
   return filas.map(f => { const c = f.slice(); idx.forEach(i => { if (i < c.length) c[i] = '(texto aparte)'; }); return c; });
+}
+
+/** Neutraliza KTM_CANT (se demuestra aparte, ver arriba). */
+function sinKtmCant(hoja, filas, idx) {
+  if (!/^EVOLUCIONES/.test(hoja) || !idx.length) return filas;
+  return filas.map(f => { const c = f.slice(); idx.forEach(i => { if (i < c.length) c[i] = '(ktm aparte)'; }); return c; });
 }
 
 /* ── 3 · Normalizaciones (ids autogenerados y orden físico de inserción) ──── */
@@ -226,9 +244,9 @@ for (const esc of Object.keys(TECHOS)) {
       si(esc + ' · CAMAS_ESTADO igual (cache y narrativa aparte)',
         JSON.stringify(camasComparables(fa, COL_TL)) === JSON.stringify(camasComparables(fb, COL_TL)));
     } else {
-      si(esc + ' · ' + hoja + ' igual (narrativa aparte)',
-        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, sinTextos(hoja, fa, IDX_TEXTO_BASE)))) ===
-        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, sinTextos(hoja, fb, IDX_TEXTO)))));
+      si(esc + ' · ' + hoja + ' igual (narrativa y KTM aparte)',
+        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, sinKtmCant(hoja, sinTextos(hoja, fa, IDX_TEXTO_BASE), IDX_KTM_BASE)))) ===
+        JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, sinKtmCant(hoja, sinTextos(hoja, fb, IDX_TEXTO), IDX_KTM)))));
     }
   }
   si(esc + ' · hace MENOS viajes que el base', b.viajes < a.viajes, b.viajes + ' < ' + a.viajes);
@@ -291,6 +309,38 @@ console.log('\n— hoja al borde de sus filas físicas —');
       { env: Object.assign({}, process.env, { RCE_RELOJ: RELOJ }), stdio: 'pipe' });
   } catch (e) { okA = false; }
   si('control: en el BASE ese guardado revienta (el riesgo era real)', !okA);
+}
+
+/* ── 7 · KTM_CANT: el cambio que se descontó arriba, DEMOSTRADO ──────────────
+   La columna se neutraliza en el byte a byte porque cambió a propósito. Aquí se
+   prueba QUÉ cambió, para que quede demostrado en vez de disimulado — el mismo
+   trato que se le dio al texto de la evolución. */
+console.log('\n— KTM_CANT: el servidor rellena y acota (antes solo lo hacía el navegador) —');
+{
+  const { api: apiK, DB: DBK } = require('../sim/sim_srv.js');
+  const filaK = tk => (DBK.EVOLUCIONES.find(e => String(e.ID_EVOLUCION) === 'CAMA_8_' + tk) || {});
+  const baseK = (tk, extra) => Object.assign({
+    idCama: '8', turnoKey: tk, FECHA: tk.slice(0, 10), TURNO: 'Dia',
+    VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM', VENT_MODO: 'ACVC',
+    VENT_VT: 450, VENT_FR: 16, VENT_PEEP: 8, VENT_FIO2: 50,
+    SED_TIPO: 'Escalón 2', SED_SAS: '2', HEMO_ESTADO: 'Estable',
+    PLAN_PLANES: 'Protección pulmonar', PLAN_FIRMA_KINE: 'DMV',
+  }, extra || {});
+  apiK('INGRESAR_PACIENTE', { idCama: '8', nombre: 'Paciente KTM', edad: 60, sexo: 'M',
+    diagnostico: 'NAC', fechaIngreso: '2026-08-01', viaAerea: 'TOT', soporte: 'VM',
+    modo: 'ACVC', firmaKine: 'DMV' }, null);
+
+  apiK('GUARDAR_EVOLUCION', baseK('2026-08-01-Dia', { KTM_REALIZADA: true, KTM_NIVEL_KTR: '3' }), null);
+  si('KTM realizada sin cantidad declarada → el servidor pone 1',
+    String(filaK('2026-08-01-Dia').KTM_CANT) === '1', String(filaK('2026-08-01-Dia').KTM_CANT));
+
+  apiK('GUARDAR_EVOLUCION', baseK('2026-08-05-Dia', { KTM_REALIZADA: true, KTM_NIVEL_KTR: '2', KTM_CANT: 99 }), null);
+  si('una cantidad absurda se acota a 9',
+    String(filaK('2026-08-05-Dia').KTM_CANT) === '9', String(filaK('2026-08-05-Dia').KTM_CANT));
+
+  apiK('GUARDAR_EVOLUCION', baseK('2026-08-06-Dia', { KTM_NO_REALIZADA: true, KTM_NO_RAZON: 'Pabellón' }), null);
+  si('sin KTM realizada la cantidad NO se inventa',
+    String(filaK('2026-08-06-Dia').KTM_CANT || '') === '', String(filaK('2026-08-06-Dia').KTM_CANT));
 }
 
 console.log('\n' + (fails.length ? '❌ FALLAN ' + fails.length + ': ' + fails.join(' · ') : '✅ Guardado con menos viajes y respuestas idénticas.'));
