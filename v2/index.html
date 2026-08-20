@@ -11999,6 +11999,8 @@ function renderTabla(){
   actualizarRetroBar();
   _regCargarEgresos(fecha);
   const q=($('tblSearch')?.value||'').toLowerCase();
+  // Misma lectura que la grilla: fecha elegida a mano = vista retrospectiva.
+  const _tblRetro=!$('gDate').classList.contains('turno-hoy');
   const [y,m,d]=fecha.split('-');
   $('tblFecha').textContent=new Date(+y,+m-1,+d).toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
@@ -12025,7 +12027,15 @@ function renderTabla(){
       const evoD=EVOS_DIA.find(e=>String(e.ID_CAMA)===id&&String(e.TURNO_KEY)===`${fecha}-Dia`)||null;
       const evoN=EVOS_DIA.find(e=>String(e.ID_CAMA)===id&&String(e.TURNO_KEY)===`${fecha}-Noche`)||null;
       const evoRef=evoD||evoN;
-      const ocu=c.OCUPADA===true||c.OCUPADA==='TRUE';
+      /* 🔴 En una fecha PASADA la cama no puede hablar por su ocupante de hoy.
+         Las líneas de abajo caen al estado de la cama cuando falta la evolución
+         («si no hay, el ocupante actual»), y eso se escribió cuando «no hay»
+         solo podía significar «no se registró». Desde que el alta archiva las
+         evoluciones, también significa «esa persona ya egresó»: el 1 de agosto
+         de la cama 1 salía con el nombre de quien la ocupa hoy y con los días
+         contados desde SU ingreso (reporte de Manuel, 20-ago-2026). En retro
+         sin registro no se sabe quién estuvo, y eso se dice — no se rellena. */
+      const ocu=(_tblRetro&&!evoRef)?false:(c.OCUPADA===true||c.OCUPADA==='TRUE');
       // Totales del día ANTES del filtro de búsqueda: el resumen refleja la
       // unidad completa aunque la tabla esté filtrada.
       const ktrD=evoD?(parseInt(evoD.RESP_KTR_CANT)||0):0;
@@ -12075,8 +12085,12 @@ function renderTabla(){
         : (ocu && c.SOPORTE===sop);
       const dvmTxt =_conSop(evoRef,'VM', dvm) ? dvm : '-';
       const dvniTxt=_conSop(evoRef,'VNI',dvni)? dvni: '-';
+      /* «Disponible» AFIRMA que la cama estaba vacía. En una fecha pasada sin
+         evolución eso no se sabe, y decirlo sería inventar: se distingue la
+         cama libre de hoy del día que nadie registró. */
       const nomHtml=nombre?`<span title="${nombre}">${String(nombre).slice(0,28)}</span>`
-                          :'<span style="color:#cbd5e1;font-style:italic;">Disponible</span>';
+                   :(_tblRetro?'<span style="color:#cbd5e1;font-style:italic;" title="Ese día no quedó ninguna evolución registrada en esta cama">Sin registro ese día</span>'
+                              :'<span style="color:#cbd5e1;font-style:italic;">Disponible</span>');
       const dx=((diag||'').slice(0,24)+((diag||'').length>24?'…':''))||'-';
       const ktrCell=n=>n>0?`<span class="ktr-${Math.min(n,5)}">${n}</span>`:dash;
       const ktmHtml=!evoD?dash

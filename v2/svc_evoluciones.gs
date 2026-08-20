@@ -783,8 +783,31 @@ function obtenerEvosDelDia(fecha) {
     const f = String(fecha || hoyISO()).slice(0, 10);
     // Lectura acotada: solo las filas del día (antes bajaba la hoja completa,
     // 379 columnas × todo el historial, en CADA arranque de la app).
-    const evos = repoLeerFiltrado('EVOLUCIONES', 'TURNO_KEY',
-      function (k) { return String(k).indexOf(f) === 0; })
+    const delDia = function (k) { return String(k).indexOf(f) === 0; };
+    /* 🔴 Se leen las DOS hojas. Al dar el alta, `_archivarEvolucionesEpisodio`
+       mueve las filas del episodio a EVOLUCIONES_ARCHIVO: leyendo solo la hoja
+       viva, el día de cualquier paciente ya egresado desaparecía del Registro
+       Diario y la tarjeta caía al ocupante ACTUAL de la cama — otra persona.
+       Medido en la planilla real el 20-ago-2026: 365 turnos de 45 episodios,
+       el 60,7% del registro de agosto. El REM y los indicadores nunca lo
+       sufrieron porque ellos ya leían las dos (svc_rem, svc_stats).
+       El costo es una lectura más de la columna TURNO_KEY: un viaje, porque
+       `repoLeerFiltrado` baja la clave y después solo los tramos que marcó. */
+    const vivas = repoLeerFiltrado('EVOLUCIONES', 'TURNO_KEY', delDia);
+    const archivadas = repoLeerFiltrado('EVOLUCIONES_ARCHIVO', 'TURNO_KEY', delDia);
+    /* Una fila puede estar en las dos si un archivado quedó a medias (2 casos
+       en la planilla real). Manda la viva, que es la que se sigue editando.
+       El orden —vivas primero, archivadas después— es estable a propósito: una
+       cama puede tener DOS episodios el mismo turno (el que egresa y el que
+       ingresa ese día, 39 veces en agosto) y quien lea no puede depender de
+       cuál venga antes. */
+    const clave = function (e) {
+      return String(e.ID_CAMA) + '|' + String(e.TURNO_KEY) + '|' + String(e.PATIENT_ID);
+    };
+    const yaEsta = {};
+    vivas.forEach(function (e) { yaEsta[clave(e)] = true; });
+    const evos = vivas
+      .concat(archivadas.filter(function (e) { return !yaEsta[clave(e)]; }))
       .map(function (e) {
         return {
           ID_CAMA: String(e.ID_CAMA), TURNO_KEY: String(e.TURNO_KEY),
