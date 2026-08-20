@@ -71,6 +71,16 @@ function guardarEvolucion(datos, ctx) {
       const filaCama = repoBuscarFila('CAMAS_ESTADO', 'ID_CAMA', idCama);
       const cama = filaCama === -1 ? {} : repoLeerFila('CAMAS_ESTADO', filaCama);
 
+      // Foto del trío de KTM TAL COMO LLEGÓ, antes de que la fusión de abajo
+      // le copie encima lo de la fila previa. Sin esta foto es imposible
+      // distinguir «el turno no opinó» de «el turno heredó».
+      const _payloadKTM = {};
+      ['KTM_REALIZADA', 'KTM_SUSPENDIDA', 'KTM_NO_REALIZADA'].forEach(function (k) {
+        if (k in datos) _payloadKTM[k] = datos[k];
+      });
+      const _declPayload = esVerdadero(_payloadKTM.KTM_REALIZADA) ||
+        esVerdadero(_payloadKTM.KTM_SUSPENDIDA) || esVerdadero(_payloadKTM.KTM_NO_REALIZADA);
+
       const filaEvo = repoBuscarFila('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
       const _prev = filaEvo === -1 ? null : repoLeerFila('EVOLUCIONES', filaEvo);
       if (_prev) {
@@ -108,6 +118,55 @@ function guardarEvolucion(datos, ctx) {
         // Si ES de otro episodio no se hereda NADA: ni identidad ni datos
         // clínicos. Que el turno de este paciente arranque limpio es lo único
         // que no puede atribuirle a nadie lo que no hizo.
+
+        // ── 🔑 LA KTM NO SE PIERDE AL REABRIR EL TURNO (Manuel, 20-ago-2026) ──
+        //
+        // ESTE ES EL BUG QUE ORIGINÓ TODO EL TRABAJO: «en la ficha de papel
+        // escriben KTM con nivel, pero no está registrado en RCE». No es que se
+        // olviden de anotarla — el sistema se la BORRA.
+        //
+        // El formulario neutraliza el trío en CADA reapertura (es deliberado:
+        // «KTM — ACCIÓN DIARIA: siempre parte sin estado seleccionado», para que
+        // nadie herede sin querer la KTM de ayer) y manda las claves presentes
+        // pero vacías. Como la fusión de arriba solo repone lo AUSENTE, un turno
+        // con KTM realizada nivel 3 y 2 sesiones quedaba en nivel '' y cantidad
+        // '' porque un colega reabrió esa evolución para corregir la FiO₂.
+        //
+        // Medido en la planilla real el 20-ago: 52 filas con nivel presente y el
+        // estado apagado — más que las 36 con KTM realizada. 21 de ellas de día,
+        // que son las sospechosas de ser KTM verdaderas que perdieron su estado.
+        //
+        // La regla, decidida por Manuel: si el payload NO DECLARA NINGÚN estado
+        // del trío, el turno no está diciendo «no hubo KTM», está diciendo «de
+        // esto no opino» — y entonces se conserva lo que ya había. Es el mismo
+        // criterio que ya protege a ES_INGRESO cinco líneas más arriba.
+        // Para borrar una KTM hay que declararlo (suspendida o no realizada);
+        // el silencio ya no borra.
+        // 🪤 La comprobación se hace contra el PAYLOAD ORIGINAL (`_declPayload`,
+        // calculado arriba antes de fusionar), no contra `datos` ya fusionado:
+        // para entonces el estado previo ya se coló por la copia de lo ausente.
+        const _KTM_TRIO = ['KTM_REALIZADA', 'KTM_SUSPENDIDA', 'KTM_NO_REALIZADA'];
+        const _KTM_SATELITES = ['KTM_NO_RAZON', 'KTM_NO_COMENTARIO', 'KTM_CONTRA_TIPO',
+          'KTM_CONTRA_CAT', 'KTM_CONTRA_RAZON', 'KTM_CONTRA_MANUAL', 'KTM_NIVEL_KTR',
+          'KTM_ASISTENCIA', 'KTM_TIEMPO_MIN', 'KTM_CANT'];
+        const _declPrev = esVerdadero(_prev.KTM_REALIZADA) ||
+                          esVerdadero(_prev.KTM_SUSPENDIDA) || esVerdadero(_prev.KTM_NO_REALIZADA);
+        if (!_declPayload && _declPrev) {
+          // Silencio: se conserva lo que había, entero.
+          _KTM_TRIO.concat(_KTM_SATELITES).forEach(function (k) { datos[k] = _prev[k]; });
+        } else if (_declPayload) {
+          // Declaración: el trío viaja COMPLETO desde el payload. Los estados
+          // que no vengan son FALSOS, no heredados — si no, declarar «no
+          // realizada» dejaba también la «realizada» del turno anterior y la
+          // fila quedaba con dos estados a la vez.
+          // Solo se apaga lo que venía HEREDADO en verdadero: escribir `false`
+          // sobre un campo que ya estaba vacío cambiaría la fila sin arreglar
+          // nada (y rompe el A/B de `guardado_viajes` por una diferencia que no
+          // existe).
+          _KTM_TRIO.forEach(function (k) {
+            if (!(k in _payloadKTM) && esVerdadero(datos[k])) datos[k] = false;
+          });
+        }
       }
 
       // PATIENT_ID — ruta única: se toma de la cama; si no existe (episodio sin
@@ -321,6 +380,31 @@ function guardarEvolucion(datos, ctx) {
       // normal); si no, _pronoSellarCiclo lo pide por su cuenta y únicamente en
       // el caso en que de verdad lo mira (supinación sin pronación del turno).
       _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos, _evosCamaMemo);
+
+      // ── Normalización del trío de KTM (20-ago-2026) ──────────────────────
+      // Se NORMALIZA, no se rechaza: bloquear una evolución por un nivel
+      // heredado dejaría al turno sin poder guardar, y de noche sin salida
+      // desde la pantalla (la tarjeta está oculta). Ver `validarKTM`.
+      //
+      // · Nivel sin estado, o con la KTM suspendida / no realizada, es un
+      //   FÓSIL: el formulario no limpia `fKTMniv` al cambiar de estado, así
+      //   que el número de ayer sobrevive a una KTM que no se hizo. Medido:
+      //   52 filas así en la planilla real. Se vacía.
+      // · La cantidad se acota aquí porque el servidor no lo hacía en ninguna
+      //   parte: por API entraba cualquier número al REM.
+      (function () {
+        const hecha = esVerdadero(datos.KTM_REALIZADA);
+        const otra  = esVerdadero(datos.KTM_SUSPENDIDA) || esVerdadero(datos.KTM_NO_REALIZADA);
+        // Solo se toca lo que TIENE contenido: escribir '' sobre un campo que ya
+        // estaba vacío cambiaría la fila sin arreglar nada, y hace fallar el A/B
+        // de `guardado_viajes` por una diferencia que no existe.
+        if (!hecha) {
+          if (String(datos.KTM_NIVEL_KTR || '') !== '') datos.KTM_NIVEL_KTR = '';
+          if (String(datos.KTM_CANT || '') !== '') datos.KTM_CANT = '';
+        } else {
+          datos.KTM_CANT = _ktmCantidad(datos.KTM_CANT);
+        }
+      })();
 
       // Texto clínico: el de la PANTALLA (cliente) si vino; si no, se genera.
       datos.TEXTO_GENERADO = _textoCliente || generarTextoEvolucion(datos);
