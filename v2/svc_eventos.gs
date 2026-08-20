@@ -191,8 +191,41 @@ function anexarEventoRapido(datos, ctx) {
       const fechaEf = _fechaEfectivaTurno(fecha, turno);
 
       const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
-      if (!cama || !esVerdadero(cama.OCUPADA)) return err('La cama ' + idCama + ' no está ocupada.', ERR.VALIDACION);
-      const pid = String(cama.PATIENT_ID || '');
+      const pidCama = String((cama && cama.PATIENT_ID) || '');
+
+      /* 🔴 LA CAMA YA NO AUTORIZA: CLASIFICA. Antes bastaba con que la cama
+         estuviera ocupada, y el turno se resolvía por `ID_EVOLUCION`, que
+         identifica una CAMA en un turno y no a una persona. En una cama que rotó
+         —un paciente egresa y otro ingresa el mismo turno, 39 veces en agosto—
+         eso hacía dos daños a la vez: lo anotado para el que egresó aterrizaba en
+         la ficha del que entró, y al que egresó no había forma de corregirlo
+         porque «su cama no está ocupada».
+
+         🪤 Al localizador se le pasa SOLO el episodio DECLARADO, nunca el de la
+         cama. Pasarle el de la cama parecería más servicial y sería el bug: en
+         una cama rotada resolvería siempre al ocupante de hoy, en silencio y sin
+         ambigüedad aparente. Sin episodio declarado se resuelve por clave, y si
+         la clave calza con dos, se rechaza: son dos personas distintas y no hay
+         forma de adivinar cuál. */
+      const ubic = _ubicarEvolucionDeTurno(String(datos.patientId || ''), turnoKey, idCama);
+      if (ubic && ubic.ambigua) {
+        // El mensaje NO nombra al otro paciente ni su pid: esto va a un toast en
+        // pantalla, no al Logger del editor (Ley 19.628).
+        return err('La cama ' + idCama + ' tuvo dos pacientes en ese turno. Abre el turno desde el ' +
+          'Registro Diario, sobre la fila del paciente que quieres corregir.', ERR.VALIDACION);
+      }
+      if (!cama && !ubic) return err('La cama ' + idCama + ' no existe.', ERR.VALIDACION);
+
+      const pidEvo = String((ubic && ubic.obj && ubic.obj.PATIENT_ID) || '');
+      /* EN CAMA = la evolución es del ocupante actual. CERRADO = todo lo demás
+         (egresado, cama limpiada, cama re-ocupada, trasladada).
+         La fila SIN pid pasa como EN CAMA a propósito, misma regla que
+         `_mtoRepararAjenas`: bloquearla escondería procedimientos verdaderos de
+         camas reparadas a mano. Y NO se le estampa identidad — adoptarla podría
+         ser adoptar la del paciente anterior, y eso no se deshace. */
+      const enCama = ubic ? (!pidEvo || (!!pidCama && pidEvo === pidCama))
+                          : (!!cama && esVerdadero(cama.OCUPADA));
+      const pid = ubic ? pidEvo : pidCama;
       // 15 caracteres cortaban «Klgo. Diego Melo» (son 16) y la línea de tiempo
       // mostraba «Klgo. Diego Mel». El límite existe solo para que un valor
       // absurdo no reviente la celda; 60 es el mismo techo que usa la
@@ -204,6 +237,15 @@ function anexarEventoRapido(datos, ctx) {
       const disp = _EVENTO_DISPS.find(d => d.k === tipo);
 
       if (disp) {
+        /* 🔴 El reloj `DISP_*_FECHA` vive en CAMAS_ESTADO — una fila que, si el
+           episodio está cerrado, HOY es de otra persona. Aplicarlo le reiniciaría
+           el reloj al ocupante actual y `cambiosEstaNoche` dejaría de avisar un
+           cambio real: el filtro se quedaría puesto de más. Por eso los
+           dispositivos son lo único que NO se corrige hacia atrás. */
+        if (!enCama) {
+          return err('El cambio de ' + disp.nombre + ' no se puede anotar hacia atrás: el reloj del ' +
+            'filtro es de la cama ' + idCama + ', que hoy tiene a otro paciente.', ERR.VALIDACION);
+        }
         // Cambio de dispositivo → reinicia el reloj con la fecha efectiva.
         repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, (function () {
           const c = {}; c[disp.campo] = fechaEf; c.DISP_CONFIRMADO = true; return c;
@@ -214,18 +256,29 @@ function anexarEventoRapido(datos, ctx) {
         const nombreProc = String(datos.proc || '').trim();
         if (!nombreProc) return err('Indica el procedimiento del catálogo.', ERR.VALIDACION);
         // El procedimiento debe sumar a la estadística → requiere la evolución del turno.
-        const idEvo = 'CAMA_' + idCama + '_' + turnoKey;
-        const evo = repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', idEvo);
-        if (!evo) return err('Primero guarda la evolución del turno; luego anexa el procedimiento.', ERR.VALIDACION);
+        // El texto conserva la instrucción que el equipo ya conoce («Primero guarda
+        // la evolución…») y le suma la regla nueva: ahora que el ➕ alcanza turnos
+        // pasados, hay que decir que un turno no se crea desde aquí.
+        if (!ubic) return err('Primero guarda la evolución del turno; luego anexa el procedimiento. ' +
+          'Los turnos no se inventan hacia atrás.', ERR.VALIDACION);
+        const evo = ubic.obj;
         let procs = [];
         try { procs = JSON.parse(evo.PROC_JSON || '[]') || []; } catch (e) { procs = []; }
         procs.push(nombreProc);
-        repoActualizar('EVOLUCIONES', 'ID_EVOLUCION', idEvo, {
+        /* Se escribe POR NÚMERO DE FILA y en la hoja donde está la evolución
+           —viva o archivo—, no por clave: `repoActualizar` escribe en la primera
+           coincidencia, que en una cama rotada es la del otro paciente. La fila
+           viaja COMPLETA porque `repoEscribirFila` reescribe el renglón entero. */
+        repoEscribirFila(ubic.hoja, ubic.fila, Object.assign({}, evo, {
           PROC_JSON: JSON.stringify(procs), PROC_CANTIDAD: procs.length,
           PROC_RESUMEN: procs.join(', '),
-        });
+        }));
         repoInsertar('PROCEDIMIENTOS', {
-          ID_PROC: uid('PROC'), ID_EVOLUCION: idEvo, ID_CAMA: idCama, PATIENT_ID: pid,
+          // La clave y la cama salen de la EVOLUCIÓN, no del payload: tras un
+          // traslado la cama del turno no es la cama de hoy. Y el pid es el del
+          // EPISODIO — tomarlo de la cama era lo que fabricaba filas mixtas.
+          ID_PROC: uid('PROC'), ID_EVOLUCION: String(evo.ID_EVOLUCION || ''),
+          ID_CAMA: String(evo.ID_CAMA || idCama), PATIENT_ID: pidEvo,
           FECHA: fecha, TURNO: turno, TIPO_PROC: 'anexo', NOMBRE_PROC: nombreProc,
           DESCRIPCION: detalle, AUTOR_EMAIL: String(ctx.email || ''), TIMESTAMP: ahoraTS(),
         });
@@ -251,18 +304,34 @@ function anexarEventoRapido(datos, ctx) {
         return err('Tipo de evento desconocido: "' + tipo + '"', ERR.VALIDACION);
       }
 
-      _agregarHitoInterno({
-        idCama: idCama, patientId: pid, fecha: fecha, turno: turno, tipo: tipoHito,
+      /* El hito se fecha SIEMPRE en su turno. Con el episodio cerrado va sin
+         sincronizar la tarjeta: la tarjeta es del ocupante de HOY y el hito es de
+         otro. Desde que `_sincronizarTimelineCama` filtra por paciente, esto ya
+         no es un retardo de minutos — el hito ajeno no puede entrar ni cuando la
+         sincronización corra después. */
+      const hito = {
+        idCama: String((ubic && ubic.obj && ubic.obj.ID_CAMA) || idCama),
+        patientId: pid, fecha: fecha, turno: turno, tipo: tipoHito,
         texto: texto + (firma ? ' · ' + firma : ''),
         autor: firma, autorEmail: String(ctx.email || ''),
-      });
+      };
+      if (enCama) _agregarHitoInterno(hito); else _agregarHitoInternoSinSync(hito);
       SpreadsheetApp.flush();
 
-      const camaNueva = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
-      return ok({
-        entidad: 'TIMELINE', idCama: idCama, patientId: pid, accion: 'evento rápido: ' + texto,
-        texto: texto, dispositivos: estadoDispositivos(camaNueva, _fechaEfectivaTurno(hoyISO(), turno)),
-      });
+      const salida = {
+        entidad: 'TIMELINE', idCama: idCama, patientId: pid,
+        idEvolucion: String((ubic && ubic.obj && ubic.obj.ID_EVOLUCION) || ''),
+        accion: 'evento rápido: ' + texto, texto: texto,
+      };
+      /* En CERRADO no se lee CAMAS_ESTADO ni se devuelven dispositivos: son del
+         ocupante actual y no tienen nada que ver con lo que se acaba de anotar.
+         El front lo consume con `if (r && r.dispositivos)`, así que omitirlo es
+         seguro. */
+      if (enCama) {
+        const camaNueva = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+        salida.dispositivos = estadoDispositivos(camaNueva, _fechaEfectivaTurno(hoyISO(), turno));
+      }
+      return ok(salida);
     } catch (e) { return err('anexarEventoRapido: ' + e.message, ERR.INTERNO, e); }
   });
 }

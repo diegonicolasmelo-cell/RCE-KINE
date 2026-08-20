@@ -29,6 +29,19 @@ global.uid = p => p + '_x' + Math.random().toString(36).slice(2, 8);
 global.hoyISO = () => '2026-07-27';
 global.ahoraTS = () => '2026-07-27 16:30';
 global._agregarHitoInterno = h => { HITOS.push(h); return h; };
+global._agregarHitoInternoSinSync = h => { HITOS.push(h); return h; };
+
+/* 🔴 ARNÉS AMPLIADO (ago-2026). El ➕ dejó de resolver el turno por clave y pasó
+   a ubicarlo por EPISODIO, con `_ubicarEvolucionDeTurno` (svc_evoluciones.gs).
+   Sin estos tres stubs esta guardia reventaba, y ANTES de eso medía de menos:
+   su `repoLeerTodos` ignora el filtro que se le pasa, así que cualquier arreglo
+   que leyera filtrado daba verde sobre datos sin filtrar. Aquí se modela lo que
+   el ➕ necesita de verdad: las DOS hojas y el NÚMERO DE FILA — escribir «por
+   clave» es justamente el bug que se cerró. */
+const FILA = 4;                        // primera fila de datos (3 encabezados)
+global.repoLeerTodosConFila = h => (DB[h] || []).map((r, i) => ({ obj: Object.assign({}, r), fila: FILA + i }));
+global.repoLeerFila = (h, f) => Object.assign({}, (DB[h] || [])[f - FILA]);
+global.repoEscribirFila = (h, f, obj) => { DB[h][f - FILA] = Object.assign({}, obj); };
 global.SpreadsheetApp = { flush: () => {} };
 global.ok = d => ({ ok: true, data: d });
 global.err = (m, c) => ({ ok: false, error: m, codigo: c });
@@ -60,7 +73,9 @@ global._vmCategoria = x => String(x.CATEGORIA || 'VM').trim().toUpperCase();
 global._vmEsDeCama = cat => String(cat) === 'VM';
 
 // svc_stats.gs aporta _statISO (misma normalización de fechas de producción).
-eval(['svc_stats.gs', 'svc_eventos.gs'].map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
+// svc_evoluciones.gs aporta `_ubicarEvolucionDeTurno`, la pieza que ubica el
+// turno por episodio. Se CARGA, no se copia: una copia probaría la copia.
+eval(['svc_stats.gs', 'svc_evoluciones.gs', 'svc_eventos.gs'].map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 
 const fails = [];
 const eq = (l, g, w) => {
