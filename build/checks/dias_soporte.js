@@ -1,11 +1,11 @@
 // dias_soporte.js — DÍAS DE SOPORTE POR TRAMOS: acumulados y sin solaparse.
 //
-// HALLAZGO DE DIEGO (4-ago-2026), con la historia real de María del Carmen
+// HALLAZGO DE DIEGO (4-ago-2026), con la historia real de DELTA
 // (cama 3 → trasladada a la 7): ingresa intubada el 22-jul, se extuba con
 // protocolo A VNI el 23, se reintuba el 25, y el 30 una extubación ACCIDENTAL
 // la deja en VNI hasta hoy. Su estadística manual sumaba VM 8 + VNI 7 = 15
 // días en una estadía de 13: el día de cada transición se contaba PARA LOS
-// DOS soportes («días falsos»). Y Ricardo Flores egresó con más días de VM
+// DOS soportes («días falsos»). Y ECO egresó con más días de VM
 // que de estadía por el mismo defecto en el archivo.
 //
 // LA REGLA: cada TRAMO aporta diasEntre(inicio, fin). El día de la transición
@@ -65,8 +65,8 @@ const guardar = (idCama, tk, campos) => guardarEvolucion(
 const evo = tk => DB.EVOLUCIONES.find(e => String(e.TURNO_KEY) === tk);
 
 /* ══ 1 · LA HISTORIA DE MARÍA DEL CARMEN, TURNO A TURNO ═════════════════ */
-console.log('\n1 · María del Carmen: dos tramos de VM y dos de VNI');
-DB.CAMAS_ESTADO = [{ ID_CAMA: '7', OCUPADA: 'TRUE', PATIENT_ID: 'pM', NOMBRE: 'Maria del Carmen',
+console.log('\n1 · DELTA: dos tramos de VM y dos de VNI');
+DB.CAMAS_ESTADO = [{ ID_CAMA: '7', OCUPADA: 'TRUE', PATIENT_ID: 'pM', NOMBRE: 'DELTA',
   FECHA_INGRESO: '2026-07-22', FECHA_INICIO_VA: '2026-07-22', FECHA_INICIO_SOPORTE: '2026-07-22',
   VIA_AEREA: 'TOT', SOPORTE: 'VM' }];
 const sync = (va, sop, fVa, fSop) => Object.assign(DB.CAMAS_ESTADO[0],
@@ -121,7 +121,7 @@ sync('Full Face', 'VNI', '2026-07-30', '2026-07-30');
   guardar('7', f + '-Dia', { VENT_VIA_AEREA: 'Full Face', VENT_SOPORTE: 'VNI' });
 });
 const hoy4 = evo('2026-08-04-Dia');
-console.log('\n   — El cuadre final de María al 4-ago —');
+console.log('\n   — El cuadre final de DELTA al 4-ago —');
 eq('estadía 13 (22-jul → 4-ago)', hoy4.DIA_ESTADIA, 13);
 eq('VM 6 (tramos 1+5, congelada)', hoy4.DIAS_VM, 6);
 eq('VNI 7 (tramos 2+5, corriendo)', hoy4.DIAS_VNI, 7);
@@ -145,10 +145,10 @@ eq('y el 25-jul (reintubación) quedó con VNI 2 · VM 1',
 const sim2 = resellarDiasSoporteSIMULACRO();
 eq('es idempotente: una segunda pasada no cambia nada', /a re-sellar: 0 /.test(sim2), true);
 
-/* ══ 3 · EL EGRESO ARCHIVA EL TOTAL SELLADO (caso Ricardo) ══════════════ */
+/* ══ 3 · EL EGRESO ARCHIVA EL TOTAL SELLADO (caso ECO) ══════════════ */
 console.log('\n3 · El egreso ya no puede archivar más VM que estadía');
 _n = 100;
-DB.CAMAS_ESTADO = [{ ID_CAMA: '10', OCUPADA: 'TRUE', PATIENT_ID: 'pR', NOMBRE: 'Ricardo F.',
+DB.CAMAS_ESTADO = [{ ID_CAMA: '10', OCUPADA: 'TRUE', PATIENT_ID: 'pR', NOMBRE: 'ECO F.',
   FECHA_INGRESO: '2026-08-02', FECHA_INICIO_VA: '2026-08-02', FECHA_INICIO_SOPORTE: '2026-08-02',
   VIA_AEREA: 'TOT', SOPORTE: 'VM', COD_PACIENTE: 'RF70', EDAD: 70, SEXO: 'M' }];
 DB.EVOLUCIONES.length = 0;
@@ -167,59 +167,81 @@ const arch = DB.ARCHIVO_PACIENTES[DB.ARCHIVO_PACIENTES.length - 1];
 eq('archiva VM 0 (ingresó y se extubó el MISMO día: Día 0, como BUDA)', arch.DIAS_VM_TOTAL, 0);
 eq('…y no los «2 días tocados» que hacían VM > estadía', arch.DIAS_VM_TOTAL <= 1, true);
 
-/* ══ 4 · SEMBRADO DE HISTORIA PRE-APP (Francisca y María reales) ═════════
+/* ══ 4 · SEMBRADO DE HISTORIA PRE-APP (escenarios ALFA y BRAVO) ═════════
    5-ago: ambas fueron cargadas al RCE DESPUÉS de que ocurriera su historia
    real (reintubaciones, extubaciones). Sus evoluciones en la app solo
    empiezan cuando alguien las evolucionó por primera vez — ya en su tramo
    ACTUAL, sin ningún rastro de las transiciones previas. El re-sellado
    normal (que solo camina evoluciones) ancla el tramo a esa primera
    evolución (muy tarde); _MTO_SEED_TRAMOS le da el punto de partida real. */
-console.log('\n4 · Sembrado de historia pre-app (Francisca y María reales)');
+console.log('\n4 · Sembrado de historia pre-app (escenarios ALFA y BRAVO)');
 
-// Francisca (cama 1): su primera evolución en la app YA la muestra en VM
+// 🔒 EL SEMBRADO VIVE AQUI, NO EN v2/mantenimiento_manuel.gs (20-ago-2026).
+// Esa tabla necesita apellido + cama + fechas clinicas para funcionar, o sea
+// identidad de paciente, y el repositorio es PUBLICO (Ley 19.628 / 20.584).
+// Alla quedo VACIA y se llena en el editor justo antes de correr; aca se le
+// siembra un escenario FICTICIO, que es lo que un test necesita de todos modos.
+// Los tramos son los del caso real de ago-2026, sin los nombres.
+_MTO_SEED_TRAMOS = [
+  { cama: '1', nom: 'ALFA',
+    DIAS_VM:  { acum: 0, ini: '2026-07-21' },
+    DIAS_VNI: { acum: 0, ini: null },
+    DIAS_VA:  { acum: 0, ini: '2026-07-21' } },
+  { cama: '7', nom: 'BRAVO',
+    DIAS_VM:  { acum: 6, ini: null },
+    DIAS_VNI: { acum: 2, ini: '2026-07-30' },
+    DIAS_VA:  { acum: 0, ini: '2026-07-22' } },
+  { cama: '9', nom: 'CHARLIE',
+    DIAS_VM:  { acum: 0, ini: '2026-07-31' },
+    DIAS_VNI: { acum: 0, ini: null },
+    DIAS_VA:  { acum: 0, ini: '2026-07-31' } },
+];
+
+
+// ALFA (cama 1): su primera evolución en la app YA la muestra en VM
 // continua desde el 1-ago — nada indica que la reintubación real fue el
 // 21-jul, ni que hubo un intento de VM el 18-jul que se autocanceló.
 _n = 200;
-DB.CAMAS_ESTADO = [{ ID_CAMA: '1', OCUPADA: 'TRUE', PATIENT_ID: 'pFco', NOMBRE: 'FRANCISCA ESTELA ARAYA VELIZ',
+DB.CAMAS_ESTADO = [{ ID_CAMA: '1', OCUPADA: 'TRUE', PATIENT_ID: 'pFco', NOMBRE: 'PACIENTE ALFA DE PRUEBA',
   VIA_AEREA: 'TOT', SOPORTE: 'VM' }];
 DB.EVOLUCIONES = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04'].map(f => ({
   ID_EVOLUCION: 'ef' + f, PATIENT_ID: 'pFco', TURNO_KEY: f + '-Dia', FECHA: f,
   VENT_SOPORTE: 'VM', VENT_VIA_AEREA: 'TOT', DIAS_VM: 0, DIAS_VNI: '', DIAS_VA: 0 }));
 const simSemb1 = resellarDiasSoporteSIMULACRO();
-eq('el simulacro anuncia el sembrado de Francisca', /historial pre-existente sembrado/.test(simSemb1), true);
+eq('el simulacro anuncia el sembrado de ALFA', /historial pre-existente sembrado/.test(simSemb1), true);
 resellarDiasSoporteCONFIRMAR();
 const fco4 = DB.EVOLUCIONES.find(e => e.TURNO_KEY === '2026-08-04-Dia');
-eq('Francisca al 4-ago: VM 14 (0 del tramo autocancelado + 14 desde el 21-jul)', fco4.DIAS_VM, 14);
+eq('ALFA al 4-ago: VM 14 (0 del tramo autocancelado + 14 desde el 21-jul)', fco4.DIAS_VM, 14);
 eq('…y vía aérea artificial también 14 (TOT desde la misma reintubación)', fco4.DIAS_VA, 14);
 
-// María (cama 7): su primera evolución en la app YA la muestra en VNI
+// BRAVO (cama 7): su primera evolución en la app YA la muestra en VNI
 // continua — invisibles para la app sus tramos previos (VM 22-23, VNI 23-25,
 // VM 25-30) que ocurrieron enteramente antes de que existiera un turno
 // evolucionado para ella en el sistema.
 _n = 300;
-DB.CAMAS_ESTADO = [{ ID_CAMA: '7', OCUPADA: 'TRUE', PATIENT_ID: 'pMar', NOMBRE: 'MARIA RAMIREZ CORTES',
+DB.CAMAS_ESTADO = [{ ID_CAMA: '7', OCUPADA: 'TRUE', PATIENT_ID: 'pMar', NOMBRE: 'PACIENTE BRAVO DE PRUEBA',
   VIA_AEREA: 'Full Face', SOPORTE: 'VNI' }];
 DB.EVOLUCIONES = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04'].map(f => ({
   ID_EVOLUCION: 'em' + f, PATIENT_ID: 'pMar', TURNO_KEY: f + '-Dia', FECHA: f,
   VENT_SOPORTE: 'VNI', VENT_VIA_AEREA: 'Full Face', DIAS_VM: 0, DIAS_VNI: 0, DIAS_VA: 0 }));
 resellarDiasSoporteCONFIRMAR();
 const mar4 = DB.EVOLUCIONES.find(e => e.TURNO_KEY === '2026-08-04-Dia');
-eq('María al 4-ago con el sembrado: VM 6 (tramos pre-app 1+5, cerrado)', mar4.DIAS_VM, 6);
+eq('BRAVO al 4-ago con el sembrado: VM 6 (tramos pre-app 1+5, cerrado)', mar4.DIAS_VM, 6);
 eq('…VNI 7 (base 2 del primer tramo + 5 del tramo abierto desde el 30-jul)', mar4.DIAS_VNI, 7);
 eq('…VA 13 (no-natural continua desde el ingreso, nunca ha estado Natural)', mar4.DIAS_VA, 13);
 const simSemb2 = resellarDiasSoporteSIMULACRO();
 eq('sembrado + re-sellado es idempotente', /a re-sellar: 0 /.test(simSemb2), true);
 
 /* ══ 5 · MORELIA: INGRESO CORREGIDO 30→31-jul + VM SEMBRADA ═════════════
-   5-ago: Diego reversó su primera conclusión — Morelia ingresó el 31-jul a
+   5-ago: Diego reversó su primera conclusión — CHARLIE ingresó el 31-jul a
    las 23:00 (BUDA muestra 30-jul por SU PROPIO error de tipeo). Sin sembrado,
    el re-sellado ancla la VM a su primera evolución en la app (1-ago) y da
    VM 1 en vez de 2; con el sembrado (ini:'2026-07-31') cierra justo en su
    extubación del 2-ago con los 2 días reales — los mismos que decía la
    planilla manual desde el principio. */
-console.log('\n5 · Morelia: ingreso 31-jul sembrado (no 1-ago, la primera evolución)');
+console.log('\n5 · CHARLIE: ingreso 31-jul sembrado (no 1-ago, la primera evolución)');
 _n = 400;
-DB.CAMAS_ESTADO = [{ ID_CAMA: '9', OCUPADA: 'TRUE', PATIENT_ID: 'pMo', NOMBRE: 'MORELIA OLIVARES TAPIA',
+DB.CAMAS_ESTADO = [{ ID_CAMA: '9', OCUPADA: 'TRUE', PATIENT_ID: 'pMo', NOMBRE: 'PACIENTE CHARLIE DE PRUEBA',
   FECHA_INGRESO: '2026-07-31', FECHA_INICIO_VA: '', FECHA_INICIO_SOPORTE: '',
   VIA_AEREA: 'Natural', SOPORTE: 'Oxigenoterapia/OAF' }];
 DB.EVOLUCIONES = [
@@ -233,10 +255,10 @@ DB.EVOLUCIONES = [
     VENT_SOPORTE: 'Oxigenoterapia/OAF', VENT_VIA_AEREA: 'Natural', DIA_ESTADIA: 6, DIAS_VM: 3, DIAS_VA: 3 },
 ];
 const simMo = resellarDiasSoporteSIMULACRO();
-eq('el simulacro anuncia el sembrado de Morelia', /historial pre-existente sembrado/.test(simMo), true);
+eq('el simulacro anuncia el sembrado de CHARLIE', /historial pre-existente sembrado/.test(simMo), true);
 resellarDiasSoporteCONFIRMAR();
 const mo5 = DB.EVOLUCIONES.find(e => e.TURNO_KEY === '2026-08-05-Dia');
-eq('Morelia al 5-ago: VM 2, congelada tras la extubación del 2-ago (31-jul→2-ago)', mo5.DIAS_VM, 2);
+eq('CHARLIE al 5-ago: VM 2, congelada tras la extubación del 2-ago (31-jul→2-ago)', mo5.DIAS_VM, 2);
 eq('…y VA 2 (misma lógica: TOT desde el 31-jul, cierra el 2-ago)', mo5.DIAS_VA, 2);
 const simMo2 = resellarDiasSoporteSIMULACRO();
 eq('sembrado + re-sellado es idempotente', /a re-sellar: 0 /.test(simMo2), true);
