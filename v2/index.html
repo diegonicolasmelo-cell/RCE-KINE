@@ -4780,7 +4780,7 @@ function renderGrid() {
         ` : `${_movPie(c, true)}
           <button class="bevo" onclick="abrirPanel('${c.ID_CAMA}',false)">${btn}</button>
           <button class="btl" onclick="abrirTL('${c.ID_CAMA}')">⏱️ Hist.</button>
-          <button class="btl" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${c.ID_CAMA}',this)">➕</button>
+          <button class="btl" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${c.ID_CAMA}',this,'${c.PATIENT_ID||''}')">➕</button>
           <button class="balt" onclick="egreso('${c.ID_CAMA}')">🏠 Egr.</button>
         `}</div>`;
     } else {
@@ -9902,9 +9902,14 @@ function pielAplicar(p){
 pielAplicar(document.documentElement.getAttribute('data-piel'));   // sincroniza etiquetas al arrancar
 
 /* ── Eventos rápidos post-evolución (popover estilo lista de Sheets) ── */
-let _evCama=null,_evTipo=null,_evTurno='Dia';
-function evAbrir(id,anchor){
-  _evCama=String(id); _evTipo=null;
+let _evCama=null,_evTipo=null,_evTurno='Dia',_evPid='';
+function evAbrir(id,anchor,pid){
+  /* 🔴 El episodio viaja desde la fila que se está mirando. La clave del turno
+     (`CAMA_<n>_<fecha>-<turno>`) identifica una CAMA, no a una persona: cuando
+     una cama rota —un paciente egresa y otro ingresa el mismo turno— dos filas
+     la comparten, y el servidor no tiene cómo adivinar cuál es. Sin esto, el
+     servidor rechaza el anexo por ambiguo (y hace bien). */
+  _evCama=String(id); _evTipo=null; _evPid=String(pid||'');
   const pop=$('evPop'); if(!pop) return;
   $('evTitulo').textContent='➕ Evento posterior · Cama '+_evCama;
   evSetTurno(SHIFT);   // preseleccionado según la hora; editable a la vista
@@ -9928,7 +9933,7 @@ function evSetTurno(t){
   $('evTurnoD')?.classList.toggle('on',_evTurno==='Dia');
   $('evTurnoN')?.classList.toggle('on',_evTurno==='Noche');
 }
-function evCerrar(){ hide('evPop'); hide('evVelo'); _evCama=null; _evTipo=null; }
+function evCerrar(){ hide('evPop'); hide('evVelo'); _evCama=null; _evTipo=null; _evPid=''; }
 function evVolver(){ show('evLista'); hide('evForm'); _evTipo=null; }
 function evTipo(t){
   _evTipo=t;
@@ -9946,7 +9951,9 @@ function evGuardar(){
   if(!_evCama||!_evTipo) return;
   const firma=v('evFirma');
   if(!firma){ toast('⚠️ Selecciona la firma de quien anota.'); return; }
-  const datos={ idCama:_evCama, turnoKey:`${v('gDate')||hoy()}-${_evTurno}`, tipo:_evTipo,
+  // El turnoKey se sigue armando con la fecha del Registro: que el ➕ pueda
+  // anotar en una fecha pasada es deliberado. El candado por fecha es otra tanda.
+  const datos={ idCama:_evCama, patientId:_evPid, turnoKey:`${v('gDate')||hoy()}-${_evTurno}`, tipo:_evTipo,
     hora:v('evHora'), detalle:v('evDet'), proc:v('evProc'),
     cultTipo:v('evCultTipo'), cultHallazgo:v('evCultHall'), firmaKine:firma };
   const b=$('evGo'); b.disabled=true; b.textContent='⏳…';
@@ -12122,7 +12129,7 @@ function renderTabla(){
         <td class="tc-c">${id}</td>
         <td class="tc-n"><span style="display:flex;align-items:center;gap:6px;">
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;">${nomHtml}</span>
-          ${(ocu||evoRef)?`<button type="button" class="ev-btn" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${id}',this)">➕</button>`:''}
+          ${(ocu||evoRef)?`<button type="button" class="ev-btn" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${id}',this,'${(evoRef&&evoRef.PATIENT_ID)||(ocu?(c.PATIENT_ID||''):'')}')">➕</button>`:''}
         </span></td>
         <td class="tc-num" style="color:var(--muted);">${sexo||'-'}</td>
         <td class="tc-num">${edad||'-'}</td>
