@@ -4,7 +4,7 @@
 // Hasta hoy la batería se corría con un bucle escrito a mano en cada sesión, y
 // exportando CHROMIUM_PATH de memoria: la mitad de las «rojas» que aparecían no
 // eran código roto sino la variable olvidada. Este corredor resuelve el binario
-// solo, corre las 64 guardias y juzga **por código de salida**, que es la única
+// solo, corre TODAS las guardias del directorio (las descubre solo) y juzga **por código de salida**, que es la única
 // lectura válida —varias guardias imprimen ❌ SIMULADOS a propósito, montando el
 // escenario roto para demostrar que lo detectan—.
 //

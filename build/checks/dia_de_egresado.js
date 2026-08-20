@@ -5,7 +5,7 @@
 // paciente — la que ocupa esa cama hoy, ingresada diez días después.
 //
 // La causa no estaba en la pantalla sino en la lectura: `obtenerEvosDelDia`
-// leía SOLO la hoja EVOLUCIONES. Al dar de alta, `_archivarEvolucionesEpisodio`
+// leía SOLO la hoja EVOLUCIONES. Al dar de alta, `_archivarEvolucionesDeCama`
 // mueve las filas del episodio a EVOLUCIONES_ARCHIVO — así que el día de
 // cualquier paciente egresado desaparecía del Registro Diario. Medido sobre la
 // planilla real ese día: 365 turnos de 45 episodios en 14 camas, el 60,7% del

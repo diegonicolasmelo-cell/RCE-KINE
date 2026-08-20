@@ -991,7 +991,7 @@ function obtenerEvosDelDia(fecha) {
     // Lectura acotada: solo las filas del día (antes bajaba la hoja completa,
     // 379 columnas × todo el historial, en CADA arranque de la app).
     const delDia = function (k) { return String(k).indexOf(f) === 0; };
-    /* 🔴 Se leen las DOS hojas. Al dar el alta, `_archivarEvolucionesEpisodio`
+    /* 🔴 Se leen las DOS hojas. Al dar el alta, `_archivarEvolucionesDeCama`
        mueve las filas del episodio a EVOLUCIONES_ARCHIVO: leyendo solo la hoja
        viva, el día de cualquier paciente ya egresado desaparecía del Registro
        Diario y la tarjeta caía al ocupante ACTUAL de la cama — otra persona.
