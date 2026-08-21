@@ -3564,3 +3564,29 @@ semilla solo se aplica si la hoja está vacía.
   Batería: **77 verdes, 0 rojas**.
 - Solo cambió el index (sin esquema, sin .gs). La v5.62 CONTIENE a la v5.59,
   v5.60 y v5.61.
+
+## PR #4 de Manuel ejecutado: Modo Coordinación + episodio (21-ago-2026)
+
+- Diego pidió revisar el repo y **ejecutar el pull request de Manuel** (a él
+  se le acabaron los tokens; su documento detallado es el cuerpo del PR).
+  Revisado y fusionado a `main` (merge `9da4806`), con la revisión de
+  seguridad hecha antes: claves con huella SHA-256 y sal por persona en
+  `PropertiesService` (nunca en CONFIG ni en la planilla) · sesiones con
+  token en caché que `COORD_SALIR` borra de verdad en el servidor · la
+  recuperación por correo **rechaza ANTES de tocar nada** con
+  `COORD_RECUPERA_CORREO=FALSE` (la decisión de encenderla sigue siendo de
+  Diego) · los apellidos reales ya no están en `mantenimiento_manuel.gs` ·
+  la puerta no revela firmas ni nombres.
+- 🪤 **Una roja de arnés, no de código**: `coordinacion_ui.js` nació con la
+  ruta FIJA del Mac de Manuel (`/Users/manuelfuentes/…`) apuntando a un
+  `build/index_cohete.html` que no viaja en el repo — en cualquier otra
+  máquina moría con ERR_FILE_NOT_FOUND antes del primer assert. La misma
+  clase de trampa que las 37 rutas fijas de Chromium (ago-2026). Arreglada a
+  ruta relativa sobre `v2/index.html` (patrón de `coordinacion_contraste.js`)
+  y subida a la rama del PR antes de fusionar. Batería tras el arreglo:
+  **88 verdes, 0 rojas** (Manuel sumó 11 guardias).
+- **Producción quedó documentada por Manuel en SU bitácora** (arriba):
+  Versión 37 = sello 5.65-coordinacion, publicada el 20-ago con verificación
+  del pegado archivo por archivo. Lo fusionado deja además pendiente de
+  publicar la tanda **5.66-episodio** (sin cambio de esquema respecto de la
+  V37; entrega = api + dominio + index + servicios contra `66ae8c5`).

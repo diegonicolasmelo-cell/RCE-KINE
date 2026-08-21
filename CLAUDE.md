@@ -298,15 +298,21 @@ entrega que armé se calculó contra la referencia equivocada y salió incomplet
 DOS veces seguidas. La cifra de abajo se actualiza cuando alguien publica —
 si tiene más de unos días, se confirma antes de usarla.
 
-- **Publicado en producción**: cohete **v5.58-escalas** — lo pegó Diego el
-  14-ago con la entrega de 6 archivos, y confirmó que corrió
-  `crearORepararEstructura()` (EVOLUCIONES en 390 columnas).
-- **Entregadas y pendientes de pegar**: v5.59 (hoja diaria a 2 caras),
-  v5.60-dispositivos (HEPA fijo + bug de humidificación), v5.61-smartevo
-  (tercer estado de secreciones + FiO₂ + rueda) y **v5.62-guardado** (botón
-  al final sticky + guardar sin cuadro de desfase). Cada una CONTIENE a las
-  anteriores: **pegar la v5.62 basta** (dominio + index + servicios). `main`
-  y la rama de trabajo van en la v5.62. Sin cambio de esquema en ninguna.
+- **Publicado en producción**: **Versión 37, sello 5.65-coordinacion** — la
+  publicó Manuel el 20-ago (15:27) sobre la implementación de siempre, con el
+  pegado verificado archivo por archivo (detalle en su bitácora). Incluye las
+  v5.59–v5.62 y el Modo Coordinación; `crearORepararEstructura()` y
+  `coordSembrarClaves()` ya corridos (CORRECCIONES_JSON existe; Magdalena ya
+  cambió su clave).
+- **Pendiente de publicar**: la tanda **5.66-episodio** (PR #4 de Manuel,
+  fusionado a main el 21-ago) — la evolución se ubica por EPISODIO y no por
+  cama, el día de un egresado se sigue viendo, la identidad no se hereda
+  entre pacientes, y la KTM no se borra al reabrir. **Sin cambio de esquema**
+  respecto de la V37. Entrega calculada contra `66ae8c5` (la V37 real):
+  **api + dominio + index + servicios**.
+- 🪤 `mantenimiento_manuel.gs` **se borró del editor a propósito** (llevaba
+  apellidos reales; ya purgado también en el repo). `que_pegar.js` puede
+  volver a pedirlo: NO se re-pega salvo decisión explícita.
 - Marcha blanca con datos reales desde el 1-ago-2026.
 
 ### 🔴 Antes de armar una entrega: `node build/que_pegar.js <ref-publicada>`
