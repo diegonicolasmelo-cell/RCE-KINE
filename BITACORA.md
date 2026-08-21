@@ -3590,3 +3590,45 @@ semilla solo se aplica si la hoja está vacía.
   del pegado archivo por archivo. Lo fusionado deja además pendiente de
   publicar la tanda **5.66-episodio** (sin cambio de esquema respecto de la
   V37; entrega = api + dominio + index + servicios contra `66ae8c5`).
+
+## v5.67-candado (21-ago-2026) — el pasado tiene llave, la ronda no
+
+- Diego compartió el **traspaso de Manuel** («Traspaso RCE-KINE», artifact).
+  Dos correcciones de estado que salen de ahí: **producción es la Versión 38,
+  sello 5.66-episodio** (no la V37 que decía la entrada de ayer — el traspaso
+  es posterior a la bitácora del repo), y `develop` quedó como la rama de
+  trabajo del equipo (rama por cambio → merge --no-ff a develop → PR a main).
+  El `/exec` no se pudo medir desde esta sesión (el proxy bloquea
+  script.google.com): la cifra viene del traspaso, que la midió.
+- **El candado del ➕** — el único pendiente «quien programe» con la decisión
+  ya tomada por Manuel (20-ago): el ➕ del Registro Diario dejaba corregir el
+  pasado sin clave, y la pestaña 🔐 quedaba inútil (la V38 quitó el freno
+  accidental «la cama no está ocupada» y de rebote abrió el pasado). Ahora
+  `anexarEventoRapido` exige **sesión de coordinación** cuando el episodio
+  está CERRADO o la fecha es PASADA; el turno de HOY sobre el paciente en
+  cama sigue libre — y «hoy» incluye la noche en curso por FECHA EFECTIVA (a
+  las 2 AM la ronda sigue siendo la noche de ayer: sin esto, la ronda
+  nocturna habría pagado la fricción que la decisión dice evitar). El token
+  (`COORD_TK`) viaja desde `evGuardar`; sin sesión, el toast dice el camino.
+  El rechazo ya queda auditado por el dispatcher (`ANEXAR_EVENTO_RECHAZADO`,
+  de la tanda de Manuel) y la autorización queda en la acción auditada
+  («autorizado por coordinación (MCC)»). `anularEvento` NO se tocó: ya trae
+  su candado mínimo y el resto es deuda declarada del PRD de procedimientos
+  pasados (NO3).
+- **Método aplicado tal como lo dejó escrito Manuel**: la guardia
+  `candado_mas.js` se escribió PRIMERO y se vio ROJA (9 fallos) contra el
+  código sin candado — y esa corrida además cazó un índice malo en el propio
+  fixture. `evento_paciente.js` se parchó: sus correcciones del pasado ahora
+  viajan con la llave puesta (stub del contrato `coordExigirSesion`); la
+  libertad del día a día la mide `candado_mas.js` sección 1.
+- 🪤 **Trampa de arnés nueva, verificada**: el eval directo declara `hoyISO`
+  (de infra_fechas.gs) en el ámbito del MÓDULO de la guardia, así que
+  `global.hoyISO = stub` queda SOMBREADO y las funciones eval-uadas siguen
+  leyendo el reloj real — la guardia daba distinto según el día. El arreglo
+  es reasignar la LIGADURA (`hoyISO = () => …`, sin `global.`) después de los
+  eval. Ojo: varias guardias viejas usan solo `global.hoyISO` y no les dolió
+  porque sus rutas no leían el reloj — es una bomba de tiempo conocida.
+- También se arregló `coordinacion_ui.js` (ruta fija del Mac de Manuel →
+  relativa, detalle en la entrada del PR #4). Batería: **89 verdes, 0
+  rojas**. Entrega contra la V38 publicada (`1bccc30`): **index + servicios**.
+  Sin cambio de esquema.

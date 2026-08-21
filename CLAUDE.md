@@ -203,7 +203,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**77 guardias** en `build/checks/*.js`; **45 usan navegador**
+**89 guardias** en `build/checks/*.js`; **48 usan navegador**
 (`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -215,7 +215,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 15-ago-2026: 77 verdes, 0 rojas.** El corredor
+**Estado al 21-ago-2026: 89 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -233,7 +233,7 @@ Chromium con puente simulado; acepta ruta del cohete como argumento),
 `memo_episodio.js`, `rendimiento.js` (bucles de repintado con la unidad llena),
 `texto_bloques.js` (la etiqueta de bloque no altera el texto visible),
 `asincronia.js` (Ppl/AutoPEEP inhabilitados con paciente asincrónico).
-Enumerar aquí las 77 es garantía de desfase: la lista buena es `ls
+Enumerar aquí las 89 es garantía de desfase: la lista buena es `ls
 build/checks/`.
 
 Correr antes de entregar o commitear. Un bug que costó más de un
@@ -298,18 +298,21 @@ entrega que armé se calculó contra la referencia equivocada y salió incomplet
 DOS veces seguidas. La cifra de abajo se actualiza cuando alguien publica —
 si tiene más de unos días, se confirma antes de usarla.
 
-- **Publicado en producción**: **Versión 37, sello 5.65-coordinacion** — la
-  publicó Manuel el 20-ago (15:27) sobre la implementación de siempre, con el
-  pegado verificado archivo por archivo (detalle en su bitácora). Incluye las
-  v5.59–v5.62 y el Modo Coordinación; `crearORepararEstructura()` y
-  `coordSembrarClaves()` ya corridos (CORRECCIONES_JSON existe; Magdalena ya
-  cambió su clave).
-- **Pendiente de publicar**: la tanda **5.66-episodio** (PR #4 de Manuel,
-  fusionado a main el 21-ago) — la evolución se ubica por EPISODIO y no por
-  cama, el día de un egresado se sigue viendo, la identidad no se hereda
-  entre pacientes, y la KTM no se borra al reabrir. **Sin cambio de esquema**
-  respecto de la V37. Entrega calculada contra `66ae8c5` (la V37 real):
-  **api + dominio + index + servicios**.
+- **Publicado en producción**: **Versión 38, sello 5.66-episodio** (fuente:
+  el traspaso de Manuel del 20-ago, posterior a su bitácora que decía V37; el
+  /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
+  script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
+  episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
+- **Pendiente de publicar**: **v5.67-candado** (21-ago) — el ➕ exige sesión
+  de coordinación para corregir el pasado o un episodio cerrado; el turno de
+  hoy (incluida la noche en curso) sigue libre. **Sin cambio de esquema**.
+  Entrega contra `1bccc30` (la V38 real): **index + servicios**.
+- **Flujo de ramas vigente (traspaso de Manuel)**: rama nueva por cambio
+  salida de `develop` (nombre en español) → `git merge --no-ff -m` a
+  `develop` (el `-m` NO es opcional: sin él el merge queda colgado a medias)
+  → PR develop→main. `git push -u origin HEAD` siempre, y
+  `git branch --show-current` antes de commitear (dos sesiones sobre la
+  misma carpeta ya se pisaron).
 - 🪤 `mantenimiento_manuel.gs` **se borró del editor a propósito** (llevaba
   apellidos reales; ya purgado también en el repo). `que_pegar.js` puede
   volver a pedirlo: NO se re-pega salvo decisión explícita.

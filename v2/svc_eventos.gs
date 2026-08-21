@@ -233,6 +233,33 @@ function anexarEventoRapido(datos, ctx) {
       const firma = String(ctx.firma || datos.firma || '').slice(0, 60);
       const hrTxt = hora ? ' ' + hora + ' hrs' : '';
 
+      /* 🔐 EL CANDADO DEL ➕ (decisión de Manuel, 20-ago-2026): corregir el
+         PASADO exige clave de coordinación, aunque el botón viva en el
+         Registro Diario. Sin esto, la pestaña 🔐 quedaba inútil — lo que
+         protege con clave se conseguía por esta puerta sin clave (la V38
+         quitó el freno accidental «la cama no está ocupada» para poder
+         corregir al paciente correcto, y de rebote dejó el pasado abierto).
+         El alcance decidido: pide clave con el episodio CERRADO (egresado,
+         cama rotada) o con FECHA PASADA; el ➕ del turno de HOY sobre el
+         paciente en cama sigue libre, para no meterle fricción a la ronda —
+         y «hoy» incluye la noche en curso, cuya fecha EFECTIVA es hoy (a las
+         2 AM la ronda sigue siendo la noche de ayer). El candado vive AQUÍ,
+         en el servidor: con AUTH_DEV_MODE=TRUE cualquiera con el enlace
+         llega al dispatcher, así que esconder el botón no protege nada. El
+         rechazo queda auditado por el dispatcher (ANEXAR_EVENTO_RECHAZADO). */
+      const esPasado = fecha !== hoyISO() && fechaEf !== hoyISO();
+      let firmaCoord = '';
+      if (!enCama || esPasado) {
+        const ses = coordExigirSesion(String(datos.coordToken || ''));
+        if (!ses.ok) {
+          // Con token vencido se explica la sesión; sin token, el camino.
+          if (datos.coordToken) return err(ses.error, ERR.NO_AUTORIZADO);
+          return err('Corregir un turno pasado —o de un paciente que ya no está en la cama— requiere ' +
+            'clave de coordinación: entra en la pestaña 🔐 COORDINACIÓN y vuelve a intentarlo.', ERR.NO_AUTORIZADO);
+        }
+        firmaCoord = String(ses.firma || '');
+      }
+
       let texto = '', tipoHito = 'evento';
       const disp = _EVENTO_DISPS.find(d => d.k === tipo);
 
@@ -321,7 +348,10 @@ function anexarEventoRapido(datos, ctx) {
       const salida = {
         entidad: 'TIMELINE', idCama: idCama, patientId: pid,
         idEvolucion: String((ubic && ubic.obj && ubic.obj.ID_EVOLUCION) || ''),
-        accion: 'evento rápido: ' + texto, texto: texto,
+        // La autorización queda en la ACCIÓN: el dispatcher la audita tal
+        // cual, así AUDIT_LOG dice quién de coordinación abrió el candado.
+        accion: 'evento rápido: ' + texto + (firmaCoord ? ' · autorizado por coordinación (' + firmaCoord + ')' : ''),
+        texto: texto,
       };
       /* En CERRADO no se lee CAMAS_ESTADO ni se devuelven dispositivos: son del
          ocupante actual y no tienen nada que ver con lo que se acaba de anotar.
