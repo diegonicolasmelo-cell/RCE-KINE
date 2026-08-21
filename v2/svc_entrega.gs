@@ -35,8 +35,17 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
     evosAll.forEach(e => {
       const id = String(e.ID_CAMA);
       if (!setSel[id]) return;
-      if (String(e.TURNO_KEY) === turnoKey) evoTurnoPorCama[id] = e;
       const cama = camaPorId[id];
+      /* 🔴 La ficha de la entrega se arma con `evoTurnoPorCama`, que comparaba
+         SOLO el turno. El filtro por paciente de dos líneas más abajo alimenta
+         `episodioPorCama`, que es otra cosa. Resultado: en una cama que rotó, la
+         ficha del ocupante nuevo salía con la evolución del que se fue —
+         sedación, parámetros, plan— y quien recibe el turno la lee como propia.
+         Misma regla que en el resto del sistema: se descarta solo cuando los dos
+         pid existen y son distintos; una fila sin pid no se esconde. */
+      const pidC = String((cama && cama.PATIENT_ID) || ''), pidE = String(e.PATIENT_ID || '');
+      const ajena = !!pidC && !!pidE && pidC !== pidE;
+      if (String(e.TURNO_KEY) === turnoKey && !ajena) evoTurnoPorCama[id] = e;
       if (cama && cama.PATIENT_ID && String(e.PATIENT_ID) === String(cama.PATIENT_ID)) {
         (episodioPorCama[id] = episodioPorCama[id] || []).push(e);
       }
@@ -50,6 +59,12 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
     procs.forEach(p => {
       const id = String(p.ID_CAMA);
       if (!setSel[id]) return;
+      // Igual que arriba: el último cultivo se buscaba por CAMA, así que el
+      // ocupante nuevo heredaba el aspirado traqueal del anterior — y con él
+      // una decisión de antibióticos que no es suya.
+      const pidCu = String((camaPorId[id] && camaPorId[id].PATIENT_ID) || '');
+      const pidPr = String(p.PATIENT_ID || '');
+      if (pidCu && pidPr && pidCu !== pidPr) return;
       const nom = String(p.NOMBRE_PROC || '').toUpperCase();
       if (!/CULTIVO|HISOPADO|PCR|FILMARRAY|MINI ?LAB|CCAET/.test(nom)) return;
       const iso = _statISO(p.FECHA);

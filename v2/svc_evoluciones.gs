@@ -792,10 +792,103 @@ function _tiempoExtubado(evo, idCama, fecha, turno, _evosFn) {
 }
 
 // ═══ LECTURA ══════════════════════════════════════════════
-function obtenerEvolucion(idCama, turnoKey) {
+/**
+ * _ubicarEvolucionDeTurno — ubica LA fila de un turno por EPISODIO, no por clave.
+ *
+ * 🔴 POR QUÉ EXISTE. `ID_EVOLUCION = 'CAMA_<n>_<turnoKey>'` identifica una CAMA
+ * en un turno, no a una persona. Cuando una cama rota, dos episodios comparten
+ * esa clave — **39 veces en agosto-2026**, medido en la planilla real — y
+ * `repoBuscarPorId` devuelve la PRIMERA y esconde la otra. Todo lo que resuelve
+ * por esa clave (el ➕ del Registro Diario, los procedimientos, la anulación)
+ * puede escribirle a la persona equivocada, o negarle la escritura a la correcta
+ * mientras su fila está justo debajo, inalcanzable.
+ *
+ * Devuelve la fila **por número**, nunca la clave: `repoActualizar` escribe en la
+ * primera coincidencia, que es exactamente el bug que esto viene a cerrar.
+ *
+ * 🩤 NO elige cuando no puede: `{ambigua:true}` es una respuesta, no un fallo.
+ * Elegir por su cuenta es lo que hace hoy `repoBuscarPorId`.
+ *
+ * @param  patientId  el episodio. Vacío = payload viejo (API, smoke, medidores).
+ * @param  turnoKey   'YYYY-MM-DD-Dia|Noche'
+ * @param  idCama     solo se usa para armar la clave cuando no hay patientId
+ * @return {{hoja:string, fila:number, obj:Object, vivo:boolean}} la evolución
+ *         | {ambigua:true}  calza con más de una y NO se elige
+ *         | null            no existe
+ */
+function _ubicarEvolucionDeTurno(patientId, turnoKey, idCama) {
+  const pid = String(patientId == null ? '' : patientId).trim();
+  const tk = String(turnoKey == null ? '' : turnoKey).trim();
+  if (!tk) return null;
+  const HOJAS = ['EVOLUCIONES', 'EVOLUCIONES_ARCHIVO'];
+
+  /* Se baja la hoja ENTERA de una vez, a propósito. Medido en la planilla real
+     (8-ago-2026, ocho comparaciones): con 136 filas en EVOLUCIONES y 90 en el
+     archivo, UNA lectura completa le gana a pedir columnas sueltas — en Apps
+     Script el viaje pesa más que la celda. Y la fila vuelve COMPLETA, que es
+     condición para que quien la reciba pueda reescribirla: `_colsExigirCompleto`
+     rechaza lo leído a medias. No se cachea nada — dato clínico: se lee, se
+     resuelve y se descarta dentro de la misma petición. */
+
+  if (pid) {
+    // Con el episodio en la mano se resuelve por él, no por la cama: tras un
+    // traslado el `ID_EVOLUCION` de la fila lleva la cama NUEVA.
+    for (let i = 0; i < HOJAS.length; i++) {
+      const hoja = HOJAS[i];
+      const hit = repoLeerTodosConFila(hoja).filter(function (f) {
+        return String(f.obj.TURNO_KEY).trim() === tk &&
+               String(f.obj.PATIENT_ID).trim() === pid;
+      });
+      // Dos filas del MISMO episodio en el MISMO turno dentro de una hoja es un
+      // duplicado real: no hay criterio para elegir, y elegir es el bug.
+      if (hit.length > 1) return { ambigua: true };
+      if (hit.length === 1) {
+        return { hoja: hoja, fila: hit[0].fila, obj: hit[0].obj, vivo: hoja === 'EVOLUCIONES' };
+      }
+    }
+    /* Entre hojas manda la VIVA — por eso el recorrido empieza por ella. Aquí SÍ
+       hay criterio, al revés que abajo: con el pid pedido se sabe que las dos
+       filas son del MISMO episodio (hay 1 clave duplicada entre hoja viva y
+       archivo en la planilla real), y la viva es la que se sigue editando. Es el
+       mismo criterio que ya eligió `obtenerEvosDelDia` para el Registro Diario;
+       las dos pantallas no pueden discrepar sobre la misma fila.
+
+       Y con pid pedido NO se cae a una fila de `PATIENT_ID` vacío: adoptarla
+       puede ser adoptar la del paciente anterior. Esa decisión es de quien llama,
+       que tiene la cama a la vista; el localizador no la toma por él. */
+    return null;
+  }
+
+  /* Sin pid (payload viejo): se resuelve por clave, pero CONTANDO en las DOS
+     hojas. Detectar solo «aparece en las dos» no basta — el duplicado que se
+     acumula solo es el de dentro de EVOLUCIONES_ARCHIVO, que archiva conservando
+     la clave. Y aquí no se puede aplicar el «manda la viva» de arriba: sin pid no
+     hay cómo saber si las dos filas son el mismo episodio o dos personas. */
+  const clave = 'CAMA_' + idCama + '_' + tk;
+  const halladas = [];
+  HOJAS.forEach(function (hoja) {
+    repoLeerTodosConFila(hoja).forEach(function (f) {
+      if (String(f.obj.ID_EVOLUCION).trim() !== clave) return;
+      halladas.push({ hoja: hoja, fila: f.fila, obj: f.obj, vivo: hoja === 'EVOLUCIONES' });
+    });
+  });
+  if (!halladas.length) return null;
+  if (halladas.length > 1) return { ambigua: true };
+  return halladas[0];
+}
+
+function obtenerEvolucion(idCama, turnoKey, patientId) {
   try {
-    const id = 'CAMA_' + idCama + '_' + turnoKey;
-    return ok(repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', id));
+    /* Antes resolvía con `repoBuscarPorId` sobre la clave de la cama, y solo en
+       la hoja viva: en una cama rotada devolvía LA PRIMERA —la del otro
+       paciente— y de un egresado no devolvía nada. Ahora lo ubica el localizador,
+       que mira las dos hojas y AVISA cuando no puede decidir en vez de elegir. */
+    const ubic = _ubicarEvolucionDeTurno(String(patientId || ''), turnoKey, idCama);
+    if (ubic && ubic.ambigua) {
+      return err('La cama ' + idCama + ' tuvo dos pacientes en ese turno: hay que indicar de cuál ' +
+        'se está hablando.', ERR.VALIDACION);
+    }
+    return ok(ubic ? ubic.obj : null);
   } catch (e) { return err('obtenerEvolucion: ' + e.message, ERR.INTERNO, e); }
 }
 
@@ -898,7 +991,7 @@ function obtenerEvosDelDia(fecha) {
     // Lectura acotada: solo las filas del día (antes bajaba la hoja completa,
     // 379 columnas × todo el historial, en CADA arranque de la app).
     const delDia = function (k) { return String(k).indexOf(f) === 0; };
-    /* 🔴 Se leen las DOS hojas. Al dar el alta, `_archivarEvolucionesEpisodio`
+    /* 🔴 Se leen las DOS hojas. Al dar el alta, `_archivarEvolucionesDeCama`
        mueve las filas del episodio a EVOLUCIONES_ARCHIVO: leyendo solo la hoja
        viva, el día de cualquier paciente ya egresado desaparecía del Registro
        Diario y la tarjeta caía al ocupante ACTUAL de la cama — otra persona.
@@ -989,9 +1082,24 @@ function anularEvento(datos, ctx) {
   const tipo = String(datos.tipo || '');
   if (!idCama || !turnoKey || !tipo) return err('Faltan idCama/turnoKey/tipo.', ERR.VALIDACION);
 
-  const evoR = obtenerEvolucion(idCama, turnoKey);
-  if (!evoR.ok || !evoR.data) return err('No existe evolución para ese turno.', ERR.VALIDACION);
+  const evoR = obtenerEvolucion(idCama, turnoKey, datos.patientId);
+  if (!evoR.ok) return evoR;   // p. ej. la cama tuvo dos pacientes ese turno
+  if (!evoR.data) return err('No existe evolución para ese turno.', ERR.VALIDACION);
   const evo = evoR.data;
+
+  /* 🔴 CANDADO MÍNIMO. Al final, `anularEvento` llama a `_syncCamaDesdeEvolucion`
+     con los datos de la evolución: vía aérea, soporte, modo, fechas de inicio.
+     Si esa evolución es de un episodio que ya no ocupa la cama, ese sync le
+     reescribe el censo AL OCUPANTE ACTUAL — escribe más lejos que el bug que
+     esta tanda vino a cerrar. Anular sobre episodios cerrados es deuda conocida
+     y queda fuera (NO3 del PRD); lo que no puede pasar es que toque a un tercero. */
+  const _camaAnu = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+  const _pidCama = String((_camaAnu && _camaAnu.PATIENT_ID) || '');
+  const _pidEvo = String(evo.PATIENT_ID || '');
+  if (_pidCama && _pidEvo && _pidCama !== _pidEvo) {
+    return err('Esa evolución es de un episodio anterior de la cama ' + idCama + '. Anular desde ' +
+      'aquí le reescribiría el estado al paciente que está ahora.', ERR.VALIDACION);
+  }
 
   // Guard: sin evoluciones posteriores del mismo paciente
   const posteriores = repoLeerTodos('EVOLUCIONES', 'PATIENT_ID', evo.PATIENT_ID)
