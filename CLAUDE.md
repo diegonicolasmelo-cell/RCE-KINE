@@ -204,7 +204,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 ## Verificación (skill `verificar`)
 
 **89 guardias** en `build/checks/*.js`; **48 usan navegador**
-(`chromium.launch`) y 25 son Node puro. Se juzgan **SOLO por el código de
+(`chromium.launch`) y 41 son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
 «arreglar» código sano.
