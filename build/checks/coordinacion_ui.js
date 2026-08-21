@@ -1,16 +1,24 @@
 // Prueba de humo de la pestaña Coordinación en Chromium real.
+//
+// 🪤 21-ago-2026: nació con la ruta FIJA del Mac de Manuel y apuntando a un
+// `build/index_cohete.html` que no viaja en el repo — en cualquier otra
+// máquina moría con ERR_FILE_NOT_FOUND antes del primer assert (la misma
+// clase de trampa que las 37 rutas fijas de Chromium). Ahora usa el fuente
+// del repo por ruta relativa, como coordinacion_contraste.js; se le puede
+// pasar un cohete como argumento para probar el empaquetado.
+// Uso: node build/checks/coordinacion_ui.js [ruta.html]
 const { chromium } = require('playwright-core');
 const path = require('path');
-const REPO = '/Users/manuelfuentes/Documents/RCE-KINE';
+const ARCHIVO = path.resolve(process.argv[2] || path.join(__dirname, '..', '..', 'v2', 'index.html'));
 const fails = [];
 const si = (l, c, d) => { console.log((c?'✅':'❌')+' '+l+(d!==undefined?': '+d:'')); if(!c) fails.push(l); };
 
 (async () => {
-  const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH });
+  const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
   const pg = await b.newPage();
   const errs = [];
   pg.on('pageerror', e => errs.push(e.message));
-  await pg.goto('file://' + path.join(REPO, 'build', 'index_cohete.html'));
+  await pg.goto('file://' + ARCHIVO);
   await pg.waitForTimeout(2500);
 
   // Sin servidor el arranque se queda en el overlay de reconexion, que tapa la
