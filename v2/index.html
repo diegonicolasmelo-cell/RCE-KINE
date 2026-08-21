@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.66-episodio">
+<meta name="rce-version" content="5.67-candado">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -9952,10 +9952,15 @@ function evGuardar(){
   const firma=v('evFirma');
   if(!firma){ toast('⚠️ Selecciona la firma de quien anota.'); return; }
   // El turnoKey se sigue armando con la fecha del Registro: que el ➕ pueda
-  // anotar en una fecha pasada es deliberado. El candado por fecha es otra tanda.
+  // anotar en una fecha pasada es deliberado — pero el PASADO tiene llave
+  // (21-ago-2026, decisión de Manuel): el servidor exige sesión de
+  // coordinación cuando el episodio está cerrado o la fecha no es de hoy.
+  // El token viaja siempre que exista; si falta y hace falta, el toast del
+  // rechazo dice el camino (entrar en 🔐 COORDINACIÓN).
   const datos={ idCama:_evCama, patientId:_evPid, turnoKey:`${v('gDate')||hoy()}-${_evTurno}`, tipo:_evTipo,
     hora:v('evHora'), detalle:v('evDet'), proc:v('evProc'),
-    cultTipo:v('evCultTipo'), cultHallazgo:v('evCultHall'), firmaKine:firma };
+    cultTipo:v('evCultTipo'), cultHallazgo:v('evCultHall'), firmaKine:firma,
+    coordToken:(typeof COORD_TK!=='undefined'&&COORD_TK)||'' };
   const b=$('evGo'); b.disabled=true; b.textContent='⏳…';
   gs('ANEXAR_EVENTO', datos, r=>{
     b.disabled=false; b.textContent='💾 Guardar';

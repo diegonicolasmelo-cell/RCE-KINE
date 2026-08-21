@@ -132,6 +132,14 @@ global._hitoAnexoPrefijo = n => '🔬 ' + n;
 // llegue (o no llegue) al camino de escritura, no qué narra.
 global.generarTextoEvolucion = () => 'texto de prueba';
 
+// El candado del ➕ (21-ago-2026, candado_mas.js): corregir el PASADO exige
+// sesión de coordinación. Aquí se stubea su CONTRATO — esta guardia mide el
+// RUTEO por episodio, y sus correcciones viajan con la llave puesta; la
+// libertad del turno de hoy (sin llave) la mide candado_mas.js sección 1.
+global.coordExigirSesion = t => t === 'COORD_OK'
+  ? { ok: true, firma: 'MCC', usuario: 'coord1' }
+  : { ok: false, error: 'Tu sesión de coordinación expiró. Vuelve a entrar con tu clave.', codigo: 'NA' };
+
 eval(fs.readFileSync(path.join(v2, 'infra_fechas.gs'), 'utf8'));
 eval(fs.readFileSync(path.join(v2, 'svc_evoluciones.gs'), 'utf8'));
 eval(fs.readFileSync(path.join(v2, 'svc_eventos.gs'), 'utf8'));
@@ -177,7 +185,7 @@ si('…y sí dice de qué cama habla', /cama 6|cama  ?6/i.test(String(r1.error |
 console.log('\n2 · El mismo anexo, declarando el episodio, entra donde corresponde');
 reset();
 const nP2 = DB.PROCEDIMIENTOS.length;
-const r2 = anexarEventoRapido(anexo({ patientId: 'pANA' }), { firma: 'Klgo. Prueba' });
+const r2 = anexarEventoRapido(anexo({ patientId: 'pANA', coordToken: 'COORD_OK' }), { firma: 'Klgo. Prueba' });
 si('el anexo al episodio correcto se acepta', r2.ok);
 si('entra en el PROC_JSON de Ana', /ECOGRAFÍA/.test(evoDe('EVOLUCIONES_ARCHIVO', 'pANA').PROC_JSON || ''));
 eq('…y NO en el de Bruno', evoDe('EVOLUCIONES', 'pBRUNO').PROC_JSON, '[]');
@@ -191,7 +199,7 @@ console.log('\n3 · A un egresado se le puede corregir el turno aunque su cama e
 reset();
 const r3 = anexarEventoRapido({
   idCama: '3', turnoKey: '2026-08-04-Dia', tipo: 'procedimiento',
-  proc: 'KTR', patientId: 'pCARLA',
+  proc: 'KTR', patientId: 'pCARLA', coordToken: 'COORD_OK',
 }, { firma: 'Klgo. Prueba' });
 si('el anexo sobre el episodio archivado se acepta', r3.ok);
 si('crece el PROC_JSON en EVOLUCIONES_ARCHIVO', /KTR/.test(evoDe('EVOLUCIONES_ARCHIVO', 'pCARLA').PROC_JSON || ''));
@@ -201,7 +209,7 @@ eq('con el pid de Carla', (DB.PROCEDIMIENTOS[0] || {}).PATIENT_ID, 'pCARLA');
 console.log('\n4 · La cama que NO rotó funciona exactamente como antes');
 reset();
 const r4 = anexarEventoRapido({
-  idCama: '9', turnoKey: '2026-08-06-Noche', tipo: 'procedimiento', proc: 'KTR',
+  idCama: '9', turnoKey: '2026-08-06-Noche', tipo: 'procedimiento', proc: 'KTR', coordToken: 'COORD_OK',
 }, { firma: 'Klgo. Prueba' });
 si('el anexo sin declarar episodio se acepta en cama sin rotar', r4.ok);
 si('entra en el PROC_JSON de Daniela', /KTR/.test(evoDe('EVOLUCIONES', 'pDANIELA').PROC_JSON || ''));
@@ -210,7 +218,7 @@ eq('con su pid', (DB.PROCEDIMIENTOS[0] || {}).PATIENT_ID, 'pDANIELA');
 console.log('\n4b · La fila sin identidad sigue aceptando anexos (cama reparada a mano)');
 reset();
 const r4b = anexarEventoRapido({
-  idCama: '12', turnoKey: '2026-08-06-Noche', tipo: 'procedimiento', proc: 'KTR',
+  idCama: '12', turnoKey: '2026-08-06-Noche', tipo: 'procedimiento', proc: 'KTR', coordToken: 'COORD_OK',
 }, { firma: 'Klgo. Prueba' });
 si('el anexo sobre la fila anónima se acepta', r4b.ok);
 eq('y la fila sigue SIN pid: no se le adopta identidad por inferencia',
@@ -221,7 +229,7 @@ console.log('\n5 · Un cambio de HME sobre un episodio cerrado no le reinicia el
 reset();
 const hmeAntes = DB.CAMAS_ESTADO.find(c => c.ID_CAMA === '6').DISP_HME_FECHA;
 const r5 = anexarEventoRapido({
-  idCama: '6', turnoKey: '2026-08-06-Noche', tipo: 'hme', patientId: 'pANA',
+  idCama: '6', turnoKey: '2026-08-06-Noche', tipo: 'hme', patientId: 'pANA', coordToken: 'COORD_OK',
 }, { firma: 'Klgo. Prueba' });
 eq('el cambio de dispositivo sobre episodio cerrado se rechaza', r5.ok, false);
 eq('la fecha de HME del ocupante actual queda intacta',
@@ -229,7 +237,7 @@ eq('la fecha de HME del ocupante actual queda intacta',
 
 console.log('\n5b · Y sobre el episodio EN CAMA sigue funcionando');
 reset();
-const r5b = anexarEventoRapido({ idCama: '9', turnoKey: '2026-08-06-Noche', tipo: 'hme' }, { firma: 'K' });
+const r5b = anexarEventoRapido({ idCama: '9', turnoKey: '2026-08-06-Noche', tipo: 'hme', coordToken: 'COORD_OK' }, { firma: 'K' });
 si('el cambio de HME normal se acepta', r5b.ok);
 
 /* ══ 6 · El rechazo deja rastro ═══════════════════════════════════════════
@@ -255,7 +263,7 @@ si('y sin el nombre ni el pid del otro paciente',
 console.log('\n6b · Un anexo que SÍ entra sigue auditándose como antes');
 reset();
 AUDIT.length = 0;
-const datos6b = anexo({ patientId: 'pANA' });
+const datos6b = anexo({ patientId: 'pANA', coordToken: 'COORD_OK' });
 const r6b = _auditar(ctx6, 'ANEXAR_EVENTO', () => anexarEventoRapido(datos6b, ctx6), datos6b);
 si('el anexo correcto se acepta', r6b.ok);
 eq('y deja una sola fila, sin sufijo de rechazo', (AUDIT[0] || {}).accion, 'ANEXAR_EVENTO');
