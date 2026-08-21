@@ -64,7 +64,7 @@ global._tz = () => 'America/Santiago';
   global._tsFecha = _tsFecha; global._tsHora = _tsHora;
   global.diasBloques24 = diasBloques24; global.refTurno = refTurno;
 }
-eval(['dominio_texto.gs', 'svc_camas.gs', 'svc_evoluciones.gs']
+eval(['dominio_texto.gs', 'svc_camas.gs', 'svc_coordinacion.gs', 'svc_evoluciones.gs']
   .map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n'));
 
 DB.CAMAS_ESTADO = [{ ID_CAMA: '1', OCUPADA: 'TRUE', PATIENT_ID: 'p1', NOMBRE: 'Test',

@@ -1,14 +1,14 @@
 // traslado_equipos.js — Al trasladar un paciente, la app pregunta por sus
 // equipos (ago-2026).
 //
-// REPORTE DE DIEGO: María Ramírez se trasladó de la cama 3 (Airvo+V60+PB1) a
+// REPORTE DE DIEGO: HOTEL se trasladó de la cama 3 (Airvo+V60+PB1) a
 // la cama 7 (que ya tenía un Savina) y nadie movió los equipos a mano — el
 // traslado del paciente y el movimiento de sus equipos eran dos acciones
 // totalmente desconectadas.
 //
 // De paso se encontró y corrigió un bug relacionado: `moverVentilador(es)Lote`
 // rechazaba CUALQUIER segundo equipo en una cama, sin mirar la categoría — así
-// que mover el VNI/CNAF de María a la cama 7 (que ya tenía su propio VM,
+// que mover el VNI/CNAF de HOTEL a la cama 7 (que ya tenía su propio VM,
 // el Savina) habría sido rechazado por «la cama ya tiene asignado». Ahora solo
 // el VM invasivo es exclusivo por cama; VNI/CNAF/APOYO coexisten con él.
 //
@@ -20,7 +20,7 @@ const v2 = path.join(__dirname, '..', '..', 'v2');
 const fails = [];
 const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk ? '✅' : '❌') + ' ' + l + ': ' + JSON.stringify(g) + (okk ? '' : ' (esperado ' + JSON.stringify(w) + ')')); if (!okk) fails.push(l); };
 
-/* ══ 1 · Servicio en Node: el escenario real de María (cama 3 → 7) ══════ */
+/* ══ 1 · Servicio en Node: el escenario real de HOTEL (cama 3 → 7) ══════ */
 console.log('1 · moverVentiladoresLote: VNI/CNAF coexisten con el VM de la cama destino');
 function cargar(equipos) {
   const hojas = { VENTILADORES: JSON.parse(JSON.stringify(equipos)), MOVIMIENTOS_VM: [] };
@@ -51,7 +51,7 @@ const EQUIPOS = [
 
 {
   const { api, hojas } = cargar(EQUIPOS);
-  // María se lleva el Airvo y el V60 (VNI/CNAF) a la cama 7; el PB1 (VM
+  // HOTEL se lleva el Airvo y el V60 (VNI/CNAF) a la cama 7; el PB1 (VM
   // invasivo de la sala 3) NO se marca — se queda en la 3, como es el default.
   const r = api.moverVentiladoresLote({ movimientos: [
     { idVm: 'AIRVO1', tipo: 'CAMA', detalle: '7', motivo: 'Traslado de paciente cama 3→7' },
@@ -91,7 +91,7 @@ console.log('\n3 · UI: diálogo de traslado con casillas por equipo');
 
   const est = await p.evaluate(() => {
     DB = [
-      { ID_CAMA: '3', OCUPADA: true, NOMBRE: 'Maria Ramirez', VM_TAG: 'PB 1', VM_TAG_ID: 'PB1',
+      { ID_CAMA: '3', OCUPADA: true, NOMBRE: 'HOTEL', VM_TAG: 'PB 1', VM_TAG_ID: 'PB1',
         EQUIPOS_PACIENTE: [{ id: 'AIRVO1', n: 'Airvo 2 N°1', c: 'CNAF' }, { id: 'V60_1', n: 'V60 N°1', c: 'VNI' }] },
       { ID_CAMA: '7', OCUPADA: false },
     ];

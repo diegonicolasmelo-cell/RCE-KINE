@@ -19,6 +19,263 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## ✅ EN PRODUCCIÓN: Versión 37, sello 5.65-coordinacion (20-ago-2026, 15:27)
+
+Misma implementación `AKfycbxMKE6…`. Verificada contra el `/exec` real
+(`Cargando RCE-KINE (5.65-coordinacion)`, HTTP 200) **y decodificando los 93 trozos
+del base64 del cohete publicado**, para probar que el arreglo viaja de verdad dentro
+y no solo que el sello subió. Batería 80/80, 0 errores en el registro de ejecuciones.
+
+### 🔴 Los campos de coordinación eran invisibles, y la guardia dijo que no
+
+Manuel mandó una captura de la ficha: las etiquetas se leían, los **valores** no.
+La causa:
+
+```css
+.datein{ background:rgba(255,255,255,.12); color:#f2f2f7; }
+```
+
+`.datein` nació para la **barra oscura** del dashboard —texto casi blanco sobre fondo
+oscuro, ahí se lee perfecto—. Pero la **puerta de coordinación**, la **ficha** y los
+**diálogos de clave** (`.uc-card`) son fondo BLANCO. Ese mismo texto daba **1,12:1**.
+
+Traducido a lo que le pasaba a una persona: **escribía su usuario y su clave sin ver
+lo que escribía**, y al abrir una ficha no veía ni una fecha de las que venía a
+corregir. Magdalena entró el 20-ago y cambió su clave a las 13:05 con esos campos.
+
+### 🪤 Y la lección real: la guardia de contraste dio VERDE con esto en pantalla
+
+`coordinacion_contraste.js` se escribió esa misma tarde, midió 16 textos, dio verde y
+con eso se publicó la V36. Tenía **dos agujeros**:
+
+1. **Medía solo NODOS DE TEXTO.** Un `<input value="…">` no tiene ninguno ⇒ la guardia
+   era ciega a todos los campos de formulario… que es exactamente de lo que está hecha
+   la pantalla donde se corrigen fichas.
+2. **Montaba una ficha INVENTADA** (`innerHTML` con markup a mano) en vez de llamar a
+   `coordPintarFicha`. Medía una maqueta, no la pantalla.
+
+Reescrita: llama a la función real que pinta la ficha, monta el diálogo de clave con
+`coordCambiarClavePedir`, y mide **valor, placeholder y campo vacío** de cada input,
+además del texto. Pasó de 16 elementos medidos a **45**, y contra el código publicado
+se pone **roja con 9 hallazgos a 1,12:1** — la prueba de que ahora sirve.
+
+👉 Es la regla de siempre de este proyecto, otra vez y en su forma más pura: **verde no
+es correcto**. Una guardia que no reproduce la pantalla real solo se mide a sí misma.
+Antes de creerle a una guardia nueva, hay que verla FALLAR contra el bug que dice cazar.
+
+**El arreglo** no toca `.datein` global (en la barra oscura está bien): re-tematiza solo
+donde el fondo es claro — `#coordPuerta`, `#coordFicha` y `.uc-card` — con fondo blanco,
+texto normal, placeholder legible y el icono del calendario sin invertir. De paso,
+`.uc-det` (el bloque donde los diálogos ponen sus instrucciones, incluidas las etiquetas
+de los campos de clave) pasó de `#94a3b8` (2,45:1) a `#475569`.
+
+🔶 Queda anotado: `--muted` tiene el mismo problema de contraste en el resto de la app.
+No se tocó global porque afecta a todas las vistas y merece su propia tanda.
+
+---
+
+## Versión 36, sello 5.64-coordinacion (20-ago-2026, 15:07) — reemplazada por la V37
+
+Publicada sobre la implementación existente — mismo ID `AKfycbxMKE6…`, la URL del
+equipo no cambió. Verificada contra el `/exec` real: HTTP 200 y
+`Cargando RCE-KINE (5.64-coordinacion)`. Batería **80/80**.
+
+**1 · Cerrar sesión cerraba solo la pantalla.** `coordSalir()` ponía `COORD_TK=null`
+en el navegador y nada más: el token seguía vivo en `CacheService` hasta 30 minutos
+de inactividad. O sea que la tablet del office que quedaba abierta en la pestaña que
+puede corregir fechas de cualquier paciente **no se cerraba** — ni tocando «Salir» en
+otro equipo, ni tocándolo en ella misma. Ahora hay `coordCerrarSesion` (acción
+`COORD_SALIR`), simétrica de `_coordAbrirSesion`: borra la clave del caché y audita
+`COORD_SALIDA` con la firma de quien tenía la sesión. Cerrar algo ya cerrado responde
+ok igual —si fuera error, el front podría quedar atrapado en una sesión que cree
+abierta— pero solo audita cuando había algo que cerrar. Cierra el dispositivo donde se
+toca; cerrar todas las sesiones de una persona exigiría un índice de sesiones vivas
+que hoy no existe.
+
+**2 · El panel no se leía, y se midió en vez de opinarlo.** Reporte de Manuel: «tiene
+texto que no se ve o se ve muy claro». Medido en Chromium sobre el index real:
+
+- `.pivot-empty` → **2,30:1** (mínimo legible 4,5:1). No es decorativo: es la ÚNICA
+  instrucción que ve quien acaba de entrar («Escribe al menos dos letras, o un RUT»).
+- `.dpset` → **4,27:1**, y ahí vivía el botón de cerrar sesión, gris y sin icono entre
+  dos botones que sí tenían emoji.
+- Con la ficha montada aparecieron dos más: `.sub-sec-title` 4,18:1 y `.ficha-chip` 4,47:1.
+
+Guardia nueva `coordinacion_contraste.js`: monta la pestaña entera —puerta, panel y
+ficha— y exige WCAG AA (4,5:1, o 3:1 para texto grande) a **cada** texto, calculando el
+fondo efectivo subiendo por los padres hasta el primero opaco. Un color se aclara de
+nuevo sin que nadie lo note, porque en la pantalla del que lo escribe casi siempre se ve.
+
+🔶 `--muted` tiene el MISMO problema fuera de esta pestaña. Se acotó a `#tcC` a
+propósito: cambiarlo global toca todas las vistas y merece su propia tanda.
+
+**3 · 🔴 La Versión 35 se publicó SIN el arreglo v5.61 de Diego.** Al comparar el editor
+contra el repo antes de pegar, `dominio.gs` difería en 484 caracteres — y nadie lo había
+tocado desde entonces. La causa: la V35 se publicó sin pegar `dominio.gs`, así que
+producción llevaba **4 días** sin «el candado de *tose, moviliza y deglute* iba al revés»
+(corrección clínica de Diego del 16-ago: ese estado es para el paciente SIN vía aérea
+artificial, porque con TOT/TQT las secreciones se aspiran y se ven). **Es exactamente la
+trampa de la Versión 24**, que se llamó «ola 4 manuel+bodega dividida» y no llevaba la
+bodega. Diego lo cree publicado desde el 16-ago.
+
+👉 Lección, otra vez: **comparar el editor contra el repo archivo por archivo ANTES de
+publicar**, por longitud UTF-16. Un −1 es solo el `\n` final que el editor recorta;
+cualquier otra diferencia es código que falta.
+
+**Cómo se pegó.** Cuatro archivos (`index`, `api`, `servicios`, `dominio`) por **servidor
+HTTP local con CORS + `fetch()`** hacia `monaco.editor.getModels()`, nunca por
+portapapeles. Verificado por archivo: longitud exacta contra el origen, primeros y
+últimos 40 caracteres, y conteo de acentos. `servicios.gs` conserva sus **1.752** acentos
+— es el mismo archivo que el 19-ago llegó corrupto con `pbcopy` (377 KB → 366 KB,
+`Diagnóstico` → `Diagnostico`, sin que se note a ojo).
+
+**Lo que NO se pegó:** `mantenimiento_manuel.gs`, borrado del editor ese mismo día
+(llevaba 17 apellidos de pacientes reales). 🪤 `que_pegar.js` lo va a seguir pidiendo
+porque compara contra `main` y no sabe que se borró a propósito.
+
+---
+
+## Versión 35, sello 5.63-coordinacion (19-ago-2026, 11:18) — reemplazada por la V36
+
+Publicó Manuel, con Diego avisado antes de empezar. Se editó la implementación
+EXISTENTE (mismo ID `AKfycbxMKE6…`), así que la URL del equipo no cambió.
+Verificado con `fetch` al `/exec` real: sirve `5.63-coordinacion`.
+
+Pegados 4 archivos (calculados con `que_pegar.js`, no de memoria): `index`,
+`servicios`, `api`, `esquema`. Después `crearORepararEstructura()` →
+«Todas las hojas existían; estructura verificada», y `coordSembrarClaves()`
+(lo corrió Manuel: las temporales salen por el registro de ejecución y no
+deben pasar por el chat).
+
+**⚠️ EL PORTAPAPELES CORROMPE LOS ACENTOS EN ARCHIVOS GRANDES.** Al copiar
+`servicios.gs` (377 KB) con `pbcopy`, llegaron 366 KB: `Diagnóstico` →
+`Diagnostico`, `única` → `nica`. El `cmp` contra el original falla en el
+byte 21. **No se detecta a ojo** — el archivo «se ve bien» pegado. Lo que
+funcionó: servir los archivos desde un **HTTP local con CORS** y traerlos con
+`fetch()` + `monaco.editor.getModels()` desde la consola del editor, y después
+verificar cada modelo (longitud, primeros/últimos 60 caracteres, y que los
+acentos siguieran ahí). El cohete del index sí sobrevive al portapapeles
+porque es ASCII puro — por eso el formato cohete existe.
+
+🪤 Se confirmaron dos trampas ya documentadas: **hay tres proyectos llamados
+«RCE KINE 3.0»** (se eligió comparando el ID de implementación carácter por
+carácter, no por la fecha ni el nombre); y **el selector de funciones ejecutó
+la anterior** en vez de la elegida — sin daño porque `crearORepararEstructura`
+es idempotente, pero confirma que hay que leer el log antes de creerle a una
+ejecución.
+
+---
+
+## Usuario de login ≠ firma clínica, claves de 12 (19-ago-2026)
+
+Manuel, sobre la marcha: «cuando estemos ahí, usuarios serán coord1/coord2/coord3»
+y «dame una combinación alfanumérica de 12 dígitos cambiable después por el
+usuario». Dos cambios al modo Coordinación, antes de la primera entrega:
+
+- **La puerta pide `coord1/coord2/coord3`, no MCC/DMV/MFB.** `COORD_USUARIOS`
+  en `svc_coordinacion.gs` es la única tabla que conoce el emparejamiento
+  (coord1→MCC, coord2→DMV, coord3→MFB). Todo lo de credenciales (claves,
+  intentos fallidos, sesión) se guarda y busca por USUARIO; todo lo de
+  trazabilidad (correcciones, AUDIT_LOG) sigue firmando con la FIRMA real —
+  se separaron las dos identidades a propósito, no por accidente de nombres.
+  El selector de nombres reales en la puerta se reemplazó por un campo de
+  texto; hay guardia (`coordinacion_ui.js`) que confirma que el HTML servido
+  **no menciona ningún nombre ni sigla clínica** antes de entrar.
+- **Claves temporales de 12 caracteres alfanuméricos**, agrupadas 4-4-4
+  (antes 10). Se cambian al primer ingreso, como siempre.
+- **Botón «Restablecer otra»** en el panel: existía la función del lado del
+  servidor desde el 18-ago pero no tenía UI. Ahora cualquiera de las tres
+  puede generarle una temporal a otra sin salir de la pantalla.
+
+Batería: 79/79 (misma cuenta — se reescribieron los tests existentes, no se
+sumaron guardias nuevas).
+
+## Modo Coordinación — buscar y corregir fichas (18/19-ago-2026)
+
+Rama `feature/modo-coordinacion-buscador-y-correcciones`, desde `develop`.
+PRD: `PRD_MODO_COORDINACION.md`. **Batería: 78/78 verdes** (76 previas + 2
+nuevas). **Sin publicar** — espera el visto bueno de Diego.
+
+**De dónde sale.** El paciente de la cama 10 estuvo 28 días y al egresar quedó
+archivado con **UN día de estadía**: los días se congelan al dar de alta
+(`svc_camas.gs`, `DIAS_TOTAL: cama.DIA_ESTADIA`) y su fecha de ingreso estaba
+mal. Corregirlo obligaba a abrir el editor de Apps Script y escribir una
+función de mantenimiento a mano — para cambiar una fecha.
+
+**Qué trae.**
+
+1. **Tres usuarios con clave propia** (`svc_coordinacion.gs`): `MCC` (Magdalena,
+   uso diario), `DMV` y `MFB` (respaldo). Tres, para que la unidad no dependa de
+   una persona. La huella de la clave (SHA-256 con sal por persona) vive en
+   `PropertiesService`, **no en CONFIG**: CONFIG es una hoja de la planilla y
+   cualquiera con acceso al archivo la lee, o la exporta sin querer.
+2. **Pestaña 🔐 COORDINACIÓN**: buscador + ficha editable con el historial de
+   correcciones a la vista.
+3. **El buscador acepta RUT y palabras sueltas** — esto lo gana TODO el equipo,
+   no solo la coordinación. Antes «Melo Villagrán» encontraba a Diego pero
+   «Diego Villagrán» no, y el RUT no se buscaba pese a estar en las dos hojas.
+4. **Corregir una fecha de un egresado recalcula sus días** con `diasEntre`
+   (calendario, regla BUDA) — **no** con bloques de 24 h, que es la regla que
+   se revirtió en la v5.37.
+
+**🪤 Lo que encontró el inventario de consumidores, y por qué existe esa sección.**
+Antes de escribir una línea, el método pide listar quién más toca el dato. Salió
+que `svc_evoluciones.gs` **reescribe las fechas semilla en el guardado normal**:
+la hora de ingreso desde el formulario (`:137`) y `anularEvento` restando los
+días de la evolución (`:903`). Sin eso, la corrección de un egresado de 28 días
+**duraba hasta que alguien guardara el turno de esa noche**. Es el error de los
+filtros otra vez, cazado en papel en vez de en producción.
+
+**La marca de arrastre (D7, decisión de Manuel).** «Normalmente no se modifica,
+así que no debería poder modificarla»: una fecha corregida queda marcada en
+`CORRECCIONES_JSON` y el turno la **hereda sin poder cambiarla**. Pero se suelta
+cuando arranca un **tramo clínico nuevo de verdad** (VM→VNI, TOT→TQT), porque
+ahí la fecha corregida ya no describe ese tramo y congelarla sería peor que el
+error original. La misma columna sirve para las dos cosas: el sello visible y
+la marca.
+
+**🪤 Trampas del camino.**
+- `node --check` **rechaza la extensión `.gs`** y devuelve un error de módulo
+  que se lee como éxito si uno encadena `&&`. Hay que copiar a `.js` primero.
+- El `CacheService` del simulador **devolvía `null` siempre**: no era un caché,
+  era su ausencia. Las sesiones viven ahí, así que ninguna guardia habría podido
+  probar que expiran. Ahora tiene memoria real con TTL. Igual `computeDigest`,
+  que no existía: con un digest de mentira, «la clave no se guarda» pasaba en
+  verde sin probar nada.
+- **Diez guardias arman su propia lista de `.gs`**, así que un `svc_*` nuevo del
+  que dependa `svc_evoluciones` las pone rojas a todas.
+- `guardado_viajes.js` es un A/B contra un commit fijo y corre el
+  `medir_guardado.js` de HOY contra el árbol de ENTONCES: los archivos que aún
+  no existían allá se saltan, no revientan. Y su descuento de columnas nuevas
+  solo cubría `EVOLUCIONES`; ahora también `CAMAS_ESTADO`. Ojo: hay que
+  **quitar** la celda con `splice`, no rellenarla — rellenarla la hace más
+  distinta, no menos. Las filas se unen con `\x01`, no con cadena vacía.
+
+**Pendiente antes de publicar:** correr `coordSembrarClaves()` UNA vez desde el
+editor y entregar las temporales en persona.
+
+**Recuperación por correo: escrita y APAGADA** (19-ago, pedido de Manuel «déjalo
+listo si fuéramos a cambiar las contraseñas a correo»). Está completa —código de
+6 dígitos de un solo uso, con vencimiento, límite de intentos, correo ofuscado
+en pantalla y traza en `AUDIT_LOG`— detrás de `CONFIG.COORD_RECUPERA_CORREO`,
+que nace en `FALSE`. Encenderla es cambiar ese valor; queda como decisión de
+Diego, que fue quien rechazó los correos. `coordDiagnosticoCorreo()` chequea
+correos y cuota antes de encender.
+🪤 Lo que más importaba probar no era que funcione encendida sino que **apagada
+no mande absolutamente nada**: una funcionalidad «lista para encender» que igual
+manda correos no está apagada, está suelta. La guardia lo verifica en los dos
+estados, y también que el código **nunca vuelve en la respuesta** —si volviera,
+pedirlo bastaría para entrar y el correo no probaría nada— ni queda escrito en
+`AUDIT_LOG`. El `MailApp` del simulador se agregó para eso.
+
+De paso, arreglo suelto: el apellido de Magdalena estaba escrito **«Contando»**
+en `esquema.gs` y en `index.html`, y ese nombre alimenta la firma del texto
+clínico — cada evolución suya salía con el apellido mal. Corregido a
+**«Contardo»**. Falta verificar cómo está en la hoja `KINESIOLOGOS` real: la
+semilla solo se aplica si la hoja está vacía.
+
+---
+
 ## Estado y pendientes (julio 2026)
 
 - **CUATRO PEDIDOS DE TERRENO DE MANUEL (9-ago-2026, rama

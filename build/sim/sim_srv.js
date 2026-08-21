@@ -145,17 +145,45 @@ global._tz = () => 'America/Santiago';
 // ── GAS globals ──
 global.SpreadsheetApp = { flush: () => {}, getActiveSpreadsheet: () => { throw new Error('sim: sin Sheets'); } };
 let uuidN = 0;
+const _crypto = require('crypto');
 global.Utilities = {
   getUuid: () => 'uuid-' + (++uuidN),
   formatDate: () => { throw new Error('sim: formatDate no debe usarse (hoyISO/ahoraTS overrideados)'); },
   base64Decode: s => s, newBlob: (b, m, n) => ({ b, m, n }),
   sleep: () => {},
+  // Digest real (ago-2026): el modo Coordinación guarda la HUELLA de la clave,
+  // no la clave. Con un digest de mentira la guardia «la clave no se guarda en
+  // ninguna parte» pasaría en verde sin probar nada.
+  DigestAlgorithm: { SHA_256: 'sha256', MD5: 'md5' },
+  Charset: { UTF_8: 'utf8' },
+  computeDigest: (alg, texto) => Array.from(_crypto.createHash(alg).update(String(texto), 'utf8').digest()),
+  base64Encode: b => Buffer.from(Array.isArray(b) ? b : Buffer.from(String(b))).toString('base64'),
 };
 global.DriveApp = {
   getFolderById: () => ({ createFile: () => ({ getUrl: () => 'https://drive.sim/f/1' }) }),
   createFolder: () => ({ getId: () => 'SIM_FOLDER', createFile: () => ({ getUrl: () => 'https://drive.sim/f/1' }) }),
 };
-global.CacheService = { getScriptCache: () => ({ get: () => null, put: () => {} }) };
+// Caché con memoria real (ago-2026): antes devolvía null siempre, o sea que no
+// era un caché sino su ausencia. Las sesiones del modo Coordinación viven aquí,
+// así que sin memoria ninguna guardia podría probar que expiran o que se atan a
+// una firma. Respeta el TTL en segundos, como el de Apps Script.
+const _CACHE = {};
+global.CacheService = { getScriptCache: () => ({
+  get: k => { const e = _CACHE[k]; if (!e) return null; if (e.hasta <= Date.now()) { delete _CACHE[k]; return null; } return e.v; },
+  put: (k, v, seg) => { _CACHE[k] = { v: String(v), hasta: Date.now() + (seg || 600) * 1000 }; },
+  remove: k => { delete _CACHE[k]; },
+}) };
+global.__simCacheReset = () => { for (const k in _CACHE) delete _CACHE[k]; };
+// MailApp doble (ago-2026): la recuperacion por correo del modo Coordinacion
+// esta escrita pero APAGADA. Sin este doble no se podria probar ni que manda el
+// codigo cuando se enciende, ni —lo que mas importa— que NO manda nada mientras
+// siga apagada. Los envios quedan en MAILS para inspeccionarlos.
+const MAILS = [];
+global.MailApp = {
+  sendEmail: o => { MAILS.push(typeof o === 'string' ? { to: o } : o); },
+  getRemainingDailyQuota: () => 1500,
+};
+global.__simMails = MAILS;
 global.LockService = { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) };
 const PROPS = {};
 global.PropertiesService = { getScriptProperties: () => ({ getProperty: k => (k in PROPS ? PROPS[k] : null), setProperty: (k, v) => { PROPS[k] = String(v); }, deleteProperty: k => { delete PROPS[k]; } }) };
@@ -167,6 +195,7 @@ const ARCHIVOS = [
   'svc_camas.gs', 'svc_evoluciones.gs', 'svc_procedimientos.gs', 'svc_timeline.gs',
   'svc_turnos.gs', 'svc_stats.gs', 'svc_indicadores.gs', 'svc_auditoria.gs',
   'svc_entrega.gs', 'svc_eventos.gs', 'svc_equipos.gs', 'svc_rem.gs',
+  'svc_coordinacion.gs',
   'api.gs',
 ];
 const codigo = ARCHIVOS.map(f => fs.readFileSync(path.join(v2, f), 'utf8')).join('\n;\n');
@@ -191,4 +220,4 @@ DB.VENTILADORES.push(
   { ID_VM: 'vm2', NOMBRE: 'PB-840', MARCA: 'Medtronic', ESTADO: 'Operativo', ACTIVO: true, UBIC_TIPO: 'BODEGA', UBIC_DETALLE: '' },
 );
 
-module.exports = { api: global.api, DB, SIM, CONFIG };
+module.exports = { api: global.api, DB, SIM, CONFIG, MAILS };

@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.62-guardado">
+<meta name="rce-version" content="5.66-episodio">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -165,14 +165,55 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .dash-bar-title{font-size:1.05rem;font-weight:800;color:var(--pdark);letter-spacing:-.01em;}
 .dash-range{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .dash-presets{display:flex;gap:4px;background:#eef2f7;padding:3px;border-radius:8px;}
-.dpset{background:transparent;border:none;padding:5px 12px;font-size:.76rem;font-weight:700;color:#64748b;border-radius:6px;cursor:pointer;transition:all .12s;}
+/* #475569 y no #64748b: el anterior daba 4,27:1 sobre la barra (#eef3f9), bajo
+   el minimo legible de 4,5:1. Medido en Chromium, no estimado. */
+.dpset{background:transparent;border:none;padding:5px 12px;font-size:.76rem;font-weight:700;color:#475569;border-radius:6px;cursor:pointer;transition:all .12s;}
 .dpset:hover{color:var(--primary);}
+/* El cierre de sesion de coordinacion es lo unico rojo de esa barra: da acceso
+   a corregir fechas de cualquier paciente, asi que tiene que verse de lejos.
+   Antes era una palabra gris entre dos botones con emoji. */
+.dpset.coord-salir{background:var(--danger);color:#fff;}
+.dpset.coord-salir:hover{background:#b91c1c;color:#fff;}
+/* Los subtitulos y los chips de la ficha usan --muted, que en la paleta activa
+   (#5b7793) da 4,18-4,47:1 — apenas por debajo del minimo. Se oscurecen DENTRO
+   de la pestaña de coordinacion, que es lo que este cambio se comprometio a
+   tocar. 🔶 OJO: --muted tiene el MISMO problema en el resto de la app (mismo
+   color, mismos fondos claros). No se cambia global aqui porque toca todas las
+   vistas y merece su propia tanda con la bateria completa mirandolo. */
+#tcC .sub-sec-title, #tcC .ficha-chip{color:#455c73;}
+/* 🔴 `.datein` NACIO PARA LA BARRA OSCURA del dashboard: fondo blanco al 12% y
+   texto #f2f2f7 (casi blanco). Ahi se lee perfecto. Pero la PUERTA de
+   coordinacion y la FICHA tienen fondo BLANCO, y ese mismo texto daba 1,12:1
+   — o sea invisible: quien entraba escribia su usuario y su clave A CIEGAS, y
+   despues no veia ni una fecha de la ficha que venia a corregir.
+   Reportado por Manuel con captura (20-ago-2026) DESPUES de publicar la V36:
+   la primera version de la guardia de contraste no lo caz  porque solo miraba
+   nodos de texto, y un <input value> no tiene ninguno.
+   NO se toca `.datein` global (en la barra esta bien): se re-tematiza solo
+   donde el fondo es claro. */
+/* `.uc-card` va incluida y NO es un detalle: los dialogos de clave viven ahi
+   (cambiar mi clave, recuperar por codigo, restablecer la de otra persona) y
+   tambien son fondo blanco. Magdalena cambio su clave el 20-ago escribiendo en
+   campos que no se veian. */
+#coordPuerta .datein, #coordFicha .datein, .uc-card .datein{
+  background:#fff;color:var(--txt);border-color:var(--border);}
+#coordPuerta .datein::placeholder, #coordFicha .datein::placeholder,
+.uc-card .datein::placeholder{color:#5b6b7c;}
+/* El icono del calendario viene invertido para fondo oscuro; sobre blanco
+   desaparece igual que el texto. */
+#coordPuerta .datein::-webkit-calendar-picker-indicator,
+#coordFicha .datein::-webkit-calendar-picker-indicator,
+.uc-card .datein::-webkit-calendar-picker-indicator{filter:none;}
 .dpset.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .dash-dates{display:flex;align-items:center;gap:6px;}
 .dashin{background:#fff!important;color:#1e293b!important;border:1px solid #cbd5e1!important;height:33px;}
 
 /* mensaje vacío/cargando del dashboard */
-.pivot-empty{color:#94a3b8;text-align:center;padding:50px;font-style:italic;}
+/* Era #94a3b8 = 2,30:1, la MITAD del minimo legible. No es decorativo: en el
+   panel de coordinacion este texto es la unica instruccion que ve quien acaba
+   de entrar («Escribe al menos dos letras, o un RUT»). Pedido de Manuel
+   (20-ago-2026): que se lea. Ahora usa el color de texto normal. */
+.pivot-empty{color:var(--txt);text-align:center;padding:50px;font-style:italic;}
 
 /* KPI cards */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;margin-bottom:22px;}
@@ -1289,7 +1330,10 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
 .uc-card.uc-rojo .uc-ico{background:#fef2f2;}
 .uc-tit{font-size:1.02rem;font-weight:800;color:#0f172a;margin-bottom:6px;}
 .uc-msg{font-size:.88rem;color:#475569;line-height:1.55;}
-.uc-det{font-size:.78rem;color:#94a3b8;margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;
+/* #94a3b8 sobre #f8fafc daba 2,45:1 — la mitad del minimo legible. Este bloque
+   no es decorativo: es donde los dialogos ponen sus INSTRUCCIONES, incluidas
+   las etiquetas de los campos de clave («Clave actual», «Clave nueva»). */
+.uc-det{font-size:.78rem;color:#475569;margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;
   border-radius:8px;padding:7px 12px;}
 .uc-btns{display:flex;gap:9px;margin-top:18px;}
 .uc-cancel{flex:1;height:40px;border:1px solid #e2e8f0;background:#f8fafc;color:#374151;border-radius:9px;
@@ -1579,6 +1623,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
   <button class="tab" id="tabE" onclick="setTab('E')">📑 ENTREGA</button>
   <button class="tab" id="tabA" onclick="setTab('A')">🗃️ ARCHIVADOS</button>
   <button class="tab" id="tabV" onclick="setTab('V')">🔧 VENTILADORES</button>
+  <button class="tab" id="tabC" onclick="setTab('C')">🔐 COORDINACIÓN</button>
 </div>
 
 <!-- NAVEGACIÓN MÓVIL: barra inferior (4 pestañas diarias) + hoja «Más» -->
@@ -1594,6 +1639,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
   <div style="width:36px;height:4px;background:#dcd8d0;border-radius:2px;margin:0 auto 8px;"></div>
   <button type="button" class="mit" onclick="mSheet(false);setTab('A')">🗃️ Archivados</button>
   <button type="button" class="mit" onclick="mSheet(false);setTab('V')">🔧 Ventiladores</button>
+  <button type="button" class="mit" onclick="mSheet(false);setTab('C')">🔐 Coordinación</button>
   <button type="button" class="mit" onclick="mSheet(false);recargar()">🔄 Actualizar datos</button>
   <button type="button" class="mit" id="mitMasc" onclick="mascToggle()">🧑 Cambiar a kinesiólogo</button>
   <button type="button" class="mit" onclick="mSheet(false);tutAbrir()">❓ Tutorial</button>
@@ -1965,6 +2011,66 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <button type="button" class="btn btn-r" style="width:auto;padding:0 18px;" onclick="vmCerrarMod()">Cancelar</button>
       <button type="button" id="vmfBtn" class="btn btn-p" onclick="vmGuardar()">💾 Guardar ventilador</button>
     </div>
+  </div>
+</div>
+
+<!-- TAB COORDINACION (ago-2026): buscar cualquier paciente y corregir su ficha.
+     La pantalla es COMODIDAD, no proteccion: el candado vive en el servidor
+     (svc_coordinacion.gs), porque con AUTH_DEV_MODE cualquiera con el enlace
+     llega al dispatcher y esconder esta pestana no protegeria nada. -->
+<div class="tc-wrap" id="tcC">
+  <div class="tbanner" id="bnC">
+    <div class="tb-cover"></div>
+    <div class="tb-icon">&#128274;</div>
+    <button type="button" class="tb-btn no-print" onclick="bannerMenu('C')">&#128444;&#65039; Portada</button>
+  </div>
+
+  <!-- 1 &middot; Puerta -->
+  <div class="dash" id="coordPuerta">
+    <div style="max-width:420px;margin:26px auto;background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;">
+      <div style="font-weight:800;font-size:1.05rem;margin-bottom:4px;">&#128274; Modo Coordinaci&oacute;n</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px;">
+        Permite corregir fechas y datos de cualquier paciente, en cama o egresado.
+        Toda correcci&oacute;n queda firmada y a la vista.
+      </div>
+      <label style="font-size:.78rem;font-weight:700;">Usuario</label>
+      <!-- Campo de texto, no un selector con nombres: la pantalla de entrada
+           no tiene por qu&eacute; revelar qui&eacute;n tiene acceso privilegiado con solo
+           mirarla (pedido de Manuel, 19-ago-2026). El servidor resuelve el
+           usuario a la firma cl&iacute;nica real por dentro. -->
+      <input type="text" id="coordUsuario" class="datein" placeholder="coord1, coord2&hellip;"
+             style="width:100%;height:36px;margin:4px 0 10px;" autocomplete="off" autocapitalize="off">
+      <label style="font-size:.78rem;font-weight:700;">Clave</label>
+      <input type="password" id="coordClave" class="datein" style="width:100%;height:36px;margin:4px 0 14px;"
+             onkeydown="if(event.key==='Enter')coordEntrar()" autocomplete="off">
+      <button type="button" class="btn btn-p" style="width:100%;" onclick="coordEntrar()">Entrar</button>
+      <div id="coordErr" style="color:var(--danger);font-size:.8rem;margin-top:10px;min-height:18px;"></div>
+      <!-- Solo aparece si CONFIG.COORD_RECUPERA_CORREO esta en TRUE. Apagado
+           (lo normal hoy), quien pierde la clave se la pide a otra persona. -->
+      <div id="coordOlvide" class="hidden" style="margin-top:6px;">
+        <a href="javascript:void(0)" onclick="coordOlvideClave()"
+           style="font-size:.78rem;color:#0058A0;font-weight:700;">&iquest;Olvidaste tu clave?</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 &middot; Panel -->
+  <div class="dash hidden" id="coordPanel">
+    <div class="dash-bar">
+      <div class="dash-bar-title">&#128269; Buscar paciente &mdash; <span id="coordQuien" style="color:var(--pdark);"></span></div>
+      <div class="dash-range">
+        <input type="text" id="coordQ" class="datein dashin" style="min-width:280px;"
+               placeholder="Nombre, apellido, RUT o n&uacute;mero de cama&hellip;" oninput="coordBuscar()">
+        <button class="dpset" onclick="coordCambiarClavePedir()">&#128273; Mi clave</button>
+        <button class="dpset" onclick="coordRestablecerPedir()">&#128101; Restablecer otra</button>
+        <button class="dpset coord-salir" onclick="coordSalir()"
+                title="Cierra la sesi&oacute;n en el servidor, no solo en esta pantalla">&#128274; Cerrar sesi&oacute;n <span id="coordSalirFirma"></span></button>
+      </div>
+    </div>
+    <div id="coordRes" style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:6px;min-height:60px;">
+      <div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>
+    </div>
+    <div id="coordFicha" style="margin-top:14px;"></div>
   </div>
 </div>
 
@@ -4237,7 +4343,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.62-guardado]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.65-coordinacion]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4674,7 +4780,7 @@ function renderGrid() {
         ` : `${_movPie(c, true)}
           <button class="bevo" onclick="abrirPanel('${c.ID_CAMA}',false)">${btn}</button>
           <button class="btl" onclick="abrirTL('${c.ID_CAMA}')">⏱️ Hist.</button>
-          <button class="btl" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${c.ID_CAMA}',this)">➕</button>
+          <button class="btl" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${c.ID_CAMA}',this,'${c.PATIENT_ID||''}')">➕</button>
           <button class="balt" onclick="egreso('${c.ID_CAMA}')">🏠 Egr.</button>
         `}</div>`;
     } else {
@@ -6841,10 +6947,10 @@ const BN_PRESETS={
   rosa:    'radial-gradient(circle at 70% 20%, rgba(255,255,255,.35) 0, transparent 45%), linear-gradient(115deg,#ad3d80,#c86a9e 60%,#8d6cc3 140%)',
   papel:   'linear-gradient(115deg,#e9e5e0,#d6d0c6 60%,#b8b1a5 140%)',
 };
-const BN_DEF={G:'azul',P:'papel',D:'purpura',E:'verde',A:'tierra',V:'carbon'};
+const BN_DEF={G:'azul',P:'papel',D:'purpura',E:'verde',A:'tierra',V:'carbon',C:'carbon'};
 function _bnValor(tab){ return (window.CFG&&CFG.BANNERS&&CFG.BANNERS[tab])||''; }
 function aplicarBanners(){
-  ['G','P','D','E','A','V'].forEach(tab=>{
+  ['G','P','D','E','A','V','C'].forEach(tab=>{
     const cov=document.querySelector('#bn'+tab+' .tb-cover'); if(!cov) return;
     const val=_bnValor(tab);
     if(/^https?:\/\//i.test(val)){
@@ -9796,9 +9902,14 @@ function pielAplicar(p){
 pielAplicar(document.documentElement.getAttribute('data-piel'));   // sincroniza etiquetas al arrancar
 
 /* ── Eventos rápidos post-evolución (popover estilo lista de Sheets) ── */
-let _evCama=null,_evTipo=null,_evTurno='Dia';
-function evAbrir(id,anchor){
-  _evCama=String(id); _evTipo=null;
+let _evCama=null,_evTipo=null,_evTurno='Dia',_evPid='';
+function evAbrir(id,anchor,pid){
+  /* 🔴 El episodio viaja desde la fila que se está mirando. La clave del turno
+     (`CAMA_<n>_<fecha>-<turno>`) identifica una CAMA, no a una persona: cuando
+     una cama rota —un paciente egresa y otro ingresa el mismo turno— dos filas
+     la comparten, y el servidor no tiene cómo adivinar cuál es. Sin esto, el
+     servidor rechaza el anexo por ambiguo (y hace bien). */
+  _evCama=String(id); _evTipo=null; _evPid=String(pid||'');
   const pop=$('evPop'); if(!pop) return;
   $('evTitulo').textContent='➕ Evento posterior · Cama '+_evCama;
   evSetTurno(SHIFT);   // preseleccionado según la hora; editable a la vista
@@ -9822,7 +9933,7 @@ function evSetTurno(t){
   $('evTurnoD')?.classList.toggle('on',_evTurno==='Dia');
   $('evTurnoN')?.classList.toggle('on',_evTurno==='Noche');
 }
-function evCerrar(){ hide('evPop'); hide('evVelo'); _evCama=null; _evTipo=null; }
+function evCerrar(){ hide('evPop'); hide('evVelo'); _evCama=null; _evTipo=null; _evPid=''; }
 function evVolver(){ show('evLista'); hide('evForm'); _evTipo=null; }
 function evTipo(t){
   _evTipo=t;
@@ -9840,7 +9951,9 @@ function evGuardar(){
   if(!_evCama||!_evTipo) return;
   const firma=v('evFirma');
   if(!firma){ toast('⚠️ Selecciona la firma de quien anota.'); return; }
-  const datos={ idCama:_evCama, turnoKey:`${v('gDate')||hoy()}-${_evTurno}`, tipo:_evTipo,
+  // El turnoKey se sigue armando con la fecha del Registro: que el ➕ pueda
+  // anotar en una fecha pasada es deliberado. El candado por fecha es otra tanda.
+  const datos={ idCama:_evCama, patientId:_evPid, turnoKey:`${v('gDate')||hoy()}-${_evTurno}`, tipo:_evTipo,
     hora:v('evHora'), detalle:v('evDet'), proc:v('evProc'),
     cultTipo:v('evCultTipo'), cultHallazgo:v('evCultHall'), firmaKine:firma };
   const b=$('evGo'); b.disabled=true; b.textContent='⏳…';
@@ -10935,7 +11048,7 @@ window.Turnos = (function () {
     { n: 'Manuel Fuentes Blanco',       f: 'MFB', t: 'Klgo.' },
     { n: 'Aline Campos Rivera',         f: 'ACR', t: 'Klga.' },
     { n: 'Rodrigo Caamaño',             f: 'RC',  t: 'Klgo.' },
-    { n: 'Magdalena Contando Cisternas', f: 'MCC', t: 'Klga.', aux: true },
+    { n: 'Magdalena Contardo Cisternas', f: 'MCC', t: 'Klga.', aux: true },
   ];
   /** Firma → «Klgo./Klga. Nombre Apellido» para el texto clínico. */
   function firmaTexto(f) {
@@ -11815,13 +11928,13 @@ function chequearReloj(tsServidor){
 // ══════════ ESTADÍSTICAS (tab 📊) ══════════
 function setTab(t){
   ATAB=t;
-  ['G','P','D','E','A','V'].forEach(k=>{
+  ['G','P','D','E','A','V','C'].forEach(k=>{
     $('tc'+k).classList.toggle('on', t===k);
     $('tab'+k).classList.toggle('on', t===k);
   });
   // Barra móvil: refleja la pestaña activa («Más» cubre Archivados/Ventiladores)
   ['G','P','D','E'].forEach(k=>{ const b=$('mnav'+k); if(b) b.classList.toggle('on', t===k); });
-  const _mm=$('mnavMas'); if(_mm) _mm.classList.toggle('on', t==='A'||t==='V');
+  const _mm=$('mnavMas'); if(_mm) _mm.classList.toggle('on', t==='A'||t==='V'||t==='C');
   // En móvil la barra de pestañas es deslizable: centrar la activa por si
   // quedó fuera de vista (p. ej. Archivados/Ventiladores al final).
   const _bar=document.querySelector('.tabs'), _bt=$('tab'+t);
@@ -11834,6 +11947,7 @@ function setTab(t){
   if(t==='A') initArchivados();
   if(t==='P') renderTabla();
   if(t==='V') initVentiladores();
+  if(t==='C') coordInit();
 }
 
 // ══ REGISTRO DIARIO (pestaña 📋, portado de v1 "Pacientes") ═══════════════
@@ -11892,6 +12006,8 @@ function renderTabla(){
   actualizarRetroBar();
   _regCargarEgresos(fecha);
   const q=($('tblSearch')?.value||'').toLowerCase();
+  // Misma lectura que la grilla: fecha elegida a mano = vista retrospectiva.
+  const _tblRetro=!$('gDate').classList.contains('turno-hoy');
   const [y,m,d]=fecha.split('-');
   $('tblFecha').textContent=new Date(+y,+m-1,+d).toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
@@ -11918,7 +12034,15 @@ function renderTabla(){
       const evoD=EVOS_DIA.find(e=>String(e.ID_CAMA)===id&&String(e.TURNO_KEY)===`${fecha}-Dia`)||null;
       const evoN=EVOS_DIA.find(e=>String(e.ID_CAMA)===id&&String(e.TURNO_KEY)===`${fecha}-Noche`)||null;
       const evoRef=evoD||evoN;
-      const ocu=c.OCUPADA===true||c.OCUPADA==='TRUE';
+      /* 🔴 En una fecha PASADA la cama no puede hablar por su ocupante de hoy.
+         Las líneas de abajo caen al estado de la cama cuando falta la evolución
+         («si no hay, el ocupante actual»), y eso se escribió cuando «no hay»
+         solo podía significar «no se registró». Desde que el alta archiva las
+         evoluciones, también significa «esa persona ya egresó»: el 1 de agosto
+         de la cama 1 salía con el nombre de quien la ocupa hoy y con los días
+         contados desde SU ingreso (reporte de Manuel, 20-ago-2026). En retro
+         sin registro no se sabe quién estuvo, y eso se dice — no se rellena. */
+      const ocu=(_tblRetro&&!evoRef)?false:(c.OCUPADA===true||c.OCUPADA==='TRUE');
       // Totales del día ANTES del filtro de búsqueda: el resumen refleja la
       // unidad completa aunque la tabla esté filtrada.
       const ktrD=evoD?(parseInt(evoD.RESP_KTR_CANT)||0):0;
@@ -11968,8 +12092,12 @@ function renderTabla(){
         : (ocu && c.SOPORTE===sop);
       const dvmTxt =_conSop(evoRef,'VM', dvm) ? dvm : '-';
       const dvniTxt=_conSop(evoRef,'VNI',dvni)? dvni: '-';
+      /* «Disponible» AFIRMA que la cama estaba vacía. En una fecha pasada sin
+         evolución eso no se sabe, y decirlo sería inventar: se distingue la
+         cama libre de hoy del día que nadie registró. */
       const nomHtml=nombre?`<span title="${nombre}">${String(nombre).slice(0,28)}</span>`
-                          :'<span style="color:#cbd5e1;font-style:italic;">Disponible</span>';
+                   :(_tblRetro?'<span style="color:#cbd5e1;font-style:italic;" title="Ese día no quedó ninguna evolución registrada en esta cama">Sin registro ese día</span>'
+                              :'<span style="color:#cbd5e1;font-style:italic;">Disponible</span>');
       const dx=((diag||'').slice(0,24)+((diag||'').length>24?'…':''))||'-';
       const ktrCell=n=>n>0?`<span class="ktr-${Math.min(n,5)}">${n}</span>`:dash;
       const ktmHtml=!evoD?dash
@@ -12001,7 +12129,7 @@ function renderTabla(){
         <td class="tc-c">${id}</td>
         <td class="tc-n"><span style="display:flex;align-items:center;gap:6px;">
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;">${nomHtml}</span>
-          ${(ocu||evoRef)?`<button type="button" class="ev-btn" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${id}',this)">➕</button>`:''}
+          ${(ocu||evoRef)?`<button type="button" class="ev-btn" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${id}',this,'${(evoRef&&evoRef.PATIENT_ID)||(ocu?(c.PATIENT_ID||''):'')}')">➕</button>`:''}
         </span></td>
         <td class="tc-num" style="color:var(--muted);">${sexo||'-'}</td>
         <td class="tc-num">${edad||'-'}</td>
@@ -12197,6 +12325,258 @@ function arcCSV(){
 // ══ VENTILADORES (pestaña 🔧) — inventario vivo + movimientos ═════════════
 let VM_ALL=null;
 const VM_EST_COL={'Operativo':'#16a34a','En mantención':'#d97706','Con falla':'#dc2626','De baja':'#64748b'};
+
+// ══ MODO COORDINACIÓN (ago-2026) ═══════════════════════════════════════════
+// Buscar cualquier paciente —en cama o egresado— y corregir sus fechas semilla
+// y sus datos administrativos, con la huella a la vista.
+//
+// Nace del caso de la cama 10: un paciente estuvo 28 días y al egresar quedó
+// archivado con UN día de estadía, porque los días se congelan al dar de alta
+// y su fecha de ingreso estaba mal. Corregirlo obligaba a abrir el editor de
+// Apps Script.
+//
+// ⚠️ ESTA PANTALLA NO PROTEGE NADA: es comodidad. El candado vive en el
+// servidor y se vuelve a exigir en CADA guardado (svc_coordinacion.gs).
+let COORD_TK = null, COORD_FIRMA = '', COORD_USUARIO = '', COORD_PID = '', _coordTmr = null;
+// Solo los HANDLES de login (coord1/2/3), nunca a quién pertenecen — eso lo
+// resuelve el servidor. Sirve para el selector de «restablecer otra clave»;
+// si algún día cambia la cantidad de usuarios, se actualiza aquí y en
+// COORD_USUARIOS de svc_coordinacion.gs (son independientes a propósito).
+const COORD_USUARIOS_UI = ['coord1', 'coord2', 'coord3'];
+// Escape propio: todo lo que se pinta aqui viene de la planilla (nombres,
+// diagnosticos) y va dentro de atributos onclick, asi que ademas de los
+// signos hay que neutralizar la comilla simple.
+function _cEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+
+function coordInit(){
+  // El servidor manda: si la recuperacion por correo esta apagada, el enlace ni
+  // se ofrece. Preguntarlo evita prometer un camino que va a rechazar.
+  if(window._COORD_EST===undefined){
+    gs('COORD_ESTADO',{},r=>{ window._COORD_EST=r||{};
+      const e=$('coordOlvide'); if(e) e.classList.toggle('hidden', !r.recuperaCorreo); });
+  }
+  $('coordPuerta').classList.toggle('hidden', !!COORD_TK);
+  $('coordPanel').classList.toggle('hidden', !COORD_TK);
+  // La firma va tambien DENTRO del boton de cierre: quien mira la pantalla tiene
+  // que ver de quien es la sesion que esta abierta, no solo que hay una.
+  const fb=$('coordSalirFirma'); if(fb) fb.textContent = COORD_TK ? '('+COORD_FIRMA+')' : '';
+  if(COORD_TK) $('coordQuien').textContent = COORD_FIRMA;
+  else { const c=$('coordClave'); if(c){ c.value=''; setTimeout(()=>c.focus(),80); } }
+}
+
+function coordEntrar(){
+  const usuario=$('coordUsuario').value.trim(), clave=$('coordClave').value;
+  $('coordErr').textContent='';
+  if(!usuario){ $('coordErr').textContent='Escribe tu usuario.'; return; }
+  if(!clave){ $('coordErr').textContent='Escribe tu clave.'; return; }
+  gs('COORD_ENTRAR',{usuario:usuario, clave:clave}, r=>{
+    COORD_TK=r.token; COORD_FIRMA=r.firma; COORD_USUARIO=usuario; $('coordClave').value='';
+    coordInit(); toast('🔐 Modo Coordinación · '+r.firma);
+    if(r.debeCambiarClave) coordCambiarClavePedir(true);
+  }, m=>{ $('coordErr').textContent=m; });
+}
+
+// Cierra la sesión DE VERDAD: pide al servidor que mate el token y recién
+// después limpia la pantalla. Antes solo hacía lo segundo, así que la sesión
+// seguía viva en el caché hasta 30 min y la tablet del office no se cerraba.
+// Pase lo que pase con la llamada se limpia el navegador —quedarse dentro por
+// un fallo de red sería peor—, pero si el servidor no confirmó NO se dice
+// «sesión cerrada»: se avisa que puede seguir abierta.
+function coordSalir(){
+  const tk=COORD_TK;
+  const limpiar=()=>{
+    COORD_TK=null; COORD_FIRMA=''; COORD_USUARIO=''; COORD_PID='';
+    $('coordRes').innerHTML='<div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>';
+    $('coordFicha').innerHTML=''; $('coordQ').value='';
+    coordInit();
+  };
+  if(!tk){ limpiar(); toast('Saliste del modo Coordinación'); return; }
+  gs('COORD_SALIR',{token:tk},
+    r=>{ limpiar(); toast(r&&r.cerrada?'🔒 Sesión cerrada':'Saliste del modo Coordinación'); },
+    ()=>{ limpiar(); toast('⚠️ Saliste en este equipo, pero la sesión puede seguir abierta hasta 30 min'); });
+}
+
+// Búsqueda con freno: teclear rápido no manda una llamada por letra.
+function coordBuscar(){
+  clearTimeout(_coordTmr);
+  _coordTmr=setTimeout(()=>{
+    const q=$('coordQ').value.trim();
+    if(q.length<2){ $('coordRes').innerHTML='<div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>'; return; }
+    gs('GET_BUSCAR_PACIENTE',{q:q}, r=>{
+      const L=r||[];
+      if(!L.length){ $('coordRes').innerHTML='<div class="pivot-empty">Sin resultados para «'+_cEsc(q)+'».</div>'; return; }
+      $('coordRes').innerHTML=L.map(p=>{
+        const tag = p.tipo==='activo'
+          ? '<span class="hsr-tag act">cama '+_cEsc(p.cama)+'</span>'
+          : '<span class="hsr-tag egr">egresado</span>';
+        const fechas = p.tipo==='activo'
+          ? ('ingreso '+_cEsc(p.fIngreso||'—'))
+          : (_cEsc(p.fIngreso||'—')+' → '+_cEsc(p.fEgreso||'—'));
+        return '<div class="hsr-item" onclick="coordAbrir(\''+_cEsc(p.patientId)+'\',\''+_cEsc(p.cama)+'\')">'
+          +'<div class="hsr-top"><span class="hsr-nm">'+_cEsc(p.nombre||'(sin nombre)')+'</span>'+tag+'</div>'
+          +'<div class="hsr-sub">'+fechas+(p.dx?' · '+_cEsc(p.dx):'')+'</div></div>';
+      }).join('');
+    });
+  },260);
+}
+
+function coordAbrir(pid, cama){
+  COORD_PID=pid;
+  $('coordFicha').innerHTML='<div class="pivot-empty">Cargando ficha…</div>';
+  gs('COORD_FICHA',{token:COORD_TK, patientId:pid, idCama:cama}, r=>{
+    coordPintarFicha(r);
+  }, m=>{ $('coordFicha').innerHTML='<div class="pivot-empty" style="color:var(--danger);">'+_cEsc(m)+'</div>';
+          if(/sesión/i.test(m)){ COORD_TK=null; coordInit(); } });
+}
+
+function coordPintarFicha(f){
+  const esEgr = f.tipo==='egresado';
+  const filas = (f.campos||[]).map(c=>{
+    const id='cf_'+c.campo;
+    const marca = c.corregido
+      ? '<span class="hsr-tag egr" title="Corregida por la coordinación: el turno ya no la modifica">✔ corregido</span>' : '';
+    const hora = (c.tipo==='fecha')
+      ? '<input type="time" id="'+id+'_h" class="datein" value="'+_cEsc(c.hora||'')+'" style="width:110px;">' : '';
+    const inp = (c.tipo==='fecha')
+      ? '<input type="date" id="'+id+'" class="datein" value="'+_cEsc(c.valor||'')+'" style="width:150px;">'
+      : '<input type="text" id="'+id+'" class="datein" value="'+_cEsc(c.valor||'')+'" style="min-width:220px;">';
+    return '<tr><td style="padding:6px 10px;font-weight:700;white-space:nowrap;">'+_cEsc(c.etiqueta)+' '+marca+'</td>'
+      +'<td style="padding:6px 10px;">'+inp+' '+hora+'</td></tr>';
+  }).join('');
+
+  const hist = (f.correcciones||[]).length
+    ? '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px;">'
+      +'<div style="font-weight:700;font-size:.82rem;margin-bottom:6px;">Correcciones de esta ficha</div>'
+      +(f.correcciones||[]).map(x=>'<div style="font-size:.78rem;color:var(--muted);">· '
+        +_cEsc(_coordEtiqueta(f,x.c))+': «'+_cEsc(x.a||'(vacío)')+'» → «'+_cEsc(x.n)+'» — '
+        +_cEsc(x.f)+', '+_cEsc(String(x.ts||'').slice(0,16))+'</div>').join('')
+      +'</div>'
+    : '';
+
+  $('coordFicha').innerHTML =
+    '<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;">'
+    +'<div style="font-weight:800;font-size:1rem;">'+_cEsc(f.nombre||'Paciente')+' '
+      +(esEgr?'<span class="hsr-tag egr">egresado</span>':'<span class="hsr-tag act">cama '+_cEsc(f.idCama)+'</span>')+'</div>'
+    +(esEgr&&f.dias!==null&&f.dias!==undefined
+        ? '<div style="font-size:.8rem;color:var(--muted);margin-top:2px;">Días de estadía registrados: <b>'+_cEsc(String(f.dias))+'</b></div>' : '')
+    +'<table style="width:100%;margin-top:10px;">'+filas+'</table>'
+    +'<div style="font-size:.76rem;color:var(--muted);margin-top:10px;">'
+    +'Los días se recalculan solos a partir de las fechas: no se escriben a mano.</div>'
+    +'<button type="button" class="btn btn-p" style="margin-top:12px;" onclick="coordGuardar()">💾 Guardar correcciones</button>'
+    +hist+'</div>';
+  window._COORD_F = f;
+}
+
+function _coordEtiqueta(f, campo){
+  const c=(f.campos||[]).find(x=>x.campo===campo);
+  return c?c.etiqueta:campo;
+}
+
+async function coordGuardar(){
+  const f=window._COORD_F; if(!f) return;
+  const cambios={}, horas={};
+  (f.campos||[]).forEach(c=>{
+    const el=$('cf_'+c.campo); if(!el) return;
+    const v=String(el.value||'').trim();
+    if(v!==String(c.valor||'')) cambios[c.campo]=v;
+    if(c.tipo==='fecha'){ const h=$('cf_'+c.campo+'_h'); if(h&&h.value) horas[c.campo]=h.value; }
+  });
+  const n=Object.keys(cambios).length;
+  if(!n){ toast('No cambiaste ningún dato.'); return; }
+  const lista=Object.keys(cambios).map(k=>'· '+_coordEtiqueta(f,k)+': «'+(_coordValorPrevio(f,k)||'(vacío)')+'» → «'+(cambios[k]||'(vacío)')+'»').join('<br>');
+  const ok = await uiConfirm({
+    icono:'📝', titulo:'Corregir la ficha',
+    mensaje:'Se van a corregir <b>'+n+'</b> dato'+(n===1?'':'s')+' de <b>'+_cEsc(f.nombre||'')+'</b>.',
+    detalle: lista+'<br><br>Queda firmado por <b>'+_cEsc(COORD_FIRMA)+'</b> y a la vista en la ficha.',
+    confirmar:'Corregir' });
+  if(!ok) return;
+  gs('COORD_CORREGIR',{token:COORD_TK, patientId:COORD_PID, cambios:cambios, horas:horas}, r=>{
+    if(r.sinCambios){ toast('No había nada que cambiar.'); return; }
+    let msg='✅ '+r.corregidos+' dato'+(r.corregidos===1?'':'s')+' corregido'+(r.corregidos===1?'':'s');
+    if(r.diasTotal!==null&&r.diasTotal!==undefined) msg+=' · días recalculados: '+r.diasTotal;
+    toast(msg, 5200);
+    if(r.avisoVM) toast('⚠️ Los días de VM del archivo no se pueden recalcular (no guardan su fecha de inicio): revísalos a mano.', 7000);
+    coordAbrir(COORD_PID, r.idCama||'');
+    recargar();
+  }, m=>{ toast('❌ '+m, 5200); if(/sesión/i.test(m)){ COORD_TK=null; coordInit(); } });
+}
+
+function _coordValorPrevio(f, campo){
+  const c=(f.campos||[]).find(x=>x.campo===campo);
+  return c?c.valor:'';
+}
+
+// Recuperar la clave por correo. El enlace que llama aquí solo existe si el
+// servidor dijo que está encendido; aun así el servidor vuelve a comprobarlo,
+// porque la pantalla no decide nada.
+async function coordOlvideClave(){
+  const usuario=$('coordUsuario').value.trim();
+  if(!usuario){ $('coordErr').textContent='Escribe tu usuario primero.'; return; }
+  const ok1 = await uiConfirm({
+    icono:'&#128231;', titulo:'Recuperar tu clave',
+    mensaje:'Se enviar&aacute; un c&oacute;digo de 6 d&iacute;gitos al correo registrado de <b>'+_cEsc(usuario)+'</b>.',
+    detalle:'Vence en unos minutos y sirve una sola vez.',
+    confirmar:'Enviar c&oacute;digo' });
+  if(!ok1) return;
+  gs('COORD_PEDIR_CODIGO',{usuario:usuario}, async r=>{
+    const ok2 = await uiConfirm({
+      icono:'&#128273;', titulo:'C&oacute;digo enviado',
+      mensaje:'Revisa <b>'+_cEsc(r.enviadoA)+'</b>. Vence en '+_cEsc(String(r.minutos))+' minutos.',
+      detalle:'<label style="font-size:.78rem;font-weight:700;">C&oacute;digo de 6 d&iacute;gitos</label>'
+        +'<input type="text" id="rcCod" class="datein" inputmode="numeric" maxlength="6" style="width:100%;height:34px;margin:4px 0 8px;" autocomplete="off">'
+        +'<label style="font-size:.78rem;font-weight:700;">Clave nueva (m&iacute;nimo 8 caracteres)</label>'
+        +'<input type="password" id="rcNueva" class="datein" style="width:100%;height:34px;margin:4px 0 0;" autocomplete="off">',
+      confirmar:'Fijar clave' });
+    if(!ok2) return;
+    const cod=($('rcCod')||{}).value||'', nueva=($('rcNueva')||{}).value||'';
+    gs('COORD_RECUPERAR',{usuario:usuario, codigo:cod, nueva:nueva},
+      ()=>{ toast('&#128273; Clave actualizada. Ya puedes entrar.'); $('coordClave').value=''; $('coordClave').focus(); },
+      m=>toast('&#10060; '+m, 5200));
+  }, m=>{ $('coordErr').textContent=m; });
+}
+
+async function coordCambiarClavePedir(obligatorio){
+  const ok = await uiConfirm({
+    icono:'🔑', titulo: obligatorio?'Tienes que cambiar tu clave':'Cambiar mi clave',
+    mensaje: obligatorio
+      ? 'Entraste con una clave temporal. Elige una propia antes de seguir.'
+      : 'Vas a cambiar tu clave del modo Coordinación.',
+    detalle:'<label style="font-size:.78rem;font-weight:700;">Clave actual (déjala vacía si la tuya es temporal)</label>'
+      +'<input type="password" id="ccActual" class="datein" style="width:100%;height:34px;margin:4px 0 8px;" autocomplete="off">'
+      +'<label style="font-size:.78rem;font-weight:700;">Clave nueva (mínimo 8 caracteres)</label>'
+      +'<input type="password" id="ccNueva" class="datein" style="width:100%;height:34px;margin:4px 0 0;" autocomplete="off">',
+    confirmar:'Cambiar clave' });
+  if(!ok) return;
+  const actual=($('ccActual')||{}).value||'', nueva=($('ccNueva')||{}).value||'';
+  gs('COORD_CAMBIAR_CLAVE',{token:COORD_TK, actual:actual, nueva:nueva},
+    ()=>toast('🔑 Clave cambiada'), m=>toast('❌ '+m, 5200));
+}
+
+// Camino normal cuando alguien pierde su clave (D8): otra de las tres se la
+// restablece. No pide segundo factor — esa protección aplica a la
+// recuperación por correo (aplazada), no a esta, que ya exige sesión viva.
+async function coordRestablecerPedir(){
+  const otros = COORD_USUARIOS_UI.filter(u=>u!==COORD_USUARIO);
+  const ok = await uiConfirm({
+    icono:'👥', titulo:'Restablecer la clave de otra persona',
+    mensaje:'Elige el usuario y se le genera una clave temporal.',
+    detalle:'<label style="font-size:.78rem;font-weight:700;">Usuario</label>'
+      +'<select id="rsUsuario" class="datein" style="width:100%;height:34px;margin:4px 0;">'
+      +otros.map(u=>'<option value="'+u+'">'+u+'</option>').join('')
+      +'</select>',
+    confirmar:'Restablecer' });
+  if(!ok) return;
+  const usuario=($('rsUsuario')||{}).value||'';
+  gs('COORD_RESTABLECER',{token:COORD_TK, usuario:usuario}, r=>{
+    uiConfirm({ icono:'🔑', titulo:'Clave temporal generada',
+      mensaje:'Para <b>'+_cEsc(r.usuario)+'</b> ('+_cEsc(r.firma)+'):',
+      detalle:'<div style="font-size:1.3rem;font-weight:800;text-align:center;letter-spacing:1px;padding:10px;background:#f1f5f9;border-radius:8px;">'+_cEsc(r.temporal)+'</div>'
+        +'<div style="font-size:.76rem;color:var(--muted);margin-top:8px;">Entr&eacute;gasela EN PERSONA. Se cambia sola al entrar.</div>',
+      confirmar:'Listo' });
+  }, m=>toast('❌ '+m, 5200));
+}
 
 function initVentiladores(){ if(VM_ALL===null) vmCargar(); else vmRender(); }
 

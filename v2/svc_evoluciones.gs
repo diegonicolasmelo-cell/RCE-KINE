@@ -62,23 +62,112 @@ function guardarEvolucion(datos, ctx) {
       // fusión de abajo, los históricos de BDT/apnea y la escritura final
       // hablan todos de ESTA misma fila. Válido porque todo ocurre dentro del
       // mismo lock y nada borra/inserta en EVOLUCIONES antes del upsert.
+      // La cama se ubica una vez; su ÚNICA escritura es el sync del final (las
+      // que había repartidas por el camino se fusionaron ahí — de paso el
+      // guardado quedó todo-o-nada: si algo revienta a mitad, la cama no queda
+      // a medio actualizar).
+      // 🔴 Se lee ANTES de la fusión (20-ago-2026): la fusión necesita saber de
+      // qué episodio es la fila previa, y eso solo lo dice la cama.
+      const filaCama = repoBuscarFila('CAMAS_ESTADO', 'ID_CAMA', idCama);
+      const cama = filaCama === -1 ? {} : repoLeerFila('CAMAS_ESTADO', filaCama);
+
+      // Foto del trío de KTM TAL COMO LLEGÓ, antes de que la fusión de abajo
+      // le copie encima lo de la fila previa. Sin esta foto es imposible
+      // distinguir «el turno no opinó» de «el turno heredó».
+      const _payloadKTM = {};
+      ['KTM_REALIZADA', 'KTM_SUSPENDIDA', 'KTM_NO_REALIZADA'].forEach(function (k) {
+        if (k in datos) _payloadKTM[k] = datos[k];
+      });
+      const _declPayload = esVerdadero(_payloadKTM.KTM_REALIZADA) ||
+        esVerdadero(_payloadKTM.KTM_SUSPENDIDA) || esVerdadero(_payloadKTM.KTM_NO_REALIZADA);
+
       const filaEvo = repoBuscarFila('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
       const _prev = filaEvo === -1 ? null : repoLeerFila('EVOLUCIONES', filaEvo);
       if (_prev) {
-        Object.keys(_prev).forEach(function (k) { if (!(k in datos)) datos[k] = _prev[k]; });
-        // «Si se registró, quedó»: la marca de ingreso del turno JAMÁS se
-        // pierde al re-editar. El cliente reabre con el modo ingreso apagado
-        // y mandaba ES_INGRESO en falso — eso des-marcaba el ingreso ante el
-        // REM (ingresos del mes), la estadística y el hito del historial.
-        if (esVerdadero(_prev.ES_INGRESO)) datos.ES_INGRESO = true;
-      }
+        // 🔴 LA IDENTIDAD NO SE HEREDA (20-ago-2026). La copia de abajo traía
+        // TODA clave ausente del payload, `PATIENT_ID` incluido, y cinco líneas
+        // más abajo `datos.PATIENT_ID || cama.PATIENT_ID` hacía GANAR al pid
+        // heredado. Consecuencia medida en la planilla real: el episodio del
+        // ocupante NUEVO quedaba atribuido al paciente ANTERIOR, y
+        // `_syncCamaDesdeEvolucion` le escribía ese pid al censo — la cama
+        // terminaba con el nombre de uno y el PATIENT_ID de otro, y el
+        // historial (que se lee por pid) mezclaba los dos episodios.
+        // La clave `CAMA_<n>_<turnoKey>` NO lleva paciente dentro, así que una
+        // cama que rota sin archivar deja la fila del anterior bajo la misma
+        // clave: por ahí entraba.
+        const _pidPrev = String(_prev.PATIENT_ID || '');
+        const _pidCama = String(cama.PATIENT_ID || '');
+        // «Otro episodio» solo cuando los dos pids existen y difieren. Si
+        // alguno falta es una fila legacy o una cama sin ingreso formal: ahí se
+        // fusiona como siempre, para no esconder datos verdaderos (misma regla
+        // «distinto Y no vacío» de `_mtoRepararAjenas`).
+        const _otroEpisodio = !!_pidPrev && !!_pidCama && _pidPrev !== _pidCama;
 
-      // La cama también se ubica una vez; su ÚNICA escritura es el sync del
-      // final (las que había repartidas por el camino se fusionaron ahí —
-      // de paso el guardado quedó todo-o-nada: si algo revienta a mitad, la
-      // cama no queda a medio actualizar).
-      const filaCama = repoBuscarFila('CAMAS_ESTADO', 'ID_CAMA', idCama);
-      const cama = filaCama === -1 ? {} : repoLeerFila('CAMAS_ESTADO', filaCama);
+        if (!_otroEpisodio) {
+          Object.keys(_prev).forEach(function (k) {
+            // La identidad se decide abajo desde la CAMA, nunca por herencia.
+            if (k === 'PATIENT_ID' || k === 'PAC_COD') return;
+            if (!(k in datos)) datos[k] = _prev[k];
+          });
+          // «Si se registró, quedó»: la marca de ingreso del turno JAMÁS se
+          // pierde al re-editar. El cliente reabre con el modo ingreso apagado
+          // y mandaba ES_INGRESO en falso — eso des-marcaba el ingreso ante el
+          // REM (ingresos del mes), la estadística y el hito del historial.
+          if (esVerdadero(_prev.ES_INGRESO)) datos.ES_INGRESO = true;
+        }
+        // Si ES de otro episodio no se hereda NADA: ni identidad ni datos
+        // clínicos. Que el turno de este paciente arranque limpio es lo único
+        // que no puede atribuirle a nadie lo que no hizo.
+
+        // ── 🔑 LA KTM NO SE PIERDE AL REABRIR EL TURNO (Manuel, 20-ago-2026) ──
+        //
+        // ESTE ES EL BUG QUE ORIGINÓ TODO EL TRABAJO: «en la ficha de papel
+        // escriben KTM con nivel, pero no está registrado en RCE». No es que se
+        // olviden de anotarla — el sistema se la BORRA.
+        //
+        // El formulario neutraliza el trío en CADA reapertura (es deliberado:
+        // «KTM — ACCIÓN DIARIA: siempre parte sin estado seleccionado», para que
+        // nadie herede sin querer la KTM de ayer) y manda las claves presentes
+        // pero vacías. Como la fusión de arriba solo repone lo AUSENTE, un turno
+        // con KTM realizada nivel 3 y 2 sesiones quedaba en nivel '' y cantidad
+        // '' porque un colega reabrió esa evolución para corregir la FiO₂.
+        //
+        // Medido en la planilla real el 20-ago: 52 filas con nivel presente y el
+        // estado apagado — más que las 36 con KTM realizada. 21 de ellas de día,
+        // que son las sospechosas de ser KTM verdaderas que perdieron su estado.
+        //
+        // La regla, decidida por Manuel: si el payload NO DECLARA NINGÚN estado
+        // del trío, el turno no está diciendo «no hubo KTM», está diciendo «de
+        // esto no opino» — y entonces se conserva lo que ya había. Es el mismo
+        // criterio que ya protege a ES_INGRESO cinco líneas más arriba.
+        // Para borrar una KTM hay que declararlo (suspendida o no realizada);
+        // el silencio ya no borra.
+        // 🪤 La comprobación se hace contra el PAYLOAD ORIGINAL (`_declPayload`,
+        // calculado arriba antes de fusionar), no contra `datos` ya fusionado:
+        // para entonces el estado previo ya se coló por la copia de lo ausente.
+        const _KTM_TRIO = ['KTM_REALIZADA', 'KTM_SUSPENDIDA', 'KTM_NO_REALIZADA'];
+        const _KTM_SATELITES = ['KTM_NO_RAZON', 'KTM_NO_COMENTARIO', 'KTM_CONTRA_TIPO',
+          'KTM_CONTRA_CAT', 'KTM_CONTRA_RAZON', 'KTM_CONTRA_MANUAL', 'KTM_NIVEL_KTR',
+          'KTM_ASISTENCIA', 'KTM_TIEMPO_MIN', 'KTM_CANT'];
+        const _declPrev = esVerdadero(_prev.KTM_REALIZADA) ||
+                          esVerdadero(_prev.KTM_SUSPENDIDA) || esVerdadero(_prev.KTM_NO_REALIZADA);
+        if (!_declPayload && _declPrev) {
+          // Silencio: se conserva lo que había, entero.
+          _KTM_TRIO.concat(_KTM_SATELITES).forEach(function (k) { datos[k] = _prev[k]; });
+        } else if (_declPayload) {
+          // Declaración: el trío viaja COMPLETO desde el payload. Los estados
+          // que no vengan son FALSOS, no heredados — si no, declarar «no
+          // realizada» dejaba también la «realizada» del turno anterior y la
+          // fila quedaba con dos estados a la vez.
+          // Solo se apaga lo que venía HEREDADO en verdadero: escribir `false`
+          // sobre un campo que ya estaba vacío cambiaría la fila sin arreglar
+          // nada (y rompe el A/B de `guardado_viajes` por una diferencia que no
+          // existe).
+          _KTM_TRIO.forEach(function (k) {
+            if (!(k in _payloadKTM) && esVerdadero(datos[k])) datos[k] = false;
+          });
+        }
+      }
 
       // PATIENT_ID — ruta única: se toma de la cama; si no existe (episodio sin
       // ingreso formal) se genera UNA vez (el sync final lo fija en la cama).
@@ -134,8 +223,15 @@ function guardarEvolucion(datos, ctx) {
       }
       if (!cama.TS_INGRESO) {
         cama.TS_INGRESO = _tsIng || _tsAhora();
-      } else if (_hFormIng && _hFormIng !== _tsHora(cama.TS_INGRESO)) {
+      } else if (_hFormIng && _hFormIng !== _tsHora(cama.TS_INGRESO)
+                 && !coordCampoCorregido(cama, 'FECHA_INGRESO')) {
         // Corrección a mano: se conserva el día del momento ya guardado.
+        //
+        // ARRASTRE (D7, ago-2026): si la coordinación ya corrigió la fecha de
+        // ingreso, el turno la HEREDA y no la pisa — «normalmente no se
+        // modifica, así que no debería poder modificarla» (Manuel, 18-ago).
+        // Sin esta guardia, la corrección de un egresado de 28 días duraba
+        // hasta que alguien guardara el turno siguiente con otra hora.
         cama.TS_INGRESO = _tsFecha(cama.TS_INGRESO) + ' ' + _hFormIng;
       }
       if (cama.FECHA_INGRESO) {
@@ -285,6 +381,31 @@ function guardarEvolucion(datos, ctx) {
       // el caso en que de verdad lo mira (supinación sin pronación del turno).
       _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos, _evosCamaMemo);
 
+      // ── Normalización del trío de KTM (20-ago-2026) ──────────────────────
+      // Se NORMALIZA, no se rechaza: bloquear una evolución por un nivel
+      // heredado dejaría al turno sin poder guardar, y de noche sin salida
+      // desde la pantalla (la tarjeta está oculta). Ver `validarKTM`.
+      //
+      // · Nivel sin estado, o con la KTM suspendida / no realizada, es un
+      //   FÓSIL: el formulario no limpia `fKTMniv` al cambiar de estado, así
+      //   que el número de ayer sobrevive a una KTM que no se hizo. Medido:
+      //   52 filas así en la planilla real. Se vacía.
+      // · La cantidad se acota aquí porque el servidor no lo hacía en ninguna
+      //   parte: por API entraba cualquier número al REM.
+      (function () {
+        const hecha = esVerdadero(datos.KTM_REALIZADA);
+        const otra  = esVerdadero(datos.KTM_SUSPENDIDA) || esVerdadero(datos.KTM_NO_REALIZADA);
+        // Solo se toca lo que TIENE contenido: escribir '' sobre un campo que ya
+        // estaba vacío cambiaría la fila sin arreglar nada, y hace fallar el A/B
+        // de `guardado_viajes` por una diferencia que no existe.
+        if (!hecha) {
+          if (String(datos.KTM_NIVEL_KTR || '') !== '') datos.KTM_NIVEL_KTR = '';
+          if (String(datos.KTM_CANT || '') !== '') datos.KTM_CANT = '';
+        } else {
+          datos.KTM_CANT = _ktmCantidad(datos.KTM_CANT);
+        }
+      })();
+
       // Texto clínico: el de la PANTALLA (cliente) si vino; si no, se genera.
       datos.TEXTO_GENERADO = _textoCliente || generarTextoEvolucion(datos);
       // Respaldo del motor: si el cliente no lo trae (API sin navegador) y no
@@ -374,7 +495,20 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   const sopAnt = cama.SOPORTE || '';
   const esVent = (sopNew === 'VM' || sopNew === 'VNI');
   let fechaSoporte, horaSoporte;
+  // ARRASTRE (D7): una fecha corregida por la coordinación no la pisa el turno.
+  // Pero si CAMBIA el tipo de soporte hay un tramo clínico nuevo de verdad
+  // (VM→VNI→VM), y entonces la marca se suelta: congelarla ahí sería peor que
+  // el error original, porque el contador arrancaría en una fecha que ya no
+  // describe este tramo.
+  // Se sueltan EN MEMORIA y viajan en el sync único del final: este guardado
+  // ya está medido al viaje (Ola 4) y no admite una escritura suelta más.
+  const _sopCorregido = coordCampoCorregido(cama, 'FECHA_INICIO_SOPORTE');
+  const _vaCorregidoPrev = coordCampoCorregido(cama, 'FECHA_INICIO_VA');
+  let _marcasSueltas = null;
   if (!esVent) { fechaSoporte = cama.FECHA_INICIO_SOPORTE || ''; horaSoporte = cama.TS_INICIO_SOPORTE || ''; }
+  else if (_sopCorregido && sopNew === sopAnt) {
+    fechaSoporte = cama.FECHA_INICIO_SOPORTE; horaSoporte = cama.TS_INICIO_SOPORTE || '';
+  }
   else if (sopNew !== sopAnt || !cama.FECHA_INICIO_SOPORTE) {
     // Arranca (o se reinicia) el contador: se guarda también la HORA para que
     // los días de VM cuenten bloques de 24 h reales. La hora del evento manda
@@ -437,12 +571,26 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
   let fechaVA, horaVA;
   if (!esVA) {
     fechaVA = ''; horaVA = '';
+  } else if (_vaCorregidoPrev && vaNew === vaAnt) {
+    // ARRASTRE (D7): corregida y sin cambio de vía aérea → se hereda intacta.
+    fechaVA = cama.FECHA_INICIO_VA; horaVA = cama.TS_INICIO_VA || '';
   } else if (vaNew !== vaAnt || !cama.FECHA_INICIO_VA) {
     const diasPrev = parseInt(evo.VA_EXTERNO_DIAS) || 0;
     fechaVA = (esVerdadero(evo.VA_EXTERNO) && diasPrev > 0) ? _restarDias(fecha, diasPrev) : fecha;
     horaVA = _tsDesdeHora(_horaValida(evo.INTUB_HORA) || _horaValida(evo.REINTUB_HORA) || _horaValida(evo.TQT_HORA)) || _tsAhora();
   } else {
     fechaVA = cama.FECHA_INICIO_VA; horaVA = cama.TS_INICIO_VA || '';
+  }
+
+  // ARRASTRE (D7) — soltar las marcas de los tramos que SÍ arrancaron de nuevo.
+  // Un cambio de soporte o de vía aérea abre un tramo clínico distinto: la
+  // fecha corregida describía el tramo anterior y mantenerla congelada dejaría
+  // el contador arrancando donde ya no corresponde.
+  if ((_sopCorregido && sopNew !== sopAnt) || (_vaCorregidoPrev && vaNew !== vaAnt)) {
+    let _corr = coordCorrecciones(cama);
+    if (_sopCorregido && sopNew !== sopAnt) _corr = _corr.filter(function (x) { return !x || x.c !== 'FECHA_INICIO_SOPORTE'; });
+    if (_vaCorregidoPrev && vaNew !== vaAnt) _corr = _corr.filter(function (x) { return !x || x.c !== 'FECHA_INICIO_VA'; });
+    _marcasSueltas = _corr.length ? JSON.stringify(_corr) : '';
   }
 
   const campos = {
@@ -499,6 +647,9 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     TS_INICIO_SOPORTE: horaSoporte,
     TS_INGRESO: cama.TS_INGRESO || '',
   };
+  // Solo viaja si un tramo nuevo soltó su marca: si no, ni se menciona la
+  // columna y el sello de correcciones queda intacto.
+  if (_marcasSueltas !== null) campos.CORRECCIONES_JSON = _marcasSueltas;
 
   // Snapshot por turno (para la tabla de Registro Diario)
   const ktrCant = parseInt(evo.RESP_KTR_CANT) || 0;
@@ -641,10 +792,103 @@ function _tiempoExtubado(evo, idCama, fecha, turno, _evosFn) {
 }
 
 // ═══ LECTURA ══════════════════════════════════════════════
-function obtenerEvolucion(idCama, turnoKey) {
+/**
+ * _ubicarEvolucionDeTurno — ubica LA fila de un turno por EPISODIO, no por clave.
+ *
+ * 🔴 POR QUÉ EXISTE. `ID_EVOLUCION = 'CAMA_<n>_<turnoKey>'` identifica una CAMA
+ * en un turno, no a una persona. Cuando una cama rota, dos episodios comparten
+ * esa clave — **39 veces en agosto-2026**, medido en la planilla real — y
+ * `repoBuscarPorId` devuelve la PRIMERA y esconde la otra. Todo lo que resuelve
+ * por esa clave (el ➕ del Registro Diario, los procedimientos, la anulación)
+ * puede escribirle a la persona equivocada, o negarle la escritura a la correcta
+ * mientras su fila está justo debajo, inalcanzable.
+ *
+ * Devuelve la fila **por número**, nunca la clave: `repoActualizar` escribe en la
+ * primera coincidencia, que es exactamente el bug que esto viene a cerrar.
+ *
+ * 🩤 NO elige cuando no puede: `{ambigua:true}` es una respuesta, no un fallo.
+ * Elegir por su cuenta es lo que hace hoy `repoBuscarPorId`.
+ *
+ * @param  patientId  el episodio. Vacío = payload viejo (API, smoke, medidores).
+ * @param  turnoKey   'YYYY-MM-DD-Dia|Noche'
+ * @param  idCama     solo se usa para armar la clave cuando no hay patientId
+ * @return {{hoja:string, fila:number, obj:Object, vivo:boolean}} la evolución
+ *         | {ambigua:true}  calza con más de una y NO se elige
+ *         | null            no existe
+ */
+function _ubicarEvolucionDeTurno(patientId, turnoKey, idCama) {
+  const pid = String(patientId == null ? '' : patientId).trim();
+  const tk = String(turnoKey == null ? '' : turnoKey).trim();
+  if (!tk) return null;
+  const HOJAS = ['EVOLUCIONES', 'EVOLUCIONES_ARCHIVO'];
+
+  /* Se baja la hoja ENTERA de una vez, a propósito. Medido en la planilla real
+     (8-ago-2026, ocho comparaciones): con 136 filas en EVOLUCIONES y 90 en el
+     archivo, UNA lectura completa le gana a pedir columnas sueltas — en Apps
+     Script el viaje pesa más que la celda. Y la fila vuelve COMPLETA, que es
+     condición para que quien la reciba pueda reescribirla: `_colsExigirCompleto`
+     rechaza lo leído a medias. No se cachea nada — dato clínico: se lee, se
+     resuelve y se descarta dentro de la misma petición. */
+
+  if (pid) {
+    // Con el episodio en la mano se resuelve por él, no por la cama: tras un
+    // traslado el `ID_EVOLUCION` de la fila lleva la cama NUEVA.
+    for (let i = 0; i < HOJAS.length; i++) {
+      const hoja = HOJAS[i];
+      const hit = repoLeerTodosConFila(hoja).filter(function (f) {
+        return String(f.obj.TURNO_KEY).trim() === tk &&
+               String(f.obj.PATIENT_ID).trim() === pid;
+      });
+      // Dos filas del MISMO episodio en el MISMO turno dentro de una hoja es un
+      // duplicado real: no hay criterio para elegir, y elegir es el bug.
+      if (hit.length > 1) return { ambigua: true };
+      if (hit.length === 1) {
+        return { hoja: hoja, fila: hit[0].fila, obj: hit[0].obj, vivo: hoja === 'EVOLUCIONES' };
+      }
+    }
+    /* Entre hojas manda la VIVA — por eso el recorrido empieza por ella. Aquí SÍ
+       hay criterio, al revés que abajo: con el pid pedido se sabe que las dos
+       filas son del MISMO episodio (hay 1 clave duplicada entre hoja viva y
+       archivo en la planilla real), y la viva es la que se sigue editando. Es el
+       mismo criterio que ya eligió `obtenerEvosDelDia` para el Registro Diario;
+       las dos pantallas no pueden discrepar sobre la misma fila.
+
+       Y con pid pedido NO se cae a una fila de `PATIENT_ID` vacío: adoptarla
+       puede ser adoptar la del paciente anterior. Esa decisión es de quien llama,
+       que tiene la cama a la vista; el localizador no la toma por él. */
+    return null;
+  }
+
+  /* Sin pid (payload viejo): se resuelve por clave, pero CONTANDO en las DOS
+     hojas. Detectar solo «aparece en las dos» no basta — el duplicado que se
+     acumula solo es el de dentro de EVOLUCIONES_ARCHIVO, que archiva conservando
+     la clave. Y aquí no se puede aplicar el «manda la viva» de arriba: sin pid no
+     hay cómo saber si las dos filas son el mismo episodio o dos personas. */
+  const clave = 'CAMA_' + idCama + '_' + tk;
+  const halladas = [];
+  HOJAS.forEach(function (hoja) {
+    repoLeerTodosConFila(hoja).forEach(function (f) {
+      if (String(f.obj.ID_EVOLUCION).trim() !== clave) return;
+      halladas.push({ hoja: hoja, fila: f.fila, obj: f.obj, vivo: hoja === 'EVOLUCIONES' });
+    });
+  });
+  if (!halladas.length) return null;
+  if (halladas.length > 1) return { ambigua: true };
+  return halladas[0];
+}
+
+function obtenerEvolucion(idCama, turnoKey, patientId) {
   try {
-    const id = 'CAMA_' + idCama + '_' + turnoKey;
-    return ok(repoBuscarPorId('EVOLUCIONES', 'ID_EVOLUCION', id));
+    /* Antes resolvía con `repoBuscarPorId` sobre la clave de la cama, y solo en
+       la hoja viva: en una cama rotada devolvía LA PRIMERA —la del otro
+       paciente— y de un egresado no devolvía nada. Ahora lo ubica el localizador,
+       que mira las dos hojas y AVISA cuando no puede decidir en vez de elegir. */
+    const ubic = _ubicarEvolucionDeTurno(String(patientId || ''), turnoKey, idCama);
+    if (ubic && ubic.ambigua) {
+      return err('La cama ' + idCama + ' tuvo dos pacientes en ese turno: hay que indicar de cuál ' +
+        'se está hablando.', ERR.VALIDACION);
+    }
+    return ok(ubic ? ubic.obj : null);
   } catch (e) { return err('obtenerEvolucion: ' + e.message, ERR.INTERNO, e); }
 }
 
@@ -746,8 +990,31 @@ function obtenerEvosDelDia(fecha) {
     const f = String(fecha || hoyISO()).slice(0, 10);
     // Lectura acotada: solo las filas del día (antes bajaba la hoja completa,
     // 379 columnas × todo el historial, en CADA arranque de la app).
-    const evos = repoLeerFiltrado('EVOLUCIONES', 'TURNO_KEY',
-      function (k) { return String(k).indexOf(f) === 0; })
+    const delDia = function (k) { return String(k).indexOf(f) === 0; };
+    /* 🔴 Se leen las DOS hojas. Al dar el alta, `_archivarEvolucionesDeCama`
+       mueve las filas del episodio a EVOLUCIONES_ARCHIVO: leyendo solo la hoja
+       viva, el día de cualquier paciente ya egresado desaparecía del Registro
+       Diario y la tarjeta caía al ocupante ACTUAL de la cama — otra persona.
+       Medido en la planilla real el 20-ago-2026: 365 turnos de 45 episodios,
+       el 60,7% del registro de agosto. El REM y los indicadores nunca lo
+       sufrieron porque ellos ya leían las dos (svc_rem, svc_stats).
+       El costo es una lectura más de la columna TURNO_KEY: un viaje, porque
+       `repoLeerFiltrado` baja la clave y después solo los tramos que marcó. */
+    const vivas = repoLeerFiltrado('EVOLUCIONES', 'TURNO_KEY', delDia);
+    const archivadas = repoLeerFiltrado('EVOLUCIONES_ARCHIVO', 'TURNO_KEY', delDia);
+    /* Una fila puede estar en las dos si un archivado quedó a medias (2 casos
+       en la planilla real). Manda la viva, que es la que se sigue editando.
+       El orden —vivas primero, archivadas después— es estable a propósito: una
+       cama puede tener DOS episodios el mismo turno (el que egresa y el que
+       ingresa ese día, 39 veces en agosto) y quien lea no puede depender de
+       cuál venga antes. */
+    const clave = function (e) {
+      return String(e.ID_CAMA) + '|' + String(e.TURNO_KEY) + '|' + String(e.PATIENT_ID);
+    };
+    const yaEsta = {};
+    vivas.forEach(function (e) { yaEsta[clave(e)] = true; });
+    const evos = vivas
+      .concat(archivadas.filter(function (e) { return !yaEsta[clave(e)]; }))
       .map(function (e) {
         return {
           ID_CAMA: String(e.ID_CAMA), TURNO_KEY: String(e.TURNO_KEY),
@@ -815,9 +1082,24 @@ function anularEvento(datos, ctx) {
   const tipo = String(datos.tipo || '');
   if (!idCama || !turnoKey || !tipo) return err('Faltan idCama/turnoKey/tipo.', ERR.VALIDACION);
 
-  const evoR = obtenerEvolucion(idCama, turnoKey);
-  if (!evoR.ok || !evoR.data) return err('No existe evolución para ese turno.', ERR.VALIDACION);
+  const evoR = obtenerEvolucion(idCama, turnoKey, datos.patientId);
+  if (!evoR.ok) return evoR;   // p. ej. la cama tuvo dos pacientes ese turno
+  if (!evoR.data) return err('No existe evolución para ese turno.', ERR.VALIDACION);
   const evo = evoR.data;
+
+  /* 🔴 CANDADO MÍNIMO. Al final, `anularEvento` llama a `_syncCamaDesdeEvolucion`
+     con los datos de la evolución: vía aérea, soporte, modo, fechas de inicio.
+     Si esa evolución es de un episodio que ya no ocupa la cama, ese sync le
+     reescribe el censo AL OCUPANTE ACTUAL — escribe más lejos que el bug que
+     esta tanda vino a cerrar. Anular sobre episodios cerrados es deuda conocida
+     y queda fuera (NO3 del PRD); lo que no puede pasar es que toque a un tercero. */
+  const _camaAnu = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+  const _pidCama = String((_camaAnu && _camaAnu.PATIENT_ID) || '');
+  const _pidEvo = String(evo.PATIENT_ID || '');
+  if (_pidCama && _pidEvo && _pidCama !== _pidEvo) {
+    return err('Esa evolución es de un episodio anterior de la cama ' + idCama + '. Anular desde ' +
+      'aquí le reescribiría el estado al paciente que está ahora.', ERR.VALIDACION);
+  }
 
   // Guard: sin evoluciones posteriores del mismo paciente
   const posteriores = repoLeerTodos('EVOLUCIONES', 'PATIENT_ID', evo.PATIENT_ID)
@@ -900,8 +1182,15 @@ function anularEvento(datos, ctx) {
       };
       const campos = {};
       const dvm = parseInt(evo.DIAS_VM) || 0, dva = parseInt(evo.DIAS_VA) || 0;
-      if (evo.VENT_SOPORTE === 'VM' && fecha) campos.FECHA_INICIO_SOPORTE = rest(fecha, dvm);
-      if (evo.VENT_VIA_AEREA && evo.VENT_VIA_AEREA !== 'Natural' && fecha) campos.FECHA_INICIO_VA = rest(fecha, dva);
+      // ARRASTRE (D7): esta restauración deriva la fecha de inicio RESTANDO los
+      // días que traía la evolución. Sobre una fecha corregida por la
+      // coordinación eso la deshace en silencio — y era el segundo camino por
+      // el que la corrección de un egresado de 28 días se perdía. Aquí no se
+      // suelta la marca: anular un evento no abre un tramo clínico nuevo, lo
+      // que hace es borrar uno que se había marcado por error.
+      const _camaAct = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama) || {};
+      if (evo.VENT_SOPORTE === 'VM' && fecha && !coordCampoCorregido(_camaAct, 'FECHA_INICIO_SOPORTE')) campos.FECHA_INICIO_SOPORTE = rest(fecha, dvm);
+      if (evo.VENT_VIA_AEREA && evo.VENT_VIA_AEREA !== 'Natural' && fecha && !coordCampoCorregido(_camaAct, 'FECHA_INICIO_VA')) campos.FECHA_INICIO_VA = rest(fecha, dva);
       if (Object.keys(campos).length) repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, campos);
     }
 

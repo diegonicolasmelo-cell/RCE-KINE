@@ -31,10 +31,33 @@ function _agregarHitoInterno(hito) {
   return { accion: 'hito_agregado' };
 }
 
-/** Guarda en CAMAS_ESTADO.TIMELINE_JSON los últimos 30 hitos de la cama (cache). */
+/**
+ * Guarda en CAMAS_ESTADO.TIMELINE_JSON los últimos 30 hitos de la cama (cache).
+ *
+ * 🔴 DEL EPISODIO VIGENTE, no de la cama entera (20-ago-2026). Leía solo por
+ * `ID_CAMA`, y `_limpiarCamaInterno` vacía el cache pero NO purga TIMELINE: los
+ * hitos del ocupante anterior seguían ahí. Consecuencia doble, y la segunda es
+ * la grave: el ingreso y el diagnóstico de OTRA persona aparecían en la tarjeta
+ * del paciente actual, y al colarse en el tope de 30 **empujaban fuera hitos
+ * verdaderos suyos**. Mostrar el dato ajeno y esconder el propio, a la vez.
+ *
+ * Si la cama no tiene paciente (censo sin ingreso formal, fila legacy) se cae al
+ * comportamiento de siempre: filtrar por cama. Esconder los hitos de una cama
+ * así sería el error simétrico.
+ */
 function _sincronizarTimelineCama(idCama) {
   try {
-    const hitos = repoLeerTodos('TIMELINE', 'ID_CAMA', idCama);
+    const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+    const pid = String((cama && cama.PATIENT_ID) || '');
+    let hitos = repoLeerTodos('TIMELINE', 'ID_CAMA', idCama);
+    if (pid) {
+      // «distinto Y no vacío»: un hito sin paciente puede ser del episodio
+      // actual (anexo viejo, cama reparada), así que se conserva.
+      hitos = hitos.filter(function (h) {
+        const hp = String(h.PATIENT_ID || '');
+        return !hp || hp === pid;
+      });
+    }
     if (!hitos.length) return;
     hitos.sort((a, b) => String(b.TIMESTAMP).localeCompare(String(a.TIMESTAMP)));
     repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { TIMELINE_JSON: JSON.stringify(hitos.slice(0, 30)) });
@@ -182,9 +205,18 @@ function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, pa
   const id = String(idCama);
   // UNA lectura: sirve para decidir qué borrar Y para armar el cache después.
   const todos = repoLeerTodosConFila('TIMELINE');
+  // 🔴 El borrado exige TAMBIÉN el episodio (20-ago-2026). Miraba solo
+  // cama+fecha+turno, así que el re-guardado de un ocupante borraba los hitos
+  // automáticos que otro paciente tuviera en esa misma cama y turno — el caso
+  // real de una cama que rota sin archivar. Regla «distinto Y no vacío»: un
+  // hito sin paciente se sigue tratando como propio, para no dejar basura
+  // inmortal de las camas reparadas a mano.
+  const _pidEp = String(patientId || '');
   const esDelTurnoAuto = function (h) {
-    return String(h.ID_CAMA) === id && String(h.FECHA) === String(fecha) &&
-      h.TURNO === turno && _TIPOS_HITO_AUTO.indexOf(h.TIPO) !== -1;
+    if (!(String(h.ID_CAMA) === id && String(h.FECHA) === String(fecha) &&
+          h.TURNO === turno && _TIPOS_HITO_AUTO.indexOf(h.TIPO) !== -1)) return false;
+    const hp = String(h.PATIENT_ID || '');
+    return !_pidEp || !hp || hp === _pidEp;
   };
   repoEliminarFilas('TIMELINE', todos.filter(function (t) { return esDelTurnoAuto(t.obj); })
     .map(function (t) { return t.fila; }));
@@ -274,7 +306,14 @@ function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, pa
   // El cache de la cama, desde lo que ya está en la mano: los hitos que
   // sobrevivieron + los recién insertados. Mismo orden y corte que
   // _sincronizarTimelineCama (por TIMESTAMP descendente, últimos 30).
-  const cama = todos.filter(function (t) { return String(t.obj.ID_CAMA) === id && !esDelTurnoAuto(t.obj); })
+  // 🔴 …y del EPISODIO: si no, los hitos del ocupante anterior entran al cache
+  // de la tarjeta y, al ordenarse por TIMESTAMP, empujan fuera del tope de 30
+  // hitos verdaderos del paciente actual.
+  const cama = todos.filter(function (t) {
+      if (String(t.obj.ID_CAMA) !== id || esDelTurnoAuto(t.obj)) return false;
+      const hp = String(t.obj.PATIENT_ID || '');
+      return !_pidEp || !hp || hp === _pidEp;
+    })
     .map(function (t) { return t.obj; })
     .concat(nuevos);
   cama.sort(function (a, b) { return String(b.TIMESTAMP).localeCompare(String(a.TIMESTAMP)); });
