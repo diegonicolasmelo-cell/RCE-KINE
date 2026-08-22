@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.68-sesion-cabecera">
+<meta name="rce-version" content="5.69-mas-con-candado">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1385,6 +1385,16 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
 .ev-it:hover{background:var(--n-blue-bg);color:var(--primary);}
 .ev-it:last-child{border-bottom:none;}
 .ev-btn{border:1px solid var(--border);background:#fff;border-radius:5px;padding:2px 8px;font-size:.75rem;cursor:pointer;color:var(--primary);font-weight:800;}
+/* EL ➕ CON CANDADO (21-ago-2026): el botón dice lo que el servidor va a hacer.
+   Con fecha pasada o episodio cerrado se pinta 🔒 (ámbar); con la sesión de
+   Coordinación abierta (body.coord-on) vuelve a ➕ sin repintar la grilla. */
+.ev-cand .ev-cerr{display:none;}
+.ev-cand.ev-lock .ev-mas{display:none;}
+.ev-cand.ev-lock .ev-cerr{display:inline;}
+.ev-cand.ev-lock{color:#b45309;border-color:#f59e0b;background:#fff7ed;}
+body.coord-on .ev-cand.ev-lock .ev-mas{display:inline;}
+body.coord-on .ev-cand.ev-lock .ev-cerr{display:none;}
+body.coord-on .ev-cand.ev-lock{color:var(--primary);border-color:var(--border);background:#fff;}
 .ev-btn:hover{background:var(--n-blue-bg);}
 .tc-ev{text-align:center;}
 
@@ -1712,6 +1722,13 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <span style="font-size:.62rem;font-weight:800;color:var(--muted);">TURNO</span>
     <button type="button" class="cuff-b" id="evTurnoD" onclick="evSetTurno('Dia')">☀ Día</button>
     <button type="button" class="cuff-b" id="evTurnoN" onclick="evSetTurno('Noche')">🌙 Noche</button>
+  </div>
+  <div id="evLlave" class="hidden" style="padding:10px 12px;flex-direction:column;gap:7px;">
+    <div style="font-size:.74rem;color:#7c2d12;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;padding:7px 9px;line-height:1.35;">🔒 Corregir el pasado —o a un paciente que ya no está en la cama— requiere <b>clave de coordinación</b>.</div>
+    <input type="text" id="evLlaveUsr" placeholder="Usuario (coord1, coord2…)" autocomplete="off" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
+    <input type="password" id="evLlaveClave" placeholder="Clave" autocomplete="current-password" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;" onkeydown="if(event.key==='Enter')evLlaveEntrar()">
+    <div id="evLlaveErr" style="font-size:.72rem;color:var(--danger);min-height:1em;"></div>
+    <button type="button" id="evLlaveGo" onclick="evLlaveEntrar()" style="padding:9px 0;background:var(--pdark);color:#fff;border:none;border-radius:7px;font-weight:800;cursor:pointer;">🔐 Entrar y continuar</button>
   </div>
   <div id="evLista">
     <button type="button" class="ev-it" onclick="evTipo('procedimiento')">🔧 Procedimiento…</button>
@@ -4368,7 +4385,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.65-coordinacion]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.69-mas-con-candado]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4805,7 +4822,7 @@ function renderGrid() {
         ` : `${_movPie(c, true)}
           <button class="bevo" onclick="abrirPanel('${c.ID_CAMA}',false)">${btn}</button>
           <button class="btl" onclick="abrirTL('${c.ID_CAMA}')">⏱️ Hist.</button>
-          <button class="btl" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${c.ID_CAMA}',this,'${c.PATIENT_ID||''}')">➕</button>
+          ${_evBotonHTML(c.ID_CAMA, c.PATIENT_ID||'', 'btl')}
           <button class="balt" onclick="egreso('${c.ID_CAMA}')">🏠 Egr.</button>
         `}</div>`;
     } else {
@@ -9928,6 +9945,63 @@ pielAplicar(document.documentElement.getAttribute('data-piel'));   // sincroniza
 
 /* ── Eventos rápidos post-evolución (popover estilo lista de Sheets) ── */
 let _evCama=null,_evTipo=null,_evTurno='Dia',_evPid='';
+/* ── EL ➕ CON CANDADO, lado del navegador (21-ago-2026, reporte de Manuel:
+   «el ➕ sigue abierto sin importar si hay login o no») ─────────────────────
+   El candado REAL vive en el servidor (svc_eventos.gs, anexarEvento): con
+   fecha pasada o episodio cerrado rechaza sin coordToken. Pero el botón se
+   pintaba igual y el popup abría igual, y el rechazo llegaba recién al
+   guardar — para quien mira la pantalla, «el ➕ está abierto». Aquí se
+   replica la MISMA regla (esPasado = ni la fecha ni su fecha efectiva son
+   hoy; cerrado = la cama está libre o la ocupa otro pid) solo para pintar 🔒
+   y pedir la clave ANTES, en el propio popup. Quien decide sigue siendo el
+   servidor: si estas dos reglas se desalinean, gana él y el toast lo dice. */
+function _evFechaEf(fecha, turno){
+  if(turno!=='Noche') return fecha;
+  const d=new Date(fecha+'T12:00:00'); d.setDate(d.getDate()+1);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function _evEsPasado(fecha, turno){ const h=hoy(); return fecha!==h && _evFechaEf(fecha,turno)!==h; }
+function _evEpisodioCerrado(idCama, pid){
+  const c=(DB||[]).find(x=>String(x.ID_CAMA)===String(idCama));
+  if(!c) return true;
+  if(!(c.OCUPADA===true||c.OCUPADA==='TRUE')) return true;
+  if(pid && c.PATIENT_ID && String(c.PATIENT_ID)!==String(pid)) return true;
+  return false;
+}
+function _evCandado(idCama, pid, turno){
+  const f=v('gDate')||hoy();
+  return _evEsPasado(f, turno||SHIFT) || _evEpisodioCerrado(idCama, pid);
+}
+/* Un solo lugar pinta el botón (tarjeta y Registro): con candado lleva 🔒 y
+   el título explica; body.coord-on lo devuelve a ➕ sin repintar nada. */
+function _evBotonHTML(idCama, pid, cls){
+  const lock=_evCandado(idCama, pid, SHIFT);
+  const tit=lock?'Corregir el pasado —o a un paciente que ya no está en la cama— requiere clave de coordinación'
+                :'Anotar evento posterior (procedimiento, filtro, cultivo…)';
+  return `<button type="button" class="${cls} ev-cand${lock?' ev-lock':''}" title="${tit}" onclick="evAbrir('${idCama}',this,'${pid||''}')"><span class="ev-mas">➕</span><span class="ev-cerr">🔒</span></button>`;
+}
+/* Decide qué se ve dentro del popup: la llave (candado y sin sesión) o la lista. */
+function _evLlaveRefrescar(){
+  if(!_evCama) return;
+  const lock=_evCandado(_evCama,_evPid,_evTurno) && !COORD_TK;
+  const ll=$('evLlave'); if(!ll) return;
+  if(lock){ hide('evLista'); hide('evForm'); ll.classList.remove('hidden'); ll.style.display='flex';
+    $('evTitulo').textContent='🔒 Corregir el pasado · Cama '+_evCama;
+    $('evLlaveErr').textContent=''; setTimeout(()=>$('evLlaveUsr')?.focus(),60); }
+  else { ll.classList.add('hidden'); if($('evForm').classList.contains('hidden')) show('evLista');
+    $('evTitulo').textContent='➕ Evento posterior · Cama '+_evCama; }
+}
+function evLlaveEntrar(){
+  const usuario=v('evLlaveUsr').trim(), clave=v('evLlaveClave');
+  $('evLlaveErr').textContent='';
+  if(!usuario){ $('evLlaveErr').textContent='Escribe tu usuario.'; return; }
+  if(!clave){ $('evLlaveErr').textContent='Escribe tu clave.'; return; }
+  const b=$('evLlaveGo'); b.disabled=true;
+  _coordEntrarCon(usuario, clave,
+    ()=>{ b.disabled=false; $('evLlaveClave').value=''; _evLlaveRefrescar(); },
+    m=>{ b.disabled=false; $('evLlaveErr').textContent=m; });
+}
+
 function evAbrir(id,anchor,pid){
   /* 🔴 El episodio viaja desde la fila que se está mirando. La clave del turno
      (`CAMA_<n>_<fecha>-<turno>`) identifica una CAMA, no a una persona: cuando
@@ -9947,6 +10021,7 @@ function evAbrir(id,anchor,pid){
     sel.value=Turnos.firmaDeCama(_evCama)||'';
   }
   show('evVelo'); pop.classList.remove('hidden');
+  _evLlaveRefrescar();   // 🔒 con fecha pasada o episodio cerrado y sin sesión de coordinación
   // anclado al botón; si no cabe abajo, se abre hacia arriba
   const r=anchor?anchor.getBoundingClientRect():{left:innerWidth/2-145,bottom:innerHeight/2};
   let x=Math.min(Math.max(8,r.left-10), innerWidth-300);
@@ -9957,9 +10032,10 @@ function evSetTurno(t){
   _evTurno=(t==='Noche')?'Noche':'Dia';
   $('evTurnoD')?.classList.toggle('on',_evTurno==='Dia');
   $('evTurnoN')?.classList.toggle('on',_evTurno==='Noche');
+  _evLlaveRefrescar();   // la noche de ayer es «hoy» (fecha efectiva): cambia el candado
 }
 function evCerrar(){ hide('evPop'); hide('evVelo'); _evCama=null; _evTipo=null; _evPid=''; }
-function evVolver(){ show('evLista'); hide('evForm'); _evTipo=null; }
+function evVolver(){ hide('evForm'); _evTipo=null; show('evLista'); _evLlaveRefrescar(); }
 function evTipo(t){
   _evTipo=t;
   hide('evLista'); const f=$('evForm'); f.classList.remove('hidden'); f.style.display='flex';
@@ -12159,7 +12235,7 @@ function renderTabla(){
         <td class="tc-c">${id}</td>
         <td class="tc-n"><span style="display:flex;align-items:center;gap:6px;">
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;">${nomHtml}</span>
-          ${(ocu||evoRef)?`<button type="button" class="ev-btn" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${id}',this,'${(evoRef&&evoRef.PATIENT_ID)||(ocu?(c.PATIENT_ID||''):'')}')">➕</button>`:''}
+          ${(ocu||evoRef)?_evBotonHTML(id, (evoRef&&evoRef.PATIENT_ID)||(ocu?(c.PATIENT_ID||''):''), 'ev-btn'):''}
         </span></td>
         <td class="tc-num" style="color:var(--muted);">${sexo||'-'}</td>
         <td class="tc-num">${edad||'-'}</td>
@@ -12402,6 +12478,7 @@ function hSesRender(){
   ub.title = abierto ? 'La app está abierta sin identidad (modo de prueba). Toca para iniciar sesión.'
                      : 'Sesión de '+firma+(yo.email?' · '+yo.email:'');
   const tk=(typeof COORD_TK!=='undefined')&&COORD_TK;
+  document.body.classList.toggle('coord-on', !!tk);   // los 🔒 del ➕ vuelven a ➕
   cb.classList.toggle('hses-ok', !!tk);
   cb.firstChild.textContent = tk ? '🔓 ' : '🔒 ';
   const min = tk && typeof _coordIdleRestanteMin==='function' ? _coordIdleRestanteMin() : 0;
@@ -12453,11 +12530,17 @@ function coordEntrar(){
   $('coordErr').textContent='';
   if(!usuario){ $('coordErr').textContent='Escribe tu usuario.'; return; }
   if(!clave){ $('coordErr').textContent='Escribe tu clave.'; return; }
+  _coordEntrarCon(usuario, clave, ()=>{ $('coordClave').value=''; }, m=>{ $('coordErr').textContent=m; });
+}
+/* Entrar al modo con usuario y clave desde cualquier puerta (la pestaña 🔐 o
+   la llave del ➕): una sola ruta al servidor y un solo lugar que fija la sesión. */
+function _coordEntrarCon(usuario, clave, ok, fail){
   gs('COORD_ENTRAR',{usuario:usuario, clave:clave}, r=>{
-    COORD_TK=r.token; COORD_FIRMA=r.firma; COORD_USUARIO=usuario; $('coordClave').value='';
+    COORD_TK=r.token; COORD_FIRMA=r.firma; COORD_USUARIO=usuario;
     coordInit(); toast('🔐 Modo Coordinación · '+r.firma);
     if(r.debeCambiarClave) coordCambiarClavePedir(true);
-  }, m=>{ $('coordErr').textContent=m; });
+    if(ok) ok(r);
+  }, m=>{ if(fail) fail(m); });
 }
 
 // Cierra la sesión DE VERDAD: pide al servidor que mate el token y recién
@@ -15018,6 +15101,7 @@ window.onload = function() {
     const _a=$('bootAct'); if(_a) _a.classList.add('hidden');
     cierreMostrar(b.cierre);
     YO=b.yo||{};
+    hSesRender();   // la cabecera dice quién entró (o «Sin usuario»)
     if(YO.dev && LOGIN_UI_ACTIVO){ const d=$('devbar'); if(d) d.style.display='block'; }
     FASES=b.fases||[]; renderFases();
     window.CFG=b.config||{}; aplicarBanners();
