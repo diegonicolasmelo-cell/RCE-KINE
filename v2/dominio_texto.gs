@@ -127,6 +127,12 @@ function generarTextoEvolucion(d) {
     if (ppc > 0) nm.push(`PPC ${ppc} mmHg`);
     txt.push('Neuromonitoreo: ' + nm.join(', ') + '.');
   }
+  // DVE: la sigla se expande porque la evolución la lee también un médico fuera
+  // de la UCI. Espejo del cliente (index.html) — mantener en paridad.
+  if (esVerdadero(d.NEURO_DVE)) {
+    const dveAlt = vn('NEURO_DVE_ALTURA');
+    txt.push('Derivación ventricular externa (DVE)' + (dveAlt > 0 ? ` a ${dveAlt} cmH2O` : '') + '.');
+  }
 
   // 5. Vía aérea
   const diasVA = v('DIAS_VA');
@@ -490,7 +496,6 @@ function generarTextoEvolucion(d) {
   // 8. KTM
   const ktmR = esVerdadero(d.KTM_REALIZADA), ktmS = esVerdadero(d.KTM_SUSPENDIDA);
   const nivel = v('KTM_NIVEL_KTR'), tiempo = v('KTM_TIEMPO_MIN');
-  const contra = v('KTM_CONTRA_RAZON') || v('KTM_CONTRA_MANUAL');
   const uma = v('KTM_UMA');
   if (ktmR) {
     const ktmCant = Math.min(9, Math.max(1, parseInt(v('KTM_CANT')) || 1));
@@ -501,8 +506,16 @@ function generarTextoEvolucion(d) {
     if (uma) ktmStr += `. UMA ${uma}`;
     txt.push(ktmStr + '.');
   } else if (ktmS) {
-    const tipoContra = v('KTM_CONTRA_TIPO');
-    txt.push(`KTM no realizada. Contraindicación ${tipoContra ? tipoContra.toLowerCase() : ''}: ${contra || 'sin especificar'}.`);
+    // Espejo del cliente (genTexto). El ítem del catálogo y la observación son
+    // DOS datos: estaban unidos por un `||` y la observación se perdía en
+    // cuanto había ítem (22-ago-2026, reportado por Manuel). Antes este motor
+    // además redactaba distinto que el cliente («KTM no realizada.
+    // Contraindicación absoluta: …»), así que los dos textos del mismo turno no
+    // coincidían; ahora dicen lo mismo.
+    const item = v('KTM_CONTRA_RAZON'), obsC = String(v('KTM_CONTRA_MANUAL') || '').trim();
+    let ktmC = item ? `KTM contraindicada por ${_lcIni(item)}.` : 'KTM contraindicada.';
+    if (obsC) ktmC += ` ${(obsC.charAt(0).toUpperCase() + obsC.slice(1)).replace(/\s*\.\s*$/, '')}.`;
+    txt.push(ktmC);
   } else if (esVerdadero(d.KTM_NO_REALIZADA)) {
     const nr = v('KTM_NO_RAZON'), nc = v('KTM_NO_COMENTARIO');
     let s2 = 'KTM no realizada';
@@ -576,8 +589,10 @@ function generarTextoEvolucion(d) {
 
   // 11. Planes y firma
   const planes = v('PLAN_PLANES'), nota = v('PLAN_NOTA_TURNO'), firma = v('PLAN_FIRMA_KINE');
-  if (planes) txt.push(`Plan: ${planes}`);
+  // Observaciones ANTES del plan (22-ago-2026, pedido de Manuel): el plan es lo
+  // pendiente para el turno siguiente y cierra el texto. Espejo del cliente.
   if (nota)   txt.push(`Nota: ${nota}`);
+  if (planes) txt.push(`Plan: ${planes}`);
   // La firma SALIÓ del texto generado (ago-2026, decisión de Diego): al copiar
   // al BUDA estorbaba. La autoría NO se pierde: queda en PLAN_FIRMA_KINE y en
   // la auditoría. _firmaTextoClinico se conserva (la usa la entrega de turno).

@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.67-candado">
+<meta name="rce-version" content="5.74-observacion-de-ktm">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -89,6 +89,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .htitle{font-size:.98rem;font-weight:700;display:flex;align-items:center;gap:8px;letter-spacing:-.015em;}
 .hbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:.82rem;color:#8e8e93;}
 .hbar b{color:#f2f2f7;}
+.hbar > span{white-space:nowrap;}  /* Camas/VM no se quiebran en dos líneas al apretarse la cabecera */
 .datein{background:rgba(255,255,255,.12);color:#f2f2f7;border:1px solid rgba(255,255,255,.13);border-radius:9px;padding:5px 10px;font-family:inherit;font-size:.84rem;font-weight:600;outline:none;height:33px;letter-spacing:.15px;transition:background .2s,border-color .2s,color .2s;}
 .datein::-webkit-calendar-picker-indicator{filter:invert(1);cursor:pointer;opacity:.65;}
 .datein-hoy{font-size:.98rem!important;font-weight:800!important;height:38px!important;padding:5px 12px!important;}
@@ -104,6 +105,23 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .hbar-actions .hbtn{justify-content:center;}
 .hbtn{background:rgba(255,255,255,.1);color:#f2f2f7;border:1px solid rgba(255,255,255,.15);padding:5px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem;display:flex;align-items:center;gap:5px;transition:background .15s;}
 .hbtn:hover{background:rgba(255,255,255,.19);}
+
+/* SESIÓN EN LA CABECERA (21-ago-2026, pedido de Manuel): quién usa la app y si
+   el modo Coordinación está abierto, siempre a la vista en la esquina superior
+   derecha. Lo que no hay se dice («Sin usuario»): con AUTH_DEV_MODE=TRUE la app
+   entra sin identidad y eso tiene que verse, no esconderse. */
+.hses{display:flex;gap:5px;align-items:center;flex-shrink:0;}
+.hses .hbtn{white-space:nowrap;}
+/* .hdr .hses … gana a `html[data-piel="inst"] .hbtn` (piel institucional), que
+   pinta todos los botones del mismo azul y se tragaba el ámbar y el verde. */
+.hdr .hses .hses-abierto{background:#b45309;border-color:#f59e0b;color:#fff;}
+.hdr .hses .hses-abierto:hover{background:#d97706;}
+.hdr .hses .hses-ok{background:#166534;border-color:#22c55e;color:#fff;}
+.hdr .hses .hses-ok:hover{background:#15803d;}
+/* Las palabras largas («Sin usuario», «Coordinación») se van primero; la sigla
+   (MFB, MCC) se queda hasta el móvil, donde mandan solo los íconos. */
+@media (max-width:1250px){ .hses .hses-largo{display:none;} }
+@media (max-width:740px){ .hses{flex:1 1 100%;justify-content:flex-end;order:9;} .hses .hbtn{padding:5px 10px;} }
 
 /* TABS */
 .tabs{background:#0e3a5f;border-bottom:1px solid rgba(255,255,255,.08);padding:0 22px;display:flex;gap:2px;position:sticky;top:53px;z-index:49;overflow-x:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
@@ -1367,6 +1385,16 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
 .ev-it:hover{background:var(--n-blue-bg);color:var(--primary);}
 .ev-it:last-child{border-bottom:none;}
 .ev-btn{border:1px solid var(--border);background:#fff;border-radius:5px;padding:2px 8px;font-size:.75rem;cursor:pointer;color:var(--primary);font-weight:800;}
+/* EL ➕ CON CANDADO (21-ago-2026): el botón dice lo que el servidor va a hacer.
+   Con fecha pasada o episodio cerrado se pinta 🔒 (ámbar); con la sesión de
+   Coordinación abierta (body.coord-on) vuelve a ➕ sin repintar la grilla. */
+.ev-cand .ev-cerr{display:none;}
+.ev-cand.ev-lock .ev-mas{display:none;}
+.ev-cand.ev-lock .ev-cerr{display:inline;}
+.ev-cand.ev-lock{color:#b45309;border-color:#f59e0b;background:#fff7ed;}
+body.coord-on .ev-cand.ev-lock .ev-mas{display:inline;}
+body.coord-on .ev-cand.ev-lock .ev-cerr{display:none;}
+body.coord-on .ev-cand.ev-lock{color:var(--primary);border-color:var(--border);background:#fff;}
 .ev-btn:hover{background:var(--n-blue-bg);}
 .tc-ev{text-align:center;}
 
@@ -1474,6 +1502,9 @@ html[data-piel="inst"] .hlogo{display:block;height:50px;width:auto;background:#f
 @media (max-width:740px){ .hlogo{height:28px!important;border-radius:5px;padding:2px 3px!important;} }
 html[data-piel="inst"] .hdr{background:#04345E;border-bottom:3px solid #F0A000;box-shadow:none;}
 html[data-piel="inst"] .hbtn{background:#0d426f;border-color:#1c5d94;}
+/* El estado de sesión manda sobre la piel: ámbar = sin usuario, verde = sesión abierta. */
+html .hdr .hses .hses-abierto{background:#b45309;border-color:#f59e0b;color:#fff;}
+html .hdr .hses .hses-ok{background:#166534;border-color:#22c55e;color:#fff;}
 html[data-piel="inst"] .hbtn:hover{background:#12507f;}
 html[data-piel="inst"] .tabs{background:#0058A0;top:56px;border-bottom:none;}
 html[data-piel="inst"] .tab{color:#cfe3f5;}
@@ -1607,6 +1638,10 @@ document.documentElement.setAttribute('data-piel', 'inst');
         oninput="hSrchInput()" onfocus="hSrchInput()" onkeydown="if(event.key==='Escape')hSrchCerrar()">
       <div id="hSrchRes" class="hidden"></div>
     </div>
+    <div class="hses" id="hSes">
+      <button class="hbtn" id="hSesUsr" onclick="hSesUsuarioClick()" title="Quién está usando la app">👤 <span class="hses-txt" id="hSesUsrTxt">—</span></button>
+      <button class="hbtn" id="hSesCand" onclick="hSesCandadoClick()" title="Modo Coordinación">🔒 <span class="hses-txt" id="hSesCandTxt">Coordinación</span></button>
+    </div>
     <div class="hbar-actions">
       <button class="hbtn" onclick="recargar()" title="Actualizar datos">🔄</button>
       <button class="hbtn" id="mascBtn" onclick="mascToggle()" title="Cambiar la mascota">🤖</button>
@@ -1688,6 +1723,13 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <button type="button" class="cuff-b" id="evTurnoD" onclick="evSetTurno('Dia')">☀ Día</button>
     <button type="button" class="cuff-b" id="evTurnoN" onclick="evSetTurno('Noche')">🌙 Noche</button>
   </div>
+  <div id="evLlave" class="hidden" style="padding:10px 12px;flex-direction:column;gap:7px;">
+    <div style="font-size:.74rem;color:#7c2d12;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;padding:7px 9px;line-height:1.35;">🔒 Corregir el pasado —o a un paciente que ya no está en la cama— requiere <b>clave de coordinación</b>.</div>
+    <input type="text" id="evLlaveUsr" placeholder="Usuario (coord1, coord2…)" autocomplete="off" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
+    <input type="password" id="evLlaveClave" placeholder="Clave" autocomplete="current-password" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;" onkeydown="if(event.key==='Enter')evLlaveEntrar()">
+    <div id="evLlaveErr" style="font-size:.72rem;color:var(--danger);min-height:1em;"></div>
+    <button type="button" id="evLlaveGo" onclick="evLlaveEntrar()" style="padding:9px 0;background:var(--pdark);color:#fff;border:none;border-radius:7px;font-weight:800;cursor:pointer;">🔐 Entrar y continuar</button>
+  </div>
   <div id="evLista">
     <button type="button" class="ev-it" onclick="evTipo('procedimiento')">🔧 Procedimiento…</button>
     <button type="button" class="ev-it" onclick="evTipo('hme')">🌫️ Cambio de HME</button>
@@ -1701,7 +1743,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <label style="font-size:.64rem;font-weight:800;color:var(--muted);">HORA</label>
       <input type="time" id="evHora" style="height:32px;border:1px solid var(--border);border-radius:6px;padding:0 8px;">
     </div>
-    <input type="text" id="evProc" list="dlProc" placeholder="Procedimiento del catálogo…" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
+    <select id="evProcSel" class="hidden" onchange="evProcSelCambio()" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 6px;background:#fff;"></select>
+    <input type="text" id="evProc" placeholder="Escribe el procedimiento…" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
     <input type="text" id="evCultTipo" placeholder="Tipo de cultivo (ej: aspirado traqueal)" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
     <input type="text" id="evCultHall" placeholder="Hallazgo (opcional, ej: Klebsiella BLEE+)" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
     <input type="text" id="evDet" placeholder="Detalle (opcional)" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
@@ -2837,13 +2880,18 @@ document.documentElement.setAttribute('data-piel', 'inst');
           </div>
         </div>
 
-        <!-- NEUROLOGÍA — visible solo si el Dx contiene HSA/ACV/TEC/Meningioma/Politrauma -->
+        <!-- NEUROLOGÍA — visible con Dx neuro (HSA/ACV/TEC/Meningioma/Politrauma)
+             o con la fase clínica «Neuroprotección» marcada. Los dispositivos
+             mandan sobre los campos: la PIC solo se pide si hay captor. -->
         <div class="fcard fc-n hidden" id="fcNeuro">
           <div class="fcard-hdr"><span class="fcard-title">🧠 Neurología</span></div>
           <div class="fcard-body">
             <div class="row" style="margin-bottom:0;">
-              <div class="col ws"><label>PIC</label><input type="number" id="fPIC" style="width:70px;"></div>
-              <div class="col ws"><label>PPC</label><input type="number" id="fPPC" style="width:70px;"></div>
+              <div class="check cr wa"><input type="checkbox" id="cDVE" onchange="hNeuroDisp()"><label for="cDVE">DVE</label></div>
+              <div class="col hidden" id="gDVEalt" style="width:128px;flex-grow:0;"><label>Altura cmH₂O</label><input type="number" id="fDVEalt" min="0" max="40" step="0.5" style="width:84px;"></div>
+              <div class="check cr wa"><input type="checkbox" id="cPICcaptor" onchange="hNeuroDisp()"><label for="cPICcaptor">Captor de PIC</label></div>
+              <div class="col ws hidden" id="gPIC"><label>PIC</label><input type="number" id="fPIC" style="width:70px;"></div>
+              <div class="col ws hidden" id="gPPC"><label>PPC</label><input type="number" id="fPPC" style="width:70px;"></div>
             </div>
           </div>
         </div>
@@ -4343,7 +4391,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.65-coordinacion]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.74-observacion-de-ktm]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4780,7 +4828,7 @@ function renderGrid() {
         ` : `${_movPie(c, true)}
           <button class="bevo" onclick="abrirPanel('${c.ID_CAMA}',false)">${btn}</button>
           <button class="btl" onclick="abrirTL('${c.ID_CAMA}')">⏱️ Hist.</button>
-          <button class="btl" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${c.ID_CAMA}',this,'${c.PATIENT_ID||''}')">➕</button>
+          ${_evBotonHTML(c.ID_CAMA, c.PATIENT_ID||'', 'btl')}
           <button class="balt" onclick="egreso('${c.ID_CAMA}')">🏠 Egr.</button>
         `}</div>`;
     } else {
@@ -5342,6 +5390,37 @@ function fillCama(c, fecha) {
   aplicarFirmaTurno(c.FIRMA_KINE);
 }
 
+/* Parámetros ventilatorios guardados → campos del módulo. Vivía escrito DOS
+   veces (evolución guardada y réplica del turno anterior) con la misma lista de
+   23 pares: cualquier campo nuevo había que acordarse de agregarlo en los dos, y
+   el que se olvidara se llenaba solo en una de las dos entradas.
+
+   🔴 El rescate del valor fuera de catálogo NO es adorno. Desde que la FiO₂ de
+   la Venturi es un desplegable, asignarle un valor que no está entre sus
+   opciones deja el select VACÍO y el re-guardado escribe ese vacío: la FiO₂
+   registrada ayer desaparecería sin que nadie vea un error. Pasa con cualquier
+   evolución anterior a este cambio (FiO₂ tecleada libre) y con un 33 escrito a
+   mano en la planilla. Se conserva como opción rotulada, igual que hace
+   `poblar()` con los catálogos clínicos desde el renombre «Mascarilla» → «MR». */
+function _fillParamsVent(s){
+  [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
+   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],['r_pafi','VENT_PAFI'],
+   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
+   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
+   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
+   ['r_uma','KTM_UMA']]
+    .forEach(([id,k])=>{
+      const e=$(id); if(!e||s[k]===undefined||s[k]==='') return;
+      const val=String(s[k]);
+      if(e.tagName==='SELECT' && !Array.from(e.options).some(o=>o.value===val)){
+        const op=document.createElement('option');
+        op.value=val; op.textContent=val+' (registro anterior)';
+        e.appendChild(op);
+      }
+      e.value=s[k];
+    });
+}
+
 function fillForm(s) {
   window._vfonHoras = parseInt(s && s._VFON_HORAS) || 0;
   const set=(id,val)=>{ const e=$(id); if(e&&val!==undefined&&val!=='') e.value=String(val); };
@@ -5355,6 +5434,10 @@ function fillForm(s) {
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
   set('fCharlson',s.PAC_CHARLSON); set('fIngTipo',s.PAC_INGRESO_TIPO);
   set('fFC',s.HEMO_FC); set('fPIC',s.HEMO_PIC); set('fPPC',s.HEMO_PPC);
+  // Neuromonitoreo: los dispositivos primero, y `false` para que un valor
+  // guardado sin su casilla (evoluciones anteriores a 5.72) siga viéndose.
+  chk('cDVE',s.NEURO_DVE); set('fDVEalt',s.NEURO_DVE_ALTURA); chk('cPICcaptor',s.NEURO_PIC_CAPTOR);
+  hNeuroDisp(false);
   chk('cArritmia',s.HEMO_ARRITMIA); if(s.HEMO_ARRITMIA===true||s.HEMO_ARRITMIA==='TRUE') show('gArritmiaTipo'); else hide('gArritmiaTipo');
   set('fArritmiaTipo',s.HEMO_ARRITMIA_TIPO);
   chk('cMetaPAM',s.HEMO_META_PAM);
@@ -5428,13 +5511,7 @@ function fillForm(s) {
   actualizarDiasVA();
   chk('cHAct',s.VENT_H_ACTIVA);
   // params
-  [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
-   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],['r_pafi','VENT_PAFI'],
-   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
-   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
-   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
-   ['r_uma','KTM_UMA']]
-    .forEach(([id,k])=>{ const e=$(id); if(e&&s[k]!==undefined&&s[k]!=='') e.value=s[k]; });
+  _fillParamsVent(s);
   // v2: los "extras" ya son columnas planas del esquema — mismo objeto
   const _ex = s;
   // Restaurar FECHA_INICIO_TQT (turno actual)
@@ -5629,6 +5706,14 @@ function fillFormReplica(s) {
   chk('cMultiDVA',s.HEMO_MULTI_DVA); set('fDVAcnt',s.HEMO_NUM_DVA);
   chk('cHTrend',s.HEMO_TENDENCIA); set('fHTT',s.HEMO_TEND_TIPO);
 
+  // Neuromonitoreo: DVE y captor son ESTADO del paciente (el dispositivo sigue
+  // puesto en el turno siguiente), así que se replican como la vía aérea. PIC y
+  // PPC NO se replican —son la medición de ESTE turno— y siguen sin hacerlo.
+  // La altura sí viaja: es la prescripción vigente, y queda en ámbar para que
+  // el colega la confirme o la corrija.
+  chk('cDVE',s.NEURO_DVE); set('fDVEalt',s.NEURO_DVE_ALTURA); chk('cPICcaptor',s.NEURO_PIC_CAPTOR);
+  hNeuroDisp(false);
+
   // Examen físico
   loadMP(s.EX_MP||'');
   if($('fRuidosVal')) $('fRuidosVal').value=s.EX_RUIDOS||'';
@@ -5660,13 +5745,7 @@ function fillFormReplica(s) {
   set('fTOTfij',s.TOT_FIJACION); // posición/fijación del TOT: persiste turno a turno
   set('fTQTn',s.VENT_TQT_CALIBRE); set('fTQTt',s.VENT_TQT_TIPO);
   chk('cHAct',s.VENT_H_ACTIVA);
-  [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
-   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],['r_pafi','VENT_PAFI'],
-   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
-   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
-   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
-   ['r_uma','KTM_UMA']]
-    .forEach(([id,k])=>{ const e=$(id); if(e&&s[k]!==undefined&&s[k]!=='') e.value=s[k]; });
+  _fillParamsVent(s);
 
   // v2: extras = columnas planas
   const _ex = s;
@@ -5963,6 +6042,7 @@ function _validarRangosCliente(){
 // son hechos que persisten entre turnos, no mediciones.
 const _HER_CAMPOS=['fSed','fSAS','fSASmeta','fS5Q','fCoop','fGCSO','fGCSV','fGCSM',   // sedación / conciencia
   'fHEst','fDVA','fDVAcnt','fHTT',                                          // hemodinamia
+  'fDVEalt',                                                                // altura de la DVE (prescripción que persiste)
   'fMPVal','fRuidosVal','fRuidosLoc',                                       // auscultación
   'r_vt','r_fr','r_peep','r_pmax','r_pmedia','r_ppl','r_fio2','r_spo2','r_pafi',
   'r_flujo','r_ti','r_ps','r_ipap','r_ipapmax','r_epap','r_pinsp','r_litros','r_temp',
@@ -6294,6 +6374,7 @@ function guardar() {
     HEMO_ESTADO:v('fHEst'), HEMO_DVA:v('fDVA'), HEMO_MULTI_DVA:bv('cMultiDVA'),
     HEMO_NUM_DVA:v('fDVAcnt'), HEMO_TENDENCIA:bv('cHTrend'), HEMO_TEND_TIPO:v('fHTT'),
     HEMO_FC:v('fFC'), HEMO_PIC:n(v('fPIC')), HEMO_PPC:n(v('fPPC')),
+    NEURO_DVE:bv('cDVE'), NEURO_DVE_ALTURA:n(v('fDVEalt')), NEURO_PIC_CAPTOR:bv('cPICcaptor'),
     HEMO_ARRITMIA:bv('cArritmia'), HEMO_ARRITMIA_TIPO:bv('cArritmia')?v('fArritmiaTipo'):'',
     HEMO_META_PAM:bv('cMetaPAM'), HEMO_PAM:bv('cMetaPAM')?n(v('fPAM')):'',
     EX_MP:     v('fMPVal'),
@@ -8537,6 +8618,10 @@ function genTexto() {
   const _pic=gv('fPIC'), _ppc=gv('fPPC');
   _B('neuro');
   if(_pic||_ppc) L.push(`Neuromonitoreo: ${[_pic?`PIC ${_pic} mmHg`:null,_ppc?`PPC ${_ppc} mmHg`:null].filter(Boolean).join(', ')}.`);
+  // La sigla se expande: la evolución la lee también un médico fuera de la UCI.
+  // Espejo en dominio_texto.gs — mantener en paridad.
+  if($('cDVE')?.checked){ const _dalt=gv('fDVEalt');
+    L.push(`Derivación ventricular externa (DVE)${_dalt?` a ${_dalt} cmH2O`:''}.`); }
   const sop=gv('fSop')||'Ambiente', modo=gv('fModo')||'';
   const vt=parseFloat(gv('r_vt'))||0, fr=parseFloat(gv('r_fr'))||0;
   const peep=parseFloat(gv('r_peep'))||0, fio2=parseFloat(gv('r_fio2'))||0;
@@ -8866,8 +8951,19 @@ function genTexto() {
       L.push(`KTM suspendida durante la sesión por señal de alerta ${(gv('fKTMalertCat')||'').toLowerCase()}: ${gv('fKTMalertRaz')||'sin especificar'}.`);
     }
   } else if(kS){
-    const _kraz=gv('fKTMraz')||gv('fKTMman')||'';
-    _B('ktm'); L.push(`KTM contraindicada${_kraz?' por '+_kraz:'.'}.`.replace('..','.'));
+    /* 🔴 El ítem del catálogo y la observación son DOS datos, no uno
+       (22-ago-2026, reportado por Manuel desde el turno). Estaban unidos por un
+       `||`, así que en cuanto se elegía un ítem la observación escrita a mano
+       NO se imprimía nunca — solo salía cuando no había ítem, que es el caso
+       raro. Se perdía justo lo que el colega se tomó el trabajo de escribir.
+       El ítem se narra en minúscula («por inestabilidad hemodinámica») y la
+       observación va como oración aparte. El tipo (Absoluta/Relativa) NO entra
+       en el texto por decisión de Manuel: vive en la planilla y en el
+       historial. Espejo en dominio_texto.gs — mantener en paridad. */
+    const _kit=gv('fKTMraz')||'', _kobs=String(gv('fKTMman')||'').trim();
+    let _ktxt = _kit ? `KTM contraindicada por ${_lcIni(_kit)}.` : 'KTM contraindicada.';
+    if(_kobs) _ktxt += ` ${(_kobs.charAt(0).toUpperCase()+_kobs.slice(1)).replace(/\s*\.\s*$/,'')}.`;
+    _B('ktm'); L.push(_ktxt);
   } else if(kN){
     const _nr=gv('fKTMnoRaz')||'', _nc=gv('fKTMnoCom')||'';
     let _ktmn='KTM no realizada';
@@ -8983,8 +9079,13 @@ function genTexto() {
     L.push(`*No se realiza PVE en este turno${_pveNoRaz?' por '+_lcIni(_pveNoRaz):''}${_pveNoDet?' ('+_pveNoDet+')':''}. Mantiene soporte ventilatorio.`);
   }
   const pl=gv('fPlanes'), no=gv('fNota');
-  _B('plan');  if(pl) L.push(`Plan: ${pl}`);
+  // Las observaciones van ANTES del plan (22-ago-2026, pedido de Manuel): la
+  // evolución se lee de arriba abajo y el plan es lo que queda pendiente para
+  // el turno siguiente, así que es lo que tiene que cerrar el texto.
+  // Espejo en dominio_texto.gs — mantener en paridad, y el _B() viaja con su
+  // línea para que TEXTO_BLOQUES siga alineado 1:1.
   _B('nota');  if(no) L.push(`Nota: ${no}`);
+  _B('plan');  if(pl) L.push(`Plan: ${pl}`);
   // La FIRMA salió del texto generado (ago-2026, pedido de Diego): al copiar
   // al BUDA estorbaba. La firma del REGISTRO sigue intacta (columna FIRMA,
   // entrega de turno e historial la conservan).
@@ -9395,6 +9496,18 @@ const fld=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><la
 const mon=(id,lbl,y=false)=>`<div class="mon${y?' mon-y':''}" style="height:35px;min-width:68px;"><span style="font-size:.58rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.82rem;">--</span></div>`;
 const lbl=txt=>`<div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--resp);margin:8px 0 4px;padding-bottom:2px;border-bottom:1px solid #bae6fd;">${txt}</div>`;
 
+/* FiO₂ de la mascarilla de Venturi (MMV) — reportado por Manuel desde el turno
+   (22-ago-2026): con MMV el módulo no ofrecía DÓNDE anotar la FiO₂, así que el
+   único dato que define la terapia se perdía. En Venturi la FiO₂ no se estima
+   a partir de los litros (como en naricera) ni se titula libre: la ENTREGA el
+   conector, y son estos siete valores. Por eso es un catálogo cerrado y no un
+   campo numérico: escribir 33 con una Venturi es un dato que no existe.
+   Los litros quedan fuera a propósito — el flujo lo fija el conector según el
+   %; es la misma decisión que ya tomó Diego en la entrega de turno (ago-2026,
+   `_entParams` en svc_entrega.gs: «la Venturi va SOLO con su FiO₂»). */
+const _FIO2_VENTURI=[24,26,28,30,35,40,50];
+const _fio2VentFld=(id)=>`<div class="col" style="width:96px;flex-grow:0;"><label>FiO₂ prog. %</label><select id="${id}" onchange="calcResp(this)" style="height:35px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option>${_FIO2_VENTURI.map(x=>`<option>${x}</option>`).join('')}</select></div>`;
+
 const _UMA_TIPS={'':'No registrado','(-)':'Sin uso de musculaturas accesorias (evaluado)','+':'Tiraje subcostal','++':'Tiraje supraesternal','+++':'Tiraje supraesternal + espiración forzada'};
 const _UMA_CLS={'':'interp-ok','(-)':'interp-ok','+':'interp-leve','++':'interp-mod','+++':'interp-sev'};
 function hUMA(){
@@ -9514,6 +9627,10 @@ function renderParams(o) {
     h+=`<div class="row">${fld(P+'flujo','Flujo L/m',80)}${fld(P+'temp','T° °C',70)}${fld(P+'fr','FR rpm',75)}${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}${mon(L+'irox','IROX',true)}${esPost?'':_umaFld()}</div>`;
   } else if(modo==='NRC'){
     h+=`<div class="row">${fld(P+'litros','Litros L/m',88)}${fld(P+'fr','FR rpm',75)}${fld(P+'spo2','SpO₂ %',80)}${mon(L+'fio2nrc','FiO₂~')}${esPost?'':_umaFld()}</div>`;
+  } else if(modo==='MMV'){
+    // Venturi: la FiO₂ se PROGRAMA (catálogo cerrado), no se estima desde los
+    // litros como en la naricera. Mismo campo que ya usa el post-extubación.
+    h+=`<div class="row">${_fio2VentFld(P+'fio2')}${fld(P+'fr','FR rpm',75)}${fld(P+'spo2','SpO₂ %',80)}${esPost?'':_umaFld()}</div>`;
   } else if(['HME','Tubo T'].includes(modo)){
     // Pueden ir SIN oxígeno adicional: litros y FiO2 quedan opcionales (venturi
     // o mezclador entregan FiO2 conocida y antes no había dónde anotarla).
@@ -9561,6 +9678,32 @@ function _sedFarmSet(arr){
   document.querySelectorAll('#sedFarmacos .sedf-btn').forEach(b=>b.classList.toggle('on', on.has(b.dataset.f)));
 }
 function hSedVigil(){ _formDirty=true; if(typeof _rtxtLive==='function') _rtxtLive(); }
+
+/* Dispositivos de neuromonitoreo (ago-2026, pedido de Manuel desde el turno).
+   La DVE abre su altura; el captor de PIC abre PIC y PPC juntas — sin captor no
+   hay PIC que medir, y un campo vacío que nadie llena solo ocupa pantalla.
+
+   🔴 `limpiar` es el seguro contra el borrado silencioso. Al DESMARCAR una
+   casilla sí hay que vaciar los campos (si no, el valor viaja escondido al
+   guardado), pero al CARGAR una evolución no: las evoluciones anteriores a esta
+   versión tienen PIC guardada y la columna del captor en blanco, así que
+   ocultarlas y limpiarlas les borraría el dato al re-guardar. Es la misma
+   familia del rescate de la FiO₂ de la Venturi (5.71). Por eso, al cargar, un
+   campo CON valor se muestra aunque su casilla venga apagada. */
+function hNeuroDisp(limpiar){
+  if(limpiar===undefined) limpiar=true;
+  const dve=!!$('cDVE')?.checked, cap=!!$('cPICcaptor')?.checked;
+  const conValor=id=>String($(id)?.value||'').trim()!=='';
+  const verAlt = dve || (!limpiar && conValor('fDVEalt'));
+  const verPic = cap || (!limpiar && (conValor('fPIC')||conValor('fPPC')));
+  const gA=$('gDVEalt'); if(gA) gA.classList.toggle('hidden', !verAlt);
+  ['gPIC','gPPC'].forEach(id=>{ const e=$(id); if(e) e.classList.toggle('hidden', !verPic); });
+  if(limpiar){
+    if(!dve){ const a=$('fDVEalt'); if(a) a.value=''; }
+    if(!cap){ ['fPIC','fPPC'].forEach(id=>{ const e=$(id); if(e) e.value=''; }); }
+  }
+  if(typeof _rtxtLive==='function') _rtxtLive();
+}
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function hArritmia(){ if($('cArritmia')?.checked) show('gArritmiaTipo'); else { hide('gArritmiaTipo'); const e=$('fArritmiaTipo'); if(e) e.value=''; } }
 function hMetaPAM(){ if($('cMetaPAM')?.checked) show('gPAM'); else { hide('gPAM'); const e=$('fPAM'); if(e) e.value=''; } }
@@ -9903,6 +10046,126 @@ pielAplicar(document.documentElement.getAttribute('data-piel'));   // sincroniza
 
 /* ── Eventos rápidos post-evolución (popover estilo lista de Sheets) ── */
 let _evCama=null,_evTipo=null,_evTurno='Dia',_evPid='';
+/* ── EL ➕ CON CANDADO, lado del navegador (21-ago-2026, reporte de Manuel:
+   «el ➕ sigue abierto sin importar si hay login o no») ─────────────────────
+   El candado REAL vive en el servidor (svc_eventos.gs, anexarEvento): con
+   fecha pasada o episodio cerrado rechaza sin coordToken. Pero el botón se
+   pintaba igual y el popup abría igual, y el rechazo llegaba recién al
+   guardar — para quien mira la pantalla, «el ➕ está abierto». Aquí se
+   replica la MISMA regla (esPasado = ni la fecha ni su fecha efectiva son
+   hoy; cerrado = la cama está libre o la ocupa otro pid) solo para pintar 🔒
+   y pedir la clave ANTES, en el propio popup. Quien decide sigue siendo el
+   servidor: si estas dos reglas se desalinean, gana él y el toast lo dice. */
+function _evFechaEf(fecha, turno){
+  if(turno!=='Noche') return fecha;
+  const d=new Date(fecha+'T12:00:00'); d.setDate(d.getDate()+1);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function _evEsPasado(fecha, turno){ const h=hoy(); return fecha!==h && _evFechaEf(fecha,turno)!==h; }
+function _evEpisodioCerrado(idCama, pid){
+  const c=(DB||[]).find(x=>String(x.ID_CAMA)===String(idCama));
+  if(!c) return true;
+  if(!(c.OCUPADA===true||c.OCUPADA==='TRUE')) return true;
+  if(pid && c.PATIENT_ID && String(c.PATIENT_ID)!==String(pid)) return true;
+  return false;
+}
+function _evCandado(idCama, pid, turno){
+  const f=v('gDate')||hoy();
+  return _evEsPasado(f, turno||SHIFT) || _evEpisodioCerrado(idCama, pid);
+}
+/* Un solo lugar pinta el botón (tarjeta y Registro): con candado lleva 🔒 y
+   el título explica; body.coord-on lo devuelve a ➕ sin repintar nada. */
+function _evBotonHTML(idCama, pid, cls){
+  const lock=_evCandado(idCama, pid, SHIFT);
+  const tit=lock?'Corregir el pasado —o a un paciente que ya no está en la cama— requiere clave de coordinación'
+                :'Anotar evento posterior (procedimiento, filtro, cultivo…)';
+  return `<button type="button" class="${cls} ev-cand${lock?' ev-lock':''}" title="${tit}" onclick="evAbrir('${idCama}',this,'${pid||''}')"><span class="ev-mas">➕</span><span class="ev-cerr">🔒</span></button>`;
+}
+/* Decide qué se ve dentro del popup: la llave (candado y sin sesión) o la lista. */
+function _evLlaveRefrescar(){
+  if(!_evCama) return;
+  const lock=_evCandado(_evCama,_evPid,_evTurno) && !COORD_TK;
+  const ll=$('evLlave'); if(!ll) return;
+  if(lock){ hide('evLista'); hide('evForm'); ll.classList.remove('hidden'); ll.style.display='flex';
+    $('evTitulo').textContent='🔒 Corregir el pasado · Cama '+_evCama;
+    $('evLlaveErr').textContent=''; setTimeout(()=>$('evLlaveUsr')?.focus(),60); }
+  else { ll.classList.add('hidden'); if($('evForm').classList.contains('hidden')) show('evLista');
+    $('evTitulo').textContent='➕ Evento posterior · Cama '+_evCama; }
+}
+function evLlaveEntrar(){
+  const usuario=v('evLlaveUsr').trim(), clave=v('evLlaveClave');
+  $('evLlaveErr').textContent='';
+  if(!usuario){ $('evLlaveErr').textContent='Escribe tu usuario.'; return; }
+  if(!clave){ $('evLlaveErr').textContent='Escribe tu clave.'; return; }
+  const b=$('evLlaveGo'); b.disabled=true;
+  _coordEntrarCon(usuario, clave,
+    ()=>{ b.disabled=false; $('evLlaveClave').value=''; _evLlaveRefrescar(); },
+    m=>{ b.disabled=false; $('evLlaveErr').textContent=m; });
+}
+
+/* ── CATÁLOGO DE PROCEDIMIENTOS DEL ➕ (22-ago-2026, pedido de Manuel: «que
+   muestre los procedimientos del catálogo, como un desplegable») ──────────
+   El campo era un <input list="dlProc"> y el datalist NUNCA se llenaba: no
+   mostraba nada. Los nombres son los MISMOS que genera `_autoProcs` y que el
+   servidor reconoce en `PROC_TO_HITO` (svc_timeline.gs): un nombre que no
+   esté ahí cae al respaldo genérico y sale sin hito clínico. Por eso esta
+   lista se copia de ese mapa (sin FALLECE, que es egreso) y la guardia
+   `catalogo_procedimientos.js` exige que los dos conjuntos sigan iguales. */
+const _PROC_CATALOGO = [
+  ['Ingreso y evaluación', [
+    ['INGRESO','Ingreso a UCI'], ['EVALUACIÓN INTERMEDIA','Evaluación kinésica intermedia'],
+    ['EDUCACIÓN A USUARIO/FAMILIA','Educación a usuario/familia'] ]],
+  ['Vía aérea', [
+    ['INTUBACIÓN','Intubación orotraqueal'], ['PVE','PVE (Prueba de Ventilación Espontánea)'],
+    ['EXTUBACIÓN C/PROTOCOLO','Extubación c/protocolo'], ['EXTUBACIÓN S/PROTOCOLO','Extubación s/protocolo'],
+    ['AUTOEXTUBACIÓN','Autoextubación'], ['EXTUBACIÓN ACCIDENTAL','Extubación accidental'],
+    ['REINTUBACIÓN','Reintubación'], ['DESVINCULACIÓN','Desvinculación de VM'],
+    ['CAMBIO TOT','Cambio de TOT'], ['TQT','Traqueostomía'], ['CAMBIO TQT','Cambio de TQT'],
+    ['DECANULACIÓN','Decanulación'], ['RECANULACIÓN','Recanulación'], ['TEST APNEA','Test de apnea'] ]],
+  ['Posición', [ ['PRONO','Decúbito prono'], ['SUPINO','Decúbito supino'] ]],
+  ['Traslados y eventos', [
+    ['IMAGENOLOGÍA','Imagenología'], ['PABELLÓN','Traslado a pabellón'],
+    ['ASISTENCIA EN PROCEDIMIENTO MÉDICO','Asistencia en procedimiento médico'],
+    ['RCP','Reanimación cardiopulmonar (RCP)'] ]],
+  ['Estudios', [
+    ['ECOGRAFÍA','Ecografía'], ['CULTIVO DE SECRECIONES','Cultivo de secreciones'], ['PCR COVID','PCR COVID'] ]],
+  ['Kinesiología', [
+    ['IMT','IMT (entrenamiento muscular inspiratorio)'], ['EMS','Electroestimulación muscular'],
+    ['Hito Motor 1','Hito Motor 1 — Sedestación borde de cama'], ['Hito Motor 2','Hito Motor 2 — Bipedestación asistida'],
+    ['Hito Motor 3','Hito Motor 3 — Marcha asistida'], ['Hito Motor 4','Hito Motor 4 — Marcha autónoma corta'],
+    ['Hito Motor 5','Hito Motor 5 — Marcha autónoma extendida'] ]],
+];
+const _EV_PROC_OTRO='__otro';
+function _evProcPoblar(){
+  const sel=$('evProcSel'); if(!sel || sel.options.length) return;
+  let h='<option value="">— Procedimiento del catálogo —</option>';
+  _PROC_CATALOGO.forEach(([g,items])=>{
+    h+='<optgroup label="'+_cEsc(g)+'">'+items.map(([val,lab])=>'<option value="'+_cEsc(val)+'">'+_cEsc(lab)+'</option>').join('')+'</optgroup>';
+  });
+  h+='<option value="'+_EV_PROC_OTRO+'">✏️ Otro (escribir)…</option>';
+  sel.innerHTML=h;
+  // De paso, el datalist del formulario de evolución (que nunca se llenó).
+  const dl=$('dlProc'); if(dl && !dl.options.length) dl.innerHTML=_PROC_CATALOGO.flatMap(([g,items])=>items).map(([val])=>'<option value="'+_cEsc(val)+'">').join('');
+}
+function _evProcMostrar(on){
+  _evProcPoblar();
+  const sel=$('evProcSel'), inp=$('evProc');
+  sel.classList.toggle('hidden', !on);
+  if(!on){ inp.classList.add('hidden'); return; }
+  inp.classList.toggle('hidden', sel.value!==_EV_PROC_OTRO);
+}
+function evProcSelCambio(){
+  const otro=v('evProcSel')===_EV_PROC_OTRO;
+  $('evProc').classList.toggle('hidden', !otro);
+  if(otro) setTimeout(()=>$('evProc')?.focus(),40);
+}
+/* El nombre que viaja al servidor: el del catálogo, o el escrito si eligió «Otro». */
+function _evProcValor(){
+  const sv=v('evProcSel');
+  if(sv && sv!==_EV_PROC_OTRO) return sv;
+  return v('evProc').trim();
+}
+
 function evAbrir(id,anchor,pid){
   /* 🔴 El episodio viaja desde la fila que se está mirando. La clave del turno
      (`CAMA_<n>_<fecha>-<turno>`) identifica una CAMA, no a una persona: cuando
@@ -9922,6 +10185,7 @@ function evAbrir(id,anchor,pid){
     sel.value=Turnos.firmaDeCama(_evCama)||'';
   }
   show('evVelo'); pop.classList.remove('hidden');
+  _evLlaveRefrescar();   // 🔒 con fecha pasada o episodio cerrado y sin sesión de coordinación
   // anclado al botón; si no cabe abajo, se abre hacia arriba
   const r=anchor?anchor.getBoundingClientRect():{left:innerWidth/2-145,bottom:innerHeight/2};
   let x=Math.min(Math.max(8,r.left-10), innerWidth-300);
@@ -9932,25 +10196,28 @@ function evSetTurno(t){
   _evTurno=(t==='Noche')?'Noche':'Dia';
   $('evTurnoD')?.classList.toggle('on',_evTurno==='Dia');
   $('evTurnoN')?.classList.toggle('on',_evTurno==='Noche');
+  _evLlaveRefrescar();   // la noche de ayer es «hoy» (fecha efectiva): cambia el candado
 }
 function evCerrar(){ hide('evPop'); hide('evVelo'); _evCama=null; _evTipo=null; _evPid=''; }
-function evVolver(){ show('evLista'); hide('evForm'); _evTipo=null; }
+function evVolver(){ hide('evForm'); _evTipo=null; show('evLista'); _evLlaveRefrescar(); }
 function evTipo(t){
   _evTipo=t;
   hide('evLista'); const f=$('evForm'); f.classList.remove('hidden'); f.style.display='flex';
   $('evHora').value=new Date().toTimeString().slice(0,5);
-  $('evProc').classList.toggle('hidden', t!=='procedimiento');
+  _evProcMostrar(t==='procedimiento');
   $('evCultTipo').classList.toggle('hidden', t!=='cultivo');
   $('evCultHall').classList.toggle('hidden', t!=='cultivo');
-  ['evProc','evCultTipo','evCultHall','evDet'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
+  ['evProc','evProcSel','evCultTipo','evCultHall','evDet'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
+  if(t==='procedimiento') $('evProc').classList.add('hidden');
   $('evDet').placeholder = t==='otro' ? 'Describe el evento *' : 'Detalle (opcional)';
-  const foco = t==='procedimiento' ? 'evProc' : (t==='cultivo' ? 'evCultTipo' : 'evDet');
+  const foco = t==='procedimiento' ? 'evProcSel' : (t==='cultivo' ? 'evCultTipo' : 'evDet');
   setTimeout(()=>$(foco)?.focus(),50);
 }
 function evGuardar(){
   if(!_evCama||!_evTipo) return;
   const firma=v('evFirma');
   if(!firma){ toast('⚠️ Selecciona la firma de quien anota.'); return; }
+  if(_evTipo==='procedimiento' && !_evProcValor()){ toast('⚠️ Elige el procedimiento del catálogo (o escribe uno en «Otro»).'); $('evProcSel')?.focus(); return; }
   // El turnoKey se sigue armando con la fecha del Registro: que el ➕ pueda
   // anotar en una fecha pasada es deliberado — pero el PASADO tiene llave
   // (21-ago-2026, decisión de Manuel): el servidor exige sesión de
@@ -9958,7 +10225,7 @@ function evGuardar(){
   // El token viaja siempre que exista; si falta y hace falta, el toast del
   // rechazo dice el camino (entrar en 🔐 COORDINACIÓN).
   const datos={ idCama:_evCama, patientId:_evPid, turnoKey:`${v('gDate')||hoy()}-${_evTurno}`, tipo:_evTipo,
-    hora:v('evHora'), detalle:v('evDet'), proc:v('evProc'),
+    hora:v('evHora'), detalle:v('evDet'), proc:_evProcValor(),
     cultTipo:v('evCultTipo'), cultHallazgo:v('evCultHall'), firmaKine:firma,
     coordToken:(typeof COORD_TK!=='undefined'&&COORD_TK)||'' };
   const b=$('evGo'); b.disabled=true; b.textContent='⏳…';
@@ -10733,7 +11000,15 @@ function renderParamsPEno(){
   let html='';
   if(!modo){ box.innerHTML=''; return; }
   if(modo==='Ambiente'){ box.innerHTML='<div style="font-size:.72rem;color:#15803d;">Sin dispositivo</div>'; return; }
-  if(['NRC','MMV','MR','Mascarilla'].includes(modo)){
+  if(modo==='MMV'){
+    // Venturi: FiO₂ programada, no litros — misma regla que el módulo del turno
+    // y que la rama «PVE superada». Antes caía con NRC/MR y pedía Litros, que
+    // en Venturi los fija el conector (22-ago-2026).
+    html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FiO2 prog. %</label><select id="peFiO2No" style="width:88px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"><option value="">--</option>${_FIO2_VENTURI.map(x=>`<option>${x}</option>`).join('')}</select></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FR RPM</label><input id="peFRNo" type="number" min="0" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div></div>`;
+  } else if(['NRC','MR','Mascarilla'].includes(modo)){
     html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">Litros L/M</label><input id="peLtNo" type="number" min="0" max="15" step=".5" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">FR RPM</label><input id="peFRNo" type="number" min="0" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
@@ -10789,7 +11064,10 @@ function renderParamsPE(){
   if(modo==='Ambiente'){
     h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(modo==='MMV'){
-    h+=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">FiO2 prog. %</label><select id="pe_fio2" style="height:30px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;width:80px;"><option value="">--</option><option>24</option><option>26</option><option>28</option><option>30</option><option>35</option><option>40</option><option>50</option></select></div>`;
+    // El catálogo Venturi vive en _FIO2_VENTURI (uno solo para las tres
+    // pantallas): escrito a mano aquí, agregar un conector obligaba a acordarse
+    // de este sitio.
+    h+=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">FiO2 prog. %</label><select id="pe_fio2" style="height:30px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;width:80px;"><option value="">--</option>${_FIO2_VENTURI.map(x=>`<option>${x}</option>`).join('')}</select></div>`;
     h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(['NRC','MR','Mascarilla'].includes(modo)){
     h+=pef('pe_litros','Litros L/m',85)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_fio2calc','FiO2~')+peUma;
@@ -11399,7 +11677,7 @@ function renderFases(){
   box.innerHTML=chips.join('');
 }
 function confirmarFaseHeredada(){ _faseHeredada=false; renderFases(); toast('✓ Fase clínica confirmada'); }
-function toggleFase(f){ if(FASES_SEL.has(f)) FASES_SEL.delete(f); else FASES_SEL.add(f); _faseHeredada=false; renderFases(); }
+function toggleFase(f){ if(FASES_SEL.has(f)) FASES_SEL.delete(f); else FASES_SEL.add(f); _faseHeredada=false; renderFases(); if(typeof aplicarGatesNeuro==='function') aplicarGatesNeuro(); }
 // Input inline para agregar una fase nueva (persiste en el catálogo compartido)
 function agregarFaseUI(){
   const box=$('faseChips'); if(!box) return;
@@ -11433,6 +11711,7 @@ function setFasesDesde(jsonStr){
   FASES_SEL=new Set();
   try{ (JSON.parse(jsonStr||'[]')||[]).forEach(f=>FASES_SEL.add(f)); }catch(e){}
   renderFases();
+  if(typeof aplicarGatesNeuro==='function') aplicarGatesNeuro();
 }
 
 // ── Pendientes del turno (chips, recordatorio sin fecha; NO se replican) ──
@@ -11587,6 +11866,8 @@ function calcInsumosDias(){
       e.textContent = f ? 'Fija — no se cambia' : 'Fija (del equipo)';
       e.classList.add('disp-ok'); return;
     }
+    // (el campo se apaga más abajo, fuera del bucle: hay que hacerlo también
+    //  cuando el equipo NO es fijo, para volver a habilitarlo)
     if(!f){ e.textContent='—'; e.classList.add('disp-none'); return; }
     if(!dur){ e.textContent='No vence'; e.classList.add('disp-ok'); return; }
     const d=dias(f,ref);                      // días desde la etiqueta (etiqueta = día 0)
@@ -11595,6 +11876,23 @@ function calcInsumosDias(){
     else if(d===dur){ e.textContent=`Cambiar ESTA NOCHE (${cambio})`; e.classList.add('disp-warn'); }
     else { e.textContent=`VENCIDO — cambiar hoy (debió el ${cambio})`; e.classList.add('disp-bad'); }
   });
+  /* El HEPA de un PB/Avea no se cambia: es del EQUIPO y se mantiene desde su
+     instalación (Diego, 14-ago-2026). Hasta la 5.73 el chip lo decía pero el
+     campo seguía editable, así que el turno igual podía fecharlo y parecía que
+     llevaba ciclo. Ahora se apaga, igual que la humidificación activa apaga el
+     HME (`syncHumidFecha`), que es el paralelo que pidió Manuel.
+     🔴 Se DESHABILITA pero NO se borra: esa fecha es la referencia de
+     instalación del filtro del equipo — vaciarla perdería un dato real, y el
+     chip la usa para distinguir «Fija — no se cambia» de «Fija (del equipo)».
+     Un input deshabilitado conserva su value y `v()` lo sigue leyendo, así que
+     el guardado no cambia. */
+  const _hepaInp=$('fFecHEPA');
+  if(_hepaInp){
+    _hepaInp.disabled = !!_fijaHEPA;
+    _hepaInp.title = _fijaHEPA
+      ? 'El filtro HEPA es del ventilador (PB/Avea): se mantiene desde su instalación y no se cambia'
+      : '';
+  }
 }
 //  Al conectar a VM (ingreso ventilado o cambio de soporte) se fechan HME/HEPA/Trach Care
 //  con la fecha del turno si están vacíos; force=true al intubar/reintubar (circuito nuevo).
@@ -11743,10 +12041,15 @@ function aplicarGatesNeuro(){
       hide('dUpotDet');
     }
   }
-  // Neurología: por palabras clave del diagnóstico
+  // Neurología: por palabras clave del diagnóstico O por la fase clínica
+  // «Neuroprotección» (ago-2026). Se SUMA al disparador anterior, no lo
+  // reemplaza: un TEC al que nadie le marcó la fase no puede quedarse sin el
+  // lugar donde hoy anota la PIC.
   const dx=(v('fDx')||'').toUpperCase();
-  const esNeuro=/HSA|ACV|TEC|MENINGIOMA|POLITRAUMA|SUBARACNOIDEA|CEREBRO|CRANEO|CRÁNEO|NEURO/.test(dx);
+  const esNeuro=/HSA|ACV|TEC|MENINGIOMA|POLITRAUMA|SUBARACNOIDEA|CEREBRO|CRANEO|CRÁNEO|NEURO/.test(dx)
+    || (typeof FASES_SEL!=='undefined' && FASES_SEL.has('Neuroprotección'));
   const nc=$('fcNeuro'); if(nc) nc.classList.toggle('hidden', !esNeuro);
+  if(esNeuro) hNeuroDisp(false);   // sin limpiar: puede venir de una evolución cargada
 }
 
 //  Sufijo activo de la ruta de reintubación (standalone T / anidada N1 / N2)
@@ -12134,7 +12437,7 @@ function renderTabla(){
         <td class="tc-c">${id}</td>
         <td class="tc-n"><span style="display:flex;align-items:center;gap:6px;">
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;">${nomHtml}</span>
-          ${(ocu||evoRef)?`<button type="button" class="ev-btn" title="Anotar evento posterior (procedimiento, filtro, cultivo…)" onclick="evAbrir('${id}',this,'${(evoRef&&evoRef.PATIENT_ID)||(ocu?(c.PATIENT_ID||''):'')}')">➕</button>`:''}
+          ${(ocu||evoRef)?_evBotonHTML(id, (evoRef&&evoRef.PATIENT_ID)||(ocu?(c.PATIENT_ID||''):''), 'ev-btn'):''}
         </span></td>
         <td class="tc-num" style="color:var(--muted);">${sexo||'-'}</td>
         <td class="tc-num">${edad||'-'}</td>
@@ -12355,7 +12658,60 @@ function _cEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</
   .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 
+/* ── SESIÓN EN LA CABECERA ─────────────────────────────────────────────
+   Dos botones en la esquina superior derecha, pintados desde el estado REAL:
+   · 👤 usuario: la firma con la que entró (YO.firma). Si la app está abierta
+     sin identidad (YO.dev, o sin firma) dice «Sin usuario» en ámbar — es la
+     situación de hoy con AUTH_DEV_MODE=TRUE y tiene que verse.
+   · 🔒/🔓 candado: el modo Coordinación. Cerrado y neutro sin sesión; abierto
+     y verde con la firma de quien lo abrió (COORD_FIRMA). Tocarlo lleva a la
+     puerta o, con sesión, ofrece cerrarla de verdad (coordSalir).
+   Se repinta desde bootApp (identidad) y coordInit (candado). */
+function hSesRender(){
+  const ub=$('hSesUsr'), ut=$('hSesUsrTxt'), cb=$('hSesCand'), ct=$('hSesCandTxt');
+  if(!ub||!ut||!cb||!ct) return;
+  const yo=(typeof YO!=='undefined'&&YO)||{};
+  const firma=String(yo.firma||'').trim();
+  const abierto=!!yo.dev||!firma;
+  ub.classList.toggle('hses-abierto', abierto);
+  ub.classList.toggle('hses-ok', !abierto);
+  ut.textContent = abierto ? 'Sin usuario' : firma;
+  ut.classList.toggle('hses-largo', abierto);
+  ub.title = abierto ? 'La app está abierta sin identidad (modo de prueba). Toca para iniciar sesión.'
+                     : 'Sesión de '+firma+(yo.email?' · '+yo.email:'');
+  const tk=(typeof COORD_TK!=='undefined')&&COORD_TK;
+  document.body.classList.toggle('coord-on', !!tk);   // los 🔒 del ➕ vuelven a ➕
+  cb.classList.toggle('hses-ok', !!tk);
+  cb.firstChild.textContent = tk ? '🔓 ' : '🔒 ';
+  const min = tk && typeof _coordIdleRestanteMin==='function' ? _coordIdleRestanteMin() : 0;
+  ct.textContent = tk ? (COORD_FIRMA||'Coordinación') + (min ? ' · '+min+"'" : '') : 'Coordinación';
+  ct.classList.toggle('hses-largo', !tk || !COORD_FIRMA);
+  cb.title = tk ? 'Modo Coordinación abierto por '+COORD_FIRMA+' · se cierra solo tras '+_COORD_IDLE_MIN+' min sin actividad'+(min?' (quedan '+min+')':'')+' · toca para cerrar'
+                : 'Modo Coordinación cerrado · toca para entrar con tu clave';
+}
+function hSesUsuarioClick(){
+  const yo=(typeof YO!=='undefined'&&YO)||{};
+  const firma=String(yo.firma||'').trim();
+  if(yo.dev||!firma){
+    if(typeof LOGIN_UI_ACTIVO!=='undefined'&&LOGIN_UI_ACTIVO){ mostrarLogin(); return; }
+    toast('👤 La app está abierta sin usuario: la identidad de Google aún no está activada (decisión de coordinación).', 5200);
+    return;
+  }
+  uiConfirm({icono:'👤', titulo:'Sesión de '+firma, mensaje:(yo.email?_cEsc(yo.email)+'<br>':'')+'¿Cerrar la sesión en este equipo?', confirmar:'Cerrar sesión'})
+    .then(ok=>{ if(ok!==true) return; TOKEN=''; YO={firma:'',dev:false}; hSesRender(); mostrarLogin(); });
+}
+function hSesCandadoClick(){
+  if(COORD_TK){
+    uiConfirm({icono:'🔓', titulo:'Modo Coordinación abierto', mensaje:'Sesión de <b>'+_cEsc(COORD_FIRMA)+'</b>.<br>¿Cerrarla ahora?', confirmar:'Cerrar Coordinación'})
+      .then(ok=>{ if(ok===true) coordSalir(); });
+    return;
+  }
+  setTab('C');   // setTab ya llama a coordInit(), que enfoca la clave
+}
+
 function coordInit(){
+  if(COORD_TK){ if(!_coordIdleTmr) _coordIdleArmar(); } else _coordIdleDesarmar();
+  hSesRender();
   // El servidor manda: si la recuperacion por correo esta apagada, el enlace ni
   // se ofrece. Preguntarlo evita prometer un camino que va a rechazar.
   if(window._COORD_EST===undefined){
@@ -12376,11 +12732,17 @@ function coordEntrar(){
   $('coordErr').textContent='';
   if(!usuario){ $('coordErr').textContent='Escribe tu usuario.'; return; }
   if(!clave){ $('coordErr').textContent='Escribe tu clave.'; return; }
+  _coordEntrarCon(usuario, clave, ()=>{ $('coordClave').value=''; }, m=>{ $('coordErr').textContent=m; });
+}
+/* Entrar al modo con usuario y clave desde cualquier puerta (la pestaña 🔐 o
+   la llave del ➕): una sola ruta al servidor y un solo lugar que fija la sesión. */
+function _coordEntrarCon(usuario, clave, ok, fail){
   gs('COORD_ENTRAR',{usuario:usuario, clave:clave}, r=>{
-    COORD_TK=r.token; COORD_FIRMA=r.firma; COORD_USUARIO=usuario; $('coordClave').value='';
+    COORD_TK=r.token; COORD_FIRMA=r.firma; COORD_USUARIO=usuario;
     coordInit(); toast('🔐 Modo Coordinación · '+r.firma);
     if(r.debeCambiarClave) coordCambiarClavePedir(true);
-  }, m=>{ $('coordErr').textContent=m; });
+    if(ok) ok(r);
+  }, m=>{ if(fail) fail(m); });
 }
 
 // Cierra la sesión DE VERDAD: pide al servidor que mate el token y recién
@@ -12389,7 +12751,7 @@ function coordEntrar(){
 // Pase lo que pase con la llamada se limpia el navegador —quedarse dentro por
 // un fallo de red sería peor—, pero si el servidor no confirmó NO se dice
 // «sesión cerrada»: se avisa que puede seguir abierta.
-function coordSalir(){
+function coordSalir(motivo){
   const tk=COORD_TK;
   const limpiar=()=>{
     COORD_TK=null; COORD_FIRMA=''; COORD_USUARIO=''; COORD_PID='';
@@ -12397,10 +12759,47 @@ function coordSalir(){
     $('coordFicha').innerHTML=''; $('coordQ').value='';
     coordInit();
   };
-  if(!tk){ limpiar(); toast('Saliste del modo Coordinación'); return; }
+  if(!tk){ limpiar(); toast(motivo||'Saliste del modo Coordinación'); return; }
   gs('COORD_SALIR',{token:tk},
-    r=>{ limpiar(); toast(r&&r.cerrada?'🔒 Sesión cerrada':'Saliste del modo Coordinación'); },
-    ()=>{ limpiar(); toast('⚠️ Saliste en este equipo, pero la sesión puede seguir abierta hasta 30 min'); });
+    r=>{ limpiar(); toast(motivo||(r&&r.cerrada?'🔒 Sesión cerrada':'Saliste del modo Coordinación'), motivo?6000:3200); },
+    ()=>{ limpiar(); toast((motivo?motivo+' · ':'')+'⚠️ Saliste en este equipo, pero la sesión puede seguir abierta hasta 30 min', 6000); });
+}
+
+/* ── CIERRE POR INACTIVIDAD (21-ago-2026, pedido de Manuel) ──────────────────
+   La sesión de Coordinación vive 30 min y se RENUEVA con cada uso en el
+   servidor (coordSesion, _COORD_SESION_MIN). Lo que faltaba era el lado del
+   navegador: la tablet del office quedaba con el panel abierto y el candado
+   verde hasta que alguien tocaba algo y recién ahí el servidor decía «expiró».
+   Aquí se mide la actividad REAL de la persona (teclado, puntero, tacto,
+   rueda) y, a los 30 min sin ninguna, se cierra de verdad (coordSalir mata el
+   token) y la cabecera vuelve a 🔒. El candado muestra los minutos que quedan. */
+const _COORD_IDLE_MIN = 30;   // mismo valor que _COORD_SESION_MIN en svc_coordinacion.gs
+let _coordUltimaAct = 0, _coordIdleTmr = null, _coordActListo = false;
+function _coordActividad(){ if(COORD_TK) _coordUltimaAct = Date.now(); }
+function _coordIdleArmar(){
+  _coordUltimaAct = Date.now();
+  if(!_coordActListo){
+    ['pointerdown','keydown','input','touchstart','wheel'].forEach(ev=>document.addEventListener(ev,_coordActividad,{passive:true,capture:true}));
+    // Al volver a una pestaña dormida los setInterval se atrasan: se revisa al instante.
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) _coordIdleCheck(); });
+    _coordActListo=true;
+  }
+  clearInterval(_coordIdleTmr);
+  _coordIdleTmr=setInterval(_coordIdleCheck, 30000);
+}
+function _coordIdleDesarmar(){ clearInterval(_coordIdleTmr); _coordIdleTmr=null; }
+function _coordIdleRestanteMin(){
+  if(!COORD_TK) return 0;
+  return Math.max(0, Math.ceil((_COORD_IDLE_MIN*60000 - (Date.now()-_coordUltimaAct))/60000));
+}
+function _coordIdleCheck(){
+  if(!COORD_TK){ _coordIdleDesarmar(); return; }
+  if(Date.now()-_coordUltimaAct >= _COORD_IDLE_MIN*60000){
+    _coordIdleDesarmar();
+    coordSalir('🔒 Sesión de Coordinación cerrada por inactividad ('+_COORD_IDLE_MIN+' min)');
+    return;
+  }
+  hSesRender();   // refresca los minutos que quedan en el candado
 }
 
 // Búsqueda con freno: teclear rápido no manda una llamada por letra.
@@ -14904,6 +15303,7 @@ window.onload = function() {
     const _a=$('bootAct'); if(_a) _a.classList.add('hidden');
     cierreMostrar(b.cierre);
     YO=b.yo||{};
+    hSesRender();   // la cabecera dice quién entró (o «Sin usuario»)
     if(YO.dev && LOGIN_UI_ACTIVO){ const d=$('devbar'); if(d) d.style.display='block'; }
     FASES=b.fases||[]; renderFases();
     window.CFG=b.config||{}; aplicarBanners();
@@ -14929,6 +15329,7 @@ function _bootLegacy(){
   }).catch(()=>{ loading(false); mostrarLogin(); });
 }
 function bootApp(){
+  hSesRender();
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); })
     .catch(()=>{ FASES=[]; toast('⚠️ No se pudo cargar el catálogo de fases — reintenta con 🔄 Actualizar'); });
   api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; aplicarBanners(); }).catch(()=>{ window.CFG={}; });
