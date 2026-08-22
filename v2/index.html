@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.73-hepa-fijo-y-orden-del-texto">
+<meta name="rce-version" content="5.74-observacion-de-ktm">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4391,7 +4391,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.73-hepa-fijo-y-orden-del-texto]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.74-observacion-de-ktm]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -8951,8 +8951,19 @@ function genTexto() {
       L.push(`KTM suspendida durante la sesión por señal de alerta ${(gv('fKTMalertCat')||'').toLowerCase()}: ${gv('fKTMalertRaz')||'sin especificar'}.`);
     }
   } else if(kS){
-    const _kraz=gv('fKTMraz')||gv('fKTMman')||'';
-    _B('ktm'); L.push(`KTM contraindicada${_kraz?' por '+_kraz:'.'}.`.replace('..','.'));
+    /* 🔴 El ítem del catálogo y la observación son DOS datos, no uno
+       (22-ago-2026, reportado por Manuel desde el turno). Estaban unidos por un
+       `||`, así que en cuanto se elegía un ítem la observación escrita a mano
+       NO se imprimía nunca — solo salía cuando no había ítem, que es el caso
+       raro. Se perdía justo lo que el colega se tomó el trabajo de escribir.
+       El ítem se narra en minúscula («por inestabilidad hemodinámica») y la
+       observación va como oración aparte. El tipo (Absoluta/Relativa) NO entra
+       en el texto por decisión de Manuel: vive en la planilla y en el
+       historial. Espejo en dominio_texto.gs — mantener en paridad. */
+    const _kit=gv('fKTMraz')||'', _kobs=String(gv('fKTMman')||'').trim();
+    let _ktxt = _kit ? `KTM contraindicada por ${_lcIni(_kit)}.` : 'KTM contraindicada.';
+    if(_kobs) _ktxt += ` ${(_kobs.charAt(0).toUpperCase()+_kobs.slice(1)).replace(/\s*\.\s*$/,'')}.`;
+    _B('ktm'); L.push(_ktxt);
   } else if(kN){
     const _nr=gv('fKTMnoRaz')||'', _nc=gv('fKTMnoCom')||'';
     let _ktmn='KTM no realizada';
