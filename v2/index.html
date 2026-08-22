@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.72-dve-y-captor">
+<meta name="rce-version" content="5.73-hepa-fijo-y-orden-del-texto">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4391,7 +4391,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.72-dve-y-captor]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.73-hepa-fijo-y-orden-del-texto]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -9068,8 +9068,13 @@ function genTexto() {
     L.push(`*No se realiza PVE en este turno${_pveNoRaz?' por '+_lcIni(_pveNoRaz):''}${_pveNoDet?' ('+_pveNoDet+')':''}. Mantiene soporte ventilatorio.`);
   }
   const pl=gv('fPlanes'), no=gv('fNota');
-  _B('plan');  if(pl) L.push(`Plan: ${pl}`);
+  // Las observaciones van ANTES del plan (22-ago-2026, pedido de Manuel): la
+  // evolución se lee de arriba abajo y el plan es lo que queda pendiente para
+  // el turno siguiente, así que es lo que tiene que cerrar el texto.
+  // Espejo en dominio_texto.gs — mantener en paridad, y el _B() viaja con su
+  // línea para que TEXTO_BLOQUES siga alineado 1:1.
   _B('nota');  if(no) L.push(`Nota: ${no}`);
+  _B('plan');  if(pl) L.push(`Plan: ${pl}`);
   // La FIRMA salió del texto generado (ago-2026, pedido de Diego): al copiar
   // al BUDA estorbaba. La firma del REGISTRO sigue intacta (columna FIRMA,
   // entrega de turno e historial la conservan).
@@ -11850,6 +11855,8 @@ function calcInsumosDias(){
       e.textContent = f ? 'Fija — no se cambia' : 'Fija (del equipo)';
       e.classList.add('disp-ok'); return;
     }
+    // (el campo se apaga más abajo, fuera del bucle: hay que hacerlo también
+    //  cuando el equipo NO es fijo, para volver a habilitarlo)
     if(!f){ e.textContent='—'; e.classList.add('disp-none'); return; }
     if(!dur){ e.textContent='No vence'; e.classList.add('disp-ok'); return; }
     const d=dias(f,ref);                      // días desde la etiqueta (etiqueta = día 0)
@@ -11858,6 +11865,23 @@ function calcInsumosDias(){
     else if(d===dur){ e.textContent=`Cambiar ESTA NOCHE (${cambio})`; e.classList.add('disp-warn'); }
     else { e.textContent=`VENCIDO — cambiar hoy (debió el ${cambio})`; e.classList.add('disp-bad'); }
   });
+  /* El HEPA de un PB/Avea no se cambia: es del EQUIPO y se mantiene desde su
+     instalación (Diego, 14-ago-2026). Hasta la 5.73 el chip lo decía pero el
+     campo seguía editable, así que el turno igual podía fecharlo y parecía que
+     llevaba ciclo. Ahora se apaga, igual que la humidificación activa apaga el
+     HME (`syncHumidFecha`), que es el paralelo que pidió Manuel.
+     🔴 Se DESHABILITA pero NO se borra: esa fecha es la referencia de
+     instalación del filtro del equipo — vaciarla perdería un dato real, y el
+     chip la usa para distinguir «Fija — no se cambia» de «Fija (del equipo)».
+     Un input deshabilitado conserva su value y `v()` lo sigue leyendo, así que
+     el guardado no cambia. */
+  const _hepaInp=$('fFecHEPA');
+  if(_hepaInp){
+    _hepaInp.disabled = !!_fijaHEPA;
+    _hepaInp.title = _fijaHEPA
+      ? 'El filtro HEPA es del ventilador (PB/Avea): se mantiene desde su instalación y no se cambia'
+      : '';
+  }
 }
 //  Al conectar a VM (ingreso ventilado o cambio de soporte) se fechan HME/HEPA/Trach Care
 //  con la fecha del turno si están vacíos; force=true al intubar/reintubar (circuito nuevo).

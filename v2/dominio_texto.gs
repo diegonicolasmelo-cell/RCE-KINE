@@ -582,8 +582,10 @@ function generarTextoEvolucion(d) {
 
   // 11. Planes y firma
   const planes = v('PLAN_PLANES'), nota = v('PLAN_NOTA_TURNO'), firma = v('PLAN_FIRMA_KINE');
-  if (planes) txt.push(`Plan: ${planes}`);
+  // Observaciones ANTES del plan (22-ago-2026, pedido de Manuel): el plan es lo
+  // pendiente para el turno siguiente y cierra el texto. Espejo del cliente.
   if (nota)   txt.push(`Nota: ${nota}`);
+  if (planes) txt.push(`Plan: ${planes}`);
   // La firma SALIÓ del texto generado (ago-2026, decisión de Diego): al copiar
   // al BUDA estorbaba. La autoría NO se pierde: queda en PLAN_FIRMA_KINE y en
   // la auditoría. _firmaTextoClinico se conserva (la usa la entrega de turno).
