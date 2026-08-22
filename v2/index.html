@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.70-catalogo-procedimientos">
+<meta name="rce-version" content="5.71-fio2-venturi">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4386,7 +4386,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.70-catalogo-procedimientos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.71-fio2-venturi]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5385,6 +5385,37 @@ function fillCama(c, fecha) {
   aplicarFirmaTurno(c.FIRMA_KINE);
 }
 
+/* Parámetros ventilatorios guardados → campos del módulo. Vivía escrito DOS
+   veces (evolución guardada y réplica del turno anterior) con la misma lista de
+   23 pares: cualquier campo nuevo había que acordarse de agregarlo en los dos, y
+   el que se olvidara se llenaba solo en una de las dos entradas.
+
+   🔴 El rescate del valor fuera de catálogo NO es adorno. Desde que la FiO₂ de
+   la Venturi es un desplegable, asignarle un valor que no está entre sus
+   opciones deja el select VACÍO y el re-guardado escribe ese vacío: la FiO₂
+   registrada ayer desaparecería sin que nadie vea un error. Pasa con cualquier
+   evolución anterior a este cambio (FiO₂ tecleada libre) y con un 33 escrito a
+   mano en la planilla. Se conserva como opción rotulada, igual que hace
+   `poblar()` con los catálogos clínicos desde el renombre «Mascarilla» → «MR». */
+function _fillParamsVent(s){
+  [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
+   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],['r_pafi','VENT_PAFI'],
+   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
+   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
+   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
+   ['r_uma','KTM_UMA']]
+    .forEach(([id,k])=>{
+      const e=$(id); if(!e||s[k]===undefined||s[k]==='') return;
+      const val=String(s[k]);
+      if(e.tagName==='SELECT' && !Array.from(e.options).some(o=>o.value===val)){
+        const op=document.createElement('option');
+        op.value=val; op.textContent=val+' (registro anterior)';
+        e.appendChild(op);
+      }
+      e.value=s[k];
+    });
+}
+
 function fillForm(s) {
   window._vfonHoras = parseInt(s && s._VFON_HORAS) || 0;
   const set=(id,val)=>{ const e=$(id); if(e&&val!==undefined&&val!=='') e.value=String(val); };
@@ -5471,13 +5502,7 @@ function fillForm(s) {
   actualizarDiasVA();
   chk('cHAct',s.VENT_H_ACTIVA);
   // params
-  [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
-   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],['r_pafi','VENT_PAFI'],
-   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
-   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
-   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
-   ['r_uma','KTM_UMA']]
-    .forEach(([id,k])=>{ const e=$(id); if(e&&s[k]!==undefined&&s[k]!=='') e.value=s[k]; });
+  _fillParamsVent(s);
   // v2: los "extras" ya son columnas planas del esquema — mismo objeto
   const _ex = s;
   // Restaurar FECHA_INICIO_TQT (turno actual)
@@ -5703,13 +5728,7 @@ function fillFormReplica(s) {
   set('fTOTfij',s.TOT_FIJACION); // posición/fijación del TOT: persiste turno a turno
   set('fTQTn',s.VENT_TQT_CALIBRE); set('fTQTt',s.VENT_TQT_TIPO);
   chk('cHAct',s.VENT_H_ACTIVA);
-  [['r_vt','VENT_VT'],['r_fr','VENT_FR'],['r_peep','VENT_PEEP'],['r_pmax','VENT_PMAX'],
-   ['r_pmedia','VENT_PMEDIA'],['r_ppl','VENT_PPL'],['r_fio2','VENT_FIO2'],['r_spo2','VENT_SPO2'],['r_pafi','VENT_PAFI'],
-   ['r_flujo','VENT_FLUJO'],['r_ti','VENT_TI'],['r_ps','VENT_PS'],['r_ipap','VENT_IPAP'],['r_ipapmax','VENT_IPAP_MAX'],
-   ['r_epap','VENT_EPAP'],['r_pinsp','VENT_PINSP'],['r_litros','VENT_LITROS'],['r_temp','VENT_TEMP'],
-   ['r_autopeep','VENT_AUTOPEEP'],['r_p01','VENT_P01'],['r_dpocc','VENT_DPOCC'],['r_pmusc','VENT_PMUSC'],
-   ['r_uma','KTM_UMA']]
-    .forEach(([id,k])=>{ const e=$(id); if(e&&s[k]!==undefined&&s[k]!=='') e.value=s[k]; });
+  _fillParamsVent(s);
 
   // v2: extras = columnas planas
   const _ex = s;
@@ -9438,6 +9457,18 @@ const fld=(id,lbl,w=70)=>`<div class="col" style="width:${w}px;flex-grow:0;"><la
 const mon=(id,lbl,y=false)=>`<div class="mon${y?' mon-y':''}" style="height:35px;min-width:68px;"><span style="font-size:.58rem;color:var(--muted);">${lbl}</span><span id="${id}" class="bold" style="font-size:.82rem;">--</span></div>`;
 const lbl=txt=>`<div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--resp);margin:8px 0 4px;padding-bottom:2px;border-bottom:1px solid #bae6fd;">${txt}</div>`;
 
+/* FiO₂ de la mascarilla de Venturi (MMV) — reportado por Manuel desde el turno
+   (22-ago-2026): con MMV el módulo no ofrecía DÓNDE anotar la FiO₂, así que el
+   único dato que define la terapia se perdía. En Venturi la FiO₂ no se estima
+   a partir de los litros (como en naricera) ni se titula libre: la ENTREGA el
+   conector, y son estos siete valores. Por eso es un catálogo cerrado y no un
+   campo numérico: escribir 33 con una Venturi es un dato que no existe.
+   Los litros quedan fuera a propósito — el flujo lo fija el conector según el
+   %; es la misma decisión que ya tomó Diego en la entrega de turno (ago-2026,
+   `_entParams` en svc_entrega.gs: «la Venturi va SOLO con su FiO₂»). */
+const _FIO2_VENTURI=[24,26,28,30,35,40,50];
+const _fio2VentFld=(id)=>`<div class="col" style="width:96px;flex-grow:0;"><label>FiO₂ prog. %</label><select id="${id}" onchange="calcResp(this)" style="height:35px;font-size:.88rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;"><option value="">--</option>${_FIO2_VENTURI.map(x=>`<option>${x}</option>`).join('')}</select></div>`;
+
 const _UMA_TIPS={'':'No registrado','(-)':'Sin uso de musculaturas accesorias (evaluado)','+':'Tiraje subcostal','++':'Tiraje supraesternal','+++':'Tiraje supraesternal + espiración forzada'};
 const _UMA_CLS={'':'interp-ok','(-)':'interp-ok','+':'interp-leve','++':'interp-mod','+++':'interp-sev'};
 function hUMA(){
@@ -9557,6 +9588,10 @@ function renderParams(o) {
     h+=`<div class="row">${fld(P+'flujo','Flujo L/m',80)}${fld(P+'temp','T° °C',70)}${fld(P+'fr','FR rpm',75)}${fld(P+'fio2','FiO₂ %',80)}${fld(P+'spo2','SpO₂ %',80)}${fld(P+'pafi','PaFiO₂',80)}${mon(L+'irox','IROX',true)}${esPost?'':_umaFld()}</div>`;
   } else if(modo==='NRC'){
     h+=`<div class="row">${fld(P+'litros','Litros L/m',88)}${fld(P+'fr','FR rpm',75)}${fld(P+'spo2','SpO₂ %',80)}${mon(L+'fio2nrc','FiO₂~')}${esPost?'':_umaFld()}</div>`;
+  } else if(modo==='MMV'){
+    // Venturi: la FiO₂ se PROGRAMA (catálogo cerrado), no se estima desde los
+    // litros como en la naricera. Mismo campo que ya usa el post-extubación.
+    h+=`<div class="row">${_fio2VentFld(P+'fio2')}${fld(P+'fr','FR rpm',75)}${fld(P+'spo2','SpO₂ %',80)}${esPost?'':_umaFld()}</div>`;
   } else if(['HME','Tubo T'].includes(modo)){
     // Pueden ir SIN oxígeno adicional: litros y FiO2 quedan opcionales (venturi
     // o mezclador entregan FiO2 conocida y antes no había dónde anotarla).
@@ -10900,7 +10935,15 @@ function renderParamsPEno(){
   let html='';
   if(!modo){ box.innerHTML=''; return; }
   if(modo==='Ambiente'){ box.innerHTML='<div style="font-size:.72rem;color:#15803d;">Sin dispositivo</div>'; return; }
-  if(['NRC','MMV','MR','Mascarilla'].includes(modo)){
+  if(modo==='MMV'){
+    // Venturi: FiO₂ programada, no litros — misma regla que el módulo del turno
+    // y que la rama «PVE superada». Antes caía con NRC/MR y pedía Litros, que
+    // en Venturi los fija el conector (22-ago-2026).
+    html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FiO2 prog. %</label><select id="peFiO2No" style="width:88px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"><option value="">--</option>${_FIO2_VENTURI.map(x=>`<option>${x}</option>`).join('')}</select></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">FR RPM</label><input id="peFRNo" type="number" min="0" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
+      <div><label style="font-size:.65rem;color:var(--muted);display:block;">SpO2 %</label><input id="peSpO2No" type="number" min="50" max="100" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div></div>`;
+  } else if(['NRC','MR','Mascarilla'].includes(modo)){
     html=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">Litros L/M</label><input id="peLtNo" type="number" min="0" max="15" step=".5" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
       <div><label style="font-size:.65rem;color:var(--muted);display:block;">FR RPM</label><input id="peFRNo" type="number" min="0" max="60" style="width:72px;height:28px;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;font-size:.8rem;"></div>
@@ -10956,7 +10999,10 @@ function renderParamsPE(){
   if(modo==='Ambiente'){
     h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(modo==='MMV'){
-    h+=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">FiO2 prog. %</label><select id="pe_fio2" style="height:30px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;width:80px;"><option value="">--</option><option>24</option><option>26</option><option>28</option><option>30</option><option>35</option><option>40</option><option>50</option></select></div>`;
+    // El catálogo Venturi vive en _FIO2_VENTURI (uno solo para las tres
+    // pantallas): escrito a mano aquí, agregar un conector obligaba a acordarse
+    // de este sitio.
+    h+=`<div class="col" style="flex-grow:0;"><label style="font-size:.65rem;">FiO2 prog. %</label><select id="pe_fio2" style="height:30px;font-size:.82rem;border:1px solid #cbd5e1;border-radius:5px;padding:0 4px;width:80px;"><option value="">--</option>${_FIO2_VENTURI.map(x=>`<option>${x}</option>`).join('')}</select></div>`;
     h+=pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+peUma;
   } else if(['NRC','MR','Mascarilla'].includes(modo)){
     h+=pef('pe_litros','Litros L/m',85)+pef('pe_fr','FR rpm',70)+pef('pe_spo2','SpO2 %',70)+mon2('pe_fio2calc','FiO2~')+peUma;
