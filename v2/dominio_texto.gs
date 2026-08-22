@@ -496,7 +496,6 @@ function generarTextoEvolucion(d) {
   // 8. KTM
   const ktmR = esVerdadero(d.KTM_REALIZADA), ktmS = esVerdadero(d.KTM_SUSPENDIDA);
   const nivel = v('KTM_NIVEL_KTR'), tiempo = v('KTM_TIEMPO_MIN');
-  const contra = v('KTM_CONTRA_RAZON') || v('KTM_CONTRA_MANUAL');
   const uma = v('KTM_UMA');
   if (ktmR) {
     const ktmCant = Math.min(9, Math.max(1, parseInt(v('KTM_CANT')) || 1));
@@ -507,8 +506,16 @@ function generarTextoEvolucion(d) {
     if (uma) ktmStr += `. UMA ${uma}`;
     txt.push(ktmStr + '.');
   } else if (ktmS) {
-    const tipoContra = v('KTM_CONTRA_TIPO');
-    txt.push(`KTM no realizada. Contraindicación ${tipoContra ? tipoContra.toLowerCase() : ''}: ${contra || 'sin especificar'}.`);
+    // Espejo del cliente (genTexto). El ítem del catálogo y la observación son
+    // DOS datos: estaban unidos por un `||` y la observación se perdía en
+    // cuanto había ítem (22-ago-2026, reportado por Manuel). Antes este motor
+    // además redactaba distinto que el cliente («KTM no realizada.
+    // Contraindicación absoluta: …»), así que los dos textos del mismo turno no
+    // coincidían; ahora dicen lo mismo.
+    const item = v('KTM_CONTRA_RAZON'), obsC = String(v('KTM_CONTRA_MANUAL') || '').trim();
+    let ktmC = item ? `KTM contraindicada por ${_lcIni(item)}.` : 'KTM contraindicada.';
+    if (obsC) ktmC += ` ${(obsC.charAt(0).toUpperCase() + obsC.slice(1)).replace(/\s*\.\s*$/, '')}.`;
+    txt.push(ktmC);
   } else if (esVerdadero(d.KTM_NO_REALIZADA)) {
     const nr = v('KTM_NO_RAZON'), nc = v('KTM_NO_COMENTARIO');
     let s2 = 'KTM no realizada';
