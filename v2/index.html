@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.69-mas-con-candado">
+<meta name="rce-version" content="5.70-catalogo-procedimientos">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1743,7 +1743,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <label style="font-size:.64rem;font-weight:800;color:var(--muted);">HORA</label>
       <input type="time" id="evHora" style="height:32px;border:1px solid var(--border);border-radius:6px;padding:0 8px;">
     </div>
-    <input type="text" id="evProc" list="dlProc" placeholder="Procedimiento del catálogo…" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
+    <select id="evProcSel" class="hidden" onchange="evProcSelCambio()" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 6px;background:#fff;"></select>
+    <input type="text" id="evProc" placeholder="Escribe el procedimiento…" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
     <input type="text" id="evCultTipo" placeholder="Tipo de cultivo (ej: aspirado traqueal)" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
     <input type="text" id="evCultHall" placeholder="Hallazgo (opcional, ej: Klebsiella BLEE+)" class="hidden" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
     <input type="text" id="evDet" placeholder="Detalle (opcional)" style="height:34px;border:1px solid var(--border);border-radius:6px;padding:0 9px;">
@@ -4385,7 +4386,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.69-mas-con-candado]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.70-catalogo-procedimientos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -10002,6 +10003,69 @@ function evLlaveEntrar(){
     m=>{ b.disabled=false; $('evLlaveErr').textContent=m; });
 }
 
+/* ── CATÁLOGO DE PROCEDIMIENTOS DEL ➕ (22-ago-2026, pedido de Manuel: «que
+   muestre los procedimientos del catálogo, como un desplegable») ──────────
+   El campo era un <input list="dlProc"> y el datalist NUNCA se llenaba: no
+   mostraba nada. Los nombres son los MISMOS que genera `_autoProcs` y que el
+   servidor reconoce en `PROC_TO_HITO` (svc_timeline.gs): un nombre que no
+   esté ahí cae al respaldo genérico y sale sin hito clínico. Por eso esta
+   lista se copia de ese mapa (sin FALLECE, que es egreso) y la guardia
+   `catalogo_procedimientos.js` exige que los dos conjuntos sigan iguales. */
+const _PROC_CATALOGO = [
+  ['Ingreso y evaluación', [
+    ['INGRESO','Ingreso a UCI'], ['EVALUACIÓN INTERMEDIA','Evaluación kinésica intermedia'],
+    ['EDUCACIÓN A USUARIO/FAMILIA','Educación a usuario/familia'] ]],
+  ['Vía aérea', [
+    ['INTUBACIÓN','Intubación orotraqueal'], ['PVE','PVE (Prueba de Ventilación Espontánea)'],
+    ['EXTUBACIÓN C/PROTOCOLO','Extubación c/protocolo'], ['EXTUBACIÓN S/PROTOCOLO','Extubación s/protocolo'],
+    ['AUTOEXTUBACIÓN','Autoextubación'], ['EXTUBACIÓN ACCIDENTAL','Extubación accidental'],
+    ['REINTUBACIÓN','Reintubación'], ['DESVINCULACIÓN','Desvinculación de VM'],
+    ['CAMBIO TOT','Cambio de TOT'], ['TQT','Traqueostomía'], ['CAMBIO TQT','Cambio de TQT'],
+    ['DECANULACIÓN','Decanulación'], ['RECANULACIÓN','Recanulación'], ['TEST APNEA','Test de apnea'] ]],
+  ['Posición', [ ['PRONO','Decúbito prono'], ['SUPINO','Decúbito supino'] ]],
+  ['Traslados y eventos', [
+    ['IMAGENOLOGÍA','Imagenología'], ['PABELLÓN','Traslado a pabellón'],
+    ['ASISTENCIA EN PROCEDIMIENTO MÉDICO','Asistencia en procedimiento médico'],
+    ['RCP','Reanimación cardiopulmonar (RCP)'] ]],
+  ['Estudios', [
+    ['ECOGRAFÍA','Ecografía'], ['CULTIVO DE SECRECIONES','Cultivo de secreciones'], ['PCR COVID','PCR COVID'] ]],
+  ['Kinesiología', [
+    ['IMT','IMT (entrenamiento muscular inspiratorio)'], ['EMS','Electroestimulación muscular'],
+    ['Hito Motor 1','Hito Motor 1 — Sedestación borde de cama'], ['Hito Motor 2','Hito Motor 2 — Bipedestación asistida'],
+    ['Hito Motor 3','Hito Motor 3 — Marcha asistida'], ['Hito Motor 4','Hito Motor 4 — Marcha autónoma corta'],
+    ['Hito Motor 5','Hito Motor 5 — Marcha autónoma extendida'] ]],
+];
+const _EV_PROC_OTRO='__otro';
+function _evProcPoblar(){
+  const sel=$('evProcSel'); if(!sel || sel.options.length) return;
+  let h='<option value="">— Procedimiento del catálogo —</option>';
+  _PROC_CATALOGO.forEach(([g,items])=>{
+    h+='<optgroup label="'+_cEsc(g)+'">'+items.map(([val,lab])=>'<option value="'+_cEsc(val)+'">'+_cEsc(lab)+'</option>').join('')+'</optgroup>';
+  });
+  h+='<option value="'+_EV_PROC_OTRO+'">✏️ Otro (escribir)…</option>';
+  sel.innerHTML=h;
+  // De paso, el datalist del formulario de evolución (que nunca se llenó).
+  const dl=$('dlProc'); if(dl && !dl.options.length) dl.innerHTML=_PROC_CATALOGO.flatMap(([g,items])=>items).map(([val])=>'<option value="'+_cEsc(val)+'">').join('');
+}
+function _evProcMostrar(on){
+  _evProcPoblar();
+  const sel=$('evProcSel'), inp=$('evProc');
+  sel.classList.toggle('hidden', !on);
+  if(!on){ inp.classList.add('hidden'); return; }
+  inp.classList.toggle('hidden', sel.value!==_EV_PROC_OTRO);
+}
+function evProcSelCambio(){
+  const otro=v('evProcSel')===_EV_PROC_OTRO;
+  $('evProc').classList.toggle('hidden', !otro);
+  if(otro) setTimeout(()=>$('evProc')?.focus(),40);
+}
+/* El nombre que viaja al servidor: el del catálogo, o el escrito si eligió «Otro». */
+function _evProcValor(){
+  const sv=v('evProcSel');
+  if(sv && sv!==_EV_PROC_OTRO) return sv;
+  return v('evProc').trim();
+}
+
 function evAbrir(id,anchor,pid){
   /* 🔴 El episodio viaja desde la fila que se está mirando. La clave del turno
      (`CAMA_<n>_<fecha>-<turno>`) identifica una CAMA, no a una persona: cuando
@@ -10040,18 +10104,20 @@ function evTipo(t){
   _evTipo=t;
   hide('evLista'); const f=$('evForm'); f.classList.remove('hidden'); f.style.display='flex';
   $('evHora').value=new Date().toTimeString().slice(0,5);
-  $('evProc').classList.toggle('hidden', t!=='procedimiento');
+  _evProcMostrar(t==='procedimiento');
   $('evCultTipo').classList.toggle('hidden', t!=='cultivo');
   $('evCultHall').classList.toggle('hidden', t!=='cultivo');
-  ['evProc','evCultTipo','evCultHall','evDet'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
+  ['evProc','evProcSel','evCultTipo','evCultHall','evDet'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
+  if(t==='procedimiento') $('evProc').classList.add('hidden');
   $('evDet').placeholder = t==='otro' ? 'Describe el evento *' : 'Detalle (opcional)';
-  const foco = t==='procedimiento' ? 'evProc' : (t==='cultivo' ? 'evCultTipo' : 'evDet');
+  const foco = t==='procedimiento' ? 'evProcSel' : (t==='cultivo' ? 'evCultTipo' : 'evDet');
   setTimeout(()=>$(foco)?.focus(),50);
 }
 function evGuardar(){
   if(!_evCama||!_evTipo) return;
   const firma=v('evFirma');
   if(!firma){ toast('⚠️ Selecciona la firma de quien anota.'); return; }
+  if(_evTipo==='procedimiento' && !_evProcValor()){ toast('⚠️ Elige el procedimiento del catálogo (o escribe uno en «Otro»).'); $('evProcSel')?.focus(); return; }
   // El turnoKey se sigue armando con la fecha del Registro: que el ➕ pueda
   // anotar en una fecha pasada es deliberado — pero el PASADO tiene llave
   // (21-ago-2026, decisión de Manuel): el servidor exige sesión de
@@ -10059,7 +10125,7 @@ function evGuardar(){
   // El token viaja siempre que exista; si falta y hace falta, el toast del
   // rechazo dice el camino (entrar en 🔐 COORDINACIÓN).
   const datos={ idCama:_evCama, patientId:_evPid, turnoKey:`${v('gDate')||hoy()}-${_evTurno}`, tipo:_evTipo,
-    hora:v('evHora'), detalle:v('evDet'), proc:v('evProc'),
+    hora:v('evHora'), detalle:v('evDet'), proc:_evProcValor(),
     cultTipo:v('evCultTipo'), cultHallazgo:v('evCultHall'), firmaKine:firma,
     coordToken:(typeof COORD_TK!=='undefined'&&COORD_TK)||'' };
   const b=$('evGo'); b.disabled=true; b.textContent='⏳…';
