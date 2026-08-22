@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.67-candado">
+<meta name="rce-version" content="5.68-sesion-cabecera">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -89,6 +89,7 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .htitle{font-size:.98rem;font-weight:700;display:flex;align-items:center;gap:8px;letter-spacing:-.015em;}
 .hbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:.82rem;color:#8e8e93;}
 .hbar b{color:#f2f2f7;}
+.hbar > span{white-space:nowrap;}  /* Camas/VM no se quiebran en dos líneas al apretarse la cabecera */
 .datein{background:rgba(255,255,255,.12);color:#f2f2f7;border:1px solid rgba(255,255,255,.13);border-radius:9px;padding:5px 10px;font-family:inherit;font-size:.84rem;font-weight:600;outline:none;height:33px;letter-spacing:.15px;transition:background .2s,border-color .2s,color .2s;}
 .datein::-webkit-calendar-picker-indicator{filter:invert(1);cursor:pointer;opacity:.65;}
 .datein-hoy{font-size:.98rem!important;font-weight:800!important;height:38px!important;padding:5px 12px!important;}
@@ -104,6 +105,23 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .hbar-actions .hbtn{justify-content:center;}
 .hbtn{background:rgba(255,255,255,.1);color:#f2f2f7;border:1px solid rgba(255,255,255,.15);padding:5px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem;display:flex;align-items:center;gap:5px;transition:background .15s;}
 .hbtn:hover{background:rgba(255,255,255,.19);}
+
+/* SESIÓN EN LA CABECERA (21-ago-2026, pedido de Manuel): quién usa la app y si
+   el modo Coordinación está abierto, siempre a la vista en la esquina superior
+   derecha. Lo que no hay se dice («Sin usuario»): con AUTH_DEV_MODE=TRUE la app
+   entra sin identidad y eso tiene que verse, no esconderse. */
+.hses{display:flex;gap:5px;align-items:center;flex-shrink:0;}
+.hses .hbtn{white-space:nowrap;}
+/* .hdr .hses … gana a `html[data-piel="inst"] .hbtn` (piel institucional), que
+   pinta todos los botones del mismo azul y se tragaba el ámbar y el verde. */
+.hdr .hses .hses-abierto{background:#b45309;border-color:#f59e0b;color:#fff;}
+.hdr .hses .hses-abierto:hover{background:#d97706;}
+.hdr .hses .hses-ok{background:#166534;border-color:#22c55e;color:#fff;}
+.hdr .hses .hses-ok:hover{background:#15803d;}
+/* Las palabras largas («Sin usuario», «Coordinación») se van primero; la sigla
+   (MFB, MCC) se queda hasta el móvil, donde mandan solo los íconos. */
+@media (max-width:1250px){ .hses .hses-largo{display:none;} }
+@media (max-width:740px){ .hses{flex:1 1 100%;justify-content:flex-end;order:9;} .hses .hbtn{padding:5px 10px;} }
 
 /* TABS */
 .tabs{background:#0e3a5f;border-bottom:1px solid rgba(255,255,255,.08);padding:0 22px;display:flex;gap:2px;position:sticky;top:53px;z-index:49;overflow-x:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
@@ -1474,6 +1492,9 @@ html[data-piel="inst"] .hlogo{display:block;height:50px;width:auto;background:#f
 @media (max-width:740px){ .hlogo{height:28px!important;border-radius:5px;padding:2px 3px!important;} }
 html[data-piel="inst"] .hdr{background:#04345E;border-bottom:3px solid #F0A000;box-shadow:none;}
 html[data-piel="inst"] .hbtn{background:#0d426f;border-color:#1c5d94;}
+/* El estado de sesión manda sobre la piel: ámbar = sin usuario, verde = sesión abierta. */
+html .hdr .hses .hses-abierto{background:#b45309;border-color:#f59e0b;color:#fff;}
+html .hdr .hses .hses-ok{background:#166534;border-color:#22c55e;color:#fff;}
 html[data-piel="inst"] .hbtn:hover{background:#12507f;}
 html[data-piel="inst"] .tabs{background:#0058A0;top:56px;border-bottom:none;}
 html[data-piel="inst"] .tab{color:#cfe3f5;}
@@ -1606,6 +1627,10 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <input type="text" id="hSrch" class="datein" placeholder="🔍 Paciente / cama…" autocomplete="off"
         oninput="hSrchInput()" onfocus="hSrchInput()" onkeydown="if(event.key==='Escape')hSrchCerrar()">
       <div id="hSrchRes" class="hidden"></div>
+    </div>
+    <div class="hses" id="hSes">
+      <button class="hbtn" id="hSesUsr" onclick="hSesUsuarioClick()" title="Quién está usando la app">👤 <span class="hses-txt" id="hSesUsrTxt">—</span></button>
+      <button class="hbtn" id="hSesCand" onclick="hSesCandadoClick()" title="Modo Coordinación">🔒 <span class="hses-txt" id="hSesCandTxt">Coordinación</span></button>
     </div>
     <div class="hbar-actions">
       <button class="hbtn" onclick="recargar()" title="Actualizar datos">🔄</button>
@@ -12355,7 +12380,59 @@ function _cEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</
   .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 
+/* ── SESIÓN EN LA CABECERA ─────────────────────────────────────────────
+   Dos botones en la esquina superior derecha, pintados desde el estado REAL:
+   · 👤 usuario: la firma con la que entró (YO.firma). Si la app está abierta
+     sin identidad (YO.dev, o sin firma) dice «Sin usuario» en ámbar — es la
+     situación de hoy con AUTH_DEV_MODE=TRUE y tiene que verse.
+   · 🔒/🔓 candado: el modo Coordinación. Cerrado y neutro sin sesión; abierto
+     y verde con la firma de quien lo abrió (COORD_FIRMA). Tocarlo lleva a la
+     puerta o, con sesión, ofrece cerrarla de verdad (coordSalir).
+   Se repinta desde bootApp (identidad) y coordInit (candado). */
+function hSesRender(){
+  const ub=$('hSesUsr'), ut=$('hSesUsrTxt'), cb=$('hSesCand'), ct=$('hSesCandTxt');
+  if(!ub||!ut||!cb||!ct) return;
+  const yo=(typeof YO!=='undefined'&&YO)||{};
+  const firma=String(yo.firma||'').trim();
+  const abierto=!!yo.dev||!firma;
+  ub.classList.toggle('hses-abierto', abierto);
+  ub.classList.toggle('hses-ok', !abierto);
+  ut.textContent = abierto ? 'Sin usuario' : firma;
+  ut.classList.toggle('hses-largo', abierto);
+  ub.title = abierto ? 'La app está abierta sin identidad (modo de prueba). Toca para iniciar sesión.'
+                     : 'Sesión de '+firma+(yo.email?' · '+yo.email:'');
+  const tk=(typeof COORD_TK!=='undefined')&&COORD_TK;
+  cb.classList.toggle('hses-ok', !!tk);
+  cb.firstChild.textContent = tk ? '🔓 ' : '🔒 ';
+  const min = tk && typeof _coordIdleRestanteMin==='function' ? _coordIdleRestanteMin() : 0;
+  ct.textContent = tk ? (COORD_FIRMA||'Coordinación') + (min ? ' · '+min+"'" : '') : 'Coordinación';
+  ct.classList.toggle('hses-largo', !tk || !COORD_FIRMA);
+  cb.title = tk ? 'Modo Coordinación abierto por '+COORD_FIRMA+' · se cierra solo tras '+_COORD_IDLE_MIN+' min sin actividad'+(min?' (quedan '+min+')':'')+' · toca para cerrar'
+                : 'Modo Coordinación cerrado · toca para entrar con tu clave';
+}
+function hSesUsuarioClick(){
+  const yo=(typeof YO!=='undefined'&&YO)||{};
+  const firma=String(yo.firma||'').trim();
+  if(yo.dev||!firma){
+    if(typeof LOGIN_UI_ACTIVO!=='undefined'&&LOGIN_UI_ACTIVO){ mostrarLogin(); return; }
+    toast('👤 La app está abierta sin usuario: la identidad de Google aún no está activada (decisión de coordinación).', 5200);
+    return;
+  }
+  uiConfirm({icono:'👤', titulo:'Sesión de '+firma, mensaje:(yo.email?_cEsc(yo.email)+'<br>':'')+'¿Cerrar la sesión en este equipo?', confirmar:'Cerrar sesión'})
+    .then(ok=>{ if(ok!==true) return; TOKEN=''; YO={firma:'',dev:false}; hSesRender(); mostrarLogin(); });
+}
+function hSesCandadoClick(){
+  if(COORD_TK){
+    uiConfirm({icono:'🔓', titulo:'Modo Coordinación abierto', mensaje:'Sesión de <b>'+_cEsc(COORD_FIRMA)+'</b>.<br>¿Cerrarla ahora?', confirmar:'Cerrar Coordinación'})
+      .then(ok=>{ if(ok===true) coordSalir(); });
+    return;
+  }
+  setTab('C');   // setTab ya llama a coordInit(), que enfoca la clave
+}
+
 function coordInit(){
+  if(COORD_TK){ if(!_coordIdleTmr) _coordIdleArmar(); } else _coordIdleDesarmar();
+  hSesRender();
   // El servidor manda: si la recuperacion por correo esta apagada, el enlace ni
   // se ofrece. Preguntarlo evita prometer un camino que va a rechazar.
   if(window._COORD_EST===undefined){
@@ -12389,7 +12466,7 @@ function coordEntrar(){
 // Pase lo que pase con la llamada se limpia el navegador —quedarse dentro por
 // un fallo de red sería peor—, pero si el servidor no confirmó NO se dice
 // «sesión cerrada»: se avisa que puede seguir abierta.
-function coordSalir(){
+function coordSalir(motivo){
   const tk=COORD_TK;
   const limpiar=()=>{
     COORD_TK=null; COORD_FIRMA=''; COORD_USUARIO=''; COORD_PID='';
@@ -12397,10 +12474,47 @@ function coordSalir(){
     $('coordFicha').innerHTML=''; $('coordQ').value='';
     coordInit();
   };
-  if(!tk){ limpiar(); toast('Saliste del modo Coordinación'); return; }
+  if(!tk){ limpiar(); toast(motivo||'Saliste del modo Coordinación'); return; }
   gs('COORD_SALIR',{token:tk},
-    r=>{ limpiar(); toast(r&&r.cerrada?'🔒 Sesión cerrada':'Saliste del modo Coordinación'); },
-    ()=>{ limpiar(); toast('⚠️ Saliste en este equipo, pero la sesión puede seguir abierta hasta 30 min'); });
+    r=>{ limpiar(); toast(motivo||(r&&r.cerrada?'🔒 Sesión cerrada':'Saliste del modo Coordinación'), motivo?6000:3200); },
+    ()=>{ limpiar(); toast((motivo?motivo+' · ':'')+'⚠️ Saliste en este equipo, pero la sesión puede seguir abierta hasta 30 min', 6000); });
+}
+
+/* ── CIERRE POR INACTIVIDAD (21-ago-2026, pedido de Manuel) ──────────────────
+   La sesión de Coordinación vive 30 min y se RENUEVA con cada uso en el
+   servidor (coordSesion, _COORD_SESION_MIN). Lo que faltaba era el lado del
+   navegador: la tablet del office quedaba con el panel abierto y el candado
+   verde hasta que alguien tocaba algo y recién ahí el servidor decía «expiró».
+   Aquí se mide la actividad REAL de la persona (teclado, puntero, tacto,
+   rueda) y, a los 30 min sin ninguna, se cierra de verdad (coordSalir mata el
+   token) y la cabecera vuelve a 🔒. El candado muestra los minutos que quedan. */
+const _COORD_IDLE_MIN = 30;   // mismo valor que _COORD_SESION_MIN en svc_coordinacion.gs
+let _coordUltimaAct = 0, _coordIdleTmr = null, _coordActListo = false;
+function _coordActividad(){ if(COORD_TK) _coordUltimaAct = Date.now(); }
+function _coordIdleArmar(){
+  _coordUltimaAct = Date.now();
+  if(!_coordActListo){
+    ['pointerdown','keydown','input','touchstart','wheel'].forEach(ev=>document.addEventListener(ev,_coordActividad,{passive:true,capture:true}));
+    // Al volver a una pestaña dormida los setInterval se atrasan: se revisa al instante.
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) _coordIdleCheck(); });
+    _coordActListo=true;
+  }
+  clearInterval(_coordIdleTmr);
+  _coordIdleTmr=setInterval(_coordIdleCheck, 30000);
+}
+function _coordIdleDesarmar(){ clearInterval(_coordIdleTmr); _coordIdleTmr=null; }
+function _coordIdleRestanteMin(){
+  if(!COORD_TK) return 0;
+  return Math.max(0, Math.ceil((_COORD_IDLE_MIN*60000 - (Date.now()-_coordUltimaAct))/60000));
+}
+function _coordIdleCheck(){
+  if(!COORD_TK){ _coordIdleDesarmar(); return; }
+  if(Date.now()-_coordUltimaAct >= _COORD_IDLE_MIN*60000){
+    _coordIdleDesarmar();
+    coordSalir('🔒 Sesión de Coordinación cerrada por inactividad ('+_COORD_IDLE_MIN+' min)');
+    return;
+  }
+  hSesRender();   // refresca los minutos que quedan en el candado
 }
 
 // Búsqueda con freno: teclear rápido no manda una llamada por letra.
@@ -14929,6 +15043,7 @@ function _bootLegacy(){
   }).catch(()=>{ loading(false); mostrarLogin(); });
 }
 function bootApp(){
+  hSesRender();
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); })
     .catch(()=>{ FASES=[]; toast('⚠️ No se pudo cargar el catálogo de fases — reintenta con 🔄 Actualizar'); });
   api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; aplicarBanners(); }).catch(()=>{ window.CFG={}; });
