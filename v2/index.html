@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.71-fio2-venturi">
+<meta name="rce-version" content="5.72-dve-y-captor">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -2880,13 +2880,18 @@ document.documentElement.setAttribute('data-piel', 'inst');
           </div>
         </div>
 
-        <!-- NEUROLOGÍA — visible solo si el Dx contiene HSA/ACV/TEC/Meningioma/Politrauma -->
+        <!-- NEUROLOGÍA — visible con Dx neuro (HSA/ACV/TEC/Meningioma/Politrauma)
+             o con la fase clínica «Neuroprotección» marcada. Los dispositivos
+             mandan sobre los campos: la PIC solo se pide si hay captor. -->
         <div class="fcard fc-n hidden" id="fcNeuro">
           <div class="fcard-hdr"><span class="fcard-title">🧠 Neurología</span></div>
           <div class="fcard-body">
             <div class="row" style="margin-bottom:0;">
-              <div class="col ws"><label>PIC</label><input type="number" id="fPIC" style="width:70px;"></div>
-              <div class="col ws"><label>PPC</label><input type="number" id="fPPC" style="width:70px;"></div>
+              <div class="check cr wa"><input type="checkbox" id="cDVE" onchange="hNeuroDisp()"><label for="cDVE">DVE</label></div>
+              <div class="col hidden" id="gDVEalt" style="width:128px;flex-grow:0;"><label>Altura cmH₂O</label><input type="number" id="fDVEalt" min="0" max="40" step="0.5" style="width:84px;"></div>
+              <div class="check cr wa"><input type="checkbox" id="cPICcaptor" onchange="hNeuroDisp()"><label for="cPICcaptor">Captor de PIC</label></div>
+              <div class="col ws hidden" id="gPIC"><label>PIC</label><input type="number" id="fPIC" style="width:70px;"></div>
+              <div class="col ws hidden" id="gPPC"><label>PPC</label><input type="number" id="fPPC" style="width:70px;"></div>
             </div>
           </div>
         </div>
@@ -4386,7 +4391,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.71-fio2-venturi]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.72-dve-y-captor]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5429,6 +5434,10 @@ function fillForm(s) {
   set('fDx',s.PAC_DIAGNOSTICO); set('fRem',s.PAC_DIAG_REM);
   set('fCharlson',s.PAC_CHARLSON); set('fIngTipo',s.PAC_INGRESO_TIPO);
   set('fFC',s.HEMO_FC); set('fPIC',s.HEMO_PIC); set('fPPC',s.HEMO_PPC);
+  // Neuromonitoreo: los dispositivos primero, y `false` para que un valor
+  // guardado sin su casilla (evoluciones anteriores a 5.72) siga viéndose.
+  chk('cDVE',s.NEURO_DVE); set('fDVEalt',s.NEURO_DVE_ALTURA); chk('cPICcaptor',s.NEURO_PIC_CAPTOR);
+  hNeuroDisp(false);
   chk('cArritmia',s.HEMO_ARRITMIA); if(s.HEMO_ARRITMIA===true||s.HEMO_ARRITMIA==='TRUE') show('gArritmiaTipo'); else hide('gArritmiaTipo');
   set('fArritmiaTipo',s.HEMO_ARRITMIA_TIPO);
   chk('cMetaPAM',s.HEMO_META_PAM);
@@ -5696,6 +5705,14 @@ function fillFormReplica(s) {
   set('fHEst',s.HEMO_ESTADO); set('fDVA',s.HEMO_DVA);
   chk('cMultiDVA',s.HEMO_MULTI_DVA); set('fDVAcnt',s.HEMO_NUM_DVA);
   chk('cHTrend',s.HEMO_TENDENCIA); set('fHTT',s.HEMO_TEND_TIPO);
+
+  // Neuromonitoreo: DVE y captor son ESTADO del paciente (el dispositivo sigue
+  // puesto en el turno siguiente), así que se replican como la vía aérea. PIC y
+  // PPC NO se replican —son la medición de ESTE turno— y siguen sin hacerlo.
+  // La altura sí viaja: es la prescripción vigente, y queda en ámbar para que
+  // el colega la confirme o la corrija.
+  chk('cDVE',s.NEURO_DVE); set('fDVEalt',s.NEURO_DVE_ALTURA); chk('cPICcaptor',s.NEURO_PIC_CAPTOR);
+  hNeuroDisp(false);
 
   // Examen físico
   loadMP(s.EX_MP||'');
@@ -6025,6 +6042,7 @@ function _validarRangosCliente(){
 // son hechos que persisten entre turnos, no mediciones.
 const _HER_CAMPOS=['fSed','fSAS','fSASmeta','fS5Q','fCoop','fGCSO','fGCSV','fGCSM',   // sedación / conciencia
   'fHEst','fDVA','fDVAcnt','fHTT',                                          // hemodinamia
+  'fDVEalt',                                                                // altura de la DVE (prescripción que persiste)
   'fMPVal','fRuidosVal','fRuidosLoc',                                       // auscultación
   'r_vt','r_fr','r_peep','r_pmax','r_pmedia','r_ppl','r_fio2','r_spo2','r_pafi',
   'r_flujo','r_ti','r_ps','r_ipap','r_ipapmax','r_epap','r_pinsp','r_litros','r_temp',
@@ -6356,6 +6374,7 @@ function guardar() {
     HEMO_ESTADO:v('fHEst'), HEMO_DVA:v('fDVA'), HEMO_MULTI_DVA:bv('cMultiDVA'),
     HEMO_NUM_DVA:v('fDVAcnt'), HEMO_TENDENCIA:bv('cHTrend'), HEMO_TEND_TIPO:v('fHTT'),
     HEMO_FC:v('fFC'), HEMO_PIC:n(v('fPIC')), HEMO_PPC:n(v('fPPC')),
+    NEURO_DVE:bv('cDVE'), NEURO_DVE_ALTURA:n(v('fDVEalt')), NEURO_PIC_CAPTOR:bv('cPICcaptor'),
     HEMO_ARRITMIA:bv('cArritmia'), HEMO_ARRITMIA_TIPO:bv('cArritmia')?v('fArritmiaTipo'):'',
     HEMO_META_PAM:bv('cMetaPAM'), HEMO_PAM:bv('cMetaPAM')?n(v('fPAM')):'',
     EX_MP:     v('fMPVal'),
@@ -8599,6 +8618,10 @@ function genTexto() {
   const _pic=gv('fPIC'), _ppc=gv('fPPC');
   _B('neuro');
   if(_pic||_ppc) L.push(`Neuromonitoreo: ${[_pic?`PIC ${_pic} mmHg`:null,_ppc?`PPC ${_ppc} mmHg`:null].filter(Boolean).join(', ')}.`);
+  // La sigla se expande: la evolución la lee también un médico fuera de la UCI.
+  // Espejo en dominio_texto.gs — mantener en paridad.
+  if($('cDVE')?.checked){ const _dalt=gv('fDVEalt');
+    L.push(`Derivación ventricular externa (DVE)${_dalt?` a ${_dalt} cmH2O`:''}.`); }
   const sop=gv('fSop')||'Ambiente', modo=gv('fModo')||'';
   const vt=parseFloat(gv('r_vt'))||0, fr=parseFloat(gv('r_fr'))||0;
   const peep=parseFloat(gv('r_peep'))||0, fio2=parseFloat(gv('r_fio2'))||0;
@@ -9639,6 +9662,32 @@ function _sedFarmSet(arr){
   document.querySelectorAll('#sedFarmacos .sedf-btn').forEach(b=>b.classList.toggle('on', on.has(b.dataset.f)));
 }
 function hSedVigil(){ _formDirty=true; if(typeof _rtxtLive==='function') _rtxtLive(); }
+
+/* Dispositivos de neuromonitoreo (ago-2026, pedido de Manuel desde el turno).
+   La DVE abre su altura; el captor de PIC abre PIC y PPC juntas — sin captor no
+   hay PIC que medir, y un campo vacío que nadie llena solo ocupa pantalla.
+
+   🔴 `limpiar` es el seguro contra el borrado silencioso. Al DESMARCAR una
+   casilla sí hay que vaciar los campos (si no, el valor viaja escondido al
+   guardado), pero al CARGAR una evolución no: las evoluciones anteriores a esta
+   versión tienen PIC guardada y la columna del captor en blanco, así que
+   ocultarlas y limpiarlas les borraría el dato al re-guardar. Es la misma
+   familia del rescate de la FiO₂ de la Venturi (5.71). Por eso, al cargar, un
+   campo CON valor se muestra aunque su casilla venga apagada. */
+function hNeuroDisp(limpiar){
+  if(limpiar===undefined) limpiar=true;
+  const dve=!!$('cDVE')?.checked, cap=!!$('cPICcaptor')?.checked;
+  const conValor=id=>String($(id)?.value||'').trim()!=='';
+  const verAlt = dve || (!limpiar && conValor('fDVEalt'));
+  const verPic = cap || (!limpiar && (conValor('fPIC')||conValor('fPPC')));
+  const gA=$('gDVEalt'); if(gA) gA.classList.toggle('hidden', !verAlt);
+  ['gPIC','gPPC'].forEach(id=>{ const e=$(id); if(e) e.classList.toggle('hidden', !verPic); });
+  if(limpiar){
+    if(!dve){ const a=$('fDVEalt'); if(a) a.value=''; }
+    if(!cap){ ['fPIC','fPPC'].forEach(id=>{ const e=$(id); if(e) e.value=''; }); }
+  }
+  if(typeof _rtxtLive==='function') _rtxtLive();
+}
 function hHTrend(){if($('cHTrend')?.checked)show('gHTT');else hide('gHTT');}
 function hArritmia(){ if($('cArritmia')?.checked) show('gArritmiaTipo'); else { hide('gArritmiaTipo'); const e=$('fArritmiaTipo'); if(e) e.value=''; } }
 function hMetaPAM(){ if($('cMetaPAM')?.checked) show('gPAM'); else { hide('gPAM'); const e=$('fPAM'); if(e) e.value=''; } }
@@ -11612,7 +11661,7 @@ function renderFases(){
   box.innerHTML=chips.join('');
 }
 function confirmarFaseHeredada(){ _faseHeredada=false; renderFases(); toast('✓ Fase clínica confirmada'); }
-function toggleFase(f){ if(FASES_SEL.has(f)) FASES_SEL.delete(f); else FASES_SEL.add(f); _faseHeredada=false; renderFases(); }
+function toggleFase(f){ if(FASES_SEL.has(f)) FASES_SEL.delete(f); else FASES_SEL.add(f); _faseHeredada=false; renderFases(); if(typeof aplicarGatesNeuro==='function') aplicarGatesNeuro(); }
 // Input inline para agregar una fase nueva (persiste en el catálogo compartido)
 function agregarFaseUI(){
   const box=$('faseChips'); if(!box) return;
@@ -11646,6 +11695,7 @@ function setFasesDesde(jsonStr){
   FASES_SEL=new Set();
   try{ (JSON.parse(jsonStr||'[]')||[]).forEach(f=>FASES_SEL.add(f)); }catch(e){}
   renderFases();
+  if(typeof aplicarGatesNeuro==='function') aplicarGatesNeuro();
 }
 
 // ── Pendientes del turno (chips, recordatorio sin fecha; NO se replican) ──
@@ -11956,10 +12006,15 @@ function aplicarGatesNeuro(){
       hide('dUpotDet');
     }
   }
-  // Neurología: por palabras clave del diagnóstico
+  // Neurología: por palabras clave del diagnóstico O por la fase clínica
+  // «Neuroprotección» (ago-2026). Se SUMA al disparador anterior, no lo
+  // reemplaza: un TEC al que nadie le marcó la fase no puede quedarse sin el
+  // lugar donde hoy anota la PIC.
   const dx=(v('fDx')||'').toUpperCase();
-  const esNeuro=/HSA|ACV|TEC|MENINGIOMA|POLITRAUMA|SUBARACNOIDEA|CEREBRO|CRANEO|CRÁNEO|NEURO/.test(dx);
+  const esNeuro=/HSA|ACV|TEC|MENINGIOMA|POLITRAUMA|SUBARACNOIDEA|CEREBRO|CRANEO|CRÁNEO|NEURO/.test(dx)
+    || (typeof FASES_SEL!=='undefined' && FASES_SEL.has('Neuroprotección'));
   const nc=$('fcNeuro'); if(nc) nc.classList.toggle('hidden', !esNeuro);
+  if(esNeuro) hNeuroDisp(false);   // sin limpiar: puede venir de una evolución cargada
 }
 
 //  Sufijo activo de la ruta de reintubación (standalone T / anidada N1 / N2)

@@ -127,6 +127,12 @@ function generarTextoEvolucion(d) {
     if (ppc > 0) nm.push(`PPC ${ppc} mmHg`);
     txt.push('Neuromonitoreo: ' + nm.join(', ') + '.');
   }
+  // DVE: la sigla se expande porque la evolución la lee también un médico fuera
+  // de la UCI. Espejo del cliente (index.html) — mantener en paridad.
+  if (esVerdadero(d.NEURO_DVE)) {
+    const dveAlt = vn('NEURO_DVE_ALTURA');
+    txt.push('Derivación ventricular externa (DVE)' + (dveAlt > 0 ? ` a ${dveAlt} cmH2O` : '') + '.');
+  }
 
   // 5. Vía aérea
   const diasVA = v('DIAS_VA');

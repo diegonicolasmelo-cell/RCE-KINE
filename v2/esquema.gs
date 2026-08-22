@@ -275,7 +275,14 @@ const _COLS_EVOLUCIONES = [
   ['SED_VIGIL','bool'],
   // Qué sedantes están puestos (JSON). Cuáles, no cuánto: las dosis viven en
   // la ficha médica.
-  ['SED_FARMACOS','texto']
+  ['SED_FARMACOS','texto'],
+  // — Neuromonitoreo invasivo (ago-2026, pedido de Manuel desde el turno) —
+  // Los dispositivos son ESTADO del paciente, no un evento del turno: se
+  // replican del turno anterior como la vía aérea. PIC y PPC (que ya existían
+  // en la familia HEMO_) solo se piden cuando hay captor instalado.
+  ['NEURO_DVE','bool'],           // derivación ventricular externa instalada
+  ['NEURO_DVE_ALTURA','decimal'], // altura de la DVE en cmH2O (solo con DVE)
+  ['NEURO_PIC_CAPTOR','bool']     // captor de PIC: habilita PIC y PPC
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -864,11 +871,12 @@ function testEsquema() {
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
   // Salvaguarda contra el borrado accidental de columnas: el número va a mano
-  // y HAY QUE SUBIRLO al agregar una (390 = 387 + SED_SAS_META, SED_VIGIL y
-  // SED_FARMACOS, ago-2026). Si
+  // y HAY QUE SUBIRLO al agregar una (393 = 390 + NEURO_DVE, NEURO_DVE_ALTURA
+  // y NEURO_PIC_CAPTOR, ago-2026; antes 390 = 387 + SED_SAS_META, SED_VIGIL y
+  // SED_FARMACOS). Si
   // aparece este ❌ tras sumar una columna, la hoja está bien y lo que falta es
   // actualizar esta línea.
-  if (TOTAL_COLS.EVOLUCIONES !== 390) errs.push("EVOLUCIONES != 390 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 393) errs.push("EVOLUCIONES != 393 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }
