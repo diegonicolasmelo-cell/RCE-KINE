@@ -98,7 +98,77 @@ function validarPayloadEvolucion(d) {
     const p = parseFloat(d.VENT_PEEP);
     if (!isNaN(p) && p > 30) errs.push('PEEP > 30 cmH₂O — verificar: ' + d.VENT_PEEP);
   }
+  validarKTM(d).forEach(function (m) { errs.push(m); });
   return errs;
+}
+
+/**
+ * validarKTM — las reglas del trío de KTM, EN EL SERVIDOR (20-ago-2026).
+ *
+ * 🔴 POR QUÉ EXISTE. Estas reglas vivían SOLO en el navegador (`guardar()`, con
+ * un toast y un `return`). Cualquier ruta que no pase por ese formulario se las
+ * salta — y el botón ➕ del Registro Diario, que es por donde va a entrar la
+ * corrección retroactiva, no pasa por ahí. Una regla clínica que solo vive en la
+ * pantalla no es una regla: es una sugerencia.
+ *
+ * 🪤 LO QUE DELIBERADAMENTE **NO** SE VALIDA AQUÍ, y por qué. Cada una de estas
+ * se probó y rompía el camino de todos los días:
+ *
+ *  · «REALIZADA exige nivel»: el formulario arranca en estado `'r'` con el nivel
+ *    vacío, y `aplicarGatesEval` BORRA el nivel cuando SAS = 1. Exigirlo aquí
+ *    bloquearía el guardado normal. El nivel se exige en la ruta de corrección
+ *    del ➕, que es donde alguien está declarando una KTM a conciencia.
+ *  · «nivel o razón sin ningún estado»: de noche la KTM no aplica, el estado se
+ *    apaga y el nivel se HEREDA de la cama sin que nadie lo limpie, con la
+ *    tarjeta oculta. Rechazar eso bloquearía **toda evolución nocturna** de un
+ *    paciente con KTM de día, y sin forma de destrabarlo desde la pantalla. El
+ *    nivel huérfano se NORMALIZA al guardar, no se rechaza.
+ *  · «'' distinto de false»: ningún lector del sistema los distingue
+ *    (`esVerdadero` trata igual los dos). Perder la evolución entera por esa
+ *    diferencia sería cobrar carísimo algo que nadie honra.
+ *
+ * Devuelve un array de mensajes (vacío = OK).
+ */
+function validarKTM(d) {
+  const errs = [];
+  if (!d) return errs;
+  const vv = function (x) { return x === true || String(x) === 'true'; };
+  const r = vv(d.KTM_REALIZADA), s = vv(d.KTM_SUSPENDIDA), n = vv(d.KTM_NO_REALIZADA);
+  if (!r && !s && !n) return errs;   // nada declarado: no hay nada que validar
+
+  // Exclusividad. Imposible desde la pantalla (`setKTMstate` es excluyente),
+  // alcanzable por API.
+  if ((r && s) || (r && n) || (s && n)) {
+    errs.push('KTM: solo puede estar en UNO de los tres estados (realizada, suspendida o no realizada).');
+  }
+
+  // De noche la KTM no aplica: la estadística manual nunca tuvo casilla
+  // nocturna, y el REM cuenta sesiones sin filtrar turno. Confirmado con la
+  // planilla real (20-ago-2026): las 36 KTM realizadas son TODAS de día.
+  const turno = String(d.TURNO || d.turno || '');
+  if (turno === 'Noche') {
+    errs.push('KTM: en turno noche la kinesiterapia motora no aplica; no se declara estado.');
+  }
+
+  if (n && !String(d.KTM_NO_RAZON || '').trim()) {
+    errs.push('KTM: indica la razón por la que NO se realizó.');
+  }
+  if (s && !String(d.KTM_CONTRA_RAZON || '').trim() && !String(d.KTM_CONTRA_MANUAL || '').trim()) {
+    errs.push('KTM: indica la razón de la contraindicación.');
+  }
+  return errs;
+}
+
+/**
+ * _ktmCantidad — la cantidad de sesiones, acotada a 1..9.
+ *
+ * Existe para que la fórmula deje de estar copiada. Estaba escrita a mano en el
+ * front (`index.html`, al armar el payload) y repetida en el REM; el servidor no
+ * la acotaba en ninguna parte, así que por API entraba cualquier número.
+ */
+function _ktmCantidad(v) {
+  const n = parseInt(v, 10);
+  return String(Math.min(9, Math.max(1, isNaN(n) ? 1 : n)));
 }
 
 function validarPayloadIngreso(d) {
@@ -143,6 +213,32 @@ function _lcIni(s) {
   return s.charAt(0).toLowerCase() + s.slice(1);
 }
 
+/**
+ * «Queda con» de la reintubación — espejo exacto de `_reintubEquipoTxt` del
+ * cliente (index.html), que ya lo narraba en sus TRES ramas.
+ *
+ * 🔴 El servidor no lo decía en NINGUNA (detectado 14-ago-2026). O sea que el
+ * colega leía en pantalla «…se reintuba a las 03:20 con TOT N° 8.0 a 22 cm,
+ * quedando en modo ACVC (Vt 420 ml…)» y lo que quedaba ARCHIVADO en la
+ * evolución cortaba en «…a las 03:20.». El estado posterior es parte del
+ * registro desde la v4.3 —estado previo → evento → estado posterior— y la
+ * reintubación era la única transición que lo perdía al guardarse.
+ *
+ * Es el mismo patrón que ya se pagó con las secreciones y con la fecha de los
+ * filtros: dos generadores de la misma frase que se van separando. Si alguien
+ * toca uno, tiene que tocar el otro; la guardia lo vigila leyendo el fuente.
+ */
+function _reintubEquipoTxt(d) {
+  const val = k => String((d && d[k]) || '').trim();
+  const tn = val('REINTUB_TOT_N'), cm = val('REINTUB_TOT_CM');
+  const mo = val('REINTUB_MODO'), pa = val('REINTUB_PARAMS');
+  let t = '';
+  if (tn) t += ` con TOT N° ${tn}${cm ? ' a ' + cm + ' cm' : ''}`;
+  if (mo) t += `, quedando en modo ${mo}${pa ? ' (' + pa + ')' : ''}`;
+  else if (pa) t += `, quedando con ${pa}`;
+  return t;
+}
+
 function generarTextoEvolucion(d) {
   const v  = k => (d[k] !== undefined && d[k] !== null && d[k] !== '') ? String(d[k]) : null;
   const vn = k => parseFloat(d[k]) || 0;
@@ -179,11 +275,22 @@ function generarTextoEvolucion(d) {
   // El escalón SIEMPRE se narra si existe, con su SAS (ago-2026, reporte de
   // Álvaro vía Diego): la rama de BNM se comía el escalón y el SAS solo salía
   // en dos ramas. Con BNM el escalón va igual — el bloqueo no borra la pauta.
-  const sasTxt = sas ? ` para meta SAS ${sas}` : '';
+  // SAS ACTUAL y META son cosas distintas (ago-2026, PRD_SAS_REAL.md). Hasta
+  // esta versión había un solo número y se narraba como meta: con un paciente
+  // en SAS 6 y meta 4 no había forma de escribir la verdad. Espejo exacto del
+  // cliente — si se cambia uno hay que cambiar el otro (lección de las
+  // secreciones), y la guardia lo comprueba leyendo los dos fuentes.
+  const meta = v('SED_SAS_META');
+  const sasTxt = sas ? ` con SAS ${sas}${meta ? ` (meta ${meta})` : ''}` : (meta ? ` para meta SAS ${meta}` : '');
   const escTxt = (sed && sed !== 'Sin sedación') ? (sed === 'Fuera de escalón' ? 'fuera de escalón' : `en ${sed.toLowerCase()}`) : '';
-  let sedStr = bnm ? `Sedado${escTxt ? ' ' + escTxt : ''}+BNM${sasTxt || ' para meta SAS 1'}.`
+  // La sedación vigil se nombra: es la que NO cuenta como sedación profunda.
+  const vigilTxt = esVerdadero(d.SED_VIGIL) ? ' vigil (control de agitación)' : '';
+  let farm = [];
+  try { farm = JSON.parse(d.SED_FARMACOS || '[]') || []; } catch (e) { farm = []; }
+  const farmTxt = farm.length ? ` con ${farm.map(function (x) { return String(x).toLowerCase(); }).join(', ')}` : '';
+  let sedStr = bnm ? `Sedado${escTxt ? ' ' + escTxt : ''}+BNM${sasTxt || ' para meta SAS 1'}${farmTxt}.`
              : (sed === 'Sin sedación') ? 'Sin sedoanalgesia.'
-             : `Sedado ${escTxt}${sasTxt}.`;
+             : `Sedado${vigilTxt} ${escTxt}${sasTxt}${farmTxt}.`;
   // GCS: el total (SED_GCS_TOT="11T") y la verbal (SED_GCS_V="1T") ya vienen con
   // "T" desde el cliente en intubado; /15 solo para paciente sin VA artificial.
   sedStr += ` GCS ${gcsTot}${intubado ? '' : '/15'} (O:${gcsO}, V:${gcsV}, M:${gcsM})`;
@@ -400,7 +507,7 @@ function generarTextoEvolucion(d) {
         txt.push(`Se realiza PVE con resultado superado, progresando a extubación${horaTxt}.`);
         if (esVerdadero(d.EXT_REINTUB)) {
           const rz = v('EXT_REINTUB_RAZ'), rh = v('REINTUB_HORA');
-          txt.push(`Sin embargo, paciente evoluciona con ${(rz || 'falla respiratoria').toLowerCase()} por lo que se reintuba${rh ? ' a las ' + rh + ' hrs' : ''}.`);
+          txt.push(`Sin embargo, paciente evoluciona con ${(rz || 'falla respiratoria').toLowerCase()} por lo que se reintuba${rh ? ' a las ' + rh + ' hrs' : ''}${_reintubEquipoTxt(d)}.`);
         } else queda();
       } else if (pveRes === 'frustra') {
         let mots = [];
@@ -421,7 +528,7 @@ function generarTextoEvolucion(d) {
       txt.push(e2 + '.');
       if (esVerdadero(d.EXT_REINTUB)) {
         const rz = v('EXT_REINTUB_RAZ'), rh = v('REINTUB_HORA');
-        txt.push(`Posteriormente requiere reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}.`);
+        txt.push(`Posteriormente requiere reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}${_reintubEquipoTxt(d)}.`);
       } else queda();
     }
   })();
@@ -482,7 +589,7 @@ function generarTextoEvolucion(d) {
   // Reintubación sin extubación este turno (VA venía no invasiva)
   if (esVerdadero(d.EXT_REINTUB) && !esVerdadero(d.EXT_OCURRIO)) {
     const rh = v('REINTUB_HORA'), rz = v('EXT_REINTUB_RAZ');
-    txt.push(`Paciente requirió reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}.`);
+    txt.push(`Paciente requirió reintubación${rh ? ' a las ' + rh + ' hrs' : ''}${rz ? ' por ' + rz.toLowerCase() : ''}${_reintubEquipoTxt(d)}.`);
   }
   // Intubación nueva este turno (sin historial de VM)
   if (esVerdadero(d.INTUB_OCURRIO)) {
@@ -543,18 +650,25 @@ function generarTextoEvolucion(d) {
     // como «sin secreciones» (Diego, ago-2026, mismo criterio de la UMA (−)):
     // evaluar y no encontrar nada es un hallazgo, no una omisión. Solo el
     // no-registro ('') queda en silencio.
+    // Y 'auto' (15-ago-2026, rescatado del SmartEvo, redacción de Diego): hay
+    // secreciones pero NO se aspiran — el paciente las tose, moviliza y
+    // deglute. Solo se ofrece SIN vía aérea artificial (con TOT/TQT se aspira
+    // y se ve); sin nada aspirado, no hay reología ni características que
+    // narrar.
     const secrParts = [];
-    if (qty !== '-') {
+    if (qty !== '-' && qty !== 'auto') {
       if (reol) secrParts.push(reol.toLowerCase());
       if (car) secrParts.push(car.toLowerCase());
       if (qtyTxt) secrParts.push('en ' + qtyTxt);
     }
-    const secrTxt = secrParts.length ? `, secreciones ${secrParts.join(' ')}` : (qty === '-' ? ', sin secreciones' : '');
+    const secrTxt = secrParts.length ? `, secreciones ${secrParts.join(' ')}`
+      : (qty === '-' ? ', sin secreciones' : (qty === 'auto' ? ', tose, moviliza y deglute secreciones' : ''));
     if (v('EX_CULT_RESULTADO')) txt.push('Resultado de cultivo: ' + v('EX_CULT_RESULTADO') + '.');
     let linea = '';
     if (perm.length) linea = `KTR + ${perm.join(' + ')}${secrTxt}`;
     else if (secrParts.length) linea = `Secreciones ${secrParts.join(' ')}`;
     else if (qty === '-') linea = 'Sin secreciones';
+    else if (qty === 'auto') linea = 'Tose, moviliza y deglute secreciones';
     if (linea) txt.push(linea + '.');
     if (esVerdadero(d.RESP_INHALO)) txt.push('Se administra inhaloterapia según indicación médica (SOS).');
     // «Posicionamiento:» SALIÓ del generador (ago-2026, Bloque C de Diego):

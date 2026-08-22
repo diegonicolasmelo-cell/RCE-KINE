@@ -12404,9 +12404,10 @@ function hSesRender(){
   const tk=(typeof COORD_TK!=='undefined')&&COORD_TK;
   cb.classList.toggle('hses-ok', !!tk);
   cb.firstChild.textContent = tk ? '🔓 ' : '🔒 ';
-  ct.textContent = tk ? (COORD_FIRMA||'Coordinación') : 'Coordinación';
+  const min = tk && typeof _coordIdleRestanteMin==='function' ? _coordIdleRestanteMin() : 0;
+  ct.textContent = tk ? (COORD_FIRMA||'Coordinación') + (min ? ' · '+min+"'" : '') : 'Coordinación';
   ct.classList.toggle('hses-largo', !tk || !COORD_FIRMA);
-  cb.title = tk ? 'Modo Coordinación abierto por '+COORD_FIRMA+' · toca para cerrar'
+  cb.title = tk ? 'Modo Coordinación abierto por '+COORD_FIRMA+' · se cierra solo tras '+_COORD_IDLE_MIN+' min sin actividad'+(min?' (quedan '+min+')':'')+' · toca para cerrar'
                 : 'Modo Coordinación cerrado · toca para entrar con tu clave';
 }
 function hSesUsuarioClick(){
@@ -12430,6 +12431,7 @@ function hSesCandadoClick(){
 }
 
 function coordInit(){
+  if(COORD_TK){ if(!_coordIdleTmr) _coordIdleArmar(); } else _coordIdleDesarmar();
   hSesRender();
   // El servidor manda: si la recuperacion por correo esta apagada, el enlace ni
   // se ofrece. Preguntarlo evita prometer un camino que va a rechazar.
@@ -12464,7 +12466,7 @@ function coordEntrar(){
 // Pase lo que pase con la llamada se limpia el navegador —quedarse dentro por
 // un fallo de red sería peor—, pero si el servidor no confirmó NO se dice
 // «sesión cerrada»: se avisa que puede seguir abierta.
-function coordSalir(){
+function coordSalir(motivo){
   const tk=COORD_TK;
   const limpiar=()=>{
     COORD_TK=null; COORD_FIRMA=''; COORD_USUARIO=''; COORD_PID='';
@@ -12472,10 +12474,47 @@ function coordSalir(){
     $('coordFicha').innerHTML=''; $('coordQ').value='';
     coordInit();
   };
-  if(!tk){ limpiar(); toast('Saliste del modo Coordinación'); return; }
+  if(!tk){ limpiar(); toast(motivo||'Saliste del modo Coordinación'); return; }
   gs('COORD_SALIR',{token:tk},
-    r=>{ limpiar(); toast(r&&r.cerrada?'🔒 Sesión cerrada':'Saliste del modo Coordinación'); },
-    ()=>{ limpiar(); toast('⚠️ Saliste en este equipo, pero la sesión puede seguir abierta hasta 30 min'); });
+    r=>{ limpiar(); toast(motivo||(r&&r.cerrada?'🔒 Sesión cerrada':'Saliste del modo Coordinación'), motivo?6000:3200); },
+    ()=>{ limpiar(); toast((motivo?motivo+' · ':'')+'⚠️ Saliste en este equipo, pero la sesión puede seguir abierta hasta 30 min', 6000); });
+}
+
+/* ── CIERRE POR INACTIVIDAD (21-ago-2026, pedido de Manuel) ──────────────────
+   La sesión de Coordinación vive 30 min y se RENUEVA con cada uso en el
+   servidor (coordSesion, _COORD_SESION_MIN). Lo que faltaba era el lado del
+   navegador: la tablet del office quedaba con el panel abierto y el candado
+   verde hasta que alguien tocaba algo y recién ahí el servidor decía «expiró».
+   Aquí se mide la actividad REAL de la persona (teclado, puntero, tacto,
+   rueda) y, a los 30 min sin ninguna, se cierra de verdad (coordSalir mata el
+   token) y la cabecera vuelve a 🔒. El candado muestra los minutos que quedan. */
+const _COORD_IDLE_MIN = 30;   // mismo valor que _COORD_SESION_MIN en svc_coordinacion.gs
+let _coordUltimaAct = 0, _coordIdleTmr = null, _coordActListo = false;
+function _coordActividad(){ if(COORD_TK) _coordUltimaAct = Date.now(); }
+function _coordIdleArmar(){
+  _coordUltimaAct = Date.now();
+  if(!_coordActListo){
+    ['pointerdown','keydown','input','touchstart','wheel'].forEach(ev=>document.addEventListener(ev,_coordActividad,{passive:true,capture:true}));
+    // Al volver a una pestaña dormida los setInterval se atrasan: se revisa al instante.
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) _coordIdleCheck(); });
+    _coordActListo=true;
+  }
+  clearInterval(_coordIdleTmr);
+  _coordIdleTmr=setInterval(_coordIdleCheck, 30000);
+}
+function _coordIdleDesarmar(){ clearInterval(_coordIdleTmr); _coordIdleTmr=null; }
+function _coordIdleRestanteMin(){
+  if(!COORD_TK) return 0;
+  return Math.max(0, Math.ceil((_COORD_IDLE_MIN*60000 - (Date.now()-_coordUltimaAct))/60000));
+}
+function _coordIdleCheck(){
+  if(!COORD_TK){ _coordIdleDesarmar(); return; }
+  if(Date.now()-_coordUltimaAct >= _COORD_IDLE_MIN*60000){
+    _coordIdleDesarmar();
+    coordSalir('🔒 Sesión de Coordinación cerrada por inactividad ('+_COORD_IDLE_MIN+' min)');
+    return;
+  }
+  hSesRender();   // refresca los minutos que quedan en el candado
 }
 
 // Búsqueda con freno: teclear rápido no manda una llamada por letra.

@@ -718,6 +718,118 @@ function _mtoRepararAjenas(escribir) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  TIEMPO EXTUBADO — RECÁLCULO CON EL RELOJ REAL (ago-2026)
+//
+//  `TIEMPO_EXTUBADO` (hoja REINTUBACIONES) son las horas entre la extubación
+//  previa y la reintubación. Es el número con el que después se distingue una
+//  reintubación de una intubación nueva —«no es reintubación sino intubación,
+//  por los días» (Diego)— y hasta ago-2026 se calculaba con la FECHA DEL
+//  TURNO: el turno Noche pertenece al día anterior hasta las 09:00, así que
+//  una reintubación de las 03:00 quedaba **24 h corta**. `_tiempoExtubado` ya
+//  se arregló; esto repara lo que quedó escrito antes.
+//
+//  Regla que dio Diego: MANDA EL RELOJ, no el turno. Y lo que no se pueda
+//  calcular —sin hora de reintubación, o sin extubación registrada en el
+//  episodio— NO se toca y se informa al final: jamás se rellena con un
+//  número inventado.
+//
+//  Idempotente: correrlo dos veces no cambia nada la segunda.
+// ═══════════════════════════════════════════════════════════════════════
+
+/** Paso 1 — SIMULACRO. Informa qué cambiaría y no toca nada. */
+function corregirTiempoExtubadoSIMULACRO() { return _mtoTiempoExtubado(false); }
+
+/** Paso 2 — REAL. Respalda primero; si el respaldo falla, cancela. */
+function corregirTiempoExtubadoCONFIRMAR() { return _mtoTiempoExtubado(true); }
+
+function _mtoTiempoExtubado(escribir) {
+  // Las evoluciones del episodio pueden estar VIVAS o ARCHIVADAS (al egresar
+  // se particionan): hay que mirar las dos hojas o los episodios cerrados
+  // quedarían sin corregir.
+  var porPid = {};
+  ['EVOLUCIONES', 'EVOLUCIONES_ARCHIVO'].forEach(function (hoja) {
+    (repoLeerTodos(hoja) || []).forEach(function (e) {
+      var pid = String(e.PATIENT_ID || '');
+      (porPid[pid] = porPid[pid] || []).push(e);
+    });
+  });
+  var porIdEvo = {};
+  Object.keys(porPid).forEach(function (pid) {
+    porPid[pid].forEach(function (e) { porIdEvo[String(e.ID_EVOLUCION)] = e; });
+  });
+
+  var cambios = [];      // { id, antes, ahora, cama, turnoKey }
+  var sinDato = [];      // { id, motivo }
+  (repoLeerTodos('REINTUBACIONES') || []).forEach(function (r) {
+    var idEvo = String(r.ID_EVOLUCION || '');
+    var evo = porIdEvo[idEvo];
+    if (!evo) { sinDato.push({ id: idEvo, motivo: 'no se encuentra su evolución' }); return; }
+
+    var fecha = _statISO(evo.FECHA) || _statISO(r.FECHA);
+    var turno = String(evo.TURNO || r.TURNO || 'Dia');
+    var pid = String(evo.PATIENT_ID || '');
+    var lector = function () { return porPid[pid] || []; };
+
+    var ahora = _tiempoExtubado(evo, evo.ID_CAMA, fecha, turno, lector);
+    var antes = String(r.TIEMPO_EXTUBADO || '');
+    if (!ahora) {
+      sinDato.push({
+        id: idEvo,
+        motivo: !(evo.REINTUB_HORA || evo.EXT_HORA)
+          ? 'sin hora de reintubación anotada'
+          : 'sin extubación previa registrada en el episodio',
+      });
+      return;
+    }
+    if (ahora !== antes) {
+      cambios.push({ id: String(r.ID_REINTUB), antes: antes || '(vacío)', ahora: ahora,
+                     cama: String(r.ID_CAMA || ''), turnoKey: fecha + '-' + turno });
+    }
+  });
+
+  var detalle = cambios.map(function (c) {
+    return '  · cama ' + c.cama + ' · ' + c.turnoKey + ': ' + c.antes + ' → ' + c.ahora;
+  }).join('\n');
+  var aviso = sinDato.length
+    ? '\n\n⚠️ ' + sinDato.length + ' reintubación(es) sin dato suficiente NO se tocan:\n' +
+      sinDato.map(function (s) { return '  · ' + s.id + ' — ' + s.motivo; }).join('\n')
+    : '';
+
+  if (!escribir) {
+    var msg = (cambios.length
+      ? 'SIMULACRO — se corregirían ' + cambios.length + ' tiempo(s) extubado:\n' + detalle +
+        '\n\nNada se ha modificado. Para aplicarlo corre corregirTiempoExtubadoCONFIRMAR().'
+      : 'SIMULACRO — todos los tiempos extubados ya están bien calculados.') + aviso;
+    Logger.log(msg);
+    return ok({ simulacro: true, cambios: cambios.length, sinDato: sinDato.length, mensaje: msg });
+  }
+
+  if (!cambios.length) {
+    Logger.log('Nada que corregir.' + aviso);
+    return ok({ corregidas: 0, sinDato: sinDato.length });
+  }
+
+  var resp = backupDiario();
+  if (!resp || !resp.ok) {
+    var eMsg = 'CANCELADO: el respaldo falló, no se modificó nada. ' + ((resp && resp.error) || '');
+    Logger.log(eMsg); return err(eMsg);
+  }
+
+  cambios.forEach(function (c) {
+    repoActualizar('REINTUBACIONES', 'ID_REINTUB', c.id, { TIEMPO_EXTUBADO: c.ahora });
+  });
+
+  auditar({
+    accion: 'CORREGIR_TIEMPO_EXTUBADO', entidad: 'REINTUBACIONES',
+    resumen: cambios.length + ' tiempo(s) extubado recalculados con el reloj real' +
+      (sinDato.length ? ' (' + sinDato.length + ' sin dato suficiente quedaron informados)' : ''),
+  });
+  var fin = 'Listo: ' + cambios.length + ' tiempo(s) extubado corregido(s).\n' + detalle + aviso;
+  Logger.log(fin);
+  return ok({ corregidas: cambios.length, sinDato: sinDato.length, mensaje: fin });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  CAMAS DE PRUEBA (ago-2026)
 //  Pedido de Diego: quiere probar una versión nueva con la unidad llena de
 //  pacientes REALES, sin tocarles la evolución. Se agregan camas al final

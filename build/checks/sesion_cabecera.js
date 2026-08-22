@@ -77,11 +77,29 @@ const ratio = (a,b) => { const la=lum(...parse(a)), lb=lum(...parse(b)); return 
   // Con sesión: abierto, verde, con la firma — por el MISMO camino que usa la app (coordInit).
   await pg.evaluate(() => { COORD_TK = 'tk'; COORD_FIRMA = 'MCC'; coordInit(); }); await pg.waitForTimeout(350);
   si('con sesión el candado se abre (🔓)', (await pg.locator('#hSesCand').innerText()).includes('🔓'));
-  si('…y muestra quién lo abrió', (await pg.locator('#hSesCandTxt').innerText()).trim() === 'MCC');
+  si('…y muestra quién lo abrió y los minutos que quedan', /^MCC · 30'$/.test((await pg.locator('#hSesCandTxt').innerText()).trim()), await pg.locator('#hSesCandTxt').innerText());
   si('…en verde', await pg.evaluate(() => document.getElementById('hSesCand').classList.contains('hses-ok')));
   const cC = await pg.evaluate(() => { const e=document.getElementById('hSesCand'); const cs=getComputedStyle(e); return [cs.color, cs.backgroundColor]; });
   si('contraste del candado abierto ≥ 4,5:1', ratio(cC[0], cC[1]) >= 4.5, ratio(cC[0], cC[1]).toFixed(2)+':1');
   si('…y el fondo es verde de verdad (verde > rojo y > azul)', (p=>p[1]>p[0]&&p[1]>p[2])(parse(cC[1])), cC[1]);
+
+  // ── Cierre por inactividad (21-ago-2026): 30 min sin actividad → se cierra sola.
+  si('con sesión, el vigilante de inactividad está armado', await pg.evaluate(() => !!_coordIdleTmr));
+  // Actividad real renueva la ventana: se envejece la última actividad y se teclea.
+  await pg.evaluate(() => { _coordUltimaAct = Date.now() - 20*60000; });
+  si('…a los 20 min sin tocar quedan 10', await pg.evaluate(() => _coordIdleRestanteMin()) === 10);
+  await pg.keyboard.press('Shift');
+  si('…y una tecla devuelve la ventana a 30', await pg.evaluate(() => _coordIdleRestanteMin()) === 30);
+  await pg.evaluate(() => { _coordUltimaAct = Date.now() - 29*60000; _coordIdleCheck(); });
+  si('a los 29 min sigue abierta', await pg.evaluate(() => !!COORD_TK));
+  await pg.evaluate(() => { _coordUltimaAct = Date.now() - 30*60000; _coordIdleCheck(); });
+  await pg.waitForTimeout(400);
+  si('a los 30 min sin actividad la sesión se CIERRA', await pg.evaluate(() => !COORD_TK));
+  si('…el candado vuelve a 🔒', (await pg.locator('#hSesCand').innerText()).includes('🔒'));
+  si('…el vigilante queda desarmado', await pg.evaluate(() => !_coordIdleTmr));
+  si('…y la pestaña vuelve a pedir la clave', await pg.evaluate(() => !document.getElementById('coordPuerta').classList.contains('hidden')));
+  // Se reabre para probar el clic con sesión.
+  await pg.evaluate(() => { COORD_TK = 'tk'; COORD_FIRMA = 'MCC'; coordInit(); }); await pg.waitForTimeout(350);
 
   // Tocar el candado abierto pide confirmación (no cierra a la primera).
   await pg.click('#hSesCand'); await pg.waitForTimeout(300);
