@@ -43,7 +43,19 @@ const esq = fs.readFileSync(path.join(v2, 'esquema.gs'), 'utf8');
 console.log('\n1 · Esquema');
 ['SED_SAS_META', 'SED_VIGIL', 'SED_FARMACOS'].forEach(c =>
   eq('  existe ' + c, new RegExp("\\['" + c + "'").test(esq), true));
-eq('el total de columnas subió a 390', /EVOLUCIONES !== 390/.test(esq), true);
+// 🪤 Aquí decía `/EVOLUCIONES !== 390/`: el número de aquella tanda, escrito a
+// mano. Se puso rojo el 22-ago-2026 al sumar las columnas de neuromonitoreo,
+// sin que nada estuviera mal — la guardia protegía un valor, no una propiedad.
+// Lo que de verdad hay que vigilar es que el total de testEsquema **coincida
+// con las columnas realmente declaradas**: ese desajuste es el que hace que la
+// prueba acuse a la planilla de un error que no tiene.
+{
+  const bloque = esq.slice(esq.indexOf('const _COLS_EVOLUCIONES'), esq.indexOf('const ESQUEMA'));
+  const declaradas = [...bloque.matchAll(/\['[A-Z0-9_]+','[a-z]+'\]/g)].length;
+  const escrito = (esq.match(/TOTAL_COLS\.EVOLUCIONES !== (\d+)/) || [])[1];
+  eq('el total de testEsquema calza con las columnas declaradas (' + declaradas + ')',
+     String(escrito), String(declaradas));
+}
 // Regla de la casa: las columnas nuevas van SIEMPRE al final (la reparación
 // reescribe encabezados y meterlas al medio desalinea los datos guardados).
 const cols = [...esq.matchAll(/\['([A-Z0-9_]+)','(?:texto|bool|entero|decimal|fecha|ts|uuid|email)'\]/g)].map(m => m[1]);
