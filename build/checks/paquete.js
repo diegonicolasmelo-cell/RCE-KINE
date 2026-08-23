@@ -17,9 +17,16 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
 
 execFileSync('node', [path.join(B, 'paquete_migracion.js')], { stdio: 'pipe' });
 
+// `demo_datos.gs` es el sembrador de la MAQUETA: puebla una planilla de
+// demostración con pacientes inventados. NO viaja al proyecto de producción —
+// nadie necesita 500 líneas de generador de ficción junto a la base de la
+// unidad, aunque tenga candados. La exclusión se declara aquí y se comprueba
+// abajo, para que agregarlo al paquete por descuido ponga esta guardia roja.
+const SOLO_MAQUETA = ['demo_datos.gs'];
+
 const fnsDe = dir => {
   const m = new Map();
-  for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.gs'))) {
+  for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.gs') && SOLO_MAQUETA.indexOf(x) === -1)) {
     for (const g of fs.readFileSync(path.join(dir, f), 'utf8').matchAll(/^function\s+([A-Za-z_$][\w$]*)/gm)) {
       m.set(g[1], (m.get(g[1]) || []).concat(f));
     }
@@ -32,6 +39,12 @@ eq('mismo número de funciones que el repo', paq.size, repo.size);
 eq('ninguna función del repo quedó fuera', [...repo.keys()].filter(k => !paq.has(k)).join(',') || 'ninguna', 'ninguna');
 eq('sin funciones que el repo no tenga', [...paq.keys()].filter(k => !repo.has(k)).join(',') || 'ninguna', 'ninguna');
 eq('sin funciones duplicadas entre archivos', [...paq].filter(([, v]) => v.length > 1).map(([k]) => k).join(',') || 'ninguna', 'ninguna');
+eq('el sembrador de la maqueta NO viaja a producción',
+  fs.readdirSync(PAQ).filter(f => SOLO_MAQUETA.indexOf(f) > -1).join(',') || 'ninguno', 'ninguno');
+eq('…ni colado dentro de otro archivo del paquete',
+  fs.readdirSync(PAQ).filter(f => f.endsWith('.gs'))
+    .filter(f => /sembrarDemoRCE|prepararPlanillaDemo/.test(fs.readFileSync(path.join(PAQ, f), 'utf8')))
+    .join(',') || 'ninguno', 'ninguno');
 
 const gs = fs.readdirSync(PAQ).filter(f => f.endsWith('.gs'));
 // 9 del layout estable + mantenimiento_manuel.gs (TEMPORAL, ago-2026: las
