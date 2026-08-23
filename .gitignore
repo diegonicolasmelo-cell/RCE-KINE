@@ -9,3 +9,7 @@ build/entrega_v558/
 build/paquete_migracion/
 HANDOFF.md
 PLAN_TANDA1.md
+
+# Paquetes generados de la maqueta (se regeneran con build/paquete_maqueta.js)
+build/paquete_maqueta/
+build/RCE-KINE_MAQUETA.zip

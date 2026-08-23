@@ -22,13 +22,17 @@ const eq = (l, g, w) => { const okk = String(g) === String(w); console.log((okk 
 const ok_ = (l, c) => { console.log((c ? '✅' : '❌') + ' ' + l); if (!c) fails.push(l); };
 
 // ── Simulador de repositorio ───────────────────────────────────────────────
-let DB = {};
-const vaciarDB = () => { DB = { CAMAS_ESTADO: [], EVOLUCIONES: [], EVOLUCIONES_ARCHIVO: [],
+// Va por `global` a propósito: este arnés lo reutiliza la guardia del puente
+// (puente_rem.js) cargándolo con eval, y lo declarado con let/const no sale del
+// eval. Un arnés que no se puede prestar se acaba copiando, y las dos copias se
+// separan.
+global.DB = {};
+global.vaciarDB = () => { DB = { CAMAS_ESTADO: [], EVOLUCIONES: [], EVOLUCIONES_ARCHIVO: [],
   ARCHIVO_PACIENTES: [], REINTUBACIONES: [], ESTADISTICAS_REM: [], PROCEDIMIENTOS: [],
   TIMELINE: [], ENTREGAS_TURNO: [], AUDIT_LOG: [] }; };
 vaciarDB();
 
-let CONFIG = {};
+global.CONFIG = {};
 global.repoLeerTodos = (h) => (DB[h] || []).slice();
 global.repoBuscarPorId = (h, c, id) => (DB[h] || []).find(r => String(r[c]) === String(id)) || null;
 global.repoActualizar = (h, c, id, ch) => { const r = global.repoBuscarPorId(h, c, id); if (r) Object.assign(r, ch); return !!r; };
@@ -48,7 +52,7 @@ global.err = (m, c) => ({ ok: false, error: m, codigo: c });
 global.ERR = { VALIDACION: 'V', INTERNO: 'I' };
 global.Logger = { log: () => {} };
 
-let uuidN = 0;
+global.uuidN = 0;
 global.Utilities = {
   getUuid: () => 'uuid' + (++uuidN) + '-aaaabbbb',
   formatDate: (d, tz, f) => {
