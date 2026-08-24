@@ -48,8 +48,19 @@ si('FALLECE no se ofrece (es egreso, no procedimiento)', !front.has('FALLECE'));
     DB = [ { ID_CAMA:'3', OCUPADA:'TRUE', PATIENT_ID:'pA' } ];
     COORD_TK = null; document.getElementById('gDate').value = h; SHIFT = 'Dia';
     window._capturado = null;
-    window.api = (a, d) => { if (a === 'ANEXAR_EVENTO') { window._capturado = d; return Promise.resolve({ texto: 'ok' }); } return Promise.resolve({}); };
-    window.Turnos = { ROSTER: [ { f:'MFB', n:'Manuel' } ], firmaDeCama: () => 'MFB', init(){}, fillFirmaSelect(){} };
+    // Desde el 24-ago-2026 el ➕ refresca de fondo tras guardar
+    // (recargarSilencioso): esas dos lecturas devuelven ARRAYS, como el
+    // servidor real — el {} genérico dejaba DB hecho un objeto y todo lo que
+    // viniera después reventaba en (DB||[]).find.
+    window.api = (a, d) => { if (a === 'ANEXAR_EVENTO') { window._capturado = d; return Promise.resolve({ texto: 'ok' }); }
+      if (a === 'GET_TODAS_CAMAS') return Promise.resolve(DB);
+      if (a === 'GET_EVOS_DEL_DIA') return Promise.resolve([]);
+      return Promise.resolve({}); };
+    // El refresco de fondo del ➕ (24-ago-2026) repinta la grilla de verdad,
+    // así que el doble de Turnos necesita TODO lo que el repintado toca —
+    // no solo lo que usa el popover.
+    window.Turnos = { ROSTER: [ { f:'MFB', n:'Manuel' } ], firmaDeCama: () => 'MFB', init(){}, fillFirmaSelect(){},
+      syncKey(){}, decorateCard(){}, paintBed(){}, paintSeccion(){}, renderLegend(){} };
     evAbrir('3', null, 'pA');
   }, hoy);
   await pg.evaluate(() => evTipo('procedimiento'));

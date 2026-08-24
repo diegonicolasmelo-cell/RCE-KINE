@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.74-observacion-de-ktm">
+<meta name="rce-version" content="5.75-anexo-borrable">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -159,6 +159,12 @@ table.nt td{padding:0;border:1px solid #f1f5f9;vertical-align:middle;}
 .tc-ktr{padding:4px 7px!important;text-align:center;min-width:43px;font-family:'Courier New',monospace;font-weight:800;}
 .tc-kine{padding:4px 7px!important;text-align:center;min-width:50px;font-weight:800;}
 .tc-p4{padding:4px 6px!important;min-width:62px;max-width:92px;text-align:center;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#475569;}
+/* El sello de un anexo del ➕ lleva su × en el borde derecho (borrarlo). La ×
+   va INLINE, no flotando: el td tiene overflow:hidden y la recortaría. La zona
+   de toque es mayor que el glifo — esto se usa en tablet. */
+.sello-ax{display:inline-flex;align-items:center;gap:1px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:0 1px 0 5px;max-width:100%;}
+.sello-x{border:0;background:none;color:#b91c1c;font-weight:800;font-size:.8rem;line-height:1;cursor:pointer;padding:3px 4px;border-radius:4px;flex:0 0 auto;}
+.sello-x:hover{background:#fee2e2;color:#7f1d1d;}
 .tc-ex{padding:4px 6px!important;text-align:center;min-width:46px;}
 .ktr-1{color:#dc2626;}.ktr-2{color:#ea580c;}.ktr-3{color:#d97706;}.ktr-4{color:#16a34a;}.ktr-5{color:#0284c7;}
 .bs,.bk{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.69rem;font-weight:700;white-space:nowrap;}
@@ -4391,7 +4397,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.74-observacion-de-ktm]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.75-anexo-borrable]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -10228,18 +10234,69 @@ function evGuardar(){
     hora:v('evHora'), detalle:v('evDet'), proc:_evProcValor(),
     cultTipo:v('evCultTipo'), cultHallazgo:v('evCultHall'), firmaKine:firma,
     coordToken:(typeof COORD_TK!=='undefined'&&COORD_TK)||'' };
-  const b=$('evGo'); b.disabled=true; b.textContent='⏳…';
-  gs('ANEXAR_EVENTO', datos, r=>{
-    b.disabled=false; b.textContent='💾 Guardar';
-    toast('✅ '+((r&&r.texto)||'Evento anotado'));
-    const camaEv=_evCama; evCerrar();
-    // si el panel de esa cama está abierto, refrescar los relojes visibles
-    if(window._camaEvo===camaEv && r && r.dispositivos){
-      const M={hme:'fFecHME',hepa:'fFecHEPA',sonda:'fFecSonda'};
-      r.dispositivos.forEach(d=>{ const e=$(M[d.k]); if(e&&d.fecha) e.value=d.fecha; });
-      if(typeof calcInsumosDias==='function') calcInsumosDias();
-    }
-  }, e=>{ b.disabled=false; b.textContent='💾 Guardar'; toast('❌ '+e); });
+  const enviar=()=>{
+    const b=$('evGo'); b.disabled=true; b.textContent='⏳…';
+    gs('ANEXAR_EVENTO', datos, r=>{
+      b.disabled=false; b.textContent='💾 Guardar';
+      toast('✅ '+((r&&r.texto)||'Evento anotado'));
+      const camaEv=_evCama; evCerrar();
+      // si el panel de esa cama está abierto, refrescar los relojes visibles
+      if(window._camaEvo===camaEv && r && r.dispositivos){
+        const M={hme:'fFecHME',hepa:'fFecHEPA',sonda:'fFecSonda'};
+        r.dispositivos.forEach(d=>{ const e=$(M[d.k]); if(e&&d.fecha) e.value=d.fecha; });
+        if(typeof calcInsumosDias==='function') calcInsumosDias();
+      }
+      // El sello se pinta SOLO (24-ago-2026): sin esto, lo anexado no se veía
+      // hasta recargar la página, la gente reintentaba y quedaban KTM dobles.
+      recargarSilencioso();
+    }, e=>{ b.disabled=false; b.textContent='💾 Guardar'; toast('❌ '+e); });
+  };
+  // El duplicado se frena ANTES de nacer — con aviso, nunca con bloqueo: dos
+  // KTM reales en un mismo turno son legítimas.
+  const nDup=_evTipo==='procedimiento'?_evAnexoYaExiste(_evCama, datos.turnoKey, datos.proc):0;
+  if(nDup){
+    uiConfirm({icono:'⚠️', titulo:'Ya está anotado en este turno',
+      mensaje:`En la cama ${_cEsc(_evCama)} ya ${nDup===1?'hay':'hay '+nDup} <b>${_cEsc(datos.proc)}</b> en este turno.`,
+      detalle:'Si el primero no se veía, era solo el refresco: ahora el sello aparece solo. ¿De verdad hubo otro?',
+      confirmar:'Anotar otro'})
+      .then(okC=>{ if(okC===true) enviar(); });
+    return;
+  }
+  enviar();
+}
+
+/* ¿Cuántos procedimientos con este nombre tiene ya esa cama en ese turno? Mira
+   lo que el front ya tiene (EVOS_DIA): sirve para AVISAR, no para decidir — el
+   servidor no bloquea duplicados porque pueden ser reales. */
+function _evAnexoYaExiste(idCama, turnoKey, proc){
+  if(!proc) return 0;
+  const e=(EVOS_DIA||[]).find(x=>String(x.ID_CAMA)===String(idCama)&&String(x.TURNO_KEY)===String(turnoKey));
+  if(!e) return 0;
+  const enResumen=(e.PROC_RESUMEN?String(e.PROC_RESUMEN).split(', ').filter(Boolean):[])
+    .filter(p=>p===proc).length;
+  // Un re-guardado depura el resumen con su Set, pero la estadística conserva
+  // cada anexo: manda el conteo mayor.
+  const enAnexos=(e.ANEXOS||[]).filter(a=>String(a.nombre)===proc).length;
+  return Math.max(enResumen, enAnexos);
+}
+
+/* La × del sello (24-ago-2026): borra ESE anexo — fila de la estadística, hito
+   de la línea de tiempo y nombre en la evolución, todo a la vez y con
+   auditoría. El candado del pasado vive en el servidor; el token de
+   coordinación viaja siempre que exista, igual que en el ➕. */
+function anexoBorrar(btn){
+  const d=(btn&&btn.dataset)||{};
+  if(!d.id) return;
+  uiConfirm({icono:'🗑️', titulo:'Borrar anexo del registro', tono:'rojo',
+    mensaje:`Se borrará <b>${_cEsc(d.nombre)}</b> de la cama ${_cEsc(d.cama)} en este turno.`,
+    detalle:'Sale del registro, de la línea de tiempo y de la estadística. No se puede deshacer y queda en la auditoría.',
+    confirmar:'Borrar anexo'})
+  .then(okC=>{ if(okC!==true) return;
+    loading(true,'Borrando anexo...');
+    gs('ANULAR_ANEXO',{idProc:d.id, idCama:d.cama, coordToken:(typeof COORD_TK!=='undefined'&&COORD_TK)||''},
+      ()=>{ loading(false); toast('🗑️ Anexo borrado del registro'); recargarSilencioso(); },
+      ()=>loading(false));
+  });
 }
 
 /* ── Confirmación de instalación de dispositivos (chip «Aceptar») ── */
@@ -12412,14 +12469,34 @@ function renderTabla(){
         :(esT(evoD.KTM_SUSPENDIDA)?'<span class="bk bk-s">KTMC</span>'
           :(esT(evoD.KTM_REALIZADA)&&evoD.KTM_NIVEL_KTR?`<span class="bk bk-ok">KTM ${evoD.KTM_NIVEL_KTR}</span>`:dash));
       const procsDe=e=>e&&e.PROC_RESUMEN?String(e.PROC_RESUMEN).split(', ').filter(Boolean):[];
-      const cellsProc=(arr,count)=>{const o=[];for(let i=0;i<count;i++){ if(i===count-1&&arr.length>count) o.push(`<span title="${arr.slice(count-1).join(', ')}">+${arr.length-(count-1)}</span>`); else o.push(arr[i]?`<span title="${arr[i]}">${arr[i].slice(0,14)}${arr[i].length>14?'…':''}</span>`:dash);} return o;};
+      /* Sellos con identidad (24-ago-2026): cada nombre se empareja con un
+         anexo del ➕ (los trae GET_EVOS_DEL_DIA en e.ANEXOS, con su ID_PROC).
+         El emparejado lleva la × para borrarlo; los del guardado, no. */
+      const itemsProc=e=>{
+        const libres=(e&&e.ANEXOS)?e.ANEXOS.slice():[];
+        const items=procsDe(e).map(n=>{
+          const j=libres.findIndex(a=>String(a.nombre)===n);
+          return {n:n, ax:j===-1?null:libres.splice(j,1)[0]};
+        });
+        // Anexo que el resumen ya no lista (un re-guardado lo depura con su
+        // Set): igual se muestra con su ×, o quedarían filas en la estadística
+        // que el Registro no deja ver ni borrar.
+        libres.forEach(a=>items.push({n:String(a.nombre), ax:a}));
+        return items;
+      };
+      const selloProc=(it,e)=>{
+        const nom=_cEsc(it.n), corto=_cEsc(it.n.slice(0,14))+(it.n.length>14?'…':'');
+        if(!it.ax) return `<span title="${nom}">${corto}</span>`;
+        return `<span class="sello-ax" title="${nom} · anotado con el ➕">${corto}<button type="button" class="sello-x" data-id="${_cEsc(it.ax.id)}" data-nombre="${nom}" data-cama="${_cEsc(String((e&&e.ID_CAMA)||''))}" onclick="anexoBorrar(this)" title="Borrar este anexo (${nom})">×</button></span>`;
+      };
+      const cellsProc=(items,count,e)=>{const o=[];for(let i=0;i<count;i++){ if(i===count-1&&items.length>count) o.push(`<span title="${_cEsc(items.slice(count-1).map(x=>x.n).join(', '))}">+${items.length-(count-1)}</span>`); else o.push(items[i]?selloProc(items[i],e):dash);} return o;};
       const extub=e=>{ if(!e) return dash;
         const arr=procsDe(e);
         return (esT(e.EXT_OCURRIO)||esT(e.DECAN_OCURRIO)||arr.some(p=>/extubaci|decanulac|autoextub/i.test(p)))
           ?'<span style="color:var(--ok);font-weight:800;">✅</span>':dash; };
       const firmaCell=e=>e&&e.PLAN_FIRMA_KINE?`<span style="color:var(--kine);font-weight:800;">${e.PLAN_FIRMA_KINE}</span>`:dash;
-      const pD=procsDe(evoD), pN=procsDe(evoN);
-      const cD=cellsProc(pD,4), cN=cellsProc(pN,3);
+      const pD=itemsProc(evoD), pN=itemsProc(evoN);
+      const cD=cellsProc(pD,4,evoD), cN=cellsProc(pN,3,evoN);
       // «Oxigenoterapia/OAF» a secas no decía nada útil en la ronda: el equipo
       // necesita ver CUÁL (pedido de Manuel, ago-2026). Cuando hay modo, la
       // etiqueta pasa a «O2 · NRC» y el nombre largo queda en el tooltip.
@@ -12739,6 +12816,7 @@ function coordEntrar(){
 function _coordEntrarCon(usuario, clave, ok, fail){
   gs('COORD_ENTRAR',{usuario:usuario, clave:clave}, r=>{
     COORD_TK=r.token; COORD_FIRMA=r.firma; COORD_USUARIO=usuario;
+    _coordUltimaAct=Date.now(); _coordBolsilloGuardar();   // sobrevive al F5
     coordInit(); toast('🔐 Modo Coordinación · '+r.firma);
     if(r.debeCambiarClave) coordCambiarClavePedir(true);
     if(ok) ok(r);
@@ -12755,6 +12833,7 @@ function coordSalir(motivo){
   const tk=COORD_TK;
   const limpiar=()=>{
     COORD_TK=null; COORD_FIRMA=''; COORD_USUARIO=''; COORD_PID='';
+    _coordBolsilloBorrar();   // que un F5 posterior no resucite la sesión cerrada
     $('coordRes').innerHTML='<div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>';
     $('coordFicha').innerHTML=''; $('coordQ').value='';
     coordInit();
@@ -12774,8 +12853,11 @@ function coordSalir(motivo){
    rueda) y, a los 30 min sin ninguna, se cierra de verdad (coordSalir mata el
    token) y la cabecera vuelve a 🔒. El candado muestra los minutos que quedan. */
 const _COORD_IDLE_MIN = 30;   // mismo valor que _COORD_SESION_MIN en svc_coordinacion.gs
-let _coordUltimaAct = 0, _coordIdleTmr = null, _coordActListo = false;
-function _coordActividad(){ if(COORD_TK) _coordUltimaAct = Date.now(); }
+let _coordUltimaAct = 0, _coordIdleTmr = null, _coordActListo = false, _coordBolsilloTs = 0;
+function _coordActividad(){ if(!COORD_TK) return; _coordUltimaAct = Date.now();
+  // El bolsillo acompaña la actividad real (con freno: una escritura cada 15 s
+  // basta — la edad del bolsillo decide un F5, no un cronómetro fino).
+  if(_coordUltimaAct - _coordBolsilloTs > 15000){ _coordBolsilloTs = _coordUltimaAct; _coordBolsilloGuardar(); } }
 function _coordIdleArmar(){
   _coordUltimaAct = Date.now();
   if(!_coordActListo){
@@ -12800,6 +12882,34 @@ function _coordIdleCheck(){
     return;
   }
   hSesRender();   // refresca los minutos que quedan en el candado
+}
+
+/* ── EL CANDADO SOBREVIVE AL F5 (24-ago-2026, pedido de Manuel) ──────────────
+   Recargar la página botaba COORD_TK (vive solo en memoria de JS) aunque la
+   sesión siguiera VIVA en el servidor hasta 30 min de inactividad: clave de
+   nuevo, tres veces en una mañana. El token se guarda en el bolsillo de la
+   PESTAÑA (sessionStorage: muere al cerrarla — en la tablet compartida del
+   office un localStorage dejaría el candado restaurable días después) y al
+   arrancar se revalida con el servidor (COORD_ESTADO con token). El navegador
+   NUNCA alarga la sesión: solo evita perder un token que aún sirve, y con más
+   de 30 min sin actividad el bolsillo se bota sin preguntar — se sabe muerta. */
+const _COORD_SS_KEY = 'rce_coord_v1';
+function _coordBolsilloLeer(){ try{ const s=sessionStorage.getItem(_COORD_SS_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function _coordBolsilloGuardar(){ try{ if(COORD_TK) sessionStorage.setItem(_COORD_SS_KEY,
+  JSON.stringify({token:COORD_TK, firma:COORD_FIRMA, usuario:COORD_USUARIO, act:_coordUltimaAct||Date.now()})); }catch(e){} }
+function _coordBolsilloBorrar(){ try{ sessionStorage.removeItem(_COORD_SS_KEY); }catch(e){} }
+function _coordReanudar(){
+  const b=_coordBolsilloLeer();
+  if(!b || !b.token) return;
+  if(Date.now()-(b.act||0) >= _COORD_IDLE_MIN*60000){ _coordBolsilloBorrar(); return; }   // muerta: ni se pregunta
+  gs('COORD_ESTADO',{token:b.token}, r=>{
+    if(r && r.viva){
+      COORD_TK=b.token; COORD_FIRMA=r.firma||b.firma||''; COORD_USUARIO=r.usuario||b.usuario||'';
+      _coordIdleArmar(); _coordBolsilloGuardar(); hSesRender();
+      if(typeof ATAB!=='undefined' && ATAB==='C') coordInit();
+      toast('🔓 Modo Coordinación sigue abierto · '+COORD_FIRMA, 2600);
+    } else { _coordBolsilloBorrar(); hSesRender(); }   // el servidor dice muerta: 🔒 sin ruido
+  }, ()=>{ /* sin red no se restaura ni se bota: queda 🔒 y la edad del bolsillo decide después */ });
 }
 
 // Búsqueda con freno: teclear rápido no manda una llamada por letra.
@@ -15290,6 +15400,9 @@ function _bootPintarCache(fecha, turno){
 window.onload = function() {
   initControls();
   initClock();
+  // El candado sigue 🔓 tras un F5 si la sesión del servidor vive (bolsillo
+  // de la pestaña). Corre en paralelo al GET_BOOT: no depende de las camas.
+  _coordReanudar();
   // ARRANQUE RÁPIDO: un solo viaje al servidor (GET_BOOT trae identidad,
   // config, catálogo, camas, evoluciones del día, asignación del turno y el
   // reloj del servidor). Antes eran 4 viajes en cadena.

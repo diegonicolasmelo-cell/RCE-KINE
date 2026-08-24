@@ -1036,6 +1036,33 @@ function obtenerEvosDelDia(fecha) {
           KTM_NIVEL: e.KTM_NIVEL_KTR, FASE_JSON: e.FASE_JSON,
         };
       });
+    /* Los ANEXOS del día viajan pegados a su evolución (24-ago-2026): el sello
+       del ➕ en el Registro Diario lleva una × para borrarlo, y esa × necesita
+       la identidad real de la fila (ID_PROC) — nunca «el nombre más parecido».
+       Solo TIPO_PROC='anexo': los procedimientos del guardado no se borran
+       desde el Registro (se corrigen re-guardando la evolución). Cada anexo se
+       consume en UNA evolución: en una cama rotada, el pid decide de quién es,
+       y el anexo sin pid (cama reparada a mano) se pega al primero que calce. */
+    try {
+      const anexos = repoLeerFiltrado('PROCEDIMIENTOS', 'FECHA', function (k) { return _statISO(k) === f; })
+        .filter(function (p) { return String(p.TIPO_PROC) === 'anexo'; });
+      if (anexos.length) {
+        const usado = {};
+        evos.forEach(function (e) {
+          const propios = [];
+          anexos.forEach(function (p, i) {
+            if (usado[i]) return;
+            if (String(p.ID_CAMA) !== String(e.ID_CAMA)) return;
+            if ((_statISO(p.FECHA) + '-' + String(p.TURNO)) !== String(e.TURNO_KEY)) return;
+            const pp = String(p.PATIENT_ID || ''), pe = String(e.PATIENT_ID || '');
+            if (pp && pe && pp !== pe) return;
+            usado[i] = true;
+            propios.push({ id: String(p.ID_PROC), nombre: String(p.NOMBRE_PROC || ''), ts: String(p.TIMESTAMP || '') });
+          });
+          if (propios.length) e.ANEXOS = propios;
+        });
+      }
+    } catch (e2) { /* sin anexos legibles: el Registro sale igual, sin × */ }
     return ok(evos);
   } catch (e) { return err('obtenerEvosDelDia: ' + e.message, ERR.INTERNO, e); }
 }
