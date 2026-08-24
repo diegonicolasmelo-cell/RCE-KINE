@@ -1309,11 +1309,26 @@ function _coordEmailOculto(mail) {
   return u.slice(0, 2) + '…' + u.charAt(u.length - 1) + d;
 }
 
-/** Estado público de la puerta: qué caminos de recuperación ofrecer. */
-function coordEstado() {
+/**
+ * Estado público de la puerta: qué caminos de recuperación ofrecer.
+ * Y desde el 24-ago-2026, con `token`, dice además si ESA sesión sigue viva —
+ * es lo que permite que un F5 no cierre lo que el servidor mantiene abierto:
+ * el navegador guarda el token en el bolsillo de la pestaña y al arrancar
+ * pregunta aquí antes de restaurar el candado. Consultar renueva la ventana
+ * de inactividad a propósito: reanudar tras un refresh ES actividad de la
+ * persona. Sin token la respuesta es la de siempre.
+ */
+function coordEstado(datos) {
   try {
-    return ok({ recuperaCorreo: coordRecuperaPorCorreo() });
-  } catch (e) { return ok({ recuperaCorreo: false }); }
+    const out = { recuperaCorreo: coordRecuperaPorCorreo() };
+    const token = String((datos && datos.token) || '');
+    if (token) {
+      const s = coordSesion(token);
+      out.viva = !!s;
+      if (s) { out.firma = s.firma; out.usuario = s.usuario; out.minutos = _COORD_SESION_MIN; }
+    }
+    return ok(out);
+  } catch (e) { return ok({ recuperaCorreo: false, viva: false }); }
 }
 
 /**
@@ -3435,6 +3450,135 @@ function anexarEventoRapido(datos, ctx) {
 }
 
 /**
+ * Anula UN procedimiento anexado con el ➕ (24-ago-2026, pedido de Manuel: el
+ * sello tardaba en pintarse, la gente reintentaba y quedaban KTM dobles sin
+ * ninguna forma de borrarlas — y la estadística y el REM B.4 cuentan filas de
+ * PROCEDIMIENTOS, así que el duplicado inflaba cifras que salen del hospital).
+ *
+ * Contrato:
+ *  · borra SOLO la fila señalada por ID_PROC, y solo si TIPO_PROC='anexo' —
+ *    los procedimientos del guardado se corrigen re-guardando la evolución.
+ *  · las TRES caras juntas o ninguna: fila de PROCEDIMIENTOS + su hito de
+ *    TIMELINE + una instancia del nombre en PROC_JSON de la evolución. Si el
+ *    hito no aparece, se rechaza completo: borrar solo la fila dejaría la
+ *    línea de tiempo contando lo que la estadística ya no cuenta.
+ *  · mismo candado del ➕ (candado_mas.js): fecha pasada o episodio cerrado
+ *    exigen sesión de coordinación; el anexo de HOY del paciente en su cama
+ *    se borra sin fricción.
+ *  · si un flujo borra hitos, TIMELINE_JSON de la cama se reescribe SIEMPRE.
+ */
+function anularAnexo(datos, ctx) {
+  ctx = ctx || {};
+  return conLock(() => {
+    try {
+      const idProc = String((datos && datos.idProc) || '');
+      if (!idProc) return err('Falta el identificador del anexo.', ERR.VALIDACION);
+
+      const filaProc = repoBuscarPorId('PROCEDIMIENTOS', 'ID_PROC', idProc);
+      if (!filaProc) return err('Ese anexo ya no está en el registro (otro colega pudo haberlo borrado). Actualiza con 🔄.', ERR.VALIDACION);
+      if (String(filaProc.TIPO_PROC) !== 'anexo') {
+        return err('Solo se pueden borrar procedimientos anexados con el ➕. Los del guardado se corrigen re-guardando la evolución del turno.', ERR.VALIDACION);
+      }
+
+      const fecha = _statISO(filaProc.FECHA);
+      const turno = String(filaProc.TURNO || '');
+      const idCama = String(filaProc.ID_CAMA || '');
+      const pidProc = String(filaProc.PATIENT_ID || '');
+      const nombre = String(filaProc.NOMBRE_PROC || '');
+      const turnoKey = fecha + '-' + turno;
+
+      // La evolución dueña, con la misma maquinaria del ➕ (cama rotada incluida).
+      const ubic = _ubicarEvolucionDeTurno(pidProc, turnoKey, idCama);
+      if (ubic && ubic.ambigua) {
+        return err('La cama ' + idCama + ' tuvo dos pacientes en ese turno y el anexo no distingue cuál. Repórtalo a coordinación.', ERR.VALIDACION);
+      }
+
+      const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+      const pidCama = String((cama && cama.PATIENT_ID) || '');
+      const pidEvo = String((ubic && ubic.obj && ubic.obj.PATIENT_ID) || '');
+      const enCama = ubic ? (!pidEvo || (!!pidCama && pidEvo === pidCama))
+                          : (!!cama && esVerdadero(cama.OCUPADA) && (!pidProc || pidProc === pidCama));
+
+      // 🔐 Borrar el pasado tiene la MISMA llave que escribirlo (anexarEventoRapido).
+      const fechaEf = _fechaEfectivaTurno(fecha, turno);
+      const esPasado = fecha !== hoyISO() && fechaEf !== hoyISO();
+      let firmaCoord = '';
+      if (!enCama || esPasado) {
+        const ses = coordExigirSesion(String((datos && datos.coordToken) || ''));
+        if (!ses.ok) {
+          if (datos && datos.coordToken) return err(ses.error, ERR.NO_AUTORIZADO);
+          return err('Borrar un anexo de un turno pasado —o de un paciente que ya no está en la cama— requiere ' +
+            'clave de coordinación: entra en la pestaña 🔐 COORDINACIÓN y vuelve a intentarlo.', ERR.NO_AUTORIZADO);
+        }
+        firmaCoord = String(ses.firma || '');
+      }
+
+      /* El hito emparejado se ubica ANTES de borrar nada. El texto nace de
+         _hitoAnexoPrefijo(nombre); entre candidatos del mismo nombre (los
+         duplicados) gana el de TIMESTAMP más cercano al de la fila — fila e
+         hito nacieron en la misma ejecución del ➕. */
+      const pref = _hitoAnexoPrefijo(nombre);
+      const cand = repoLeerTodosConFila('TIMELINE').filter(function (t) {
+        const h = t.obj;
+        if (String(h.TIPO) !== 'anexo') return false;
+        if (String(h.ID_CAMA) !== idCama || _statISO(h.FECHA) !== fecha || String(h.TURNO) !== turno) return false;
+        const hp = String(h.PATIENT_ID || '');
+        if (pidProc && hp && hp !== pidProc) return false;
+        return String(h.TEXTO || '').indexOf(pref) === 0;
+      });
+      if (!cand.length) {
+        return err('No se encontró el hito de ese anexo en la línea de tiempo, así que NO se borró nada: ' +
+          'borrar solo la fila dejaría el registro y la línea de tiempo diciendo cosas distintas. Repórtalo.', ERR.VALIDACION);
+      }
+      const tsRef = Date.parse(String(filaProc.TIMESTAMP || '')) || 0;
+      cand.sort(function (a, b) {
+        const da = Math.abs((Date.parse(String(a.obj.TIMESTAMP || '')) || 0) - tsRef);
+        const db = Math.abs((Date.parse(String(b.obj.TIMESTAMP || '')) || 0) - tsRef);
+        return da - db;
+      });
+      const hito = cand[0];
+
+      // 1/3 — el hito de la línea de tiempo
+      repoEliminarFilas('TIMELINE', [hito.fila]);
+      // 2/3 — la fila de la estadística (por identidad, jamás «el más parecido»)
+      repoEliminarDonde('PROCEDIMIENTOS', function (r) { return String(r.ID_PROC) === idProc; });
+      // 3/3 — una instancia del nombre en la evolución (si un re-guardado ya la
+      // depuró con su Set, no hay nada que quitar y no es un error)
+      if (ubic && ubic.obj) {
+        const evo = ubic.obj;
+        let procs = [];
+        try { procs = JSON.parse(evo.PROC_JSON || '[]') || []; } catch (e) { procs = []; }
+        const i = procs.indexOf(nombre);
+        if (i !== -1) {
+          procs.splice(i, 1);
+          repoEscribirFila(ubic.hoja, ubic.fila, Object.assign({}, evo, {
+            PROC_JSON: JSON.stringify(procs), PROC_CANTIDAD: procs.length,
+            PROC_RESUMEN: procs.join(', '),
+          }));
+        }
+      }
+
+      /* El JSON de la tarjeta se reescribe SIEMPRE que un flujo borra hitos. Y
+         si la cama quedó sin ninguno, se vacía explícito: la sincronización
+         normal no escribe con lista vacía porque siempre corre tras INSERTAR. */
+      _sincronizarTimelineCama(idCama);
+      if (!repoLeerTodos('TIMELINE', 'ID_CAMA', idCama).length) {
+        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { TIMELINE_JSON: '[]' });
+      }
+      SpreadsheetApp.flush();
+
+      return ok({
+        entidad: 'PROCEDIMIENTOS', idCama: idCama, patientId: pidProc || pidEvo,
+        idEvolucion: String((ubic && ubic.obj && ubic.obj.ID_EVOLUCION) || ''),
+        accion: 'anexo anulado: ' + nombre + ' (' + turnoKey + ')' +
+                (firmaCoord ? ' · autorizado por coordinación (' + firmaCoord + ')' : ''),
+        nombre: nombre,
+      });
+    } catch (e) { return err('anularAnexo: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/**
  * Confirma (o ajusta) la instalación asumida de dispositivos al conectar a VM.
  * datos: { idCama, fecha (opcional: corrige la fecha de instalación de los 3) }.
  */
@@ -4500,6 +4644,33 @@ function obtenerEvosDelDia(fecha) {
           KTM_NIVEL: e.KTM_NIVEL_KTR, FASE_JSON: e.FASE_JSON,
         };
       });
+    /* Los ANEXOS del día viajan pegados a su evolución (24-ago-2026): el sello
+       del ➕ en el Registro Diario lleva una × para borrarlo, y esa × necesita
+       la identidad real de la fila (ID_PROC) — nunca «el nombre más parecido».
+       Solo TIPO_PROC='anexo': los procedimientos del guardado no se borran
+       desde el Registro (se corrigen re-guardando la evolución). Cada anexo se
+       consume en UNA evolución: en una cama rotada, el pid decide de quién es,
+       y el anexo sin pid (cama reparada a mano) se pega al primero que calce. */
+    try {
+      const anexos = repoLeerFiltrado('PROCEDIMIENTOS', 'FECHA', function (k) { return _statISO(k) === f; })
+        .filter(function (p) { return String(p.TIPO_PROC) === 'anexo'; });
+      if (anexos.length) {
+        const usado = {};
+        evos.forEach(function (e) {
+          const propios = [];
+          anexos.forEach(function (p, i) {
+            if (usado[i]) return;
+            if (String(p.ID_CAMA) !== String(e.ID_CAMA)) return;
+            if ((_statISO(p.FECHA) + '-' + String(p.TURNO)) !== String(e.TURNO_KEY)) return;
+            const pp = String(p.PATIENT_ID || ''), pe = String(e.PATIENT_ID || '');
+            if (pp && pe && pp !== pe) return;
+            usado[i] = true;
+            propios.push({ id: String(p.ID_PROC), nombre: String(p.NOMBRE_PROC || ''), ts: String(p.TIMESTAMP || '') });
+          });
+          if (propios.length) e.ANEXOS = propios;
+        });
+      }
+    } catch (e2) { /* sin anexos legibles: el Registro sale igual, sin × */ }
     return ok(evos);
   } catch (e) { return err('obtenerEvosDelDia: ' + e.message, ERR.INTERNO, e); }
 }
