@@ -127,6 +127,15 @@ ok_('hay atenciones (' + paq.atenciones.length + ') y procedimientos (' + paq.pr
 console.log('\n4 · El bloque de control es el REM 28 de este mismo sistema');
 const rem = generarREM('2026', '7', {}).data;
 eq('ingresos', paq.control.ingresos, rem.ingresos);
+// 601171 «Asistencia en IOT, VMNI, cambio de cánula de traqueostomía»: los TRES
+// eventos suman a la casilla, así que los tres tienen que VIAJAR — si no, el
+// destino no puede derivarla y los dos motores se separan en silencio.
+const _va = n => paq.procedimientos.filter(p => p.procedimiento === n).length;
+eq('601171 declarado en el control', paq.control.asistencias_va, rem.asistenciasVA);
+ok_('la conexión no invasiva viaja como procedimiento (' + _va('CONEXIÓN VNI') + ')', _va('CONEXIÓN VNI') > 0);
+eq('los eventos de vía aérea que viajan derivan el mismo 601171',
+  _va('INTUBACIÓN') + _va('REINTUBACIÓN') + _va('CAMBIO TQT') + _va('CONEXIÓN VNI'),
+  rem.asistenciasVA);
 eq('KTR', paq.control.ktr, rem.sumKTR);
 eq('KTM', paq.control.ktm, rem.sumKTM);
 eq('sesiones', paq.control.sesiones, rem.sesiones);

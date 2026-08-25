@@ -131,6 +131,39 @@ function exportarRegistrosREM(anio, mes) {
     });
   });
 
+  // ── Conexiones no invasivas ──
+  // El 601171 («Asistencia en IOT, VMNI, cambio de cánula de traqueostomía») suma
+  // los TRES eventos, así que el inicio de VNI también tiene que viajar: si no, el
+  // destino no puede derivar la casilla completa.
+  // Es una TRANSICIÓN, no un campo del turno —turno en VNI cuyo turno previo del
+  // episodio no lo estaba—, y el turno previo puede ser del mes pasado: por eso se
+  // recorre el historial COMPLETO del paciente y no solo las evoluciones del mes.
+  // Mismo criterio, literal, que generarREM() en svc_rem.gs: si se toca uno, tocar
+  // el otro o el contraste se rompe.
+  const _esVNI = function (s) { return s === 'VNI' || s === 'VMNI'; };
+  const porPidTodas = {};
+  evos.forEach(function (e) {
+    const pid = String(e.PATIENT_ID || '');
+    if (pid && porPid[pid]) (porPidTodas[pid] = porPidTodas[pid] || []).push(e);
+  });
+  Object.keys(porPidTodas).forEach(function (pid) {
+    const evs = porPidTodas[pid].slice().sort(function (a, b) {
+      return String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY));
+    });
+    let prev = '';
+    evs.forEach(function (e) {
+      const sop = String(e.VENT_SOPORTE || '');
+      if (_esVNI(sop) && !_esVNI(prev) && enMes(e.FECHA)) {
+        procedimientos.push({
+          ref: pid, fecha: _statISO(e.FECHA),
+          turno: _PUENTE_TURNO[String(e.TURNO)] || 'Largo',
+          procedimiento: 'CONEXIÓN VNI',
+        });
+      }
+      prev = sop;
+    });
+  });
+
   // ── Control: lo que ESTE sistema calculó, para que el destino contraste ──
   let control = null;
   const rem = generarREM(anio, mes, {});
@@ -141,6 +174,9 @@ function exportarRegistrosREM(anio, mes) {
       ktr: rem.data.sumKTR,
       ktm: rem.data.sumKTM,
       sesiones: rem.data.sesiones,
+      // La casilla donde los dos motores se habían separado: se declara para que
+      // el destino la contraste contra lo que él deriva de los mismos registros.
+      asistencias_va: rem.data.asistenciasVA,
     };
   }
 
