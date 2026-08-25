@@ -3,7 +3,7 @@
  * Fixture calculado a mano: verifica ingresos/egresos por sexo-edad-diagnóstico,
  * eval intermedia (1 por día, excluye día de ingreso), sesiones KTR+KTM_CANT,
  * PTO (solo 1ª bipedestación del EPISODIO, aunque venga del archivo),
- * inicios de VMNI por transición y asistencias de vía aérea.
+ * inicios de VNI por transición (el catálogo guarda 'VNI', no 'VMNI') y asistencias de vía aérea.
  */
 const fs = require('fs');
 const path = require('path');
@@ -60,7 +60,7 @@ DB.EVOLUCIONES = [
     KTM_REALIZADA: true, KTM_NIVEL_KTR: '4', RESP_KTR_CANT: 3, EVAL_T_FSS: '28',
     KTM_EMS: true, EDU_REALIZADA: true, KTM_IMT: true, VENT_SOPORTE: 'VM' },
   { PATIENT_ID: P1, FECHA: '2026-07-03', TURNO_KEY: '2026-07-03-Noche',
-    KTM_REALIZADA: true, KTM_NIVEL_KTR: '4', KTM_CANT: '2', RESP_KTR_CANT: 1, EVAL_T_PIM: '30', VENT_SOPORTE: 'VMNI' },
+    KTM_REALIZADA: true, KTM_NIVEL_KTR: '4', KTM_CANT: '2', RESP_KTR_CANT: 1, EVAL_T_PIM: '30', VENT_SOPORTE: 'VNI' },
   { PATIENT_ID: P1, FECHA: '2026-07-04', TURNO_KEY: '2026-07-04-Dia',
     KTM_REALIZADA: true, KTM_NIVEL_KTR: '5', TQT_CAMBIO: true, INTUB_OCURRIO: true },
 ];
@@ -89,7 +89,7 @@ eq('B.6 EMS', d.turnosEMS, 1);
 eq('B.6 educación', d.turnosEdu, 1);
 eq('turnos IMT', d.turnosIMT, 1);
 eq('PTO: solo P1 (la 1ª bipedestación de P2 fue en junio)', d.pto, 1);
-eq('asistencias VA (1 IOT + 1 reintub + 1 inicio VMNI + 1 cánula)', d.asistenciasVA, 4);
+eq('asistencias VA (1 IOT + 1 reintub + 1 inicio VNI + 1 cánula)', d.asistenciasVA, 4);
 // ── Copia exacta del formulario, desplazada para comenzar en la fila 4 ──
 eq('el informe comienza en la fila 4', matrizEscrita && matrizEscrita.fila, 4);
 const celda = (fila, col) => matrizEscrita.v[fila - 24][col - 1];   // fila = numeración del Excel original
