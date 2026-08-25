@@ -5265,7 +5265,7 @@ function _clasificarProcedimiento(nombre) {
  *  - Códigos: 601101/601104/601024/601030 = 1 por paciente ingresado;
  *    102501 = turnos con IMT; 1010922 PTO = 1 por paciente en su PRIMERA
  *    bipedestación (primer turno con KTM nivel 4-5 del episodio);
- *    601171 = intubaciones + reintubaciones + inicios de VMNI + cambios de cánula.
+ *    601171 = intubaciones + reintubaciones + inicios de VNI + cambios de cánula.
  */
 
 const _REM_RANGOS = ['15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49',
@@ -5409,7 +5409,12 @@ function generarREM(anio, mes, ctx) {
     const nIntub = evoMes.filter(e => esVerdadero(e.INTUB_OCURRIO)).length;
     const nReintub = repoLeerTodos('REINTUBACIONES').filter(r => enMes(r.FECHA)).length;
     const nCanula = evoMes.filter(e => esVerdadero(e.TQT_CAMBIO)).length;
-    // inicios de VMNI: turno VMNI cuyo turno previo del episodio no era VMNI
+    // Inicios de VNI: turno en VNI cuyo turno previo del episodio no lo estaba.
+    // ⚠️ El valor que guarda el catálogo es 'VNI' (VENT_SOPORTE); 'VMNI' es el
+    // nombre del código en el formulario REM, no un valor del sistema. Comparar
+    // contra 'VMNI' —como se hacía— dejaba esta parte del 601171 SIEMPRE en 0.
+    // Se aceptan los dos por si algún registro viejo trae la sigla larga.
+    const _esVNI = s => s === 'VNI' || s === 'VMNI';
     let nVMNIini = 0;
     const porPac = {};
     todasEvos.forEach(e => { const pid = String(e.PATIENT_ID || ''); (porPac[pid] = porPac[pid] || []).push(e); });
@@ -5418,7 +5423,7 @@ function generarREM(anio, mes, ctx) {
       let prev = '';
       evs.forEach(e => {
         const sop = String(e.VENT_SOPORTE || '');
-        if (sop === 'VMNI' && prev !== 'VMNI' && enMes(e.FECHA)) nVMNIini++;
+        if (_esVNI(sop) && !_esVNI(prev) && enMes(e.FECHA)) nVMNIini++;
         prev = sop;
       });
     });
@@ -5549,7 +5554,7 @@ function generarREM(anio, mes, ctx) {
     L.push('B.6 Terapia respiratoria:        ' + (sumKTR + turnosIMT) + '  (KTR ' + sumKTR + ' + IMT ' + turnosIMT + ')');
     L.push('102501 Reeducación tos (IMT):    ' + turnosIMT);
     L.push('1010922 PTO (1ª bipedestación):  ' + nPTO);
-    L.push('601171 Asistencias vía aérea:    ' + nAsistVA + '  (' + nIntub + ' IOT · ' + nReintub + ' reintub · ' + nVMNIini + ' VMNI · ' + nCanula + ' cánula)');
+    L.push('601171 Asistencias vía aérea:    ' + nAsistVA + '  (' + nIntub + ' IOT · ' + nReintub + ' reintub · ' + nVMNIini + ' VNI · ' + nCanula + ' cánula)');
     L.push('');
     L.push('✅ Hoja «REM_28» actualizada en la planilla con el detalle por sexo, edad y diagnóstico.');
     const textoREM = L.join('\n');
