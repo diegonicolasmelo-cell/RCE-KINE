@@ -11,11 +11,13 @@
 // Lo que se fija, en las DOS capas:
 //  · svc_coordinacion.gs · coordEstado(token): dice si ESA sesión sigue viva
 //    (y de quién es) sin abrir ninguna — es solo lectura sobre coordSesion.
-//  · index.html · bolsillo de la PESTAÑA (sessionStorage, muere al cerrarla —
-//    en la tablet compartida un localStorage dejaría el candado restaurable
-//    días después) + _coordReanudar() al arrancar: restaura el candado SOLO
-//    si el servidor confirma; con >30 min de inactividad bota el bolsillo sin
-//    preguntar; y salir (botón o inactividad) borra el bolsillo para que un
+//  · index.html · bolsillo en localStorage (25-ago-2026: el sessionStorage de
+//    un iframe cross-site es EFÍMERO por partición en Chrome — en el /exec
+//    real cada recarga lo entregaba vacío; localStorage particionado sí
+//    persiste, y la edad de 30 min hace la seguridad equivalente: un token
+//    más viejo se bota sin preguntar y en el servidor ya expiró igual) +
+//    _coordReanudar() al arrancar: restaura el candado SOLO si el servidor
+//    confirma; y salir (botón o inactividad) borra el bolsillo para que un
 //    F5 posterior no resucite una sesión cerrada.
 //  El navegador NUNCA alarga la sesión: la autoridad sigue siendo el servidor.
 //
@@ -81,12 +83,14 @@ si('tras cerrar en el servidor, el mismo token responde muerta', rV2.ok && rV2.d
   });
   await pg.goto('file://' + ARCHIVO);
   await pg.waitForTimeout(2000);
-  await pg.evaluate(() => { const o = document.getElementById('loginOvl'); if (o) o.style.display = 'none'; });
+  await pg.evaluate(() => { const o = document.getElementById('loginOvl'); if (o) o.style.display = 'none';
+    // file:// persiste el localStorage entre corridas: se parte limpio
+    try{ localStorage.removeItem('rce_coord_v1'); sessionStorage.removeItem('rce_coord_v1'); }catch(e){} });
 
-  console.log('\n2 · Entrar guarda el bolsillo de la pestaña');
+  console.log('\n2 · Entrar guarda el bolsillo (localStorage: sobrevive al F5 del iframe)');
   await stubGS();
   await pg.evaluate(() => { _coordEntrarCon('coord1', 'clave123'); });
-  const bolsillo1 = await pg.evaluate(() => JSON.parse(sessionStorage.getItem('rce_coord_v1') || 'null'));
+  const bolsillo1 = await pg.evaluate(() => JSON.parse(localStorage.getItem('rce_coord_v1') || 'null'));
   si('el bolsillo existe tras entrar', !!bolsillo1);
   si('…con el token de la sesión', bolsillo1 && bolsillo1.token === 'TK1');
   si('…la firma', bolsillo1 && bolsillo1.firma === 'MCC');
@@ -96,7 +100,7 @@ si('tras cerrar en el servidor, el mismo token responde muerta', rV2.ok && rV2.d
   await pg.reload(); await pg.waitForTimeout(2000);
   await pg.evaluate(() => { const o = document.getElementById('loginOvl'); if (o) o.style.display = 'none'; });
   si('tras recargar, la memoria de JS quedó limpia (el bug original)', await pg.evaluate(() => !COORD_TK));
-  si('…pero el bolsillo sigue en la pestaña', await pg.evaluate(() => !!sessionStorage.getItem('rce_coord_v1')));
+  si('…pero el bolsillo sigue en la pestaña', await pg.evaluate(() => !!localStorage.getItem('rce_coord_v1')));
   await stubGS();
   await pg.evaluate(() => { window._coordEstadoResp = { viva: true, firma: 'MCC', usuario: 'coord1' }; _coordReanudar(); });
   await pg.waitForTimeout(400);
@@ -109,39 +113,39 @@ si('tras cerrar en el servidor, el mismo token responde muerta', rV2.ok && rV2.d
   console.log('\n4 · Un bolsillo con >30 min de inactividad se bota SIN preguntar');
   await pg.evaluate(() => {
     coordSalir(); _gsCalls = [];
-    sessionStorage.setItem('rce_coord_v1', JSON.stringify({ token: 'TKVIEJO', firma: 'MCC', usuario: 'coord1', act: Date.now() - 31 * 60000 }));
+    localStorage.setItem('rce_coord_v1', JSON.stringify({ token: 'TKVIEJO', firma: 'MCC', usuario: 'coord1', act: Date.now() - 31 * 60000 }));
     _coordReanudar();
   });
   await pg.waitForTimeout(300);
   si('no se llamó al servidor (se sabe muerta)', await pg.evaluate(() => !_gsCalls.some(c => c.a === 'COORD_ESTADO' && c.d && c.d.token)));
-  si('el bolsillo viejo se botó', await pg.evaluate(() => !sessionStorage.getItem('rce_coord_v1')));
+  si('el bolsillo viejo se botó', await pg.evaluate(() => !localStorage.getItem('rce_coord_v1')));
   si('y el candado quedó 🔒', await pg.evaluate(() => !COORD_TK));
 
   console.log('\n5 · Si el servidor dice «muerta», el navegador NO resucita nada');
   await pg.evaluate(() => {
-    sessionStorage.setItem('rce_coord_v1', JSON.stringify({ token: 'TKX', firma: 'MCC', usuario: 'coord1', act: Date.now() }));
+    localStorage.setItem('rce_coord_v1', JSON.stringify({ token: 'TKX', firma: 'MCC', usuario: 'coord1', act: Date.now() }));
     window._coordEstadoResp = { viva: false }; _gsCalls = []; _coordReanudar();
   });
   await pg.waitForTimeout(300);
   si('preguntó por el token', await pg.evaluate(() => _gsCalls.some(c => c.a === 'COORD_ESTADO' && c.d && c.d.token === 'TKX')));
   si('el candado sigue 🔒', await pg.evaluate(() => !COORD_TK));
-  si('y el bolsillo muerto se botó', await pg.evaluate(() => !sessionStorage.getItem('rce_coord_v1')));
+  si('y el bolsillo muerto se botó', await pg.evaluate(() => !localStorage.getItem('rce_coord_v1')));
 
   console.log('\n6 · Salir borra el bolsillo: un F5 posterior no resucita la sesión cerrada');
   await pg.evaluate(() => {
     COORD_TK = 'TK1'; COORD_FIRMA = 'MCC'; _coordUltimaAct = Date.now(); _coordBolsilloGuardar();
   });
-  si('(preparación: el bolsillo está)', await pg.evaluate(() => !!sessionStorage.getItem('rce_coord_v1')));
+  si('(preparación: el bolsillo está)', await pg.evaluate(() => !!localStorage.getItem('rce_coord_v1')));
   await pg.evaluate(() => { coordSalir(); });
   await pg.waitForTimeout(300);
-  si('salir limpió memoria Y bolsillo', await pg.evaluate(() => !COORD_TK && !sessionStorage.getItem('rce_coord_v1')));
+  si('salir limpió memoria Y bolsillo', await pg.evaluate(() => !COORD_TK && !localStorage.getItem('rce_coord_v1')));
 
   console.log('\n7 · La actividad real acompaña al bolsillo (con freno, no por evento)');
   await pg.evaluate(() => {
     COORD_TK = 'TK1'; COORD_FIRMA = 'MCC'; _coordUltimaAct = Date.now() - 20 * 60000; _coordBolsilloGuardar(); _coordBolsilloTs = 0;
     _coordActividad();
   });
-  const act2 = await pg.evaluate(() => JSON.parse(sessionStorage.getItem('rce_coord_v1')).act);
+  const act2 = await pg.evaluate(() => JSON.parse(localStorage.getItem('rce_coord_v1')).act);
   si('una tecla refresca la última actividad del bolsillo', Date.now() - act2 < 60000);
 
   si('sin errores JS en toda la corrida', errs.length === 0, errs.join(' | '));

@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.75-anexo-borrable">
+<meta name="rce-version" content="5.76-candado-f5-local">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -12894,10 +12894,22 @@ function _coordIdleCheck(){
    NUNCA alarga la sesión: solo evita perder un token que aún sirve, y con más
    de 30 min sin actividad el bolsillo se bota sin preguntar — se sabe muerta. */
 const _COORD_SS_KEY = 'rce_coord_v1';
-function _coordBolsilloLeer(){ try{ const s=sessionStorage.getItem(_COORD_SS_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
-function _coordBolsilloGuardar(){ try{ if(COORD_TK) sessionStorage.setItem(_COORD_SS_KEY,
+/* localStorage y NO sessionStorage (25-ago-2026, reporte de Manuel desde el
+   /exec real): la app vive en un iframe de OTRO dominio (googleusercontent) y
+   Chrome particiona su almacenamiento — el sessionStorage particionado resultó
+   efímero: cada recarga del padre lo entregaba vacío y el candado volvía a 🔒
+   con la sesión aún viva en el servidor. El localStorage particionado sí
+   persiste. La seguridad no cambia: el bolsillo con más de 30 min de
+   inactividad se bota SIN preguntar (_coordReanudar) y en el servidor esa
+   sesión ya expiró igual — un token viejo en localStorage es un fósil inútil,
+   no una llave. Fallback a sessionStorage por si localStorage no existe. */
+function _coordAlmacen(){ try{ if(window.localStorage) return localStorage; }catch(e){}
+  try{ return sessionStorage; }catch(e){ return null; } }
+function _coordBolsilloLeer(){ try{ const a=_coordAlmacen(); const s=a&&a.getItem(_COORD_SS_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function _coordBolsilloGuardar(){ try{ const a=_coordAlmacen(); if(COORD_TK&&a) a.setItem(_COORD_SS_KEY,
   JSON.stringify({token:COORD_TK, firma:COORD_FIRMA, usuario:COORD_USUARIO, act:_coordUltimaAct||Date.now()})); }catch(e){} }
-function _coordBolsilloBorrar(){ try{ sessionStorage.removeItem(_COORD_SS_KEY); }catch(e){} }
+function _coordBolsilloBorrar(){ try{ const a=_coordAlmacen(); if(a) a.removeItem(_COORD_SS_KEY); }catch(e){}
+  try{ sessionStorage.removeItem(_COORD_SS_KEY); }catch(e){} }
 function _coordReanudar(){
   const b=_coordBolsilloLeer();
   if(!b || !b.token) return;
