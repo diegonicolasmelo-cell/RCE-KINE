@@ -5680,13 +5680,17 @@ function _ktmMotivo(e) {
 }
 
 /**
- * Razones de «no realizada» que exigen fundamento y por eso entran al
- * subregistro. TERCERA copia de la misma regla, a propósito: vive también en
- * `dominio_validacion.gs` (`_KTM_RAZON_EXIGE_FUNDAMENTO`) y en index.html
- * (`KTM_RAZONES_CON_FUNDAMENTO`). No se importa de allá porque 23 guardias
- * cargan este archivo SIN la validación, y una dependencia cruzada las rompería
- * sin que nada esté mal en el dato. La guardia `ktm_otro_fundamento.js` verifica
- * que las tres listas digan exactamente lo mismo.
+ * Razones de «no realizada» cuyo detalle vale la pena ver desglosado.
+ *
+ * ⚠️ NO es la misma lista que `_KTM_RAZON_EXIGE_FUNDAMENTO` (dominio_validacion.gs),
+ * y esa diferencia es deliberada: son dos preguntas distintas.
+ *   · ¿Qué razón OBLIGA a escribir el porqué? Solo «Otro».
+ *   · ¿De qué razón queremos VER el porqué cuando lo escribieron? También de
+ *     «Indicación médica» — no obliga a nadie, pero cuando alguien detalla qué
+ *     indicó el médico, ese detalle es justo lo que el subregistro existe para
+ *     mostrar. Las filas sin fundamento saldrán marcadas, y está bien: no son
+ *     un incumplimiento, solo no hay más que contar.
+ * Esta lista incluye siempre a la de fundamento obligatorio; la guardia lo fija.
  */
 var _KTM_RAZON_SUBREGISTRO = ['Otro', 'Indicación médica'];
 

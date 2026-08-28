@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.78-ktm-indicacion-medica">
+<meta name="rce-version" content="5.79-indicacion-medica-sin-obligar">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4405,7 +4405,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.78-ktm-indicacion-medica]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.79-indicacion-medica-sin-obligar]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -12146,11 +12146,14 @@ function _ktmContraSel(raz){
    El predicado vive UNA vez y lo usan el riel, el guardado y el aviso — la
    misma regla escrita en tres sitios se desincroniza sola.
    Devuelve el elemento que hay que enfocar, o null si no falta nada. */
-/* Las razones que NO se explican solas y por eso piden el porqué. Espejo exacto
-   de `_KTM_RAZON_EXIGE_FUNDAMENTO` en dominio_validacion.gs — si las dos listas
-   se separan, el turno ve un campo opcional que el servidor va a rechazar.
-   La guardia vigila que digan lo mismo. */
-const KTM_RAZONES_CON_FUNDAMENTO = ['Otro', 'Indicación médica'];
+/* Las razones que obligan a escribir el porqué. SOLO «Otro», que no dice nada por
+   definición. «Indicación médica» NO obliga (decisión de Manuel, 28-ago-2026):
+   es una razón legítima y frecuente, y ponerle un campo obligatorio le cobra un
+   trámite al turno en un caso que se entiende. Sí entra al subregistro, para ver
+   el detalle cuando alguien lo escribe — esa es otra lista, la de `svc_stats.gs`.
+   Espejo exacto de `_KTM_RAZON_EXIGE_FUNDAMENTO` en dominio_validacion.gs: si las
+   dos se separan, el turno ve un campo opcional que el servidor va a rechazar. */
+const KTM_RAZONES_CON_FUNDAMENTO = ['Otro'];
 
 function _ktmOtroSinFundamento(){
   const b=$('bKTMn');
@@ -13984,7 +13987,6 @@ function _ktmOtrosTabla(k){
   const filas=(k&&k.otros)||[];
   const sm=(k&&k.sinMotivo)||{n:0};
   if(!filas.length && !sm.n) return '';
-  const sinF=k.sinFundamento||0;
   const GRUPO={contra:['⛔','Contraindicada','#dc2626'], noReal:['🚫','No realizada','#b45309']};
   const meses=f=>Object.keys(f.meses||{}).sort().map(m=>`<span class="ent-pill" style="font-size:.66rem;padding:1px 6px;">${m} · <b>${f.meses[m]}</b></span>`).join(' ');
   let h='<div class="dash-sec-title">Subregistro de motivos — KTM sin realizar</div>';
@@ -13999,7 +14001,12 @@ function _ktmOtrosTabla(k){
     </div>`;
   }
   if(!filas.length) return h;
-  if(sinF) h+=`<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:9px;padding:7px 11px;font-size:.78rem;font-weight:700;margin-bottom:8px;">⚠️ ${sinF} registro${sinF===1?'':'s'} con razón pero sin fundamento escrito — quedaron guardados antes de que el campo fuera obligatorio (28-ago-2026). Se corrigen abriendo esa evolución.</div>`;
+  // Falta fundamento donde ERA OBLIGATORIO ≠ falta detalle donde nunca lo fue.
+  // Solo lo primero es una deuda que alguien tiene que ir a corregir; pintarlas
+  // iguales convertiría el aviso en ruido que el equipo aprende a ignorar.
+  const obliga=f=>KTM_RAZONES_CON_FUNDAMENTO.indexOf(f.motivo)!==-1;
+  const deuda=filas.reduce((t,f)=>t+((!f.fundamento&&obliga(f))?f.n:0),0);
+  if(deuda) h+=`<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:9px;padding:7px 11px;font-size:.78rem;font-weight:700;margin-bottom:8px;">⚠️ ${deuda} registro${deuda===1?'':'s'} de «Otro» sin fundamento escrito — quedaron guardados antes de que el campo fuera obligatorio (28-ago-2026). Se corrigen abriendo esa evolución.</div>`;
   const TD='padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top;';
   const TH='padding:6px 10px;border-bottom:2px solid var(--border);text-align:left;font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;';
   h+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:9px;">'+
@@ -14011,7 +14018,9 @@ function _ktmOtrosTabla(k){
     const g=GRUPO[f.grupo]||['•','','#64748b'];
     const fund=f.fundamento
       ? _escSt(f.fundamento)+(f.variantes?`<span title="Se unieron ${f.variantes} formas de escribirlo (mayúsculas o tildes distintas)" style="color:#94a3b8;font-weight:700;font-size:.7rem;"> · ${f.variantes} formas</span>`:'')
-      : '<span style="color:#b91c1c;font-weight:700;">⚠️ sin fundamento registrado</span>';
+      : (obliga(f)
+          ? '<span style="color:#b91c1c;font-weight:700;">⚠️ sin fundamento registrado</span>'
+          : '<span style="color:#94a3b8;font-style:italic;" title="En esta razón el detalle es opcional">sin detalle escrito</span>');
     h+=`<tr><td style="${TD}white-space:nowrap;color:${g[2]};font-weight:700;">${g[0]} ${g[1]}</td>`+
        `<td style="${TD}">${_escSt(f.motivo)}</td><td style="${TD}">${fund}</td>`+
        `<td style="${TD}text-align:right;font-weight:800;">${f.n}</td>`+

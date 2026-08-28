@@ -155,11 +155,14 @@ const v2 = path.resolve(__dirname, '..', '..', 'v2');
     rojo && +rojo[1] > +rojo[2] + 40 && +rojo[1] > +rojo[3] + 40);
 
   /* ══ 5 · EL LADO SIMÉTRICO: las otras razones no se vuelven obligatorias ═ */
-  console.log('\n5 · «Indicación médica» también pide fundamento; las otras cinco no');
+  console.log('\n5 · Solo «Otro» obliga: las otras seis no piden fundamento');
+  // 🔴 «Indicación médica» se probó obligatoria y se revirtió (Manuel, 28-ago-2026):
+  // es legítima y frecuente, y el campo obligatorio le cobra un trámite al turno
+  // en un caso que se entiende. Aquí se fija que NO obliga y que su etiqueta lo
+  // dice — si alguien la vuelve a meter en la lista, esto se pone rojo.
   const indMed = await poner('Indicación médica', '');
-  eq('«Indicación médica» sin fundamento → falta', indMed.falta, true);
-  eq('y su etiqueta lo dice', indMed.etiqueta, 'Fundamento (obligatorio)');
-  eq('con fundamento escrito → ya no falta', (await poner('Indicación médica', 'Reposo estricto')).falta, false);
+  eq('«Indicación médica» sin fundamento NO bloquea', indMed.falta, false);
+  eq('y su etiqueta dice que es opcional', indMed.etiqueta, 'Comentario (opcional)');
   for (const r of ['Motivo ingreso', 'Rechazo del paciente',
                    'Rechazo familiar', 'Procedimiento concurrente (pabellón / imagenología)',
                    'Sin equipo o tiempo disponible']) {

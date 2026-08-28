@@ -79,21 +79,19 @@ eq('«Otro» con fundamento de solo espacios → rechazado',
 
 /* ══ 2 · LO QUE NO SE LE COBRA AL TURNO ════════════════════════════════ */
 console.log('\n2 · Las otras razones NO exigen fundamento (se explican solas)');
-['Motivo ingreso', 'Rechazo del paciente', 'Rechazo familiar',
+['Motivo ingreso', 'Indicación médica', 'Rechazo del paciente', 'Rechazo familiar',
  'Procedimiento concurrente (pabellón / imagenología)',
  'Sin equipo o tiempo disponible'].forEach(r => {
   eq('«' + r + '» sin comentario pasa',
     hayKTM(val({ KTM_NO_REALIZADA: true, KTM_NO_RAZON: r, KTM_NO_COMENTARIO: '' })), []);
 });
-// «Indicación médica» absorbió a «Decisión médica» (28-ago-2026) y ahora exige
-// fundamento: dice QUIÉN lo decidió, no QUÉ se decidió.
-eq('«Indicación médica» sin fundamento → rechazada',
-  hayKTM(val({ KTM_NO_REALIZADA: true, KTM_NO_RAZON: 'Indicación médica', KTM_NO_COMENTARIO: '' })).length, 1);
-eq('«Indicación médica» con fundamento → pasa',
-  hayKTM(val({ KTM_NO_REALIZADA: true, KTM_NO_RAZON: 'Indicación médica', KTM_NO_COMENTARIO: 'Reposo estricto por sangrado activo' })), []);
-si('el mensaje nombra la razón elegida',
-  /Indicación médica/.test(hayKTM(val({ KTM_NO_REALIZADA: true, KTM_NO_RAZON: 'Indicación médica' }))[0] || ''));
-// El valor histórico sigue guardándose sin exigirle nada nuevo: no se migran datos.
+// 🔴 «Indicación médica» NO obliga (decisión de Manuel, 28-ago-2026). Se probó
+// obligarla y se revirtió: es una razón legítima y frecuente, y el campo
+// obligatorio le cobra un trámite al turno en un caso que se entiende. Que entre
+// al SUBREGISTRO es otra cosa —y otra lista— y sí está ahí.
+eq('«Indicación médica» sin fundamento NO se rechaza',
+  hayKTM(val({ KTM_NO_REALIZADA: true, KTM_NO_RAZON: 'Indicación médica', KTM_NO_COMENTARIO: '' })), []);
+// El valor histórico sigue guardándose igual: no se migran datos.
 eq('«Decisión médica» histórica sigue pasando',
   hayKTM(val({ KTM_NO_REALIZADA: true, KTM_NO_RAZON: 'Decisión médica', KTM_NO_COMENTARIO: '' })), []);
 // Y la regla vieja sigue viva: sin NINGUNA razón se rechaza igual.
@@ -201,12 +199,16 @@ eq('y con comentario, el comentario va como oración aparte',
   'KTM no realizada por rechazo familiar. La hija pidió esperar.');
 
 /* ══ 8 · LAS TRES LISTAS DICEN LO MISMO ════════════════════════════════ */
-// La regla de «qué razón exige fundamento» vive en TRES sitios a propósito
-// (index.html para la pantalla, dominio_validacion.gs para el candado del
-// servidor, svc_stats.gs para el subregistro — 23 guardias cargan stats sin la
-// validación, así que importarla las rompería). Si se separan, el turno ve un
-// campo opcional que el servidor va a rechazar y no hay cómo destrabarlo.
-console.log('\n8 · Paridad de la regla en sus tres sitios');
+// Son DOS reglas distintas, y confundirlas fue el error que hubo que revertir:
+//   · «qué razón OBLIGA a escribir el porqué» → solo 'Otro'. Vive en index.html
+//     y en dominio_validacion.gs, y las dos TIENEN que decir lo mismo: si se
+//     separan, el turno ve un campo opcional que el servidor va a rechazar y no
+//     hay cómo destrabarlo desde la pantalla.
+//   · «de qué razón queremos VER el detalle» → 'Otro' e 'Indicación médica'.
+//     Vive en svc_stats.gs y es MÁS AMPLIA a propósito (no se importa la otra
+//     porque 23 guardias cargan stats sin la validación).
+// Lo que sí es invariante: todo lo que obliga tiene que estar en el subregistro.
+console.log('\n8 · Las dos reglas y su relación');
 const idx = fs.readFileSync(path.join(v2, 'index.html'), 'utf8');
 const lista = (txt, nombre) => {
   const m = new RegExp(nombre + "\\s*=\\s*\\[([^\\]]*)\\]").exec(txt);
@@ -214,9 +216,11 @@ const lista = (txt, nombre) => {
 };
 const enFront = lista(idx, 'KTM_RAZONES_CON_FUNDAMENTO');
 si('index.html declara su lista', !!enFront);
-eq('servidor (validación) == pantalla', _KTM_RAZON_EXIGE_FUNDAMENTO, enFront);
-eq('servidor (estadísticas) == pantalla', _KTM_RAZON_SUBREGISTRO, enFront);
-eq('y la lista es la acordada', enFront, ['Otro', 'Indicación médica']);
+eq('pantalla y servidor obligan en lo MISMO', _KTM_RAZON_EXIGE_FUNDAMENTO, enFront);
+eq('y obliga solo «Otro»', enFront, ['Otro']);
+eq('el subregistro es más amplio, a propósito', _KTM_RAZON_SUBREGISTRO, ['Otro', 'Indicación médica']);
+si('todo lo que obliga está en el subregistro (si no, se pediría un dato que nadie mira)',
+  enFront.every(r => _KTM_RAZON_SUBREGISTRO.indexOf(r) !== -1));
 // El catálogo del desplegable tiene que ofrecer lo que la regla nombra.
 const opciones = (idx.match(/<option>([^<]+)<\/option>/g) || []).map(o => o.replace(/<\/?option>/g, ''));
 si('«Indicación médica» sigue en el desplegable', opciones.indexOf('Indicación médica') !== -1);
@@ -244,7 +248,7 @@ eq('la etiqueta es la variante MÁS escrita', (egreso || {}).fundamento, 'Egreso
 eq('y avisa cuántas formas unió', (egreso || {}).variantes, 3);
 eq('una sola forma no avisa nada',
   (st2.ktm.otros.find(x => x.fundamento === 'Extubación programada') || {}).variantes, 0);
-si('«Indicación médica» entra al subregistro',
+si('«Indicación médica» entra al subregistro aunque no obligue',
   st2.ktm.otros.some(x => x.motivo === 'Indicación médica' && x.fundamento === 'Reposo estricto'));
 eq('una razón que se explica sola NO entra',
   st2.ktm.otros.some(x => x.motivo === 'Rechazo familiar'), false);
