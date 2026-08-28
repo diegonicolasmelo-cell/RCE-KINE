@@ -82,6 +82,24 @@ const v2 = path.resolve(__dirname, '..', '..', 'v2');
   eq('el catálogo vigente sigue funcionando', hist.sel3.val, 'PAM <60 mmHg');
   eq('vaciar sigue vaciando', hist.sel4.val, '');
 
+  /* ══ 2b · EL DESPLEGABLE DE RAZÓN, FUSIONADO ═══════════════════════════ */
+  console.log('\n2b · «Indicación médica» absorbió a «Decisión médica»');
+  const raz = await p.evaluate(() => {
+    const sel = document.getElementById('fKTMnoRaz');
+    const antes = [...sel.options].map(o => o.value).filter(Boolean);
+    _ktmNoRazonSel('Decisión médica');                 // valor histórico
+    const hist = { val: sel.value, texto: sel.options[sel.selectedIndex].textContent };
+    _ktmNoRazonSel('Rechazo familiar');                // uno vigente
+    const vig = sel.value;
+    return { opciones: antes, hist, vig, nHist: sel.querySelectorAll('option[data-hist="1"]').length };
+  });
+  eq('«Decisión médica» ya no se ofrece', raz.opciones.indexOf('Decisión médica'), -1);
+  eq('«Indicación médica» sí', raz.opciones.indexOf('Indicación médica') !== -1, true);
+  eq('el catálogo queda en 7 razones', raz.opciones.length, 7);
+  eq('un valor histórico se sigue viendo, no en blanco', raz.hist.val, 'Decisión médica');
+  eq('y se marca como histórico', raz.hist.texto, 'Decisión médica (histórico)');
+  eq('el vigente sigue funcionando', raz.vig, 'Rechazo familiar');
+
   /* ══ 3 · «OTRO» PIDE SU FUNDAMENTO, POR LA RUTA REAL ═══════════════════ */
   console.log('\n3 · «No realizada · Otro» pide el fundamento a la vista');
   // 🪤 El color se mide DESPUÉS de la transición. `.col input` lleva
@@ -137,8 +155,12 @@ const v2 = path.resolve(__dirname, '..', '..', 'v2');
     rojo && +rojo[1] > +rojo[2] + 40 && +rojo[1] > +rojo[3] + 40);
 
   /* ══ 5 · EL LADO SIMÉTRICO: las otras razones no se vuelven obligatorias ═ */
-  console.log('\n5 · Las otras siete razones NO piden fundamento');
-  for (const r of ['Motivo ingreso', 'Indicación médica', 'Decisión médica', 'Rechazo del paciente',
+  console.log('\n5 · «Indicación médica» también pide fundamento; las otras cinco no');
+  const indMed = await poner('Indicación médica', '');
+  eq('«Indicación médica» sin fundamento → falta', indMed.falta, true);
+  eq('y su etiqueta lo dice', indMed.etiqueta, 'Fundamento (obligatorio)');
+  eq('con fundamento escrito → ya no falta', (await poner('Indicación médica', 'Reposo estricto')).falta, false);
+  for (const r of ['Motivo ingreso', 'Rechazo del paciente',
                    'Rechazo familiar', 'Procedimiento concurrente (pabellón / imagenología)',
                    'Sin equipo o tiempo disponible']) {
     const st = await poner(r, '');

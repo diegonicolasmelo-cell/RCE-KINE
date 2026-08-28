@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.77-ktm-otro-fundamento">
+<meta name="rce-version" content="5.78-ktm-indicacion-medica">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3877,8 +3877,13 @@ document.documentElement.setAttribute('data-piel', 'inst');
                     <select id="fKTMnoRaz" onchange="hKTMnoRaz()">
                       <option value="">-- Razón --</option>
                       <option>Motivo ingreso</option>
+                      <!-- «Indicación médica» y «Decisión médica» eran la misma razón escrita
+                           de dos formas y se elegían indistintamente. Fundidas el 28-ago-2026
+                           por decisión de Manuel; la que queda exige fundamento, porque «el
+                           médico lo indicó» sin decir QUÉ indicó no dice nada.
+                           🪤 Las evoluciones que guardaron 'Decisión médica' se siguen leyendo:
+                           `_ktmNoRazonSel` la reinyecta como opción histórica. -->
                       <option>Indicación médica</option>
-                      <option>Decisión médica</option>
                       <option>Rechazo del paciente</option>
                       <option>Rechazo familiar</option>
                       <option>Procedimiento concurrente (pabellón / imagenología)</option>
@@ -4400,7 +4405,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.77-ktm-otro-fundamento]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.78-ktm-indicacion-medica]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4898,7 +4903,7 @@ function rielRender(){
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltas.push('PVE sí / no / no corresponde');
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltas.push('razón de KTM no realizada');
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltas.push('contraindicación de KTM');
-  if(_ktmOtroSinFundamento()) faltas.push('fundamento del «Otro» de KTM');
+  if(_ktmOtroSinFundamento()) faltas.push('fundamento de la razón de KTM');
   if(typeof _reintubHoraFalta==='function' && _reintubHoraFalta()) faltas.push('hora de la reintubación');
   const fEl=$('gFalta');
   if(fEl) fEl.textContent=faltas.length?('Falta: '+faltas.join(' y ')):'';
@@ -5556,7 +5561,7 @@ function fillForm(s) {
   _renderExtBadge(_ex.EXT_TS||'');
 
   // KTM extras
-  set('fKTMnoRaz', _ex.KTM_NO_RAZON);
+  _ktmNoRazonSel(_ex.KTM_NO_RAZON);
   set('fKTMnoCom', _ex.KTM_NO_COMENTARIO);
   chk('cKTMalert', _ex.KTM_ALERTA);
   set('fKTMalertCat', _ex.KTM_ALERTA_CAT);
@@ -5794,7 +5799,7 @@ function fillFormReplica(s) {
   set('fEMSfreq',_tf.KTM_EMS_FREQ); set('fEMSint',_tf.KTM_EMS_INT); set('fEMSpulso',_tf.KTM_EMS_PULSO);
   set('fEMSt',_tf.KTM_EMS_T); set('fEMSgrupo',_tf.KTM_EMS_GRUPO);
   set('fIMTfreq',_tf.KTM_IMT_FREQ); set('fIMTint',_tf.KTM_IMT_INT); set('fIMTt',_tf.KTM_IMT_T); set('fIMTdes',_tf.KTM_IMT_DES);
-  if(!_razIngKTM){ set('fKTMnoRaz',_tf.KTM_NO_RAZON); set('fKTMnoCom',_tf.KTM_NO_COMENTARIO); }
+  if(!_razIngKTM){ _ktmNoRazonSel(_tf.KTM_NO_RAZON); set('fKTMnoCom',_tf.KTM_NO_COMENTARIO); }
   chk('cKTMalert',_tf.KTM_ALERTA); set('fKTMalertCat',_tf.KTM_ALERTA_CAT);
   if(_tf.KTM_ALERTA_CAT){ updateKTMalertRaz(); set('fKTMalertRaz',_tf.KTM_ALERTA_RAZ); }
   if(_tf.KTM_ALERTA===true||_tf.KTM_ALERTA==='TRUE') show('dKTMalert'); else hide('dKTMalert');
@@ -6266,7 +6271,7 @@ function guardar() {
   // estadística mensual como un motivo que no dice nada.
   const _kofG=_ktmOtroSinFundamento();
   if(_kofG){
-    toast('⚠️ Escribe el fundamento: elegiste «Otro» como razón de la KTM no realizada');
+    toast(`⚠️ Escribe el fundamento: «${v('fKTMnoRaz')}» no dice por sí solo por qué no se hizo la KTM`);
     _kofG.scrollIntoView({behavior:'smooth',block:'center'}); _kofG.focus();
     _kofG.style.outline='2px solid var(--danger)'; setTimeout(()=>{_kofG.style.outline='';},2500);
     return;
@@ -10458,7 +10463,7 @@ function _mFaltaTxt(el){
   const id=el&&el.id;
   return id==='fFirma'?'la firma':id==='fVA'?'la vía aérea':
          id==='fPVEval'?'declarar la PVE':id==='fKTMnoRaz'?'la razón de KTM':
-         id==='fKTMnoCom'?'el fundamento del «Otro»':
+         id==='fKTMnoCom'?'el fundamento de la razón':
          id==='fKTMraz'?'la contraindicación':'un dato obligatorio';
 }
 
@@ -12141,17 +12146,40 @@ function _ktmContraSel(raz){
    El predicado vive UNA vez y lo usan el riel, el guardado y el aviso — la
    misma regla escrita en tres sitios se desincroniza sola.
    Devuelve el elemento que hay que enfocar, o null si no falta nada. */
+/* Las razones que NO se explican solas y por eso piden el porqué. Espejo exacto
+   de `_KTM_RAZON_EXIGE_FUNDAMENTO` en dominio_validacion.gs — si las dos listas
+   se separan, el turno ve un campo opcional que el servidor va a rechazar.
+   La guardia vigila que digan lo mismo. */
+const KTM_RAZONES_CON_FUNDAMENTO = ['Otro', 'Indicación médica'];
+
 function _ktmOtroSinFundamento(){
   const b=$('bKTMn');
   if(!b || !b.classList.contains('on') || b.offsetParent===null) return null;
-  if(String(v('fKTMnoRaz')||'').trim()!=='Otro') return null;
+  if(KTM_RAZONES_CON_FUNDAMENTO.indexOf(String(v('fKTMnoRaz')||'').trim())===-1) return null;
   return String(v('fKTMnoCom')||'').trim()==='' ? $('fKTMnoCom') : null;
+}
+
+/* _ktmNoRazonSel — pone la razón en el select sin perder los valores que ya no
+   están en el catálogo ('Decisión médica', fundida el 28-ago-2026). Sin esto, una
+   evolución vieja abre el desplegable EN BLANCO con la razón todavía en la
+   planilla — el dato existe y desaparece de la pantalla. */
+function _ktmNoRazonSel(raz){
+  const sel=$('fKTMnoRaz'); if(!sel) return;
+  raz=String(raz||'');
+  if(!raz){ sel.value=''; if(typeof hKTMnoRaz==='function') hKTMnoRaz(); return; }
+  if(!Array.prototype.some.call(sel.options,o=>o.value===raz)){
+    const o=document.createElement('option');
+    o.value=raz; o.textContent=raz+' (histórico)'; o.dataset.hist='1';
+    sel.appendChild(o);
+  }
+  sel.value=raz;
+  if(typeof hKTMnoRaz==='function') hKTMnoRaz();
 }
 
 /* Pinta el campo según la razón elegida. Se llama al cambiar la razón, al
    escribir el fundamento y cada vez que se abre el bloque «no realizada». */
 function hKTMnoRaz(){
-  const esOtro = String(v('fKTMnoRaz')||'').trim()==='Otro';
+  const esOtro = KTM_RAZONES_CON_FUNDAMENTO.indexOf(String(v('fKTMnoRaz')||'').trim())!==-1;
   const vacio  = String(v('fKTMnoCom')||'').trim()==='';
   const lb=$('lblKTMnoCom'), inp=$('fKTMnoCom');
   if(lb){
@@ -13954,12 +13982,24 @@ function _bars(tallyObj, color, max){
    corregir, no un hueco que convenga esconder. */
 function _ktmOtrosTabla(k){
   const filas=(k&&k.otros)||[];
-  if(!filas.length) return '';
+  const sm=(k&&k.sinMotivo)||{n:0};
+  if(!filas.length && !sm.n) return '';
   const sinF=k.sinFundamento||0;
   const GRUPO={contra:['⛔','Contraindicada','#dc2626'], noReal:['🚫','No realizada','#b45309']};
   const meses=f=>Object.keys(f.meses||{}).sort().map(m=>`<span class="ent-pill" style="font-size:.66rem;padding:1px 6px;">${m} · <b>${f.meses[m]}</b></span>`).join(' ');
-  let h='<div class="dash-sec-title">Subregistro de «otros» — KTM sin realizar</div>';
-  if(sinF) h+=`<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:9px;padding:7px 11px;font-size:.78rem;font-weight:700;margin-bottom:8px;">⚠️ ${sinF} registro${sinF===1?'':'s'} sin fundamento escrito — quedaron guardados antes de que el campo fuera obligatorio (28-ago-2026). Se corrigen abriendo esa evolución.</div>`;
+  let h='<div class="dash-sec-title">Subregistro de motivos — KTM sin realizar</div>';
+  // Los que no tienen NINGUNA razón van arriba y fuera de la tabla: no son un
+  // motivo, son un hueco, y mezclados se comían las filas con fundamento real.
+  if(sm.n){
+    const det=[sm.noReal?`${sm.noReal} no realizada${sm.noReal===1?'':'s'}`:'', sm.contra?`${sm.contra} contraindicada${sm.contra===1?'':'s'}`:''].filter(Boolean).join(' · ');
+    h+=`<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:9px 12px;margin-bottom:10px;">
+      <div style="font-size:.82rem;font-weight:800;color:#92400e;">🕳️ ${sm.n} turno${sm.n===1?'':'s'} sin ninguna razón registrada</div>
+      <div style="font-size:.75rem;color:#a16207;margin-top:3px;">${det} · no se pueden clasificar. Son de antes de que la razón fuera obligatoria: hoy el servidor las rechaza.</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">${meses(sm)}</div>
+    </div>`;
+  }
+  if(!filas.length) return h;
+  if(sinF) h+=`<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:9px;padding:7px 11px;font-size:.78rem;font-weight:700;margin-bottom:8px;">⚠️ ${sinF} registro${sinF===1?'':'s'} con razón pero sin fundamento escrito — quedaron guardados antes de que el campo fuera obligatorio (28-ago-2026). Se corrigen abriendo esa evolución.</div>`;
   const TD='padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top;';
   const TH='padding:6px 10px;border-bottom:2px solid var(--border);text-align:left;font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;';
   h+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:9px;">'+
@@ -13970,7 +14010,7 @@ function _ktmOtrosTabla(k){
   filas.forEach(f=>{
     const g=GRUPO[f.grupo]||['•','','#64748b'];
     const fund=f.fundamento
-      ? _escSt(f.fundamento)
+      ? _escSt(f.fundamento)+(f.variantes?`<span title="Se unieron ${f.variantes} formas de escribirlo (mayúsculas o tildes distintas)" style="color:#94a3b8;font-weight:700;font-size:.7rem;"> · ${f.variantes} formas</span>`:'')
       : '<span style="color:#b91c1c;font-weight:700;">⚠️ sin fundamento registrado</span>';
     h+=`<tr><td style="${TD}white-space:nowrap;color:${g[2]};font-weight:700;">${g[0]} ${g[1]}</td>`+
        `<td style="${TD}">${_escSt(f.motivo)}</td><td style="${TD}">${fund}</td>`+
