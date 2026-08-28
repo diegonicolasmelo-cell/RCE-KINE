@@ -104,9 +104,20 @@ const { chromium } = require('playwright-core');
     r.bloqueaSinRazonKTM = llamadas === 0;
     rielRender();
     r.gFaltaKtm = /razón de KTM no realizada/.test($('gFalta').textContent);
-    $('fKTMnoRaz').value = 'Decisión médica';
+    // 🪤 28-ago-2026: «Decisión médica» se fundió en «Indicación médica» y salió
+    // del desplegable, así que `.value = 'Decisión médica'` YA NO TOMA — la
+    // asignación se descarta en silencio y el texto sale sin razón. La propiedad
+    // que este assert protege sigue siendo válida y es más importante que antes:
+    // una evolución HISTÓRICA con ese valor tiene que seguir narrándose bien. Se
+    // monta por la ruta real (`_ktmNoRazonSel`), que reinyecta el histórico.
+    _ktmNoRazonSel('Decisión médica');
     const txtKtm = genTexto();
     r.decisionMedicaNarrada = /KTM no realizada por decisión médica\./.test(txtKtm);
+    // Y la razón vigente que la reemplazó, que además exige fundamento.
+    _ktmNoRazonSel('Indicación médica');
+    $('fKTMnoCom').value = 'Reposo estricto indicado por cirugía';
+    r.indicacionMedicaNarrada = /KTM no realizada por indicación médica\. Reposo estricto/.test(genTexto());
+    $('fKTMnoCom').value = '';
     // ── OBLIGATORIA: la contraindicación de KTM ──
     setKTMstate('s'); $('fKTMraz').value = ''; $('fKTMman').value = '';
     guardar();
@@ -161,7 +172,8 @@ const { chromium } = require('playwright-core');
   eq('#gFalta anuncia la PVE pendiente', R.gFaltaPve, true);
   eq('KTM no realizada sin razón NO se guarda', R.bloqueaSinRazonKTM, true);
   eq('#gFalta anuncia la razón de KTM', R.gFaltaKtm, true);
-  eq('la «decisión médica» se narra en el texto', R.decisionMedicaNarrada, true);
+  eq('la «decisión médica» histórica se sigue narrando', R.decisionMedicaNarrada, true);
+  eq('y la «indicación médica» que la reemplazó, con su fundamento', R.indicacionMedicaNarrada, true);
   eq('KTM contraindicada sin razón NO se guarda', R.bloqueaSinContra, true);
   eq('con la razón puesta, el guardado sale', R.guardaConRazon, true);
 

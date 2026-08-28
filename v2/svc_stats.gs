@@ -37,6 +37,29 @@ function _ktmMotivo(e) {
   return '';
 }
 
+/**
+ * Razones de «no realizada» que exigen fundamento y por eso entran al
+ * subregistro. TERCERA copia de la misma regla, a propósito: vive también en
+ * `dominio_validacion.gs` (`_KTM_RAZON_EXIGE_FUNDAMENTO`) y en index.html
+ * (`KTM_RAZONES_CON_FUNDAMENTO`). No se importa de allá porque 23 guardias
+ * cargan este archivo SIN la validación, y una dependencia cruzada las rompería
+ * sin que nada esté mal en el dato. La guardia `ktm_otro_fundamento.js` verifica
+ * que las tres listas digan exactamente lo mismo.
+ */
+var _KTM_RAZON_SUBREGISTRO = ['Otro', 'Indicación médica'];
+
+/**
+ * _ktmFundNorm — clave para agrupar fundamentos escritos a mano.
+ * Sin esto, «egreso» y «Egreso» salían como dos filas de 2 en vez de una de 4
+ * (visto en producción el 28-ago-2026). Se ignoran mayúsculas, tildes y espacios
+ * de más; la fila muestra después la variante MÁS ESCRITA, no esta clave.
+ */
+function _ktmFundNorm(t) {
+  return String(t || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 function obtenerStats(desde, hasta) {
   desde = _statISO(desde); hasta = _statISO(hasta);
   if (!desde || !hasta) return err('Faltan fechas desde/hasta.', ERR.VALIDACION);
@@ -70,14 +93,25 @@ function obtenerStats(desde, hasta) {
   // detalle de los «otros» con su fundamento textual. `ktmMotivosNo` se mantiene
   // tal cual — es el agregado de siempre y hay quien lo lee.
   const ktmMotivosContra = {}, ktmMotivosNoReal = {};
-  const ktmOtros = {};   // 'grupo|motivo|fundamento' → { grupo, motivo, fundamento, n, meses:{} }
+  const ktmOtros = {};   // 'grupo|motivo|fundamentoNormalizado' → fila del subregistro
   const _otro = (grupo, motivo, fundamento, mes) => {
     motivo = String(motivo || '').trim() || '(sin motivo)';
     fundamento = String(fundamento || '').trim();
-    const k = grupo + '|' + motivo + '|' + fundamento;
-    if (!ktmOtros[k]) ktmOtros[k] = { grupo: grupo, motivo: motivo, fundamento: fundamento, n: 0, meses: {} };
-    ktmOtros[k].n++;
-    if (mes) ktmOtros[k].meses[mes] = (ktmOtros[k].meses[mes] || 0) + 1;
+    const k = grupo + '|' + motivo + '|' + _ktmFundNorm(fundamento);
+    if (!ktmOtros[k]) ktmOtros[k] = { grupo: grupo, motivo: motivo, fundamento: fundamento, n: 0, meses: {}, _var: {} };
+    const f = ktmOtros[k];
+    f.n++;
+    if (fundamento) f._var[fundamento] = (f._var[fundamento] || 0) + 1;
+    if (mes) f.meses[mes] = (f.meses[mes] || 0) + 1;
+  };
+  // Los que quedaron SIN ninguna razón no son un motivo: son un hueco. Van a su
+  // propia línea para no competir en la tabla con fundamentos de verdad — en
+  // agosto eran 113 y se comían el resto (reporte de Manuel, 28-ago-2026).
+  const ktmSinMotivo = { n: 0, noReal: 0, contra: 0, meses: {} };
+  const _sinMotivo = (grupo, mes) => {
+    ktmSinMotivo.n++;
+    ktmSinMotivo[grupo === 'contra' ? 'contra' : 'noReal']++;
+    if (mes) ktmSinMotivo.meses[mes] = (ktmSinMotivo.meses[mes] || 0) + 1;
   };
   // Puntaje SOCHIMI → nivel de complejidad (n variables: Baja=n, Media n+1..2n, Alta >2n)
   const catNivel = (p, n) => p <= n ? 'Baja' : (p <= n * 2 ? 'Media' : 'Alta');
@@ -123,13 +157,15 @@ function obtenerStats(desde, hasta) {
       // catálogo el 28-ago-2026 pero sigue viva en las filas ya guardadas y en
       // la ruta automática de AET IIIC— y el caso en que se escribió una
       // descripción sin elegir ítem del protocolo.
-      if (cCat === 'Otra' || (!cRaz && cMan)) _otro('contra', cEtq, cMan, f.slice(0, 7));
+      if (cEtq === 'Contraindicada') _sinMotivo('contra', f.slice(0, 7));
+      else if (cCat === 'Otra' || (!cRaz && cMan)) _otro('contra', cEtq, cMan, f.slice(0, 7));
     } else if (esVerdadero(e.KTM_NO_REALIZADA)) {
       ktmN++;
       const nRaz = _ktmMotivo(e);
       tally(ktmMotivosNo, nRaz);
       tally(ktmMotivosNoReal, nRaz);
-      if (nRaz === 'Otro' || nRaz === 'Sin motivo registrado') {
+      if (nRaz === 'Sin motivo registrado') _sinMotivo('noReal', f.slice(0, 7));
+      else if (_KTM_RAZON_SUBREGISTRO.indexOf(nRaz) !== -1) {
         _otro('noReal', nRaz, e.KTM_NO_COMENTARIO, f.slice(0, 7));
       }
     }
@@ -227,8 +263,18 @@ function obtenerStats(desde, hasta) {
       // Subregistro de «otros» ordenado por frecuencia, con su fundamento y el
       // desglose por mes. `sinFundamento` es lo que quedó registrado sin el
       // porqué — antes de la regla del 28-ago-2026 se podía guardar así.
-      otros: Object.keys(ktmOtros).map(k => ktmOtros[k]).sort((a, b) => b.n - a.n),
+      otros: Object.keys(ktmOtros).map(function (k) {
+        const f = ktmOtros[k];
+        // La etiqueta es la forma MÁS ESCRITA por el equipo, no la primera que
+        // llegó ni la clave normalizada: es la que ellos reconocen.
+        const vs = Object.keys(f._var);
+        if (vs.length) f.fundamento = vs.sort((x, y) => f._var[y] - f._var[x] || x.localeCompare(y))[0];
+        f.variantes = vs.length > 1 ? vs.length : 0;   // >0 avisa que se unieron formas distintas
+        delete f._var;
+        return f;
+      }).sort((a, b) => b.n - a.n),
       sinFundamento: Object.keys(ktmOtros).reduce((t, k) => t + (ktmOtros[k].fundamento ? 0 : ktmOtros[k].n), 0),
+      sinMotivo: ktmSinMotivo,
       tiempoPromMin: ktmTiempoN > 0 ? r1(ktmTiempo / ktmTiempoN) : 0,
       ktrSesiones: ktrSes, imtSesiones: imtSes,
     },
