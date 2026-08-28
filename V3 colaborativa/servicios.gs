@@ -5695,6 +5695,44 @@ function _ktmMotivo(e) {
 var _KTM_RAZON_SUBREGISTRO = ['Otro'];
 
 /**
+ * Razones de «PVE no realizada» cuyo detalle se desglosa en el subregistro:
+ * SOLO «Otra», que es también la única que obliga a escribirlo. Espejo de
+ * `_PVE_RAZON_EXIGE_MOTIVO` (dominio_validacion.gs) y `PVE_RAZONES_CON_MOTIVO`
+ * (index.html) — se pide el porqué exactamente donde se va a leer. Copiada y no
+ * importada por la misma razón que la de KTM: hay guardias que cargan este
+ * archivo SIN la validación. La guardia verifica que las tres digan lo mismo.
+ */
+var _PVE_RAZON_SUBREGISTRO = ['Otra'];
+
+/**
+ * Etiqueta de los turnos en que no hubo PVE porque el paciente se extubó igual.
+ * NO son un hueco de registro: el evento del turno es la extubación (con su
+ * tipo), y por eso el formulario manda `PVE_SC_RAZON` vacío a propósito.
+ * Mezclarlos con los que nadie explicó inflaría la barra de «sin motivo» con
+ * turnos que sí están explicados.
+ */
+var _PVE_MOT_EXTUBADO = 'Extubación en el turno (sin PVE)';
+
+/**
+ * _pveMotivo — la etiqueta del motivo por el que NO se realizó la PVE.
+ * Una sola fórmula para `obtenerStats` y `datosPivot`, por lo mismo que
+ * `_ktmMotivo`: escrita dos veces se desincroniza y la pestaña muestra dos
+ * verdades del mismo turno. Devuelve '' cuando la PVE se hizo, no corresponde
+ * o no se declaró.
+ * 🪤 `EXT_TIPO='sin_condiciones'` NO es una extubación (decisión clínica
+ * jul-2026): significa justamente que ese turno no hubo PVE, así que esas filas
+ * históricas siguen mostrando su razón, no la etiqueta de extubado.
+ * 🪤 Comprueba el booleano por su cuenta en vez de llamar a `esVerdadero`:
+ * `datosPivot` no depende de ningún global de infraestructura.
+ */
+function _pveMotivo(e) {
+  if (String(e.PVE_VAL || '') !== 'no') return '';
+  const vv = v => v === true || v === 'TRUE' || v === 'true';
+  if (vv(e.EXT_OCURRIO) && String(e.EXT_TIPO || '') !== 'sin_condiciones') return _PVE_MOT_EXTUBADO;
+  return String(e.PVE_SC_RAZON || '').trim() || 'Sin motivo registrado';
+}
+
+/**
  * _ktmFundNorm — clave para agrupar fundamentos escritos a mano.
  * Sin esto, «egreso» y «Egreso» salían como dos filas de 2 en vez de una de 4
  * (visto en producción el 28-ago-2026). Se ignoran mayúsculas, tildes y espacios
@@ -5759,6 +5797,32 @@ function obtenerStats(desde, hasta) {
     ktmSinMotivo[grupo === 'contra' ? 'contra' : 'noReal']++;
     if (mes) ktmSinMotivo.meses[mes] = (ktmSinMotivo.meses[mes] || 0) + 1;
   };
+
+  // ── PVE no realizada: los mismos tres niveles que la KTM (28-ago-2026) ──
+  // Hasta hoy la pestaña contaba las PVE que SÍ se hicieron y su éxito, y de las
+  // que no se hicieron no decía absolutamente nada — ni cuántas ni por qué,
+  // aunque la razón estaba guardada en la planilla desde jul-2026.
+  //   `pveMotivosNo` = la barra (cuántos por cada razón del catálogo)
+  //   `pveOtros`     = el desglose de «Otra», que sin su texto no dice nada
+  //   `pveSinMotivo` = el hueco, aparte, para que no compita con los motivos
+  let pveNo = 0;
+  const pveMotivosNo = {};
+  const pveOtros = {};   // 'motivo|detalleNormalizado' → fila del subregistro
+  const _pveOtro = (motivo, detalle, mes) => {
+    motivo = String(motivo || '').trim() || '(sin motivo)';
+    detalle = String(detalle || '').trim();
+    const k = motivo + '|' + _ktmFundNorm(detalle);
+    if (!pveOtros[k]) pveOtros[k] = { motivo: motivo, detalle: detalle, n: 0, meses: {}, _var: {} };
+    const f = pveOtros[k];
+    f.n++;
+    if (detalle) f._var[detalle] = (f._var[detalle] || 0) + 1;
+    if (mes) f.meses[mes] = (f.meses[mes] || 0) + 1;
+  };
+  const pveSinMotivo = { n: 0, meses: {} };
+  const _pveSinMotivo = mes => {
+    pveSinMotivo.n++;
+    if (mes) pveSinMotivo.meses[mes] = (pveSinMotivo.meses[mes] || 0) + 1;
+  };
   // Puntaje SOCHIMI → nivel de complejidad (n variables: Baja=n, Media n+1..2n, Alta >2n)
   const catNivel = (p, n) => p <= n ? 'Baja' : (p <= n * 2 ? 'Media' : 'Alta');
 
@@ -5782,6 +5846,13 @@ function obtenerStats(desde, hasta) {
     if (e.PVE_VAL === 'si') pveSi++;
     if (e.PVE_RESULTADO === 'superada') pveSup++;
     if (e.PVE_RESULTADO === 'frustra') pveFrus++;
+    if (e.PVE_VAL === 'no') {
+      pveNo++;
+      const pRaz = _pveMotivo(e);
+      tally(pveMotivosNo, pRaz);
+      if (pRaz === 'Sin motivo registrado') _pveSinMotivo(f.slice(0, 7));
+      else if (_PVE_RAZON_SUBREGISTRO.indexOf(pRaz) !== -1) _pveOtro(pRaz, e.PVE_SC_DET, f.slice(0, 7));
+    }
     if (esVerdadero(e.DECAN_OCURRIO)) decan++;
     if (esVerdadero(e.DECAN_RECANUL)) recanul++;
     if (esVerdadero(e.TOT_CAMBIO)) cambiosTOT++;
@@ -5901,6 +5972,29 @@ function obtenerStats(desde, hasta) {
       pveExitoPct: (pveSup + pveFrus) > 0 ? r1(pveSup / (pveSup + pveFrus) * 100) : 0,
       decanulaciones: decan, recanulaciones: recanul, cambiosTOT: cambiosTOT,
     },
+    // ── PVE no realizada, con su porqué (28-ago-2026) ──
+    // Mismo trato que la KTM: la barra dice CUÁNTOS por cada razón; el
+    // subregistro dice QUÉ se escribió en los «Otra», que es la única razón que
+    // por sí sola no informa nada; y el hueco va aparte para no competir con
+    // los motivos de verdad.
+    pve: {
+      noRealizadas: pveNo,
+      motivosNo: pveMotivosNo,
+      otros: Object.keys(pveOtros).map(function (k) {
+        const f = pveOtros[k];
+        // La etiqueta es la forma MÁS ESCRITA por el equipo, no la primera que
+        // llegó ni la clave normalizada: es la que ellos reconocen.
+        const vs = Object.keys(f._var);
+        if (vs.length) f.detalle = vs.sort((x, y) => f._var[y] - f._var[x] || x.localeCompare(y))[0];
+        f.variantes = vs.length > 1 ? vs.length : 0;   // >0 avisa que se unieron formas distintas
+        delete f._var;
+        return f;
+      }).sort((a, b) => b.n - a.n),
+      // Lo que se guardó sin describir el «Otra»: solo puede venir de antes de
+      // la regla, porque hoy la pantalla y el servidor lo rechazan.
+      sinDetalle: Object.keys(pveOtros).reduce((t, k) => t + (pveOtros[k].detalle ? 0 : pveOtros[k].n), 0),
+      sinMotivo: pveSinMotivo,
+    },
     ktm: {
       realizada: ktmR, contraindicada: ktmC, noRealizada: ktmN,
       realizadaPct: (ktmR + ktmC + ktmN) > 0 ? r1(ktmR / (ktmR + ktmC + ktmN) * 100) : 0,
@@ -5969,6 +6063,9 @@ function datosPivot(desde, hasta) {
         NIVEL_KTM: String(e.KTM_NIVEL_KTR || ''), IMT: esT(e.KTM_IMT) ? 'Sí' : 'No',
         EMS: esT(e.KTM_EMS) ? 'Sí' : 'No', IMS: e.EVAL_IMS !== '' && e.EVAL_IMS != null ? String(e.EVAL_IMS) : '',
         PVE: String(e.PVE_VAL || ''), PVE_RESULTADO: String(e.PVE_RESULTADO || ''),
+        // El porqué viaja junto al «no», igual que KTM_MOTIVO junto a KTM: quien
+        // exporta el pivot para analizar el weaning necesita las dos columnas.
+        PVE_MOTIVO: _pveMotivo(e), PVE_DETALLE: String(e.PVE_SC_DET || ''),
         EXTUBACION: esT(e.EXT_OCURRIO) ? String(e.EXT_TIPO || 'sí') : '',
         CUFF: String(e.VENT_CUFF_EST || ''),
         FIO2: e.VENT_FIO2 || '', PEEP: e.VENT_PEEP || '', PAFI: e.VENT_PAFI || '',

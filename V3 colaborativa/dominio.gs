@@ -99,6 +99,7 @@ function validarPayloadEvolucion(d) {
     if (!isNaN(p) && p > 30) errs.push('PEEP > 30 cmH₂O — verificar: ' + d.VENT_PEEP);
   }
   validarKTM(d).forEach(function (m) { errs.push(m); });
+  validarPVE(d).forEach(function (m) { errs.push(m); });
   return errs;
 }
 
@@ -185,6 +186,72 @@ function validarKTM(d) {
   }
   if (s && !String(d.KTM_CONTRA_RAZON || '').trim() && !String(d.KTM_CONTRA_MANUAL || '').trim()) {
     errs.push('KTM: indica la razón de la contraindicación.');
+  }
+  return errs;
+}
+
+/**
+ * validarPVE — la razón de una PVE NO realizada, EN EL SERVIDOR
+ * (28-ago-2026, pedido de Manuel).
+ *
+ * 🔴 POR QUÉ EXISTE. `PVE_SC_RAZON` no se validaba en NINGUNA parte: ni en la
+ * pantalla ni aquí. El HTML declaraba «No se realizó PVE: SIEMPRE con razón» en
+ * un comentario y el campo de al lado decía «Detalle (opcional)». Resultado: se
+ * podía cerrar el turno con la PVE marcada en «No» y sin decir por qué, y ese
+ * porqué —el dato del weaning de ese turno— ya no se recuperaba. Igual que con
+ * la KTM, la regla va en el servidor porque el ➕ del Registro Diario
+ * (corrección retroactiva) no pasa por `guardar()`.
+ *
+ * 🪤 LO QUE DELIBERADAMENTE **NO** SE VALIDA, y por qué:
+ *
+ *  · **Nada cuando `PVE_VAL` no viene en el payload.** `_podarEventosPayload`
+ *    borra el grupo PVE completo cuando la rama no está activa en el formulario,
+ *    y entonces el servidor PRESERVA lo ya guardado. Exigir sobre una clave
+ *    ausente rechazaría el re-guardado de cualquier turno viejo —los que se
+ *    guardaron antes de esta regla, sin razón— y no habría forma de destrabarlo
+ *    desde la pantalla, porque la rama PVE no se repuebla al reabrir el turno.
+ *    Las filas históricas sin razón se corrigen abriendo esa evolución, no
+ *    bloqueando la siguiente.
+ *  · **Nada cuando hubo extubación sin PVE.** Ahí el formulario manda razón y
+ *    detalle VACÍOS a propósito (el evento es la extubación, con su tipo), así
+ *    que exigirlos trabaría un turno por un campo que el propio cliente
+ *    descarta.
+ *
+ * Devuelve un array de mensajes (vacío = OK).
+ */
+/**
+ * Razones de «PVE no realizada» que exigen escribir cuál: SOLO «Otra», la única
+ * del catálogo que por definición no dice nada. Las otras ocho se explican solas
+ * y conservan el detalle opcional — misma decisión que con «Indicación médica»
+ * en la KTM: no cobrarle un trámite al turno en un caso que ya se entiende.
+ * Espejo exacto de `PVE_RAZONES_CON_MOTIVO` en index.html y de
+ * `_PVE_RAZON_SUBREGISTRO` en svc_stats.gs: si se separan, el turno ve un campo
+ * opcional que el servidor va a rechazar y no hay forma de destrabarlo desde la
+ * pantalla. La guardia vigila que las tres digan lo mismo.
+ */
+var _PVE_RAZON_EXIGE_MOTIVO = ['Otra'];
+
+function validarPVE(d) {
+  const errs = [];
+  if (!d) return errs;
+  if (String(d.PVE_VAL || '') !== 'no') return errs;   // ausente o 'si'/'nc': nada que validar
+  const vv = function (x) { return x === true || String(x) === 'true' || String(x) === 'TRUE'; };
+  // Extubación sin PVE: el evento del turno es otro y el formulario manda los
+  // PVE_SC_* vacíos a propósito.
+  // 🪤 Salvo `sin_condiciones`, que NO es una extubación (decisión clínica
+  // jul-2026): significa justamente que no hubo PVE, así que ahí la razón sí se
+  // exige. La condición es CARÁCTER POR CARÁCTER la de `_pveMotivo`
+  // (svc_stats.gs): si se separan, la estadística mostraría la razón de una fila
+  // que la validación nunca obligó a escribir. La guardia vigila las dos.
+  if (vv(d.EXT_OCURRIO) && String(d.EXT_TIPO || '') !== 'sin_condiciones') return errs;
+
+  const raz = String(d.PVE_SC_RAZON || '').trim();
+  if (!raz) {
+    errs.push('PVE: indica por qué NO se realizó la prueba de ventilación espontánea.');
+    return errs;                                       // sin razón, el motivo no tiene de qué colgar
+  }
+  if (_PVE_RAZON_EXIGE_MOTIVO.indexOf(raz) !== -1 && !String(d.PVE_SC_DET || '').trim()) {
+    errs.push('PVE: «' + raz + '» necesita que describas el motivo.');
   }
   return errs;
 }

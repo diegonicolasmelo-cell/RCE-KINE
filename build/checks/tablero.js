@@ -329,7 +329,12 @@ RANGOS.forEach(([etiqueta, d, h]) => {
     // que es lo que impide que esta excepción se convierta en un colador.
     const NUEVOS = ['obtenerStats.data.ktm.motivosContra', 'obtenerStats.data.ktm.motivosNoReal',
                     'obtenerStats.data.ktm.otros', 'obtenerStats.data.ktm.sinFundamento',
-                    'obtenerStats.data.ktm.sinMotivo'];
+                    'obtenerStats.data.ktm.sinMotivo',
+                    // 28-ago-2026 · el porqué de la PVE no realizada, que estaba
+                    // guardado en la planilla desde jul-2026 y la pestaña no
+                    // miraba. Es un bloque nuevo y aditivo: ningún campo de los
+                    // que ya existían se mueve (por eso sigue habiendo A/B).
+                    'obtenerStats.data.pve'];
     const ds = diferencias(a, b, fn)
       .filter(x => !NUEVOS.some(n => x === n + ': falta en el viejo'));
     if (ds.length) { difs += ds.length; ds.slice(0, 8).forEach(x => console.log('   ⚠ ' + x)); }

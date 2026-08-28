@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.80-subregistro-solo-otro">
+<meta name="rce-version" content="5.81-pve-otra-exige-motivo">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3358,9 +3358,9 @@ document.documentElement.setAttribute('data-piel', 'inst');
                   <!-- No se realizó PVE: SIEMPRE con razón. Esto NO es una extubación
                        (jamás cuenta como tal en la estadística). -->
                   <div style="padding:7px 9px;background:#fff;border:1px solid #fecaca;border-radius:7px;margin-bottom:8px;">
-                    <label style="font-size:.7rem;font-weight:700;color:#b91c1c;display:block;margin-bottom:5px;">¿Por qué no se realizó PVE en este turno?</label>
+                    <label id="lblPveSCraz" style="font-size:.7rem;font-weight:700;color:#b91c1c;display:block;margin-bottom:5px;">¿Por qué no se realizó PVE en este turno?</label>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                      <select id="fPveSCraz" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;min-width:200px;background:#fff;">
+                      <select id="fPveSCraz" onchange="hPveSCraz()" style="height:28px;font-size:.78rem;border:1px solid #fecaca;border-radius:5px;padding:0 6px;flex:1;min-width:200px;background:#fff;">
                         <option value="">-- Seleccionar razón --</option>
                         <option>Sin condiciones ventilatorias</option>
                         <option>Inestabilidad hemodinámica</option>
@@ -3372,8 +3372,12 @@ document.documentElement.setAttribute('data-piel', 'inst');
                         <option>Procedimiento o pabellón programado</option>
                         <option>Otra</option>
                       </select>
-                      <input type="text" id="fPveSCdet" placeholder="Detalle (opcional)" style="height:28px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;flex:1;min-width:160px;font-size:.78rem;background:#fff;">
+                      <input type="text" id="fPveSCdet" oninput="hPveSCraz()" placeholder="Detalle (opcional)" style="height:28px;border:1px solid #fecaca;border-radius:6px;padding:0 10px;flex:1;min-width:160px;font-size:.78rem;background:#fff;">
                     </div>
+                    <!-- El aviso de «Otra» va en su propia línea y no dentro del campo:
+                         el placeholder desaparece en cuanto se escribe una letra, y en el
+                         teléfono el input queda angosto y lo corta. -->
+                    <div id="dPveSCotra" class="hidden" style="margin-top:5px;font-size:.72rem;font-weight:700;color:#b91c1c;">↑ «Otra» no dice por sí sola por qué no se hizo la PVE: describe el motivo.</div>
                   </div>
                   <div class="check wa" style="margin-bottom:8px;">
                     <input type="checkbox" id="cExtSinPve" onchange="hExtSinPve()">
@@ -4405,7 +4409,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.80-subregistro-solo-otro]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.81-pve-otra-exige-motivo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4901,6 +4905,8 @@ function rielRender(){
   // Obligatorias nuevas (ago-2026, Diego): declarar la PVE con TOT y la
   // razón cuando la KTM no se realiza o está contraindicada.
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltas.push('PVE sí / no / no corresponde');
+  if(_pveRazonFalta()) faltas.push('razón de la PVE no realizada');
+  if(_pveOtraSinMotivo()) faltas.push('motivo de la «Otra» razón de PVE');
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltas.push('razón de KTM no realizada');
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltas.push('contraindicación de KTM');
   if(_ktmOtroSinFundamento()) faltas.push('fundamento de la razón de KTM');
@@ -4915,6 +4921,8 @@ function rielRender(){
   if(!v('fFirma')) faltaEls.push($('fFirma'));
   if(!v('fVA')) faltaEls.push($('fVA'));
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltaEls.push($('fPVEval'));
+  { const _pr=_pveRazonFalta(); if(_pr) faltaEls.push(_pr); }
+  { const _po=_pveOtraSinMotivo(); if(_po) faltaEls.push(_po); }
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltaEls.push($('fKTMnoRaz'));
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltaEls.push($('fKTMraz'));
   { const _kof=_ktmOtroSinFundamento(); if(_kof) faltaEls.push(_kof); }
@@ -6250,6 +6258,23 @@ function guardar() {
     toast('⚠️ Define la PVE de este turno: Sí, No o No corresponde');
     const bp=$('btnPVESi');
     if(bp){ bp.scrollIntoView({behavior:'smooth',block:'center'}); bp.style.outline='2px solid var(--danger)'; setTimeout(()=>{bp.style.outline='';},2500); }
+    return;
+  }
+  // ★ PVE = NO EXIGE RAZÓN, Y «Otra» EXIGE EL MOTIVO (28-ago-2026, Manuel) ★
+  // Por qué no se fue a prueba de ventilación espontánea es EL dato del weaning
+  // de ese turno; hasta hoy se podía guardar en blanco y ya no se recuperaba.
+  const _prG=_pveRazonFalta();
+  if(_prG){
+    toast('⚠️ Indica por qué NO se realizó la PVE en este turno');
+    _prG.scrollIntoView({behavior:'smooth',block:'center'}); _prG.focus();
+    _prG.style.outline='2px solid var(--danger)'; setTimeout(()=>{_prG.style.outline='';},2500);
+    return;
+  }
+  const _poG=_pveOtraSinMotivo();
+  if(_poG){
+    toast('⚠️ Describe el motivo: «Otra» no dice por sí sola por qué no se hizo la PVE');
+    _poG.scrollIntoView({behavior:'smooth',block:'center'}); _poG.focus();
+    _poG.style.outline='2px solid var(--danger)'; setTimeout(()=>{_poG.style.outline='';},2500);
     return;
   }
   // ★ LA RAZÓN DE NO HACER KTM ES OBLIGATORIA (ago-2026, Diego): «no
@@ -10880,6 +10905,7 @@ function hPVEtoggle(val){
   } else {
     $('btnPVENo').style.cssText='padding:3px 14px;border-radius:20px;border:1.5px solid #dc2626;background:#dc2626;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;';
     hide('dPVESiRama'); show('dPVENoRama'); hide('dPVEncRama'); _pveCleanSi();
+    hPveSCraz();   // la rama recién abierta ya tiene que mostrar qué se exige
   }
   // marca cExtOcurrio como compatibilidad con guardar() ('nc' no es extubación)
   const hid=$('cExtOcurrio'); if(hid) hid.value=(val&&val!=='nc')?'true':'';
@@ -10909,6 +10935,74 @@ function _pveCleanNo(){
   const cr=$('cReintubNo'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDetNo'); }
   const pe=$('peModoNo'); if(pe) pe.value=''; renderParamsPEno();
   const p=$('fPostExtDetNo'); if(p) p.value='';
+  hPveSCraz();
+}
+
+/* ── PVE no realizada: la razón es obligatoria y «Otra» exige el motivo ──
+   (28-ago-2026, pedido de Manuel — mismo trato que la KTM «Otro»).
+
+   Hasta hoy el bloque decía «No se realizó PVE: SIEMPRE con razón» en un
+   comentario del HTML y nada lo hacía cumplir: ni la pantalla ni el servidor
+   validaban `PVE_SC_RAZON`. Se podía guardar un turno con la PVE declarada en
+   «No» y el desplegable en blanco, y el detalle era literalmente «(opcional)».
+   Así, la razón por la que un paciente no fue a prueba de ventilación
+   espontánea —que es el dato del weaning— se perdía en el turno.
+
+   Dos obligaciones, en este orden:
+     1. con PVE = No hay que ELEGIR razón;
+     2. si la razón es «Otra», hay que ESCRIBIR cuál, porque «Otra» es la única
+        del catálogo que por definición no dice nada.
+   Las otras ocho se explican solas y siguen con el detalle opcional: obligar
+   ahí le cobraría un trámite al turno en casos que ya se entienden (es la misma
+   decisión que se tomó con «Indicación médica» en la KTM).
+
+   🪤 Las dos obligaciones se apagan cuando está marcada «Hubo extubación en
+   este turno (sin PVE)»: en ese caso el payload manda razón y detalle VACÍOS
+   (ver `_podarEventosPayload` y el armado de PVE_SC_*), así que exigir un campo
+   que el propio formulario va a descartar dejaría el turno trabado sin salida.
+
+   El predicado vive UNA vez y lo usan el riel, el guardado y el pintado — la
+   misma regla escrita en tres sitios se desincroniza sola. */
+const PVE_RAZONES_CON_MOTIVO = ['Otra'];
+
+/* ¿Está la rama «No» activa y pidiendo datos? Es la MISMA condición con la que
+   el payload decide mandar PVE_SC_RAZON/PVE_SC_DET, más la visibilidad real del
+   bloque: un campo oculto no se le puede exigir a nadie. */
+function _pveNoPideRazon(){
+  const d=$('dPVENoRama');
+  if(!d || d.classList.contains('hidden') || d.offsetParent===null) return false;
+  return v('fPVEval')==='no' && !$('cExtSinPve')?.checked;
+}
+/* Devuelve el elemento que hay que enfocar, o null si no falta nada. */
+function _pveRazonFalta(){
+  if(!_pveNoPideRazon()) return null;
+  return String(v('fPveSCraz')||'').trim()==='' ? $('fPveSCraz') : null;
+}
+function _pveOtraSinMotivo(){
+  if(!_pveNoPideRazon()) return null;
+  if(PVE_RAZONES_CON_MOTIVO.indexOf(String(v('fPveSCraz')||'').trim())===-1) return null;
+  return String(v('fPveSCdet')||'').trim()==='' ? $('fPveSCdet') : null;
+}
+
+/* Pinta el bloque según la razón elegida. Se llama al cambiar la razón, al
+   escribir el motivo, al abrir/cerrar la rama «No» y al marcar la extubación
+   sin PVE. */
+function hPveSCraz(){
+  const pide  = _pveNoPideRazon();
+  const esOtra= pide && PVE_RAZONES_CON_MOTIVO.indexOf(String(v('fPveSCraz')||'').trim())!==-1;
+  const vacio = String(v('fPveSCdet')||'').trim()==='';
+  const falta = esOtra && vacio;
+  const inp=$('fPveSCdet'), sel=$('fPveSCraz'), hint=$('dPveSCotra'), lb=$('lblPveSCraz');
+  if(inp){
+    inp.placeholder = esOtra ? '¿Cuál? — obligatorio' : 'Detalle (opcional)';
+    inp.style.borderColor = falta ? 'var(--danger)' : '#fecaca';
+    inp.style.background  = falta ? '#fef2f2' : '#fff';
+  }
+  if(sel) sel.style.borderColor = (pide && !String(v('fPveSCraz')||'').trim()) ? 'var(--danger)' : '#fecaca';
+  if(hint) hint.classList.toggle('hidden', !falta);
+  if(lb) lb.textContent = pide
+    ? '¿Por qué no se realizó PVE en este turno? (obligatorio)'
+    : '¿Por qué no se realizó PVE en este turno?';
 }
 function hPVEres(){
   const res=document.querySelector('input[name="pveRes"]:checked')?.value;
@@ -11063,6 +11157,9 @@ function hExtSinPve(){
     ['fExtHoraNo','fExtMotivoCat','fExtMotivo','fPostExtDetNo','peModoNo'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
     const rn=$('cReintubNo'); if(rn&&rn.checked){ rn.checked=false; hReintubCheckNo(); }
   }
+  // Marcar/desmarcar la extubación sin PVE enciende y apaga la obligación de la
+  // razón: con extubación el payload manda PVE_SC_* vacíos.
+  hPveSCraz();
 }
 function hReintubCheckNo(){
   const checked=$('cReintubNo')?.checked;
@@ -14025,8 +14122,53 @@ function _ktmOtrosTabla(k){
   h+='</tbody></table></div>';
   return h;
 }
+/* _pveOtrasTabla — el subregistro de «Otra» de la PVE no realizada
+   (28-ago-2026, pedido de Manuel). Hermano de `_ktmOtrasTabla` y por la misma
+   razón: la barra de arriba dice CUÁNTOS turnos cayeron en «Otra»; esto dice
+   POR QUÉ. Cada fila es un motivo escrito en el turno, con su frecuencia y su
+   desglose por mes, que es como se mira esta pestaña.
+   Las filas sin motivo se muestran en rojo a propósito: son las que se
+   guardaron antes de que el campo fuera obligatorio y hay que ir a corregirlas,
+   no un hueco que convenga esconder. */
+function _pveOtrasTabla(p){
+  const filas=(p&&p.otros)||[];
+  const sm=(p&&p.sinMotivo)||{n:0};
+  if(!filas.length && !sm.n) return '';
+  const meses=f=>Object.keys(f.meses||{}).sort().map(m=>`<span class="ent-pill" style="font-size:.66rem;padding:1px 6px;">${m} · <b>${f.meses[m]}</b></span>`).join(' ');
+  let h='<div class="dash-sec-title">Subregistro de motivos — PVE no realizada</div>';
+  // Los turnos sin NINGUNA razón no son un motivo, son un hueco: van arriba y
+  // fuera de la tabla para no competir con los motivos escritos de verdad.
+  if(sm.n){
+    h+=`<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:9px 12px;margin-bottom:10px;">
+      <div style="font-size:.82rem;font-weight:800;color:#92400e;">🕳️ ${sm.n} turno${sm.n===1?'':'s'} con PVE «No» y sin razón registrada</div>
+      <div style="font-size:.75rem;color:#a16207;margin-top:3px;">No se pueden clasificar. Son de antes de que la razón fuera obligatoria: hoy la pantalla y el servidor las rechazan.</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">${meses(sm)}</div>
+    </div>`;
+  }
+  if(!filas.length) return h;
+  const deuda=filas.reduce((t,f)=>t+(f.detalle?0:f.n),0);
+  if(deuda) h+=`<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:9px;padding:7px 11px;font-size:.78rem;font-weight:700;margin-bottom:8px;">⚠️ ${deuda} registro${deuda===1?'':'s'} de «Otra» sin motivo escrito — quedaron guardados antes de que el campo fuera obligatorio (28-ago-2026). Se corrigen abriendo esa evolución.</div>`;
+  const TD='padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top;';
+  const TH='padding:6px 10px;border-bottom:2px solid var(--border);text-align:left;font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;';
+  h+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:9px;">'+
+     '<table style="border-collapse:collapse;width:100%;min-width:520px;font-size:.8rem;"><thead><tr>'+
+     `<th style="${TH}">Razón</th><th style="${TH}">Motivo registrado</th>`+
+     `<th style="${TH}text-align:right;">N</th><th style="${TH}">Por mes</th></tr></thead><tbody>`;
+  filas.forEach(f=>{
+    const det=f.detalle
+      ? _escSt(f.detalle)+(f.variantes?`<span title="Se unieron ${f.variantes} formas de escribirlo (mayúsculas o tildes distintas)" style="color:#94a3b8;font-weight:700;font-size:.7rem;"> · ${f.variantes} formas</span>`:'')
+      : '<span style="color:#b91c1c;font-weight:700;">⚠️ sin motivo registrado</span>';
+    h+=`<tr><td style="${TD}white-space:nowrap;color:#b91c1c;font-weight:700;">🚫 ${_escSt(f.motivo)}</td>`+
+       `<td style="${TD}">${det}</td>`+
+       `<td style="${TD}text-align:right;font-weight:800;">${f.n}</td>`+
+       `<td style="${TD}"><div style="display:flex;gap:4px;flex-wrap:wrap;">${meses(f)}</div></td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
 function renderStats(d){
   const ev=d.eventos||{}, k=d.ktm||{}, p=d.pacientes||{}, vm=d.vm||{}, eg=d.egresos||{}, e=d.evos||{};
+  const pv=d.pve||{};
   let h='';
   h+='<div class="dash-sec-title">Actividad</div><div class="kpi-grid">';
   h+=_kpi('Pacientes atendidos', p.atendidos, `${p.ingresos||0} ingresos · ${p.egresos||0} egresos`, '#1d6fc4');
@@ -14040,6 +14182,7 @@ function renderStats(d){
   h+=_kpi('Intubaciones', ev.intubaciones, '', '#dc2626');
   h+=_kpi('Extubaciones', ev.extubaciones, `${ev.extubProgramadas||0} programadas · ${ev.autoextubaciones||0} autoext.`, '#16a34a');
   h+=_kpi('PVE éxito', (ev.pveExitoPct||0)+'%', `${ev.pveSuperadas||0} superadas · ${ev.pveFrustras||0} frustras`, '#7c3aed');
+  h+=_kpi('PVE no realizadas', pv.noRealizadas, `${ev.pveRealizadas||0} turnos con PVE realizada`, '#a21caf');
   h+=_kpi('Reintubaciones', ev.reintubaciones, `tasa ${ev.tasaReintubPct||0}% de las extubaciones`, '#b91c1c');
   h+=_kpi('Decanulaciones', ev.decanulaciones, `${ev.recanulaciones||0} recanulaciones`, '#0d9488');
   h+=_kpi('Cambios de tubo', ev.cambiosTOT, '', '#92400e');
@@ -14050,12 +14193,14 @@ function renderStats(d){
   h+=`<div class="dcard"><div class="dcard-h">🏃 Niveles KTM</div>${_bars(k.niveles,'#d97706',6)}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">⛔ Motivos de KTM contraindicada</div>${_bars(k.motivosContra,'#dc2626')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🚫 Motivos de KTM no realizada</div>${_bars(k.motivosNoReal,'#b45309')}</div>`;
+  h+=`<div class="dcard"><div class="dcard-h">🫁 Motivos de PVE no realizada</div>${_bars(pv.motivosNo,'#a21caf')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🔧 Procedimientos</div>${_bars(d.procs,'#4338ca')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">📋 Grupo REM (por paciente)</div>${_bars(d.rem,'#1d6fc4')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🏠 Destinos de egreso</div>${_bars(eg.destinos,'#16a34a')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🧾 Motivos de egreso</div>${_bars(eg.motivos,'#0891b2')}</div>`;
   h+='</div>';
   h+=_ktmOtrosTabla(k);
+  h+=_pveOtrasTabla(pv);
   // DAUCI actual: pacientes actualmente ingresados (foto de hoy, no del rango)
   const dv=d.dauciActual||{};
   if((dv.evaluados||0)>0){
