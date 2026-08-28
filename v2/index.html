@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.76-candado-f5-local">
+<meta name="rce-version" content="5.77-ktm-otro-fundamento">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -259,9 +259,12 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 /* Horizontal bar chart */
 .chbar{margin-bottom:11px;}
 .chbar:last-child{margin-bottom:0;}
-.chbar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;font-size:.76rem;}
-.chbar-lbl{font-weight:700;color:var(--txt);}
-.chbar-val{font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;}
+.chbar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;font-size:.76rem;gap:8px;}
+/* 🪤 La etiqueta se corta con «…» y el número NUNCA se aplasta: sin esto, un
+   motivo largo («Procedimiento concurrente (pabellón / imagenología)») se pega
+   al conteo y el dato queda ilegible. El texto completo va en el `title`. */
+.chbar-lbl{font-weight:700;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.chbar-val{font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto;}
 .chbar-track{height:9px;background:#eef2f7;border-radius:5px;overflow:hidden;}
 .chbar-fill{height:100%;border-radius:5px;background:var(--bar-c,var(--primary));transition:width .5s cubic-bezier(.4,0,.2,1);}
 
@@ -3871,7 +3874,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
               <div id="dKTMn" class="hidden fade">
                 <div class="row" style="margin-bottom:0;">
                   <div class="col wa"><label>Razón</label>
-                    <select id="fKTMnoRaz">
+                    <select id="fKTMnoRaz" onchange="hKTMnoRaz()">
                       <option value="">-- Razón --</option>
                       <option>Motivo ingreso</option>
                       <option>Indicación médica</option>
@@ -3882,7 +3885,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
                       <option>Sin equipo o tiempo disponible</option>
                       <option>Otro</option>
                     </select></div>
-                  <div class="col grow"><label>Comentario (opcional)</label><input type="text" id="fKTMnoCom" placeholder="Detalle..."></div>
+                  <div class="col grow"><label id="lblKTMnoCom">Comentario (opcional)</label><input type="text" id="fKTMnoCom" placeholder="Detalle..." oninput="hKTMnoRaz()"></div>
                 </div>
               </div>
             </div>
@@ -4895,6 +4898,7 @@ function rielRender(){
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltas.push('PVE sí / no / no corresponde');
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltas.push('razón de KTM no realizada');
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltas.push('contraindicación de KTM');
+  if(_ktmOtroSinFundamento()) faltas.push('fundamento del «Otro» de KTM');
   if(typeof _reintubHoraFalta==='function' && _reintubHoraFalta()) faltas.push('hora de la reintubación');
   const fEl=$('gFalta');
   if(fEl) fEl.textContent=faltas.length?('Falta: '+faltas.join(' y ')):'';
@@ -4908,6 +4912,7 @@ function rielRender(){
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltaEls.push($('fPVEval'));
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltaEls.push($('fKTMnoRaz'));
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltaEls.push($('fKTMraz'));
+  { const _kof=_ktmOtroSinFundamento(); if(_kof) faltaEls.push(_kof); }
   if(typeof _reintubHoraFalta==='function'){ const _rh=_reintubHoraFalta(); if(_rh) faltaEls.push(_rh); }
   _mPintarSecciones(faltaEls);
   _mPacBar();
@@ -5532,7 +5537,7 @@ function fillForm(s) {
   chk('cKTMr',s.KTM_REALIZADA); chk('cKTMs',s.KTM_SUSPENDIDA);
   set('fKtmCant', s.KTM_CANT||'1'); chk('cEduReal', s.EDU_REALIZADA);
   set('fKTMct',s.KTM_CONTRA_TIPO); set('fKTMraz',s.KTM_CONTRA_RAZON); set('fKTMman',s.KTM_CONTRA_MANUAL);
-  const _fcS=$('fKTMcontra'); if(_fcS) _fcS.value=s.KTM_CONTRA_RAZON||'';
+  _ktmContraSel(s.KTM_CONTRA_RAZON);
 
   // KTM — ACCIÓN DIARIA: siempre parte sin estado seleccionado (el colega registra lo de hoy)
   setKTMstate(null);
@@ -5778,6 +5783,7 @@ function fillFormReplica(s) {
   else if(!_razIngKTM && (_tf.KTM_NO_REALIZADA===true||_tf.KTM_NO_RAZON)) setKTMstate('n');
   else setKTMstate('r');
   set('fKTMct',_tf.KTM_CONTRA_TIPO); set('fKTMraz',_tf.KTM_CONTRA_RAZON); set('fKTMman',_tf.KTM_CONTRA_MANUAL);
+  _ktmContraSel(_tf.KTM_CONTRA_RAZON);   // el select quedaba vacío con la razón ya cargada en el hidden
   if(_tf.KTM_NIVEL_KTR) setKTMniv(String(_tf.KTM_NIVEL_KTR));
   if(_tf.KTM_ASISTENCIA) setKTMasis(_tf.KTM_ASISTENCIA);
   // REM: sesiones y educación son ACCIÓN DIARIA — no se heredan del turno previo
@@ -5826,7 +5832,7 @@ function fillFormReplica(s) {
   setRuidosExtra(s.EX_RUIDOS_JSON||'');
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
   chk('cUPOTmed',s.UPOT_MEDIDAS);
-  const _fcR=$('fKTMcontra'); if(_fcR) _fcR.value=s.KTM_CONTRA_RAZON||'';
+  _ktmContraSel(s.KTM_CONTRA_RAZON);
   const _adR=$('sAdapt'); if(_adR&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!==''){ _adR.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico'; hAdapt(); }
 
   // Egreso: NO se replica (es específico del turno de egreso)
@@ -6253,6 +6259,16 @@ function guardar() {
     toast('⚠️ Indica la contraindicación de la KTM (protocolo o descripción)');
     const kc=$('fKTMcontra');
     if(kc){ kc.scrollIntoView({behavior:'smooth',block:'center'}); kc.focus(); kc.style.outline='2px solid var(--danger)'; setTimeout(()=>{kc.style.outline='';},2500); }
+    return;
+  }
+  // ★ «No realizada · Otro» EXIGE EL FUNDAMENTO (28-ago-2026, Manuel) ★
+  // Las otras siete razones se explican solas; «Otro» sin texto entra a la
+  // estadística mensual como un motivo que no dice nada.
+  const _kofG=_ktmOtroSinFundamento();
+  if(_kofG){
+    toast('⚠️ Escribe el fundamento: elegiste «Otro» como razón de la KTM no realizada');
+    _kofG.scrollIntoView({behavior:'smooth',block:'center'}); _kofG.focus();
+    _kofG.style.outline='2px solid var(--danger)'; setTimeout(()=>{_kofG.style.outline='';},2500);
     return;
   }
   // ★ LA HORA DE LA REINTUBACIÓN ES OBLIGATORIA (ago-2026, Diego) ★
@@ -8971,12 +8987,19 @@ function genTexto() {
     if(_kobs) _ktxt += ` ${(_kobs.charAt(0).toUpperCase()+_kobs.slice(1)).replace(/\s*\.\s*$/,'')}.`;
     _B('ktm'); L.push(_ktxt);
   } else if(kN){
-    const _nr=gv('fKTMnoRaz')||'', _nc=gv('fKTMnoCom')||'';
-    let _ktmn='KTM no realizada';
-    // Las razones son etiquetas del catálogo; en el texto se narran natural
-    if(_nr) _ktmn+=` por ${({'Motivo ingreso':'ingreso reciente','Sin equipo o tiempo disponible':'falta de equipo o tiempo disponible'})[_nr]||_nr.toLowerCase()}`;
-    if(_nc) _ktmn+=`. ${_nc}`;
-    _B('ktm'); L.push(_ktmn+'.');
+    const _nr=gv('fKTMnoRaz')||'', _nc=String(gv('fKTMnoCom')||'').trim();
+    // «Otro» no se narra como razón: desde el 28-ago-2026 siempre trae su
+    // fundamento, y es el fundamento lo que cuenta. Paridad con el servidor.
+    let _ktmn;
+    if(_nr==='Otro' && _nc){
+      _ktmn=`KTM no realizada: ${_nc}`;
+    } else {
+      _ktmn='KTM no realizada';
+      // Las razones son etiquetas del catálogo; en el texto se narran natural
+      if(_nr) _ktmn+=` por ${({'Motivo ingreso':'ingreso reciente','Sin equipo o tiempo disponible':'falta de equipo o tiempo disponible'})[_nr]||_nr.toLowerCase()}`;
+      if(_nc) _ktmn+=`. ${_nc}`;
+    }
+    _B('ktm'); L.push(_ktmn.replace(/\s*\.\s*$/,'')+'.');
   }
   _B('edu');
   if($('cEduReal')?.checked) L.push('Se realiza educación a usuario/cuidador/familia.');
@@ -10435,6 +10458,7 @@ function _mFaltaTxt(el){
   const id=el&&el.id;
   return id==='fFirma'?'la firma':id==='fVA'?'la vía aérea':
          id==='fPVEval'?'declarar la PVE':id==='fKTMnoRaz'?'la razón de KTM':
+         id==='fKTMnoCom'?'el fundamento del «Otro»':
          id==='fKTMraz'?'la contraindicación':'un dato obligatorio';
 }
 
@@ -11206,6 +11230,7 @@ function setKTMstate(q){
   else {hide('dKTMr');hide('dKTMs');hide('dKTMn');} // null → sin selección
   if($('cKTMr')) $('cKTMr').checked = r;
   if($('cKTMs')) $('cKTMs').checked = s;
+  if(typeof hKTMnoRaz==='function') hKTMnoRaz();
 }
 
 // Tipo de intervención KTM (chips) según nivel del protocolo
@@ -11346,13 +11371,21 @@ function interpPIM(){
 }
 // Catálogo alineado al Protocolo de Terapia Física (KTM) v5 — Tabla 1.
 // Nota: inestabilidad NQx, PIC>20, CVC/línea insegura y ELP alterado son RELATIVAS.
+// El catálogo es SOLO clínico (protocolo KTM v5). Las dos categorías «Otra»
+// —'KTMC manual' y 'Decisión médica'— salieron el 28-ago-2026 por decisión de
+// Manuel: no eran contraindicaciones, eran motivos de NO realizar, y ahí viven
+// desde siempre las opciones 'Indicación médica' y 'Decisión médica'. Dejarlas
+// en la contraindicación era la puerta por la que una KTM quedaba «motivada»
+// con un ítem que no dice nada clínicamente.
+// 🩤 No se migran datos: las evoluciones viejas guardaron esos valores y se
+// siguen leyendo — `_ktmContraSel` los reinyecta como opción histórica para que
+// el select no los muestre en blanco (misma regla que 'Mascarilla' → 'MR').
 const KTMmap={
   'Absoluta':{
     'Hemodinámica':['Isquemia miocárdica reciente (<24 h)','FC <40 o >130 lpm','PAM <60 mmHg','Hb <7 g/dl','Plaquetas <20.000','Dopamina >10 mcg/kg/min','Noradrenalina >0.3 mcg/kg/min'],
     'Ventilatoria':['SpO₂ <90% con FiO₂ >0.6','PEEP >14 cmH₂O','FR >40 resp/min'],
     'Metabólica':['Temperatura ≥38.5°C','Glicemia <70 o >200 mg/dl'],
     'Nivel de consciencia':['Agitación psicomotora peligrosa (SAS >5)'],
-    'Otra':['KTMC manual'],
   },
   'Relativa':{
     'Hemodinámica':['PAM >110 mmHg'],
@@ -11361,7 +11394,6 @@ const KTMmap={
     'Dispositivos':['CVC o línea arterial insegura para la movilización'],
     'Metabólica':['ELP alterado'],
     'Clínica':['Alteración del nivel de consciencia','Sudoración profusa','Cambios de la coloración de la piel','Dolor de difícil control'],
-    'Otra':['Decisión médica'],
   },
 };
 //  RELOJ
@@ -12076,6 +12108,61 @@ function hKTMcontra(sel){
   if(ct) ct.value=o?.dataset?.tipo||'';
   if(cc) cc.value=o?.dataset?.cat||'';
   if(cr) cr.value=sel.value||'';
+}
+
+/* _ktmContraSel — pone el select de contraindicación en `raz`, SIN perder los
+   valores que ya no están en el catálogo.
+   Por qué existe: al sacar las dos categorías «Otra» (28-ago-2026) quedaron en
+   la planilla evoluciones con 'KTMC manual' y 'Decisión médica', y la ruta
+   automática de AET IIIC / BNM escribe razones que nunca estuvieron en el menú.
+   Un `select.value = <algo que no existe>` deja el desplegable EN BLANCO: el
+   dato sigue en la base pero desaparece de la pantalla, que es justo lo que
+   estamos tratando de evitar. Si el valor no está, se inyecta bajo «Histórico». */
+function _ktmContraSel(raz){
+  const sel=$('fKTMcontra'); if(!sel) return;
+  raz=String(raz||'');
+  if(!raz){ sel.value=''; return; }
+  const existe=Array.prototype.some.call(sel.options,o=>o.value===raz);
+  if(!existe){
+    let og=sel.querySelector('optgroup[data-hist="1"]');
+    if(!og){ og=document.createElement('optgroup'); og.label='Histórico (fuera de catálogo)'; og.dataset.hist='1'; sel.appendChild(og); }
+    const o=document.createElement('option');
+    o.value=raz; o.textContent=raz; og.appendChild(o);
+  }
+  sel.value=raz;
+}
+
+/* ── «No realizada · Otro» exige fundamento (28-ago-2026, pedido de Manuel) ──
+   `Otro` es la única razón del catálogo que no dice NADA por sí sola: elegirla
+   y dejar el comentario vacío dejaba la KTM «motivada» sin motivo, y así
+   llegaba a la estadística mensual. El campo pasa de «Comentario (opcional)» a
+   fundamento obligatorio SOLO en ese caso; las otras siete razones se explican
+   solas y no le agregan un campo más al turno.
+   El predicado vive UNA vez y lo usan el riel, el guardado y el aviso — la
+   misma regla escrita en tres sitios se desincroniza sola.
+   Devuelve el elemento que hay que enfocar, o null si no falta nada. */
+function _ktmOtroSinFundamento(){
+  const b=$('bKTMn');
+  if(!b || !b.classList.contains('on') || b.offsetParent===null) return null;
+  if(String(v('fKTMnoRaz')||'').trim()!=='Otro') return null;
+  return String(v('fKTMnoCom')||'').trim()==='' ? $('fKTMnoCom') : null;
+}
+
+/* Pinta el campo según la razón elegida. Se llama al cambiar la razón, al
+   escribir el fundamento y cada vez que se abre el bloque «no realizada». */
+function hKTMnoRaz(){
+  const esOtro = String(v('fKTMnoRaz')||'').trim()==='Otro';
+  const vacio  = String(v('fKTMnoCom')||'').trim()==='';
+  const lb=$('lblKTMnoCom'), inp=$('fKTMnoCom');
+  if(lb){
+    lb.textContent = esOtro ? 'Fundamento (obligatorio)' : 'Comentario (opcional)';
+    lb.style.color = (esOtro && vacio) ? 'var(--danger)' : '';
+  }
+  if(inp){
+    inp.placeholder = esOtro ? '¿Por qué no se realizó? — obligatorio' : 'Detalle...';
+    inp.style.borderColor = (esOtro && vacio) ? 'var(--danger)' : '';
+    inp.style.background  = (esOtro && vacio) ? '#fef2f2' : '';
+  }
 }
 
 //  Gates Neuro / UPOT / S5Q-CAM (según SAS, GCS, VA, sedación y Dx)
@@ -13856,7 +13943,42 @@ function _bars(tallyObj, color, max){
   const ent=Object.entries(tallyObj||{}).filter(([k,n])=>n>0).sort((a,b)=>b[1]-a[1]).slice(0,max||10);
   if(!ent.length) return '<div style="color:#94a3b8;font-size:.8rem;font-style:italic;padding:8px 0;">Sin datos en el período</div>';
   const top=ent[0][1];
-  return ent.map(([k,n])=>`<div class="chbar"><div class="chbar-top"><span class="chbar-lbl">${_escSt(k)}</span><span class="chbar-val">${n}</span></div><div class="chbar-track"><div class="chbar-fill" style="width:${Math.max(3,Math.round(n/top*100))}%;--bar-c:${color}"></div></div></div>`).join('');
+  return ent.map(([k,n])=>`<div class="chbar"><div class="chbar-top"><span class="chbar-lbl" title="${_escSt(k)}">${_escSt(k)}</span><span class="chbar-val">${n}</span></div><div class="chbar-track"><div class="chbar-fill" style="width:${Math.max(3,Math.round(n/top*100))}%;--bar-c:${color}"></div></div></div>`).join('');
+}
+/* Subregistro de los «otros» de la KTM (28-ago-2026, pedido de Manuel).
+   Las barras de arriba dicen CUÁNTOS cayeron en «Otro»; esto dice POR QUÉ.
+   Cada fila es un fundamento escrito en el turno, con su frecuencia y el
+   desglose por mes — el corte mensual es como se mira esta pestaña.
+   Las filas sin fundamento se muestran en rojo a propósito: son las que se
+   guardaron antes de que el campo fuera obligatorio y las que hay que ir a
+   corregir, no un hueco que convenga esconder. */
+function _ktmOtrosTabla(k){
+  const filas=(k&&k.otros)||[];
+  if(!filas.length) return '';
+  const sinF=k.sinFundamento||0;
+  const GRUPO={contra:['⛔','Contraindicada','#dc2626'], noReal:['🚫','No realizada','#b45309']};
+  const meses=f=>Object.keys(f.meses||{}).sort().map(m=>`<span class="ent-pill" style="font-size:.66rem;padding:1px 6px;">${m} · <b>${f.meses[m]}</b></span>`).join(' ');
+  let h='<div class="dash-sec-title">Subregistro de «otros» — KTM sin realizar</div>';
+  if(sinF) h+=`<div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:9px;padding:7px 11px;font-size:.78rem;font-weight:700;margin-bottom:8px;">⚠️ ${sinF} registro${sinF===1?'':'s'} sin fundamento escrito — quedaron guardados antes de que el campo fuera obligatorio (28-ago-2026). Se corrigen abriendo esa evolución.</div>`;
+  const TD='padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top;';
+  const TH='padding:6px 10px;border-bottom:2px solid var(--border);text-align:left;font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;';
+  h+='<div style="overflow-x:auto;border:1px solid var(--border);border-radius:9px;">'+
+     '<table style="border-collapse:collapse;width:100%;min-width:560px;font-size:.8rem;"><thead><tr>'+
+     `<th style="${TH}">Estado</th><th style="${TH}">Motivo</th>`+
+     `<th style="${TH}">Fundamento registrado</th><th style="${TH}text-align:right;">N</th>`+
+     `<th style="${TH}">Por mes</th></tr></thead><tbody>`;
+  filas.forEach(f=>{
+    const g=GRUPO[f.grupo]||['•','','#64748b'];
+    const fund=f.fundamento
+      ? _escSt(f.fundamento)
+      : '<span style="color:#b91c1c;font-weight:700;">⚠️ sin fundamento registrado</span>';
+    h+=`<tr><td style="${TD}white-space:nowrap;color:${g[2]};font-weight:700;">${g[0]} ${g[1]}</td>`+
+       `<td style="${TD}">${_escSt(f.motivo)}</td><td style="${TD}">${fund}</td>`+
+       `<td style="${TD}text-align:right;font-weight:800;">${f.n}</td>`+
+       `<td style="${TD}"><div style="display:flex;gap:4px;flex-wrap:wrap;">${meses(f)}</div></td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  return h;
 }
 function renderStats(d){
   const ev=d.eventos||{}, k=d.ktm||{}, p=d.pacientes||{}, vm=d.vm||{}, eg=d.egresos||{}, e=d.evos||{};
@@ -13881,12 +14003,14 @@ function renderStats(d){
   h+=`<div class="dcard"><div class="dcard-h">🫁 Categorización respiratoria (turnos)</div>${_bars(d.catResp,'#0284c7',3)}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🦾 Categorización motora (turnos)</div>${_bars(d.catMotor,'#7c3aed',3)}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🏃 Niveles KTM</div>${_bars(k.niveles,'#d97706',6)}</div>`;
-  h+=`<div class="dcard"><div class="dcard-h">⛔ Motivos de KTM no realizada / contraindicada</div>${_bars(k.motivosNo,'#dc2626')}</div>`;
+  h+=`<div class="dcard"><div class="dcard-h">⛔ Motivos de KTM contraindicada</div>${_bars(k.motivosContra,'#dc2626')}</div>`;
+  h+=`<div class="dcard"><div class="dcard-h">🚫 Motivos de KTM no realizada</div>${_bars(k.motivosNoReal,'#b45309')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🔧 Procedimientos</div>${_bars(d.procs,'#4338ca')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">📋 Grupo REM (por paciente)</div>${_bars(d.rem,'#1d6fc4')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🏠 Destinos de egreso</div>${_bars(eg.destinos,'#16a34a')}</div>`;
   h+=`<div class="dcard"><div class="dcard-h">🧾 Motivos de egreso</div>${_bars(eg.motivos,'#0891b2')}</div>`;
   h+='</div>';
+  h+=_ktmOtrosTabla(k);
   // DAUCI actual: pacientes actualmente ingresados (foto de hoy, no del rango)
   const dv=d.dauciActual||{};
   if((dv.evaluados||0)>0){
@@ -15244,7 +15368,7 @@ function indRender(d){
 let PIV_DATA=[];
 const PIV_DIM=[['FECHA','Fecha'],['MES','Mes'],['TURNO','Turno'],['CAMA','Cama'],['SEXO','Sexo'],
   ['DIAG_REM','Diagnóstico REM'],['FASE','Fase clínica'],['VIA_AEREA','Vía aérea'],['SOPORTE','Soporte'],
-  ['MODO','Modo'],['KTM','KTM realizada'],['NIVEL_KTM','Nivel KTM'],['IMT','IMT'],['EMS','EMS'],
+  ['MODO','Modo'],['KTM','KTM realizada'],['KTM_MOTIVO','Motivo sin KTM'],['NIVEL_KTM','Nivel KTM'],['IMT','IMT'],['EMS','EMS'],
   ['IMS','IMS'],['PVE','PVE'],['PVE_RESULTADO','Resultado PVE'],['EXTUBACION','Extubación'],['CUFF','Cuff']];
 const PIV_NUM=[['KTR','KTR (sesiones)'],['EDAD','Edad'],['DIA_ESTADIA','Día estadía'],
   ['FIO2','FiO2'],['PEEP','PEEP'],['PAFI','PaFi'],['MRC','MRC-ss'],['CPAX','CPAx']];

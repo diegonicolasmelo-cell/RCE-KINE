@@ -59,6 +59,11 @@ function validarPayloadEvolucion(d) {
  *    (`esVerdadero` trata igual los dos). Perder la evolución entera por esa
  *    diferencia sería cobrar carísimo algo que nadie honra.
  *
+ * Y lo que SÍ se valida además del trío (28-ago-2026): la razón «Otro» de la
+ * KTM no realizada exige su fundamento. Se puede exigir sin romper nada porque,
+ * a diferencia del nivel, «Otro» no se hereda ni lo escribe ningún automatismo:
+ * lo elige una persona en el turno, en la misma pantalla donde está el campo.
+ *
  * Devuelve un array de mensajes (vacío = OK).
  */
 function validarKTM(d) {
@@ -84,6 +89,15 @@ function validarKTM(d) {
 
   if (n && !String(d.KTM_NO_RAZON || '').trim()) {
     errs.push('KTM: indica la razón por la que NO se realizó.');
+  }
+  // «Otro» es la única razón del catálogo que no dice nada por sí sola: sin el
+  // fundamento escrito, la KTM queda declarada con un motivo hueco y así entra
+  // al subregistro mensual. Va en el SERVIDOR y no solo en la pantalla porque
+  // el ➕ del Registro Diario (corrección retroactiva) no pasa por `guardar()`.
+  // (28-ago-2026, pedido de Manuel.)
+  if (n && String(d.KTM_NO_RAZON || '').trim() === 'Otro'
+        && !String(d.KTM_NO_COMENTARIO || '').trim()) {
+    errs.push('KTM: elegiste «Otro» como razón; escribe el fundamento.');
   }
   if (s && !String(d.KTM_CONTRA_RAZON || '').trim() && !String(d.KTM_CONTRA_MANUAL || '').trim()) {
     errs.push('KTM: indica la razón de la contraindicación.');

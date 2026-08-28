@@ -1,6 +1,6 @@
 /**
  * svc_stats.gs — Estadísticas del período para el dashboard.
- * Agrega EVOLUCIONES + REINTUBACIONES + ARCHIVO_PACIENTES entre dos fechas
+ * Agrega EVOLUCIONES + EVOLUCIONES_ARCHIVO + REINTUBACIONES + ARCHIVO_PACIENTES entre dos fechas
  * (inclusive) en una sola pasada por hoja y devuelve SOLO agregados
  * (conteos, promedios y tablas de frecuencia) — nunca filas crudas.
  */
@@ -14,6 +14,29 @@ function _statISO(v) {
   return String(v).slice(0, 10);
 }
 
+/**
+ * _ktmMotivo — la etiqueta del motivo por el que NO se hizo la KTM.
+ * Una sola fórmula para `obtenerStats` y `datosPivot`: escrita dos veces se
+ * desincroniza y la pestaña muestra dos verdades del mismo turno.
+ * Devuelve '' cuando la KTM se realizó o no se declaró estado.
+ *
+ * 🪤 Comprueba el booleano por su cuenta en vez de llamar a `esVerdadero`:
+ * `datosPivot` no dependía de ningún global de infraestructura (usa su propio
+ * `esT`), y arrastrarle uno rompe su guardia sin que nada esté mal en el dato.
+ */
+function _ktmMotivo(e) {
+  const vv = v => v === true || v === 'TRUE' || v === 'true';
+  if (vv(e.KTM_SUSPENDIDA)) {
+    return String(e.KTM_CONTRA_RAZON || '').trim()
+        || String(e.KTM_CONTRA_CAT || '').trim()
+        || 'Contraindicada';
+  }
+  if (vv(e.KTM_NO_REALIZADA)) {
+    return String(e.KTM_NO_RAZON || '').trim() || 'Sin motivo registrado';
+  }
+  return '';
+}
+
 function obtenerStats(desde, hasta) {
   desde = _statISO(desde); hasta = _statISO(hasta);
   if (!desde || !hasta) return err('Faltan fechas desde/hasta.', ERR.VALIDACION);
@@ -22,8 +45,15 @@ function obtenerStats(desde, hasta) {
   const tally = (obj, k) => { k = String(k || '').trim(); if (!k) return; obj[k] = (obj[k] || 0) + 1; };
   const r1 = x => Math.round(x * 10) / 10;
 
-  // ── EVOLUCIONES (todas = episodios activos; al egresar se archivan) ──
-  const allEvos = repoLeerTodos('EVOLUCIONES');
+  // ── EVOLUCIONES + EVOLUCIONES_ARCHIVO ────────────────────────────────────
+  // 🔴 Hasta el 28-ago-2026 esta vista leía SOLO la hoja viva, así que un
+  // paciente que egresaba DESAPARECÍA de la estadística del mes en que se
+  // atendió — mientras los egresos sí se contaban desde ARCHIVO_PACIENTES.
+  // O sea: numerador y denominador de universos distintos. Para un corte
+  // mensual (que es como se usa la pestaña) eso deja fuera a todos los que se
+  // fueron. El REM, los indicadores y `datosPivot` ya leían las dos hojas;
+  // esta era la única que no. Sube TODAS las cifras de la pestaña.
+  const allEvos = repoLeerTodos('EVOLUCIONES').concat(repoLeerTodos('EVOLUCIONES_ARCHIVO'));
   const evos = allEvos.filter(e => {
     const f = _statISO(e.FECHA); return f && f >= desde && f <= hasta;
   });
@@ -35,6 +65,20 @@ function obtenerStats(desde, hasta) {
   let decan = 0, recanul = 0, cambiosTOT = 0;
   let ktmR = 0, ktmC = 0, ktmN = 0, ktrSes = 0, imtSes = 0, ktmTiempo = 0, ktmTiempoN = 0;
   const ktmNiveles = {}, ktmMotivosNo = {}, procs = {}, catResp = {}, catMotor = {};
+  // Subregistro de motivos: separados por estado (contraindicada ≠ no realizada
+  // son dos decisiones clínicas distintas y estaban en una misma barra), más el
+  // detalle de los «otros» con su fundamento textual. `ktmMotivosNo` se mantiene
+  // tal cual — es el agregado de siempre y hay quien lo lee.
+  const ktmMotivosContra = {}, ktmMotivosNoReal = {};
+  const ktmOtros = {};   // 'grupo|motivo|fundamento' → { grupo, motivo, fundamento, n, meses:{} }
+  const _otro = (grupo, motivo, fundamento, mes) => {
+    motivo = String(motivo || '').trim() || '(sin motivo)';
+    fundamento = String(fundamento || '').trim();
+    const k = grupo + '|' + motivo + '|' + fundamento;
+    if (!ktmOtros[k]) ktmOtros[k] = { grupo: grupo, motivo: motivo, fundamento: fundamento, n: 0, meses: {} };
+    ktmOtros[k].n++;
+    if (mes) ktmOtros[k].meses[mes] = (ktmOtros[k].meses[mes] || 0) + 1;
+  };
   // Puntaje SOCHIMI → nivel de complejidad (n variables: Baja=n, Media n+1..2n, Alta >2n)
   const catNivel = (p, n) => p <= n ? 'Baja' : (p <= n * 2 ? 'Media' : 'Alta');
 
@@ -68,9 +112,26 @@ function obtenerStats(desde, hasta) {
       tally(ktmNiveles, e.KTM_NIVEL_KTR ? 'Nivel ' + e.KTM_NIVEL_KTR : '');
       const t = parseFloat(e.KTM_TIEMPO_MIN); if (t > 0) { ktmTiempo += t; ktmTiempoN++; }
     } else if (esVerdadero(e.KTM_SUSPENDIDA)) {
-      ktmC++; tally(ktmMotivosNo, e.KTM_CONTRA_RAZON || e.KTM_CONTRA_CAT || 'Contraindicada');
+      ktmC++;
+      const cRaz = String(e.KTM_CONTRA_RAZON || '').trim();
+      const cMan = String(e.KTM_CONTRA_MANUAL || '').trim();
+      const cCat = String(e.KTM_CONTRA_CAT || '').trim();
+      const cEtq = _ktmMotivo(e);
+      tally(ktmMotivosNo, cEtq);
+      tally(ktmMotivosContra, cEtq);
+      // «Otros» de la contraindicación: la categoría 'Otra' —que salió del
+      // catálogo el 28-ago-2026 pero sigue viva en las filas ya guardadas y en
+      // la ruta automática de AET IIIC— y el caso en que se escribió una
+      // descripción sin elegir ítem del protocolo.
+      if (cCat === 'Otra' || (!cRaz && cMan)) _otro('contra', cEtq, cMan, f.slice(0, 7));
     } else if (esVerdadero(e.KTM_NO_REALIZADA)) {
-      ktmN++; tally(ktmMotivosNo, e.KTM_NO_RAZON || 'Sin motivo registrado');
+      ktmN++;
+      const nRaz = _ktmMotivo(e);
+      tally(ktmMotivosNo, nRaz);
+      tally(ktmMotivosNoReal, nRaz);
+      if (nRaz === 'Otro' || nRaz === 'Sin motivo registrado') {
+        _otro('noReal', nRaz, e.KTM_NO_COMENTARIO, f.slice(0, 7));
+      }
     }
     const kt = parseInt(e.RESP_KTR_CANT); if (kt > 0) ktrSes += kt;
     if (esVerdadero(e.KTM_IMT)) imtSes++;
@@ -87,8 +148,9 @@ function obtenerStats(desde, hasta) {
 
   // ── DAUCI ACTUAL: pacientes actualmente ingresados cuya MRC-SS más reciente
   //    indica debilidad. No depende del rango de fechas: es una foto del estado
-  //    de hoy. (EVOLUCIONES solo guarda episodios activos; al egresar se archivan,
-  //    así que la última MRC de cada cama ocupada es su estado vigente.) ──
+  //    de hoy. Se filtra por los PATIENT_ID de las camas ocupadas y se toma su
+  //    TURNO_KEY más alto, así que da igual que `allEvos` traiga también el
+  //    archivo: un episodio archivado no está ocupando cama. ──
   const cDauci = parseFloat(leerConfig('CORTE_MRC_DAUCI', '48')) || 48;
   const cSev = parseFloat(leerConfig('CORTE_MRC_SEVERA', '36')) || 36;
   const activos = {}; // PATIENT_ID → true (camas ocupadas)
@@ -161,6 +223,12 @@ function obtenerStats(desde, hasta) {
       realizada: ktmR, contraindicada: ktmC, noRealizada: ktmN,
       realizadaPct: (ktmR + ktmC + ktmN) > 0 ? r1(ktmR / (ktmR + ktmC + ktmN) * 100) : 0,
       niveles: ktmNiveles, motivosNo: ktmMotivosNo,
+      motivosContra: ktmMotivosContra, motivosNoReal: ktmMotivosNoReal,
+      // Subregistro de «otros» ordenado por frecuencia, con su fundamento y el
+      // desglose por mes. `sinFundamento` es lo que quedó registrado sin el
+      // porqué — antes de la regla del 28-ago-2026 se podía guardar así.
+      otros: Object.keys(ktmOtros).map(k => ktmOtros[k]).sort((a, b) => b.n - a.n),
+      sinFundamento: Object.keys(ktmOtros).reduce((t, k) => t + (ktmOtros[k].fundamento ? 0 : ktmOtros[k].n), 0),
       tiempoPromMin: ktmTiempoN > 0 ? r1(ktmTiempo / ktmTiempoN) : 0,
       ktrSesiones: ktrSes, imtSesiones: imtSes,
     },
@@ -205,6 +273,7 @@ function datosPivot(desde, hasta) {
         MODO: String(e.VENT_MODO || ''), DIA_ESTADIA: e.DIA_ESTADIA || '',
         KTR: parseInt(e.RESP_KTR_CANT) || 0,
         KTM: esT(e.KTM_REALIZADA) ? 'Sí' : (esT(e.KTM_SUSPENDIDA) ? 'Suspendida' : 'No'),
+        KTM_MOTIVO: _ktmMotivo(e),
         NIVEL_KTM: String(e.KTM_NIVEL_KTR || ''), IMT: esT(e.KTM_IMT) ? 'Sí' : 'No',
         EMS: esT(e.KTM_EMS) ? 'Sí' : 'No', IMS: e.EVAL_IMS !== '' && e.EVAL_IMS != null ? String(e.EVAL_IMS) : '',
         PVE: String(e.PVE_VAL || ''), PVE_RESULTADO: String(e.PVE_RESULTADO || ''),

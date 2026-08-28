@@ -127,6 +127,11 @@ function validarPayloadEvolucion(d) {
  *    (`esVerdadero` trata igual los dos). Perder la evolución entera por esa
  *    diferencia sería cobrar carísimo algo que nadie honra.
  *
+ * Y lo que SÍ se valida además del trío (28-ago-2026): la razón «Otro» de la
+ * KTM no realizada exige su fundamento. Se puede exigir sin romper nada porque,
+ * a diferencia del nivel, «Otro» no se hereda ni lo escribe ningún automatismo:
+ * lo elige una persona en el turno, en la misma pantalla donde está el campo.
+ *
  * Devuelve un array de mensajes (vacío = OK).
  */
 function validarKTM(d) {
@@ -152,6 +157,15 @@ function validarKTM(d) {
 
   if (n && !String(d.KTM_NO_RAZON || '').trim()) {
     errs.push('KTM: indica la razón por la que NO se realizó.');
+  }
+  // «Otro» es la única razón del catálogo que no dice nada por sí sola: sin el
+  // fundamento escrito, la KTM queda declarada con un motivo hueco y así entra
+  // al subregistro mensual. Va en el SERVIDOR y no solo en la pantalla porque
+  // el ➕ del Registro Diario (corrección retroactiva) no pasa por `guardar()`.
+  // (28-ago-2026, pedido de Manuel.)
+  if (n && String(d.KTM_NO_RAZON || '').trim() === 'Otro'
+        && !String(d.KTM_NO_COMENTARIO || '').trim()) {
+    errs.push('KTM: elegiste «Otro» como razón; escribe el fundamento.');
   }
   if (s && !String(d.KTM_CONTRA_RAZON || '').trim() && !String(d.KTM_CONTRA_MANUAL || '').trim()) {
     errs.push('KTM: indica la razón de la contraindicación.');
@@ -717,12 +731,21 @@ function generarTextoEvolucion(d) {
     if (obsC) ktmC += ` ${(obsC.charAt(0).toUpperCase() + obsC.slice(1)).replace(/\s*\.\s*$/, '')}.`;
     txt.push(ktmC);
   } else if (esVerdadero(d.KTM_NO_REALIZADA)) {
-    const nr = v('KTM_NO_RAZON'), nc = v('KTM_NO_COMENTARIO');
-    let s2 = 'KTM no realizada';
-    // Las razones son etiquetas del catálogo; en el texto se narran natural
-    if (nr) s2 += ` por ${({ 'Motivo ingreso': 'ingreso reciente', 'Sin equipo o tiempo disponible': 'falta de equipo o tiempo disponible' })[nr] || nr.toLowerCase()}`;
-    if (nc) s2 += `. ${nc}`;
-    txt.push(s2 + '.');
+    const nr = v('KTM_NO_RAZON'), nc = String(v('KTM_NO_COMENTARIO') || '').trim();
+    // «Otro» es una etiqueta de catálogo, no una razón: «KTM no realizada por
+    // otro» no le dice nada a quien lee la ficha desde fuera de la unidad. Desde
+    // el 28-ago-2026 esa opción siempre trae su fundamento escrito, así que el
+    // texto lo narra a él y se salta la etiqueta. Paridad con `genTexto()`.
+    let s2;
+    if (nr === 'Otro' && nc) {
+      s2 = `KTM no realizada: ${nc}`;
+    } else {
+      s2 = 'KTM no realizada';
+      // Las razones son etiquetas del catálogo; en el texto se narran natural
+      if (nr) s2 += ` por ${({ 'Motivo ingreso': 'ingreso reciente', 'Sin equipo o tiempo disponible': 'falta de equipo o tiempo disponible' })[nr] || nr.toLowerCase()}`;
+      if (nc) s2 += `. ${nc}`;
+    }
+    txt.push(s2.replace(/\s*\.\s*$/, '') + '.');
   }
   // IMT / EMS — paridad con el preview del cliente (genTexto)
   if (esVerdadero(d.KTM_IMT)) {
