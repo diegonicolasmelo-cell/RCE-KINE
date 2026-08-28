@@ -138,9 +138,9 @@ function validarPayloadEvolucion(d) {
  * Razones de «KTM no realizada» que exigen fundamento escrito: SOLO «Otro».
  * «Indicación médica» se evaluó y quedó fuera (decisión de Manuel, 28-ago-2026):
  * es legítima y frecuente, y obligar ahí le cobra un trámite al turno en un caso
- * que se entiende. Que una razón entre al SUBREGISTRO es otra cosa y otra lista
- * (`_KTM_RAZON_SUBREGISTRO`, en svc_stats.gs): ahí sí está, para ver el detalle
- * cuando alguien lo escribe.
+ * que se entiende. Tampoco entra al subregistro — se pide el porqué exactamente
+ * donde se va a leer, así que esta lista y `_KTM_RAZON_SUBREGISTRO` (svc_stats.gs)
+ * dicen hoy lo mismo.
  * Espejo exacto de `KTM_RAZONES_CON_FUNDAMENTO` en index.html: si las dos se
  * separan, el turno ve un campo opcional que el servidor va a rechazar y no hay
  * forma de destrabarlo desde la pantalla. La guardia vigila la paridad.

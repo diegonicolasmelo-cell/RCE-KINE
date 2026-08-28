@@ -38,19 +38,19 @@ function _ktmMotivo(e) {
 }
 
 /**
- * Razones de «no realizada» cuyo detalle vale la pena ver desglosado.
+ * Razones de «no realizada» cuyo detalle se desglosa en el subregistro: SOLO
+ * «Otro» — la única que no dice nada por sí sola y la única que obliga a
+ * escribir el porqué. Del resto no interesa el comentario (decisión de Manuel,
+ * 28-ago-2026): «Indicación médica» se probó dentro y quedó fuera, porque la
+ * razón ya explica el turno y su detalle no aporta a la estadística mensual.
  *
- * ⚠️ NO es la misma lista que `_KTM_RAZON_EXIGE_FUNDAMENTO` (dominio_validacion.gs),
- * y esa diferencia es deliberada: son dos preguntas distintas.
- *   · ¿Qué razón OBLIGA a escribir el porqué? Solo «Otro».
- *   · ¿De qué razón queremos VER el porqué cuando lo escribieron? También de
- *     «Indicación médica» — no obliga a nadie, pero cuando alguien detalla qué
- *     indicó el médico, ese detalle es justo lo que el subregistro existe para
- *     mostrar. Las filas sin fundamento saldrán marcadas, y está bien: no son
- *     un incumplimiento, solo no hay más que contar.
- * Esta lista incluye siempre a la de fundamento obligatorio; la guardia lo fija.
+ * Hoy es la MISMA regla que `_KTM_RAZON_EXIGE_FUNDAMENTO` (dominio_validacion.gs)
+ * y `KTM_RAZONES_CON_FUNDAMENTO` (index.html) — se pide el porqué exactamente
+ * donde se va a leer. Está copiada y no importada porque **23 guardias cargan
+ * este archivo SIN la validación** y una dependencia cruzada las rompería sin que
+ * nada esté mal en el dato. La guardia verifica que las tres digan lo mismo.
  */
-var _KTM_RAZON_SUBREGISTRO = ['Otro', 'Indicación médica'];
+var _KTM_RAZON_SUBREGISTRO = ['Otro'];
 
 /**
  * _ktmFundNorm — clave para agrupar fundamentos escritos a mano.
