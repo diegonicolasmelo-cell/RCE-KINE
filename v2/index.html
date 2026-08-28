@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.81-pve-otra-exige-motivo">
+<meta name="rce-version" content="5.82-pve-extubacion-exige-tipo">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4409,7 +4409,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.81-pve-otra-exige-motivo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.82-pve-extubacion-exige-tipo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4907,6 +4907,7 @@ function rielRender(){
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltas.push('PVE sí / no / no corresponde');
   if(_pveRazonFalta()) faltas.push('razón de la PVE no realizada');
   if(_pveOtraSinMotivo()) faltas.push('motivo de la «Otra» razón de PVE');
+  if(_pveExtSinTipo()) faltas.push('tipo de la extubación sin PVE');
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltas.push('razón de KTM no realizada');
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltas.push('contraindicación de KTM');
   if(_ktmOtroSinFundamento()) faltas.push('fundamento de la razón de KTM');
@@ -4923,6 +4924,7 @@ function rielRender(){
   if($('dExtSec') && $('dExtSec').offsetParent!==null && !v('fPVEval')) faltaEls.push($('fPVEval'));
   { const _pr=_pveRazonFalta(); if(_pr) faltaEls.push(_pr); }
   { const _po=_pveOtraSinMotivo(); if(_po) faltaEls.push(_po); }
+  { const _pt=_pveExtSinTipo(); if(_pt) faltaEls.push(_pt); }
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltaEls.push($('fKTMnoRaz'));
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltaEls.push($('fKTMraz'));
   { const _kof=_ktmOtroSinFundamento(); if(_kof) faltaEls.push(_kof); }
@@ -6275,6 +6277,16 @@ function guardar() {
     toast('⚠️ Describe el motivo: «Otra» no dice por sí sola por qué no se hizo la PVE');
     _poG.scrollIntoView({behavior:'smooth',block:'center'}); _poG.focus();
     _poG.style.outline='2px solid var(--danger)'; setTimeout(()=>{_poG.style.outline='';},2500);
+    return;
+  }
+  // ★ La extubación declarada exige su tipo: es la razón de que no hubiera PVE ★
+  // Sin esto el turno se iba sin razón Y el servidor lo rechazaba señalando un
+  // campo que la pantalla había dejado de pedir.
+  const _ptG=_pveExtSinTipo();
+  if(_ptG){
+    toast('⚠️ Marcaste que hubo extubación: indica de qué tipo (es la razón de que no hubiera PVE)');
+    _ptG.scrollIntoView({behavior:'smooth',block:'center'});
+    _ptG.style.outline='2px solid var(--danger)'; setTimeout(()=>{_ptG.style.outline='';},2500);
     return;
   }
   // ★ LA RAZÓN DE NO HACER KTM ES OBLIGATORIA (ago-2026, Diego): «no
@@ -10984,6 +10996,34 @@ function _pveOtraSinMotivo(){
   return String(v('fPveSCdet')||'').trim()==='' ? $('fPveSCdet') : null;
 }
 
+/* ── Marcar la extubación OBLIGA a decir de qué tipo (28-ago-2026) ──
+   🔴 EL AGUJERO QUE CIERRA, y lo dejó abierto la propia tanda anterior. Marcar
+   «Hubo extubación en este turno (sin PVE)» APAGA la obligación de la razón,
+   porque en ese caso el payload manda `PVE_SC_RAZON` vacía a propósito: el
+   evento del turno es la extubación, con su tipo. Pero `_extOcurrio()` solo
+   devuelve true si además hay un TIPO elegido. Con la casilla marcada y ningún
+   tipo, el turno quedaba así:
+
+     · razón enviada: '' (la casilla la apaga)
+     · EXT_OCURRIO:  false (no hay tipo)
+     · la pantalla: «no falta nada»
+     · el servidor: RECHAZA, «indica por qué NO se realizó la PVE»
+
+   O sea: el único camino en que una PVE «No» terminaba sin razón, y encima
+   trabado — el aviso apuntaba a un campo que la pantalla había dejado de pedir,
+   y desde el turno no había forma de destrabarlo salvo desmarcar la casilla.
+
+   Se cierra por el lado correcto: si se declara la extubación, hay que decir de
+   qué tipo. Ese tipo ES la razón por la que no hubo PVE, y así todo camino de
+   PVE = No termina con un porqué. */
+function _pveExtSinTipo(){
+  const d=$('dPVENoRama');
+  if(!d || d.classList.contains('hidden') || d.offsetParent===null) return null;
+  if(v('fPVEval')!=='no' || !$('cExtSinPve')?.checked) return null;
+  if(document.querySelector('input[name="extTipo"]:checked')) return null;
+  return $('dExtTipoBox') || $('cExtSinPve');
+}
+
 /* Pinta el bloque según la razón elegida. Se llama al cambiar la razón, al
    escribir el motivo, al abrir/cerrar la rama «No» y al marcar la extubación
    sin PVE. */
@@ -11003,6 +11043,16 @@ function hPveSCraz(){
   if(lb) lb.textContent = pide
     ? '¿Por qué no se realizó PVE en este turno? (obligatorio)'
     : '¿Por qué no se realizó PVE en este turno?';
+  // La otra mitad: si se declaró la extubación y falta su tipo, se pinta ahí —
+  // ese tipo pasa a ser la razón de que no hubiera PVE.
+  const box=$('dExtTipoBox');
+  if(box){
+    const sinTipo=!!_pveExtSinTipo();
+    box.style.border      = sinTipo ? '1px solid var(--danger)' : '';
+    box.style.background  = sinTipo ? '#fef2f2' : '';
+    box.style.borderRadius= sinTipo ? '7px' : '';
+    box.style.padding     = sinTipo ? '7px 9px' : '';
+  }
 }
 function hPVEres(){
   const res=document.querySelector('input[name="pveRes"]:checked')?.value;
@@ -11144,6 +11194,7 @@ function hReintubCheck(){
 function hExtTipo(){
   const t=document.querySelector('input[name="extTipo"]:checked')?.value||'';
   if(t) show('dExtNoDetalle'); else hide('dExtNoDetalle');
+  hPveSCraz();   // elegir el tipo apaga el rojo del bloque
 }
 // «No se realizó PVE» NUNCA es una extubación (decisión clínica jul-2026): la
 // extubación sin PVE se declara aparte, con su tipo. Al desmarcar se limpia
