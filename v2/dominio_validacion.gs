@@ -67,12 +67,17 @@ function validarPayloadEvolucion(d) {
  * Devuelve un array de mensajes (vacío = OK).
  */
 /**
- * Razones de «KTM no realizada» que exigen fundamento escrito.
- * Espejo exacto de `KTM_RAZONES_CON_FUNDAMENTO` en index.html: si las dos listas
- * se separan, el turno ve un campo opcional que el servidor va a rechazar y no
- * hay forma de destrabarlo desde la pantalla. La guardia vigila la paridad.
+ * Razones de «KTM no realizada» que exigen fundamento escrito: SOLO «Otro».
+ * «Indicación médica» se evaluó y quedó fuera (decisión de Manuel, 28-ago-2026):
+ * es legítima y frecuente, y obligar ahí le cobra un trámite al turno en un caso
+ * que se entiende. Que una razón entre al SUBREGISTRO es otra cosa y otra lista
+ * (`_KTM_RAZON_SUBREGISTRO`, en svc_stats.gs): ahí sí está, para ver el detalle
+ * cuando alguien lo escribe.
+ * Espejo exacto de `KTM_RAZONES_CON_FUNDAMENTO` en index.html: si las dos se
+ * separan, el turno ve un campo opcional que el servidor va a rechazar y no hay
+ * forma de destrabarlo desde la pantalla. La guardia vigila la paridad.
  */
-var _KTM_RAZON_EXIGE_FUNDAMENTO = ['Otro', 'Indicación médica'];
+var _KTM_RAZON_EXIGE_FUNDAMENTO = ['Otro'];
 
 function validarKTM(d) {
   const errs = [];
@@ -102,10 +107,10 @@ function validarKTM(d) {
   // declarada con un motivo hueco y así entra al subregistro mensual. Va en el
   // SERVIDOR y no solo en la pantalla porque el ➕ del Registro Diario
   // (corrección retroactiva) no pasa por `guardar()`. (28-ago-2026, Manuel.)
-  //   · «Otro» no dice nada por definición.
-  //   · «Indicación médica» —que absorbió a «Decisión médica», eran la misma
-  //     razón escrita de dos formas— dice quién lo decidió, no QUÉ se decidió.
-  // Las otras cinco sí se explican solas y no se les cobra un campo más.
+  //   · «Otro» no dice nada por definición, y es la única que obliga.
+  // Las otras seis se explican solas y no se les cobra un campo más — incluida
+  // «Indicación médica», que absorbió a «Decisión médica» (eran la misma razón
+  // escrita de dos formas) pero NO exige fundamento.
   if (n && _KTM_RAZON_EXIGE_FUNDAMENTO.indexOf(String(d.KTM_NO_RAZON || '').trim()) !== -1
         && !String(d.KTM_NO_COMENTARIO || '').trim()) {
     errs.push('KTM: «' + String(d.KTM_NO_RAZON).trim() + '» necesita que escribas el fundamento.');
