@@ -199,16 +199,16 @@ eq('y con comentario, el comentario va como oración aparte',
   'KTM no realizada por rechazo familiar. La hija pidió esperar.');
 
 /* ══ 8 · LAS TRES LISTAS DICEN LO MISMO ════════════════════════════════ */
-// Son DOS reglas distintas, y confundirlas fue el error que hubo que revertir:
-//   · «qué razón OBLIGA a escribir el porqué» → solo 'Otro'. Vive en index.html
-//     y en dominio_validacion.gs, y las dos TIENEN que decir lo mismo: si se
-//     separan, el turno ve un campo opcional que el servidor va a rechazar y no
-//     hay cómo destrabarlo desde la pantalla.
-//   · «de qué razón queremos VER el detalle» → 'Otro' e 'Indicación médica'.
-//     Vive en svc_stats.gs y es MÁS AMPLIA a propósito (no se importa la otra
-//     porque 23 guardias cargan stats sin la validación).
-// Lo que sí es invariante: todo lo que obliga tiene que estar en el subregistro.
-console.log('\n8 · Las dos reglas y su relación');
+// Una sola regla —solo «Otro»— escrita en TRES sitios, y las tres tienen que
+// decir lo mismo: index.html (la pantalla), dominio_validacion.gs (el candado del
+// servidor) y svc_stats.gs (el subregistro). Está copiada y no importada porque
+// 23 guardias cargan stats SIN la validación y una dependencia cruzada las
+// rompería sin que nada esté mal en el dato.
+// Si pantalla y servidor se separan, el turno ve un campo opcional que el
+// servidor va a rechazar, sin forma de destrabarlo. Si se separa el subregistro,
+// se pide un porqué que después nadie muestra — o se muestra un motivo que nadie
+// obligó a explicar y la tabla se llena de filas vacías.
+console.log('\n8 · La regla dice lo mismo en sus tres sitios');
 const idx = fs.readFileSync(path.join(v2, 'index.html'), 'utf8');
 const lista = (txt, nombre) => {
   const m = new RegExp(nombre + "\\s*=\\s*\\[([^\\]]*)\\]").exec(txt);
@@ -217,10 +217,8 @@ const lista = (txt, nombre) => {
 const enFront = lista(idx, 'KTM_RAZONES_CON_FUNDAMENTO');
 si('index.html declara su lista', !!enFront);
 eq('pantalla y servidor obligan en lo MISMO', _KTM_RAZON_EXIGE_FUNDAMENTO, enFront);
-eq('y obliga solo «Otro»', enFront, ['Otro']);
-eq('el subregistro es más amplio, a propósito', _KTM_RAZON_SUBREGISTRO, ['Otro', 'Indicación médica']);
-si('todo lo que obliga está en el subregistro (si no, se pediría un dato que nadie mira)',
-  enFront.every(r => _KTM_RAZON_SUBREGISTRO.indexOf(r) !== -1));
+eq('el subregistro muestra exactamente eso', _KTM_RAZON_SUBREGISTRO, enFront);
+eq('y la regla es solo «Otro»', enFront, ['Otro']);
 // El catálogo del desplegable tiene que ofrecer lo que la regla nombra.
 const opciones = (idx.match(/<option>([^<]+)<\/option>/g) || []).map(o => o.replace(/<\/?option>/g, ''));
 si('«Indicación médica» sigue en el desplegable', opciones.indexOf('Indicación médica') !== -1);
@@ -248,10 +246,16 @@ eq('la etiqueta es la variante MÁS escrita', (egreso || {}).fundamento, 'Egreso
 eq('y avisa cuántas formas unió', (egreso || {}).variantes, 3);
 eq('una sola forma no avisa nada',
   (st2.ktm.otros.find(x => x.fundamento === 'Extubación programada') || {}).variantes, 0);
-si('«Indicación médica» entra al subregistro aunque no obligue',
-  st2.ktm.otros.some(x => x.motivo === 'Indicación médica' && x.fundamento === 'Reposo estricto'));
-eq('una razón que se explica sola NO entra',
+// Solo «Otro» llega a la tabla: del resto no interesa el comentario, aunque
+// alguien lo haya escrito (Manuel, 28-ago-2026).
+eq('«Indicación médica» NO entra, ni con detalle escrito',
+  st2.ktm.otros.some(x => x.motivo === 'Indicación médica'), false);
+eq('una razón que se explica sola tampoco',
   st2.ktm.otros.some(x => x.motivo === 'Rechazo familiar'), false);
+si('y todas las filas de la tabla son de «Otro» o de una contraindicación',
+  st2.ktm.otros.every(x => x.motivo === 'Otro' || x.grupo === 'contra'));
+// El lado simétrico: no entrar a la tabla NO puede sacarlas de la barra ni del trío.
+eq('«Indicación médica» sigue contada en la barra de motivos', st2.ktm.motivosNoReal['Indicación médica'], 1);
 
 /* ══ 10 · LOS «SIN NINGUNA RAZÓN» VAN APARTE ═══════════════════════════ */
 // En agosto eran 113 y se comían la tabla: no son un motivo, son un hueco.

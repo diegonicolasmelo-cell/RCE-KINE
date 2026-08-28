@@ -163,6 +163,8 @@ const v2 = path.resolve(__dirname, '..', '..', 'v2');
   const indMed = await poner('Indicación médica', '');
   eq('«Indicación médica» sin fundamento NO bloquea', indMed.falta, false);
   eq('y su etiqueta dice que es opcional', indMed.etiqueta, 'Comentario (opcional)');
+  eq('ni siquiera con detalle escrito pasa a obligatoria',
+    (await poner('Indicación médica', 'Reposo estricto')).etiqueta, 'Comentario (opcional)');
   for (const r of ['Motivo ingreso', 'Rechazo del paciente',
                    'Rechazo familiar', 'Procedimiento concurrente (pabellón / imagenología)',
                    'Sin equipo o tiempo disponible']) {
