@@ -113,6 +113,7 @@ const v2 = path.resolve(__dirname, '..', '..', 'v2');
         typeof _pveRazonFalta !== 'function' && '_pveRazonFalta()',
         typeof _pveOtraSinMotivo !== 'function' && '_pveOtraSinMotivo()',
         typeof hPveSCraz !== 'function' && 'hPveSCraz()',
+        typeof _pveExtSinTipo !== 'function' && '_pveExtSinTipo()',
       ].filter(Boolean);
       if (ausentes.length) return { ausentes: ausentes, visible: false };
       const cs = getComputedStyle(hint);
@@ -137,6 +138,12 @@ const v2 = path.resolve(__dirname, '..', '..', 'v2');
       return {
         ausentes: [],
         danger: danger,
+        faltaTipoExt: !!_pveExtSinTipo(),
+        // Lo que el turno manda de verdad: si esto queda vacío Y no hay
+        // extubación declarada, el servidor rechaza y la pantalla no lo dijo.
+        razonQueViaja: (document.getElementById('fPVEval').value==='no' && !document.getElementById('cExtSinPve').checked)
+                        ? String(document.getElementById('fPveSCraz').value||'') : '',
+        extOcurrio: (typeof _extOcurrio==='function') ? _extOcurrio() : null,
         faltaRazon: !!_pveRazonFalta(),
         faltaMotivo: !!_pveOtraSinMotivo(),
         motivoEsElInput: _pveOtraSinMotivo() === inp,
@@ -217,7 +224,39 @@ const v2 = path.resolve(__dirname, '..', '..', 'v2');
   conBloqueALaVista('extubación desmarcada', reExt);
   eq('al desmarcarla, la razón vuelve a exigirse', reExt.faltaRazon, true);
 
-  console.log('\n7 · Sin errores de página');
+  /* ══ 7 · EL AGUJERO: CASILLA MARCADA Y NINGÚN TIPO ═════════════════════ */
+  // 🔴 Único camino en que una PVE «No» se iba SIN RAZÓN, y encima trabado: la
+  // casilla apaga la obligación (el payload manda la razón vacía a propósito)
+  // pero `_extOcurrio()` es false sin tipo, así que el servidor rechazaba
+  // señalando un campo que la pantalla había dejado de pedir.
+  console.log('\n7 · Marcar la extubación sin elegir tipo NO puede dejar el turno sin razón');
+  const sinTipo = await poner('', '', true);
+  conBloqueALaVista('extubación sin tipo', sinTipo);
+  eq('la pantalla AVISA que falta el tipo', sinTipo.faltaTipoExt, true);
+  si('el riel lo nombra', /tipo de la extubación/i.test(sinTipo.riel));
+  // La propiedad de fondo, que es la que pidió Manuel: por este camino el turno
+  // viajaría con la razón vacía y sin extubación declarada — o sea, sin razón.
+  eq('sin tipo, la razón que viaja está vacía', sinTipo.razonQueViaja, '');
+  eq('…y no hay extubación declarada', sinTipo.extOcurrio, false);
+  si('por eso la pantalla TIENE que frenar acá', sinTipo.faltaTipoExt);
+
+  // Y al elegir un tipo, deja de faltar: el tipo ES la razón.
+  const conTipo = await p.evaluate(() => {
+    const r = document.querySelector('input[name="extTipo"][value="sin_protocolo"]');
+    r.checked = true; hExtTipo();
+    if (typeof rielRender === 'function') rielRender();
+    // Mismo blindaje que arriba: sin la pieza, informar y no reventar.
+    if (typeof _pveExtSinTipo !== 'function') return { ausente: '_pveExtSinTipo()' };
+    return { falta: !!_pveExtSinTipo(), extOcurrio: _extOcurrio(),
+             faltaRazon: !!_pveRazonFalta(), riel: (document.getElementById('gFalta')||{}).textContent||'' };
+  });
+  if (conTipo.ausente) eq('la pantalla tiene _pveExtSinTipo', conTipo.ausente, 'ninguna falta');
+  eq('con el tipo elegido ya no falta', conTipo.falta, false);
+  eq('y la extubación queda declarada', conTipo.extOcurrio, true);
+  eq('sin pedir además la razón (el tipo la explica)', conTipo.faltaRazon, false);
+  eq('el riel queda limpio de PVE', /PVE|extubación/i.test(conTipo.riel), false);
+
+  console.log('\n8 · Sin errores de página');
   eq('la página no tiró ningún error', errs, []);
 
   await b.close();
