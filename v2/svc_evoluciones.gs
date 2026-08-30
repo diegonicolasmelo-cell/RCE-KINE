@@ -1236,6 +1236,23 @@ function anularEvento(datos, ctx) {
 //  que supina, contra la pronación abierta del episodio. Da igual quién prone y
 //  quién supine, ni cuántos turnos pasen en medio.
 
+/**
+ * Nombre del procedimiento de un ciclo de posición, en la forma CANÓNICA:
+ * «PRONO 20:03 HRS» / «SUPINACIÓN 07:30 HRS» (sin hora, el nombre pelado).
+ *
+ * 🔴 Este formato NO es decorativo: es EL MISMO que arma `_autoProcs()` en el
+ * front (v2/index.html) al marcar la casilla del turno. Coincidir carácter a
+ * carácter es lo que hace que el `Set` del guardado deduplique — si el ➕
+ * escribiera «PRONO» y el formulario «PRONO 20:03 HRS», la misma pronación
+ * entraría DOS VECES a PROCEDIMIENTOS y la estadística contaría dos ciclos.
+ * La guardia `prono_desde_el_mas.js` compara las dos formas.
+ */
+function _procNombreCiclo(clave, hora) {
+  const base = (String(clave || '').toUpperCase() === 'SUPINO') ? 'SUPINACIÓN' : 'PRONO';
+  const h = String(hora || '').trim();
+  return h ? (base + ' ' + h + ' HRS') : base;
+}
+
 /** Sella PRONO_INICIO_TS / SUPINO_TS y cierra PRONO_HORAS al supinar. */
 function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos, _evos) {
   if (esVerdadero(datos.RESP_PRONO_EVENTO)) {

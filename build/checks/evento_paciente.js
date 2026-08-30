@@ -128,6 +128,18 @@ global.Utilities = {
 global._agregarHitoInterno = h => { HITOS.push(Object.assign({ via: 'sync' }, h)); };
 global._agregarHitoInternoSinSync = h => { HITOS.push(Object.assign({ via: 'sinsync' }, h)); };
 global._hitoAnexoPrefijo = n => '🔬 ' + n;
+/* `_procClaveHito` (svc_timeline.gs) se trae del FUENTE, no se imita: normaliza
+   «PRONO 19:00 HRS» → «PRONO», y de esa clave depende que el ➕ reconozca el
+   ciclo de posición (`anexarEventoRapido`, ago-2026). Un doble escrito a mano
+   aquí podría divergir de la normalización real y dejar esta guardia verde
+   sobre una regla que no existe. Se trae la función sola para no cargar
+   svc_timeline entero, por la misma razón de siempre: traería sus hitos reales. */
+global._procClaveHito = (function () {
+  const _s = fs.readFileSync(path.join(v2, 'svc_timeline.gs'), 'utf8');
+  const _i = _s.indexOf('function _procClaveHito');
+  if (_i < 0) throw new Error('svc_timeline.gs ya no declara _procClaveHito');
+  return (0, eval)('(' + _s.slice(_i, _s.indexOf('\n}', _i) + 2) + ')');
+})();
 // El motor de texto vive en dominio_texto.gs; aquí solo interesa que anular
 // llegue (o no llegue) al camino de escritura, no qué narra.
 global.generarTextoEvolucion = () => 'texto de prueba';
