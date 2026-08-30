@@ -280,7 +280,7 @@ function anexarEventoRapido(datos, ctx) {
         texto = disp.icono + ' Cambio de ' + disp.nombre + hrTxt + (detalle ? ' — ' + detalle : '');
         tipoHito = 'dispositivo';
       } else if (tipo === 'procedimiento') {
-        const nombreProc = String(datos.proc || '').trim();
+        let nombreProc = String(datos.proc || '').trim();
         if (!nombreProc) return err('Indica el procedimiento del catálogo.', ERR.VALIDACION);
         // El procedimiento debe sumar a la estadística → requiere la evolución del turno.
         // El texto conserva la instrucción que el equipo ya conoce («Primero guarda
@@ -289,6 +289,68 @@ function anexarEventoRapido(datos, ctx) {
         if (!ubic) return err('Primero guarda la evolución del turno; luego anexa el procedimiento. ' +
           'Los turnos no se inventan hacia atrás.', ERR.VALIDACION);
         const evo = ubic.obj;
+
+        /* ══ 🔃 EL PRONO Y EL SUPINO NO SON UN PROCEDIMIENTO MÁS ═══════════
+           (30-ago-2026, reporte de Manuel desde el turno: anexó «Decúbito
+           prono 20:03» en la cama 8 y 24 h después la app no le contaba NI UNA
+           hora de prono, ni lo mostraba en el Posicionamiento del historial.)
+
+           El ciclo de prono no vive en PROCEDIMIENTOS: vive en cuatro campos de
+           la EVOLUCIÓN (`RESP_POS_PRONO`, `RESP_PRONO_EVENTO`,
+           `RESP_PRONO_HORA`, `PRONO_INICIO_TS`), que son los que lee
+           `_pronoAbiertoTS` para decir «lleva X horas en prono» y los que lee la
+           columna Posicionamiento del historial. El ➕ escribía la fila de la
+           estadística y el hito, y no tocaba ninguno de los cuatro: el catálogo
+           ofrecía una puerta que no conectaba con el reloj.
+
+           Aquí el anexo de posición hace lo MISMO que marcar la casilla del
+           turno —ni más ni menos—, sellando el ciclo con `_pronoSellarCiclo`,
+           la única función que sabe la regla (un ciclo puede durar días y lo
+           cierra quien supina, sea quien sea y pasen los turnos que pasen).
+
+           🔴 Y la SUPINACIÓN no entra a PROCEDIMIENTOS, misma regla que el
+           guardado (`svc_evoluciones.gs`, Bloque C de Diego): un ciclo
+           prono→supino es UN evento y ya lo representa la fila del prono. Hasta
+           hoy el ➕ sí insertaba las dos, así que anexar el ciclo completo
+           contaba dos pronaciones donde hubo una. */
+        const clavePos = _procClaveHito(nombreProc);
+        const esPos = (clavePos === 'PRONO' || clavePos === 'SUPINO');
+        const cicloCampos = {};
+        if (esPos) {
+          /* No se pisa lo ya registrado: si el turno ya declaró su pronación,
+             cambiarle la hora por esta puerta movería un reloj que ya está
+             corriendo, en silencio. Se corrige donde se declaró. */
+          if (clavePos === 'PRONO' && esVerdadero(evo.RESP_PRONO_EVENTO)) {
+            return err('Este turno ya tiene registrada la pronación' +
+              (evo.RESP_PRONO_HORA ? ' de las ' + evo.RESP_PRONO_HORA + ' hrs' : '') +
+              '. Si la hora no es esa, corrígela en la evolución del turno.', ERR.VALIDACION);
+          }
+          if (clavePos === 'SUPINO' && esVerdadero(evo.RESP_SUPINO_EVENTO)) {
+            return err('Este turno ya tiene registrada la supinación' +
+              (evo.RESP_SUPINO_HORA ? ' de las ' + evo.RESP_SUPINO_HORA + ' hrs' : '') +
+              '. Si la hora no es esa, corrígela en la evolución del turno.', ERR.VALIDACION);
+          }
+          // El nombre pasa a la forma canónica del formulario: así el `Set` del
+          // próximo guardado lo reconoce como el mismo y no lo cuenta dos veces.
+          nombreProc = _procNombreCiclo(clavePos, hora);
+          if (clavePos === 'PRONO') {
+            cicloCampos.RESP_POS_PRONO = true; cicloCampos.RESP_POS_SUPINO = false;
+            cicloCampos.RESP_PRONO_EVENTO = true; cicloCampos.RESP_PRONO_HORA = hora;
+          } else {
+            cicloCampos.RESP_POS_SUPINO = true; cicloCampos.RESP_POS_PRONO = false;
+            cicloCampos.RESP_SUPINO_EVENTO = true; cicloCampos.RESP_SUPINO_HORA = hora;
+            // Para el ciclo que se abre y cierra en el MISMO turno: el inicio es
+            // el de esta fila. Los de turnos anteriores los busca `_pronoAbiertoTS`.
+            cicloCampos.PRONO_INICIO_TS = evo.PRONO_INICIO_TS || '';
+          }
+          /* 🪤 Las filas se leen de la hoja DONDE ESTÁ la evolución (viva o
+             archivo). `_pronoAbiertoTS` mira EVOLUCIONES por omisión, y con un
+             episodio cerrado —que el ➕ alcanza con clave de coordinación— ahí
+             ya no queda nada: el ciclo se cerraría con las horas en blanco. */
+          const evosCiclo = repoLeerTodos(ubic.hoja, 'ID_CAMA', String(evo.ID_CAMA || idCama));
+          _pronoSellarCiclo(String(evo.ID_CAMA || idCama), turnoKey, fecha, turno, cicloCampos, evosCiclo);
+        }
+
         let procs = [];
         try { procs = JSON.parse(evo.PROC_JSON || '[]') || []; } catch (e) { procs = []; }
         procs.push(nombreProc);
@@ -296,11 +358,11 @@ function anexarEventoRapido(datos, ctx) {
            —viva o archivo—, no por clave: `repoActualizar` escribe en la primera
            coincidencia, que en una cama rotada es la del otro paciente. La fila
            viaja COMPLETA porque `repoEscribirFila` reescribe el renglón entero. */
-        repoEscribirFila(ubic.hoja, ubic.fila, Object.assign({}, evo, {
+        repoEscribirFila(ubic.hoja, ubic.fila, Object.assign({}, evo, cicloCampos, {
           PROC_JSON: JSON.stringify(procs), PROC_CANTIDAD: procs.length,
           PROC_RESUMEN: procs.join(', '),
         }));
-        repoInsertar('PROCEDIMIENTOS', {
+        if (clavePos !== 'SUPINO') repoInsertar('PROCEDIMIENTOS', {
           // La clave y la cama salen de la EVOLUCIÓN, no del payload: tras un
           // traslado la cama del turno no es la cama de hoy. Y el pid es el del
           // EPISODIO — tomarlo de la cama era lo que fabricaba filas mixtas.
@@ -309,7 +371,9 @@ function anexarEventoRapido(datos, ctx) {
           FECHA: fecha, TURNO: turno, TIPO_PROC: 'anexo', NOMBRE_PROC: nombreProc,
           DESCRIPCION: detalle, AUTOR_EMAIL: String(ctx.email || ''), TIMESTAMP: ahoraTS(),
         });
-        texto = _hitoAnexoPrefijo(nombreProc) + hrTxt + (detalle ? ' — ' + detalle : '') + ' (anexo)';
+        // En el prono y el supino la hora ya viaja DENTRO del nombre canónico
+        // («PRONO 20:03 HRS»): repetirla daría «🔧 PRONO 20:03 HRS 20:03 hrs».
+        texto = _hitoAnexoPrefijo(nombreProc) + (esPos ? '' : hrTxt) + (detalle ? ' — ' + detalle : '') + ' (anexo)';
         // 🔴 Hasta ago-2026 este hito nacía con TIPO 'procedimiento', que está
         // en `_TIPOS_HITO_AUTO`: el siguiente guardado de la evolución lo
         // borraba y lo regeneraba como la etiqueta pelada del procedimiento,
@@ -466,9 +530,22 @@ function anularAnexo(datos, ctx) {
         let procs = [];
         try { procs = JSON.parse(evo.PROC_JSON || '[]') || []; } catch (e) { procs = []; }
         const i = procs.indexOf(nombre);
-        if (i !== -1) {
-          procs.splice(i, 1);
-          repoEscribirFila(ubic.hoja, ubic.fila, Object.assign({}, evo, {
+        if (i !== -1) procs.splice(i, 1);
+
+        /* 🔃 Y SI LO QUE SE ANULA ES UNA PRONACIÓN, SE APAGA SU RELOJ. Desde
+           que el ➕ sella el ciclo (arriba), borrar solo la fila y el hito
+           dejaría `PRONO_INICIO_TS` vivo en la evolución: una pronación abierta
+           que nadie declaró, contándole horas al paciente y sellándoselas al
+           siguiente que supine. Es la familia de la pronación heredada, y aquí
+           la abriría el propio botón de deshacer. Corre aunque el nombre ya no
+           esté en PROC_JSON (un re-guardado pudo depurarlo con su `Set`). */
+        const cicloCampos = {};
+        if (_procClaveHito(nombre) === 'PRONO' && esVerdadero(evo.RESP_PRONO_EVENTO)) {
+          cicloCampos.RESP_POS_PRONO = false;  cicloCampos.RESP_PRONO_EVENTO = false;
+          cicloCampos.RESP_PRONO_HORA = '';    cicloCampos.PRONO_INICIO_TS = '';
+        }
+        if (i !== -1 || Object.keys(cicloCampos).length) {
+          repoEscribirFila(ubic.hoja, ubic.fila, Object.assign({}, evo, cicloCampos, {
             PROC_JSON: JSON.stringify(procs), PROC_CANTIDAD: procs.length,
             PROC_RESUMEN: procs.join(', '),
           }));
