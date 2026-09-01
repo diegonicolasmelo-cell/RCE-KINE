@@ -70,6 +70,18 @@ global._fechaEfectivaTurno = (fecha, turno) => {
 // y pisaría el espía de este arnés. Que los dos digan lo mismo lo vigila
 // `checks/hitos_unicos.js`, que sí usa el de verdad.
 global._hitoAnexoPrefijo = n => '🔧 ' + String(n || '');
+/* `_procClaveHito` (svc_timeline.gs) se trae del FUENTE, no se imita: normaliza
+   «PRONO 19:00 HRS» → «PRONO», y de esa clave depende que el ➕ reconozca el
+   ciclo de posición (`anexarEventoRapido`, ago-2026). Un doble escrito a mano
+   aquí podría divergir de la normalización real y dejar esta guardia verde
+   sobre una regla que no existe. Se trae la función sola para no cargar
+   svc_timeline entero, por la misma razón de siempre: traería sus hitos reales. */
+global._procClaveHito = (function () {
+  const _s = fs.readFileSync(path.join(v2, 'svc_timeline.gs'), 'utf8');
+  const _i = _s.indexOf('function _procClaveHito');
+  if (_i < 0) throw new Error('svc_timeline.gs ya no declara _procClaveHito');
+  return (0, eval)('(' + _s.slice(_i, _s.indexOf('\n}', _i) + 2) + ')');
+})();
 
 // La categoría del ventilador vive en svc_equipos.gs; cargarlo entero traería
 // todo el tablero de equipos a este arnés. Se copian las dos líneas que usa

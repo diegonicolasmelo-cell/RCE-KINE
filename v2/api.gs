@@ -106,6 +106,8 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => anularEvento(datos, ctx), datos);
       case 'ANEXAR_EVENTO':
         return _auditar(ctx, accion, () => anexarEventoRapido(datos, ctx), datos);
+      case 'ANULAR_ANEXO':
+        return _auditar(ctx, accion, () => anularAnexo(datos, ctx), datos);
       case 'CONFIRMAR_DISPOSITIVOS':
         return _auditar(ctx, accion, () => confirmarDispositivos(datos, ctx), datos);
       case 'GUARDAR_ENTREGA_TURNO':
@@ -135,7 +137,7 @@ function api(accion, datos, token) {
       // pantalla no protege nada y el candado tiene que vivir en el servicio.
       // Tampoco pasan por _auditar: se auditan solas, con la firma de quien
       // entró al modo (MCC/DMV/MFB), no con la del turno.
-      case 'COORD_ESTADO':       return coordEstado();
+      case 'COORD_ESTADO':       return coordEstado(datos);
       case 'COORD_ENTRAR':       return coordEntrar(datos);
       // Simétrica de ENTRAR: mata el token en el servidor. Sin esto, «Salir»
       // solo limpiaba el navegador y la sesión seguía viva hasta 30 min.

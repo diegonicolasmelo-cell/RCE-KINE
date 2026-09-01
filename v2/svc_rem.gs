@@ -20,7 +20,7 @@
  *  - Códigos: 601101/601104/601024/601030 = 1 por paciente ingresado;
  *    102501 = turnos con IMT; 1010922 PTO = 1 por paciente en su PRIMERA
  *    bipedestación (primer turno con KTM nivel 4-5 del episodio);
- *    601171 = intubaciones + reintubaciones + inicios de VMNI + cambios de cánula.
+ *    601171 = intubaciones + reintubaciones + inicios de VNI + cambios de cánula.
  */
 
 const _REM_RANGOS = ['15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49',
@@ -77,9 +77,25 @@ function generarREM(anio, mes, ctx) {
       if (e.PAC_DIAG_REM) p.diag = e.PAC_DIAG_REM;
     });
 
+    // Fecha de ingreso real del episodio: ficha del archivo → cama.
+    const fIngresoPid = {};
+    archivo.forEach(a => { if (a.PATIENT_ID && a.FECHA_INGRESO) fIngresoPid[String(a.PATIENT_ID)] = a.FECHA_INGRESO; });
+    camas.forEach(c => { if (c.PATIENT_ID && c.FECHA_INGRESO) fIngresoPid[String(c.PATIENT_ID)] = c.FECHA_INGRESO; });
+
     // ── Sección A: ingresos del mes ──
+    // Un ES_INGRESO cuenta como ingreso DEL MES solo si el episodio empezó dentro
+    // del mes. Al arrancar el sistema (1-ago-2026) se marcó ES_INGRESO a todo el
+    // censo, incluidos 12 pacientes que ya venían de julio y que julio ya había
+    // reportado: contarlos otra vez es doble conteo entre meses.
+    // Sin fecha de ingreso conocida SÍ cuenta: se excluye solo con evidencia, para
+    // que una ficha incompleta no haga desaparecer un ingreso verdadero.
     const ingresosPids = {};
-    evoMes.forEach(e => { if (esVerdadero(e.ES_INGRESO) && e.PATIENT_ID) ingresosPids[String(e.PATIENT_ID)] = true; });
+    evoMes.forEach(e => {
+      if (!esVerdadero(e.ES_INGRESO) || !e.PATIENT_ID) return;
+      const fIng = fIngresoPid[String(e.PATIENT_ID)];
+      if (fIng && !enMes(fIng)) return;
+      ingresosPids[String(e.PATIENT_ID)] = true;
+    });
     const nIngresos = Object.keys(ingresosPids).length;
 
     // matriz diagnóstico × sexo × rango (+ totales)
@@ -113,9 +129,15 @@ function generarREM(anio, mes, ctx) {
       const p = pacAttr[pid] || {}, rg = _remRango(p.edad), sx = p.sexo;
       evalIni.T++; if (sx) evalIni[sx]++; if (rg && sx) evalIni[rg + sx]++;
     });
-    // días de ingreso por paciente (para excluirlos de la intermedia)
+    // Días de ingreso por paciente, para excluirlos de la intermedia: esa evaluación
+    // ya se contó como inicial (B.2). Solo los del episodio que SÍ cuenta como
+    // ingreso del mes — al heredado del arranque no se le suma B.2, así que su
+    // evaluación de ese día es intermedia y tiene que aparecer en el B.3.
     const diaIngreso = {};
-    todasEvos.forEach(e => { if (esVerdadero(e.ES_INGRESO)) diaIngreso[String(e.PATIENT_ID) + '|' + _statISO(e.FECHA)] = true; });
+    todasEvos.forEach(e => {
+      const pid = String(e.PATIENT_ID);
+      if (esVerdadero(e.ES_INGRESO) && ingresosPids[pid]) diaIngreso[pid + '|' + _statISO(e.FECHA)] = true;
+    });
     const evalInt = cero(); const diasEvaluados = {};
     evoMes.forEach(e => {
       const pid = String(e.PATIENT_ID || ''), dia = _statISO(e.FECHA), key = pid + '|' + dia;
@@ -164,7 +186,12 @@ function generarREM(anio, mes, ctx) {
     const nIntub = evoMes.filter(e => esVerdadero(e.INTUB_OCURRIO)).length;
     const nReintub = repoLeerTodos('REINTUBACIONES').filter(r => enMes(r.FECHA)).length;
     const nCanula = evoMes.filter(e => esVerdadero(e.TQT_CAMBIO)).length;
-    // inicios de VMNI: turno VMNI cuyo turno previo del episodio no era VMNI
+    // Inicios de VNI: turno en VNI cuyo turno previo del episodio no lo estaba.
+    // ⚠️ El valor que guarda el catálogo es 'VNI' (VENT_SOPORTE); 'VMNI' es el
+    // nombre del código en el formulario REM, no un valor del sistema. Comparar
+    // contra 'VMNI' —como se hacía— dejaba esta parte del 601171 SIEMPRE en 0.
+    // Se aceptan los dos por si algún registro viejo trae la sigla larga.
+    const _esVNI = s => s === 'VNI' || s === 'VMNI';
     let nVMNIini = 0;
     const porPac = {};
     todasEvos.forEach(e => { const pid = String(e.PATIENT_ID || ''); (porPac[pid] = porPac[pid] || []).push(e); });
@@ -173,7 +200,7 @@ function generarREM(anio, mes, ctx) {
       let prev = '';
       evs.forEach(e => {
         const sop = String(e.VENT_SOPORTE || '');
-        if (sop === 'VMNI' && prev !== 'VMNI' && enMes(e.FECHA)) nVMNIini++;
+        if (_esVNI(sop) && !_esVNI(prev) && enMes(e.FECHA)) nVMNIini++;
         prev = sop;
       });
     });
@@ -304,7 +331,7 @@ function generarREM(anio, mes, ctx) {
     L.push('B.6 Terapia respiratoria:        ' + (sumKTR + turnosIMT) + '  (KTR ' + sumKTR + ' + IMT ' + turnosIMT + ')');
     L.push('102501 Reeducación tos (IMT):    ' + turnosIMT);
     L.push('1010922 PTO (1ª bipedestación):  ' + nPTO);
-    L.push('601171 Asistencias vía aérea:    ' + nAsistVA + '  (' + nIntub + ' IOT · ' + nReintub + ' reintub · ' + nVMNIini + ' VMNI · ' + nCanula + ' cánula)');
+    L.push('601171 Asistencias vía aérea:    ' + nAsistVA + '  (' + nIntub + ' IOT · ' + nReintub + ' reintub · ' + nVMNIini + ' VNI · ' + nCanula + ' cánula)');
     L.push('');
     L.push('✅ Hoja «REM_28» actualizada en la planilla con el detalle por sexo, edad y diagnóstico.');
     const textoREM = L.join('\n');

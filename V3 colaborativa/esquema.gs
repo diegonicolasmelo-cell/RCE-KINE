@@ -259,7 +259,30 @@ const _COLS_EVOLUCIONES = [
   // no existe, ahí la succión es endotraqueal. El formulario la esconde
   // cuando la vía aérea es invasiva, espejo de lo que ya hace SET al revés.
   // SIEMPRE AL FINAL.
-  ['RESP_SNT','bool']
+  ['RESP_SNT','bool'],
+  // SEDACIÓN: el SAS que TIENE el paciente y el que se PERSIGUE (ago-2026).
+  // `SED_SAS` pasa a ser oficialmente el ACTUAL —es como ya lo leían las
+  // cuatro decisiones automáticas del formulario, así que ningún registro
+  // viejo cambia de comportamiento— y la meta viaja aparte. ⚠️ Los registros
+  // anteriores a esta versión traen UN número que el equipo llenó de forma
+  // dispar (a veces la meta, a veces el actual): son ambiguos por origen y NO
+  // se recalculan. Ver PRD_SAS_REAL.md.
+  ['SED_SAS_META','texto'],
+  // Sedación que NO es profunda (vigil / control de agitación). Existe para
+  // que anotarla no cuente como volver a sedación profunda y borre la fecha
+  // de suspensión, que es el antes y el después para evaluar la respuesta a
+  // la suspensión de hipnóticos y para interpretar el GCS.
+  ['SED_VIGIL','bool'],
+  // Qué sedantes están puestos (JSON). Cuáles, no cuánto: las dosis viven en
+  // la ficha médica.
+  ['SED_FARMACOS','texto'],
+  // — Neuromonitoreo invasivo (ago-2026, pedido de Manuel desde el turno) —
+  // Los dispositivos son ESTADO del paciente, no un evento del turno: se
+  // replican del turno anterior como la vía aérea. PIC y PPC (que ya existían
+  // en la familia HEMO_) solo se piden cuando hay captor instalado.
+  ['NEURO_DVE','bool'],           // derivación ventricular externa instalada
+  ['NEURO_DVE_ALTURA','decimal'], // altura de la DVE en cmH2O (solo con DVE)
+  ['NEURO_PIC_CAPTOR','bool']     // captor de PIC: habilita PIC y PPC
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -327,6 +350,13 @@ const ESQUEMA = {
     // pertenece al turno del 31 aunque el reloj marque el 1). Vacío = conteo
     // por días calendario, como antes.  — SIEMPRE AL FINAL
     ['TS_INGRESO','texto'],['TS_INICIO_VA','texto'],['TS_INICIO_SOPORTE','texto'],
+    // Correcciones hechas desde el modo Coordinación (ago-2026): JSON con una
+    // entrada por corrección {c:campo, a:antes, n:nuevo, f:firma, ts:momento}.
+    // Sirve para DOS cosas a la vez: el sello visible en la ficha, y la MARCA
+    // DE ARRASTRE — un campo que figura aquí ya no lo pisa el guardado del
+    // turno (decisión de Manuel, 18-ago: «normalmente no se modifica, así que
+    // no debería poder modificarla»).  — SIEMPRE AL FINAL
+    ['CORRECCIONES_JSON','json'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -356,6 +386,10 @@ const ESQUEMA = {
     ['RUT','texto'],   // identidad de persona (jul-2026) — reingresos y cruce interno
     ['APACHE2','entero'],  // gravedad al ingreso (0-71) — habilita el ajuste por gravedad del análisis externo
     ['TS_INGRESO','texto'],  // momento real del ingreso (ago-2026) — SIEMPRE AL FINAL
+    // Correcciones desde el modo Coordinación — mismo formato que en
+    // CAMAS_ESTADO. Aquí importa aún más: los días del archivo están
+    // CONGELADOS, así que una corrección de fecha los recalcula.  — AL FINAL
+    ['CORRECCIONES_JSON','json'],
   ]},
   // ── Ventiladores de la unidad: inventario vivo + trazabilidad de movimientos ──
   VENTILADORES: { headerRows: 1, cols: [
@@ -688,6 +722,12 @@ function _sembrar(ss) {
     // DEBE quedar en FALSE en producción.
     ['AUTH_DEV_MODE', 'FALSE'],
     ['AUTH_DEV_FIRMA', 'DMV'],
+    // Modo Coordinación · recuperar la clave por correo (ago-2026).
+    // APAGADO a propósito: Diego rechazó el envío de correos y hoy el sistema
+    // no manda ninguno. El mecanismo está escrito y probado; encenderlo es
+    // poner TRUE aquí, no programar. Antes de encenderlo hay que llenar la
+    // columna EMAIL de las tres firmas en KINESIOLOGOS.
+    ['COORD_RECUPERA_CORREO', 'FALSE'],
     // Ventanas de turno (hora en que PARTE cada turno; la madrugada previa al
     // inicio del día sigue contando como la noche del día anterior)
     ['TURNO_DIA_INICIO', '9'],
@@ -784,7 +824,7 @@ function _sembrar(ss) {
       ['KGV','Karen González Vásquez','',false,true],['CMF','Carlos Morales Flores','',false,true],
       ['AAG','Andrés Ángel Gómez','',false,true],['MFB','Manuel Fuentes Blanco','',false,true],
       ['ACR','Aline Campos Rivera','',false,true],['RC','Rodrigo Caamaño','',false,true],
-      ['MCC','Magdalena Contando Cisternas','',true,true],
+      ['MCC','Magdalena Contardo Cisternas','',true,true],
     ];
     hK.getRange(2, 1, seed.length, 5).setValues(seed);
   }
@@ -831,10 +871,12 @@ function testEsquema() {
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
   // Salvaguarda contra el borrado accidental de columnas: el número va a mano
-  // y HAY QUE SUBIRLO al agregar una (387 = 386 + RESP_SNT, ago-2026). Si
+  // y HAY QUE SUBIRLO al agregar una (393 = 390 + NEURO_DVE, NEURO_DVE_ALTURA
+  // y NEURO_PIC_CAPTOR, ago-2026; antes 390 = 387 + SED_SAS_META, SED_VIGIL y
+  // SED_FARMACOS). Si
   // aparece este ❌ tras sumar una columna, la hoja está bien y lo que falta es
   // actualizar esta línea.
-  if (TOTAL_COLS.EVOLUCIONES !== 387) errs.push("EVOLUCIONES != 387 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 393) errs.push("EVOLUCIONES != 393 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

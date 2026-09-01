@@ -133,7 +133,10 @@ const { chromium } = require('playwright-core');
   // al BUDA estorbaba). La columna FIRMA y la entrega la conservan.
   eq('«firma» ya no existe en el texto generado', R.tFirma, '');
   eq('el encabezado abre el texto', R.encPrimero, 'enc');
-  eq('la nota lo cierra (la firma salió del texto)', R.firmaUltimo, 'nota');
+  // 22-ago-2026 (pedido de Manuel): las observaciones van ANTES del plan, así
+  // que ahora cierra el PLAN — es lo que queda pendiente para el turno
+  // siguiente. Antes este assert esperaba 'nota'.
+  eq('el plan lo cierra (la nota va antes; la firma salió del texto)', R.firmaUltimo, 'plan');
   eq('plan y nota son bloques distintos', R.planNoEsNota, true);
   eq('los parámetros van en TRES bloques separados', R.tresParams, true);
 

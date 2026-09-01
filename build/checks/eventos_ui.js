@@ -68,9 +68,9 @@ const path = require('path');
 
   const TIP = await p.evaluate(() => {
     evTipo('cultivo');
-    const r1 = { cult: !$('evCultTipo').classList.contains('hidden'), proc: $('evProc').classList.contains('hidden'), hora: $('evHora').value !== '' };
+    const r1 = { cult: !$('evCultTipo').classList.contains('hidden'), proc: $('evProcSel').classList.contains('hidden'), hora: $('evHora').value !== '' };
     evVolver(); evTipo('procedimiento');
-    r1.proc2 = !$('evProc').classList.contains('hidden'); r1.cult2 = $('evCultTipo').classList.contains('hidden');
+    r1.proc2 = !$('evProcSel').classList.contains('hidden'); r1.cult2 = $('evCultTipo').classList.contains('hidden');
     return r1;
   });
   eq('cultivo muestra sus campos y oculta procedimiento', TIP.cult && TIP.proc, true);

@@ -308,16 +308,67 @@ const RANGOS = [
   ['fechas vacías', '', ''],
   ['fecha con basura', 'ayer', '2026-07-31'],
 ];
+// 🔴 28-ago-2026 · `obtenerStats` CAMBIÓ DE UNIVERSO A PROPÓSITO: ahora lee
+// también EVOLUCIONES_ARCHIVO. Comparar los dos lados con el archivo poblado
+// diría «42 campos cambiaron» y no probaría nada — el A/B se volvería un
+// semáforo que hay que apagar. La propiedad que lo reemplaza es más fina y sigue
+// midiendo lo mismo que antes: CON EL ARCHIVO VACÍO, ningún número puede
+// moverse. Eso demuestra que no se tocó ninguna fórmula, solo el universo. Lo
+// que el archivo aporta se verifica aparte, en 1a.
+const ARCH = { viejo: VIEJO.DB.EVOLUCIONES_ARCHIVO, nuevo: NUEVO.DB.EVOLUCIONES_ARCHIVO };
 let difs = 0;
 RANGOS.forEach(([etiqueta, d, h]) => {
   ['obtenerStats', 'calcularIndicadores'].forEach(fn => {
+    const soloVivos = fn === 'obtenerStats';
+    if (soloVivos) { VIEJO.DB.EVOLUCIONES_ARCHIVO = []; NUEVO.DB.EVOLUCIONES_ARCHIVO = []; }
     const a = VIEJO.api[fn](d, h);
     const b = NUEVO.api[fn](d, h);
-    const ds = diferencias(a, b, fn);
+    if (soloVivos) { VIEJO.DB.EVOLUCIONES_ARCHIVO = ARCH.viejo; NUEVO.DB.EVOLUCIONES_ARCHIVO = ARCH.nuevo; }
+    // Campos AGREGADOS al payload el 28-ago-2026 (subregistro de «otros»). Se
+    // listan uno por uno: una adición no declarada sigue haciendo caer el A/B,
+    // que es lo que impide que esta excepción se convierta en un colador.
+    const NUEVOS = ['obtenerStats.data.ktm.motivosContra', 'obtenerStats.data.ktm.motivosNoReal',
+                    'obtenerStats.data.ktm.otros', 'obtenerStats.data.ktm.sinFundamento',
+                    'obtenerStats.data.ktm.sinMotivo',
+                    // 28-ago-2026 · el porqué de la PVE no realizada, que estaba
+                    // guardado en la planilla desde jul-2026 y la pestaña no
+                    // miraba. Es un bloque nuevo y aditivo: ningún campo de los
+                    // que ya existían se mueve (por eso sigue habiendo A/B).
+                    'obtenerStats.data.pve'];
+    const ds = diferencias(a, b, fn)
+      .filter(x => !NUEVOS.some(n => x === n + ': falta en el viejo'));
     if (ds.length) { difs += ds.length; ds.slice(0, 8).forEach(x => console.log('   ⚠ ' + x)); }
-    eq(fn + ' · ' + etiqueta, ds.length ? ds.length + ' campos distintos' : 'idéntico', 'idéntico');
+    eq(fn + ' · ' + etiqueta + (soloVivos ? ' [mismos vivos]' : ''),
+      ds.length ? ds.length + ' campos distintos' : 'idéntico', 'idéntico');
   });
 });
+
+/* ══ 1a · Y lo que el archivo SÍ aporta ═════════════════════════════════════ */
+// El lado simétrico del cambio de universo: no basta con que nada se rompa, el
+// egresado tiene que APARECER. Si alguien revierte la lectura del archivo, el
+// A/B de arriba seguiría verde (compara sin archivo) y esto se pondría rojo.
+console.log('\n1a · El mes cuenta también a los egresados');
+// 🪤 La semilla compartida NO tiene ni una fila en EVOLUCIONES_ARCHIVO (nunca se
+// llamó a `evo(o, true)`), así que esta guardia jamás habría visto el problema:
+// medía un archivo vacío contra otro archivo vacío. El egresado se siembra aquí
+// y se retira, para no mover los controles positivos de 1b ni los de
+// `calcularIndicadores`, que también lee el archivo.
+const EGRESADO = [
+  { PATIENT_ID: 'pEgr', ID_CAMA: '17', FECHA: '2026-07-14', TURNO: 'Dia',
+    TURNO_KEY: '2026-07-14-Dia', PAC_DIAG_REM: 'Sepsis', RESP_KTR_CANT: 2,
+    KTM_NO_REALIZADA: 'TRUE', KTM_NO_RAZON: 'Otro', KTM_NO_COMENTARIO: 'En pabellón todo el turno' },
+];
+const sinArchivo = NUEVO.api.obtenerStats('2026-07-01', '2026-07-31').data;   // archivo vacío
+NUEVO.DB.EVOLUCIONES_ARCHIVO = EGRESADO;
+const conArchivo = NUEVO.api.obtenerStats('2026-07-01', '2026-07-31').data;
+const viejoConArchivo = VIEJO.api.obtenerStats('2026-07-01', '2026-07-31').data;
+NUEVO.DB.EVOLUCIONES_ARCHIVO = ARCH.nuevo;                                    // se retira
+eq('el archivo aporta evoluciones al mes', conArchivo.evos.total, sinArchivo.evos.total + 1);
+eq('y su paciente al mes', conArchivo.pacientes.atendidos, sinArchivo.pacientes.atendidos + 1);
+eq('y su KTM no realizada', conArchivo.ktm.noRealizada, sinArchivo.ktm.noRealizada + 1);
+eq('y su fundamento llega al subregistro',
+  (conArchivo.ktm.otros.find(x => x.fundamento === 'En pabellón todo el turno') || {}).n, 1);
+eq('el código congelado lo perdía entero', viejoConArchivo.evos.total, sinArchivo.evos.total);
 
 // Y que la semilla de verdad ejercita el cálculo (si todo diera 0, «idéntico»
 // no probaría nada). Números calculados a mano sobre la semilla de arriba.
@@ -377,11 +428,18 @@ eq('indicadores: baja EVOLUCIONES + su archivo', (vInd.EVOLUCIONES || 0) + (vInd
 
 NUEVO.reset(); NUEVO.api.obtenerStats('2026-07-01', '2026-07-31');
 const vSta = cuenta(NUEVO.viajes());
-eq('stats: total de lecturas', NUEVO.viajes().length, 4);
+eq('stats: total de lecturas', NUEVO.viajes().length, 5);
 eq('stats: hojas repetidas', Object.keys(vSta).filter(h => vSta[h] > 1).join(',') || 'ninguna', 'ninguna');
-eq('stats NO baja el archivo de evoluciones (es la mitad barata)', !vSta.EVOLUCIONES_ARCHIVO, true);
-// El reparto es la razón por la que la Ola 2 NO fusionó: la mitad cara arrastra
-// EVOLUCIONES_ARCHIVO, que crece para siempre, y la barata no.
+// 🔴 CAMBIÓ EL 28-ago-2026. Hasta entonces esto fijaba lo contrario —«stats NO
+// baja el archivo (es la mitad barata)»— y esa era su ventaja: pintaba primero.
+// Se aceptó el viaje extra porque sin el archivo la pestaña MIENTE en el corte
+// mensual: el paciente que egresaba desaparecía del mes en que se atendió,
+// mientras sus egresos sí se contaban desde ARCHIVO_PACIENTES — numerador y
+// denominador de universos distintos. Decisión de Manuel: primero que el número
+// sea verdadero. Stats sigue SIN fusionarse con indicadores (eso multiplicaba
+// por 7 el tiempo hasta el primer dato), así que el pintado en dos mitades se
+// mantiene; lo que se paga es un viaje más en la mitad rápida.
+eq('stats baja EVOLUCIONES y su archivo', (vSta.EVOLUCIONES || 0) + (vSta.EVOLUCIONES_ARCHIVO || 0), 2);
 VIEJO.reset(); VIEJO.api.calcularIndicadores('2026-01-01', '2026-12-31');
 NUEVO.reset(); NUEVO.api.calcularIndicadores('2026-01-01', '2026-12-31');
 eq('el cambio no agregó ni quitó viajes respecto de ' + BASE,

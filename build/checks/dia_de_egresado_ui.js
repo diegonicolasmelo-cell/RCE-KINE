@@ -66,7 +66,7 @@ const path = require('path');
     EVO_SET = new Set(['1', '3']);
     renderTabla();
     const filas = [...document.querySelectorAll('#notionTable tbody tr')]
-      .map(tr => [...tr.cells].map(td => td.textContent.replace('\u2795', '').replace(/\s+/g, ' ').trim()));
+      .map(tr => [...tr.cells].map(td => td.textContent.replace(/[\u2795\u{1F512}]/gu, '').replace(/\s+/g, ' ').trim()));
     const txt = $('notionTable').textContent;
     return {
       texto: txt,
@@ -102,7 +102,7 @@ const path = require('path');
     _regEgrKey = '2026-08-20';                      // sin egresos que consultar
     renderTabla();
     const filas = [...document.querySelectorAll('#notionTable tbody tr')]
-      .map(tr => [...tr.cells].map(td => td.textContent.replace('\u2795', '').replace(/\s+/g, ' ').trim()));
+      .map(tr => [...tr.cells].map(td => td.textContent.replace(/[\u2795\u{1F512}]/gu, '').replace(/\s+/g, ' ').trim()));
     return {
       texto: $('notionTable').textContent,
       cama1: filas.find(f => f[0] === '1') || [],

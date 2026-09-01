@@ -36,7 +36,7 @@ function api(accion, datos, token) {
       case 'GET_TODAS_CAMAS':  return obtenerTodasLasCamas();
       case 'GET_CAMA':         return obtenerCama(datos.idCama);
       case 'GET_TIMELINE':     return obtenerTimeline(datos.idCama);
-      case 'GET_EVOLUCION':          return obtenerEvolucion(datos.idCama, datos.turnoKey);
+      case 'GET_EVOLUCION':          return obtenerEvolucion(datos.idCama, datos.turnoKey, datos.patientId);
       case 'GET_EVO_TURNO':          return obtenerEvoTurno(datos.idCama, datos.turnoKey);
       case 'GET_EVOLUCION_PREVIA':   return obtenerEvolucionPrevia(datos.idCama, datos.turnoKey);
       case 'GET_EVOLUCIONES_RECIENTES': return obtenerEvolucionesRecientes(datos.idCama, datos.limite || 14);
@@ -74,60 +74,82 @@ function api(accion, datos, token) {
 
       // ── Escrituras (auditadas) ──
       case 'GUARDAR_SUGERENCIA':
-        return _auditar(ctx, accion, () => guardarSugerencia(datos, ctx));
+        return _auditar(ctx, accion, () => guardarSugerencia(datos, ctx), datos);
       case 'SET_SUGERENCIA_ESTADO':
-        return _auditar(ctx, accion, () => setSugerenciaEstado(datos));
+        return _auditar(ctx, accion, () => setSugerenciaEstado(datos), datos);
       case 'INGRESAR_PACIENTE':
-        return _auditar(ctx, accion, () => ingresarPaciente(datos, ctx));
+        return _auditar(ctx, accion, () => ingresarPaciente(datos, ctx), datos);
       case 'DAR_ALTA':
-        return _auditar(ctx, accion, () => darAltaPaciente(datos, ctx));
+        return _auditar(ctx, accion, () => darAltaPaciente(datos, ctx), datos);
       case 'INTERCAMBIAR_CAMAS':
-        return _auditar(ctx, accion, () => intercambiarCamas(datos.idCamaA || datos.idA, datos.idCamaB || datos.idB, ctx));
+        return _auditar(ctx, accion, () => intercambiarCamas(datos.idCamaA || datos.idA, datos.idCamaB || datos.idB, ctx), datos);
       case 'MOVER_A_CAMA_VACIA':
-        return _auditar(ctx, accion, () => moverACamaVacia(datos.idOrigen, datos.idDestino, ctx));
+        return _auditar(ctx, accion, () => moverACamaVacia(datos.idOrigen, datos.idDestino, ctx), datos);
       case 'LIMPIAR_CAMA':
-        return _auditar(ctx, accion, () => limpiarCama(datos.idCama));
+        return _auditar(ctx, accion, () => limpiarCama(datos.idCama), datos);
       case 'GUARDAR_EVOLUCION':
-        return _auditar(ctx, accion, () => guardarEvolucion(datos, ctx));
+        return _auditar(ctx, accion, () => guardarEvolucion(datos, ctx), datos);
       case 'AGREGAR_HITO':
-        return _auditar(ctx, accion, () => agregarHito(Object.assign({ autor: ctx.firma, autorEmail: ctx.email }, datos)));
+        return _auditar(ctx, accion, () => agregarHito(Object.assign({ autor: ctx.firma, autorEmail: ctx.email }, datos)), datos);
       case 'SET_ASIGNACION_TURNO':
-        return _auditar(ctx, accion, () => guardarAsignacionTurno(datos));
+        return _auditar(ctx, accion, () => guardarAsignacionTurno(datos), datos);
       case 'AGREGAR_FASE':
-        return _auditar(ctx, accion, () => agregarFaseClinica(datos.nombre));
+        return _auditar(ctx, accion, () => agregarFaseClinica(datos.nombre), datos);
       case 'SET_BANNER':
         return _auditar(ctx, accion, () => {
           const tab = String(datos.tab || '');
           if (['G', 'P', 'D', 'E', 'A', 'V'].indexOf(tab) === -1) return err('Pestaña inválida.', ERR.VALIDACION);
           escribirConfig('BANNER_' + tab, String(datos.valor || ''));
           return ok({ entidad: 'CONFIG', accion: 'portada ' + tab, valor: String(datos.valor || '') });
-        });
+        }, datos);
       case 'ANULAR_EVENTO':
-        return _auditar(ctx, accion, () => anularEvento(datos, ctx));
+        return _auditar(ctx, accion, () => anularEvento(datos, ctx), datos);
       case 'ANEXAR_EVENTO':
-        return _auditar(ctx, accion, () => anexarEventoRapido(datos, ctx));
+        return _auditar(ctx, accion, () => anexarEventoRapido(datos, ctx), datos);
+      case 'ANULAR_ANEXO':
+        return _auditar(ctx, accion, () => anularAnexo(datos, ctx), datos);
       case 'CONFIRMAR_DISPOSITIVOS':
-        return _auditar(ctx, accion, () => confirmarDispositivos(datos, ctx));
+        return _auditar(ctx, accion, () => confirmarDispositivos(datos, ctx), datos);
       case 'GUARDAR_ENTREGA_TURNO':
-        return _auditar(ctx, accion, () => guardarEntregaTurno(datos, ctx));
+        return _auditar(ctx, accion, () => guardarEntregaTurno(datos, ctx), datos);
       case 'GENERAR_REM':
-        return _auditar(ctx, accion, () => generarREM(datos.anio, datos.mes, ctx));
+        return _auditar(ctx, accion, () => generarREM(datos.anio, datos.mes, ctx), datos);
       case 'GUARDAR_VENTILADOR':
-        return _auditar(ctx, accion, () => guardarVentilador(datos, ctx));
+        return _auditar(ctx, accion, () => guardarVentilador(datos, ctx), datos);
       case 'MOVER_VENTILADOR':
-        return _auditar(ctx, accion, () => moverVentilador(datos, ctx));
+        return _auditar(ctx, accion, () => moverVentilador(datos, ctx), datos);
       case 'MOVER_VENTILADORES_LOTE':
-        return _auditar(ctx, accion, () => moverVentiladoresLote(datos, ctx));
+        return _auditar(ctx, accion, () => moverVentiladoresLote(datos, ctx), datos);
       case 'BAJA_VENTILADOR':
-        return _auditar(ctx, accion, () => bajaVentilador(datos, ctx));
+        return _auditar(ctx, accion, () => bajaVentilador(datos, ctx), datos);
       case 'REGISTRAR_FALLA_VM':
-        return _auditar(ctx, accion, () => registrarFallaVM(datos, ctx));
+        return _auditar(ctx, accion, () => registrarFallaVM(datos, ctx), datos);
       case 'GUARDAR_STOCK':
-        return _auditar(ctx, accion, () => guardarStockEquipo(datos, ctx));
+        return _auditar(ctx, accion, () => guardarStockEquipo(datos, ctx), datos);
       case 'AJUSTAR_STOCK':
-        return _auditar(ctx, accion, () => ajustarStockEquipo(datos, ctx));
+        return _auditar(ctx, accion, () => ajustarStockEquipo(datos, ctx), datos);
       case 'ASIGNAR_STOCK':
-        return _auditar(ctx, accion, () => asignarStockACama(datos, ctx));
+        return _auditar(ctx, accion, () => asignarStockACama(datos, ctx), datos);
+
+      // ── MODO COORDINACIÓN (ago-2026) ────────────────────────────────────
+      // Cada una vuelve a exigir la sesión DENTRO de svc_coordinacion, no aquí:
+      // con AUTH_DEV_MODE=TRUE cualquiera llega a este dispatcher, así que la
+      // pantalla no protege nada y el candado tiene que vivir en el servicio.
+      // Tampoco pasan por _auditar: se auditan solas, con la firma de quien
+      // entró al modo (MCC/DMV/MFB), no con la del turno.
+      case 'COORD_ESTADO':       return coordEstado(datos);
+      case 'COORD_ENTRAR':       return coordEntrar(datos);
+      // Simétrica de ENTRAR: mata el token en el servidor. Sin esto, «Salir»
+      // solo limpiaba el navegador y la sesión seguía viva hasta 30 min.
+      case 'COORD_SALIR':        return coordCerrarSesion(datos);
+      // Recuperación por correo: escrita y APAGADA (CONFIG.COORD_RECUPERA_CORREO).
+      // Las dos rechazan mientras el interruptor esté en FALSE.
+      case 'COORD_PEDIR_CODIGO': return coordPedirCodigo(datos);
+      case 'COORD_RECUPERAR':    return coordRecuperarConCodigo(datos);
+      case 'COORD_CAMBIAR_CLAVE':return coordCambiarClave(datos);
+      case 'COORD_RESTABLECER':  return coordRestablecerClave(datos);
+      case 'COORD_FICHA':        return coordFicha(datos);
+      case 'COORD_CORREGIR':     return coordCorregirFicha(datos);
 
       default:
         return err('Acción desconocida: "' + accion + '"', ERR.VALIDACION);
@@ -186,7 +208,7 @@ function obtenerBoot(datos, ctx, auth) {
 }
 
 /** Ejecuta fn y, si resultó ok, deja registro en AUDIT_LOG. */
-function _auditar(ctx, accion, fn) {
+function _auditar(ctx, accion, fn, datos) {
   const r = fn();
   if (r && r.ok) {
     const d = r.data || {};
@@ -194,6 +216,29 @@ function _auditar(ctx, accion, fn) {
       email: ctx.email, firma: ctx.firma, accion: accion,
       entidad: d.entidad || '', idEntidad: d.idCama || d.idEvolucion || d.id || '',
       patientId: d.patientId || '', resumen: d.accion || accion,
+    });
+    return r;
+  }
+  /* 🔴 EL RECHAZO TAMBIÉN SE AUDITA (ago-2026). Hasta aquí solo se escribía la
+     traza `if (r && r.ok)`: un rechazo no dejaba rastro de ninguna clase. Eso
+     era tolerable mientras los rechazos eran errores de tipeo, y dejó de serlo
+     cuando el ➕ empezó a NEGARSE a escribir sobre una cama con dos pacientes.
+     Sin esta fila no hay forma de saber a posteriori que alguien intentó
+     corregir un turno, no pudo, y abandonó — que es el riesgo que el propio
+     diseño del candado reconoce y no podía detectar.
+
+     Solo `VALIDACION`: un `INTERNO` es una excepción y ya se registra en el log
+     de ejecuciones; duplicarlo aquí llenaría AUDIT_LOG de ruido.
+
+     El `idEntidad` sale del payload de ENTRADA, porque una respuesta de rechazo
+     no trae `data`. Y el resumen se acota: lleva el motivo tal como se le mostró
+     a la persona, que por construcción nombra la cama pero no al otro paciente. */
+  if (r && r.ok === false && r.codigo === ERR.VALIDACION) {
+    const dd = datos || {};
+    auditar({
+      email: ctx.email, firma: ctx.firma, accion: accion + '_RECHAZADO',
+      entidad: '', idEntidad: dd.idCama || dd.idEvolucion || dd.id || '',
+      patientId: dd.patientId || '', resumen: String(r.error || '').slice(0, 300),
     });
   }
   return r;

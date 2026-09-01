@@ -295,11 +295,26 @@ function _coordEmailOculto(mail) {
   return u.slice(0, 2) + '…' + u.charAt(u.length - 1) + d;
 }
 
-/** Estado público de la puerta: qué caminos de recuperación ofrecer. */
-function coordEstado() {
+/**
+ * Estado público de la puerta: qué caminos de recuperación ofrecer.
+ * Y desde el 24-ago-2026, con `token`, dice además si ESA sesión sigue viva —
+ * es lo que permite que un F5 no cierre lo que el servidor mantiene abierto:
+ * el navegador guarda el token en el bolsillo de la pestaña y al arrancar
+ * pregunta aquí antes de restaurar el candado. Consultar renueva la ventana
+ * de inactividad a propósito: reanudar tras un refresh ES actividad de la
+ * persona. Sin token la respuesta es la de siempre.
+ */
+function coordEstado(datos) {
   try {
-    return ok({ recuperaCorreo: coordRecuperaPorCorreo() });
-  } catch (e) { return ok({ recuperaCorreo: false }); }
+    const out = { recuperaCorreo: coordRecuperaPorCorreo() };
+    const token = String((datos && datos.token) || '');
+    if (token) {
+      const s = coordSesion(token);
+      out.viva = !!s;
+      if (s) { out.firma = s.firma; out.usuario = s.usuario; out.minutos = _COORD_SESION_MIN; }
+    }
+    return ok(out);
+  } catch (e) { return ok({ recuperaCorreo: false, viva: false }); }
 }
 
 /**

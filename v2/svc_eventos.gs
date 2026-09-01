@@ -280,7 +280,7 @@ function anexarEventoRapido(datos, ctx) {
         texto = disp.icono + ' Cambio de ' + disp.nombre + hrTxt + (detalle ? ' — ' + detalle : '');
         tipoHito = 'dispositivo';
       } else if (tipo === 'procedimiento') {
-        const nombreProc = String(datos.proc || '').trim();
+        let nombreProc = String(datos.proc || '').trim();
         if (!nombreProc) return err('Indica el procedimiento del catálogo.', ERR.VALIDACION);
         // El procedimiento debe sumar a la estadística → requiere la evolución del turno.
         // El texto conserva la instrucción que el equipo ya conoce («Primero guarda
@@ -289,6 +289,68 @@ function anexarEventoRapido(datos, ctx) {
         if (!ubic) return err('Primero guarda la evolución del turno; luego anexa el procedimiento. ' +
           'Los turnos no se inventan hacia atrás.', ERR.VALIDACION);
         const evo = ubic.obj;
+
+        /* ══ 🔃 EL PRONO Y EL SUPINO NO SON UN PROCEDIMIENTO MÁS ═══════════
+           (30-ago-2026, reporte de Manuel desde el turno: anexó «Decúbito
+           prono 20:03» en la cama 8 y 24 h después la app no le contaba NI UNA
+           hora de prono, ni lo mostraba en el Posicionamiento del historial.)
+
+           El ciclo de prono no vive en PROCEDIMIENTOS: vive en cuatro campos de
+           la EVOLUCIÓN (`RESP_POS_PRONO`, `RESP_PRONO_EVENTO`,
+           `RESP_PRONO_HORA`, `PRONO_INICIO_TS`), que son los que lee
+           `_pronoAbiertoTS` para decir «lleva X horas en prono» y los que lee la
+           columna Posicionamiento del historial. El ➕ escribía la fila de la
+           estadística y el hito, y no tocaba ninguno de los cuatro: el catálogo
+           ofrecía una puerta que no conectaba con el reloj.
+
+           Aquí el anexo de posición hace lo MISMO que marcar la casilla del
+           turno —ni más ni menos—, sellando el ciclo con `_pronoSellarCiclo`,
+           la única función que sabe la regla (un ciclo puede durar días y lo
+           cierra quien supina, sea quien sea y pasen los turnos que pasen).
+
+           🔴 Y la SUPINACIÓN no entra a PROCEDIMIENTOS, misma regla que el
+           guardado (`svc_evoluciones.gs`, Bloque C de Diego): un ciclo
+           prono→supino es UN evento y ya lo representa la fila del prono. Hasta
+           hoy el ➕ sí insertaba las dos, así que anexar el ciclo completo
+           contaba dos pronaciones donde hubo una. */
+        const clavePos = _procClaveHito(nombreProc);
+        const esPos = (clavePos === 'PRONO' || clavePos === 'SUPINO');
+        const cicloCampos = {};
+        if (esPos) {
+          /* No se pisa lo ya registrado: si el turno ya declaró su pronación,
+             cambiarle la hora por esta puerta movería un reloj que ya está
+             corriendo, en silencio. Se corrige donde se declaró. */
+          if (clavePos === 'PRONO' && esVerdadero(evo.RESP_PRONO_EVENTO)) {
+            return err('Este turno ya tiene registrada la pronación' +
+              (evo.RESP_PRONO_HORA ? ' de las ' + evo.RESP_PRONO_HORA + ' hrs' : '') +
+              '. Si la hora no es esa, corrígela en la evolución del turno.', ERR.VALIDACION);
+          }
+          if (clavePos === 'SUPINO' && esVerdadero(evo.RESP_SUPINO_EVENTO)) {
+            return err('Este turno ya tiene registrada la supinación' +
+              (evo.RESP_SUPINO_HORA ? ' de las ' + evo.RESP_SUPINO_HORA + ' hrs' : '') +
+              '. Si la hora no es esa, corrígela en la evolución del turno.', ERR.VALIDACION);
+          }
+          // El nombre pasa a la forma canónica del formulario: así el `Set` del
+          // próximo guardado lo reconoce como el mismo y no lo cuenta dos veces.
+          nombreProc = _procNombreCiclo(clavePos, hora);
+          if (clavePos === 'PRONO') {
+            cicloCampos.RESP_POS_PRONO = true; cicloCampos.RESP_POS_SUPINO = false;
+            cicloCampos.RESP_PRONO_EVENTO = true; cicloCampos.RESP_PRONO_HORA = hora;
+          } else {
+            cicloCampos.RESP_POS_SUPINO = true; cicloCampos.RESP_POS_PRONO = false;
+            cicloCampos.RESP_SUPINO_EVENTO = true; cicloCampos.RESP_SUPINO_HORA = hora;
+            // Para el ciclo que se abre y cierra en el MISMO turno: el inicio es
+            // el de esta fila. Los de turnos anteriores los busca `_pronoAbiertoTS`.
+            cicloCampos.PRONO_INICIO_TS = evo.PRONO_INICIO_TS || '';
+          }
+          /* 🪤 Las filas se leen de la hoja DONDE ESTÁ la evolución (viva o
+             archivo). `_pronoAbiertoTS` mira EVOLUCIONES por omisión, y con un
+             episodio cerrado —que el ➕ alcanza con clave de coordinación— ahí
+             ya no queda nada: el ciclo se cerraría con las horas en blanco. */
+          const evosCiclo = repoLeerTodos(ubic.hoja, 'ID_CAMA', String(evo.ID_CAMA || idCama));
+          _pronoSellarCiclo(String(evo.ID_CAMA || idCama), turnoKey, fecha, turno, cicloCampos, evosCiclo);
+        }
+
         let procs = [];
         try { procs = JSON.parse(evo.PROC_JSON || '[]') || []; } catch (e) { procs = []; }
         procs.push(nombreProc);
@@ -296,11 +358,11 @@ function anexarEventoRapido(datos, ctx) {
            —viva o archivo—, no por clave: `repoActualizar` escribe en la primera
            coincidencia, que en una cama rotada es la del otro paciente. La fila
            viaja COMPLETA porque `repoEscribirFila` reescribe el renglón entero. */
-        repoEscribirFila(ubic.hoja, ubic.fila, Object.assign({}, evo, {
+        repoEscribirFila(ubic.hoja, ubic.fila, Object.assign({}, evo, cicloCampos, {
           PROC_JSON: JSON.stringify(procs), PROC_CANTIDAD: procs.length,
           PROC_RESUMEN: procs.join(', '),
         }));
-        repoInsertar('PROCEDIMIENTOS', {
+        if (clavePos !== 'SUPINO') repoInsertar('PROCEDIMIENTOS', {
           // La clave y la cama salen de la EVOLUCIÓN, no del payload: tras un
           // traslado la cama del turno no es la cama de hoy. Y el pid es el del
           // EPISODIO — tomarlo de la cama era lo que fabricaba filas mixtas.
@@ -309,7 +371,9 @@ function anexarEventoRapido(datos, ctx) {
           FECHA: fecha, TURNO: turno, TIPO_PROC: 'anexo', NOMBRE_PROC: nombreProc,
           DESCRIPCION: detalle, AUTOR_EMAIL: String(ctx.email || ''), TIMESTAMP: ahoraTS(),
         });
-        texto = _hitoAnexoPrefijo(nombreProc) + hrTxt + (detalle ? ' — ' + detalle : '') + ' (anexo)';
+        // En el prono y el supino la hora ya viaja DENTRO del nombre canónico
+        // («PRONO 20:03 HRS»): repetirla daría «🔧 PRONO 20:03 HRS 20:03 hrs».
+        texto = _hitoAnexoPrefijo(nombreProc) + (esPos ? '' : hrTxt) + (detalle ? ' — ' + detalle : '') + ' (anexo)';
         // 🔴 Hasta ago-2026 este hito nacía con TIPO 'procedimiento', que está
         // en `_TIPOS_HITO_AUTO`: el siguiente guardado de la evolución lo
         // borraba y lo regeneraba como la etiqueta pelada del procedimiento,
@@ -363,6 +427,148 @@ function anexarEventoRapido(datos, ctx) {
       }
       return ok(salida);
     } catch (e) { return err('anexarEventoRapido: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/**
+ * Anula UN procedimiento anexado con el ➕ (24-ago-2026, pedido de Manuel: el
+ * sello tardaba en pintarse, la gente reintentaba y quedaban KTM dobles sin
+ * ninguna forma de borrarlas — y la estadística y el REM B.4 cuentan filas de
+ * PROCEDIMIENTOS, así que el duplicado inflaba cifras que salen del hospital).
+ *
+ * Contrato:
+ *  · borra SOLO la fila señalada por ID_PROC, y solo si TIPO_PROC='anexo' —
+ *    los procedimientos del guardado se corrigen re-guardando la evolución.
+ *  · las TRES caras juntas o ninguna: fila de PROCEDIMIENTOS + su hito de
+ *    TIMELINE + una instancia del nombre en PROC_JSON de la evolución. Si el
+ *    hito no aparece, se rechaza completo: borrar solo la fila dejaría la
+ *    línea de tiempo contando lo que la estadística ya no cuenta.
+ *  · mismo candado del ➕ (candado_mas.js): fecha pasada o episodio cerrado
+ *    exigen sesión de coordinación; el anexo de HOY del paciente en su cama
+ *    se borra sin fricción.
+ *  · si un flujo borra hitos, TIMELINE_JSON de la cama se reescribe SIEMPRE.
+ */
+function anularAnexo(datos, ctx) {
+  ctx = ctx || {};
+  return conLock(() => {
+    try {
+      const idProc = String((datos && datos.idProc) || '');
+      if (!idProc) return err('Falta el identificador del anexo.', ERR.VALIDACION);
+
+      const filaProc = repoBuscarPorId('PROCEDIMIENTOS', 'ID_PROC', idProc);
+      if (!filaProc) return err('Ese anexo ya no está en el registro (otro colega pudo haberlo borrado). Actualiza con 🔄.', ERR.VALIDACION);
+      if (String(filaProc.TIPO_PROC) !== 'anexo') {
+        return err('Solo se pueden borrar procedimientos anexados con el ➕. Los del guardado se corrigen re-guardando la evolución del turno.', ERR.VALIDACION);
+      }
+
+      const fecha = _statISO(filaProc.FECHA);
+      const turno = String(filaProc.TURNO || '');
+      const idCama = String(filaProc.ID_CAMA || '');
+      const pidProc = String(filaProc.PATIENT_ID || '');
+      const nombre = String(filaProc.NOMBRE_PROC || '');
+      const turnoKey = fecha + '-' + turno;
+
+      // La evolución dueña, con la misma maquinaria del ➕ (cama rotada incluida).
+      const ubic = _ubicarEvolucionDeTurno(pidProc, turnoKey, idCama);
+      if (ubic && ubic.ambigua) {
+        return err('La cama ' + idCama + ' tuvo dos pacientes en ese turno y el anexo no distingue cuál. Repórtalo a coordinación.', ERR.VALIDACION);
+      }
+
+      const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+      const pidCama = String((cama && cama.PATIENT_ID) || '');
+      const pidEvo = String((ubic && ubic.obj && ubic.obj.PATIENT_ID) || '');
+      const enCama = ubic ? (!pidEvo || (!!pidCama && pidEvo === pidCama))
+                          : (!!cama && esVerdadero(cama.OCUPADA) && (!pidProc || pidProc === pidCama));
+
+      // 🔐 Borrar el pasado tiene la MISMA llave que escribirlo (anexarEventoRapido).
+      const fechaEf = _fechaEfectivaTurno(fecha, turno);
+      const esPasado = fecha !== hoyISO() && fechaEf !== hoyISO();
+      let firmaCoord = '';
+      if (!enCama || esPasado) {
+        const ses = coordExigirSesion(String((datos && datos.coordToken) || ''));
+        if (!ses.ok) {
+          if (datos && datos.coordToken) return err(ses.error, ERR.NO_AUTORIZADO);
+          return err('Borrar un anexo de un turno pasado —o de un paciente que ya no está en la cama— requiere ' +
+            'clave de coordinación: entra en la pestaña 🔐 COORDINACIÓN y vuelve a intentarlo.', ERR.NO_AUTORIZADO);
+        }
+        firmaCoord = String(ses.firma || '');
+      }
+
+      /* El hito emparejado se ubica ANTES de borrar nada. El texto nace de
+         _hitoAnexoPrefijo(nombre); entre candidatos del mismo nombre (los
+         duplicados) gana el de TIMESTAMP más cercano al de la fila — fila e
+         hito nacieron en la misma ejecución del ➕. */
+      const pref = _hitoAnexoPrefijo(nombre);
+      const cand = repoLeerTodosConFila('TIMELINE').filter(function (t) {
+        const h = t.obj;
+        if (String(h.TIPO) !== 'anexo') return false;
+        if (String(h.ID_CAMA) !== idCama || _statISO(h.FECHA) !== fecha || String(h.TURNO) !== turno) return false;
+        const hp = String(h.PATIENT_ID || '');
+        if (pidProc && hp && hp !== pidProc) return false;
+        return String(h.TEXTO || '').indexOf(pref) === 0;
+      });
+      if (!cand.length) {
+        return err('No se encontró el hito de ese anexo en la línea de tiempo, así que NO se borró nada: ' +
+          'borrar solo la fila dejaría el registro y la línea de tiempo diciendo cosas distintas. Repórtalo.', ERR.VALIDACION);
+      }
+      const tsRef = Date.parse(String(filaProc.TIMESTAMP || '')) || 0;
+      cand.sort(function (a, b) {
+        const da = Math.abs((Date.parse(String(a.obj.TIMESTAMP || '')) || 0) - tsRef);
+        const db = Math.abs((Date.parse(String(b.obj.TIMESTAMP || '')) || 0) - tsRef);
+        return da - db;
+      });
+      const hito = cand[0];
+
+      // 1/3 — el hito de la línea de tiempo
+      repoEliminarFilas('TIMELINE', [hito.fila]);
+      // 2/3 — la fila de la estadística (por identidad, jamás «el más parecido»)
+      repoEliminarDonde('PROCEDIMIENTOS', function (r) { return String(r.ID_PROC) === idProc; });
+      // 3/3 — una instancia del nombre en la evolución (si un re-guardado ya la
+      // depuró con su Set, no hay nada que quitar y no es un error)
+      if (ubic && ubic.obj) {
+        const evo = ubic.obj;
+        let procs = [];
+        try { procs = JSON.parse(evo.PROC_JSON || '[]') || []; } catch (e) { procs = []; }
+        const i = procs.indexOf(nombre);
+        if (i !== -1) procs.splice(i, 1);
+
+        /* 🔃 Y SI LO QUE SE ANULA ES UNA PRONACIÓN, SE APAGA SU RELOJ. Desde
+           que el ➕ sella el ciclo (arriba), borrar solo la fila y el hito
+           dejaría `PRONO_INICIO_TS` vivo en la evolución: una pronación abierta
+           que nadie declaró, contándole horas al paciente y sellándoselas al
+           siguiente que supine. Es la familia de la pronación heredada, y aquí
+           la abriría el propio botón de deshacer. Corre aunque el nombre ya no
+           esté en PROC_JSON (un re-guardado pudo depurarlo con su `Set`). */
+        const cicloCampos = {};
+        if (_procClaveHito(nombre) === 'PRONO' && esVerdadero(evo.RESP_PRONO_EVENTO)) {
+          cicloCampos.RESP_POS_PRONO = false;  cicloCampos.RESP_PRONO_EVENTO = false;
+          cicloCampos.RESP_PRONO_HORA = '';    cicloCampos.PRONO_INICIO_TS = '';
+        }
+        if (i !== -1 || Object.keys(cicloCampos).length) {
+          repoEscribirFila(ubic.hoja, ubic.fila, Object.assign({}, evo, cicloCampos, {
+            PROC_JSON: JSON.stringify(procs), PROC_CANTIDAD: procs.length,
+            PROC_RESUMEN: procs.join(', '),
+          }));
+        }
+      }
+
+      /* El JSON de la tarjeta se reescribe SIEMPRE que un flujo borra hitos. Y
+         si la cama quedó sin ninguno, se vacía explícito: la sincronización
+         normal no escribe con lista vacía porque siempre corre tras INSERTAR. */
+      _sincronizarTimelineCama(idCama);
+      if (!repoLeerTodos('TIMELINE', 'ID_CAMA', idCama).length) {
+        repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, { TIMELINE_JSON: '[]' });
+      }
+      SpreadsheetApp.flush();
+
+      return ok({
+        entidad: 'PROCEDIMIENTOS', idCama: idCama, patientId: pidProc || pidEvo,
+        idEvolucion: String((ubic && ubic.obj && ubic.obj.ID_EVOLUCION) || ''),
+        accion: 'anexo anulado: ' + nombre + ' (' + turnoKey + ')' +
+                (firmaCoord ? ' · autorizado por coordinación (' + firmaCoord + ')' : ''),
+        nombre: nombre,
+      });
+    } catch (e) { return err('anularAnexo: ' + e.message, ERR.INTERNO, e); }
   });
 }
 
