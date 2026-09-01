@@ -3632,3 +3632,59 @@ semilla solo se aplica si la hoja está vacía.
   relativa, detalle en la entrada del PR #4). Batería: **89 verdes, 0
   rojas**. Entrega contra la V38 publicada (`1bccc30`): **index + servicios**.
   Sin cambio de esquema.
+
+## v5.85-texto-propio-y-rem (30-ago-2026) — tandas A y B de los siete puntos
+
+Diego levantó siete puntos desde el turno. Dos ya los había resuelto Manuel y se
+descartaron sin tocar nada (ver abajo); de los otros cinco, se ejecutan hoy las
+tandas A y B que él aprobó tras el mockup.
+
+- **A · El texto es de quien lo escribe** (punto 1: «el texto guardado se guarda
+  tal cual… en ocasiones se vuelve a hacer click y se reinicia»). CAUSA: el
+  texto se regeneraba EN VIVO con cada cambio del formulario, y para decidir si
+  podía hacerlo comparaba LETRA POR LETRA lo de pantalla contra lo último del
+  motor. Dos fugas: (1) un turno YA GUARDADO sin marca manual volvía como
+  «texto del generador» y el primer clic lo reescribía entero — ahí se perdía
+  lo escrito; (2) si la edición volvía a coincidir con lo generado, el sistema
+  concluía que no habías editado y retomaba el control.
+  Regla nueva, sin comparaciones: **tocarlo una vez —o que el turno ya esté
+  guardado— lo CONGELA**, y nada vuelve a reescribirlo (ni casillas, ni el
+  guardado, ni reabrirlo mañana). Dos banderas separadas a propósito:
+  `_textoManual` (lo escribió una persona, badge visible) y `_textoCongelado`
+  (nadie lo regenera solo) — un guardado sin retoques tampoco puede
+  reescribirse, pero marcarlo «editado a mano» sería mentir. Un panel nuevo
+  vuelve a estar en vivo: congelar de más obligaría a escribir todo a mano.
+  **👁️ Preview salió de la barra** («solamente existirá botón de guardar»); el
+  texto está siempre a la vista y 🔄 Regenerar sigue con confirmación.
+  Guardia `texto_congelado.js`, vista ROJA primero (9 fallos).
+- **A · «Deterioro» en vez de «Alteración» del nivel de consciencia** (punto 5).
+  Un solo lugar; las evoluciones viejas se siguen viendo por `poblar()` con su
+  «(registro anterior)», el mismo trato de 'Mascarilla'→'MR'.
+- **B · Conciliación del REM** (puntos 3 y 4: «la discrepancia entre REM real y
+  el que genera RCE»). **No cambia NINGUNA cifra**: abre cada casilla y lista
+  las filas que la componen —cama, paciente, fecha y el porqué— para ponerla al
+  lado del papel. Y marca ⚠️ lo que el sistema clasificó de una forma que
+  podría no ser la que espera la unidad: el egreso cuyo motivo suena a
+  fallecimiento pero no dice «fallec…» (**«Óbito» cuenta como ALTA**), el que
+  no tiene motivo escrito, la evaluación del día de ingreso (ya contada en
+  B.2), la extubación «sin condiciones» (que por decisión de jul-2026 no cuenta
+  como extubación), y los marcados ES_INGRESO cuyo episodio empezó otro mes.
+  Se detallan además las asistencias de vía aérea (601171) y las PVE.
+  🔒 Sin RUT: la regla del REM vale también para su conciliación, y hay assert.
+  Guardia `rem_conciliacion.js` con un mes de prueba que reproduce los cinco
+  casos reportados.
+  🪤 Arnés: la plantilla oficial encadena una docena de métodos de rango
+  (`merge`, `breakApart`, `setBorder`…) y usa constantes de estilo. Enumerarlos
+  a mano dejaba la guardia rota con cada método nuevo: se resolvió con un
+  `Proxy` que acepta cualquier llamada y se devuelve a sí mismo.
+- **Descartados sin tocar código, porque Manuel ya los había arreglado**: los
+  ingresos del REM (5.76: agosto pasó de 72 a ~59 — el arranque marcó como
+  ingreso a 13 pacientes que venían de julio) y, muy probablemente, el «PVE = 3»
+  (5.77: hasta esa versión Estadísticas leía SOLO la hoja viva, así que todo
+  egresado desaparecía del mes con sus PVE). Queda pendiente que Diego
+  confirme el PVE con la versión publicada y mande las cifras del REM de papel.
+- **Anotado para la tanda C** (decisión ya tomada por Diego, 30-ago): el evento
+  manual **entra también al texto de la evolución**, no solo a la línea de
+  tiempo.
+- Batería: **109 verdes, 0 rojas**. Espejo «V3 colaborativa» regenerado (la
+  guardia `paridad_v3` de Manuel lo pidió, y funcionó). Sin cambio de esquema.

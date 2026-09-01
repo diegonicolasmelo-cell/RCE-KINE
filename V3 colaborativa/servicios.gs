@@ -5390,6 +5390,45 @@ function _remSexo(s) {
   return x === 'M' ? 'H' : (x === 'F' ? 'M' : '');   // M(asculino)→H(ombre), F(emenino)→M(ujer)
 }
 
+/**
+ * Palabras que pueden significar un fallecimiento pero NO calzan con el
+ * detector oficial (`/fallec/i`), así que hoy caen en «alta». No se cambia la
+ * regla —eso sería decidir por la unidad— pero la conciliación las MARCA para
+ * revisar, junto a los egresos sin motivo escrito. Diego, 30-ago-2026: «en
+ * egresos por fallecimiento también hay discrepancia».
+ */
+var _REM_EGRESO_DUDOSO = /[óo]bito|deceso|muerte|difunt|paro cardio|\bpcr\b|falleci/i;
+
+/**
+ * Conciliación del REM: de qué está hecha cada casilla.
+ *
+ * 🔴 DE DÓNDE SALE (Diego, 30-ago-2026): «la discrepancia entre REM real y el
+ * que genera RCE… da la impresión de no estar considerando los mismos valores
+ * para ingresos, procedimientos, lo mismo para evaluaciones intermedias; en
+ * extubaciones sin protocolo o egresos por fallecimiento también».
+ *
+ * La regla de la casa es no tocar una cifra sin saber por qué difiere. Esto NO
+ * cambia ningún cálculo: acumula, para cada casilla, la LISTA de filas que la
+ * componen —cama, paciente, fecha y el porqué— para poder ponerla al lado del
+ * REM de papel y ver cuál sobra o cuál falta. Sin RUT: es la regla del REM y
+ * esta vista viaja con él.
+ */
+function _remDetalle() {
+  const d = {};
+  return {
+    add: function (casilla, fila) { (d[casilla] = d[casilla] || []).push(fila); return fila; },
+    /** Ordena cada lista por fecha y recorta: la vista es para comparar, no un volcado. */
+    cerrar: function (tope) {
+      const out = {};
+      Object.keys(d).forEach(function (k) {
+        const filas = d[k].slice().sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); });
+        out[k] = { n: filas.length, filas: filas.slice(0, tope || 300), recortada: filas.length > (tope || 300) };
+      });
+      return out;
+    },
+  };
+}
+
 function generarREM(anio, mes, ctx) {
   try {
     anio = String(anio || '').trim(); mes = String(mes || '').trim();
@@ -5421,6 +5460,14 @@ function generarREM(anio, mes, ctx) {
     archivo.forEach(a => { if (a.PATIENT_ID && a.FECHA_INGRESO) fIngresoPid[String(a.PATIENT_ID)] = a.FECHA_INGRESO; });
     camas.forEach(c => { if (c.PATIENT_ID && c.FECHA_INGRESO) fIngresoPid[String(c.PATIENT_ID)] = c.FECHA_INGRESO; });
 
+    // Nombre por paciente, solo para la conciliación (nunca RUT).
+    const nombrePid = {};
+    archivo.forEach(a => { if (a.PATIENT_ID && a.NOMBRE) nombrePid[String(a.PATIENT_ID)] = a.NOMBRE; });
+    camas.forEach(c => { if (c.PATIENT_ID && c.NOMBRE) nombrePid[String(c.PATIENT_ID)] = c.NOMBRE; });
+    todasEvos.forEach(e => { if (e.PATIENT_ID && e.PAC_NOMBRE && !nombrePid[String(e.PATIENT_ID)]) nombrePid[String(e.PATIENT_ID)] = e.PAC_NOMBRE; });
+    const _nom = pid => String(nombrePid[String(pid)] || '(sin nombre)');
+    const DET = _remDetalle();
+
     // ── Sección A: ingresos del mes ──
     // Un ES_INGRESO cuenta como ingreso DEL MES solo si el episodio empezó dentro
     // del mes. Al arrancar el sistema (1-ago-2026) se marcó ES_INGRESO a todo el
@@ -5429,12 +5476,22 @@ function generarREM(anio, mes, ctx) {
     // Sin fecha de ingreso conocida SÍ cuenta: se excluye solo con evidencia, para
     // que una ficha incompleta no haga desaparecer un ingreso verdadero.
     const ingresosPids = {};
+    const ingresosFuera = {};   // marcados ES_INGRESO pero de un episodio anterior
     evoMes.forEach(e => {
       if (!esVerdadero(e.ES_INGRESO) || !e.PATIENT_ID) return;
-      const fIng = fIngresoPid[String(e.PATIENT_ID)];
-      if (fIng && !enMes(fIng)) return;
-      ingresosPids[String(e.PATIENT_ID)] = true;
+      const pid = String(e.PATIENT_ID);
+      const fIng = fIngresoPid[pid];
+      if (fIng && !enMes(fIng)) { ingresosFuera[pid] = _statISO(fIng); return; }
+      ingresosPids[pid] = true;
     });
+    Object.keys(ingresosPids).forEach(pid => DET.add('ingresos', {
+      cama: '', nombre: _nom(pid), fecha: _statISO(fIngresoPid[pid] || ''),
+      porque: fIngresoPid[pid] ? 'ingresó en el mes' : 'sin fecha de ingreso en ficha: se cuenta igual' }));
+    // Los excluidos también se muestran: son la diferencia contra el conteo viejo
+    // y lo primero que alguien va a querer revisar contra el papel.
+    Object.keys(ingresosFuera).forEach(pid => DET.add('ingresosExcluidos', {
+      cama: '', nombre: _nom(pid), fecha: ingresosFuera[pid],
+      porque: 'marcado como ingreso, pero su episodio empezó antes del mes' }));
     const nIngresos = Object.keys(ingresosPids).length;
 
     // matriz diagnóstico × sexo × rango (+ totales)
@@ -5456,10 +5513,21 @@ function generarREM(anio, mes, ctx) {
     const egresosMes = archivo.filter(a => enMes(a.FECHA_EGRESO));
     const egAlta = cero(), egFallece = cero();
     egresosMes.forEach(a => {
-      const fallece = /fallec/i.test(String(a.MOTIVO_EGRESO || ''));
+      const motivo = String(a.MOTIVO_EGRESO || '');
+      const fallece = /fallec/i.test(motivo);
       const o = fallece ? egFallece : egAlta;   // alta incluye traslados (acuerdo jul-2026)
       const rg = _remRango(a.EDAD), sx = _remSexo(a.SEXO);
       o.T++; if (sx) o[sx]++; if (rg && sx) o[rg + sx]++;
+      // 🔎 Lo que la conciliación viene a mostrar: un egreso que NO dice
+      // «fallec…» cae en alta, aunque el motivo escrito suene a fallecimiento
+      // («óbito», «paro») o esté en blanco. No se cambia la regla; se marca.
+      const dudoso = !fallece && (!motivo.trim() || _REM_EGRESO_DUDOSO.test(motivo));
+      DET.add(fallece ? 'egresosFallecimiento' : 'egresosAlta', {
+        cama: String(a.ID_CAMA || ''), nombre: String(a.NOMBRE || _nom(a.PATIENT_ID)),
+        fecha: _statISO(a.FECHA_EGRESO),
+        porque: motivo.trim() ? 'motivo: ' + motivo : 'sin motivo escrito',
+        revisar: dudoso ? (motivo.trim() ? 'el motivo no dice «fallec…», así que cuenta como ALTA'
+                                         : 'sin motivo: cuenta como ALTA') : '' });
     });
 
     // ── B.2 eval inicial (= ingresos) y B.3 eval intermedia (1 por día evaluado) ──
@@ -5481,11 +5549,26 @@ function generarREM(anio, mes, ctx) {
     evoMes.forEach(e => {
       const pid = String(e.PATIENT_ID || ''), dia = _statISO(e.FECHA), key = pid + '|' + dia;
       if (diaIngreso[key] || diasEvaluados[key]) return;
-      const tiene = _REM_EVAL_CAMPOS.some(c => String(e[c] === undefined ? '' : e[c]).trim() !== '');
-      if (!tiene) return;
+      const cuales = _REM_EVAL_CAMPOS.filter(c => String(e[c] === undefined ? '' : e[c]).trim() !== '');
+      if (!cuales.length) return;
       diasEvaluados[key] = true;
       const p = pacAttr[pid] || {}, rg = _remRango(p.edad), sx = p.sexo;
       evalInt.T++; if (sx) evalInt[sx]++; if (rg && sx) evalInt[rg + sx]++;
+      // QUÉ medición la hizo contar: si el papel cuenta otra cosa —o cuenta por
+      // TURNO y no por día— la diferencia se ve aquí sin adivinar.
+      DET.add('evalIntermedia', { cama: String(e.ID_CAMA || ''), nombre: _nom(pid), fecha: dia,
+        porque: 'turno ' + String(e.TURNO || '') + ' · ' +
+          cuales.map(c => c.replace(/^EVAL_T_/, '').replace('CPAX_TOTAL', 'CPAx')).join(', ') });
+    });
+    // Los días que NO contaron y por qué: el otro lado de la resta.
+    evoMes.forEach(e => {
+      const pid = String(e.PATIENT_ID || ''), dia = _statISO(e.FECHA), key = pid + '|' + dia;
+      if (!diaIngreso[key]) return;
+      const cuales = _REM_EVAL_CAMPOS.filter(c => String(e[c] === undefined ? '' : e[c]).trim() !== '');
+      if (!cuales.length) return;
+      DET.add('evalIntermediaExcluida', { cama: String(e.ID_CAMA || ''), nombre: _nom(pid), fecha: dia,
+        porque: 'es el día del ingreso: su evaluación ya se contó en B.2 (inicial)',
+        revisar: 'si en el papel la cuentas también como intermedia, aquí está la diferencia' });
     });
 
     // ── B.4 sesiones (KTR cantidad + KTM cantidad) y B.6 procedimientos ──
@@ -5525,6 +5608,16 @@ function generarREM(anio, mes, ctx) {
     const nIntub = evoMes.filter(e => esVerdadero(e.INTUB_OCURRIO)).length;
     const nReintub = repoLeerTodos('REINTUBACIONES').filter(r => enMes(r.FECHA)).length;
     const nCanula = evoMes.filter(e => esVerdadero(e.TQT_CAMBIO)).length;
+    evoMes.forEach(e => {
+      const pid = String(e.PATIENT_ID || '');
+      if (esVerdadero(e.INTUB_OCURRIO)) DET.add('asistenciasVA', { cama: String(e.ID_CAMA || ''),
+        nombre: _nom(pid), fecha: _statISO(e.FECHA), porque: 'intubación' + (e.INTUB_HORA ? ' ' + e.INTUB_HORA : '') });
+      if (esVerdadero(e.TQT_CAMBIO)) DET.add('asistenciasVA', { cama: String(e.ID_CAMA || ''),
+        nombre: _nom(pid), fecha: _statISO(e.FECHA), porque: 'cambio de cánula de TQT' });
+    });
+    repoLeerTodos('REINTUBACIONES').filter(r => enMes(r.FECHA)).forEach(r => DET.add('asistenciasVA', {
+      cama: String(r.ID_CAMA || ''), nombre: _nom(r.PATIENT_ID), fecha: _statISO(r.FECHA),
+      porque: 'reintubación' + (r.HORA ? ' ' + r.HORA : '') }));
     // Inicios de VNI: turno en VNI cuyo turno previo del episodio no lo estaba.
     // ⚠️ El valor que guarda el catálogo es 'VNI' (VENT_SOPORTE); 'VMNI' es el
     // nombre del código en el formulario REM, no un valor del sistema. Comparar
@@ -5539,11 +5632,34 @@ function generarREM(anio, mes, ctx) {
       let prev = '';
       evs.forEach(e => {
         const sop = String(e.VENT_SOPORTE || '');
-        if (_esVNI(sop) && !_esVNI(prev) && enMes(e.FECHA)) nVMNIini++;
+        if (_esVNI(sop) && !_esVNI(prev) && enMes(e.FECHA)) {
+          nVMNIini++;
+          DET.add('asistenciasVA', { cama: String(e.ID_CAMA || ''), nombre: _nom(pid),
+            fecha: _statISO(e.FECHA), porque: 'inicio de VNI' });
+        }
         prev = sop;
       });
     });
     const nAsistVA = nIntub + nReintub + nVMNIini + nCanula;
+
+    /* ── Fuera del REM, pero pedido en la misma conversación (Diego, 30-ago):
+       las EXTUBACIONES —donde «sin condiciones» no cuenta como extubación
+       (decisión clínica de jul-2026, y candidata firme a explicar su
+       discrepancia)— y las PVE del mes, que él vio en 3. */
+    evoMes.forEach(e => {
+      const pid = String(e.PATIENT_ID || ''), f = _statISO(e.FECHA), cama = String(e.ID_CAMA || '');
+      const tipo = String(e.EXT_TIPO || '');
+      if (esVerdadero(e.EXT_OCURRIO)) {
+        DET.add('extubaciones', { cama: cama, nombre: _nom(pid), fecha: f,
+          porque: (tipo || 'sin tipo declarado') + (e.EXT_HORA ? ' · ' + e.EXT_HORA : '') });
+      } else if (tipo === 'sin_condiciones') {
+        DET.add('extubacionesNoContadas', { cama: cama, nombre: _nom(pid), fecha: f,
+          porque: 'marcada «sin condiciones»',
+          revisar: 'por decisión clínica de jul-2026 NO cuenta como extubación' });
+      }
+      if (String(e.PVE_VAL) === 'si') DET.add('pve', { cama: cama, nombre: _nom(pid), fecha: f,
+        porque: 'PVE realizada' + (e.PVE_RESULTADO ? ' · ' + e.PVE_RESULTADO : '') });
+    });
 
     // ── Escribir la hoja REM_28 ──
     const nombreMes = new Date(parseInt(anio), parseInt(mm) - 1, 1)
@@ -5687,6 +5803,8 @@ function generarREM(anio, mes, ctx) {
 
     return ok({
       mesKey: prefijo, textoREM: textoREM, hoja: 'REM_28',
+      // Conciliación: de qué está hecha cada casilla (no cambia ninguna cifra).
+      detalle: DET.cerrar(300),
       ingresos: nIngresos, egresosAlta: egAlta.T, egresosFallecimiento: egFallece.T,
       evalInicial: evalIni.T, evalIntermedia: evalInt.T, sesiones: sesiones.T,
       sumKTR: sumKTR, sumKTM: sumKTM, turnosIMT: turnosIMT, turnosEMS: turnosEMS,
