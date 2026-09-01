@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.84-horas-de-prono-a-la-vista">
+<meta name="rce-version" content="5.85-texto-propio-y-rem">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1890,6 +1890,10 @@ document.documentElement.setAttribute('data-piel', 'inst');
         <span style="font-size:.72rem;color:#94a3b8;">Genera la hoja «REM_28» en la planilla (detalle por sexo, edad y diagnóstico) y guarda el resumen del mes.</span>
       </div>
       <pre id="remOut" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:14px 16px;font-size:.8rem;line-height:1.6;overflow-x:auto;white-space:pre-wrap;">Elige un mes y pulsa Generar.</pre>
+      <!-- 🔎 CONCILIACIÓN (30-ago-2026, pedido de Diego): de qué está hecha
+           cada cifra. No cambia ningún cálculo — lista las filas que la
+           componen para poder ponerlas al lado del REM de papel. -->
+      <div id="remConcil" class="hidden" style="margin-top:12px;"></div>
     </details>
     <!-- Control de calidad del registro (pacientes ingresados) -->
     <details id="audBox" class="no-print" style="margin:0 0 14px;border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;">
@@ -4131,7 +4135,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <div class="act-bar">
         <span id="gSinGuardar" class="hidden" style="align-self:center;font-size:.72rem;font-weight:800;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;border-radius:20px;padding:3px 10px;margin-right:6px;white-space:nowrap;">⚠️ Sin guardar</span>
         <button type="button" id="btnGuardar" class="btn btn-p" data-nodirty onclick="guardar()">💾 Guardar Evolución</button>
-        <button type="button" class="btn btn-r" style="width:auto;padding:0 15px;flex-shrink:0;" data-nodirty onclick="previewTexto()">👁️ Preview</button>
+<!-- 👁️ Preview salió de la barra (Diego, 30-ago-2026: «solamente existirá
+             botón de guardar»). El texto está siempre a la vista, arriba. -->
         <button type="button" id="btnCerrarPost" class="btn" style="width:auto;padding:0 15px;flex-shrink:0;background:#334155;color:#fff;display:none;" data-nodirty onclick="cerrarPanel()">✖ Cerrar</button>
       </div>
     </form>
@@ -4415,7 +4420,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.84-horas-de-prono-a-la-vista]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.85-texto-propio-y-rem]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -6704,11 +6709,17 @@ function guardar() {
   const _exito=r=>{
     btn.disabled=false; btn.textContent='✅ Guardado';
     toast('✅ Evolución guardada correctamente');
-    // Texto DEFINITIVO: si hubo edición manual, lo de pantalla ES lo guardado
-    // (no se toca); si no, se refleja el texto que confirmó el servidor.
+    /* Texto DEFINITIVO. Si hubo edición manual, lo de pantalla ES lo guardado y
+       no se toca. Si no, se refleja el que confirmó el servidor — y desde aquí
+       queda CONGELADO (30-ago-2026): el turno ya está guardado, así que tocar
+       una casilla después no puede reescribir lo que quedó archivado. Antes se
+       marcaba como «generado» y seguía en vivo: ésa era la puerta por la que el
+       texto «se reiniciaba» al volver a hacer clic. */
     if(!_textoManual){
       $('rtxt').value = (r && r.TEXTO_GENERADO) || genTexto();
-      _marcarTextoGenerado($('rtxt').value);
+      _rtxtGen = $('rtxt').value;
+      _rtxtGenBloq = (window._TXB_ULT||[]).slice();
+      _congelarTexto(true);
     }
     show('rarea');
     // SIN desplazarse al texto (Diego, 15-ago-2026: «que solo guarde antes
@@ -8453,9 +8464,13 @@ function _bindPanelListeners(){
 }
 _bindPanelListeners();
 
-//  PREVIEW TEXTO (local) — con edición manual pendiente NO regenera (solo muestra)
+/* previewTexto — el botón 👁️ Preview SALIÓ de la barra de acciones (Diego,
+   30-ago-2026: «solamente existirá botón de guardar»). El texto vive siempre a
+   la vista, arriba de la barra, así que el botón solo servía para reescribirlo.
+   La función queda para el tutorial y para cualquier llamada suelta, pero YA NO
+   regenera si el texto está congelado: solo lo muestra. */
 function previewTexto() {
-  if(!_textoManual){ $('rtxt').value = genTexto(); _marcarTextoGenerado($('rtxt').value); }
+  if(!_textoManual && !_textoCongelado){ $('rtxt').value = genTexto(); _marcarTextoGenerado($('rtxt').value); }
   show('rarea');
   $('rtxt').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -8465,20 +8480,24 @@ function copiar() {
   window.getSelection()?.removeAllRanges();
 }
 
-// ── EDITOR DE TEXTO (opción A) ─────────────────────────────────────────────
-// El texto es un editor real: se regenera EN VIVO mientras se llenan casillas
-// y se puede escribir encima cuando se quiera. Al primer retoque manual la
-// regeneración automática se PAUSA (badge «editado a mano» + 🔄 Regenerar,
-// que descarta lo editado previa confirmación). Se guarda TAL CUAL lo que
-// está en pantalla; la salida del motor viaja aparte (TEXTO_AUTO) para
-// trazabilidad y para refinar el generador comparando ambos.
-let _rtxtGen='';          // último texto salido del motor (para detectar edición)
+// ── EDITOR DE TEXTO ────────────────────────────────────────────────────────
+// El texto es un editor real: se arma solo mientras se llenan casillas, y se
+// puede escribir encima cuando se quiera. Desde el 30-ago-2026 (Diego) hay UNA
+// regla y sin comparaciones: EN CUANTO ALGUIEN LO TOCA —o el turno ya se
+// guardó— el texto queda CONGELADO y nada vuelve a reescribirlo solo. Ni al
+// tocar casillas, ni al guardar, ni al reabrir el turno mañana. Volver al
+// automático es un acto explícito: 🔄 Regenerar, con confirmación.
+// Se guarda TAL CUAL lo que está en pantalla; la salida del motor viaja aparte
+// (TEXTO_AUTO) para trazabilidad y para refinar el generador comparando ambos.
+let _rtxtGen='';          // último texto salido del motor (referencia, ya no juez)
 let _rtxtGenBloq=[];      // etiquetas de bloque alineadas 1:1 con _rtxtGen
 let _textoManual=false;   // el texto en pantalla tiene retoques manuales
+let _textoCongelado=false; // nadie lo regenera solo (editado o ya guardado)
 function _marcarTextoGenerado(t){
   _rtxtGen = t||'';
   _rtxtGenBloq = (window._TXB_ULT||[]).slice();
   _setTextoManual(false);
+  _congelarTexto(false);   // texto recién salido del motor: puede seguir en vivo
 }
 /* Nombre legible de cada bloque del motor, para poder avisar en cristiano
    cuál quedó desfasado. El que no esté aquí sale con su clave. */
@@ -8509,10 +8528,21 @@ function _bloquesDesfasados(){
     .map(k=>({ bloque:TXB_NOMBRE[k]||k,
                antes:(A[k]||[]).join(' ').trim(), ahora:(B[k]||[]).join(' ').trim() }));
 }
+/* Dos estados, no uno:
+     _textoManual   — lo escribió una persona (badge «✍️ editado a mano»)
+     _textoCongelado — nadie lo regenera solo; lo activan la edición Y también
+                       el hecho de que el turno YA esté guardado.
+   Se separan porque un texto guardado sin retoques tampoco puede reescribirse
+   solo (esa era la fuga), pero no es honesto marcarlo como «editado a mano». */
+function _congelarTexto(on){
+  _textoCongelado=!!on;
+  const r=$('btnRegenTexto'); if(r) r.style.display=(on||_textoManual)?'':'none';
+}
 function _setTextoManual(on){
   _textoManual=!!on;
+  if(on) _textoCongelado=true;     // editado ⇒ congelado, siempre
   const b=$('rtxtEditBadge'); if(b) b.style.display=on?'':'none';
-  const r=$('btnRegenTexto'); if(r) r.style.display=on?'':'none';
+  const r=$('btnRegenTexto'); if(r) r.style.display=(on||_textoCongelado)?'':'none';
 }
 function regenerarTexto(){
   const regen=()=>{ $('rtxt').value=genTexto(); _marcarTextoGenerado($('rtxt').value); };
@@ -8523,8 +8553,15 @@ function regenerarTexto(){
     confirmar:'🔄 Regenerar', tono:'rojo',
   }).then(ok=>{ if(ok) regen(); });
 }
-// Mostrar el editor al abrir un turno: si el turno guardado traía edición
-// manual, se respeta (regeneración en pausa); si no, texto del motor en vivo.
+/* Mostrar el editor al abrir un turno.
+   🔴 EL TEXTO DE UN TURNO YA GUARDADO NO SE REGENERA NUNCA (Diego, 30-ago-2026:
+   «el texto guardado se guarda tal cual… en ocasiones se vuelve a hacer click y
+   se reinicia»). Hasta hoy, un turno guardado SIN marca de edición manual
+   volvía como «texto del generador», y el primer clic en cualquier casilla lo
+   reescribía entero — ahí se perdía lo que el colega había dejado escrito, sin
+   aviso. Ahora el texto guardado llega CONGELADO: es un registro clínico
+   archivado, no un borrador que la app pueda rehacer por su cuenta. Solo el
+   botón 🔄 Regenerar, con confirmación, vuelve al automático. */
 function _mostrarEditorTexto(s){
   const manual = s && (s.TEXTO_MANUAL===true||s.TEXTO_MANUAL==='TRUE') && s.TEXTO_GENERADO;
   if(manual){
@@ -8533,23 +8570,29 @@ function _mostrarEditorTexto(s){
     _setTextoManual(true);
   } else if(s && s.TEXTO_GENERADO){
     $('rtxt').value=s.TEXTO_GENERADO;
-    _marcarTextoGenerado(s.TEXTO_GENERADO);
+    _rtxtGen=String(s.TEXTO_AUTO||s.TEXTO_GENERADO);
+    _congelarTexto(true);          // guardado = intocable hasta que alguien lo pida
   } else {
     $('rtxt').value=genTexto();
     _marcarTextoGenerado($('rtxt').value);
   }
   show('rarea');
 }
-// Escribir en el textarea marca (o desmarca, si vuelve a coincidir) la edición
-$('rtxt')?.addEventListener('input', ()=>{ _setTextoManual($('rtxt').value !== _rtxtGen); });
+/* Tocar el texto lo hace TUYO, y punto: sin comparar letra por letra con lo
+   que salió del generador (Diego, 30-ago-2026: «sin comparaciones ni nada por
+   el estilo, lo que se modifica se edita»). La comparación de antes tenía una
+   fuga real: si la edición volvía a coincidir con lo generado —una coma puesta
+   y sacada— el sistema concluía que no habías editado nada y retomaba el
+   control del texto. */
+$('rtxt')?.addEventListener('input', ()=>{ if(!_textoManual) _setTextoManual(true); });
 // Regeneración EN VIVO al cambiar el formulario, solo sin edición manual
 let _rtxtTimer=null;
 function _rtxtLive(ev){
   if(ev && ev.target && ev.target.id==='rtxt') return;   // escribir el texto no lo regenera
-  if(_textoManual) return;
+  if(_textoManual || _textoCongelado) return;
   clearTimeout(_rtxtTimer);
   _rtxtTimer=setTimeout(()=>{
-    if(_textoManual) return;
+    if(_textoManual || _textoCongelado) return;
     const ra=$('rarea'); if(!ra||ra.classList.contains('hidden')) return;
     $('rtxt').value=genTexto(); _rtxtGen=$('rtxt').value;
   },250);
@@ -11564,7 +11607,11 @@ const KTMmap={
     'Neuroquirúrgica':['Inestabilidad neuroquirúrgica','PIC >20 mmHg'],
     'Dispositivos':['CVC o línea arterial insegura para la movilización'],
     'Metabólica':['ELP alterado'],
-    'Clínica':['Alteración del nivel de consciencia','Sudoración profusa','Cambios de la coloración de la piel','Dolor de difícil control'],
+    // «Deterioro», no «Alteración» (Diego, 30-ago-2026): es la palabra que usa
+    // la unidad. Las evoluciones ya guardadas con la redacción vieja se siguen
+    // viendo — `poblar()` reinyecta el valor guardado marcándolo «(registro
+    // anterior)», el mismo trato que 'Mascarilla'→'MR' y 'KTMC manual'.
+    'Clínica':['Deterioro del nivel de consciencia','Sudoración profusa','Cambios de la coloración de la piel','Dolor de difícil control'],
   },
 };
 //  RELOJ
@@ -15703,7 +15750,62 @@ function generarREMui(){
   gs('GENERAR_REM',{anio,mes}, d=>{
     $('remOut').textContent=(d&&d.textoREM)||'Sin datos para el período.';
     $('remCopy').disabled=false;
-  }, e=>{ $('remOut').textContent='❌ '+e; });
+    remConciliacion(d&&d.detalle);
+  }, e=>{ $('remOut').textContent='❌ '+e; hide('remConcil'); });
+}
+
+/* ── 🔎 CONCILIACIÓN DEL REM ──────────────────────────────────────────────
+   «La discrepancia entre el REM real y el que genera RCE» (Diego, 30-ago-2026).
+   Antes de mover una fórmula hay que saber POR QUÉ difiere: esta vista abre
+   cada cifra y muestra las filas que la componen —cama, paciente, fecha y el
+   porqué— para ponerla al lado del papel. No calcula nada: solo muestra.
+   Las filas marcadas ⚠️ son las que el sistema clasificó de una forma que
+   podría no ser la que espera la unidad; son el primer lugar donde mirar. */
+const REM_CONCIL_SECS=[
+  ['ingresos','Ingresos del mes','Episodios que EMPEZARON dentro del mes'],
+  ['ingresosExcluidos','⚠️ Marcados como ingreso, pero de un mes anterior','No cuentan (los reportó el mes en que ingresaron)'],
+  ['egresosFallecimiento','Egresos por fallecimiento','El motivo escrito dice «fallec…»'],
+  ['egresosAlta','Egresos por alta (incluye traslados)','Todo egreso cuyo motivo no dice «fallec…»'],
+  ['evalIntermedia','B.3 · Evaluación intermedia','Un día por paciente con al menos una medición, sin el día del ingreso'],
+  ['evalIntermediaExcluida','⚠️ Evaluaciones del día del ingreso','Ya contadas como evaluación inicial (B.2)'],
+  ['asistenciasVA','601171 · Asistencias de vía aérea','Intubaciones + reintubaciones + inicios de VNI + cambios de cánula'],
+  ['extubaciones','Extubaciones del mes','No es casilla del REM; va porque reportaste diferencias'],
+  ['extubacionesNoContadas','⚠️ «Sin condiciones» — NO cuentan como extubación','Decisión clínica de julio-2026'],
+  ['pve','PVE realizadas','Turnos con PVE declarada'],
+];
+function remConciliacion(det){
+  const cont=$('remConcil'); if(!cont) return;
+  if(!det||!Object.keys(det).length){ hide('remConcil'); return; }
+  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const _dm=f=>{ const s=String(f||'').slice(0,10); return /^\d{4}-\d{2}-\d{2}$/.test(s)?s.slice(8,10)+'-'+s.slice(5,7):(s||'—'); };
+  const bloques=REM_CONCIL_SECS.map(([k,titulo,regla])=>{
+    const b=det[k]; if(!b||!b.n) return '';
+    const ojo=b.filas.filter(f=>f.revisar).length;
+    return `<details style="border:1px solid var(--border);border-radius:8px;margin-bottom:7px;background:#fff;">
+      <summary style="cursor:pointer;padding:8px 11px;font-size:.79rem;font-weight:800;">
+        ${esc(titulo)} <span style="color:var(--pdark);">· ${b.n}</span>
+        ${ojo?`<span style="font-weight:700;font-size:.7rem;color:#b45309;background:#fef3c7;border-radius:20px;padding:1px 8px;margin-left:6px;">${ojo} para revisar</span>`:''}
+      </summary>
+      <div style="padding:0 11px 10px;">
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:7px;">Regla: ${esc(regla)}.</div>
+        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.74rem;">
+          <tr><th style="text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);">Cama</th>
+              <th style="text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);">Paciente</th>
+              <th style="text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);">Fecha</th>
+              <th style="text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);">Por qué está en esta cifra</th></tr>
+          ${b.filas.map(f=>`<tr${f.revisar?' style="background:#fffbeb;"':''}>
+            <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;">${esc(f.cama)||'—'}</td>
+            <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;">${esc(f.nombre)}</td>
+            <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;white-space:nowrap;">${_dm(f.fecha)}</td>
+            <td style="padding:4px 6px;border-bottom:1px solid #f1f5f9;">${esc(f.porque)}${f.revisar?`<br><b style="color:#b45309;">⚠️ ${esc(f.revisar)}</b>`:''}</td></tr>`).join('')}
+        </table></div>
+        ${b.recortada?`<div style="font-size:.7rem;color:var(--muted);margin-top:6px;">Se muestran las primeras ${b.filas.length} de ${b.n}.</div>`:''}
+      </div></details>`;
+  }).join('');
+  cont.innerHTML=`<div style="font-size:.8rem;font-weight:800;margin-bottom:8px;">🔎 De qué está hecha cada cifra</div>
+    <div style="font-size:.73rem;color:var(--muted);margin-bottom:9px;">Compara estas listas con el REM de papel: lo que sobra o falta queda a la vista con nombre y fecha. Esta vista no cambia ninguna cifra.</div>
+    ${bloques||'<i style="font-size:.76rem;color:var(--muted);">Sin filas que mostrar en el período.</i>'}`;
+  show('remConcil');
 }
 function copiarREM(){
   const t=$('remOut').textContent||'';
