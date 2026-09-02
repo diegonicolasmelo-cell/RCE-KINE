@@ -346,8 +346,18 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
 - 🆕 **Plantillas de evolución tipo TrakCare** (2-sep-2026, idea de Diego
   desde una capacitación): plantillas según el caso + plantillas
   personalizadas creadas por los clínicos. Conversación ABIERTA, sin
-  decisión ni código. Conecta con «Mi estilo» (ya diseñado, esperando
-  material) — no duplicar: son la misma familia.
+  decisión ni código. Mockup con las tres opciones publicado:
+  `https://claude.ai/code/artifact/f812cb92-ac90-4950-bc5c-e91188b378d0`
+  — C frases rápidas (chica) · B plantilla personal con comodines (media;
+  REEMPLAZA el plan viejo de «Mi estilo»: ya no hacen falta las 20-30
+  evoluciones por persona) · A plantillas según el caso (grande, PRD
+  completo: toca el motor del texto en cliente y servidor). Orden
+  propuesto C→B→A. Esperando sus 4 respuestas: ① cuáles entran y en qué
+  orden ② B: ¿reemplaza o se agrega al motor? ③ C: ¿frases de la unidad,
+  personales o ambas, y quién las cura? ④ A: ¿los 6 casos propuestos son
+  los correctos? Regla madre ya fijada: nada pisa texto tocado o guardado
+  (v5.85); las plantillas viven en hojas-catálogo, sin cambio de esquema
+  en EVOLUCIONES.
 - ✅ **HEPA fijo en PB y Avea: RESUELTO en la v5.60** (14-ago, con las tres
   respuestas de Diego: instalación como referencia sin cambio · la Vela sigue
   con ciclo · sin ventilador no aplica HEPA). La regla vive en
