@@ -1982,16 +1982,6 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   // en una estadía larga lo primero que se caía era la intubación del día 1.
   const hito = t => eventos.push({ t: t, fijo: true });
   const otro = t => eventos.push({ t: t, fijo: false });
-  // «Cuántos bloques de 12 h lleva» (Manuel, sep-2026): el sistema ya piensa
-  // en turnos de 12 h (Día/Noche), así que expresar una duración larga en esa
-  // unidad se lee más rápido en la ronda que una cifra decimal de horas.
-  // Vacío si no llega a 12 h — no aporta nada decirlo.
-  const _bloques12h = horas => {
-    const h = parseFloat(String(horas).replace(',', '.'));
-    if (isNaN(h) || h < 12) return '';
-    const n = Math.floor(h / 12);
-    return ' (' + n + ' bloque' + (n === 1 ? '' : 's') + ' de 12h)';
-  };
   // «Cambio de soporte respiratorio» fuera de un procedimiento (Manuel,
   // sep-2026): VMI ↔ VNI ↔ Oxigenoterapia, para episodios que NO están en
   // TQT (la vía TQT tiene su propio relato: Desvinculación de VM, más abajo).
@@ -2071,7 +2061,7 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     if (_supEv) {
       const _ph = String(ev.PRONO_HORAS === 0 ? '0' : (ev.PRONO_HORAS || '')).replace('.', ',');
       otro('<b>🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : '') +
-        (_ph ? ' · tras ' + _ph + ' h en prono' + _bloques12h(ev.PRONO_HORAS) : '') + '</b>');
+        (_ph ? ' · tras ' + _ph + ' h en prono' : '') + '</b>');
     }
   });
 

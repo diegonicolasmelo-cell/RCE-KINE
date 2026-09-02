@@ -50,7 +50,7 @@ function construirEventos(i, carga) {
     case 3: return (carga === 'alta')
       ? ['<b>🔄 Cambio de soporte: VNI → Oxigenoterapia 06-08 · turno 🌙 Noche</b>', '▲ PVE superada 07-08']
       : ['<b>🔄 Cambio de soporte: VNI → Oxigenoterapia 06-08 · turno 🌙 Noche</b>'];
-    case 4: return ['<b>🔃 Prono 05-08 20:00 hrs</b>', '<b>🔃 Supino 06-08 21:30 hrs · tras 25,5 h en prono (2 bloques de 12h)</b>'];
+    case 4: return ['<b>🔃 Prono 05-08 20:00 hrs</b>', '<b>🔃 Supino 06-08 21:30 hrs · tras 25,5 h en prono</b>'];
     default: return [];
   }
 }
