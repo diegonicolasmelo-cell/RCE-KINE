@@ -369,11 +369,30 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   lista paginada sin filtro; y **los typos guardados se replican** en cada
   ficha («embaazada», «compromispo», «anamanesis»). De ahí salen cinco
   no-objetivos y sus guardias futuras.
-  · Falta que responda 4 cosas: ① ¿varias plantillas por colega (una por
-  caso, recomendada) o una sola? ② ¿la barra reemplaza la fila de eventos de
-  la tanda D? ③ con la cama asignada, ¿la plantilla se aplica sola (panel
-  limpio) u solo se ofrece? ④ ¿quién publica las plantillas **de la unidad**
-  — propuesta: las tres firmas de coordinación?
+  · **Cerrado el 2-sep**: varias plantillas **por caso Y por colega**; el
+  catálogo **se filtra al seleccionar la cama** (primero las del colega
+  asignado, luego las de la unidad, y las **de otros colegas al final** —
+  se pueden usar igual); usar la plantilla de otro NO cambia la firma.
+  · 🔴 **Corrección clínica de Diego**: «el proceso de weaning es un proceso
+  largo, **no siempre define extubar**». O sea **la fase es del PACIENTE**
+  (dura semanas, se hereda) **y el caso de la plantilla es del TURNO**. Un
+  caso «Weaning» a secas estaba mal. Catálogo propuesto de 13 casos anclado
+  a lo que el formulario YA registra: VM sin destete (`PVE_VAL='nc'`) ·
+  Destete diferido (`PVE_VAL='no'` + una de las 9 razones de `fPveSCraz`) ·
+  PVE fracasada (`PVE_RESULTADO='frustra'`) · Extubación (`'superada'`) ·
+  Post-extubación · Reintubación · TQT · Destete por TQT · Decanulación ·
+  Ingreso · Prono · Rehabilitación · Sin novedades.
+  · 🔑 **Decisión de diseño para que el catálogo no explote**: el grado del
+  destete NO abre casos nuevos, viaja como comodín `{weaning_grado}`. La
+  app ya lo calcula en **`_weanClase`** (index ~4513): *difícil* = ≥1 PVE
+  fracasada, *prolongado* = ≥3 fracasos o >7 días desde la 1ª PVE; hoy solo
+  pinta la tarjeta de cama.
+  · Falta que responda: ① **¿el catálogo de 13 casos es el correcto?** (la
+  pregunta que define todo lo demás) ② ⚠️ **¿existe «PVE superada sin
+  extubar»?** — hoy el formulario asume superada ⇒ extubación (pide hora);
+  si pasa en la unidad falta el caso Y un campo ③ ¿la barra reemplaza la
+  fila de eventos de la tanda D? ④ ¿quién publica las plantillas **de la
+  unidad** — propuesta: las tres firmas de coordinación?
   · Regla madre intocable: nada pisa texto tocado o guardado (v5.85). Sin
   cambio de esquema en EVOLUCIONES: hoja-catálogo aparte. **La opción C
   (frases rápidas) queda en el banco**, no descartada.
