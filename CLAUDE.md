@@ -387,12 +387,17 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   app ya lo calcula en **`_weanClase`** (index ~4513): *difícil* = ≥1 PVE
   fracasada, *prolongado* = ≥3 fracasos o >7 días desde la 1ª PVE; hoy solo
   pinta la tarjeta de cama.
-  · Falta que responda: ① **¿el catálogo de 13 casos es el correcto?** (la
-  pregunta que define todo lo demás) ② ⚠️ **¿existe «PVE superada sin
-  extubar»?** — hoy el formulario asume superada ⇒ extubación (pide hora);
-  si pasa en la unidad falta el caso Y un campo ③ ¿la barra reemplaza la
-  fila de eventos de la tanda D? ④ ¿quién publica las plantillas **de la
-  unidad** — propuesta: las tres firmas de coordinación?
+  · ✅ **TODO CERRADO por Diego el 2-sep**: el catálogo de 13 casos está
+  bien (si faltan, avisa después) · **«PVE superada sin extubar» SÍ existe**
+  (ver la regla clínica más abajo) · cada colega edita las suyas y hay **un
+  juego de la unidad** de respaldo «por si alguien no quiere», editable
+  **solo por coordinación** · **la barra SÍ reemplaza la fila de eventos de
+  la tanda D** («así anunciamos de entrada qué plantilla utilizaremos por
+  defecto»).
+  · 📄 **Los dos PRD ya están escritos y esperan su visto bueno**:
+  `PRD_PLANTILLAS_EVOLUCION.md` y `PRD_PVE_SUPERADA_SIN_EXTUBAR.md` (con
+  historia, no-objetivos, flujo hoy→mañana, inventario de consumidores y
+  pseudo-código). Leerlos ANTES de programar nada de esto.
   · Regla madre intocable: nada pisa texto tocado o guardado (v5.85). Sin
   cambio de esquema en EVOLUCIONES: hoja-catálogo aparte. **La opción C
   (frases rápidas) queda en el banco**, no descartada.
@@ -438,6 +443,26 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   en la bitácora. Reabrir solo con datos nuevos de uso.
 
 ### Reglas clínicas que conviene tener a mano
+
+- 🫁 **UNA PVE SUPERADA NO SIEMPRE TERMINA EN EXTUBACIÓN** (Diego, 2-sep-2026:
+  «sí existe»). El formulario **hoy asume que sí**: al marcar «superada» pide la
+  hora de extubación y `_extOcurrio()` (index ~11390) devuelve verdadero. Eso
+  obliga al colega a mentir —inventar una hora, marcar «fracasada», o dejar la
+  PVE en «No» y perder la prueba—. Es un hueco en una matriz por lo demás
+  completa: el caso espejo, «extubación SIN PVE», ya existe (`cExtSinPve`).
+  · **La buena noticia**: ningún consumidor cuenta extubaciones por
+  `PVE_RESULTADO`; **todos leen `EXT_OCURRIO`** (REM, stats, entrega, tiempo
+  extubado). `_extOcurrio()` es el punto único donde vive la suposición.
+  · Arreglo escrito en `PRD_PVE_SUPERADA_SIN_EXTUBAR.md` (2 columnas nuevas al
+  final de EVOLUCIONES ⇒ **exige `crearORepararEstructura()`**). **No programado
+  todavía.**
+- 🌀 **El weaning es un proceso largo y la fase NO es el caso** (Diego,
+  2-sep-2026: «el proceso de weaning es un proceso largo, no siempre define
+  extubar»). La **fase clínica es del PACIENTE** y dura semanas (se hereda); lo
+  que hay que escribir **hoy** es del TURNO. Un paciente puede pasar veinte días
+  en fase Weaning con turnos «no corresponde» → «PVE fracasada» → «TQT» →
+  «destete por TQT». Vale para cualquier cosa que se diseñe sobre el destete, no
+  solo para las plantillas.
 
 - 🫁 **«VM» ES SIEMPRE VENTILACIÓN MECÁNICA INVASIVA.** La VNI es ventilación
   mecánica en lo clínico, pero **aquí cuenta aparte y jamás suma a los días de
