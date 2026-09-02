@@ -403,6 +403,24 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   de chips, catálogo por cama, texto resultante, la pregunta «¿se extubó?»
   y el editor de plantillas):
   `https://claude.ai/code/artifact/3cb8491a-cc2b-4a74-bad3-a343b9998722`.
+  · 🧪 **PROTOTIPO EN VIVO en la rama `prototipo-plantillas-evolucion`**
+  (2-sep; Diego: «verlo en vivo pero que no tope nada de lo hecho por
+  Manuel… mejor es editarlo con una construcción»). **NO se fusiona a
+  develop ni a main hasta que él lo apruebe; NO se pega en el editor.**
+  Página de prueba (la app real + puente simulado + 4 camas de mentira, sin
+  RUT): `https://claude.ai/code/artifact/c0d501cf-6c88-4880-9a37-4c34ae7a935c`
+  — se regenera con `node build/prototipo_plantillas.js <salida.html>`.
+  Trae la barra (evento + plantilla, con interruptor a una sola fila por su
+  duda «mucho chip, mucha información»), el catálogo por cama en tres
+  estantes, la sugerencia en ámbar, el editor de plantillas y la regla
+  madre (con texto tocado o guardado se pregunta antes). **Los comodines
+  son los bloques del motor** (`_B()` de `genTexto`): el dato sigue
+  saliendo del único motor, que es lo que sostiene la paridad. Sin catálogo
+  cargado la barra no existe: producción no cambia. Batería en la rama:
+  108 verdes; `paridad_v3` roja A PROPÓSITO (el espejo de producción no se
+  regenera en un prototipo). 🪤 El modo de presión de soporte se llama
+  **`CPAP/PS`** en la app, no «PSV»: un dato de prueba con «PSV» deja los
+  parámetros vacíos sin avisar.
   · Regla madre intocable: nada pisa texto tocado o guardado (v5.85). Sin
   cambio de esquema en EVOLUCIONES: hoja-catálogo aparte. **La opción C
   (frases rápidas) queda en el banco**, no descartada.
