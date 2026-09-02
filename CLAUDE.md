@@ -344,20 +344,39 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   conservan tal cual). Pendiente hermano: cifras del REM de papel de agosto
   para correr la conciliación.
 - 🆕 **Plantillas de evolución tipo TrakCare** (2-sep-2026, idea de Diego
-  desde una capacitación): plantillas según el caso + plantillas
-  personalizadas creadas por los clínicos. Conversación ABIERTA, sin
-  decisión ni código. Mockup con las tres opciones publicado:
-  `https://claude.ai/code/artifact/f812cb92-ac90-4950-bc5c-e91188b378d0`
-  — C frases rápidas (chica) · B plantilla personal con comodines (media;
-  REEMPLAZA el plan viejo de «Mi estilo»: ya no hacen falta las 20-30
-  evoluciones por persona) · A plantillas según el caso (grande, PRD
-  completo: toca el motor del texto en cliente y servidor). Orden
-  propuesto C→B→A. Esperando sus 4 respuestas: ① cuáles entran y en qué
-  orden ② B: ¿reemplaza o se agrega al motor? ③ C: ¿frases de la unidad,
-  personales o ambas, y quién las cura? ④ A: ¿los 6 casos propuestos son
-  los correctos? Regla madre ya fijada: nada pisa texto tocado o guardado
-  (v5.85); las plantillas viven en hojas-catálogo, sin cambio de esquema
-  en EVOLUCIONES.
+  desde una capacitación). **Diego ya eligió: la B** (plantilla personal con
+  comodines) **fusionada con la A** — «plantillas personalizadas desplegadas
+  por caso… eso igual es personalizado». O sea A y B dejan de ser dos
+  caminos: una plantilla es **de una persona Y tiene un caso que la ofrece**.
+  Mockup con la evaluación de TrakCare y el diseño:
+  `https://claude.ai/code/artifact/f812cb92-ac90-4950-bc5c-e91188b378d0`.
+  Sus dos casos, textuales: ① **barra de chips arriba, «al estilo donde
+  están las fases»**, para elegir evento o plantilla — el evento/fase
+  **pre-selecciona** la plantilla (esto **absorbe la fila de eventos de la
+  tanda D**); ② **la cama asignada a un colega evoluciona con la plantilla
+  que él definió** — la cañería ya existe: el tablero de turno reparte
+  camas→firma y el formulario abre con esa firma (`renderFases`/Turnos,
+  index ~11711 y ~10312). Regla de oro que él fijó: **«el formulario aporta
+  datos que son rellenables, lo demás es narrativa»** — el comodín se
+  rellena solo, a diferencia de TrakCare.
+  · 🔍 **Lo que se aprendió mirando el TrakCare real** (fotos del ambiente
+  UAT, módulo `epr.CannedText`): es una biblioteca de textos enlatados con
+  **huecos literales que el médico rellena a mano** («Paciente se reintuba a
+  las **x** hrs por **motivo**»); **inserta crudo al cursor** (quedó
+  `holaPaciente se reintuba…`, sin espacio ni mayúscula); alcance por
+  usuario («Guardado por / Guardado para: Usuario»), lo que confirma los dos
+  estantes; códigos crípticos por iniciales (`RHMAB1`, `iUEH`, `LGM1`) y
+  lista paginada sin filtro; y **los typos guardados se replican** en cada
+  ficha («embaazada», «compromispo», «anamanesis»). De ahí salen cinco
+  no-objetivos y sus guardias futuras.
+  · Falta que responda 4 cosas: ① ¿varias plantillas por colega (una por
+  caso, recomendada) o una sola? ② ¿la barra reemplaza la fila de eventos de
+  la tanda D? ③ con la cama asignada, ¿la plantilla se aplica sola (panel
+  limpio) u solo se ofrece? ④ ¿quién publica las plantillas **de la unidad**
+  — propuesta: las tres firmas de coordinación?
+  · Regla madre intocable: nada pisa texto tocado o guardado (v5.85). Sin
+  cambio de esquema en EVOLUCIONES: hoja-catálogo aparte. **La opción C
+  (frases rápidas) queda en el banco**, no descartada.
 - ✅ **HEPA fijo en PB y Avea: RESUELTO en la v5.60** (14-ago, con las tres
   respuestas de Diego: instalación como referencia sin cambio · la Vela sigue
   con ciclo · sin ventilador no aplica HEPA). La regla vive en
