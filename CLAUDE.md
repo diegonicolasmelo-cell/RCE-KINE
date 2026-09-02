@@ -328,6 +328,26 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
 
 ### Esperando decisión de Diego
 
+- 🔴 **Tandas C y D (eventos manuales + reintubación) — DETENIDAS EN EL
+  MOCKUP esperando 4 respuestas** (2-sep-2026; Diego pidió «recuérdamelo
+  después», estaba en capacitación). Mockup publicado:
+  `https://claude.ai/code/artifact/52e36ecd-92dc-404e-9ce0-3b212be81f70`.
+  Ya decidido por él: A+B ejecutadas (texto tal cual + REM conciliación,
+  v5.85 en `develop`/`main`), y **el evento manual SÍ entra en el texto de
+  la evolución**. Falta que elija: ① Tanda C: ¿C1 bloque «📌 Eventos del
+  turno» (recomendada) o C2 botón al costado? ② Tanda D: ¿D1 fila de pills
+  bajo Vía aérea (recomendada), D2 tres celdas previo→evento→queda, o D3
+  casilla mínima? ③ Alcance de D: ¿la fila reemplaza también
+  intubación/extubación o SOLO reintubación? ④ ¿El catálogo de motivos de
+  `fReintubRaz` está completo? Con las respuestas se programa (guardias
+  nuevas para ambas tandas; las columnas REINTUB_* y el tiempo extubado se
+  conservan tal cual). Pendiente hermano: cifras del REM de papel de agosto
+  para correr la conciliación.
+- 🆕 **Plantillas de evolución tipo TrakCare** (2-sep-2026, idea de Diego
+  desde una capacitación): plantillas según el caso + plantillas
+  personalizadas creadas por los clínicos. Conversación ABIERTA, sin
+  decisión ni código. Conecta con «Mi estilo» (ya diseñado, esperando
+  material) — no duplicar: son la misma familia.
 - ✅ **HEPA fijo en PB y Avea: RESUELTO en la v5.60** (14-ago, con las tres
   respuestas de Diego: instalación como referencia sin cambio · la Vela sigue
   con ciclo · sin ventilador no aplica HEPA). La regla vive en
