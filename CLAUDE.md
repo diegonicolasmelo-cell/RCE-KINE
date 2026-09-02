@@ -397,7 +397,12 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   · 📄 **Los dos PRD ya están escritos y esperan su visto bueno**:
   `PRD_PLANTILLAS_EVOLUCION.md` y `PRD_PVE_SUPERADA_SIN_EXTUBAR.md` (con
   historia, no-objetivos, flujo hoy→mañana, inventario de consumidores y
-  pseudo-código). Leerlos ANTES de programar nada de esto.
+  pseudo-código). Leerlos ANTES de programar nada de esto. Versión leíble
+  publicada: `https://claude.ai/code/artifact/b2d465e8-b327-4632-a631-48af529f8631`.
+  · 🖥️ **Mockup de las 5 pantallas** con la piel real del formulario (barra
+  de chips, catálogo por cama, texto resultante, la pregunta «¿se extubó?»
+  y el editor de plantillas):
+  `https://claude.ai/code/artifact/3cb8491a-cc2b-4a74-bad3-a343b9998722`.
   · Regla madre intocable: nada pisa texto tocado o guardado (v5.85). Sin
   cambio de esquema en EVOLUCIONES: hoja-catálogo aparte. **La opción C
   (frases rápidas) queda en el banco**, no descartada.
