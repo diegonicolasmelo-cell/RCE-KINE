@@ -33,6 +33,28 @@ const DX = ['Otros pre y post quirúrgicos con complicación respiratoria','Neum
   'Shock séptico de foco abdominal','Traumatismo encéfalo craneano grave','Otras neurológicas',
   'Insuficiencia respiratoria aguda por SDRA','EPOC descompensado','Hemorragia subaracnoidea aneurismática'];
 
+/**
+ * Eventos sintéticos con el MISMO formato (incluido `<b>`) que produce
+ * `_entFicha` en svc_entrega.gs (sep-2026: extubación, reintubación, prono,
+ * supino, TQT, desvinculación-TQT y cambio de soporte van en negrita) — para
+ * que el medidor de hojas y la maqueta reflejen el costo real en papel, no el
+ * de antes de la negrita. Cinco historias que rotan por cama, más una sin
+ * eventos, para que las 17 camas cubran todos los tipos.
+ */
+function construirEventos(i, carga) {
+  if (carga === 'liviana') return i % 4 === 0 ? ['<b>🔃 Prono 06-08 19:00 hrs</b>'] : [];
+  switch (i % 6) {
+    case 0: return ['▲ PVE superada 07-08', '<b>🔃 Prono 06-08 19:00 hrs</b>', '🫁 Intubación 05-08 14:20'];
+    case 1: return ['<b>✂️ Extubación 07-08 09:15</b>', '<b>⚠️ Reintubación 07-08 11:40 · por mala mecánica</b>', '🫁 Intubación 05-08 14:20'];
+    case 2: return ['<b>🔪 TQT 04-08 10:00 (percutánea)</b>', '<b>🔌 Desvinculación de VM 08-08 08:30 → HME · SIN reconexión registrada</b>'];
+    case 3: return (carga === 'alta')
+      ? ['<b>🔄 Cambio de soporte: VNI → Oxigenoterapia 06-08 · turno 🌙 Noche</b>', '▲ PVE superada 07-08']
+      : ['<b>🔄 Cambio de soporte: VNI → Oxigenoterapia 06-08 · turno 🌙 Noche</b>'];
+    case 4: return ['<b>🔃 Prono 05-08 20:00 hrs</b>', '<b>🔃 Supino 06-08 21:30 hrs · tras 25,5 h en prono (2 bloques de 12h)</b>'];
+    default: return [];
+  }
+}
+
 /** Fichas sintéticas de una entrega de 17 camas. carga: 'alta'|'tipica'|'liviana' */
 function construirFichas(carga) {
   return NOMBRES.map((nom, i) => {
@@ -54,9 +76,7 @@ function construirFichas(carga) {
       secr: complejo ? 'Abundantes espesas mucopurulentas' : '',
       ultimoCultivo: complejo ? { nombre: 'Cultivo de secreciones', fecha: '02-08', resultado: 'Klebsiella pneumoniae BLEE' } : null,
       dispositivos: enVM ? [{ n: 'HME', estado: 'cambiar', cambio: '09-08' }, { n: 'Circuito', estado: '', cambio: '12-08' }] : [],
-      eventos: complejo ? (carga === 'alta'
-        ? ['▲ PVE superada 07-08', '🔃 Prono 19:00 hrs 06-08', '🫁 Intubación 05-08 14:20']
-        : ['▲ PVE superada 07-08']) : [],
+      eventos: construirEventos(i, carga),
       fases: complejo ? ['Fase aguda'] : [],
       catResp: complejo ? { nivel: 'Alta', pje: 9 } : null,
       catMotor: complejo ? { nivel: 'Media', pje: 5 } : null,
