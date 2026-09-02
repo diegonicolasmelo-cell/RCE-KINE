@@ -33,47 +33,6 @@ const DX = ['Otros pre y post quirúrgicos con complicación respiratoria','Neum
   'Shock séptico de foco abdominal','Traumatismo encéfalo craneano grave','Otras neurológicas',
   'Insuficiencia respiratoria aguda por SDRA','EPOC descompensado','Hemorragia subaracnoidea aneurismática'];
 
-/**
- * Línea de tiempo sintética de una ficha, con la forma exacta de
- * _entLineaTiempo (svc_entrega.gs): eje en días de estadía, tramos de vía
- * aérea, eventos, evaluaciones y escalera motora. Cuatro historias que rotan
- * por cama: llegó intubado · se intubó el día 1 · TOT → TQT · extubado y
- * reintubado. Las camas sin VM y sin complejidad van sin barra.
- */
-function construirLinea(i, carga, enVM, complejo, dias) {
-  if (carga === 'liviana' && i % 3) return null;
-  const va = [], ev = [], mrc = [], fss = [], motor = [];
-  const k = i % 4;
-  if (enVM) {
-    if (k === 0) va.push({ d: 0, h: dias, t: 'TOT' });
-    else if (k === 1) { ev.push({ d: 1, t: 'intub' }); va.push({ d: 1, h: dias, t: 'TOT' }); }
-    else if (k === 2) {
-      const t = Math.max(1, Math.floor(dias * 0.5));
-      ev.push({ d: 0, t: 'intub' }, { d: t, t: 'tqt' });
-      va.push({ d: 0, h: t, t: 'TOT' }, { d: t, h: dias, t: 'TQT' });
-    } else {
-      const e = Math.max(1, Math.floor(dias * 0.4));
-      ev.push({ d: 0, t: 'intub' }, { d: e, t: 'ext' }, { d: Math.min(dias, e + 1), t: 'reint' });
-      va.push({ d: 0, h: e, t: 'TOT' }, { d: Math.min(dias, e + 1), h: dias, t: 'TOT' });
-    }
-  } else if (complejo) {
-    const e = Math.max(1, Math.floor(dias * 0.6));
-    ev.push({ d: 0, t: 'intub' }, { d: e, t: 'ext' });
-    va.push({ d: 0, h: e, t: 'TOT' });
-    if (i % 5 === 0) { ev.push({ d: Math.min(dias, e + 2), t: 'decan' }); }
-  }
-  const pasos = Math.min(dias, 6);
-  for (let j = 0; j <= pasos; j++) {
-    const d = Math.round(j * dias / Math.max(pasos, 1));
-    motor.push({ d: d, r: Math.min(4, 1 + Math.floor(j * (enVM ? 2 : 4) / Math.max(pasos, 1))) });
-  }
-  if (complejo || !enVM) {
-    mrc.push({ d: Math.max(0, dias - 2), v: 44 }); fss.push({ d: Math.max(0, dias - 2), v: 12 });
-    if (dias > 8) mrc.push({ d: Math.floor(dias / 2), v: 36 });
-  }
-  return { hoy: dias, va: va, ev: ev, mrc: mrc, fss: fss, motor: motor };
-}
-
 /** Fichas sintéticas de una entrega de 17 camas. carga: 'alta'|'tipica'|'liviana' */
 function construirFichas(carga) {
   return NOMBRES.map((nom, i) => {
@@ -106,9 +65,6 @@ function construirFichas(carga) {
       icuaw: carga === 'alta' && i % 9 === 0 ? { mrc: 42, fecha: '04-08' } : null,
       prono: carga === 'alta' && i % 10 === 0 ? { desde: '2026-08-08 19:00', horas: 14 } : null,
       hitoMotor: complejo ? { nivel: '2', ims: 3, fecha: '06-08' } : null,
-      // Línea de tiempo (sep-2026): la misma forma que manda _entLineaTiempo.
-      // Entra en la medición porque cuesta alto de hoja en CADA ficha.
-      linea: construirLinea(i, carga, enVM, complejo, 1 + ((i * 5) % 30)),
       ktmRealizada: true, ktmNivel: 1 + (i % 4), ktr: 2 + (i % 3),
       evals: complejo ? ['MRC 44', 'FSS 12', 'IMS 3'] : [],
       alertas: i % 6 === 0 ? ['Sin KTM hace 2 turnos'] : [],

@@ -217,12 +217,6 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   // que se alcanzó ese peldaño (dice qué tan vigente es la capacidad).
   const hitoMotor = _hitoMotorEpisodio(episodio, dd);
 
-  // ── Línea de tiempo del episodio (pedido de Manuel, sep-2026) ──
-  // Lo que la ficha cuenta en texto, dibujado: vía aérea artificial por día,
-  // los eventos de vía aérea, MRC-SS y FSS-ICU con su valor y la escalera
-  // motora turno a turno. El dibujo lo hace el cliente; aquí viaja solo el dato.
-  const linea = _entLineaTiempo(episodio, c, fecha);
-
   // ── Suspensión de sedación y de BNM (pedido de Diego, ago-2026): fecha de
   // la ÚLTIMA transición a «sin». Si después lo re-sedan, se recalcula sola —
   // un valor no vacío significa que HOY sigue suspendida. ──
@@ -376,7 +370,6 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     pic: e ? val(e.HEMO_PIC) : '', ppc: e ? val(e.HEMO_PPC) : '',
     fases: fases,
     hitoMotor: hitoMotor,
-    linea: linea,
     sedSusp: sedSusp, bnmSusp: bnmSusp,
     catResp: { pje: val(c.CAT_RESP_PJE), nivel: val(c.CAT_RESP_NIVEL) },
     catMotor: { pje: val(c.CAT_MOTOR_PJE), nivel: val(c.CAT_MOTOR_NIVEL) },
@@ -531,89 +524,19 @@ function _entMec(e) {
  */
 function _hitoMotorEpisodio(episodio, dd) {
   const LBL = ['', 'en cama', 'SBC', 'bípedo', 'marcha'];
-  let max = 0, fechaMax = '', imsMax = '';
-  (episodio || []).forEach(function (ev) {
-    const p = _entPeldanoMotor(ev);
-    if (p.r && p.r >= max) { max = p.r; fechaMax = dd(ev.FECHA); imsMax = p.ims; }
-  });
-  return max ? { nivel: LBL[max], ims: imsMax, fecha: fechaMax } : null;
-}
-
-/**
- * Peldaño motor de UN turno (1 en cama · 2 SBC · 3 bípedo · 4 marcha).
- * Es la regla ÚNICA: la usan el hito máximo de la ficha y la línea de tiempo,
- * para que el texto y el dibujo nunca digan peldaños distintos del mismo turno.
- * Manda el IMS si se registró; sin IMS se traduce el nivel KTM del protocolo.
- * Devuelve { r: 0-4, ims: '' | valor registrado }.
- */
-function _entPeldanoMotor(ev) {
   const rankIMS = function (n) { return n >= 6 ? 4 : n >= 4 ? 3 : n >= 3 ? 2 : 1; };
   const rankKTM = function (n) { return n >= 5 ? 4 : n >= 4 ? 3 : n >= 3 ? 2 : 1; };
-  const imsRaw = String(ev.EVAL_IMS === 0 ? '0' : (ev.EVAL_IMS || '')).trim();
-  const ims = imsRaw === '' ? NaN : parseInt(imsRaw, 10);
-  const niv = parseInt(ev.KTM_NIVEL_KTR, 10);
-  if (!isNaN(ims)) return { r: rankIMS(ims), ims: imsRaw };
-  if (esVerdadero(ev.KTM_REALIZADA) && !isNaN(niv)) return { r: rankKTM(niv), ims: '' };
-  return { r: 0, ims: '' };
-}
-
-/**
- * Línea de tiempo del episodio para la ficha de entrega (Manuel, sep-2026).
- * Todo va por DÍA DE ESTADÍA (DIA_ESTADIA: 0 = día del ingreso), que es el
- * eje que el equipo ya lee en el historial.
- *   va    · tramos de vía aérea artificial [{d, h, t:'TOT'|'TQT'}], armados
- *           desde VENT_VIA_AEREA de cada turno (manda el último turno del
- *           día). Así el paciente que LLEGÓ intubado —sin evento de
- *           intubación en el registro— igual muestra su barra desde el día 0.
- *   ev    · eventos de vía aérea {d, t}: intub · ext · reint · tqt · decan
- *           (fechados con la evolución que los registró, igual que el texto).
- *   mrc/fss · evaluaciones con su valor {d, v}.
- *   motor · peldaño por día {d, r} (el mayor del día), regla _entPeldanoMotor.
- *   hoy   · último día del eje (días desde el ingreso hasta la fecha entregada).
- * Devuelve null cuando no hay nada que dibujar: la ficha no gasta papel.
- */
-function _entLineaTiempo(episodio, c, fecha) {
-  const ing = _statISO(c && c.FECHA_INGRESO);
-  const fechaISO = _statISO(fecha);
-  const diaDe = function (ev) {
-    const d = parseInt(ev.DIA_ESTADIA, 10);
-    if (!isNaN(d)) return d;
-    const f = _statISO(ev.FECHA);
-    return (ing && f) ? diasEntre(ing, f) : NaN;
-  };
-  let hoy = (ing && fechaISO) ? diasEntre(ing, fechaISO) : 0;
-  const va = {}, ev = [], mrc = [], fss = [], motor = {};
-  const lleno = function (x) { return x !== undefined && x !== null && x !== ''; };
-  (episodio || []).forEach(function (e) {
-    const d = diaDe(e);
-    if (isNaN(d)) return;
-    if (d > hoy) hoy = d;
-    const v = String(e.VENT_VIA_AEREA || '');
-    if (v) va[d] = (v === 'TOT' || v === 'TQT') ? v : '';
-    if (esVerdadero(e.INTUB_OCURRIO)) ev.push({ d: d, t: 'intub' });
-    if (esVerdadero(e.EXT_OCURRIO)) ev.push({ d: d, t: 'ext' });
-    if (esVerdadero(e.EXT_REINTUB)) ev.push({ d: d, t: 'reint' });
-    if (esVerdadero(e.TQT_OCURRIO)) ev.push({ d: d, t: 'tqt' });
-    if (esVerdadero(e.DECAN_OCURRIO)) ev.push({ d: d, t: 'decan' });
-    if (lleno(e.EVAL_T_MRC)) mrc.push({ d: d, v: String(e.EVAL_T_MRC) });
-    if (lleno(e.EVAL_T_FSS)) fss.push({ d: d, v: String(e.EVAL_T_FSS) });
-    const p = _entPeldanoMotor(e);
-    if (p.r && !(motor[d] >= p.r)) motor[d] = p.r;
+  let max = 0, fechaMax = '', imsMax = '';
+  (episodio || []).forEach(function (ev) {
+    const imsRaw = String(ev.EVAL_IMS === 0 ? '0' : (ev.EVAL_IMS || '')).trim();
+    const ims = imsRaw === '' ? NaN : parseInt(imsRaw, 10);
+    const niv = parseInt(ev.KTM_NIVEL_KTR, 10);
+    let r = 0, imsVal = '';
+    if (!isNaN(ims)) { r = rankIMS(ims); imsVal = imsRaw; }
+    else if (esVerdadero(ev.KTM_REALIZADA) && !isNaN(niv)) r = rankKTM(niv);
+    if (r && r >= max) { max = r; fechaMax = dd(ev.FECHA); imsMax = imsVal; }
   });
-  // Tramos: días consecutivos con la misma vía. Un día sin evolución en medio
-  // (pasa) no parte el tramo: se tolera un hueco de un día del mismo tipo.
-  const segs = [];
-  Object.keys(va).map(Number).sort(function (a, b) { return a - b; }).forEach(function (d) {
-    const t = va[d];
-    if (!t) return;
-    const u = segs[segs.length - 1];
-    if (u && u.t === t && (u.h === d || u.h === d - 1)) u.h = d + 1;
-    else segs.push({ d: d, h: d + 1, t: t });
-  });
-  const motorArr = Object.keys(motor).map(Number).sort(function (a, b) { return a - b; })
-    .map(function (d) { return { d: d, r: motor[d] }; });
-  if (!segs.length && !ev.length && !mrc.length && !fss.length && !motorArr.length) return null;
-  return { hoy: hoy, va: segs, ev: ev, mrc: mrc, fss: fss, motor: motorArr };
+  return max ? { nivel: LBL[max], ims: imsMax, fecha: fechaMax } : null;
 }
 
 /** Guarda una entrega emitida como historial (hoja ENTREGAS_TURNO). */

@@ -369,31 +369,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 .ent-fh-ing{display:none;}
 /* Espejo del plan: invisible en pantalla, es la versión que sale en papel. */
 .ent-plan-print{display:none;}
-/* ── Línea de tiempo del episodio (sep-2026, pedido de Manuel) ──
-   Un SVG por ficha, dibujado en BLANCO Y NEGRO desde el origen: la impresora
-   de la unidad no es a color, así que nada de lo que dice depende del color —
-   la vía aérea es una barra (llena = TOT, a rayas = TQT), los eventos son
-   FORMAS distintas, y la escalera motora tiene sus peldaños rotulados. El
-   viewBox es fijo (700 de ancho) y el SVG se estira al ancho de la ficha. */
-.ent-linea{padding:4px 10px 2px;border-top:1px dashed #dfe6ee;}
-.ent-linea svg{display:block;width:100%;height:auto;overflow:visible;}
-.ent-linea text{font-family:inherit;fill:#000;}
-.el-lbl{font-size:7px;font-weight:800;}
-.el-rung{font-size:6.4px;font-weight:600;}
-.el-d{font-size:6.5px;text-anchor:middle;}
-.el-ax{stroke:#000;stroke-width:.7;}
-.el-g{stroke:#000;stroke-width:.35;stroke-dasharray:1,2.2;}
-.el-va{stroke:#000;stroke-width:3.2;stroke-linecap:butt;}
-.el-tqt{stroke-dasharray:3,1.6;}
-.el-f{fill:#000;stroke:#000;stroke-width:.6;stroke-linejoin:round;}
-.el-h{fill:#fff;stroke:#000;stroke-width:1;stroke-linejoin:round;}
-.el-st{fill:none;stroke:#000;stroke-width:1.4;stroke-linejoin:round;}
-.el-pt{fill:#000;}
-.el-ev{font-size:6.6px;font-weight:700;text-anchor:middle;}
-.el-max{font-size:6.6px;font-weight:800;text-anchor:middle;}
-/* La leyenda sale UNA vez, bajo el resumen del encabezado, no en cada ficha. */
-.ent-leyenda{font-size:.66rem;color:#334155;margin:-10px 0 14px;line-height:1.5;}
-.ent-leyenda b{font-weight:800;}
 .ent-fh-chips{margin-left:auto;text-align:right;}
 .ent-p1{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-bottom:1px dashed #dfe6ee;}
 .ent-p2{display:grid;grid-template-columns:1.35fr 1fr 1.25fr;}
@@ -550,8 +525,6 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
   .ent-firma{padding:0 7px 1px;font-size:.52rem;line-height:1.1;}
   .ent-heredado{font-size:.58rem;padding:1px 7px;}
   .ent-sinevo-strip{font-size:.58rem;padding:1px 7px;}
-  .ent-linea{padding:2px 7px 0;border-top:1px dotted #000;}
-  .ent-leyenda{font-size:.56rem;margin:-2px 0 4px;line-height:1.3;}
 
   /* ─────────────────────────────────────────────────────────────────────
      BLANCO Y NEGRO (sep-2026, pedido de Manuel)
@@ -14864,7 +14837,6 @@ function renderEntrega(d){
     ${(()=>{const n=d.fichas.filter(f=>f.ocupada&&!f.tieneEvo).length;
       return n?`<span class="ent-pill" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c;">⚠️ Sin evolución del turno: <b>${n}</b></span>`:'';})()}
   </div>
-  ${d.fichas.some(f=>f.linea)?`<div class="ent-leyenda"><b>Línea de tiempo</b> (eje = día de estadía, 0 = ingreso) · barra llena = TOT · barra a rayas = TQT · ▼ intubación · △ extubación · ◆ reintubación · ■ traqueostomía · ○ decanulación · escalera = peldaño motor del turno (cama · SBC · bípedo · marcha) · MRC-SS y FSS-ICU con su valor el día que se midieron</div>`:''}
   <div class="ent-fichas">`;
 
   const catChip=(c,letra,n)=>{
@@ -14986,7 +14958,6 @@ function renderEntrega(d){
           <div class="ent-plan-print"></div>
         </div>
       </div>
-      ${f.linea?`<div class="ent-linea">${_entLineaSVG(f.linea)}</div>`:''}
       <div class="ent-firma">▸ <b>${f.firma||'—'}</b>${_her?` <span style="color:#b45309;">(turno ${_her})</span>`:''}</div>
     </div>`;
   });
@@ -14997,95 +14968,6 @@ function renderEntrega(d){
     <div class="ent-sign"><div class="ent-sign-line">Kine que recibe</div></div>
   </div>`;
   $('entDoc').innerHTML=H;
-}
-/* ══ LÍNEA DE TIEMPO DEL EPISODIO (sep-2026, pedido de Manuel) ══
-   Dibuja lo que el servidor manda en f.linea (_entLineaTiempo): un eje en días
-   de estadía, la vía aérea artificial como barra, los cinco eventos de vía
-   aérea como formas, la escalera motora por turno y las evaluaciones con su
-   valor. Pensado para papel en blanco y negro: ningún dato depende del color.
-   Geometría en un viewBox de 700 × 56; el SVG se estira al ancho de la ficha
-   (en A4 vertical la ficha mide ~733 px, o sea el dibujo sale casi 1:1 y sus
-   letras de 6,5 px quedan en ~4,9 pt: es el mínimo legible en papel).
-     y  7 · vía aérea (barra + marcas)
-     y 15.5/22.5/29.5/36.5 · peldaños marcha · bípedo · SBC · cama (escalera)
-     y 44 · evaluaciones (MRC / FSS)
-     y 47 · eje · y 54 rótulos de día */
-function _entLineaSVG(l){
-  if(!l) return '';
-  const W=700,H=56,X0=48,X1=694;
-  const ult=Math.max(1,parseInt(l.hoy,10)||0,
-    ...(l.ev||[]).map(e=>e.d),...(l.mrc||[]).map(e=>e.d),...(l.fss||[]).map(e=>e.d),
-    ...(l.motor||[]).map(e=>e.d),...(l.va||[]).map(e=>e.h));
-  const x=d=>+(X0+(Math.min(Math.max(+d||0,0),ult)/ult)*(X1-X0)).toFixed(1);
-  const yA=7, yAx=47, yD=54, yE=44;
-  const RUNG=['','en cama','SBC','bípedo','marcha'];
-  const yR=r=>36.5-(r-1)*7;
-  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  let s='';
-  // Rótulos de fila y peldaños (columna izquierda)
-  s+=`<text x="0" y="${yA+2.3}" class="el-lbl">Vía aérea</text>`;
-  for(let r=1;r<=4;r++){
-    s+=`<text x="0" y="${yR(r)+2}" class="el-rung">${RUNG[r]}</text>`+
-       `<line x1="${X0}" y1="${yR(r)}" x2="${X1}" y2="${yR(r)}" class="el-g"/>`;
-  }
-  // Eje de días
-  s+=`<line x1="${X0}" y1="${yAx}" x2="${X1}" y2="${yAx}" class="el-ax"/>`;
-  const paso=ult<=20?1:ult<=40?2:ult<=100?5:10;
-  for(let d=0; d<=ult; d+=paso){
-    s+=`<line x1="${x(d)}" y1="${yAx}" x2="${x(d)}" y2="${yAx+2}" class="el-ax"/>`;
-    if(x(ult)-x(d)>26) s+=`<text x="${x(d)}" y="${yD}" class="el-d">${d}</text>`;
-  }
-  s+=`<text x="${X1}" y="${yD}" class="el-d" style="text-anchor:end;font-weight:800;">día ${ult}</text>`;
-  // Vía aérea artificial: barra llena (TOT) o a rayas (TQT)
-  (l.va||[]).forEach(t=>{
-    s+=`<line x1="${x(t.d)}" y1="${yA}" x2="${x(t.h)}" y2="${yA}" class="el-va${t.t==='TQT'?' el-tqt':''}"/>`;
-  });
-  // Eventos de vía aérea: formas, no colores
-  (l.ev||[]).forEach(e=>{ s+=_entMarca(e.t,x(e.d),yA); });
-  // Escalera motora
-  const pts=(l.motor||[]).slice().sort((a,b)=>a.d-b.d);
-  if(pts.length){
-    let p='', max=0, iMax=-1;
-    pts.forEach((m,i)=>{
-      const X=x(m.d), Y=yR(m.r);
-      p+=i?` H${X} V${Y}`:`M${X},${Y}`;
-      if(m.r>=max){ max=m.r; iMax=i; }
-    });
-    s+=`<path d="${p}" class="el-st"/>`;
-    pts.forEach(m=>{ s+=`<circle cx="${x(m.d)}" cy="${yR(m.r)}" r="1.9" class="el-pt"/>`; });
-    // El peldaño máximo alcanzado, rotulado en su punto (la última vez que se logró)
-    const mm=pts[iMax]; const mx=x(mm.d), my=yR(mm.r);
-    const anchor=(X1-mx)<30?'end':((mx-X0)<30?'start':'middle');
-    s+=`<text x="${mx}" y="${my-3.2}" class="el-max" style="text-anchor:${anchor};">▲ ${RUNG[mm.r]}</text>`;
-  }
-  // Evaluaciones con su valor, el día en que se midieron
-  const ev={};
-  (l.mrc||[]).forEach(e=>{ (ev[e.d]=ev[e.d]||[]).push('MRC '+esc(e.v)); });
-  (l.fss||[]).forEach(e=>{ (ev[e.d]=ev[e.d]||[]).push('FSS '+esc(e.v)); });
-  let lastR=-1e9;
-  Object.keys(ev).map(Number).sort((a,b)=>a-b).forEach(d=>{
-    const txt=ev[d].join(' · '), X=x(d), w=txt.length*3.7;
-    // Dos evaluaciones muy juntas: la segunda baja al renglón del eje
-    const y=(X-w/2<lastR+4)?yD:yE;
-    const anchor=(X1-X)<w/2?'end':((X-X0)<w/2?'start':'middle');
-    s+=`<line x1="${X}" y1="${yE-4.5}" x2="${X}" y2="${yAx}" class="el-g"/>`+
-       `<text x="${X}" y="${y}" class="el-ev" style="text-anchor:${anchor};">${txt}</text>`;
-    if(y===yE) lastR=X+w/2;
-  });
-  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Línea de tiempo del episodio">${s}</svg>`;
-}
-/* Marcas de los eventos de vía aérea. Cada evento es una FORMA distinta, y las
-   parejas contrarias se distinguen por relleno: intubación ▼ llena / extubación
-   △ hueca; traqueostomía ■ llena / decanulación ○ hueca; reintubación ◆. */
-function _entMarca(t,X,Y){
-  switch(t){
-    case 'intub': return `<path d="M${X-4.2},${Y-5.2} L${X+4.2},${Y-5.2} L${X},${Y+3.4} Z" class="el-f"/>`;
-    case 'ext':   return `<path d="M${X-4.2},${Y+5.2} L${X+4.2},${Y+5.2} L${X},${Y-3.4} Z" class="el-h"/>`;
-    case 'reint': return `<path d="M${X},${Y-5.4} L${X+4.6},${Y} L${X},${Y+5.4} L${X-4.6},${Y} Z" class="el-f"/>`;
-    case 'tqt':   return `<rect x="${X-3.8}" y="${Y-3.8}" width="7.6" height="7.6" class="el-f"/>`;
-    case 'decan': return `<circle cx="${X}" cy="${Y}" r="3.8" class="el-h"/>`;
-  }
-  return '';
 }
 /* El plan se copia del textarea a su espejo imprimible. Va en 'beforeprint'
    (y no solo en el botón) para que también valga cuando alguien imprime con
