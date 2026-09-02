@@ -12037,11 +12037,22 @@ window.Turnos = (function () {
 //  lo trae la página de prueba) y nada persiste. Sin catálogo, la barra no
 //  existe y el formulario se comporta exactamente como hoy.
 // ═══════════════════════════════════════════════════════════════════════════
-let PLANT_CAT=[];        // {id, dueno:'MCC'|'UNIDAD', caso, nombre, cuerpo, activo}
+let PLANT_CAT=[];        // {id, dueno:'MCC'|'UNIDAD', tipo:'base'|'frag', caso, nombre, cuerpo, activo}
 let _plantSel=null;      // id elegida a mano · '' = motor libre · null = sigue la sugerencia
 let _plantConf=false;    // el colega ya eligió (la sugerencia deja de moverla)
-let _plantEv='';         // evento elegido en la barra ('' = sin evento)
+let _plantEv='';         // evento elegido en la barra ('' = sin evento) — modo chips
 let _plantFilas=2;       // 🧪 prototipo: 2 = evento + plantilla · 1 = solo plantilla
+/* MODO DEL PROTOTIPO (sep-2026, propuesta de Diego tras probarlo):
+     'tipo'  — SIEMPRE se genera la evolución tipo del colega, sin apretar nada;
+               los eventos del turno entran como FRAGMENTOS de relato, y el
+               chip solo aparece cuando hay algo que contar. Es su respuesta al
+               «mucho chip, mucha información» y al error humano de no marcar
+               la fase: si nadie registró nada, sale la evolución tipo y punto.
+     'chips' — la primera versión: una plantilla por caso, elegida en la barra.
+   Se puede alternar en vivo desde la caja del prototipo para comparar. */
+let _plantModo='tipo';
+let _fragOn=new Set();   // fragmentos agregados a mano
+let _fragOff=new Set();  // fragmentos quitados a mano (mandan sobre los automáticos)
 const PLANT_CASOS={ general:'Sin caso', ingreso:'Ingreso', vm_nc:'VM sin destete',
   destete_dif:'Destete diferido', pve_frustra:'PVE fracasada', ext:'Extubación',
   post_ext:'Post-extubación', reintub:'Reintubación', intub:'Intubación',
@@ -12091,7 +12102,11 @@ function _plantCaso(){
    cama, las de la unidad, las de otros colegas al final. */
 function _plantCatalogo(){
   const f=_plantFirma();
-  const act=PLANT_CAT.filter(p=>p && p.activo!==false);
+  // Cada modo mira su propia familia: 'tipo' usa las evoluciones tipo (base) y
+  // sus fragmentos; 'chips' usa las plantillas por caso. Así se pueden comparar
+  // los dos diseños en la misma pestaña sin que se contaminen.
+  const quiere=p=>(_plantModo==='tipo') ? p.tipo==='base' : (p.tipo==='caso'||!p.tipo);
+  const act=PLANT_CAT.filter(p=>p && p.activo!==false && quiere(p));
   return { firma:f, mias:act.filter(p=>p.dueno===f), unidad:act.filter(p=>p.dueno==='UNIDAD'),
            otros:act.filter(p=>p.dueno!==f && p.dueno!=='UNIDAD') };
 }
@@ -12106,9 +12121,74 @@ function _plantSugerida(){
 function _plantActiva(){
   if(!PLANT_CAT.length || _plantSel==='') return null;
   if(_plantSel) return PLANT_CAT.find(p=>p.id===_plantSel)||null;
-  return _plantSugerida();
+  return (_plantModo==='tipo') ? _plantBase() : _plantSugerida();
 }
-function _plantReset(){ _plantSel=null; _plantConf=false; _plantEv=''; plantMenuCerrar(); }
+function _plantReset(){ _plantSel=null; _plantConf=false; _plantEv=''; _fragOn=new Set(); _fragOff=new Set(); plantMenuCerrar(); }
+
+/* ── MODO «evolución tipo» (propuesta de Diego, sep-2026) ─────────────────
+   La BASE es la evolución tipo del colega de la cama; si no tiene, la de la
+   unidad. Se aplica SIEMPRE, sin apretar nada. Los eventos del turno entran
+   como FRAGMENTOS de relato dentro de ella: no son otra evolución, son un
+   párrafo — por eso se pueden encadenar dos (autoextubación → reintubación)
+   sin repetir encabezado, día ni parámetros. */
+function _plantBase(){
+  const c=_plantCatalogo();
+  const b=l=>l.find(p=>p.tipo==='base')||null;
+  return b(c.mias)||b(c.unidad)||null;
+}
+function _plantFrags(){ return PLANT_CAT.filter(p=>p.tipo==='frag' && p.activo!==false); }
+/* Lo que el turno YA registra. No mira la fase clínica a propósito: Diego
+   avisó que hay colegas que no la actualizan, y una sugerencia que depende de
+   un campo que nadie toca es una sugerencia que miente. */
+function _plantEventosAuto(){
+  const s=new Set();
+  const tExt=(typeof _extTipo==='function')?_extTipo():'';
+  if(typeof _extOcurrio==='function' && _extOcurrio()) s.add(tExt==='autoextubacion'?'autoext':'ext');
+  if(typeof _extReintub==='function' && _extReintub()) s.add('reintub');
+  if($('cIntubO')?.checked) s.add('intub');
+  if($('cTqtO')?.checked) s.add('tqt');
+  if($('cDecanOcurrio')?.checked) s.add('decan');
+  if($('cProno')?.checked && $('cPronoEv')?.checked) s.add('prono');
+  const pve=v('fPVEval'), res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
+  if(pve==='si' && res==='frustra') s.add('pve_frustra');
+  if(pve==='nc') s.add('vm_nc');
+  if(pve==='no' && !$('cExtSinPve')?.checked && v('fPveSCraz')) s.add('destete_dif');
+  return s;
+}
+function _plantHoraDe(caso){
+  const g=id=>v(id)||'';
+  if(caso==='ext'||caso==='autoext') return (typeof _extHora==='function')?(_extHora()||''):'';
+  if(caso==='reintub') return g('fReintubHoraN1')||g('fReintubHoraN2')||g('fReintubHoraT');
+  if(caso==='intub') return g('fIntubHora');
+  if(caso==='tqt')   return g('fTqtHora');
+  if(caso==='decan') return g('fDecanHora');
+  if(caso==='prono') return g('fPronoHora');
+  return '';
+}
+const FRAG_ORDEN=['vm_nc','destete_dif','pve_frustra','post_ext','destete_tqt','rehab',
+  'prono','intub','autoext','ext','reintub','tqt','decan','sin_nov','ingreso'];
+/* Casos activos = los registrados, más los que el colega agregó, menos los que
+   quitó. Los que tienen hora se cuentan en orden cronológico y van después del
+   contexto sin hora, que es como se narra un turno. */
+function _plantCasosActivos(){
+  const auto=_plantEventosAuto();
+  const set=new Set([...auto, ..._fragOn]); _fragOff.forEach(k=>set.delete(k));
+  return [...set].sort((a,b)=>{
+    const k=c=>{ const h=_plantHoraDe(c); const i=FRAG_ORDEN.indexOf(c);
+      return h ? ('2'+h) : ('1'+String(i<0?99:i).padStart(2,'0')); };
+    return k(a)<k(b)?-1:(k(a)>k(b)?1:0);
+  });
+}
+/* Para cada caso activo, el fragmento del colega de la cama; si no tiene, el de
+   la unidad. Un caso sin fragmento en ningún estante simplemente no aporta
+   relato: el motor ya lo narró dentro de la evolución tipo. */
+function _plantFragsActivos(){
+  const c=_plantCatalogo(), fr=_plantFrags();
+  return _plantCasosActivos().map(caso=>
+      fr.find(p=>p.caso===caso && p.dueno===c.firma)
+   || fr.find(p=>p.caso===caso && p.dueno==='UNIDAD')
+   || null).filter(Boolean);
+}
 
 /* Los DATOS: cada comodín se rellena con las frases que el motor produjo para
    sus bloques. Se calculan sobre genTexto() recién corrido, así _TXB_ULT
@@ -12136,8 +12216,9 @@ function _plantDatos(){
 /* Rellenar: una frase cuyos comodines quedaron TODOS vacíos se va entera (sin
    huecos, sin «undefined» — el no-objetivo que salió de las fotos del
    TrakCare). La puntuación se limpia y cada frase parte con mayúscula. */
-function _plantRender(cuerpo){
-  const D=_plantDatos(); const out=[];
+function _plantRender(cuerpo){ return _plantRellenar(cuerpo, _plantDatos()); }
+function _plantRellenar(cuerpo, D){
+  const out=[];
   String(cuerpo||'').split('\n').forEach(linea=>{
     let hubo=0, llenos=0;
     let t=linea.replace(/\{([a-z_]+)\}/gi,(m,k)=>{ hubo++; const val=D[k.toLowerCase()]||''; if(val) llenos++; return val; });
@@ -12149,10 +12230,26 @@ function _plantRender(cuerpo){
   });
   return out.join('\n');
 }
-/* Lo que va a la pantalla: la plantilla rellenada, o el motor tal cual. */
+/* Lo que va a la pantalla. En modo «evolución tipo»: la base del colega con el
+   relato de los eventos dentro; el relato se arma ANTES para que la base lo
+   reciba en {relato} (y si su plantilla no trae ese hueco, entra justo antes
+   del Plan, que es donde se lee natural). */
 function _textoSalida(){
   const p=_plantActiva();
-  return (p && String(p.cuerpo||'').trim()) ? _plantRender(p.cuerpo) : genTexto();
+  if(!p || !String(p.cuerpo||'').trim()) return genTexto();
+  if(_plantModo!=='tipo' || p.tipo!=='base') return _plantRender(p.cuerpo);
+  const D=_plantDatos();
+  const rel=_plantFragsActivos()
+    .map(f=>_plantRellenar(f.cuerpo, Object.assign({}, D, { hora:_plantHoraDe(f.caso) })))
+    .filter(Boolean);
+  D.relato=rel.join('\n');
+  let txt=_plantRellenar(p.cuerpo, D);
+  if(D.relato && !/\{relato\}/.test(p.cuerpo)){
+    const ls=txt.split('\n'); const i=ls.findIndex(l=>/^Plan:/i.test(l));
+    if(i<0) ls.push(D.relato); else ls.splice(i,0,D.relato);
+    txt=ls.join('\n');
+  }
+  return txt;
 }
 /* Aplicar respeta la regla madre (v5.85): con texto tocado o guardado se
    pregunta, y sin un sí no se toca nada. */
@@ -12169,12 +12266,17 @@ function _plantAplicar(){
 }
 function plantElegir(id){ _plantSel=id; _plantConf=true; plantMenuCerrar(); _plantAplicar(); }
 function plantEvento(k){ _plantEv=k; _plantSel=null; _plantConf=false; _plantAplicar(); }
+/* Agregar o quitar un tramo del relato. Quitar uno que el formulario SÍ
+   registró no borra el dato: solo saca su párrafo del texto. */
+function plantFragAdd(k){ _fragOn.add(k); _fragOff.delete(k); plantMenuCerrar(); _plantAplicar(); }
+function plantFragDel(k){ _fragOff.add(k); _fragOn.delete(k); _plantAplicar(); }
 
 function renderPlantBar(){
   const bar=$('plantBar'); if(!bar) return;
   const hay=PLANT_CAT.length>0 || !!window.__PROTO;
   bar.classList.toggle('hidden', !hay);
   if(!hay) return;
+  if(_plantModo==='tipo') return _renderPlantBarTipo();
   const evRow=$('plantEvRow'); if(evRow) evRow.style.display=(_plantFilas===2)?'':'none';
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
   $('plantEvChips').innerHTML=PLANT_EVENTOS.map(([k,l])=>
@@ -12195,13 +12297,68 @@ function renderPlantBar(){
   const hint=$('plantHint'); if(hint) hint.textContent = caso==='general' ? '' : ('· caso del turno: '+(PLANT_CASOS[caso]||caso));
 }
 
+/* La barra en modo «evolución tipo»: dos líneas cortas y nada que apretar para
+   que salga el texto. Arriba, qué evolución tipo está en uso (informativo);
+   abajo, el relato del turno — solo los tramos que HAY, más un ＋ para agregar
+   uno que el formulario no alcanza a saber. Sin eventos, es una sola línea. */
+function _renderPlantBarTipo(){
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const base=_plantActiva(), cat=_plantCatalogo();
+  const evRow=$('plantEvRow'); if(evRow) evRow.style.display='none';
+  const auto=_plantEventosAuto(), casos=_plantCasosActivos();
+  const nom=base?base.nombre:'Texto del motor';
+  const deQuien=!base?'sin plantilla':(base.dueno==='UNIDAD'?'de la unidad':('de '+base.dueno));
+  const chips=[
+    `<button type="button" class="fase-chip on" data-nodirty onclick="plantMenuAbrir(this)" title="Evolución tipo en uso — clic para cambiarla">📝 ${esc(nom)} · ${esc(deQuien)} ▾</button>`,
+    `<button type="button" class="fase-chip fase-chip-add" data-nodirty onclick="plantEditar('${esc(base?base.id:'')}')" title="Editar esta evolución tipo o crear una nueva">✏️</button>`,
+  ];
+  $('plantChips').innerHTML=chips.join('');
+  const hint=$('plantHint'); if(hint) hint.textContent='· se genera sola, no hay que elegirla';
+  // Segunda línea: el relato
+  let rel=$('plantRelRow');
+  if(!rel){
+    rel=document.createElement('div'); rel.id='plantRelRow'; rel.style.marginTop='6px';
+    rel.innerHTML='<label style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;">Relato del turno</label>'+
+      '<div id="plantRelChips" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;align-items:center;"></div>';
+    $('plantBar').appendChild(rel);
+  }
+  rel.style.display='';
+  const tengo=new Set(_plantFragsActivos().map(f=>f.caso));
+  const cs=casos.map(k=>{
+    const h=_plantHoraDe(k), reg=auto.has(k);
+    const falta=!tengo.has(k)?' style="opacity:.55;"':'';
+    return `<button type="button" class="fase-chip ${reg?'her':'on'}"${falta} data-nodirty onclick="plantFragDel('${k}')" `+
+      `title="${reg?'Registrado en el formulario':'Agregado a mano'}${tengo.has(k)?'':' — nadie tiene plantilla para este caso: lo narra el motor'} · clic para sacarlo del relato">`+
+      `${_plantIcono(k)} ${esc(PLANT_CASOS[k]||k)}${h?' '+esc(h):''} ✕</button>`;
+  });
+  cs.push(`<button type="button" class="fase-chip fase-chip-add" data-nodirty onclick="plantFragMenu(this)" title="Agregar un tramo al relato del turno">＋ evento</button>`);
+  if(!casos.length) cs.unshift('<span style="font-size:.72rem;color:var(--muted);">Sin eventos — la evolución tipo se basta sola.</span>');
+  $('plantRelChips').innerHTML=cs.join('');
+}
+/* Menú del ＋: los casos que no están puestos todavía. */
+function plantFragMenu(btn){
+  let m=$('plantMenu'); if(!m){ m=document.createElement('div'); m.id='plantMenu'; document.body.appendChild(m); }
+  const puestos=new Set(_plantCasosActivos());
+  const ops=Object.keys(PLANT_CASOS).filter(k=>k!=='general' && !puestos.has(k));
+  m.innerHTML='<div class="pm-g">Agregar al relato del turno</div>'+ops.map(k=>
+    `<div class="pm-it" onclick="plantFragAdd('${k}')">${_plantIcono(k)} ${PLANT_CASOS[k]}</div>`).join('');
+  const r=btn.getBoundingClientRect();
+  m.style.left=Math.max(8,Math.min(r.left, innerWidth-350))+'px';
+  m.style.top=Math.min(r.bottom+4, innerHeight-320)+'px';
+  m.classList.add('on');
+  setTimeout(()=>document.addEventListener('click', _plantMenuFuera, {once:true}),0);
+}
+
 /* Catálogo desplegable: tres estantes, en el orden de siempre. */
 function plantMenuAbrir(btn){
   let m=$('plantMenu'); if(!m){ m=document.createElement('div'); m.id='plantMenu'; document.body.appendChild(m); }
   const c=_plantCatalogo(), sug=_plantSugerida(), act=_plantActiva();
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-  const grupo=(tit,lista,quien)=> !lista.length ? '' : `<div class="pm-g">${tit}</div>`+lista.map(p=>
-    `<div class="pm-it${act&&act.id===p.id?' sel':''}" onclick="plantElegir('${esc(p.id)}')">${_plantIcono(p.caso)} ${esc(p.nombre)}<span class="pm-q">${sug&&sug.id===p.id?'sugerida por el turno':esc(quien||p.dueno)}</span></div>`).join('');
+  // En modo «evolución tipo» el catálogo ofrece BASES (la evolución tipo); en
+  // modo chips, las plantillas por caso. Los tres estantes son los mismos.
+  const soloBase=l=>(_plantModo==='tipo')?l.filter(p=>p.tipo==='base'):l;
+  const grupo=(tit,lista,quien)=>{ const L=soloBase(lista); return !L.length ? '' : `<div class="pm-g">${tit}</div>`+L.map(p=>
+    `<div class="pm-it${act&&act.id===p.id?' sel':''}" onclick="plantElegir('${esc(p.id)}')">${_plantIcono(p.caso)} ${esc(p.nombre)}<span class="pm-q">${(_plantModo!=='tipo'&&sug&&sug.id===p.id)?'sugerida por el turno':esc(quien||p.dueno)}</span></div>`).join(''); };
   m.innerHTML = grupo(`De ${esc(c.firma||'—')} · el colega de esta cama`, c.mias, c.firma)
     + grupo('De la unidad', c.unidad, 'coordinación')
     + grupo('De otros colegas', c.otros)
@@ -12234,8 +12391,12 @@ function plantEditar(id){
   $('plantNombre').value=p?(ajena?p.nombre+' (mía)':p.nombre):'';
   cs.value=p?p.caso:_plantCaso(); if(!cs.value) cs.value='general';
   ds.value=(p && p.dueno==='UNIDAD' && !ajena)?'UNIDAD':yo;
-  $('plantCuerpo').value=p?p.cuerpo:'{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\nPlan: {plan}';
-  $('plantComodines').innerHTML=PLANT_COMODINES.map(k=>`<span class="plant-com" onclick="plantInsertar('${k}')">{${k}}</span>`).join('');
+  $('plantCuerpo').value=p?p.cuerpo:( (_plantModo==='tipo')
+    ? '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{relato}\nPlan: {plan}'
+    : '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\nPlan: {plan}' );
+  const esFrag=p&&p.tipo==='frag';
+  const coms=esFrag?['hora'].concat(PLANT_COMODINES):(_plantModo==='tipo'?['relato'].concat(PLANT_COMODINES):PLANT_COMODINES);
+  $('plantComodines').innerHTML=coms.map(k=>`<span class="plant-com" onclick="plantInsertar('${k}')">{${k}}</span>`).join('');
   plantModNota();
   $('plantMod').classList.add('on'); $('ovl').classList.add('on');
 }
@@ -12260,7 +12421,7 @@ function plantModGuardar(){
   if(!cuerpo.trim()){ toast('⚠️ La plantilla está vacía'); return; }
   const dueno=$('plantDueno').value, caso=$('plantCaso').value||'general';
   let p=_plantEditId?PLANT_CAT.find(x=>x.id===_plantEditId):null;
-  if(!p){ p={ id:'p'+Date.now().toString(36), activo:true }; PLANT_CAT.push(p); }
+  if(!p){ p={ id:'p'+Date.now().toString(36), activo:true, tipo:(_plantModo==='tipo'?'base':'frag') }; PLANT_CAT.push(p); }
   Object.assign(p,{ dueno, caso, nombre, cuerpo });
   plantModCerrar();
   toast('✅ Plantilla guardada'+(window.__PROTO?' (prototipo: solo en esta pestaña)':''));
@@ -12270,6 +12431,12 @@ function plantModGuardar(){
 /* 🧪 Caja del prototipo: solo existe en la página de prueba. Deja alternar
    entre dos filas (evento + plantilla) y una sola, que es la duda de Diego
    («mucho chip, mucha información»). */
+function plantModo(m){
+  _plantModo=m; _plantReset();
+  const rel=$('plantRelRow'); if(rel && m!=='tipo') rel.style.display='none';
+  _protoBoxRender(); renderPlantBar();
+  if(!_textoManual && !_textoCongelado) _plantAplicar();
+}
 function plantFilas(n){
   _plantFilas=n; if(n===1) _plantEv='';
   renderPlantBar();                                   // cambiar la forma no toca texto ajeno…
@@ -12284,9 +12451,15 @@ function _protoBoxRender(){
   }
   b.innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px;"><b>🧪 PROTOTIPO</b><span style="cursor:pointer;opacity:.7;" onclick="window.__protoPlegado=true;_protoBoxRender()" title="Plegar">✕</span></div>
     <div style="opacity:.8;">datos de mentira · nada se guarda</div>
-    <label><input type="radio" name="pfilas" ${_plantFilas===2?'checked':''} onchange="plantFilas(2)"> Evento + Plantilla</label>
-    <label><input type="radio" name="pfilas" ${_plantFilas===1?'checked':''} onchange="plantFilas(1)"> Solo plantilla</label>
-    <div class="pb-hint">Prueba: abre la <b>cama 4</b> → marca PVE <b>Sí → Fracasada</b> → mira la barra y el texto. Cambia la firma para ver cómo se reordena el catálogo.</div>`;
+    <div style="margin-top:5px;"><b>Cómo sale el texto</b></div>
+    <label><input type="radio" name="pmodo" ${_plantModo==='tipo'?'checked':''} onchange="plantModo('tipo')"> Evolución tipo + relato</label>
+    <label><input type="radio" name="pmodo" ${_plantModo==='chips'?'checked':''} onchange="plantModo('chips')"> Una plantilla por caso</label>
+    ${_plantModo==='chips'?`<div style="margin-top:4px;">
+      <label><input type="radio" name="pfilas" ${_plantFilas===2?'checked':''} onchange="plantFilas(2)"> con fila de eventos</label>
+      <label><input type="radio" name="pfilas" ${_plantFilas===1?'checked':''} onchange="plantFilas(1)"> sin ella</label></div>`:''}
+    <div class="pb-hint">${_plantModo==='tipo'
+      ? 'Prueba tu caso: <b>cama 4</b> → PVE <b>No</b> + una razón → luego marca «hubo extubación sin PVE» tipo <b>autoextubación</b> con hora, y <b>reintubación</b> con hora. Mira cómo se encadenan los dos tramos.'
+      : 'Prueba: <b>cama 4</b> → PVE <b>Sí → Fracasada</b> → mira la barra y el texto.'}</div>`;
 }
 (function _plantInit(){
   PLANT_CAT = Array.isArray(window.__PROTO_PLANTILLAS) ? window.__PROTO_PLANTILLAS.map(p=>Object.assign({activo:true},p)) : [];
