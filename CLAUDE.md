@@ -528,10 +528,24 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   escritos a mano**, o el día que Diego cambie el horario los gases se irán al
   turno equivocado en silencio. Guardia obligatoria: los dos lados dan el mismo
   turno para la misma hora.
-  · ❓ **Pregunta abierta para Diego**: hoy el formulario guarda **UNA sola GSA
-  por turno** (`GSA_TOMADA`, `GSA_HORA`, pH, PaO₂…). Si un paciente tiene tres
-  gases en el turno, ¿cuál queda: el último, el primero, el peor? ¿O hacen falta
-  varias y eso ya es una hoja aparte?
+  · ✅ **Alcance cerrado por Diego (2-sep): SOLO el gas de la mañana.** «El resto
+  se escribe a mano; es para optimizar la mañana.» Eso mata la pregunta de los
+  varios gases por turno (queda uno, el de la mañana) y convierte esto en una
+  **rutina que corre una vez al día**, no en un vigilante permanente.
+  · 🔴 **La trampa de la mañana, que hay que resolver ANTES de programar**: el
+  gas se toma tipo 06:00-07:00 y el turno Día empieza a las **9**. Con la regla
+  de `_turnoLogico` tal cual, un gas de las 07:00 cae en el turno **NOCHE del día
+  anterior** — o sea, NO en la evolución de la mañana que Diego quiere ahorrar.
+  Peor: esa evolución de noche probablemente **ya está guardada**, y escribirle
+  encima sería tocar un registro clínico firmado, justo lo que prohíbe la regla
+  de la v5.85.
+  **Propuesta (falta el visto bueno de Diego)**: el gas de la mañana se escribe
+  en el turno **DÍA** de esa fecha —que es quien lo reporta y cuya evolución aún
+  no existe a esa hora—, conservando su hora real (07:15) en `GSA_HORA`. En la
+  hoja diaria queda en la columna DÍA con su hora, que es como se lee.
+  · **Regla dura, hermana de «el texto es de quien lo escribe»**: la importación
+  **solo rellena una GSA vacía**. Si el colega ya escribió una a mano, no se
+  toca nada — el resto de los gases del día son suyos.
   · **Recomendación sobre el borrado**: Diego pidió que el archivo «se borre
   después de copiar». Propuesta a discutir: **no borrar, mover** a una
   subcarpeta «copiados» con retención corta. Con un dato clínico mal copiado y
