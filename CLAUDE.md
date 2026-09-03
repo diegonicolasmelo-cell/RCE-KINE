@@ -532,20 +532,30 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   se escribe a mano; es para optimizar la mañana.» Eso mata la pregunta de los
   varios gases por turno (queda uno, el de la mañana) y convierte esto en una
   **rutina que corre una vez al día**, no en un vigilante permanente.
-  · 🔴 **La trampa de la mañana, que hay que resolver ANTES de programar**: el
-  gas se toma tipo 06:00-07:00 y el turno Día empieza a las **9**. Con la regla
-  de `_turnoLogico` tal cual, un gas de las 07:00 cae en el turno **NOCHE del día
-  anterior** — o sea, NO en la evolución de la mañana que Diego quiere ahorrar.
-  Peor: esa evolución de noche probablemente **ya está guardada**, y escribirle
-  encima sería tocar un registro clínico firmado, justo lo que prohíbe la regla
-  de la v5.85.
-  **Propuesta (falta el visto bueno de Diego)**: el gas de la mañana se escribe
-  en el turno **DÍA** de esa fecha —que es quien lo reporta y cuya evolución aún
-  no existe a esa hora—, conservando su hora real (07:15) en `GSA_HORA`. En la
-  hoja diaria queda en la columna DÍA con su hora, que es como se lee.
-  · **Regla dura, hermana de «el texto es de quien lo escribe»**: la importación
-  **solo rellena una GSA vacía**. Si el colega ya escribió una a mano, no se
-  toca nada — el resto de los gases del día son suyos.
+  · ✅ **Decisión de Diego (2-sep): el gas importado NO entra a la evolución.
+  «Iría solo a la hoja diaria, por el momento.»** Es la decisión que más riesgo
+  saca del proyecto: no toca EVOLUCIONES (ni sus 386 columnas), no toca el REM
+  ni las estadísticas, no puede pisar un registro firmado, y **desaparece la
+  trampa del corte de turno** —el gas de las 07:00 ya no tiene que elegir
+  evolución, solo columna en la hoja—.
+  · 🪤 **Pero la hoja diaria no tiene de dónde leerlo hoy.** Se arma **en el
+  cliente desde `TL_EVOS`**, o sea desde las evoluciones: la fila `gsa` (`HJ_F`,
+  index ~7877) lee `e.GSA_TOMADA`. Si el dato no entra a la evolución, hace
+  falta **una fuente aparte**: hoja nueva tipo `GSA_IMPORTADAS`
+  (PATIENT_ID · fecha · hora · pH · PaO₂ · PaCO₂ · HCO₃ · EB · lactato · SaO₂ ·
+  FiO₂ · archivo de origen) que viaje al cliente junto al historial y que la
+  fila `gsa` **mezcle** con lo que ya venga de la evolución. Esto sí es cambio
+  de servidor — la hoja UCI hasta hoy no tenía ninguno.
+  · **Cómo conviven los dos gases del día**: el de la mañana llega importado y
+  el resto los escribe el colega a mano en su evolución. Los dos caen en la
+  columna DÍA, así que la celda tiene que poder mostrar más de uno, con su hora
+  y marcando cuál vino del laboratorio.
+  · **Consecuencia que Diego debe tener clara**: al no entrar a la evolución, el
+  gas importado **no se narra en el texto** (`dominio_texto.gs:369` solo mira
+  `GSA_TOMADA` de la fila del turno) ni aparece en la entrega. Se ve en la hoja
+  diaria y nada más — que es exactamente lo que pidió, y por eso dijo «por el
+  momento». Guardar los valores completos en la hoja nueva deja la puerta
+  abierta a alimentar la evolución después sin volver a importar nada.
   · **Recomendación sobre el borrado**: Diego pidió que el archivo «se borre
   después de copiar». Propuesta a discutir: **no borrar, mover** a una
   subcarpeta «copiados» con retención corta. Con un dato clínico mal copiado y
