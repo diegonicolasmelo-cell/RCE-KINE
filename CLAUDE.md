@@ -24,6 +24,15 @@ navegador del hospital o de su casa.
 - **Cada entrega de archivos** debe decir: qué archivos pegar, si hay que
   correr `crearORepararEstructura()`, y cómo se publica (ver la regla de abajo;
   usar la skill `entrega-gas`; el index SIEMPRE en formato cohete).
+- ☀️ **TODO mockup, artefacto o HTML que se le entregue va en TEMA CLARO**
+  (pedido de Diego, 2-sep-2026: «desde ahora en adelante todos los mockup y HTML
+  generados que sean con el tema claro o del día»). **Cómo se hace**: definir la
+  paleta clara en el `:root` pelado y **no escribir** los bloques
+  `@media (prefers-color-scheme: dark)` ni `:root[data-theme="dark"]` — así el
+  artefacto no sigue el tema del que lo abre. El `body` **siempre** con
+  `background` explícito desde un token; si no, el fondo lo pone el visor y la
+  página se ve oscura igual. Vale también para lo que se publique como
+  documento (PRD, planes, resúmenes), no solo para los mockups de pantallas.
 
 ### 🔴 CÓMO SE PUBLICA — regla vigente (14-ago-2026, la cambió Diego)
 
