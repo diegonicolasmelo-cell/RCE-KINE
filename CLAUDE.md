@@ -587,11 +587,17 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   · **Turno**: el gas de las 04:00 cae en la columna **NOCHE**, que es cuando se
   toma y quién está de turno. No hay conflicto con la evolución porque el dato
   no entra ahí.
-  · Falta que Diego responda: ① ¿Hb/Hto en observaciones (como hoy) o **filas
-  nuevas** en el bloque de laboratorio —que cambiaría la hoja que el equipo lee
-  hace años—? ② **cuáles son exactamente** «los otros valores para la rhb» (se
-  propusieron Hb · Hto · Plaquetas · INR · K⁺ · Glicemia) y con qué corte se
-  marcan alterados ③ ¿se marca lo importado o la hoja va limpia?
+  · ✅ **Cerrado por Diego (2-sep)**: **Hb y Hto en fila propia** («no sé si
+  calza» → 📏 **medido: sí calza**. La carilla útil es 1093 px y la hoja usa
+  **914 px** con cualquier paciente —TOT, TQT o natural, nombre corto o largo—,
+  o sea sobran **179 px = 12 filas** de 14 px; con Hb y Hto quedan 942 px y aún
+  sobran 10 filas). **Plaquetas y K⁺ NO llevan fila fija**: aparecen en
+  observaciones **solo cuando están alterados**. La lista de valores para la
+  rehabilitación (Hb · Hto · Plaquetas · INR · K⁺ · Glicemia) quedó confirmada.
+  · Falta que Diego responda: ① ¿la hoja marca lo importado (un `°` y sombreado
+  suave) o va limpia? — están las dos versiones dibujadas en el mockup
+  ② **los cortes de «alterado»** (propuesta a corregir: Hb <8 · Plaquetas
+  <100.000 · K⁺ <3,5 o >5,5 · pH <7,30 o >7,50 · PaCO₂ >50 · PaFi <200).
   · Falta todavía **un PDF de ejemplo real** (anonimizado o con paciente de
   prueba) para saber qué se puede sacar de él.
 - 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
