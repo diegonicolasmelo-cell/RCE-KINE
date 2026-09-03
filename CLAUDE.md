@@ -515,11 +515,19 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   · **El RUT se usa para emparejar y NO se escribe** en EVOLUCIONES: la regla
   del `PAC_RUT` transitorio ya existe y aplica igual. El PDF sí es dato
   identificable (nombre + RUT), así que su carpeta de Drive va restringida.
-  · 🪤 **Falta la función inversa del turno.** `_fechaEfectivaTurno(fecha,turno)`
-  existe pero va en la otra dirección. Para la GSA hace falta: dada la fecha y
-  hora del informe, ¿a qué fecha + turno pertenece? Ahí está la trampa de la
-  noche — un gas de las 03:00 es del turno NOCHE del día anterior, la misma
-  regla que `_tsEventoTurno()` ya aplica al revés.
+  · **Confirmado por Diego (2-sep): el informe trae la fecha cronológica de la
+  toma y su horario.** Con eso el turno se calcula solo y **la regla ya está
+  escrita**: `_turnoLogico(now)` (index ~4543) convierte un momento en
+  `{fecha, turno}` y ya resuelve el cruce de medianoche — antes de las 9 es
+  turno **Noche del día anterior**. Lee los cortes de CONFIG
+  (`TURNO_DIA_INICIO`=9, `TURNO_NOCHE_INICIO`=21), o sea que si la unidad
+  cambia los horarios no hay que tocar código.
+  🪤 Pero `_turnoLogico` **vive solo en el cliente**; la importación de la GSA
+  corre en el SERVIDOR (rutina que lee Drive), así que hay que llevar esa misma
+  regla a `infra_fechas.gs` — **leyendo la CONFIG, no con el 9 y el 21
+  escritos a mano**, o el día que Diego cambie el horario los gases se irán al
+  turno equivocado en silencio. Guardia obligatoria: los dos lados dan el mismo
+  turno para la misma hora.
   · ❓ **Pregunta abierta para Diego**: hoy el formulario guarda **UNA sola GSA
   por turno** (`GSA_TOMADA`, `GSA_HORA`, pH, PaO₂…). Si un paciente tiene tres
   gases en el turno, ¿cuál queda: el último, el primero, el peor? ¿O hacen falta
