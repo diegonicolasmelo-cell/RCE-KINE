@@ -483,12 +483,24 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   Synapse en otra pestaña. Y el enlace que se usa a mano lleva un **token de
   sesión** en la dirección, así que no sirve como enlace fijo: hay que usar la
   URL base del login.
+  · 🔑 **CÓMO FUNCIONA HOY, contado por Diego (2-sep)**: Synapse **ya está
+  integrado en BUDA**. Hace clic en «Imaginología» y **entra directo, sin pedir
+  usuario ni contraseña** (probablemente SSO o por IP del hospital). Lo único
+  que NO hace es **copiar el RUT**: eso lo teclea a mano cada vez. Su pedido es
+  «lo más similar a eso».
+  · ✅ **La parte que SÍ se puede hacer, y es justo el paso que él repite**:
+  **copiar el RUT al portapapeles con un clic**. La app ya copia al
+  portapapeles en dos lugares (`copiar()` con `execCommand`, y el informe REM
+  con `navigator.clipboard`), así que la técnica está probada aquí dentro.
+  Flujo propuesto: ícono 🩻 en la tarjeta del paciente → **copia el RUT** y
+  **abre Synapse en otra pestaña** → él pega. Chrome ya tiene guardada la
+  credencial. 🔴 El RUT viaja al portapapeles del propio equipo, **nunca en la
+  URL ni a ninguna exportación**: la regla se respeta.
   · **Lo que falta preguntar a informática o al proveedor**: si la instancia
   admite enlace directo al paciente o al estudio (Synapse suele tener uno con
-  parámetro) y con qué identificador. Sin eso, el botón deja al colega en la
-  búsqueda de Synapse — igual ahorra pasos, pero no es «ver la imagen del
-  paciente de la cama 4». 🔴 Si ese parámetro fuera el RUT, **no va en la
-  dirección**: el RUT no sale de la app (Ley 19.628 + regla del proyecto).
+  parámetro) y con qué identificador. Con eso el clic llevaría directo a las
+  imágenes; sin eso, el flujo de arriba ya ahorra el tecleo. 🔴 Si ese parámetro
+  fuera el RUT, **no va en la dirección**: el RUT no sale de la app.
 - 🩸 **La GSA arterial se copie sola a la hoja de registro diaria.** 🪤 Precisión
   verificada: la fila de GSA **YA EXISTE** en la hoja diaria (`gsa` en `HJ_F`,
   index ~7939, se pinta con `GSA_TOMADA`) y el formulario ya guarda pH, PaO₂,
@@ -612,9 +624,15 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   prueba) para saber qué se puede sacar de él.
 - 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
   existe: es **Servi**, seleccionable entre Servi y el kinesiólogo (`mascToggle`,
-  index ~1681), y hoy solo hace el tutorial y los globos. Falta decidir dónde
-  vive la lista de cumpleaños (natural: una columna en `KINESIOLOGOS`, como el
-  `EMAIL` que ya está ahí) y qué hace exactamente el día del cumpleaños.
+  index ~1681), y hoy solo hace el tutorial y los globos.
+  · ✅ **Diseño contado por Diego (2-sep)**: el día del cumpleaños la mascota
+  aparece **con gorro y globos** — el cambio visual es el anzuelo, «la gente se
+  va a interesar visualmente y va a hacerle clic»— y al tocarla sale un **globo
+  de diálogo**: «Hoy está de cumpleaños tal», que se puede cerrar. Su intención,
+  textual: **«darle un toque mucho más humano y más cercano a la plataforma»**.
+  · Falta decidir: dónde vive la lista (natural: una columna nueva en
+  `KINESIOLOGOS`, como el `EMAIL` que ya está ahí) y qué pasa si hay **dos
+  cumpleaños el mismo día**.
   🔴 Son datos personales de los funcionarios: van en la planilla, nunca
   escritos en el código, y no salen a ninguna exportación.
 - 💭 **Que la mascota recuerde situaciones.** Idea abierta y sin definir todavía
