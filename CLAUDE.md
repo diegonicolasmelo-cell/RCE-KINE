@@ -501,10 +501,29 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   el OCR de Drive y sacar los valores con expresiones, que se rompe en silencio
   el día que cambie el formato del informe. Un CSV hace el trabajo diez veces
   más confiable. Los analizadores de gases habituales exportan texto.
-  · **El problema real no es leer el PDF: es emparejarlo.** El informe trae
-  nombre y/o RUT más fecha y hora. Se puede emparejar por **RUT contra
-  CAMAS_ESTADO** (uso interno ya autorizado) sin que el RUT llegue a
-  EVOLUCIONES — la regla del `PAC_RUT` transitorio ya existe y sirve igual aquí.
+  · **Confirmado por Diego (2-sep): el informe de GSA trae NOMBRE y RUT.** Con
+  eso el emparejamiento deja de ser una adivinanza, y **la cañería ya está
+  escrita**: `episodiosPorRut()` (`svc_camas.gs:676`) busca un RUT en
+  CAMAS_ESTADO (camas ocupadas) **y** en ARCHIVO_PACIENTES (egresados) y
+  devuelve el episodio; se escribió para el aviso de reingreso y sirve igual
+  aquí. Normaliza con `_rutNormal()` (quita puntos y guión, K mayúscula), así
+  que el formato con que venga en el PDF no importa.
+  · 🔑 **`rutValido()` (módulo 11) es un verificador de OCR gratis**: si la
+  lectura del PDF equivoca un dígito del RUT, el dígito verificador lo caza casi
+  siempre. Convierte el campo más peligroso del parseo en el más seguro — si el
+  RUT no valida, el archivo va directo a «sin emparejar» y no se escribe nada.
+  · **El RUT se usa para emparejar y NO se escribe** en EVOLUCIONES: la regla
+  del `PAC_RUT` transitorio ya existe y aplica igual. El PDF sí es dato
+  identificable (nombre + RUT), así que su carpeta de Drive va restringida.
+  · 🪤 **Falta la función inversa del turno.** `_fechaEfectivaTurno(fecha,turno)`
+  existe pero va en la otra dirección. Para la GSA hace falta: dada la fecha y
+  hora del informe, ¿a qué fecha + turno pertenece? Ahí está la trampa de la
+  noche — un gas de las 03:00 es del turno NOCHE del día anterior, la misma
+  regla que `_tsEventoTurno()` ya aplica al revés.
+  · ❓ **Pregunta abierta para Diego**: hoy el formulario guarda **UNA sola GSA
+  por turno** (`GSA_TOMADA`, `GSA_HORA`, pH, PaO₂…). Si un paciente tiene tres
+  gases en el turno, ¿cuál queda: el último, el primero, el peor? ¿O hacen falta
+  varias y eso ya es una hoja aparte?
   · **Recomendación sobre el borrado**: Diego pidió que el archivo «se borre
   después de copiar». Propuesta a discutir: **no borrar, mover** a una
   subcarpeta «copiados» con retención corta. Con un dato clínico mal copiado y
