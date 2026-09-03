@@ -505,11 +505,24 @@ lista de cumpleaños.
   público y el historial no se borra). Hoy se entra con **una cuenta compartida
   del servicio**, lo que además significa que no queda registro de quién miró
   qué: es decisión de Diego y de informática, no del proyecto.
-  · **Consecuencias de diseño, ya claras**: al exigir sesión propia, la app
-  **no puede mostrar las imágenes dentro** — lo realista es un botón que abre
+  · 🪤 **MEDIDO, NO SUPUESTO — SYNAPSE NO SE PUEDE EMBEBER** (2-sep-2026).
+  Diego preguntó si se podía verlo dentro de la app. Se le mandó una página de
+  prueba con un iframe y la corrió en el Chrome del hospital. La consola:
+  `Refused to display 'https://sscssl.synapsetimed.cl/' in a frame because it
+  set 'X-Frame-Options' to 'sameorigin'`. O sea **solo se deja mostrar dentro de
+  su propio dominio**: no es configuración nuestra ni permiso que se pueda
+  pedir, lo decide su servidor. Explica además por qué BUDA lo ABRE en vez de
+  incrustarlo. **No volver a proponer iframe, «SPA» ni visor embebido.**
+  · 💡 Aclaración que hubo que hacerle: **el RCE ya ES una SPA** (un solo
+  index.html con pestañas que cambian sin recargar). Ese término no da la
+  capacidad de mostrar otro sitio adentro; lo que haría falta es un iframe, y
+  está bloqueado.
+  · **Consecuencias de diseño, ya firmes**: lo realista es un botón que abre
   Synapse en otra pestaña. Y el enlace que se usa a mano lleva un **token de
   sesión** en la dirección, así que no sirve como enlace fijo: hay que usar la
   URL base del login.
+  · **Truco sin código que da el «verlos juntos»**: abrir Synapse en una segunda
+  ventana de Chrome y usar ⊞ Win + ← / ⊞ Win + → para dejarlos lado a lado.
   · 🔑 **CÓMO FUNCIONA HOY, contado por Diego (2-sep)**: Synapse **ya está
   integrado en BUDA**. Hace clic en «Imaginología» y **entra directo, sin pedir
   usuario ni contraseña** (probablemente SSO o por IP del hospital). Lo único
