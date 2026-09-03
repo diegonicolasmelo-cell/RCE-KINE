@@ -563,6 +563,35 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   · **Regla dura del emparejamiento**: si no se puede emparejar con certeza,
   **no se escribe nada** y el archivo queda en una bandeja «sin emparejar» para
   hacerlo a mano. Un gas en la cama equivocada es peor que un gas que falta.
+  · 📖 **LA HISTORIA DEL PRD, dictada por Diego (2-sep)**: está de turno noche.
+  Los gases se toman a las **04:00**, el resultado llega a las **06:00** y la
+  hoja se imprime a las **07:00** — pero la GSA, la Hb, el Hto y otros valores
+  para la rehabilitación se pasan **a mano**, y eso termina a las **10:00**.
+  «Ya se perdieron horas valiosas para corregir algún valor alterado o plantear
+  la posibilidad de rehabilitación.» Después: descarga los PDF, los archiva, y a
+  las 07:00 la hoja sale impresa con todo — identifica errores y deja el plan al
+  colega entrante. 🔑 **El valor no es ahorrar tecleo: son tres horas de
+  anticipación clínica.**
+  · 🆕 **NO es solo la GSA.** Diego nombró **Hb, Hto y «otros valores importantes
+  para la rhb», que hoy van en la columna de comentarios**. La hoja impresa
+  (`rkHojaHTML`) ya tiene el bloque LABORATORIO con filas GSA: pH · PaCO₂ · PaO₂ ·
+  HCO₃ · EB · SatO₂ · PaFi · Lactato · PCR · PCT, **seis columnas de horario en
+  blanco** y la columna ancha «Procedimientos y observaciones». Hb/Hto/plaquetas
+  **no tienen fila**: por eso van en observaciones.
+  · 🖼️ **Mockup sobre la hoja real**:
+  `https://claude.ai/code/artifact/c33c487d-948c-4187-9eb6-1cc98efe61e4`
+  — el gas de las 04:00 ocupa la 1ª columna (las otras 5 quedan para los gases
+  del día, a mano), los valores de laboratorio van en observaciones, y lo
+  importado se marca con `°` y sombreado suave para distinguir lo que copió una
+  máquina de lo que escribió una persona.
+  · **Turno**: el gas de las 04:00 cae en la columna **NOCHE**, que es cuando se
+  toma y quién está de turno. No hay conflicto con la evolución porque el dato
+  no entra ahí.
+  · Falta que Diego responda: ① ¿Hb/Hto en observaciones (como hoy) o **filas
+  nuevas** en el bloque de laboratorio —que cambiaría la hoja que el equipo lee
+  hace años—? ② **cuáles son exactamente** «los otros valores para la rhb» (se
+  propusieron Hb · Hto · Plaquetas · INR · K⁺ · Glicemia) y con qué corte se
+  marcan alterados ③ ¿se marca lo importado o la hoja va limpia?
   · Falta todavía **un PDF de ejemplo real** (anonimizado o con paciente de
   prueba) para saber qué se puede sacar de él.
 - 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
