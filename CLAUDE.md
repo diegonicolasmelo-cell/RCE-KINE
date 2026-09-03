@@ -469,23 +469,51 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
 
 **Pedidos nuevos del 2-sep-2026 (solo anotados, sin diseño ni código):**
 
-- 🖼️ **Enlazar Synapse para ver imágenes.** Synapse (el visor de imágenes del
-  hospital) **no aparece en ninguna parte del proyecto**: es integración nueva,
-  no un ajuste. Lo primero que hay que averiguar antes de diseñar nada: si tiene
-  URL por paciente o por estudio y con qué identificador (¿RUT? ¿número de ficha?
-  ¿accession?), y si el enlace exige sesión propia. 🔴 Ojo con la privacidad: un
-  enlace que lleve el RUT en la dirección lo saca de la app, y el RUT no sale a
-  ninguna parte (Ley 19.628 + regla del proyecto).
-- 🩸 **La GSA arterial se copie sola a la hoja de registro diaria**, extrayendo
-  los datos de un archivo **que se borra después de copiar**. 🪤 Precisión
+- 🖼️ **Enlazar Synapse para ver imágenes.** Synapse (el visor de imágenes) **no
+  aparece en ninguna parte del proyecto**: es integración nueva, no un ajuste.
+  Lo que Diego confirmó el 2-sep: **se usa en Chrome**, es una instancia
+  **alojada fuera del hospital** (`sscssl.synapsetimed.cl`), y **exige su propio
+  usuario y contraseña** con una pantalla de inicio de sesión tipo STS.
+  🔴 **Las credenciales NO se guardan en este repo ni en el código** (el repo es
+  público y el historial no se borra). Hoy se entra con **una cuenta compartida
+  del servicio**, lo que además significa que no queda registro de quién miró
+  qué: es decisión de Diego y de informática, no del proyecto.
+  · **Consecuencias de diseño, ya claras**: al exigir sesión propia, la app
+  **no puede mostrar las imágenes dentro** — lo realista es un botón que abre
+  Synapse en otra pestaña. Y el enlace que se usa a mano lleva un **token de
+  sesión** en la dirección, así que no sirve como enlace fijo: hay que usar la
+  URL base del login.
+  · **Lo que falta preguntar a informática o al proveedor**: si la instancia
+  admite enlace directo al paciente o al estudio (Synapse suele tener uno con
+  parámetro) y con qué identificador. Sin eso, el botón deja al colega en la
+  búsqueda de Synapse — igual ahorra pasos, pero no es «ver la imagen del
+  paciente de la cama 4». 🔴 Si ese parámetro fuera el RUT, **no va en la
+  dirección**: el RUT no sale de la app (Ley 19.628 + regla del proyecto).
+- 🩸 **La GSA arterial se copie sola a la hoja de registro diaria.** 🪤 Precisión
   verificada: la fila de GSA **YA EXISTE** en la hoja diaria (`gsa` en `HJ_F`,
   index ~7939, se pinta con `GSA_TOMADA`) y el formulario ya guarda pH, PaO₂,
   PaCO₂, HCO₃, EB, lactato, SaO₂, FiO₂ e interpretación. Lo que falta **no es la
-  fila: es la captura automática** — de dónde sale ese archivo (¿export del
-  equipo de gases?), qué formato trae, cómo llega a Drive, con qué se empareja
-  (cama, hora, paciente) y quién autoriza el borrado. Antes de programar hace
-  falta **un archivo de ejemplo real** y decidir qué pasa si el emparejamiento
-  falla (dato a la basura vs. dato a la cama equivocada, que es peor).
+  fila: es la captura automática**.
+  · **Formato confirmado por Diego (2-sep): se descarga del sistema en PDF**, y
+  se puede dejar en una carpeta o un lugar fijo.
+  · 🔴 **Preguntar ANTES de programar el camino difícil**: ¿el sistema exporta
+  también **CSV, TXT o HL7**? Apps Script no lee PDF; habría que convertirlo con
+  el OCR de Drive y sacar los valores con expresiones, que se rompe en silencio
+  el día que cambie el formato del informe. Un CSV hace el trabajo diez veces
+  más confiable. Los analizadores de gases habituales exportan texto.
+  · **El problema real no es leer el PDF: es emparejarlo.** El informe trae
+  nombre y/o RUT más fecha y hora. Se puede emparejar por **RUT contra
+  CAMAS_ESTADO** (uso interno ya autorizado) sin que el RUT llegue a
+  EVOLUCIONES — la regla del `PAC_RUT` transitorio ya existe y sirve igual aquí.
+  · **Recomendación sobre el borrado**: Diego pidió que el archivo «se borre
+  después de copiar». Propuesta a discutir: **no borrar, mover** a una
+  subcarpeta «copiados» con retención corta. Con un dato clínico mal copiado y
+  el original borrado no hay a qué volver ni cómo auditar.
+  · **Regla dura del emparejamiento**: si no se puede emparejar con certeza,
+  **no se escribe nada** y el archivo queda en una bandeja «sin emparejar» para
+  hacerlo a mano. Un gas en la cama equivocada es peor que un gas que falta.
+  · Falta todavía **un PDF de ejemplo real** (anonimizado o con paciente de
+  prueba) para saber qué se puede sacar de él.
 - 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
   existe: es **Servi**, seleccionable entre Servi y el kinesiólogo (`mascToggle`,
   index ~1681), y hoy solo hace el tutorial y los globos. Falta decidir dónde
