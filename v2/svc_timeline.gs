@@ -132,7 +132,10 @@ const PROC_TO_HITO = {
 // procedimientos. Todo lo que no esté aquí sobrevive a un re-guardado — y esa
 // es la única protección que tienen los hitos escritos a mano: 'ingreso',
 // 'egreso', 'cultivo', 'evento' y 'anexo' están fuera a propósito.
-const _TIPOS_HITO_AUTO = ['via_aerea', 'procedimiento', 'kine', 'general'];
+// 'nota' entra aquí (2-sep-2026) para que el hito 📌 de la nota del turno se
+// REEMPLACE al re-guardar la evolución: si el colega corrige la nota, el
+// historial muestra la corregida y no las dos.
+const _TIPOS_HITO_AUTO = ['via_aerea', 'procedimiento', 'kine', 'general', 'nota'];
 
 /**
  * Prefijo del texto con que se escribe el hito de un procedimiento ANEXADO

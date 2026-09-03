@@ -445,6 +445,24 @@ function guardarEvolucion(datos, ctx) {
         });
       }
 
+      // 📌 NOTA DEL TURNO → hito en la línea de tiempo (Diego, 2-sep-2026).
+      // La nota YA era el texto libre propio de ese turno: no se hereda al
+      // siguiente y entra a la evolución como «Nota: …». Lo único que le
+      // faltaba era dejar rastro en el historial, que era el motivo original
+      // de los «eventos manuales» — así que no hizo falta un bloque nuevo en
+      // el formulario, solo darle salida a lo que ya se escribe.
+      // Tipo 'nota': el cliente YA tenía su color reservado (ámbar) y su
+      // filtro en la pestaña de eventos; y está en _TIPOS_HITO_AUTO para que
+      // al re-guardar se REEMPLACE en vez de duplicarse.
+      const _notaTurno = String(evo.PLAN_NOTA_TURNO || '').trim();
+      if (_notaTurno) {
+        hitosExtra.push({
+          tipo: 'nota',
+          texto: '📌 Nota: ' + (_notaTurno.length > 220 ? _notaTurno.slice(0, 219) + '…' : _notaTurno),
+          autor: evo.PLAN_FIRMA_KINE, autorEmail: ctx.email || '',
+        });
+      }
+
       // Procedimientos (filas) + hitos automáticos
       // UN evento por ciclo prono→supino (ago-2026, Bloque C de Diego): la
       // SUPINACIÓN no entra a PROCEDIMIENTOS — la estadística contaría DOS

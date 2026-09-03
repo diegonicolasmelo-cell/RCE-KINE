@@ -243,6 +243,16 @@ for (const esc of Object.keys(TECHOS)) {
       if (esc === 'sinProcs') continue;
       si(esc + ' · CAMAS_ESTADO igual (cache y narrativa aparte)',
         JSON.stringify(camasComparables(fa, COL_TL)) === JSON.stringify(camasComparables(fb, COL_TL)));
+    } else if (hoja === 'KINESIOLOGOS') {
+      // 🎂 2-sep-2026: se agregó la columna CUMPLE **al final** de la hoja.
+      // El base escribe una columna menos, así que el byte a byte fallaría por
+      // una celda vacía añadida — no por un cambio de comportamiento. Se
+      // comparan las columnas que YA existían, recortando ambas al mismo ancho:
+      // si alguna de ésas cambiara, la guardia sigue cazándolo.
+      const corte = f => f.map(r => r.slice(0, Math.min(
+        (fa[0] || []).length || r.length, (fb[0] || []).length || r.length)));
+      si(esc + ' · KINESIOLOGOS igual en las columnas que ya existían',
+        JSON.stringify(corte(fa)) === JSON.stringify(corte(fb)));
     } else {
       si(esc + ' · ' + hoja + ' igual (narrativa y KTM aparte)',
         JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, sinKtmCant(hoja, sinTextos(hoja, fa, IDX_TEXTO_BASE), IDX_KTM_BASE)))) ===

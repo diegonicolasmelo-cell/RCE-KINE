@@ -447,6 +447,11 @@ const ESQUEMA = {
   KINESIOLOGOS: { headerRows: 1, cols: [
     ['FIRMA','texto'],['NOMBRE','texto'],['EMAIL','email'],['APOYO','bool'],['ACTIVO','bool'],
     ['TRATAMIENTO','texto'],   // Klgo. | Klga. — para la firma del texto clínico (vacío = Klgo.)
+    // Cumpleaños (2-sep-2026, pedido de Diego): 'dd-mm' o 'dd/mm'. El AÑO NO
+    // se guarda a propósito — para saludar no hace falta la edad de nadie.
+    // Va AL FINAL de la lista: la reparación reescribe encabezados y meterla
+    // al medio desalinearía las filas que ya están cargadas.
+    ['CUMPLE','texto'],
   ]},
   ESTADISTICAS_REM: { headerRows: 1, cols: [
     ['MES','texto'],['INGRESOS','entero'],['DIAS_CAMA','entero'],['TURNOS_VM','entero'],['TURNOS_KTM','entero'],
@@ -732,6 +737,11 @@ function _sembrar(ss) {
     // inicio del día sigue contando como la noche del día anterior)
     ['TURNO_DIA_INICIO', '9'],
     ['TURNO_NOCHE_INICIO', '21'],
+    // Visor de imágenes (2-sep-2026). Vacío = el botón 🩻 no aparece en las
+    // tarjetas. Se pone la URL BASE del login, nunca un enlace con token de
+    // sesión: ésos caducan. Medido ese día: Synapse manda X-Frame-Options
+    // 'sameorigin', así que NO se puede embeber — el botón abre otra pestaña.
+    ['SYNAPSE_URL', ''],
     // Interpretación clínica (cortes ajustables por el equipo sin tocar código)
     ['CPAX_ACTIVO', 'TRUE'],        // FALSE oculta la sección CPAx del panel
     ['CORTE_MRC_DAUCI', '48'],      // MRC-SS < corte = DAUCI

@@ -159,6 +159,39 @@ function api(accion, datos, token) {
   }
 }
 
+/**
+ * 🎂 Cumpleaños de HOY, desde la columna CUMPLE de KINESIOLOGOS
+ * (2-sep-2026, pedido de Diego: «darle un toque mucho más humano y más
+ * cercano a la plataforma»).
+ *
+ * Devuelve [{firma, nombre}] — puede venir más de uno el mismo día.
+ * · La fecha se lee como 'dd-mm' o 'dd/mm'; el AÑO no se guarda ni se usa.
+ * · Solo entran los ACTIVOS: nadie saluda a quien ya no está en la unidad.
+ * · Si la columna no existe todavía (planilla sin reparar), devuelve [] y no
+ *   revienta: la mascota simplemente sigue como siempre.
+ * 🔴 Son datos personales de los funcionarios. Salen SOLO a la pantalla de la
+ *    app; no van a ninguna exportación, ni al REM, ni al imprimible.
+ */
+function cumpleanosDeHoy(fechaISO) {
+  try {
+    const f = String(fechaISO || hoyISO()).slice(0, 10);
+    const dd = f.slice(8, 10), mm = f.slice(5, 7);
+    const hoy = dd + '-' + mm;
+    return repoLeerTodos('KINESIOLOGOS')
+      .filter(function (k) {
+        if (String(k.ACTIVO) === 'false' || k.ACTIVO === false) return false;
+        const c = String(k.CUMPLE || '').trim();
+        if (!c) return false;
+        // Acepta dd-mm, dd/mm y de paso dd-mm-aaaa (el año se ignora).
+        const m = c.match(/^(\d{1,2})[-\/.](\d{1,2})/);
+        if (!m) return false;
+        const p2 = function (n) { return ('0' + parseInt(n, 10)).slice(-2); };
+        return p2(m[1]) + '-' + p2(m[2]) === hoy;
+      })
+      .map(function (k) { return { firma: String(k.FIRMA || ''), nombre: String(k.NOMBRE || '') }; });
+  } catch (e) { return []; }
+}
+
 /** Config de interfaz (compartida por GET_CONFIG_UI y GET_BOOT). */
 function _configUI() {
   return {
@@ -170,6 +203,8 @@ function _configUI() {
     EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
     CUFF_MIN: parseInt(leerConfig('CUFF_MIN', '20')) || 20,
     CUFF_MAX: parseInt(leerConfig('CUFF_MAX', '30')) || 30,
+    // Visor de imágenes: vacío = sin botón 🩻 (ver CONFIG.SYNAPSE_URL).
+    SYNAPSE_URL: String(leerConfig('SYNAPSE_URL', '') || '').trim(),
     PTT_OK: parseFloat(leerConfig('PTT_OK', '10')) || 10,
     PTT_ALERTA: parseFloat(leerConfig('PTT_ALERTA', '12')) || 12,
     BANNERS: {
@@ -194,6 +229,8 @@ function obtenerBoot(datos, ctx, auth) {
       yo: { email: ctx.email, firma: ctx.firma, dev: !!(auth && auth.dev) },
       config: _configUI(),
       fases: catalogo('FASE_CLINICA'),
+      // 🎂 Quién está de cumpleaños hoy (vacío casi todos los días).
+      cumples: cumpleanosDeHoy((datos && datos.fecha) || hoyISO()),
       camas: (rCamas && rCamas.ok) ? rCamas.data : [],
       evos: (rEvos && rEvos.ok) ? rEvos.data : [],
       asignacion: asignacion,
