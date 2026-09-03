@@ -594,10 +594,20 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   sobran 10 filas). **Plaquetas y K⁺ NO llevan fila fija**: aparecen en
   observaciones **solo cuando están alterados**. La lista de valores para la
   rehabilitación (Hb · Hto · Plaquetas · INR · K⁺ · Glicemia) quedó confirmada.
-  · Falta que Diego responda: ① ¿la hoja marca lo importado (un `°` y sombreado
-  suave) o va limpia? — están las dos versiones dibujadas en el mockup
-  ② **los cortes de «alterado»** (propuesta a corregir: Hb <8 · Plaquetas
-  <100.000 · K⁺ <3,5 o >5,5 · pH <7,30 o >7,50 · PaCO₂ >50 · PaFi <200).
+  · 🖨️ **CERRADO (2-sep) y ojo con esto: LA HOJA SE IMPRIME EN BLANCO Y NEGRO.**
+  Diego lo dijo al ver el mockup, y tumba cualquier diseño que dependa del color
+  —el rojo de «alterado» tampoco se veía—. Las marcas que sí salen en la
+  impresora: **asterisco** para lo que vino del laboratorio y **negrita + flecha
+  ↑↓** para lo que está fuera de rango (la flecha además dice hacia dónde, que
+  el color no decía). Vale para cualquier cosa que se diseñe sobre la hoja
+  impresa, no solo para la GSA.
+  · ✅ **Cortes confirmados**: **Hb < 7** (lo corrigió Diego; yo había propuesto
+  8) · Plaquetas <100.000 · K⁺ <3,5 o >5,5 · pH <7,30 o >7,50 · PaCO₂ >50 ·
+  PaFi <200.
+  · **Estado del formato**: Diego confirma que **el sistema exporta en PDF** y no
+  sabe si ofrece otra opción; preguntó qué era un CSV. Queda explicado en el
+  mockup, con dónde mirar («Exportar / Descargar como / Guardar como») y la
+  pregunta para informática. **Mientras no se sepa, el diseño asume PDF.**
   · Falta todavía **un PDF de ejemplo real** (anonimizado o con paciente de
   prueba) para saber qué se puede sacar de él.
 - 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
