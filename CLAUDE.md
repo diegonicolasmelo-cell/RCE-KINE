@@ -370,6 +370,20 @@ lista de cumpleaños.
   nuevas para ambas tandas; las columnas REINTUB_* y el tiempo extubado se
   conservan tal cual). Pendiente hermano: cifras del REM de papel de agosto
   para correr la conciliación.
+- 🖋️ **CÓMO SE VEN LAS PLANTILLAS EN TRAKCARE — detalle de terreno de Diego
+  (2-sep-2026), para cuando se retome el diseño de la selección**: el ícono de
+  plantillas está en la **esquina inferior derecha del cuadro de texto**; ahí
+  aparecen todas, codificadas. Para **agregar una nueva se SELECCIONA texto**,
+  lo que habilita un **botón verde en la esquina inferior izquierda** que
+  permite personalizarla. Su idea propia encima: que lo que la app ya sabe
+  **aparezca como sugerencia al dejar un espacio para autocompletar**.
+  · **La otra opción que él plantea**: que salga la evolución personalizada (o
+  la de la unidad por defecto) y que **abajo se pueda formatear con el formato
+  personalizado por evento**, ya que viene con información prellenada.
+  · 🔴 **«Esto es lo que más me está complicando por ahora — déjalo para el
+  último.»** O sea: el CATÁLOGO de plantillas por caso se puede ir armando,
+  pero **CÓMO SE SELECCIONAN es la tarea abierta** y no se programa hasta que
+  él lo cierre.
 - 🆕 **Plantillas de evolución tipo TrakCare** (2-sep-2026, idea de Diego
   desde una capacitación). **Diego ya eligió: la B** (plantilla personal con
   comodines) **fusionada con la A** — «plantillas personalizadas desplegadas
