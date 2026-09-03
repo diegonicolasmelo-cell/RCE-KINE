@@ -326,6 +326,24 @@ editor y avisa si cambió el esquema. Se le pasa **la referencia de lo que está
 publicado de verdad** (`e48dcf4` para la v5.50), no `main` — main puede ir
 adelante de producción, que es exactamente lo que pasó el 14-ago.
 
+### 🗺️ El plan de todo lo pendiente, en una página
+
+Al cerrar el 2-sep-2026 Diego pidió «un resumen con las cosas que hay que
+implementar y qué falta por cerrar, para posteriormente hacer la programación».
+Está publicado y **es el mejor punto de entrada para retomar**:
+`https://claude.ai/code/artifact/f12ae3e1-ea58-4e88-af4e-954d51017aa6`
+
+- **Tanda 1 — sin cambio de esquema**: eventos manuales + botón de Synapse con
+  copia del RUT + cumpleaños de la mascota. Un solo pegado.
+- **Tanda 2 — con cambio de esquema**: PVE superada sin extubar + hoja de gases
+  importados. **Van juntas a propósito** para correr `crearORepararEstructura()`
+  UNA vez.
+- **Tanda 3 — las plantillas** (PRD escrito + prototipo andando).
+
+Para arrancar la tanda 1 solo faltan tres respuestas de Diego: ① C1 o C2 para
+los eventos manuales ② si le sirve el Synapse con copiar-y-pegar el RUT ③ la
+lista de cumpleaños.
+
 ### Esperando decisión de Diego
 
 - 🔴 **Tandas C y D (eventos manuales + reintubación) — DETENIDAS EN EL
