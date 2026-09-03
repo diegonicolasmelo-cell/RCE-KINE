@@ -461,9 +461,44 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   el protocolo HSA de la unidad para poder programarlo.
 - **Stock de cánulas TQT** — aprobado en concepto, faltan inventario y umbrales.
 - **Mi estilo** (evolución personalizada por colega) — diseño cerrado, esperando
-  material: ~20-30 evoluciones editadas por persona.
+  material: ~20-30 evoluciones editadas por persona. ⚠️ **Lo reemplaza el
+  `PRD_PLANTILLAS_EVOLUCION.md`**: con plantillas declaradas por cada uno ya no
+  hace falta juntar ese material.
 - **Guardado por bloques** — analizado y descartado por ahora, con los números
   en la bitácora. Reabrir solo con datos nuevos de uso.
+
+**Pedidos nuevos del 2-sep-2026 (solo anotados, sin diseño ni código):**
+
+- 🖼️ **Enlazar Synapse para ver imágenes.** Synapse (el visor de imágenes del
+  hospital) **no aparece en ninguna parte del proyecto**: es integración nueva,
+  no un ajuste. Lo primero que hay que averiguar antes de diseñar nada: si tiene
+  URL por paciente o por estudio y con qué identificador (¿RUT? ¿número de ficha?
+  ¿accession?), y si el enlace exige sesión propia. 🔴 Ojo con la privacidad: un
+  enlace que lleve el RUT en la dirección lo saca de la app, y el RUT no sale a
+  ninguna parte (Ley 19.628 + regla del proyecto).
+- 🩸 **La GSA arterial se copie sola a la hoja de registro diaria**, extrayendo
+  los datos de un archivo **que se borra después de copiar**. 🪤 Precisión
+  verificada: la fila de GSA **YA EXISTE** en la hoja diaria (`gsa` en `HJ_F`,
+  index ~7939, se pinta con `GSA_TOMADA`) y el formulario ya guarda pH, PaO₂,
+  PaCO₂, HCO₃, EB, lactato, SaO₂, FiO₂ e interpretación. Lo que falta **no es la
+  fila: es la captura automática** — de dónde sale ese archivo (¿export del
+  equipo de gases?), qué formato trae, cómo llega a Drive, con qué se empareja
+  (cama, hora, paciente) y quién autoriza el borrado. Antes de programar hace
+  falta **un archivo de ejemplo real** y decidir qué pasa si el emparejamiento
+  falla (dato a la basura vs. dato a la cama equivocada, que es peor).
+- 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
+  existe: es **Servi**, seleccionable entre Servi y el kinesiólogo (`mascToggle`,
+  index ~1681), y hoy solo hace el tutorial y los globos. Falta decidir dónde
+  vive la lista de cumpleaños (natural: una columna en `KINESIOLOGOS`, como el
+  `EMAIL` que ya está ahí) y qué hace exactamente el día del cumpleaños.
+  🔴 Son datos personales de los funcionarios: van en la planilla, nunca
+  escritos en el código, y no salen a ninguna exportación.
+- 💭 **Que la mascota recuerde situaciones.** Idea abierta y sin definir todavía
+  qué es «una situación»: hitos de la unidad, cosas que pasaron con un paciente,
+  o logros del equipo. **Antes de diseñar hay que preguntarle a Diego qué tiene
+  en la cabeza**, porque «recordar situaciones de pacientes» y «recordar
+  situaciones del equipo» son dos productos distintos — y el primero toca datos
+  clínicos.
 
 ### Reglas clínicas que conviene tener a mano
 
