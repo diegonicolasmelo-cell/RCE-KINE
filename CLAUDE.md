@@ -365,8 +365,11 @@ lista de cumpleaños.
   turno» (recomendada) o C2 botón al costado? ② Tanda D: ¿D1 fila de pills
   bajo Vía aérea (recomendada), D2 tres celdas previo→evento→queda, o D3
   casilla mínima? ③ Alcance de D: ¿la fila reemplaza también
-  intubación/extubación o SOLO reintubación? ④ ¿El catálogo de motivos de
-  `fReintubRaz` está completo? Con las respuestas se programa (guardias
+  intubación/extubación o SOLO reintubación? ✅ La ④ ya la respondió
+  (4-sep-2026): **el catálogo de motivos de `fReintubRaz` está bien como
+  está**. Ojo: la barra de plantillas absorbe la fila de eventos de la
+  tanda D, así que ② y ③ probablemente mueren con ella — confirmarlo al
+  programar. Con lo que falte se programa (guardias
   nuevas para ambas tandas; las columnas REINTUB_* y el tiempo extubado se
   conservan tal cual). Pendiente hermano: cifras del REM de papel de agosto
   para correr la conciliación.
@@ -435,6 +438,9 @@ lista de cumpleaños.
   **solo por coordinación** · **la barra SÍ reemplaza la fila de eventos de
   la tanda D** («así anunciamos de entrada qué plantilla utilizaremos por
   defecto»).
+  · ✅ **Confirmado por Diego el 4-sep-2026**: los motivos de «PVE superada
+  sin extubar» del PRD **están bien**, y el catálogo de motivos de
+  reintubación actual también. Esas dos preguntas quedan cerradas.
   · 📄 **Los dos PRD ya están escritos y esperan su visto bueno**:
   `PRD_PLANTILLAS_EVOLUCION.md` y `PRD_PVE_SUPERADA_SIN_EXTUBAR.md` (con
   historia, no-objetivos, flujo hoy→mañana, inventario de consumidores y
