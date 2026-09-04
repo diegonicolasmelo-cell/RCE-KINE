@@ -293,8 +293,16 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   if (parseInt(diasEst) >= 21) alertas.push(diasEst + 'd UCI');
   if (esVerdadero(c.KTM_SUSP)) alertas.push('KTM contraindicada');
   const coop = /^cooperador$/i.test(String(c.ULT_COOP || '').trim());
-  if (coop && val(c.ULT_MRC) === '') alertas.push('MRC-SS pendiente');
-  if (coop && val(c.ULT_FSS) === '') alertas.push('FSS-ICU pendiente');
+  // El MOTIVO va escrito al lado del chip (Diego, 5-sep-2026: «para saber la
+  // razón»; y sobre el origen del motivo: «es sedación/cooperación… decide
+  // tú» → se DERIVA de lo ya registrado, sin campo nuevo). Cooperador sin
+  // medición = evaluable desde ya (olvido); no cooperador = no evaluable aún.
+  if (coop && val(c.ULT_MRC) === '') alertas.push('MRC-SS pendiente — cooperador, evaluable desde ya');
+  if (coop && val(c.ULT_FSS) === '') alertas.push('FSS-ICU pendiente — cooperador, evaluable desde ya');
+  if (!coop && val(c.ULT_MRC) === '' && val(c.ULT_FSS) === '') {
+    const _cp = String(c.ULT_COOP || '').trim();
+    alertas.push('MRC/FSS no evaluables aún — ' + (_cp ? 'cooperación: ' + _cp : 'sedación/cooperación sin registrar'));
+  }
   // Evaluaciones ENVEJECIDAS (cooperador con valor antiguo): mismo patrón que
   // los dispositivos por vencer, con corte configurable EVAL_DIAS_ALERTA.
   const cutEval = parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5;

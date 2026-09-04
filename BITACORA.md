@@ -19,6 +19,28 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.94-mrc-fss-motivo (5-sep-2026) — el porqué de las evaluaciones que faltan, derivado de la cooperación
+
+Diego cerró la pregunta de diseño con «es sedación/cooperación… no sé dónde
+anotarlo, decide tú». Decisión tomada: **el motivo se DERIVA de la
+cooperación ya registrada (`ULT_COOP`), sin campo nuevo ni tecleo extra** —
+la app ya sabía la razón, solo no la contaba.
+
+Dos estados, tres lugares:
+- **Cooperador sin MRC/FSS** (el olvido real): 🔔 campana «MRC-ss pendiente ·
+  paciente cooperador sin medición en el episodio — evaluable desde ya»;
+  tarjeta: el badge «📋 MRC pend.» gana tooltip con ese motivo; entrega: el
+  chip pasa a «MRC-SS pendiente — cooperador, evaluable desde ya».
+- **NO cooperador sin mediciones** (estado, no olvido): SIN campana (las
+  alertas detectan olvidos, regla de la casa); tarjeta: badge gris nuevo
+  «📋 MRC/FSS no evaluables aún» con tooltip «última cooperación registrada:
+  X» (o «sedación/cooperación sin registrar aún»); entrega: chip
+  «MRC/FSS no evaluables aún — cooperación: X».
+
+- Sin cambio de esquema (todo sale de ULT_COOP/ULT_MRC/ULT_FSS que ya
+  viajaban a la cama). Guardia: sección 3c de `buzon_campana.js`.
+  **112 verdes.**
+
 ## v5.93-pimometria (5-sep-2026) — «Pendiente medir pimometría» en la campana
 
 Diego respondió las preguntas de su dictado (Pimáx «se registra en PIM» —

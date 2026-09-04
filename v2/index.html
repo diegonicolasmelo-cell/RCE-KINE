@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.93-pimometria">
+<meta name="rce-version" content="5.94-mrc-fss-motivo">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4500,7 +4500,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.93-pimometria]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.94-mrc-fss-motivo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4882,7 +4882,9 @@ function renderGrid() {
         const cutEval=(window.CFG&&parseInt(CFG.EVAL_DIAS_ALERTA))||5;
         const _edadEv = s => s ? dias(String(s).slice(0,10), fecha) : null;
         const _evalBadge=(lbl,valr,fch)=>{
-          if(!_t(valr)) return `<span class="abadge a-pend">📋 ${lbl} pend.</span>`;
+          // El tooltip dice el MOTIVO (Diego, 5-sep-2026): cooperador sin
+          // medición = evaluable desde ya.
+          if(!_t(valr)) return `<span class="abadge a-pend" title="${lbl} pendiente: paciente cooperador sin medición registrada en el episodio — evaluable desde ya">📋 ${lbl} pend.</span>`;
           const ed=_edadEv(fch);
           if(ed!=null&&ed>cutEval)
             return `<span class="abadge" style="background:#d9770618;color:#b45309;border:1px solid #d9770655;" title="Última ${lbl} hace ${ed} días (alerta configurable: >${cutEval} d sin re-evaluar en paciente cooperador)">📋 ${lbl} ${valr} · hace ${ed}d</span>`;
@@ -4894,6 +4896,17 @@ function renderGrid() {
           al+=`<span class="abadge" style="background:#9333ea18;color:#9333ea;border:1px solid #9333ea55;" title="Debilidad adquirida en UCI: MRC-SS ${c.ULT_MRC} (<48) en paciente cooperador${c.ULT_MRC_FECHA?`, medido el ${_f(c.ULT_MRC_FECHA)}`:''}. Se resuelve con una medición ≥48.">🧬 ICU-AW</span>`;
         }
         al += _evalBadge('FSS', c.ULT_FSS, c.ULT_FSS_FECHA);
+      } else {
+        // 📋 Sin MRC/FSS y paciente NO cooperador: el badge dice el motivo
+        // (Diego, 5-sep-2026: «es sedación/cooperación… decide tú dónde») —
+        // derivado de lo ya registrado, sin campo nuevo. Gris a propósito:
+        // no es un olvido, es un estado.
+        const _sm=x=>x!==''&&x!=null;
+        if(!_sm(c.ULT_MRC)&&!_sm(c.ULT_FSS)){
+          const _cp=String(c.ULT_COOP||'').trim();
+          const _mot=_cp?`última cooperación registrada: ${_cp}`:'sedación/cooperación sin registrar aún';
+          al+=`<span class="abadge" style="background:#64748b14;color:#64748b;border:1px solid #64748b44;" title="MRC-ss y FSS-ICU sin medir: se evalúan cuando el paciente coopere. Motivo actual: ${_mot}. La primera medición se pide sola (campana) cuando pase a cooperador.">📋 MRC/FSS no evaluables aún</span>`;
+        }
       }
 
       const _vmt=c.VM_TAG?`<span class="vmtag${/falla/i.test(c.VM_TAG_ESTADO||'')?' falla':(/manten/i.test(c.VM_TAG_ESTADO||'')?' mant':'')}" onclick="setTab('V')" title="Ventilador asignado a esta cama${c.VM_TAG_ESTADO?' · '+c.VM_TAG_ESTADO:''} — clic para ir a Ventiladores">🔧 ${c.VM_TAG}</span>`:'';

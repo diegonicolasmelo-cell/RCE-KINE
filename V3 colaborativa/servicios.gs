@@ -2150,8 +2150,16 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   if (parseInt(diasEst) >= 21) alertas.push(diasEst + 'd UCI');
   if (esVerdadero(c.KTM_SUSP)) alertas.push('KTM contraindicada');
   const coop = /^cooperador$/i.test(String(c.ULT_COOP || '').trim());
-  if (coop && val(c.ULT_MRC) === '') alertas.push('MRC-SS pendiente');
-  if (coop && val(c.ULT_FSS) === '') alertas.push('FSS-ICU pendiente');
+  // El MOTIVO va escrito al lado del chip (Diego, 5-sep-2026: «para saber la
+  // razón»; y sobre el origen del motivo: «es sedación/cooperación… decide
+  // tú» → se DERIVA de lo ya registrado, sin campo nuevo). Cooperador sin
+  // medición = evaluable desde ya (olvido); no cooperador = no evaluable aún.
+  if (coop && val(c.ULT_MRC) === '') alertas.push('MRC-SS pendiente — cooperador, evaluable desde ya');
+  if (coop && val(c.ULT_FSS) === '') alertas.push('FSS-ICU pendiente — cooperador, evaluable desde ya');
+  if (!coop && val(c.ULT_MRC) === '' && val(c.ULT_FSS) === '') {
+    const _cp = String(c.ULT_COOP || '').trim();
+    alertas.push('MRC/FSS no evaluables aún — ' + (_cp ? 'cooperación: ' + _cp : 'sedación/cooperación sin registrar'));
+  }
   // Evaluaciones ENVEJECIDAS (cooperador con valor antiguo): mismo patrón que
   // los dispositivos por vencer, con corte configurable EVAL_DIAS_ALERTA.
   const cutEval = parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5;
@@ -5388,6 +5396,16 @@ function alertasUnidad(fecha) {
       // Mismo criterio del badge de la tarjeta (>EVAL_DIAS_ALERTA días).
       if (/^cooperador$/i.test(String(c.ULT_COOP || '').trim())) {
         const cut = parseInt(leerConfig('EVAL_DIAS_ALERTA', '5'), 10) || 5;
+        // Pendientes de la PRIMERA medición (Diego, 5-sep-2026): cooperador
+        // sin MRC/FSS es el olvido real — al no cooperador no se le alerta
+        // (no es olvido: no se puede evaluar; su motivo va en tarjeta y
+        // entrega, no en la campana).
+        [['MRC-ss', c.ULT_MRC], ['FSS-ICU', c.ULT_FSS]].forEach(function (e) {
+          if (e[1] !== '' && e[1] != null) return;
+          alertas.push({ nivel: 'ambar', icono: '📋', cama: idCama, ir: 'cama',
+            titulo: e[0] + ' pendiente',
+            detalle: 'paciente cooperador sin medición en el episodio — evaluable desde ya' });
+        });
         [['MRC-ss', c.ULT_MRC, c.ULT_MRC_FECHA], ['FSS-ICU', c.ULT_FSS, c.ULT_FSS_FECHA]].forEach(function (e) {
           if (e[1] === '' || e[1] == null || !e[2]) return;
           const f = String(e[2]).slice(0, 10);

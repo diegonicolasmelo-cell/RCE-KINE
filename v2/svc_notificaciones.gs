@@ -95,6 +95,16 @@ function alertasUnidad(fecha) {
       // Mismo criterio del badge de la tarjeta (>EVAL_DIAS_ALERTA días).
       if (/^cooperador$/i.test(String(c.ULT_COOP || '').trim())) {
         const cut = parseInt(leerConfig('EVAL_DIAS_ALERTA', '5'), 10) || 5;
+        // Pendientes de la PRIMERA medición (Diego, 5-sep-2026): cooperador
+        // sin MRC/FSS es el olvido real — al no cooperador no se le alerta
+        // (no es olvido: no se puede evaluar; su motivo va en tarjeta y
+        // entrega, no en la campana).
+        [['MRC-ss', c.ULT_MRC], ['FSS-ICU', c.ULT_FSS]].forEach(function (e) {
+          if (e[1] !== '' && e[1] != null) return;
+          alertas.push({ nivel: 'ambar', icono: '📋', cama: idCama, ir: 'cama',
+            titulo: e[0] + ' pendiente',
+            detalle: 'paciente cooperador sin medición en el episodio — evaluable desde ya' });
+        });
         [['MRC-ss', c.ULT_MRC, c.ULT_MRC_FECHA], ['FSS-ICU', c.ULT_FSS, c.ULT_FSS_FECHA]].forEach(function (e) {
           if (e[1] === '' || e[1] == null || !e[2]) return;
           const f = String(e[2]).slice(0, 10);

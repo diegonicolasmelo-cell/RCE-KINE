@@ -115,6 +115,31 @@ si('★ el espejo _weanClaseSrv usa la MISMA regla que _weanClase del cliente',
   /frustras>=3\|\|d>7/.test(idxSrc.replace(/\s+/g, '')) &&
   /frustras>=3\|\|d>7/.test(fs.readFileSync(path.join(v2, 'svc_notificaciones.gs'), 'utf8').replace(/\s+/g, '')));
 
+console.log('\n3c · MRC/FSS pendientes con motivo (v5.94, Diego 5-sep)');
+// Cama 2: cooperador SIN MRC ni FSS → dos alertas «pendiente» con su motivo.
+// Cama 3: NO cooperador sin mediciones → SIN campana (no es olvido).
+DB.CAMAS_ESTADO = [
+  { ID_CAMA: '2', OCUPADA: 'TRUE', SOPORTE: 'Ninguno', ULT_COOP: 'Cooperador' },
+  { ID_CAMA: '3', OCUPADA: 'TRUE', SOPORTE: 'Ninguno', ULT_COOP: 'No evaluable' },
+];
+DB.VENTILADORES = [];
+_ventPorCamaMemo = null;
+const AE = alertasUnidad('2026-09-03');
+const pend2 = AE.filter(a => a.cama === '2' && /pendiente/.test(a.titulo));
+si('★ cooperador sin medir: MRC-ss y FSS-ICU pendientes en la campana',
+  pend2.length === 2 && pend2.every(a => /cooperador sin medición.*evaluable desde ya/.test(a.detalle) && a.nivel === 'ambar'));
+si('★ al NO cooperador no se le alerta (no es olvido)',
+  !AE.some(a => a.cama === '3'));
+// El motivo escrito en la entrega y el tooltip de la tarjeta:
+const entSrc = fs.readFileSync(path.join(v2, 'svc_entrega.gs'), 'utf8');
+si('★ la entrega escribe el motivo al lado del chip pendiente',
+  entSrc.includes('MRC-SS pendiente — cooperador, evaluable desde ya') &&
+  entSrc.includes('MRC/FSS no evaluables aún — '));
+const idxS = fs.readFileSync(path.join(v2, 'index.html'), 'utf8');
+si('★ el badge de la tarjeta lleva tooltip con el motivo',
+  idxS.includes('pendiente: paciente cooperador sin medición registrada') &&
+  idxS.includes('MRC/FSS no evaluables aún'));
+
 /* ── Parte 2 · cliente ── */
 const { chromium } = require('playwright-core');
 (async () => {

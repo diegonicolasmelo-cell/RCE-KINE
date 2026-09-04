@@ -312,8 +312,11 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.93-pimometria** (5-sep, rama
-  `filtros-vence-hoy`, que INCLUYE v5.92…v5.86). La v5.93 agrega la alerta
+- **Pendiente de publicar**: **v5.94-mrc-fss-motivo** (5-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v5.93…v5.86). La v5.94 deriva el MOTIVO
+  de las MRC/FSS que faltan desde la cooperación registrada (campana solo al
+  cooperador sin medir; tooltip en tarjeta; motivo escrito en la entrega —
+  sin esquema). La v5.93 agrega la alerta
   «Pendiente medir pimometría» a la campana y **cambia esquema** (CAMAS_ESTADO
   suma ULT_PS/ULT_PIM/ULT_PIM_FECHA al final + CONFIG PIMO_PS_MAX=14 y
   PIMO_VM_DIAS=21) — el MISMO crearORepararEstructura() de la v5.91 lo
@@ -574,17 +577,14 @@ lista de cumpleaños.
 
 ### Anotado y NO programado (pedido explícito de Diego)
 
-- 🆕 📋 **MRC/FSS-ICU pendientes: alerta CON MOTIVO visible** (dictado por
-  Diego, 5-sep-2026; «anótalo para después programarlo»). Cuando la
-  evaluación MRC o FSS-ICU esté pendiente en un paciente: ① alerta (campana)
-  ② en la TARJETA de la cama, un tooltip que diga el MOTIVO ③ en la ENTREGA,
-  el motivo ESCRITO al lado del chip «MRC pendiente» / «FSS-ICU pendiente»
-  — «para saber la razón». Hoy el badge «📋 MRC pend.» sale sin explicación.
-  🔴 Pregunta de diseño antes de programar: ¿de dónde sale el motivo? Hoy la
-  app no registra POR QUÉ está pendiente (¿no cooperador aún? ¿sedado? ¿no
-  se alcanzó?) — probablemente exige un campo nuevo o derivarlo del estado
-  (S5Q/cooperación/sedación). Conecta con el pendiente del FSS-ICU
-  «no evaluado» (distinguir «incapaz por debilidad» de «no evaluable»).
+- ✅ 📋 **MRC/FSS pendientes con MOTIVO: PROGRAMADO en la v5.94** (5-sep;
+  Diego: «es sedación/cooperación… decide tú dónde»). El motivo se DERIVA de
+  `ULT_COOP`, sin campo nuevo: cooperador sin medir = campana + tooltip +
+  motivo en la entrega («evaluable desde ya»); no cooperador = badge gris
+  «no evaluables aún» con la cooperación registrada, SIN campana (no es
+  olvido). Detalle en BITACORA v5.94. Sigue abierto el pendiente HERMANO del
+  FSS-ICU «no evaluado» (distinguir «incapaz por debilidad» = 0 real de «no
+  se pudo evaluar», con la regla del promedio hasta 2 ítems).
 - ✅ 🫁 **Pimometría pendiente: PROGRAMADA en la v5.93** (5-sep). Regla:
   VM + CPAP/PS + soporte bajo PIMO_PS_MAX (CONFIG, 14) + (destete prolongado
   por Boles 2007 —espejo `_weanClaseSrv` de `_weanClase`— o VM ≥
