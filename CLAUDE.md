@@ -312,9 +312,12 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.91-buzon-campana** (4-sep, rama
-  `filtros-vence-hoy`, que INCLUYE v5.90, v5.89, v5.88, v5.87 y v5.86).
-  La v5.91 **cambia esquema** (hoja NOTIFICACIONES) ⇒
+- **Pendiente de publicar**: **v5.92-ktm-motivo-cama-bn** (4-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v5.91…v5.86). La v5.92 imprime el chip
+  de la cama de la entrega invertido (cuadro negro en papel B/N) y hace
+  OBLIGATORIO el criterio de la suspensión de KTM en sesión, que ahora sale
+  también en la ficha de entrega (guardia ktm_suspension_motivo). La v5.91
+  **cambia esquema** (hoja NOTIFICACIONES) ⇒
   `crearORepararEstructura()`, y toca servicios + api + esquema +
   mantenimiento + index: se pegan LOS CINCO.
   La v5.88 lleva «Vencen hoy» a la hoja diaria impresa y al modal; la v5.89

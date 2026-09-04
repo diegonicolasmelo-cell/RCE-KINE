@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.91-buzon-campana">
+<meta name="rce-version" content="5.92-ktm-motivo-cama-bn">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -482,7 +482,13 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
 
   /* Cabecera de UNA línea: cama · nombre · edad/días · chips · dx · ingreso */
   .ent-fh{flex-wrap:wrap;gap:1px 6px;padding:1px 7px;align-items:baseline;}
-  .ent-ficha-cama{font-size:.68rem;padding:0 5px;border-radius:3px;}
+  /* 🪤 En papel el chip azul con número blanco salía como CUADRO NEGRO
+     (reporte de Diego, 4-sep-2026: en pantalla y celular se ve bien; al
+     imprimir se comprime y el fondo oscuro se traga el número). Regla de la
+     unidad: se imprime en BLANCO Y NEGRO → el chip se invierte: fondo
+     blanco, número negro y borde. */
+  .ent-ficha-cama{font-size:.68rem;padding:0 5px;border-radius:3px;
+    background:#fff!important;color:#000!important;border:1.5px solid #000;-webkit-print-color-adjust:exact;}
   .ent-ficha-nm{font-size:.68rem;flex-grow:0;white-space:nowrap;}
   .ent-ficha-meta{font-size:.58rem;}
   .ent-fh-chips{margin-left:0;flex-shrink:0;}
@@ -4494,7 +4500,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.91-buzon-campana]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.92-ktm-motivo-cama-bn]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4995,6 +5001,7 @@ function rielRender(){
   if(_pveExtSinTipo()) faltas.push('tipo de la extubación sin PVE');
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltas.push('razón de KTM no realizada');
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltas.push('contraindicación de KTM');
+  if($('cKTMalert')?.checked && $('cKTMalert').offsetParent!==null && !v('fKTMalertRaz')) faltas.push('criterio de la suspensión de KTM en sesión');
   if(_ktmOtroSinFundamento()) faltas.push('fundamento de la razón de KTM');
   if(typeof _reintubHoraFalta==='function' && _reintubHoraFalta()) faltas.push('hora de la reintubación');
   const fEl=$('gFalta');
@@ -5012,6 +5019,7 @@ function rielRender(){
   { const _pt=_pveExtSinTipo(); if(_pt) faltaEls.push(_pt); }
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')) faltaEls.push($('fKTMnoRaz'));
   if($('bKTMs')?.classList.contains('on') && $('bKTMs').offsetParent!==null && !v('fKTMraz') && !String(v('fKTMman')||'').trim()) faltaEls.push($('fKTMraz'));
+  if($('cKTMalert')?.checked && $('cKTMalert').offsetParent!==null && !v('fKTMalertRaz')) faltaEls.push($('fKTMalertRaz'));
   { const _kof=_ktmOtroSinFundamento(); if(_kof) faltaEls.push(_kof); }
   if(typeof _reintubHoraFalta==='function'){ const _rh=_reintubHoraFalta(); if(_rh) faltaEls.push(_rh); }
   _mPintarSecciones(faltaEls);
@@ -6386,6 +6394,16 @@ function guardar() {
     toast('⚠️ Indica la contraindicación de la KTM (protocolo o descripción)');
     const kc=$('fKTMcontra');
     if(kc){ kc.scrollIntoView({behavior:'smooth',block:'center'}); kc.focus(); kc.style.outline='2px solid var(--danger)'; setTimeout(()=>{kc.style.outline='';},2500); }
+    return;
+  }
+  // ★ LA SUSPENSIÓN EN SESIÓN TAMBIÉN EXIGE SU MOTIVO (4-sep-2026, Diego:
+  // «cuando se inició y se suspendió… debería salir el motivo en entrega y
+  // evolución y además hacer obligatorio el campo»). Sin esto el texto
+  // decía «sin especificar» y la entrega no lo mostraba. ★
+  if($('cKTMalert')?.checked && $('cKTMalert').offsetParent!==null && !v('fKTMalertRaz')){
+    toast('⚠️ Indica el criterio por el que se suspendió la KTM durante la sesión');
+    const ka=$('fKTMalertRaz');
+    if(ka){ ka.scrollIntoView({behavior:'smooth',block:'center'}); ka.focus(); ka.style.outline='2px solid var(--danger)'; setTimeout(()=>{ka.style.outline='';},2500); }
     return;
   }
   // ★ «No realizada · Otro» EXIGE EL FUNDAMENTO (28-ago-2026, Manuel) ★
@@ -10778,7 +10796,8 @@ function _mFaltaTxt(el){
   return id==='fFirma'?'la firma':id==='fVA'?'la vía aérea':
          id==='fPVEval'?'declarar la PVE':id==='fKTMnoRaz'?'la razón de KTM':
          id==='fKTMnoCom'?'el fundamento de la razón':
-         id==='fKTMraz'?'la contraindicación':'un dato obligatorio';
+         id==='fKTMraz'?'la contraindicación':
+         id==='fKTMalertRaz'?'el criterio de la suspensión en sesión':'un dato obligatorio';
 }
 
 /** Cabecera del paciente (solo celular). */
@@ -15177,6 +15196,7 @@ function renderEntrega(d){
       f.hitoMotor?`📈 Hito motor máx: <b>${f.hitoMotor.nivel}</b>${f.hitoMotor.ims!==''?` — IMS ${f.hitoMotor.ims}`:''} (${f.hitoMotor.fecha})`:'',
       f.ktmRealizada&&f.ktmNivel?`KTM Nv${f.ktmNivel}`:'',
       f.ktmSuspendida?`<b style="color:#be123c;">⚠️ KTM contraindicada</b>${f.ktmContra?` (${f.ktmContra})`:''}`:'',
+      f.ktmAlerta?`<b style="color:#be123c;">⚠️ KTM suspendida en sesión</b>${f.ktmAlertaRaz?` (${f.ktmAlertaRaz})`:''}`:'',
       f.ktr?`KTR ×${f.ktr}`:'',
       (f.evals&&f.evals.length)?f.evals.join(' · '):'']);
     H+=`<div class="ent-ficha${sinEvoF?(_her?' ent-ficha-heredada':' ent-ficha-sinevo'):''}">

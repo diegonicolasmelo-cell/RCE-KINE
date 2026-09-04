@@ -19,6 +19,35 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.92-ktm-motivo-cama-bn (4-sep-2026) — el motivo de la suspensión en sesión y el cuadro negro del papel
+
+Dos pedidos de Diego antes de irse a descansar:
+
+- 🖨️ **«La cama se ve negra al imprimir la entrega»**: el chip de la cama es
+  número blanco sobre azul oscuro (`--pdark`); en pantalla y celular se ve
+  bien, pero comprimido en el papel B/N el fondo se traga el número y sale un
+  cuadro negro. En `@media print` el chip se INVIERTE: fondo blanco, número
+  negro, borde de 1,5 px. Misma regla de la unidad que la GSA: la impresora
+  es blanco y negro.
+- ⚠️ **La suspensión de KTM EN SESIÓN exige su motivo** («se inició y se
+  suspendió por X… hacer obligatorio el campo y que salga en entrega y
+  evolución»). Antes el criterio era opcional (el texto decía «sin
+  especificar») y la entrega NO lo mostraba (solo mostraba la
+  contraindicación previa, no la suspensión en sesión):
+  · `guardar()` bloquea con toast + scroll si `cKTMalert` está marcada sin
+    `fKTMalertRaz` — mismo patrón que las otras obligatorias; el riel y el
+    chip del celular lo anuncian («criterio de la suspensión de KTM en
+    sesión»).
+  · La ficha de entrega suma `ktmAlerta`/`ktmAlertaRaz` (svc_entrega) y el
+    cliente pinta «⚠️ KTM suspendida en sesión (motivo)».
+  · La evolución ya lo narraba (`dominio_texto` 555): con el campo
+    obligatorio, el «sin especificar» queda solo para filas históricas.
+- Guardia nueva **`ktm_suspension_motivo.js`** (bloqueo real en Chromium +
+  las tres piezas en las fuentes + el chip invertido). **112 verdes.**
+- Entrega: index + servicios (api/esquema/mantenimiento sin cambios desde la
+  v5.91, pero viajan de nuevo con nombre v592 para que la mañana sea UN solo
+  juego de archivos).
+
 ## v5.91-buzon-campana (4-sep-2026) — la campana 🔔 y el buzón 📨 llegan a la barra
 
 Diego aprobó el mockup («me parece, programa el buzón y la campana») con dos

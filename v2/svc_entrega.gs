@@ -405,6 +405,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     ktmRealizada: e ? esVerdadero(e.KTM_REALIZADA) : false,
     ktmSuspendida: e ? esVerdadero(e.KTM_SUSPENDIDA) : esVerdadero(c.KTM_SUSP),
     ktmContra: e ? val(e.KTM_CONTRA_RAZON, val(e.KTM_CONTRA_CAT)) : '',
+    // Suspendida DURANTE la sesión por señal de alerta: el motivo debe salir
+    // en la entrega (Diego, 4-sep-2026), igual que ya salía en la evolución.
+    ktmAlerta: e ? esVerdadero(e.KTM_ALERTA) : false,
+    ktmAlertaRaz: e ? val(e.KTM_ALERTA_RAZ, val(e.KTM_ALERTA_CAT)) : '',
     ktr: e ? val(e.RESP_KTR_CANT, '') : '',
     eventos: eventosTxt,
     evals: evals,
