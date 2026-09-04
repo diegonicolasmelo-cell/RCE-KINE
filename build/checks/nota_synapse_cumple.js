@@ -132,6 +132,20 @@ const si = (l, c) => eq(l, !!c, true);
   const abiertas = await p.evaluate(() => window.__abiertas);
   eq('★ abre Synapse en otra pestaña', abiertas[abiertas.length - 1], 'https://ejemplo.cl/login');
 
+  // 🪤 EL ORDEN (reporte de Diego, 4-sep-2026: «entro bien a Synapse pero no
+  // copia el RUT»). window.open CONSUME la activación transitoria del clic y
+  // execCommand('copy') después de eso devuelve false en silencio: copiar va
+  // PRIMERO, siempre. Se instrumentan los dos y se exige la secuencia.
+  const orden = await p.evaluate(() => {
+    window.__sec = [];
+    const _ex = document.execCommand.bind(document);
+    document.execCommand = c => { if (c === 'copy') window.__sec.push('copy'); return _ex(c); };
+    window.open = u => { window.__sec.push('open'); window.__abiertas.push(u); return { focus() {} }; };
+    abrirSynapse('4');
+    return window.__sec.join('-');
+  });
+  eq('★ copia el RUT ANTES de abrir (window.open consume el permiso del clic)', orden, 'copy-open');
+
   // Sin URL configurada, el botón no existe
   const sinUrl = await p.evaluate(() => {
     CFG.SYNAPSE_URL = ''; renderGrid();

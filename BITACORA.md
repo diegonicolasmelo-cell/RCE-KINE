@@ -19,6 +19,23 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.89-synapse-copia (4-sep-2026) — el botón 🩻 sí copia el RUT: el orden del clic
+
+Diego probó en el hospital: «entro bien a Synapse pero no copia el RUT». La
+causa: `abrirSynapse` abría la pestaña PRIMERO y copiaba después — y Chrome
+le da al clic una **activación transitoria de un solo uso que `window.open`
+CONSUME**, así que `execCommand('copy')` llegaba sin permiso y devolvía
+false en silencio (por eso salía el diálogo de «copia el RUT a mano»).
+
+- Arreglo de dos líneas: **copiar PRIMERO, abrir después**. `execCommand` no
+  gasta la activación, así que la pestaña se abre igual en el mismo clic sin
+  que el bloqueador de emergentes la tome por sospechosa. Comentario 🪤 en el
+  código: NO invertir el orden.
+- Guardia `nota_synapse_cumple.js` reforzada: instrumenta `execCommand` y
+  `window.open` y **exige la secuencia copy→open** — el orden ya no puede
+  volver a invertirse sin ponerse roja. 110 verdes.
+- Solo index; sin esquema.
+
 ## v5.88-vence-hoy-hojas (4-sep-2026) — «Vencen hoy» en la hoja diaria impresa y en el modal, y el gorro de Don Mauri
 
 Diego mandó el diseño exacto tras ver el modal en producción. Dos consumidores

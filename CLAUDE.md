@@ -312,10 +312,13 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.88-vence-hoy-hojas** (4-sep, rama
-  `filtros-vence-hoy`, que INCLUYE la v5.87 y la v5.86-nota-synapse-cumple).
-  La v5.88 lleva «Vencen hoy» a la hoja diaria impresa (asterisco + acción,
-  sin fecha futura) y al modal «Cambios de esta noche». La v5.86 **cambia esquema**
+- **Pendiente de publicar**: **v5.89-synapse-copia** (4-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v5.88, v5.87 y v5.86-nota-synapse-cumple).
+  La v5.88 lleva «Vencen hoy» a la hoja diaria impresa y al modal; la v5.89
+  arregla el botón 🩻 (copiar ANTES de window.open: la apertura consume la
+  activación del clic y la copia fallaba en silencio — guardia que fija el
+  orden en nota_synapse_cumple.js). Diego YA publicó la tanda anterior
+  (probó Synapse en el hospital el 4-sep): esta entrega es solo el index. La v5.86 **cambia esquema**
   (KINESIOLOGOS.CUMPLE + CONFIG.SYNAPSE_URL) ⇒ `crearORepararEstructura()`;
   la v5.87 es solo index. Si la v5.86 aún no se pegó, se pega TODO junto con
   el index de la 5.87 (index + servicios + api + esquema); si ya se pegó,

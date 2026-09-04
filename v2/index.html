@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.88-vence-hoy-hojas">
+<meta name="rce-version" content="5.89-synapse-copia">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4459,7 +4459,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.88-vence-hoy-hojas]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.89-synapse-copia]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -14610,10 +14610,15 @@ function abrirSynapse(idCama){
   const url=_synURL(); if(!url){ toast('⚠️ Falta configurar SYNAPSE_URL en CONFIG'); return; }
   const c=((typeof DB!=='undefined'&&DB)||[]).find(x=>String(x.ID_CAMA)===String(idCama))||{};
   const rut=String(c.RUT||'').trim();
-  // La pestaña se abre PRIMERO y en el mismo clic: si se abre después de una
-  // espera, Chrome la trata como emergente y la bloquea.
-  const w=window.open(url,'_blank','noopener');
+  /* 🪤 EL ORDEN IMPORTA (reporte de Diego, 4-sep-2026: «entro bien a Synapse
+     pero no copia el RUT»). Chrome le da al clic un permiso de un solo uso
+     (activación transitoria) y window.open LO CONSUME: con la pestaña
+     abierta primero, execCommand('copy') llegaba sin permiso y devolvía
+     false en silencio. Copiar PRIMERO no consume el permiso (execCommand no
+     lo gasta), así que la pestaña se abre igual en el mismo clic sin que el
+     bloqueador de emergentes la tome por sospechosa. NO invertir. */
   const ok=rut?_copiarTexto(rut):false;
+  const w=window.open(url,'_blank','noopener');
   if(!w) toast('⚠️ Chrome bloqueó la pestaña — permite las ventanas emergentes de este sitio');
   else if(ok) toast('📋 RUT copiado — pégalo en el buscador de Synapse');
   else if(rut) uiConfirm({ icono:'🩻', titulo:'Copia el RUT a mano',
