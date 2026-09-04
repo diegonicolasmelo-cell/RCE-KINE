@@ -570,6 +570,30 @@ lista de cumpleaños.
 
 ### Anotado y NO programado (pedido explícito de Diego)
 
+- 🆕 📋 **MRC/FSS-ICU pendientes: alerta CON MOTIVO visible** (dictado por
+  Diego, 5-sep-2026; «anótalo para después programarlo»). Cuando la
+  evaluación MRC o FSS-ICU esté pendiente en un paciente: ① alerta (campana)
+  ② en la TARJETA de la cama, un tooltip que diga el MOTIVO ③ en la ENTREGA,
+  el motivo ESCRITO al lado del chip «MRC pendiente» / «FSS-ICU pendiente»
+  — «para saber la razón». Hoy el badge «📋 MRC pend.» sale sin explicación.
+  🔴 Pregunta de diseño antes de programar: ¿de dónde sale el motivo? Hoy la
+  app no registra POR QUÉ está pendiente (¿no cooperador aún? ¿sedado? ¿no
+  se alcanzó?) — probablemente exige un campo nuevo o derivarlo del estado
+  (S5Q/cooperación/sedación). Conecta con el pendiente del FSS-ICU
+  «no evaluado» (distinguir «incapaz por debilidad» de «no evaluable»).
+- 🆕 🫁 **Pimometría pendiente en VM prolongada con soporte bajo** (dictado
+  por Diego, 5-sep-2026). Regla: paciente con **VM prolongada**, en modo
+  **espontáneo** (CPAP/PS — ojo: así se llama en la app, no «PSV»), con
+  **presión de soporte MENOR a 14 cmH₂O** → alerta «pendiente medir
+  pimometría». El porqué clínico, suyo textual: «nos orienta a saber por qué
+  no se está pudiendo disminuir el soporte y si requiere algún tipo de
+  rehabilitación pulmonar». 🔴 Preguntas antes de programar: ① ¿«VM
+  prolongada» = la clase de `_weanClase` (≥3 PVE fracasadas o >7 días desde
+  la 1ª PVE) o los días de VM (>7? >14?)? ② ¿dónde se registra la
+  pimometría (Pimáx) hoy? — si no hay campo, la alerta necesita uno para
+  poder apagarse al medirla ③ ¿el umbral 14 va a CONFIG (editable) como
+  EVAL_DIAS_ALERTA? Ambas alertas calzan con la campana 🔔 de la v5.91.
+
 - 🧠 **Brainstorm de terreno** — 9 puntos, en `BITACORA.md`. Resueltos el 1, 2,
   3, 4, 5 y 7. **Abiertos: el 6** (MR850), **el 8** (separar «marca un hito» de
   «cuenta en la estadística») y **el 9**.
