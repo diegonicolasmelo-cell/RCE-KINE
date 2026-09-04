@@ -19,6 +19,37 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.93-pimometria (5-sep-2026) — «Pendiente medir pimometría» en la campana
+
+Diego respondió las preguntas de su dictado (Pimáx «se registra en PIM» —
+existe: `EVAL_T_PIM`, campo `fPIM` con interpretación) y pidió revisar la
+literatura sobre «VM prolongada» porque no recordaba el corte.
+
+**Lo revisado**: son DOS definiciones distintas. **VM prolongada** = ≥21 días
+consecutivos de VM por ≥6 h/día (consenso NAMDRC 2005, Chest). **Destete
+prolongado** = más de 7 días desde la primera PVE o ≥3 PVE fracasadas
+(Boles 2007 ERS/ATS; el estudio WIND lo refina). El «>7 días» que Diego
+recordaba es el del DESTETE — exactamente la clase `prolongado` que
+`_weanClase` ya calcula en el cliente. La alerta usa AMBOS caminos.
+
+**La regla programada** (en `alertasUnidad`): paciente en VM + modo
+**CPAP/PS** + última presión de soporte **menor a PIMO_PS_MAX** (CONFIG,
+defecto 14) + (**destete prolongado** por Boles o **VM ≥ PIMO_VM_DIAS**
+días, CONFIG, defecto 21 por NAMDRC) + **sin Pimáx en el episodio** →
+ámbar «Pendiente medir pimometría (soporte N cmH2O)» con el motivo y su
+«Ir a la cama». Se apaga sola al registrar la Pimáx en el formulario.
+
+- Cambio de esquema: CAMAS_ESTADO suma **ULT_PS · ULT_PIM · ULT_PIM_FECHA**
+  al FINAL (arrastre en el guardado junto a los ULT_*) y CONFIG suma
+  PIMO_PS_MAX y PIMO_VM_DIAS ⇒ el mismo `crearORepararEstructura()` de la
+  v5.91 lo cubre.
+- **`_weanClaseSrv`** en svc_notificaciones = espejo EXACTO de `_weanClase`
+  del cliente; la guardia compara la regla en los dos lados.
+- Guardia: sección 3b de `buzon_campana.js` (los dos caminos, el apagado con
+  Pimáx, el soporte no-bajo, y el espejo). **112 verdes.**
+- Pendiente hermano SIN programar (falta decisión de Diego): MRC/FSS
+  pendientes con MOTIVO visible — de dónde sale el motivo.
+
 ## v5.92-ktm-motivo-cama-bn (4-sep-2026) — el motivo de la suspensión en sesión y el cuadro negro del papel
 
 Dos pedidos de Diego antes de irse a descansar:

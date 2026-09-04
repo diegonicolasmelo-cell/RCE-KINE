@@ -81,6 +81,40 @@ const mant = AL.find(a => /Mantención vencida/.test(a.titulo));
 si('mantención vencida de la Vela 9, en rojo', mant && /Vela 9/.test(mant.titulo) && mant.nivel === 'rojo');
 si('★ las rojas van primero', AL.length >= 4 && AL[0].nivel === 'rojo' && AL.findIndex(a => a.nivel === 'ambar') > AL.map(a => a.nivel).lastIndexOf('rojo'));
 
+console.log('\n3b · Pendiente medir pimometría (v5.93, Diego 5-sep)');
+// Cama 4: CPAP/PS con soporte 12 y destete prolongado (3 PVE fracasadas).
+// Cama 5: igual pero CON Pimáx registrada → la alerta se apaga.
+// Cama 6: soporte 16 (no es bajo) → sin alerta.
+// Cama 8: soporte 12 SIN destete prolongado pero VM de 25 días (NAMDRC) → alerta.
+const _pveJson = JSON.stringify({ '2026-08-25-Dia': 'frustra', '2026-08-28-Dia': 'frustra', '2026-09-01-Dia': 'frustra' });
+DB.CAMAS_ESTADO = [
+  { ID_CAMA: '4', OCUPADA: 'TRUE', SOPORTE: 'VM', VIA_AEREA: 'TQT', MODO: 'CPAP/PS',
+    ULT_PS: 12, WEAN_PVE_JSON: _pveJson, FECHA_INICIO_SOPORTE: '2026-08-20' },
+  { ID_CAMA: '5', OCUPADA: 'TRUE', SOPORTE: 'VM', VIA_AEREA: 'TQT', MODO: 'CPAP/PS',
+    ULT_PS: 12, ULT_PIM: 45, WEAN_PVE_JSON: _pveJson, FECHA_INICIO_SOPORTE: '2026-08-20' },
+  { ID_CAMA: '6', OCUPADA: 'TRUE', SOPORTE: 'VM', VIA_AEREA: 'TQT', MODO: 'CPAP/PS',
+    ULT_PS: 16, WEAN_PVE_JSON: _pveJson, FECHA_INICIO_SOPORTE: '2026-08-20' },
+  { ID_CAMA: '8', OCUPADA: 'TRUE', SOPORTE: 'VM', VIA_AEREA: 'TQT', MODO: 'CPAP/PS',
+    ULT_PS: 12, FECHA_INICIO_SOPORTE: '2026-08-09' },
+];
+DB.VENTILADORES = [4, 5, 6, 8].map(n => ({ NOMBRE: 'Vela ' + n, ACTIVO: 'TRUE', UBIC_TIPO: 'CAMA', UBIC_DETALLE: String(n), CATEGORIA: 'VM' }));
+_ventPorCamaMemo = null;
+const AP = alertasUnidad('2026-09-03');
+const pim4 = AP.find(a => a.cama === '4' && /pimometría/.test(a.titulo));
+si('★ CPAP/PS 12 + destete prolongado (3 PVE fracasadas): alerta',
+  pim4 && pim4.titulo === 'Pendiente medir pimometría (soporte 12 cmH2O)' && /destete prolongado: 3 PVE fracasadas/.test(pim4.detalle));
+si('…ámbar y con «ir a la cama»', pim4 && pim4.nivel === 'ambar' && pim4.ir === 'cama');
+si('★ con la Pimáx YA registrada, la alerta se apaga', !AP.some(a => a.cama === '5' && /pimometría/.test(a.titulo)));
+si('★ con soporte 16 (no es bajo) no hay alerta', !AP.some(a => a.cama === '6' && /pimometría/.test(a.titulo)));
+const pim8 = AP.find(a => a.cama === '8' && /pimometría/.test(a.titulo));
+si('★ sin PVE pero con 25 días de VM (NAMDRC ≥21): alerta por el otro camino',
+  pim8 && /VM prolongada: 25 días/.test(pim8.detalle));
+// El espejo del weaning no puede separarse del cliente:
+const idxSrc = fs.readFileSync(path.join(v2, 'index.html'), 'utf8');
+si('★ el espejo _weanClaseSrv usa la MISMA regla que _weanClase del cliente',
+  /frustras>=3\|\|d>7/.test(idxSrc.replace(/\s+/g, '')) &&
+  /frustras>=3\|\|d>7/.test(fs.readFileSync(path.join(v2, 'svc_notificaciones.gs'), 'utf8').replace(/\s+/g, '')));
+
 /* ── Parte 2 · cliente ── */
 const { chromium } = require('playwright-core');
 (async () => {

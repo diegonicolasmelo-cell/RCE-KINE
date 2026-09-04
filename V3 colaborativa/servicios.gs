@@ -4340,6 +4340,11 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     ULT_FSS: val(evo.EVAL_T_FSS, cama.ULT_FSS),
     ULT_FSS_FECHA: val(evo.EVAL_T_FSS, '') !== '' ? fecha : (cama.ULT_FSS_FECHA || ''),
     ULT_DINAMO: val(evo.EVAL_T_DINAMO, cama.ULT_DINAMO),
+    // Pimometría (v5.93): la presión de soporte y la Pimáx del episodio, para
+    // que la campana decida mirando solo la cama.
+    ULT_PS: val(evo.VENT_PS, cama.ULT_PS),
+    ULT_PIM: val(evo.EVAL_T_PIM, cama.ULT_PIM),
+    ULT_PIM_FECHA: val(evo.EVAL_T_PIM, '') !== '' ? fecha : (cama.ULT_PIM_FECHA || ''),
     // Dispositivos del circuito: cada uno sigue a lo que le da sentido, no
     // todos al soporte VM (Diego, 14-ago-2026). Al salir de VM el circuito se
     // descarta, PERO el Trach Care pertenece a la VÍA AÉREA y sobrevive si el
@@ -5393,6 +5398,34 @@ function alertasUnidad(fecha) {
         });
       }
 
+      /* ── Pendiente medir pimometría (Diego, 5-sep-2026): paciente en VM,
+         modo espontáneo (CPAP/PS — así se llama aquí, no «PSV»), con soporte
+         bajo que no logra bajar más. «Prolongado» tiene DOS caminos, ambos de
+         la literatura: destete prolongado (Boles 2007 / WIND: ≥3 PVE
+         fracasadas o más de 7 días desde la primera — espejo de _weanClase
+         del cliente) o VM larga por días (NAMDRC 2005: ≥21 días, editable en
+         CONFIG PIMO_VM_DIAS). El porqué clínico, textual de Diego: «nos
+         orienta a saber por qué no se está pudiendo disminuir el soporte y si
+         requiere algún tipo de rehabilitación pulmonar». Se apaga sola al
+         registrar la Pimáx (fPIM) en el episodio. ── */
+      if (String(c.SOPORTE) === 'VM' && String(c.MODO) === 'CPAP/PS' &&
+          (c.ULT_PIM === '' || c.ULT_PIM == null)) {
+        const ps = parseFloat(c.ULT_PS);
+        const psMax = parseFloat(leerConfig('PIMO_PS_MAX', '14')) || 14;
+        if (!isNaN(ps) && ps < psMax) {
+          const wc = _weanClaseSrv(c.WEAN_PVE_JSON, ref);
+          const vmDias = c.FECHA_INICIO_SOPORTE
+            ? Math.max(0, Math.round((new Date(ref) - new Date(_statISO(c.FECHA_INICIO_SOPORTE))) / 864e5)) : 0;
+          const vmCorte = parseInt(leerConfig('PIMO_VM_DIAS', '21'), 10) || 21;
+          const motivo = (wc && wc.clase === 'prolongado')
+            ? 'destete prolongado: ' + (wc.frustras >= 3 ? wc.frustras + ' PVE fracasadas' : wc.dias + ' días desde la primera PVE')
+            : (vmDias >= vmCorte ? 'VM prolongada: ' + vmDias + ' días' : '');
+          if (motivo) alertas.push({ nivel: 'ambar', icono: '🫁', cama: idCama, ir: 'cama',
+            titulo: 'Pendiente medir pimometría (soporte ' + ps + ' cmH2O)',
+            detalle: motivo + ' — orienta por qué no baja el soporte y si requiere rehabilitación pulmonar' });
+        }
+      }
+
       // ── Paciente en VM sin ventilador asignado en el tablero ──
       if (String(c.SOPORTE) === 'VM' && !_ventNombreDeCama(idCama)) {
         alertas.push({ nivel: 'rojo', icono: '🫁', cama: idCama, ir: 'tablero',
@@ -5430,6 +5463,23 @@ function alertasUnidad(fecha) {
     });
   } catch (e) { /* una campana rota no puede tumbar el boot */ }
   return alertas;
+}
+
+/** Espejo EXACTO de _weanClase del cliente (index, Boles 2007 / WIND):
+ *  prolongado = 3 o más PVE fracasadas, o más de 7 días desde la primera PVE;
+ *  difícil = al menos una fracasada. Si cambias la regla, cámbiala en los dos
+ *  lados — la guardia buzon_campana fija este espejo. */
+function _weanClaseSrv(json, fechaRef) {
+  let w = {};
+  try { w = JSON.parse(json || '{}') || {}; } catch (e) { return null; }
+  const ks = Object.keys(w).sort();
+  if (!ks.length) return null;
+  const primer = ks[0].slice(0, 10);
+  const frustras = ks.filter(function (k) { return w[k] === 'frustra'; }).length;
+  const ms = new Date(String(fechaRef).slice(0, 10)) - new Date(primer);
+  const d = ms < 0 ? 0 : Math.floor(ms / 864e5);
+  const clase = (frustras >= 3 || d > 7) ? 'prolongado' : (frustras >= 1 ? 'dificil' : '');
+  return clase ? { clase: clase, frustras: frustras, dias: d, primerPve: primer } : null;
 }
 
 

@@ -312,8 +312,12 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.92-ktm-motivo-cama-bn** (4-sep, rama
-  `filtros-vence-hoy`, que INCLUYE v5.91…v5.86). La v5.92 imprime el chip
+- **Pendiente de publicar**: **v5.93-pimometria** (5-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v5.92…v5.86). La v5.93 agrega la alerta
+  «Pendiente medir pimometría» a la campana y **cambia esquema** (CAMAS_ESTADO
+  suma ULT_PS/ULT_PIM/ULT_PIM_FECHA al final + CONFIG PIMO_PS_MAX=14 y
+  PIMO_VM_DIAS=21) — el MISMO crearORepararEstructura() de la v5.91 lo
+  cubre. La v5.92 imprime el chip
   de la cama de la entrega invertido (cuadro negro en papel B/N) y hace
   OBLIGATORIO el criterio de la suspensión de KTM en sesión, que ahora sale
   también en la ficha de entrega (guardia ktm_suspension_motivo). La v5.91
@@ -581,18 +585,14 @@ lista de cumpleaños.
   se alcanzó?) — probablemente exige un campo nuevo o derivarlo del estado
   (S5Q/cooperación/sedación). Conecta con el pendiente del FSS-ICU
   «no evaluado» (distinguir «incapaz por debilidad» de «no evaluable»).
-- 🆕 🫁 **Pimometría pendiente en VM prolongada con soporte bajo** (dictado
-  por Diego, 5-sep-2026). Regla: paciente con **VM prolongada**, en modo
-  **espontáneo** (CPAP/PS — ojo: así se llama en la app, no «PSV»), con
-  **presión de soporte MENOR a 14 cmH₂O** → alerta «pendiente medir
-  pimometría». El porqué clínico, suyo textual: «nos orienta a saber por qué
-  no se está pudiendo disminuir el soporte y si requiere algún tipo de
-  rehabilitación pulmonar». 🔴 Preguntas antes de programar: ① ¿«VM
-  prolongada» = la clase de `_weanClase` (≥3 PVE fracasadas o >7 días desde
-  la 1ª PVE) o los días de VM (>7? >14?)? ② ¿dónde se registra la
-  pimometría (Pimáx) hoy? — si no hay campo, la alerta necesita uno para
-  poder apagarse al medirla ③ ¿el umbral 14 va a CONFIG (editable) como
-  EVAL_DIAS_ALERTA? Ambas alertas calzan con la campana 🔔 de la v5.91.
+- ✅ 🫁 **Pimometría pendiente: PROGRAMADA en la v5.93** (5-sep). Regla:
+  VM + CPAP/PS + soporte bajo PIMO_PS_MAX (CONFIG, 14) + (destete prolongado
+  por Boles 2007 —espejo `_weanClaseSrv` de `_weanClase`— o VM ≥
+  PIMO_VM_DIAS días, CONFIG, 21 por NAMDRC 2005) + sin Pimáx del episodio
+  (`ULT_PIM`, arrastre nuevo en CAMAS_ESTADO). Se apaga al registrar fPIM.
+  Literatura revisada a pedido de Diego: VM prolongada = ≥21 días (NAMDRC);
+  destete prolongado = >7 días desde la 1ª PVE o ≥3 fracasadas (Boles/WIND)
+  — su «>7 días» era el del destete. Detalle en BITACORA v5.93.
 
 - 🧠 **Brainstorm de terreno** — 9 puntos, en `BITACORA.md`. Resueltos el 1, 2,
   3, 4, 5 y 7. **Abiertos: el 6** (MR850), **el 8** (separar «marca un hito» de

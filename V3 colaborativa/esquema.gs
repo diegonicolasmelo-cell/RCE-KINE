@@ -357,6 +357,11 @@ const ESQUEMA = {
     // turno (decisión de Manuel, 18-ago: «normalmente no se modifica, así que
     // no debería poder modificarla»).  — SIEMPRE AL FINAL
     ['CORRECCIONES_JSON','json'],
+    // 🫁 Pimometría pendiente (v5.93, Diego 5-sep-2026): la campana necesita
+    // saber, MIRANDO SOLO LA CAMA, la última presión de soporte guardada y si
+    // la Pimáx ya se midió en el episodio. Arrastre desde el guardado, como
+    // los ULT_* de arriba.  — SIEMPRE AL FINAL
+    ['ULT_PS','decimal'],['ULT_PIM','decimal'],['ULT_PIM_FECHA','texto'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -758,6 +763,11 @@ function _sembrar(ss) {
     ['CORTE_DINAMO_M', '7'],        // kg, mujeres
     ['CORTE_FSS_INDEP', '27'],      // FSS-ICU >= corte = independencia funcional
     ['EVAL_DIAS_ALERTA', '5'],      // días sin re-evaluar MRC/FSS (cooperador) antes de alertar
+    // Pimometría pendiente (v5.93): en CPAP/PS con soporte BAJO este valor y
+    // destete prolongado (Boles 2007) o VM de PIMO_VM_DIAS días (NAMDRC
+    // 2005: 21), la campana pide medir Pimáx. Editables sin tocar código.
+    ['PIMO_PS_MAX', '14'],
+    ['PIMO_VM_DIAS', '21'],
     ['PVE_TURNOS_ALERTA', '2'],     // turnos seguidos candidato a PVE sin PVE antes de alertar
     ['FREC_HME_DIAS', '2'],         // días entre cambios de filtro HME
     ['FREC_HEPA_DIAS', '3'],        // días entre cambios de filtro HEPA
