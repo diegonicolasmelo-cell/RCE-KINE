@@ -355,6 +355,19 @@ lista de cumpleaños.
 
 ### Esperando decisión de Diego
 
+- 🔔 **Buzón de notificaciones + campana de alertas en la barra superior**
+  (pedido de Diego, 4-sep-2026: «notificaciones arriba como un buzón de
+  mensaje y alertas con una campana como lo tienen otras plataformas»).
+  Propuesta enviada, esperando su OK al reparto: la **campana** agrega lo
+  que la app YA calcula regado por las vistas (HME/Trach Care vencidos,
+  evaluaciones envejecidas >EVAL_DIAS_ALERTA, VM en cama sin ventilador
+  ~13901, mantención por vencer ~13729, cierre de año) — se limpia sola al
+  resolverse porque es cálculo en vivo, sin estado de leído; el **buzón**
+  lleva lo humano (notas 📌 del turno, cumpleaños, avisos de coordinación,
+  «se publicó vX.Y») con leído/no-leído POR NAVEGADOR (localStorage; no hay
+  login, así que no puede ser por persona). Nada sale por correo. Falta que
+  confirme el reparto y qué entra al buzón el día uno.
+
 - 🔴 **Tandas C y D (eventos manuales + reintubación) — DETENIDAS EN EL
   MOCKUP esperando 4 respuestas** (2-sep-2026; Diego pidió «recuérdamelo
   después», estaba en capacitación). Mockup publicado:
@@ -441,6 +454,18 @@ lista de cumpleaños.
   · ✅ **Confirmado por Diego el 4-sep-2026**: los motivos de «PVE superada
   sin extubar» del PRD **están bien**, y el catálogo de motivos de
   reintubación actual también. Esas dos preguntas quedan cerradas.
+  · ✅ **Cerrado por Diego el 4-sep-2026 — el EDITOR de plantillas tiene DOS
+  puertas** (eligió la opción 1): un ícono en el cuadro de texto de la
+  evolución (como TrakCare, abre con el caso actual preseleccionado) Y una
+  sección «Mis plantillas» para gestionarlas todas. Reglas de configuración
+  propuestas y aceptadas con esa elección: nadie parte de página en blanco
+  (duplicar la de la unidad/colega, o «guardar esta evolución como
+  plantilla»); comodines SOLO por menú, jamás tipeados (typo = plantilla
+  rota en silencio, lección TrakCare) y un comodín desconocido rechaza el
+  guardado; vista previa obligatoria con paciente de ejemplo; nombre
+  legible + caso obligatorio; la primera carga son las 13 de la unidad ya
+  redactadas. Solo queda abierta la SELECCIÓN (chips vs evolución tipo),
+  que él pidió dejar para el final.
   · 📄 **Los dos PRD ya están escritos y esperan su visto bueno**:
   `PRD_PLANTILLAS_EVOLUCION.md` y `PRD_PVE_SUPERADA_SIN_EXTUBAR.md` (con
   historia, no-objetivos, flujo hoy→mañana, inventario de consumidores y
@@ -539,8 +564,11 @@ lista de cumpleaños.
   está bloqueado.
   · **Consecuencias de diseño, ya firmes**: lo realista es un botón que abre
   Synapse en otra pestaña. Y el enlace que se usa a mano lleva un **token de
-  sesión** en la dirección, así que no sirve como enlace fijo: hay que usar la
-  URL base del login.
+  sesión** en la dirección — pero Diego verificó (4-sep) que **al caducar
+  redirige solo al inicio de sesión**: «es un click más pero vale la pena».
+  O sea el enlace con token TAMBIÉN sirve como enlace fijo; para
+  `CONFIG.SYNAPSE_URL` da lo mismo cuál se pegue, la URL base sigue siendo
+  la más limpia.
   · **Truco sin código que da el «verlos juntos»**: abrir Synapse en una segunda
   ventana de Chrome y usar ⊞ Win + ← / ⊞ Win + → para dejarlos lado a lado.
   · 🔑 **CÓMO FUNCIONA HOY, contado por Diego (2-sep)**: Synapse **ya está
