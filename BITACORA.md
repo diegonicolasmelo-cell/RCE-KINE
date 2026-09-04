@@ -19,6 +19,28 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.95-fss-ne (5-sep-2026) — el «no evaluable» del FSS-ICU, según el manual
+
+Diego citó de memoria la regla del manual del FSS-ICU y pidió verificarla.
+**Verificada en la fuente oficial (improvelto.com, grupo de Needham; la
+versión chilena es de González-Seguel/Merino-Osorio et al.)**: un ítem no
+realizable por causa DISTINTA a debilidad **no se puntúa** (el 0 es solo
+debilidad real); con **hasta 2** ítems así, a cada uno se le imputa el
+**promedio de los puntuados**; con **más de 2, el total no se calcula**.
+
+- Cada uno de los 5 ítems (`fFssIt1..5`) gana la opción **«NE — No evaluable
+  por causa distinta a debilidad»**; el 0 conserva su texto de debilidad.
+- `sumFSS` aplica la regla: 5 puntuados = suma directa · ≤2 NE = promedio
+  imputado (redondeado: EVAL_T_FSS es columna entera) con mensaje que lo
+  explica · >2 NE = total vacío y «NO calculable» · ítems sin declarar =
+  parcial. Antes sumaba a secas: el colega debía mentir un 0 o perder la
+  evaluación completa.
+- El «NE» viaja literal en EVAL_FSS_IT* (el desglose de la Hoja UCI lo
+  muestra tal cual; el sugeridor de CPAx ya ignoraba lo no numérico).
+- Guardia nueva `fss_ne.js` (aritmética completa en Chromium);
+  `escalas_desc` actualizada («declarado» ahora es puntaje o NE).
+  **113 verdes.** Solo index — cierra el pendiente «FSS-ICU no evaluado».
+
 ## v5.94-mrc-fss-motivo (5-sep-2026) — el porqué de las evaluaciones que faltan, derivado de la cooperación
 
 Diego cerró la pregunta de diseño con «es sedación/cooperación… no sé dónde

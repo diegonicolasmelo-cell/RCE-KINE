@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.94-mrc-fss-motivo">
+<meta name="rce-version" content="5.95-fss-ne">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4343,11 +4343,11 @@ document.documentElement.setAttribute('data-piel', 'inst');
          Los ítems 1 a 4 comparten escala; la marcha tiene la suya.
          El VALOR sigue siendo el número: lo que cambia es lo que se lee. -->
     <div class="row" style="flex-wrap:wrap;">
-      <div class="col wa"><label>1. Girar en cama</label><select id="fFssIt1" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa baranda o dispositivo</option><option value="7">7 — Independiente: sin asistencia ni dispositivos</option></select></div>
-      <div class="col wa"><label>2. Supino → sedente</label><select id="fFssIt2" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa baranda o dispositivo</option><option value="7">7 — Independiente: sin asistencia ni dispositivos</option></select></div>
-      <div class="col wa"><label>3. Sedente borde cama</label><select id="fFssIt3" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa manos o baranda</option><option value="7">7 — Independiente: manos libres, sin apoyarse</option></select></div>
-      <div class="col wa"><label>4. Sedente → bípedo</label><select id="fFssIt4" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa apoyabrazos o baranda</option><option value="7">7 — Independiente: sin empujarse de nada</option></select></div>
-      <div class="col wa"><label>5. Marcha</label><select id="fFssIt5" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Menos de 15 m con 1 persona, o cualquier distancia con 2 (asistencia total)</option><option value="2">2 — ≥15 m con asistencia de 1 persona (asistencia máxima)</option><option value="3">3 — ≥45 m, realiza 50-74% (asistencia moderada)</option><option value="4">4 — ≥45 m, realiza ≥75% (asistencia mínima o contacto manual)</option><option value="5">5 — ≥45 m con supervisión, sin asistencia física</option><option value="6">6 — ≥45 m con bastón, andador, órtesis o prótesis</option><option value="7">7 — ≥45 m sin asistencia ni dispositivos</option></select></div>
+      <div class="col wa"><label>1. Girar en cama</label><select id="fFssIt1" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="NE">NE — No evaluable por causa distinta a debilidad</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa baranda o dispositivo</option><option value="7">7 — Independiente: sin asistencia ni dispositivos</option></select></div>
+      <div class="col wa"><label>2. Supino → sedente</label><select id="fFssIt2" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="NE">NE — No evaluable por causa distinta a debilidad</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa baranda o dispositivo</option><option value="7">7 — Independiente: sin asistencia ni dispositivos</option></select></div>
+      <div class="col wa"><label>3. Sedente borde cama</label><select id="fFssIt3" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="NE">NE — No evaluable por causa distinta a debilidad</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa manos o baranda</option><option value="7">7 — Independiente: manos libres, sin apoyarse</option></select></div>
+      <div class="col wa"><label>4. Sedente → bípedo</label><select id="fFssIt4" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="NE">NE — No evaluable por causa distinta a debilidad</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Dependiente: se realiza, no asiste en absoluto</option><option value="2">2 — Asistencia máxima: realiza ≤25%</option><option value="3">3 — Asistencia moderada: realiza 26-74%</option><option value="4">4 — Asistencia mínima: realiza ≥75%</option><option value="5">5 — Supervisión: indicaciones, sin asistencia física</option><option value="6">6 — Independiente modificado: usa apoyabrazos o baranda</option><option value="7">7 — Independiente: sin empujarse de nada</option></select></div>
+      <div class="col wa"><label>5. Marcha</label><select id="fFssIt5" onchange="sumFSS()" class="fss-sel"><option value="">--</option><option value="NE">NE — No evaluable por causa distinta a debilidad</option><option value="0">0 — Incapaz de intentar o completar por debilidad</option><option value="1">1 — Menos de 15 m con 1 persona, o cualquier distancia con 2 (asistencia total)</option><option value="2">2 — ≥15 m con asistencia de 1 persona (asistencia máxima)</option><option value="3">3 — ≥45 m, realiza 50-74% (asistencia moderada)</option><option value="4">4 — ≥45 m, realiza ≥75% (asistencia mínima o contacto manual)</option><option value="5">5 — ≥45 m con supervisión, sin asistencia física</option><option value="6">6 — ≥45 m con bastón, andador, órtesis o prótesis</option><option value="7">7 — ≥45 m sin asistencia ni dispositivos</option></select></div>
     </div>
     <div class="resumen" id="fssItSum" style="font-size:.8rem;color:var(--muted);margin-top:10px;"></div>
     <div style="margin-top:10px;padding:9px 11px;background:#f8fafc;border:1px solid var(--line);border-radius:7px;font-size:.72rem;color:var(--muted);line-height:1.5;">
@@ -4500,7 +4500,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.94-mrc-fss-motivo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.95-fss-ne]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -12776,17 +12776,35 @@ function _renderCpaxRadar(){
 
 //  FSS-ICU por ítem → total automático (válido solo con los 5 ítems)
 function sumFSS(){
+  /* REGLA OFICIAL DEL MANUAL FSS-ICU (improvelto.com; la citó Diego el
+     5-sep-2026 con la versión chilena de González-Seguel/Merino-Osorio):
+     · 0 = incapaz POR DEBILIDAD (eso ya lo dice cada opción 0).
+     · «NE» = no evaluable por causa DISTINTA a debilidad → NO se puntúa.
+     · Hasta 2 ítems NE: se imputa a cada uno el PROMEDIO de los puntuados.
+     · Más de 2 NE: el total NO se calcula.
+     El total imputado se redondea: EVAL_T_FSS es columna entera. Antes la
+     app sumaba a secas y el colega debía elegir entre mentir un 0 o perder
+     la evaluación completa. */
   const vals=[1,2,3,4,5].map(i=>v('fFssIt'+i));
-  const con=vals.filter(x=>x!=='');
+  const con=vals.filter(x=>x!==''&&x!=='NE');
+  const ne=vals.filter(x=>x==='NE').length;
+  const sinDeclarar=5-con.length-ne;
   const el=$('fssItSum'); if(!el) return;
-  if(!con.length){ el.textContent=''; return; }
+  if(con.length+ne===0){ el.textContent=''; return; }
   const suma=con.reduce((a,x)=>a+parseInt(x),0);
-  if(con.length===5){
+  if(sinDeclarar>0){
+    $('fFSS').value=''; interpFSS();
+    el.textContent=`Parcial: ${suma} — falta(n) ${sinDeclarar} ítem(s) por declarar (puntaje o NE)`;
+  } else if(ne===0){
     const t=$('fFSS'); if(t){ t.value=suma; interpFSS(); }
     el.textContent=`Total FSS-ICU: ${suma}/35 (copiado al campo FSS)`;
+  } else if(ne<=2){
+    const prom=suma/con.length, total=Math.round(suma+ne*prom);
+    const t=$('fFSS'); if(t){ t.value=total; interpFSS(); }
+    el.textContent=`Total FSS-ICU: ${total}/35 — ${ne} ítem(s) NE imputado(s) con el promedio ${prom.toFixed(1)} (regla del manual)`;
   } else {
-    $('fFSS').value='';
-    el.textContent=`Parcial: ${suma} — faltan ${5-con.length} ítem(s) para el total`;
+    $('fFSS').value=''; interpFSS();
+    el.textContent=`Total NO calculable: ${ne} ítems NE — el manual permite promediar hasta 2`;
   }
   _updateEvalBtn('fss');
 }

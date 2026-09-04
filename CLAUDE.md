@@ -312,8 +312,10 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.94-mrc-fss-motivo** (5-sep, rama
-  `filtros-vence-hoy`, que INCLUYE v5.93…v5.86). La v5.94 deriva el MOTIVO
+- **Pendiente de publicar**: **v5.95-fss-ne** (5-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v5.94…v5.86). La v5.95 agrega el «NE»
+  del FSS-ICU según el manual oficial (hasta 2 se promedian, con más no hay
+  total; guardia fss_ne — solo index). La v5.94 deriva el MOTIVO
   de las MRC/FSS que faltan desde la cooperación registrada (campana solo al
   cooperador sin medir; tooltip en tarjeta; motivo escrito en la entrega —
   sin esquema). La v5.93 agrega la alerta
@@ -559,12 +561,12 @@ lista de cumpleaños.
   (defecto `PB,Avea`, por prefijo, editable sin código). Detalle en la
   bitácora; guardia `dispositivos_reglas.js`.
 
-- **FSS-ICU · el «no evaluado»** (mockup en `scratchpad/mockup_fss_no_evaluado.html`).
-  La app suma a secas: falta distinguir «incapaz por debilidad» (que es el 0 de
-  la escala) de «no se pudo evaluar», y aplicar la regla oficial —hasta 2 sin
-  evaluar se les asigna el promedio, con más de 2 el total no se calcula—.
-  Tres preguntas abiertas: cómo se declara, qué pasa con el campo cuando no se
-  puede calcular, y si se anota la razón.
+- ✅ **FSS-ICU · el «no evaluado»: RESUELTO en la v5.95** (5-sep; Diego citó
+  el manual y la fuente oficial —improvelto.com— lo confirma). Opción «NE»
+  por ítem; hasta 2 NE se imputan con el promedio (redondeado), con más de 2
+  el total no se calcula; el 0 queda solo para debilidad real. La RAZÓN del
+  NE no se anota (el manual no la exige); si algún día se quiere, es campo
+  nuevo. Guardia fss_ne.js.
 - ✅ **MR850 (punto 6 del brainstorm): SON 4, categoría APOYO** (Diego,
   14-ago) — 1 en la cama 2 y 3 en bodega. Falta solo la acción de DATOS en el
   tablero: dar de baja la única cargada con nombre propio y crear el stock por
