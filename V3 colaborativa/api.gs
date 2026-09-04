@@ -69,6 +69,8 @@ function api(accion, datos, token) {
       case 'GET_MOVS_STOCK':     return obtenerMovimientosStock(datos.id || '', datos.limite || 20);
       case 'GET_DOCUMENTOS':     return obtenerDocumentos(!!datos.refrescar);
       case 'GET_CAMBIOS_NOCHE':  return cambiosEstaNoche(datos.fecha);
+      case 'GET_ALERTAS':        return ok({ alertas: alertasUnidad(datos && datos.fecha) });
+      case 'GET_NOTIFICACIONES': return notifListar(datos);
       case 'GET_REINTUB_N':      return contarReintubaciones(datos.pids);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
@@ -218,6 +220,9 @@ function _configUI() {
 /** Todo lo que el arranque necesita, en una sola respuesta. */
 function obtenerBoot(datos, ctx, auth) {
   try {
+    // 🚀 El cliente manda su sello de versión: la primera vez que el servidor
+    // ve uno nuevo, queda registrado en el buzón («se publicó la vX.Y»).
+    try { if (typeof notifVersionVista === 'function') notifVersionVista(datos && datos.version); } catch (e) {}
     const rCamas = obtenerTodasLasCamas();
     const rEvos = obtenerEvosDelDia((datos && datos.fecha) || hoyISO());
     let asignacion = null;
@@ -240,6 +245,10 @@ function obtenerBoot(datos, ctx, auth) {
       // Recordatorio de cierre de año (solo entre el 26-dic y febrero, y solo
       // si quedan evoluciones de egresados del año anterior sin trasladar).
       cierre: (typeof avisoCierreAnio === 'function') ? avisoCierreAnio() : null,
+      // 🔔📨 La campana (cálculo en vivo) y el buzón (hoja NOTIFICACIONES),
+      // para que los números salgan pintados desde el arranque.
+      alertas: (typeof alertasUnidad === 'function') ? alertasUnidad((datos && datos.fecha) || hoyISO()) : [],
+      notifs: (function () { try { const r = notifListar({}); return (r && r.ok) ? r.data.notifs : []; } catch (e) { return []; } })(),
     });
   } catch (e) { return err('obtenerBoot: ' + e.message, ERR.INTERNO, e); }
 }

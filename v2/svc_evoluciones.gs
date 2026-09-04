@@ -461,6 +461,15 @@ function guardarEvolucion(datos, ctx) {
           texto: '📌 Nota: ' + (_notaTurno.length > 220 ? _notaTurno.slice(0, 219) + '…' : _notaTurno),
           autor: evo.PLAN_FIRMA_KINE, autorEmail: ctx.email || '',
         });
+        // 📨 Y al buzón (v5.91). El hito de arriba se REEMPLAZA al re-guardar;
+        // el buzón es de solo agregar: la nota re-guardada idéntica no se
+        // duplica, y la CAMBIADA entra como fila nueva sin pisar la anterior
+        // (regla de Diego, 4-sep-2026).
+        if (typeof notifRegistrar === 'function') {
+          notifRegistrar({ tipo: 'nota', titulo: '📌 Nota del turno — cama ' + idCama,
+            detalle: _notaTurno, refCama: idCama, autor: String(evo.PLAN_FIRMA_KINE || ''),
+            origenId: String(evo.ID_EVOLUCION || (idCama + '|' + turnoKey)) });
+        }
       }
 
       // Procedimientos (filas) + hitos automáticos

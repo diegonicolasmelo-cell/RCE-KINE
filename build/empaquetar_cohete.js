@@ -17,7 +17,7 @@ const path = require('path');
 // se ve en el editor y en la pantalla de carga, y es la única forma barata de
 // confirmar que lo pegado es lo nuevo (misma clase de trampa que el total de
 // columnas de testEsquema()).
-const VERSION = '5.90-mauri-cumple';
+const VERSION = '5.91-buzon-campana';
 const fuente = path.join(__dirname, '..', 'v2', 'index.html');
 const salida = process.argv[2] || path.join(__dirname, 'index_cohete.html');
 

@@ -19,6 +19,42 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.91-buzon-campana (4-sep-2026) — la campana 🔔 y el buzón 📨 llegan a la barra
+
+Diego aprobó el mockup («me parece, programa el buzón y la campana») con dos
+precisiones: el formato de alerta — **«HME vencido (fecha en que vence) ·
+cama 7 · rótulo 31-08»**, así en cada caso — y su OJO textual: «cómo se
+registra para después consultar y que la información perdure si se cambia y
+no pise nada de lo anterior».
+
+- **Campana (`alertasUnidad`, servidor)**: cálculo EN VIVO, sin estado de
+  leído — junta dispositivos VENCIDOS (por coincidencia de etiqueta),
+  MRC/FSS envejecidas en cooperador (>EVAL_DIAS_ALERTA), VM sin ventilador
+  asignado, mantención vencida o a ≤7 días, y el cierre de año. Rojas
+  primero; cada fila con su «Ir a la cama / al tablero».
+- **Buzón (hoja `NOTIFICACIONES`, la 24ª)**: 🔴 **DE SOLO AGREGAR** — la
+  respuesta al OJO de Diego. `notifRegistrar` no duplica la nota re-guardada
+  idéntica y agrega la CAMBIADA como fila nueva (la anterior queda,
+  consultable para siempre; la TIMELINE en cambio reemplaza su hito). Día
+  uno aprobado: notas 📌 (enganchadas al guardado), avisos de versión (el
+  cliente manda su sello en el boot; se registra la primera vez que el
+  servidor lo ve) y cumpleaños (derivados del boot, no se guardan).
+- **Cliente**: 🔔📨 en `.hbar-actions` con número rojo pintado desde el
+  boot; dos modales estilo «Cambios de esta noche»; leído/no-leído POR
+  NAVEGADOR (localStorage, tope 400) — el punto azul se congela al ABRIR el
+  panel para no borrarse en la cara del que mira (trampa cazada por la
+  guardia: el refresco del servidor repintaba y la primera pintada ya había
+  marcado leído).
+- 🪤 En móvil el buscador dependía de que el resto de la fila lo empujara a
+  su fila propia; los dos botones nuevos cambiaban el empujón. Ahora
+  `flex:1 1 100%` explícito (guardia `movil.js` lo cazó).
+- `NOTIFICACIONES` clasificada en `_RESET_VACIAR` (guardia `reset.js`).
+- Guardia nueva **`buzon_campana.js`** (16 asserts, servidor + Chromium).
+  **111 verdes, 0 rojas.**
+- Entrega: index + servicios + api + esquema + mantenimiento, y
+  **`crearORepararEstructura()`** por la hoja nueva. Nuevo servicio
+  `svc_notificaciones.gs` (17 svc; la fusión lo toma sola por glob).
+
 ## v5.90-mauri-cumple (4-sep-2026) — la pose cumpleañera entra a la app
 
 Diego aprobó la propuesta («el visto bueno a Don Mauri cumpleañero»). La pose

@@ -159,13 +159,13 @@ ciegas):
   `~/.ssh/config` (`Host github.com` → `IdentityFile`, `IdentitiesOnly yes`).
   No hay token de por medio: si `git push` pide usuario y contraseña, el
   problema es esa configuración, no las credenciales.
-  El proyecto GAS de producción usa un layout de 9 .gs: los 15 `svc_*.gs`
-  (de 31 `.gs` en `v2/`) viajan fusionados como `servicios.gs`
+  El proyecto GAS de producción usa un layout de 9 .gs: los 17 `svc_*.gs`
+  (de 32 `.gs` en `v2/`) viajan fusionados como `servicios.gs`
   (`build/fusionar_servicios.js`, que los toma por glob: la cifra sube sola al
   agregar un servicio).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 23 hojas; **EVOLUCIONES tiene 386 columnas** y `testEsquema`
+- `esquema.gs`: 24 hojas (la 24ª es NOTIFICACIONES, el buzón — de SOLO agregar); **EVOLUCIONES tiene 386 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -312,8 +312,11 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.90-mauri-cumple** (4-sep, rama
-  `filtros-vence-hoy`, que INCLUYE v5.89, v5.88, v5.87 y v5.86).
+- **Pendiente de publicar**: **v5.91-buzon-campana** (4-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v5.90, v5.89, v5.88, v5.87 y v5.86).
+  La v5.91 **cambia esquema** (hoja NOTIFICACIONES) ⇒
+  `crearORepararEstructura()`, y toca servicios + api + esquema +
+  mantenimiento + index: se pegan LOS CINCO.
   La v5.88 lleva «Vencen hoy» a la hoja diaria impresa y al modal; la v5.89
   arregla el botón 🩻 (copiar ANTES de window.open: la apertura consume la
   activación del clic y la copia fallaba en silencio — guardia que fija el
@@ -363,6 +366,12 @@ lista de cumpleaños.
 
 ### Esperando decisión de Diego
 
+- ✅ 🔔 **Buzón + campana: PROGRAMADOS en la v5.91** (4-sep; Diego aprobó el
+  mockup y fijó el formato de alerta «HME vencido (fecha en que vence) ·
+  cama 7 · rótulo 31-08» y la regla del registro: de SOLO AGREGAR, nada se
+  pisa — hoja NOTIFICACIONES + guardia buzon_campana). Esperando su prueba
+  en la mañana. Pendiente del área: el «aviso de coordinación» desde 🔐.
+  Historia original:
 - 🔔 **Buzón de notificaciones + campana de alertas en la barra superior**
   (pedido de Diego, 4-sep-2026). ✅ **Reparto APROBADO por Diego el 4-sep**
   («okye me parece»): la **campana** agrega lo

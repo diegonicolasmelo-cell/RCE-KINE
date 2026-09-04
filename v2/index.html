@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.90-mauri-cumple">
+<meta name="rce-version" content="5.91-buzon-campana">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -83,7 +83,9 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
   /* .hnav .stgl gana en especificidad a la .stgl base (que va más abajo) */
   .hnav .stgl{width:92px;flex-shrink:0;}
   .stxt{display:none;}
-  .hsearch{flex:1 1 0;min-width:0;}
+  /* Fila propia SIEMPRE: antes dependía de que el resto de la fila lo
+     empujara, y al sumar la campana y el buzón (v5.91) el empujón cambiaba. */
+  .hsearch{flex:1 1 100%;min-width:0;}
   .hsearch input{width:100%;min-width:0;}
 }
 .htitle{font-size:.98rem;font-weight:700;display:flex;align-items:center;gap:8px;letter-spacing:-.015em;}
@@ -105,6 +107,9 @@ body{background:var(--bg);color:var(--txt);font-size:15px;overflow-x:hidden;}
 .hbar-actions .hbtn{justify-content:center;}
 .hbtn{background:rgba(255,255,255,.1);color:#f2f2f7;border:1px solid rgba(255,255,255,.15);padding:5px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:.8rem;display:flex;align-items:center;gap:5px;transition:background .15s;}
 .hbtn:hover{background:rgba(255,255,255,.19);}
+/* 🔔📨 número rojo de la campana y el buzón (v5.91) */
+#campBtn,#buzBtn{position:relative;}
+.hnum{position:absolute;top:-7px;right:-7px;background:#dc2626;color:#fff;font-size:.6rem;font-weight:800;min-width:16px;height:16px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;}
 
 /* SESIÓN EN LA CABECERA (21-ago-2026, pedido de Manuel): quién usa la app y si
    el modo Coordinación está abierto, siempre a la vista en la esquina superior
@@ -1691,6 +1696,8 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <button class="hbtn" id="hSesCand" onclick="hSesCandadoClick()" title="Modo Coordinación">🔒 <span class="hses-txt" id="hSesCandTxt">Coordinación</span></button>
     </div>
     <div class="hbar-actions">
+      <button class="hbtn" id="campBtn" onclick="campAbrir()" title="Alertas de la unidad: lo que la app detecta y exige acción">🔔<span class="hnum hidden" id="campNum"></span></button>
+      <button class="hbtn" id="buzBtn" onclick="buzAbrir()" title="Notificaciones: notas del turno, cumpleaños y novedades">📨<span class="hnum hidden" id="buzNum"></span></button>
       <button class="hbtn" onclick="recargar()" title="Actualizar datos">🔄</button>
       <button class="hbtn" id="mascBtn" onclick="mascToggle()" title="Cambiar la mascota">🤖</button>
     </div>
@@ -2329,6 +2336,32 @@ document.documentElement.setAttribute('data-piel', 'inst');
   <div style="padding:14px 22px;overflow-y:auto;">
     <div id="cnLista"></div>
     <div style="font-size:.68rem;color:var(--muted);margin-top:10px;">Regla de la unidad: los circuitos se cambian en el turno <b>Noche</b> — HME a los 2 días de la etiqueta; HEPA y Trach Care a los 3. El dispositivo nuevo queda etiquetado con la fecha del día siguiente.</div>
+  </div>
+</div>
+
+<!-- 🔔 La campana: alertas EN VIVO de la unidad. Sin estado de leído: al
+     resolverse el problema, la alerta desaparece porque ya no es verdad. -->
+<div class="tlmodal" id="campMod" role="dialog" aria-modal="true" style="width:min(560px,94vw);max-height:88vh;">
+  <div class="phdr">
+    <div class="ptitle">🔔 Alertas de la unidad</div>
+    <button class="xbtn" onclick="campCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:14px 22px;overflow-y:auto;">
+    <div id="campLista"></div>
+    <div style="font-size:.68rem;color:var(--muted);margin-top:10px;">Las alertas se limpian solas: cuando cambias el filtro o registras la evaluación, desaparecen porque ya no son verdad.</div>
+  </div>
+</div>
+
+<!-- 📨 El buzón: lo que una persona quiere contarle al equipo. El registro
+     (hoja NOTIFICACIONES) es de solo agregar; el «leído» es por navegador. -->
+<div class="tlmodal" id="buzMod" role="dialog" aria-modal="true" style="width:min(560px,94vw);max-height:88vh;">
+  <div class="phdr">
+    <div class="ptitle">📨 Notificaciones</div>
+    <button class="xbtn" onclick="buzCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:14px 22px;overflow-y:auto;">
+    <div id="buzLista"></div>
+    <div style="font-size:.68rem;color:var(--muted);margin-top:10px;">El punto azul marca lo no leído en <b>este computador</b>. Todo queda registrado y se puede volver a consultar; nada se borra ni se pisa.</div>
   </div>
 </div>
 
@@ -4461,7 +4494,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.90-mauri-cumple]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.91-buzon-campana]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -7226,6 +7259,88 @@ function cnRender(d){
   });
   $('cnLista').innerHTML=cab+h;
 }
+
+/* ══ 🔔📨 CAMPANA Y BUZÓN (v5.91, diseño aprobado por Diego el 4-sep-2026) ══
+   La CAMPANA es cálculo en vivo del servidor (alertasUnidad): sin estado de
+   leído — se limpia sola al resolverse. El BUZÓN lee la hoja NOTIFICACIONES
+   (de SOLO AGREGAR: nada se pisa) más el cumpleaños derivado del boot; el
+   leído/no-leído vive en localStorage porque no hay login (por computador).
+   Los números salen pintados desde el boot y se refrescan al abrir. ══ */
+let ALERTAS=[], NOTIFS=[];
+const NOTIF_LEIDAS_KEY='rce_notif_leidas';
+function _ntfLeidas(){ try{ const a=JSON.parse(localStorage.getItem(NOTIF_LEIDAS_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function _ntfMarcar(ids){ try{ const st=new Set(_ntfLeidas()); ids.forEach(i=>st.add(i)); localStorage.setItem(NOTIF_LEIDAS_KEY, JSON.stringify([...st].slice(-400))); }catch(e){} }
+function _buzItems(){
+  const it=(NOTIFS||[]).map(n=>({ id:String(n.ID_NOTIF||''), tipo:String(n.TIPO||''),
+    ic:(n.TIPO==='nota'?'📌':(n.TIPO==='version'?'🚀':'✉️')),
+    tit:String(n.TITULO||''), det:String(n.DETALLE||''), cama:String(n.REF_CAMA||''),
+    autor:String(n.AUTOR||''), ts:String(n.TS||'').slice(0,16) }));
+  // El cumpleaños no se guarda en la hoja: se deriva del boot cada día.
+  ((typeof CUMPLES!=='undefined'&&CUMPLES)||[]).forEach(c=>{ it.unshift({ id:'cumple|'+(v('gDate')||hoy())+'|'+c.firma,
+    tipo:'cumple', ic:'🎂', tit:'Hoy está de cumpleaños '+_cumpleNombre(c), det:'Don Mauri ya se puso el gorro.', cama:'', autor:'', ts:'' }); });
+  return it;
+}
+function notifAplicar(alertas, notifs){
+  ALERTAS=Array.isArray(alertas)?alertas:[];
+  NOTIFS=Array.isArray(notifs)?notifs:[];
+  ntfBadges();
+}
+function ntfBadges(){
+  const c=$('campNum'); if(c){ c.textContent=String(ALERTAS.length); c.classList.toggle('hidden', !ALERTAS.length); }
+  const leidas=new Set(_ntfLeidas());
+  const sin=_buzItems().filter(x=>!leidas.has(x.id)).length;
+  const b=$('buzNum'); if(b){ b.textContent=String(sin); b.classList.toggle('hidden', !sin); }
+}
+function campAbrir(){
+  $('campMod').classList.add('on'); $('ovl').classList.add('on'); campRender();
+  gs('GET_ALERTAS',{fecha:v('gDate')||hoy()}, d=>{ ALERTAS=(d&&d.alertas)||[]; ntfBadges(); campRender(); }, ()=>{});
+}
+function campCerrar(){ $('campMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function campIr(ir,cama){ campCerrar(); if(ir==='tablero') setTab('V'); else if(cama) abrirPanel(String(cama)); }
+function campRender(){
+  const el=$('campLista'); if(!el) return;
+  if(!ALERTAS.length){ el.innerHTML='<div style="padding:16px 0;color:var(--muted);font-size:.82rem;">✅ Sin alertas activas — la unidad está al día.</div>'; return; }
+  el.innerHTML=ALERTAS.map(a=>{
+    const rojo=a.nivel==='rojo';
+    const ir=a.ir==='tablero'?`<button style="font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;white-space:nowrap;" onclick="campIr('tablero','')">Ir al tablero →</button>`
+      :(a.ir==='cama'&&a.cama?`<button style="font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;white-space:nowrap;" onclick="campIr('cama','${_docsEsc(String(a.cama))}')">Ir a la cama ${_docsEsc(String(a.cama))} →</button>`:'');
+    return `<div style="display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border:1px solid ${rojo?'#fecaca':'#fde68a'};background:${rojo?'#fef2f2':'#fffbeb'};border-radius:7px;margin-bottom:6px;font-size:.8rem;">
+      <span>${a.icono||'⚠️'}</span>
+      <div style="flex:1;"><b>${_docsEsc(a.titulo||'')}${a.cama?' · cama '+_docsEsc(String(a.cama)):''}</b>
+        <div style="color:var(--muted);font-size:.74rem;">${_docsEsc(a.detalle||'')}</div></div>
+      ${ir}</div>`;
+  }).join('');
+}
+let _buzVistoSnap=null;   // lo no-leído se congela al ABRIR: el punto azul
+                          // no se borra en la cara del que está mirando.
+function buzAbrir(){
+  _buzVistoSnap=new Set(_ntfLeidas());
+  $('buzMod').classList.add('on'); $('ovl').classList.add('on'); buzRender();
+  gs('GET_NOTIFICACIONES',{}, d=>{ NOTIFS=(d&&d.notifs)||[]; buzRender(); }, ()=>{});
+}
+function buzCerrar(){ _buzVistoSnap=null; $('buzMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function buzIr(cama){ buzCerrar(); if(cama) abrirPanel(String(cama)); }
+function buzRender(){
+  const el=$('buzLista'); if(!el) return;
+  const items=_buzItems();
+  if(!items.length){ el.innerHTML='<div style="padding:16px 0;color:var(--muted);font-size:.82rem;">Sin notificaciones todavía.</div>'; ntfBadges(); return; }
+  const leidas=_buzVistoSnap||new Set(_ntfLeidas());
+  el.innerHTML=items.map(x=>{
+    const nueva=!leidas.has(x.id);
+    const meta=[x.autor?_docsEsc(x.autor):'', x.ts?_docsEsc(x.ts.replace('T',' ')):''].filter(Boolean).join(' · ');
+    const ir=x.cama?`<button style="font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;white-space:nowrap;" onclick="buzIr('${_docsEsc(String(x.cama))}')">Cama ${_docsEsc(String(x.cama))} →</button>`:'';
+    return `<div style="display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);${nueva?'background:#eef4fb;':''}border-radius:7px;margin-bottom:6px;font-size:.8rem;">
+      <span>${x.ic}</span>
+      <div style="flex:1;"><b>${_docsEsc(x.tit)}${nueva?' <span style="color:var(--primary);font-size:.6rem;vertical-align:2px;">●</span>':''}</b>
+        ${x.det?`<div style="font-size:.76rem;">${_docsEsc(x.det)}</div>`:''}
+        ${meta?`<div style="color:var(--muted);font-size:.7rem;">${meta}</div>`:''}</div>
+      ${ir}</div>`;
+  }).join('');
+  // Verlas las deja leídas EN ESTE computador; el registro no se toca.
+  _ntfMarcar(items.map(x=>x.id));
+  ntfBadges();
+}
+function _rceVer(){ try{ return document.querySelector('meta[name="rce-version"]').content||''; }catch(e){ return ''; } }
 
 /* ── ❓ Tutorial anclado: recorrido de globos sobre la pantalla real.
    Solo lee la interfaz (no toca datos); cada paso encuadra una zona con un
@@ -16113,7 +16228,7 @@ window.onload = function() {
   const _f0=v('gDate')||hoy();
   const _yaPintado=_bootPintarCache(_f0, SHIFT);
   if(!_yaPintado) loading(true,'Cargando unidad…');
-  api('GET_BOOT',{fecha:_f0, key:`${_f0}-${SHIFT}`}).then(b=>{
+  api('GET_BOOT',{fecha:_f0, key:`${_f0}-${SHIFT}`, version:_rceVer()}).then(b=>{
     if(!b || !b.camas){ _bootLegacy(); return; }   // servidor antiguo pegado: ruta clásica
     chequearReloj(b.ahora);
     _bootGuardar(b, _f0, SHIFT);
@@ -16124,6 +16239,7 @@ window.onload = function() {
     if(YO.dev && LOGIN_UI_ACTIVO){ const d=$('devbar'); if(d) d.style.display='block'; }
     FASES=b.fases||[]; renderFases();
     cumpleAplicar(b.cumples);   // 🎂 gorro y globos si alguien cumple hoy
+    notifAplicar(b.alertas, b.notifs);   // 🔔📨 números de la campana y el buzón
     window.CFG=b.config||{}; aplicarBanners();
     poblarKTMcontra();
     DB=b.camas||[];

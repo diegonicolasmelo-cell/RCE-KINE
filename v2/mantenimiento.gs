@@ -154,6 +154,9 @@ const _RESET_VACIAR = [
   'VENTILADORES', 'MOVIMIENTOS_VM', 'FALLAS_VM',
   'STOCK_EQUIPOS', 'MOVIMIENTOS_STOCK',
   'ESTADISTICAS_REM', 'TURNOS', 'AUDIT_LOG', 'IMPORTAR', 'SUGERENCIAS',
+  // El buzón referencia notas clínicas de la marcha que se resetea; su regla
+  // de «solo agregar» aplica al código de la app, no a esta rutina explícita.
+  'NOTIFICACIONES',
 ];
 // Hojas que NO se tocan (configuración de la unidad).
 const _RESET_CONSERVAR = ['CONFIG', 'CATALOGOS', 'CAT_MATRICES', 'KINESIOLOGOS', 'INDICADORES_HISTORICO'];

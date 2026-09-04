@@ -502,6 +502,14 @@ const ESQUEMA = {
     ['CAMA','texto'],['NOMBRE','texto'],['EDAD','texto'],['SEXO','texto'],['FECHA_INGRESO','texto'],
     ['DIAGNOSTICO','texto'],['DIAG_REM','texto'],['VIA_SOPORTE','texto'],['TALLA','texto'],
   ]},
+  // 📨 El buzón (v5.91). 🔴 DE SOLO AGREGAR (regla de Diego, 4-sep-2026):
+  // nada se edita ni se borra desde el código — si una nota cambia, se agrega
+  // la versión nueva y la anterior queda, consultable para siempre.
+  NOTIFICACIONES: { headerRows: 1, cols: [
+    ['ID_NOTIF','texto'],['TS','ts'],['FECHA','texto'],['TIPO','texto'],
+    ['TITULO','texto'],['DETALLE','texto'],['REF_CAMA','texto'],['AUTOR','texto'],
+    ['ORIGEN_ID','texto'],
+  ]},
 };
 
 // ── Derivados (generados una sola vez desde ESQUEMA) ───────
