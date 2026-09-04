@@ -312,8 +312,8 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.89-synapse-copia** (4-sep, rama
-  `filtros-vence-hoy`, que INCLUYE v5.88, v5.87 y v5.86-nota-synapse-cumple).
+- **Pendiente de publicar**: **v5.90-mauri-cumple** (4-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v5.89, v5.88, v5.87 y v5.86).
   La v5.88 lleva «Vencen hoy» a la hoja diaria impresa y al modal; la v5.89
   arregla el botón 🩻 (copiar ANTES de window.open: la apertura consume la
   activación del clic y la copia fallaba en silencio — guardia que fija el
@@ -372,10 +372,11 @@ lista de cumpleaños.
   resolverse porque es cálculo en vivo, sin estado de leído; el **buzón**
   lleva lo humano (notas 📌 del turno, cumpleaños, avisos de coordinación,
   «se publicó vX.Y») con leído/no-leído POR NAVEGADOR (localStorage; no hay
-  login, así que no puede ser por persona). Nada sale por correo. Falta solo
-  que confirme qué entra al buzón el día uno (propuesto: notas 📌 +
-  cumpleaños + avisos de versión; el «aviso de coordinación» escrito desde
-  la pestaña 🔐 es un mini-agregado aparte, esperando si lo quiere ya).
+  login, así que no puede ser por persona). Nada sale por correo. ✅ **Día uno
+  APROBADO por Diego (4-sep)**: notas 📌 + cumpleaños + avisos de versión.
+  El «aviso de coordinación» desde la pestaña 🔐 queda para después (no lo
+  confirmó). **Siguiente paso: mockup de la barra con campana y buzón**
+  (enviado, esperando su OK visual antes de programar).
 
 - ✅ 🏷️ **Filtros: declarar LO QUE VENCE HOY — RESUELTO en la v5.87** (4-sep,
   Diego eligió la opción B del mockup). Al programarla apareció que el chip
@@ -399,13 +400,10 @@ lista de cumpleaños.
   panel «Cambios de esta noche» (GET_CAMBIOS_NOCHE) ya hace la lista por
   cama y se mantiene. Mockup/opciones enviadas, esperando su elección.
 
-- 🎂 **Pose cumpleañera de Don Mauri: PROPUESTA ENVIADA** (4-sep). No se
-  redibujó al personaje: se compuso gorro + confeti + serpentinas SOBRE la
-  pose `festejo` de Diego (PIL, lienzo +30 px arriba; script reproducible en
-  el scratchpad de la sesión). Esperando su visto bueno — si le gusta, se
-  integra como novena pose `cumple` en `MAURI` (WebP base64) y
-  `cumpleAplicar` la usa cuando la mascota es la persona; si no, la dibuja
-  él y se integra la suya.
+- ✅ 🎂 **Pose cumpleañera de Don Mauri: APROBADA e INTEGRADA en la v5.90**
+  (4-sep). Es la pose `festejo` de Diego con gorro/confeti compuestos encima
+  — novena pose `cumple` en `MAURI`; con la mascota persona reemplaza al
+  emoji-gorro (que queda solo para Servi). Guardia en nota_synapse_cumple.
 
 - 🔴 **Tandas C y D (eventos manuales + reintubación) — DETENIDAS EN EL
   MOCKUP esperando 4 respuestas** (2-sep-2026; Diego pidió «recuérdamelo

@@ -19,6 +19,24 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.90-mauri-cumple (4-sep-2026) — la pose cumpleañera entra a la app
+
+Diego aprobó la propuesta («el visto bueno a Don Mauri cumpleañero»). La pose
+NO es un dibujo nuevo: es su propia ilustración `festejo` con gorro de fiesta,
+pompón, confeti y serpentinas compuestos encima (PIL; el PNG de trabajo y el
+script quedaron en el scratchpad de la sesión).
+
+- Novena pose **`cumple`** en `MAURI` (WebP 5,7 KB, recortada, transparente).
+- `mauriEstado`: si hay cumpleaños, la pose de fiesta manda sobre el sofá
+  (día) y el sueño (noche). `cumpleAplicar` refresca la pose al llegar o
+  pasar el cumpleaños.
+- El emoji-gorro 🎉 del botón queda SOLO para Servi
+  (`html[data-masc="persona"] #tutBtn.cumple .cump-deco{display:none}`):
+  Don Mauri trae el gorro dibujado.
+- Guardia `nota_synapse_cumple`: cuatro asserts nuevos (pose puesta, emoji
+  oculto con persona, vuelta a la normalidad, Servi conserva su emoji).
+  **110 verdes.** Solo index.
+
 ## v5.89-synapse-copia (4-sep-2026) — el botón 🩻 sí copia el RUT: el orden del clic
 
 Diego probó en el hospital: «entro bien a Synapse pero no copia el RUT». La

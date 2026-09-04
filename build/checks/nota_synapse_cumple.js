@@ -153,6 +153,29 @@ const si = (l, c) => eq(l, !!c, true);
   });
   eq('★ sin SYNAPSE_URL en CONFIG no aparece ningún botón', sinUrl, 0);
 
+  // 🎂 v5.90: con la mascota PERSONA, el cumpleaños usa la pose real de Don
+  // Mauri (festejo + gorro compuesto) y el emoji-gorro queda solo para Servi.
+  const pose = await p.evaluate(() => {
+    try { localStorage.setItem(MASC_KEY, 'persona'); } catch (e) {}
+    mascAplicar();
+    cumpleAplicar([{ firma: 'DMV', nombre: 'Diego Melo Villagrán' }]);
+    const img = document.querySelector('#tutBtn .masc-persona');
+    const gorro = document.querySelector('#tutBtn .cump-gorro');
+    const conCumple = { esPose: !!img && img.src === mauriSrc('cumple'),
+                        emojiOculto: getComputedStyle(gorro).display === 'none' };
+    cumpleAplicar([]);
+    const vuelve = !!img && img.src !== mauriSrc('cumple');
+    try { localStorage.setItem(MASC_KEY, 'servi'); } catch (e) {}
+    mascAplicar(); cumpleAplicar([{ firma: 'DMV', nombre: 'Diego Melo Villagrán' }]);
+    const serviEmoji = getComputedStyle(gorro).display !== 'none';
+    cumpleAplicar([]);
+    return { ...conCumple, vuelve, serviEmoji };
+  });
+  si('★ con la persona, el cumpleaños pone la POSE cumple de Don Mauri', pose.esPose);
+  si('…y el emoji-gorro se esconde (la pose ya trae el suyo)', pose.emojiOculto);
+  si('…al pasar el cumpleaños vuelve la pose normal', pose.vuelve);
+  si('★ Servi conserva el gorro de emoji', pose.serviEmoji);
+
   // Sin cumpleaños, la mascota vuelve a la ayuda de siempre
   const sinCumple = await p.evaluate(() => {
     cumpleAplicar([]);
