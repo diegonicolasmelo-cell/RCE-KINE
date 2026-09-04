@@ -356,17 +356,39 @@ lista de cumpleaños.
 ### Esperando decisión de Diego
 
 - 🔔 **Buzón de notificaciones + campana de alertas en la barra superior**
-  (pedido de Diego, 4-sep-2026: «notificaciones arriba como un buzón de
-  mensaje y alertas con una campana como lo tienen otras plataformas»).
-  Propuesta enviada, esperando su OK al reparto: la **campana** agrega lo
+  (pedido de Diego, 4-sep-2026). ✅ **Reparto APROBADO por Diego el 4-sep**
+  («okye me parece»): la **campana** agrega lo
   que la app YA calcula regado por las vistas (HME/Trach Care vencidos,
   evaluaciones envejecidas >EVAL_DIAS_ALERTA, VM en cama sin ventilador
   ~13901, mantención por vencer ~13729, cierre de año) — se limpia sola al
   resolverse porque es cálculo en vivo, sin estado de leído; el **buzón**
   lleva lo humano (notas 📌 del turno, cumpleaños, avisos de coordinación,
   «se publicó vX.Y») con leído/no-leído POR NAVEGADOR (localStorage; no hay
-  login, así que no puede ser por persona). Nada sale por correo. Falta que
-  confirme el reparto y qué entra al buzón el día uno.
+  login, así que no puede ser por persona). Nada sale por correo. Falta solo
+  que confirme qué entra al buzón el día uno (propuesto: notas 📌 +
+  cumpleaños + avisos de versión; el «aviso de coordinación» escrito desde
+  la pestaña 🔐 es un mini-agregado aparte, esperando si lo quiere ya).
+
+- 🏷️ **Filtros: declarar LO QUE VENCE HOY, no la fecha del filtro nuevo**
+  (pedido de Diego, 4-sep-2026, con PRD dictado). Su rutina real: él sabe
+  qué FECHAS DE ETIQUETA caducan hoy y recorre el libro buscando
+  coincidencias — hoy 03-09 vence el HME etiquetado 02-09 (día 2) y el
+  Trach Care/HEPA etiquetado 01-09 (día 3); lo nuevo se etiqueta 04-09
+  porque el cambio es en la madrugada del día siguiente. **La aritmética de
+  su ejemplo CUADRA con las reglas vigentes de la app** (HME día 2, Trach
+  Care/HEPA día 3, cambio nocturno): no cambia ninguna regla, cambia la
+  REDACCIÓN. Textual: «no me interesa con qué fecha debería quedar… se ha
+  prestado para confusión». En el apartado de filtros del formulario, en
+  vez de proyectar la fecha futura de cambio («Cambio: 04-09»), declarar la
+  coincidencia como en el libro: «vence hoy lo etiquetado el 02-09». El
+  panel «Cambios de esta noche» (GET_CAMBIOS_NOCHE) ya hace la lista por
+  cama y se mantiene. Mockup/opciones enviadas, esperando su elección.
+
+- 🎂 **PENDIENTE: la imagen del kinesiólogo cumpleañero** (Diego, 4-sep).
+  El gorro y los globos de la v5.86 son CSS sobre la mascota; falta la POSE
+  ilustrada de cumpleaños para Don Mauri (las 8 poses existentes son
+  ilustraciones del propio Diego en WebP, se piden por nombre). Preguntado
+  si la dibuja él como las otras o quiere que se genere una propuesta.
 
 - 🔴 **Tandas C y D (eventos manuales + reintubación) — DETENIDAS EN EL
   MOCKUP esperando 4 respuestas** (2-sep-2026; Diego pidió «recuérdamelo
