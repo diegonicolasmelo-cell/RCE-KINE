@@ -312,9 +312,10 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.87-filtros-vence-hoy** (4-sep, rama
-  `filtros-vence-hoy`, que INCLUYE la v5.86-nota-synapse-cumple de la rama
-  `nota-timeline-synapse-cumpleanos`). La v5.86 **cambia esquema**
+- **Pendiente de publicar**: **v5.88-vence-hoy-hojas** (4-sep, rama
+  `filtros-vence-hoy`, que INCLUYE la v5.87 y la v5.86-nota-synapse-cumple).
+  La v5.88 lleva «Vencen hoy» a la hoja diaria impresa (asterisco + acción,
+  sin fecha futura) y al modal «Cambios de esta noche». La v5.86 **cambia esquema**
   (KINESIOLOGOS.CUMPLE + CONFIG.SYNAPSE_URL) ⇒ `crearORepararEstructura()`;
   la v5.87 es solo index. Si la v5.86 aún no se pegó, se pega TODO junto con
   el index de la 5.87 (index + servicios + api + esquema); si ya se pegó,
@@ -395,11 +396,13 @@ lista de cumpleaños.
   panel «Cambios de esta noche» (GET_CAMBIOS_NOCHE) ya hace la lista por
   cama y se mantiene. Mockup/opciones enviadas, esperando su elección.
 
-- 🎂 **PENDIENTE: la imagen del kinesiólogo cumpleañero** (Diego, 4-sep).
-  El gorro y los globos de la v5.86 son CSS sobre la mascota; falta la POSE
-  ilustrada de cumpleaños para Don Mauri (las 8 poses existentes son
-  ilustraciones del propio Diego en WebP, se piden por nombre). Preguntado
-  si la dibuja él como las otras o quiere que se genere una propuesta.
+- 🎂 **Pose cumpleañera de Don Mauri: PROPUESTA ENVIADA** (4-sep). No se
+  redibujó al personaje: se compuso gorro + confeti + serpentinas SOBRE la
+  pose `festejo` de Diego (PIL, lienzo +30 px arriba; script reproducible en
+  el scratchpad de la sesión). Esperando su visto bueno — si le gusta, se
+  integra como novena pose `cumple` en `MAURI` (WebP base64) y
+  `cumpleAplicar` la usa cuando la mascota es la persona; si no, la dibuja
+  él y se integra la suya.
 
 - 🔴 **Tandas C y D (eventos manuales + reintubación) — DETENIDAS EN EL
   MOCKUP esperando 4 respuestas** (2-sep-2026; Diego pidió «recuérdamelo

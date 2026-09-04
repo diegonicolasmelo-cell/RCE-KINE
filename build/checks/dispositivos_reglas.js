@@ -241,8 +241,8 @@ eq('…y la hoja de filtros la usa', /_dispAplicaCama\(cama,def\.k\)/.test(idx),
 eq('el espejo del HEPA fijo existe con el mismo defecto PB,Avea',
   /function _hepaFijoEquipo\(nom\)\{/.test(idx) && idx.includes("CFG.HEPA_FIJO_EQUIPOS)||'PB,Avea'"), true);
 eq('la celda de la hoja de filtros imprime FIJA', /FIJA \(del equipo\)/.test(idx), true);
-eq('la hoja diaria marca «fija (no se cambia)» en vez de fecha de cambio',
-  /fija<\/b> \(no se cambia\)/.test(idx), true);
+eq('la hoja diaria marca «fija — no se cambia» en vez de fecha de cambio',
+  idx.includes('(fija — no se cambia)'), true);
 eq('★ fechar la humidificación marca el checkbox (el hoyo del reporte)',
   /id="fFecHumid" onchange="humidFechaManual\(this\.value\)"/.test(idx) &&
   /function humidFechaManual\(val\)\{/.test(idx), true);
@@ -255,8 +255,10 @@ eq('la Hoja UCI no muestra reloj de HME en turnos con humidificación activa',
 // del cambio sería la de HOY — la fecha se corre, no se le pone la de antes
 // de ayer». La fecha teórica pasada no se imprime nunca como plan.
 console.log('\n7 · Un vencido nunca anuncia una fecha del pasado');
-eq('★ la hoja diaria recibe la fecha de referencia y corre el vencido a HOY',
-  /function _rkCambioTag\(c,k,fechaRef\)\{/.test(idx) && /cambiar HOY<\/b> \(venció el /.test(idx), true);
+// v5.88: el tag es solo la acción — la fecha futura no se imprime («más
+// simple, sin tanto rodeo») y el vencido sigue sin anunciar fechas pasadas.
+eq('★ la hoja diaria lidera con la acción y sin fecha-plan del pasado',
+  /function _rkCambioTag\(c,k,fechaRef\)\{/.test(idx) && idx.includes('(Cambiar HOY — atrasado)'), true);
 // v5.87 (Diego, 4-sep-2026): el chip habla por coincidencia de etiqueta,
 // pero el vencido SIGUE liderando con la acción y sin fecha-plan del pasado.
 eq('el chip del formulario lidera con la acción',

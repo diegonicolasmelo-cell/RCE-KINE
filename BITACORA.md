@@ -19,6 +19,31 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.88-vence-hoy-hojas (4-sep-2026) — «Vencen hoy» en la hoja diaria impresa y en el modal, y el gorro de Don Mauri
+
+Diego mandó el diseño exacto tras ver el modal en producción. Dos consumidores
+más adoptan la declaración por coincidencia de etiqueta (la cuenta sigue
+siendo la de siempre, frec-1, estadoDispositivos):
+
+- **Hoja diaria impresa (`rkHojaHTML`)**: el título del bloque de filtros pasa
+  a «FECHAS FILTROS Y SONDA… (Vencen hoy: HME dd-mm · Trachcare dd-mm · HEPA
+  dd-mm)» y cada etiqueta se imprime con **asterisco + (Cambiar)** cuando
+  coincide o quedó atrás — «más simple, sin tanto rodeo»: la fecha futura de
+  cambio YA NO se imprime. El vencido dice «(Cambiar HOY — atrasado)» sin
+  fecha pasada (regla v5.60b intacta). El asterisco es la marca que sobrevive
+  al blanco y negro, la misma convención del diseño de la GSA.
+- **Modal «Cambios de esta noche» (`cnRender`)**: abre declarando «🏷️ Vencen
+  hoy: …» y la lista sigue tal cual.
+- Nuevas piezas: `_venceHoyTexto` (la declaración, leyendo `_FL_DEF`/CONFIG),
+  `_rkEtiqueta` (el asterisco), `_rkCambioTag` simplificado.
+- Guardias `hoja_registro_dia` y `dispositivos_reglas` re-escritas a la
+  semántica nueva. **110 verdes, 0 rojas.** Solo index, sin esquema.
+- 🎂 **Don Mauri cumpleañero**: NO se redibujó — se tomó la pose `festejo`
+  (ilustración del propio Diego) y se le compuso encima gorro de fiesta con
+  franjas, pompón, confeti y serpentinas (PIL, +30 px de lienzo arriba).
+  Enviada como PNG para su visto bueno; NO integrada aún a `MAURI` (espera
+  su aprobación o su propio dibujo).
+
 ## v5.87-filtros-vence-hoy (4-sep-2026) — el chip de filtros declara la coincidencia y deja de avisar tarde
 
 Diego dictó un PRD desde su rutina real de supervisión: él sabe qué FECHAS DE

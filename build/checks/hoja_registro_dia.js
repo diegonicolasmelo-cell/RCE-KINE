@@ -358,12 +358,16 @@ const SEMBRAR = () => {
     return {
       vtCorto: /VT AJUSTADO A TALLA/.test(t1),
       vtLargo: /VOLUMEN TIDIAL/.test(t1),
-      // Hoja fechada 11-08: HME etiqueta 10-08 (frec 2 ⇒ cambio 12-08, aún
-      // futuro) y HEPA 08-08 (frec 3 ⇒ cambio 11-08 = el día de la hoja: su
-      // madrugada YA pasó sin cambio ⇒ v5.60, Diego: la fecha SE CORRE —
-      // «cambiar HOY», no la fecha teórica). La regla base sigue etiqueta+frec.
-      cambioHME: /HME:\s*10-08[\s\S]{0,40}?cambio: 12-08/.test(tF),
-      cambioHEPA: /HEPA:\s*08-08[\s\S]{0,40}?cambiar HOY \(venció el 11-08\)/.test(tF),
+      // SEMÁNTICA v5.88 (Diego, 4-sep: «más simple, sin tanto rodeo»): el
+      // título declara «Vencen hoy» con las etiquetas que caducan (frec-1,
+      // como estadoDispositivos) y cada fecha lleva asterisco + la acción
+      // cuando coincide o quedó atrás. La fecha futura de cambio ya no se
+      // imprime. Hoja fechada 11-08: HME 10-08 (frec 2 ⇒ su cambio es ESTA
+      // noche, madrugada del 12) y HEPA/TC 08-08 (frec 3 ⇒ debió la noche
+      // del 10: atrasado, y sin fecha pasada como plan — regla v5.60b).
+      venceHoy: /Vencen hoy: HME 10-08 · Trachcare 09-08 · HEPA 09-08/.test(tF),
+      cambioHME: /HME:\s*\*10-08\s*\(Cambiar\)/.test(tF),
+      cambioHEPA: /HEPA:\s*\*08-08\s*\(Cambiar HOY — atrasado\)/.test(tF),
       nCambios: (pg1.innerHTML.match(/rk-cambio/g) || []).length,
       cabe, unaLinea, cabeGigante,
       // Las etiquetas de la carilla 2, con valor, tope y fecha.
@@ -376,8 +380,9 @@ const SEMBRAR = () => {
   });
   eq('★ «VT AJUSTADO A TALLA», abreviado', R12.vtCorto, true);
   eq('…y el texto largo se fue', R12.vtLargo, false);
-  eq('★ HME: etiqueta 10-08 → cambio 12-08 (frec 2)', R12.cambioHME, true);
-  eq('★ HEPA vencido: la fecha se corre — «cambiar HOY (venció el 11-08)»', R12.cambioHEPA, true);
+  eq('★ el título declara «Vencen hoy» con las etiquetas del libro', R12.venceHoy, true);
+  eq('★ HME etiqueta 10-08: coincide — *10-08 (Cambiar)', R12.cambioHME, true);
+  eq('★ HEPA 08-08 atrasado: acción sin fecha pasada — *08-08 (Cambiar HOY — atrasado)', R12.cambioHEPA, true);
   eq('los tres dispositivos traen su cambio', R12.nCambios, 3);
   eq('★ el nombre cabe en su celda', R12.cabe, true);
   eq('…en una sola línea', R12.unaLinea, true);
