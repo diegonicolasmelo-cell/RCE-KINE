@@ -72,7 +72,7 @@ const v2 = path.resolve(__dirname, '..', '..', 'v2');
   console.log('\n2 · Los equipos que SÍ llevan ciclo no se tocan (no regresión)');
   si('Vela sigue editable', H.vela.dis === false);
   si('Mekics sigue editable', H.mek.dis === false);
-  si('…y su chip sigue anunciando el ciclo', /Cambio|Cambiar|VENCIDO/.test(H.vela.chip));
+  si('…y su chip sigue anunciando el ciclo', /Al día|VENCE|VENCIDO/.test(H.vela.chip));
   si('sin ventilador asignado, el campo tampoco se apaga', H.sinEquipo.dis === false);
 
   console.log('\n3 · Cambiar de equipo vuelve a habilitarlo');

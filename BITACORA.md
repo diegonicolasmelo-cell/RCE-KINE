@@ -19,6 +19,37 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.87-filtros-vence-hoy (4-sep-2026) — el chip de filtros declara la coincidencia y deja de avisar tarde
+
+Diego dictó un PRD desde su rutina real de supervisión: él sabe qué FECHAS DE
+ETIQUETA caducan hoy (hoy 03 vence el HME del 02 y el Trach Care/HEPA del 01;
+lo nuevo se etiqueta 04, la madrugada) y recorre el libro buscando
+coincidencias. Pidió que el apartado de filtros del formulario hable así —
+«no me interesa con qué fecha debería quedar… se ha prestado para confusión»
+— y eligió la opción B del mockup (solo cambia la frase de cada chip).
+
+**Al programarla apareció un bug real**: la corrección del 10-ago (el cambio
+se ejecuta en la madrugada de `etiqueta+frec`, o sea el aviso sale con
+`frec-1` días cumplidos) alcanzó a estadoDispositivos, la entrega, la hoja de
+control de filtros y la Hoja UCI — pero `calcInsumosDias` (el chip del
+formulario) era un QUINTO consumidor que nadie contó: seguía con `d===dur` y
+anunciaba «Cambiar ESTA NOCHE» una noche tarde, contradiciendo al panel
+«Cambios de esta noche» de la misma pantalla. La guardia `disp_fecha.js`
+cementaba la cuenta vieja con sus asserts. Probable raíz de la confusión que
+Diego reportaba.
+
+- Chip nuevo: `Al día — le queda(n) N noche(s)` · `🏷️ VENCE HOY (etiqueta
+  dd-mm)` en `frec-1` · `🏷️ VENCIDO — cambiar hoy (etiqueta dd-mm, debió
+  anoche / hace N noches)` (sigue liderando con la acción, regla v5.60b).
+- La resta ya no usa `dias()` (tiene piso en 0): la noche que instala el
+  circuito etiqueta MAÑANA y el conteo debe partir de −1. Resta cruda con
+  mediodía Z, como `_flEstado`.
+- Guardias: `disp_fecha.js` re-escrita a la semántica corregida,
+  `dispositivos_reglas.js` y `hepa_fijo_y_orden_texto.js` alineadas.
+  **110 verdes, 0 rojas.**
+- Sin cambio de esquema ni de servidor: solo index. La entrega reemplaza a la
+  de la v5.86 si aún no se pegó (mismos 3 .gs + este index).
+
 ## ✅ EN PRODUCCIÓN: Versión 37, sello 5.65-coordinacion (20-ago-2026, 15:27)
 
 Misma implementación `AKfycbxMKE6…`. Verificada contra el `/exec` real

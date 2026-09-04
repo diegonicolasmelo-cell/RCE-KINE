@@ -257,8 +257,10 @@ eq('la Hoja UCI no muestra reloj de HME en turnos con humidificación activa',
 console.log('\n7 · Un vencido nunca anuncia una fecha del pasado');
 eq('★ la hoja diaria recibe la fecha de referencia y corre el vencido a HOY',
   /function _rkCambioTag\(c,k,fechaRef\)\{/.test(idx) && /cambiar HOY<\/b> \(venció el /.test(idx), true);
+// v5.87 (Diego, 4-sep-2026): el chip habla por coincidencia de etiqueta,
+// pero el vencido SIGUE liderando con la acción y sin fecha-plan del pasado.
 eq('el chip del formulario lidera con la acción',
-  idx.includes('VENCIDO — cambiar hoy (debió el ${cambio})'), true);
+  idx.includes('VENCIDO — cambiar hoy (etiqueta ${_ddmm(f)}'), true);
 eq('la entrega impresa también',
   idx.includes("VENCIDO — cambiar hoy${x.cambio?' (debió el '+x.cambio+')':''}"), true);
 eq('y el modal «Cambios de esta noche» también',

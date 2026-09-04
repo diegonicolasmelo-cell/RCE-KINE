@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.86-nota-synapse-cumple">
+<meta name="rce-version" content="5.87-filtros-vence-hoy">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4459,7 +4459,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.86-nota-synapse-cumple]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.87-filtros-vence-hoy]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -12243,8 +12243,9 @@ function _fechaEfTurno(fecha, turno){
 function _ddmm(iso){ const s=_isoDia(iso); return s?`${s.slice(8,10)}-${s.slice(5,7)}`:''; }
 function _sumDiasISO(iso, n){ const d=new Date(_isoDia(iso)+'T12:00:00'); d.setDate(d.getDate()+(n||0)); return d.toISOString().slice(0,10); }
 function calcInsumosDias(){
-  // Se mide contra la FECHA DEL TURNO (no la efectiva): la noche del 03 ES la
-  // noche de cambio de lo etiquetado el 01 (frec 2) — igual que el servidor.
+  // Se mide contra la FECHA DEL TURNO (no la efectiva): lo etiquetado el 01
+  // (frec 2) se cambia en la madrugada del 03, o sea en el turno noche cuya
+  // fecha es el 02 — igual que el servidor (estadoDispositivos, frec-1).
   const ref=_isoDia(v('gDate')||hoy());
   // HEPA fijo del equipo (PB/Avea): el chip no anuncia ciclo — el filtro es
   // del ventilador y se mantiene desde su instalación (Diego, 14-ago-2026).
@@ -12262,11 +12263,24 @@ function calcInsumosDias(){
     //  cuando el equipo NO es fijo, para volver a habilitarlo)
     if(!f){ e.textContent='—'; e.classList.add('disp-none'); return; }
     if(!dur){ e.textContent='No vence'; e.classList.add('disp-ok'); return; }
-    const d=dias(f,ref);                      // días desde la etiqueta (etiqueta = día 0)
-    const cambio=_ddmm(_sumDiasISO(f,dur));   // fecha EXACTA de cambio
-    if(d<dur){ e.textContent=`Cambio: ${cambio}${d===dur-1?' (mañana en la noche)':''}`; e.classList.add('disp-ok'); }
-    else if(d===dur){ e.textContent=`Cambiar ESTA NOCHE (${cambio})`; e.classList.add('disp-warn'); }
-    else { e.textContent=`VENCIDO — cambiar hoy (debió el ${cambio})`; e.classList.add('disp-bad'); }
+    // Resta SIN el piso de dias(): la noche del 31 ETIQUETA el 01 (fecha
+    // efectiva), así que en ese turno la etiqueta está «en el futuro» y el
+    // conteo de noches debe partir de -1, no de 0 (mismo criterio que la
+    // hoja de control de filtros, index _flEstado).
+    const d=Math.round((new Date(ref+'T12:00:00Z')-new Date(_isoDia(f)+'T12:00:00Z'))/864e5);
+    /* El cambio se EJECUTA en la madrugada de `etiqueta+dur`, o sea en el
+       turno noche cuando han pasado dur-1 días — la MISMA cuenta que
+       estadoDispositivos (svc_eventos.gs), la entrega, la hoja de control de
+       filtros y la Hoja UCI. 🪤 Hasta la 5.86 este chip usaba d===dur y
+       anunciaba una noche TARDE, contradiciendo al panel «Cambios de esta
+       noche» de la misma app: era el quinto consumidor que la corrección del
+       10-ago no alcanzó. Y la redacción es por COINCIDENCIA de etiqueta
+       (Diego, 4-sep-2026): él recorre el libro sabiendo qué fechas caducan
+       hoy — la fecha que debería llevar el filtro nuevo no le sirve. */
+    const rest=(dur-1)-d;                     // noches que faltan para el cambio
+    if(rest>0){ e.textContent=`Al día — le queda${rest>1?'n':''} ${rest} noche${rest>1?'s':''}`; e.classList.add('disp-ok'); }
+    else if(rest===0){ e.textContent=`🏷️ VENCE HOY (etiqueta ${_ddmm(f)})`; e.classList.add('disp-warn'); }
+    else { e.textContent=`🏷️ VENCIDO — cambiar hoy (etiqueta ${_ddmm(f)}, ${rest===-1?'debió anoche':`hace ${-rest} noches`})`; e.classList.add('disp-bad'); }
   });
   /* El HEPA de un PB/Avea no se cambia: es del EQUIPO y se mantiene desde su
      instalación (Diego, 14-ago-2026). Hasta la 5.73 el chip lo decía pero el

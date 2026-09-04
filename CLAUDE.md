@@ -312,10 +312,14 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.67-candado** (21-ago) — el ➕ exige sesión
-  de coordinación para corregir el pasado o un episodio cerrado; el turno de
-  hoy (incluida la noche en curso) sigue libre. **Sin cambio de esquema**.
-  Entrega contra `1bccc30` (la V38 real): **index + servicios**.
+- **Pendiente de publicar**: **v5.87-filtros-vence-hoy** (4-sep, rama
+  `filtros-vence-hoy`, que INCLUYE la v5.86-nota-synapse-cumple de la rama
+  `nota-timeline-synapse-cumpleanos`). La v5.86 **cambia esquema**
+  (KINESIOLOGOS.CUMPLE + CONFIG.SYNAPSE_URL) ⇒ `crearORepararEstructura()`;
+  la v5.87 es solo index. Si la v5.86 aún no se pegó, se pega TODO junto con
+  el index de la 5.87 (index + servicios + api + esquema); si ya se pegó,
+  solo el index. Lo anterior pendiente (v5.67-candado) quedó incluido en
+  entregas previas — confirmar contra el editor, nunca suponer.
 - **Flujo de ramas vigente (traspaso de Manuel)**: rama nueva por cambio
   salida de `develop` (nombre en español) → `git merge --no-ff -m` a
   `develop` (el `-m` NO es opcional: sin él el merge queda colgado a medias)
@@ -369,7 +373,14 @@ lista de cumpleaños.
   cumpleaños + avisos de versión; el «aviso de coordinación» escrito desde
   la pestaña 🔐 es un mini-agregado aparte, esperando si lo quiere ya).
 
-- 🏷️ **Filtros: declarar LO QUE VENCE HOY, no la fecha del filtro nuevo**
+- ✅ 🏷️ **Filtros: declarar LO QUE VENCE HOY — RESUELTO en la v5.87** (4-sep,
+  Diego eligió la opción B del mockup). Al programarla apareció que el chip
+  del formulario (`calcInsumosDias`) era un QUINTO consumidor que la
+  corrección del 10-ago no alcanzó: avisaba una noche TARDE (`d===dur` en vez
+  de `frec-1`), contradiciendo al panel «Cambios de esta noche» — probable
+  raíz de la confusión. Detalle en BITACORA v5.87; guardias `disp_fecha`,
+  `dispositivos_reglas` y `hepa_fijo_y_orden_texto` alineadas. Historia
+  original del pedido:
   (pedido de Diego, 4-sep-2026, con PRD dictado). Su rutina real: él sabe
   qué FECHAS DE ETIQUETA caducan hoy y recorre el libro buscando
   coincidencias — hoy 03-09 vence el HME etiquetado 02-09 (día 2) y el
