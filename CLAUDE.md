@@ -604,18 +604,18 @@ lista de cumpleaños.
   — su «>7 días» era el del destete. Detalle en BITACORA v5.93.
 
 - 🧠 **Brainstorm de terreno** — 9 puntos, en `BITACORA.md`. Resueltos el 1, 2,
-  3, 4, 5 y 7. **Abiertos: el 6** (MR850), **el 8** y **el 9**. El 5-sep Diego
-  no los recordaba y se le citaron textuales; quedó en revisarlos. OJO con el
+  3, 4, 5 y 7. **Abiertos: el 6** (MR850) **y el 8**; el 9 quedó CERRADO el
+  5-sep («déjalo como Manuel»: se mantiene el comportamiento al reabrir). OJO con el
   8: su comentario de voz («marcar un hito no cuenta en las estadísticas, es
   historia narrativa») describe cómo CREE que funciona — pero HOY los eventos
   y procedimientos manuales SÍ van a la estadística además del hito; el punto
   8 es justamente poder separarlos. Aclarado en el mensaje, esperando su
   decisión con los puntos a la vista.
-- 🔴 **Punto 9 · Al reabrir una evolución guardada se desmarcan los botones que
-  no se heredan** (reportado por Diego el 14-ago desde el uso). Es el mismo
-  comportamiento que Manuel decidió dejar como estaba el 9-ago; que lo reporte
-  ahora el dueño del proyecto **reabre esa decisión**. Candidato a PRD: hay que
-  decidir qué botones se conservan al reabrir, y eso es regla clínica.
+- ✅ **Punto 9 · CERRADO por Diego el 5-sep-2026: «déjalo como Manuel»** — se
+  mantiene la decisión de Manuel del 9-ago: al reabrir una evolución guardada
+  los botones no heredables se desmarcan y se re-marcan a mano si hace falta.
+  No se programa nada. (Si vuelve a molestar en el uso, se retoma como PRD
+  con la pregunta de qué botones conservar.)
 - **Prono / posicionamiento / HSA** — diseño conversado, falta que Diego mande
   el protocolo HSA de la unidad para poder programarlo.
 - **Stock de cánulas TQT** — aprobado en concepto, faltan inventario y umbrales.
