@@ -6,7 +6,7 @@
 
 
 // ════════════════════════════════════════════════════════════════════
-// ── dominio_calculos.gs ──
+// dominio_calculos.gs
 // ════════════════════════════════════════════════════════════════════
 
 /**
@@ -63,7 +63,7 @@ function calcularRespiratorio(evo) {
 
 
 // ════════════════════════════════════════════════════════════════════
-// ── dominio_validacion.gs ──
+// dominio_validacion.gs
 // ════════════════════════════════════════════════════════════════════
 
 /**
@@ -292,7 +292,7 @@ function _rango(errs, val, etiqueta, min, max, entero) {
 
 
 // ════════════════════════════════════════════════════════════════════
-// ── dominio_texto.gs ──
+// dominio_texto.gs
 // ════════════════════════════════════════════════════════════════════
 
 /**
@@ -895,6 +895,15 @@ function generarTextoEvolucion(d) {
 
   // 11. Planes y firma
   const planes = v('PLAN_PLANES'), nota = v('PLAN_NOTA_TURNO'), firma = v('PLAN_FIRMA_KINE');
+  // 📌 Anotaciones del turno (v5.97): hechos sin estadística, narrados antes
+  // de la Nota. Espejo EXACTO del cliente (genTexto) — mantener en paridad.
+  try {
+    (JSON.parse(String(v('ANOTACIONES_JSON') || '[]')) || []).forEach(function (a) {
+      const _t = String((a && a.t) || '').trim(); if (!_t) return;
+      const _h = String((a && a.h) || '').trim();
+      txt.push(_t + (_h ? ` a las ${_h}` : '') + '.');
+    });
+  } catch (e) { /* JSON malo: la evolución sale sin anotaciones */ }
   // Observaciones ANTES del plan (22-ago-2026, pedido de Manuel): el plan es lo
   // pendiente para el turno siguiente y cierra el texto. Espejo del cliente.
   if (nota)   txt.push(`Nota: ${nota}`);

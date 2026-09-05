@@ -165,7 +165,7 @@ ciegas):
   agregar un servicio).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 24 hojas (la 24ª es NOTIFICACIONES, el buzón — de SOLO agregar); **EVOLUCIONES tiene 386 columnas** y `testEsquema`
+- `esquema.gs`: 24 hojas (la 24ª es NOTIFICACIONES, el buzón — de SOLO agregar); **EVOLUCIONES tiene 394 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -312,8 +312,13 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.96-aviso-coordinacion** (5-sep, rama
-  `filtros-vence-hoy`, que INCLUYE v5.95…v5.86). La v5.96 agrega el aviso
+- **Pendiente de publicar**: **v5.97-anotaciones-turno** (5-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v5.96…v5.86). La v5.97 agrega las
+  «📌 Anotaciones del turno» (constancia sin estadística, narradas en la
+  evolución antes de la Nota; hora opcional) y **cambia esquema**
+  (EVOLUCIONES suma ANOTACIONES_JSON al final ⇒ 394 columnas) — el MISMO
+  crearORepararEstructura() de la tanda lo cubre; se pega también
+  **dominio** (cambió dominio_texto). La v5.96 agrega el aviso
   📣 de coordinación al buzón (index + servicios + api, sin esquema nuevo) y
   actualiza NOTA_PARA_MANUEL.md (Diego: «dile a Manuel que no programe nada
   hasta fusionar»). La v5.95 agrega el «NE»
@@ -604,8 +609,11 @@ lista de cumpleaños.
   — su «>7 días» era el del destete. Detalle en BITACORA v5.93.
 
 - 🧠 **Brainstorm de terreno** — 9 puntos, en `BITACORA.md`. Resueltos el 1, 2,
-  3, 4, 5 y 7. **Abiertos: el 6** (MR850) **y el 8**; el 9 quedó CERRADO el
-  5-sep («déjalo como Manuel»: se mantiene el comportamiento al reabrir). OJO con el
+  3, 4, 5 y 7. **Abierto: solo el 6** (MR850, acción de datos). El 9 quedó
+  CERRADO el 5-sep («déjalo como Manuel») y **el 8 quedó RESUELTO en la
+  v5.97**: Diego lo afinó a «información que no sume a estadística pero que
+  aparezca en la evolución» → bloque 📌 Anotaciones del turno (BITACORA
+  v5.97). El ➕ de Manuel queda intacto para anotar sin abrir el formulario. OJO con el
   8: su comentario de voz («marcar un hito no cuenta en las estadísticas, es
   historia narrativa») describe cómo CREE que funciona — pero HOY los eventos
   y procedimientos manuales SÍ van a la estadística además del hito; el punto

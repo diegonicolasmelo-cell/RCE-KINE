@@ -19,6 +19,42 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.97-anotaciones-turno (5-sep-2026) — el «Otro» de Manuel, pero dentro de la evolución
+
+Diego afinó su punto 8 del brainstorm hasta esto: «agregar información que no
+sume a estadística, como el Otro de Manuel, pero que aparezca en la evolución
+para anotarla — es complementario a lo de Manuel pero en el módulo
+evolución». Decisiones suyas: hora OPCIONAL y el bloque ENCIMA de la Nota.
+
+**Bloque «📌 Anotaciones del turno»** al final del formulario: texto + hora
+opcional + «Agregar», se apilan (máx 8, 200 caracteres c/u, con ✕ para
+quitar). Cada anotación:
+- **Se narra en la evolución** antes de la Nota: «EEG realizado a las
+  14:00.» / sin hora «Evaluado por neurología.» — cliente (`genTexto`, con
+  etiqueta de bloque `anotacion` alineada 1:1) y servidor (`dominio_texto`)
+  en paridad exacta.
+- **Deja su hito 📌** tipo `nota` (tipo auto: el re-guardado regenera, no
+  duplica).
+- **JAMÁS toca PROCEDIMIENTOS**: constancia pura, cero estadística.
+- No es heredable (como la Nota): cada turno anota lo suyo. El refresco del
+  texto respeta la regla madre v5.85 (nunca pisa texto tocado/congelado).
+
+Reparto final del punto 8: el ➕ de Manuel sigue para anotar SIN abrir el
+formulario (no entra al texto); esto para cuando ya estás evolucionando y
+quieres que salga en lo que se copia a BUDA/TrakCare.
+
+- **Cambia esquema**: `ANOTACIONES_JSON` al FINAL de EVOLUCIONES (⇒ 394
+  columnas; `testEsquema` y la guardia `neuro_dve_pic` actualizados) — el
+  mismo `crearORepararEstructura()` de la tanda lo cubre.
+- Guardia nueva **`anotaciones_turno.js`** (18 asserts: paridad de texto,
+  hitos, orden, bloques, no-PROCEDIMIENTOS). **114 verdes.**
+- Entrega: index + servicios + esquema + **dominio** (primera vez en la
+  tanda: cambió `dominio_texto.gs`).
+- 🪤 Del reinicio del contenedor: el clon nuevo venía SHALLOW y sin
+  node_modules — `tablero`/`guardado_viajes` fallaban por historia git
+  faltante, no por código. `git fetch --unshallow` + reinstalar
+  playwright-core los devolvió a verde.
+
 ## v5.96-aviso-coordinacion (5-sep-2026) — el 📣 de coordinación llega al buzón, y las decisiones de la ronda
 
 Diego cerró tres cosas por dictado:

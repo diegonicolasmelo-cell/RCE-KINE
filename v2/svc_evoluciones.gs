@@ -472,6 +472,21 @@ function guardarEvolucion(datos, ctx) {
         }
       }
 
+      /* 📌 ANOTACIONES DEL TURNO (v5.97, Diego 5-sep-2026): hechos SIN
+         estadística que sí se narran — el «Otro» del ➕ pero desde el
+         formulario. Cada una deja su hito tipo 'nota' (tipo auto: el
+         re-guardado los regenera, no los duplica) y JAMÁS toca
+         PROCEDIMIENTOS. */
+      try {
+        (JSON.parse(String(evo.ANOTACIONES_JSON || '[]')) || []).forEach(function (a) {
+          const _t = String((a && a.t) || '').trim(); if (!_t) return;
+          const _h = String((a && a.h) || '').trim();
+          hitosExtra.push({ tipo: 'nota',
+            texto: '📌 ' + (_t.length > 200 ? _t.slice(0, 199) + '…' : _t) + (_h ? ' (' + _h + ')' : ''),
+            autor: evo.PLAN_FIRMA_KINE, autorEmail: ctx.email || '' });
+        });
+      } catch (e) { /* un JSON malo no tumba el guardado */ }
+
       // Procedimientos (filas) + hitos automáticos
       // UN evento por ciclo prono→supino (ago-2026, Bloque C de Diego): la
       // SUPINACIÓN no entra a PROCEDIMIENTOS — la estadística contaría DOS
