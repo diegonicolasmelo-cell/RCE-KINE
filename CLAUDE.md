@@ -366,6 +366,29 @@ editor y avisa si cambió el esquema. Se le pasa **la referencia de lo que está
 publicado de verdad** (`e48dcf4` para la v5.50), no `main` — main puede ir
 adelante de producción, que es exactamente lo que pasó el 14-ago.
 
+### 🔍 Auditoría del guardado (5-sep-2026) — leerla antes de tocar el guardado o de hacer la estadística
+
+Diego pidió revisar cómo se guarda la información («lo guardado no se puede
+perder ni sobreescribir con otra acción que no sea guardar»; «no programes
+nada, solo audita»). El detalle vive en `BITACORA.md` (entrada «Auditoría del
+guardado») y el informe publicado en
+`https://claude.ai/code/artifact/9446deef-c67e-464f-9fc0-21b79e38bb5a`.
+Lo que hay que tener presente:
+
+- 🔴 **R1, el hallazgo grande**: rotar una cama SIN dar el alta pisa la
+  evolución del paciente anterior si el nuevo se guarda en el mismo turno
+  (`_otroEpisodio` salta la fusión pero la escritura cae en la misma fila —
+  svc_evoluciones.gs:104-106 vs :434). El arreglo (M1) NO está programado:
+  espera decisión de Diego.
+- 🔴 **R3**: el backup diario solo corre si `instalarTriggerBackup` se
+  ejecutó una vez — verificar el disparador es el pendiente nº1 antes de la
+  estadística de fin de mes.
+- 🟠 C1/C2: `coordCorregirFicha` y `guardarAsignacionTurno` escriben sin
+  `conLock`. Al tocar cualquiera de los dos, ponérselo (M2).
+- El checklist pre-estadística (①-⑦) está en el informe; incluye la
+  conciliación REM (faltan las cifras de papel de agosto) y publicar la
+  v5.97 antes de generar cifras.
+
 ### 🗺️ El plan de todo lo pendiente, en una página
 
 Al cerrar el 2-sep-2026 Diego pidió «un resumen con las cosas que hay que

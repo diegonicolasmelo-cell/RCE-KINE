@@ -19,6 +19,72 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## Auditoría del guardado (5-sep-2026) — «lo guardado no se puede perder ni sobreescribir»
+
+Diego cerró la tanda pidiendo una revisión completa de código y base de
+datos, con la regla que le importa clara: «lo guardado no se puede perder ni
+sobreescribir con otra acción que no sea guardar», porque a fin de mes se
+hace la estadística. Condición explícita: **«no programes nada, solo
+audita»** — así que aquí no hay ni una línea de código nueva, solo hallazgos.
+
+Informe completo publicado (tema claro):
+`https://claude.ai/code/artifact/9446deef-c67e-464f-9fc0-21b79e38bb5a`
+
+**Los tres hallazgos rojos:**
+
+- **R1 — La rotación de cama SIN dar el alta pisa la evolución del paciente
+  anterior.** La clave de la fila de EVOLUCIONES es cama+turno: si un
+  paciente sale y otro entra a la misma cama EN EL MISMO TURNO sin pasar por
+  «Dar alta», el guardado del nuevo cae en la MISMA fila. `_otroEpisodio`
+  (svc_evoluciones.gs:104-106) detecta el cambio de episodio y con razón NO
+  fusiona los datos viejos… pero la escritura (`repoUpsertEnFila`, :434)
+  sigue apuntando a esa fila y la sobreescribe entera. La evolución anterior
+  se pierde de forma permanente (solo queda el backup diario de Drive). El
+  flujo correcto —alta primero— no tiene el problema: el alta archiva y
+  limpia. Es exactamente la clase de pérdida que Diego describe.
+- **R2 — El punto 9 (reabrir desmarca botones)** borra al re-guardar los
+  seis botones no heredables (SOF/SNF/SNT/SET/asistencia de tos/inhalo) si
+  no se re-marcan a mano. Verificado con grep: NINGÚN consumidor de
+  estadística ni REM los lee — la pérdida es solo documental (texto de la
+  evolución). Diego ya lo decidió el 5-sep («déjalo como Manuel»): riesgo
+  aceptado, queda escrito para que no sorprenda.
+- **R3 — La superficie de pérdida más grande no es el código: es la planilla
+  abierta.** Con `AUTH_DEV_MODE=TRUE` y la hoja compartida, cualquiera con
+  acceso puede editar celdas a mano sin pasar por `_auditar`. Y el backup
+  diario de Drive (svc_backup.gs) SOLO corre si `instalarTriggerBackup` se
+  ejecutó una vez desde el editor — desde esta sesión no se puede verificar
+  si el disparador está instalado. **Verificarlo es el pendiente nº1 antes
+  de la estadística.**
+
+**Los cuatro ámbar (carreras sin candado):** C1 `coordCorregirFicha` escribe
+CAMAS_ESTADO sin `conLock` (una corrección de coordinación simultánea con un
+guardado puede perderse una a la otra); C2 `guardarAsignacionTurno` igual;
+C3 `notifVersionVista` escribe durante GET_BOOT sin candado (peor caso: aviso
+de versión duplicado, benigno); C4 no existe guardia que ate «campos que se
+neutralizan al reabrir» con «protecciones de la fusión» — si mañana un campo
+neutralizado SÍ alimenta estadística, nada avisa.
+
+**Lo que se verificó y protege BIEN** (para no arreglar lo sano): la fusión
+«lo presente pisa, lo ausente se hereda» con sus protecciones (trío KTM,
+ES_INGRESO, identidad jamás heredada); `_colsExigirCompleto` (una lectura
+parcial no se puede escribir de vuelta); borrado de tramos de abajo hacia
+arriba; regla de congelado del texto (v5.85); buzón de SOLO agregar;
+AUDIT_LOG en cada escritura del dispatcher; el guardado del cliente reintenta
+y al abrir un turno SIEMPRE pide `GET_EVO_TURNO` fresco (el caché de 60 s es
+solo para pintar la grilla).
+
+**Checklist pre-estadística** (①-⑦, en el informe): verificar el disparador
+del backup → `auditoriaCalidad()` → los cuatro simulacros de mantenimiento →
+conciliación REM contra el papel de agosto (faltan las cifras) → recordar que
+`obtenerStats` solo ve activos → contar filas KTM pre-20-ago sin estado →
+publicar la v5.97 ANTES de generar cifras.
+
+**Mejoras propuestas M1-M5, NINGUNA programada** (las decide Diego): M1
+arreglar R1 (que `_otroEpisodio` archive/aparte en vez de pisar) · M2
+candados en C1/C2 · M3 la guardia de C4 · M4 una `auditoriaIntegridad()` que
+busque huellas de R1 en los datos ya guardados · M5 medición retroactiva de
+cuántas veces pasó R1 desde el 1-ago.
+
 ## v5.97-anotaciones-turno (5-sep-2026) — el «Otro» de Manuel, pero dentro de la evolución
 
 Diego afinó su punto 8 del brainstorm hasta esto: «agregar información que no
