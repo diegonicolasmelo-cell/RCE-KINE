@@ -312,8 +312,11 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.95-fss-ne** (5-sep, rama
-  `filtros-vence-hoy`, que INCLUYE v5.94…v5.86). La v5.95 agrega el «NE»
+- **Pendiente de publicar**: **v5.96-aviso-coordinacion** (5-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v5.95…v5.86). La v5.96 agrega el aviso
+  📣 de coordinación al buzón (index + servicios + api, sin esquema nuevo) y
+  actualiza NOTA_PARA_MANUEL.md (Diego: «dile a Manuel que no programe nada
+  hasta fusionar»). La v5.95 agrega el «NE»
   del FSS-ICU según el manual oficial (hasta 2 se promedian, con más no hay
   total; guardia fss_ne — solo index). La v5.94 deriva el MOTIVO
   de las MRC/FSS que faltan desde la cooperación registrada (campana solo al
@@ -395,8 +398,10 @@ lista de cumpleaños.
   «se publicó vX.Y») con leído/no-leído POR NAVEGADOR (localStorage; no hay
   login, así que no puede ser por persona). Nada sale por correo. ✅ **Día uno
   APROBADO por Diego (4-sep)**: notas 📌 + cumpleaños + avisos de versión.
-  El «aviso de coordinación» desde la pestaña 🔐 queda para después (no lo
-  confirmó). **Siguiente paso: mockup de la barra con campana y buzón**
+  ✅ **El «aviso de coordinación» quedó PROGRAMADO en la v5.96** (5-sep,
+  «prográmalo»): tarjeta 📣 en el panel 🔐 con sesión activa → COORD_AVISO
+  (exige la sesión EN EL SERVIDOR, como toda COORD_*) → tipo `coord` en el
+  buzón con la firma; guardia 3d en buzon_campana. **Siguiente paso: mockup de la barra con campana y buzón**
   (enviado, esperando su OK visual antes de programar).
 
 - ✅ 🏷️ **Filtros: declarar LO QUE VENCE HOY — RESUELTO en la v5.87** (4-sep,
@@ -522,8 +527,10 @@ lista de cumpleaños.
   rota en silencio, lección TrakCare) y un comodín desconocido rechaza el
   guardado; vista previa obligatoria con paciente de ejemplo; nombre
   legible + caso obligatorio; la primera carga son las 13 de la unidad ya
-  redactadas. Solo queda abierta la SELECCIÓN (chips vs evolución tipo),
-  que él pidió dejar para el final.
+  redactadas. ✅ **La SELECCIÓN quedó decidida el 5-sep: BARRA DE CHIPS,
+  «por mientras»** («la selección de plantilla… como chips, por mientras, y
+  después lo vemos con posterioridad») — la tanda 3 quedó desbloqueada; la
+  evolución-tipo automática queda en el banco para revisarla después.
   · 📄 **Los dos PRD ya están escritos y esperan su visto bueno**:
   `PRD_PLANTILLAS_EVOLUCION.md` y `PRD_PVE_SUPERADA_SIN_EXTUBAR.md` (con
   historia, no-objetivos, flujo hoy→mañana, inventario de consumidores y
@@ -597,8 +604,13 @@ lista de cumpleaños.
   — su «>7 días» era el del destete. Detalle en BITACORA v5.93.
 
 - 🧠 **Brainstorm de terreno** — 9 puntos, en `BITACORA.md`. Resueltos el 1, 2,
-  3, 4, 5 y 7. **Abiertos: el 6** (MR850), **el 8** (separar «marca un hito» de
-  «cuenta en la estadística») y **el 9**.
+  3, 4, 5 y 7. **Abiertos: el 6** (MR850), **el 8** y **el 9**. El 5-sep Diego
+  no los recordaba y se le citaron textuales; quedó en revisarlos. OJO con el
+  8: su comentario de voz («marcar un hito no cuenta en las estadísticas, es
+  historia narrativa») describe cómo CREE que funciona — pero HOY los eventos
+  y procedimientos manuales SÍ van a la estadística además del hito; el punto
+  8 es justamente poder separarlos. Aclarado en el mensaje, esperando su
+  decisión con los puntos a la vista.
 - 🔴 **Punto 9 · Al reabrir una evolución guardada se desmarcan los botones que
   no se heredan** (reportado por Diego el 14-ago desde el uso). Es el mismo
   comportamiento que Manuel decidió dejar como estaba el 9-ago; que lo reporte

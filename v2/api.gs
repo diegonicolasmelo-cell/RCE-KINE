@@ -151,6 +151,8 @@ function api(accion, datos, token) {
       case 'COORD_CAMBIAR_CLAVE':return coordCambiarClave(datos);
       case 'COORD_RESTABLECER':  return coordRestablecerClave(datos);
       case 'COORD_FICHA':        return coordFicha(datos);
+      // 📣 Aviso al buzón del equipo — exige sesión DENTRO del servicio.
+      case 'COORD_AVISO':        return coordAviso(datos);
       case 'COORD_CORREGIR':     return coordCorregirFicha(datos);
 
       default:

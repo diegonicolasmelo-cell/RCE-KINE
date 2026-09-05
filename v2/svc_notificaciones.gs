@@ -198,3 +198,20 @@ function _weanClaseSrv(json, fechaRef) {
   const clase = (frustras >= 3 || d > 7) ? 'prolongado' : (frustras >= 1 ? 'dificil' : '');
   return clase ? { clase: clase, frustras: frustras, dias: d, primerPve: primer } : null;
 }
+
+/** 📣 Aviso de coordinación al buzón del equipo (v5.96; Diego, 5-sep-2026:
+ *  «el aviso de coordinación, el buzón: prográmalo»). El candado vive AQUÍ,
+ *  en el servidor: con AUTH_DEV_MODE=TRUE cualquiera con el enlace llega al
+ *  dispatcher, así que la acción vuelve a exigir la sesión de coordinación
+ *  (misma regla de todas las COORD_*). El registro es de solo agregar. */
+function coordAviso(datos) {
+  try {
+    const ses = coordExigirSesion(String((datos && datos.token) || ''));
+    if (!ses.ok) return err(ses.error || 'Publicar un aviso requiere sesión de coordinación: entra en la pestaña 🔐 y vuelve a intentarlo.', ERR.NO_AUTORIZADO);
+    const texto = String((datos && datos.texto) || '').trim();
+    if (!texto) return err('Escribe el aviso antes de publicarlo.', ERR.VALIDACION);
+    if (texto.length > 500) return err('El aviso es muy largo (máximo 500 caracteres).', ERR.VALIDACION);
+    const id = notifRegistrar({ tipo: 'coord', titulo: '📣 Aviso de coordinación', detalle: texto, autor: String(ses.firma || '') });
+    return id ? ok({ id: id }) : err('No se pudo registrar el aviso.', ERR.INTERNO);
+  } catch (e) { return err('coordAviso: ' + e.message, ERR.INTERNO, e); }
+}

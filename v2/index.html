@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.95-fss-ne">
+<meta name="rce-version" content="5.96-aviso-coordinacion">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -2187,6 +2187,18 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>
     </div>
     <div id="coordFicha" style="margin-top:14px;"></div>
+    <!-- 📣 Aviso al equipo (v5.96): se publica en el buzón 📨 de toda la
+         unidad, con la firma de la sesión. El candado real está en el
+         servidor (COORD_AVISO exige la sesión); esta tarjeta solo vive
+         dentro del panel que ya requiere haber entrado. -->
+    <div style="margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 15px;">
+      <div style="font-size:.8rem;font-weight:800;color:var(--pdark);margin-bottom:5px;">📣 Aviso al equipo</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;">Aparece en el buzón 📨 de toda la unidad con tu firma. Queda registrado para siempre: no se edita ni se borra.</div>
+      <textarea id="coordAvisoTxt" rows="2" maxlength="500" placeholder="ej.: El viernes cambia el protocolo de aspiración — leer la circular antes del turno" style="width:100%;border:1px solid var(--border);border-radius:7px;padding:7px 9px;font-size:.8rem;font-family:inherit;resize:vertical;"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:7px;">
+        <button class="dpset" onclick="coordAvisoEnviar()">📨 Publicar en el buzón</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -4500,7 +4512,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.95-fss-ne]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.96-aviso-coordinacion]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -7303,7 +7315,7 @@ function _ntfLeidas(){ try{ const a=JSON.parse(localStorage.getItem(NOTIF_LEIDAS
 function _ntfMarcar(ids){ try{ const st=new Set(_ntfLeidas()); ids.forEach(i=>st.add(i)); localStorage.setItem(NOTIF_LEIDAS_KEY, JSON.stringify([...st].slice(-400))); }catch(e){} }
 function _buzItems(){
   const it=(NOTIFS||[]).map(n=>({ id:String(n.ID_NOTIF||''), tipo:String(n.TIPO||''),
-    ic:(n.TIPO==='nota'?'📌':(n.TIPO==='version'?'🚀':'✉️')),
+    ic:({nota:'📌',version:'🚀',coord:'📣'}[n.TIPO]||'✉️'),
     tit:String(n.TITULO||''), det:String(n.DETALLE||''), cama:String(n.REF_CAMA||''),
     autor:String(n.AUTOR||''), ts:String(n.TS||'').slice(0,16) }));
   // El cumpleaños no se guarda en la hoja: se deriva del boot cada día.
@@ -13440,6 +13452,15 @@ function _coordEntrarCon(usuario, clave, ok, fail){
 // Pase lo que pase con la llamada se limpia el navegador —quedarse dentro por
 // un fallo de red sería peor—, pero si el servidor no confirmó NO se dice
 // «sesión cerrada»: se avisa que puede seguir abierta.
+function coordAvisoEnviar(){
+  const t=String(v('coordAvisoTxt')||'').trim();
+  if(!t){ toast('⚠️ Escribe el aviso antes de publicarlo'); return; }
+  gs('COORD_AVISO',{token:(typeof COORD_TK!=='undefined'&&COORD_TK)||'', texto:t}, ()=>{
+    $('coordAvisoTxt').value='';
+    toast('📨 Aviso publicado en el buzón del equipo');
+    gs('GET_NOTIFICACIONES',{}, d=>{ NOTIFS=(d&&d.notifs)||[]; ntfBadges(); }, ()=>{});
+  }, m=>{ toast('⚠️ '+(m||'No se pudo publicar el aviso')); });
+}
 function coordSalir(motivo){
   const tk=COORD_TK;
   const limpiar=()=>{

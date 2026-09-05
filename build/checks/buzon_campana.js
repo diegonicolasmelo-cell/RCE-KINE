@@ -140,6 +140,25 @@ si('★ el badge de la tarjeta lleva tooltip con el motivo',
   idxS.includes('pendiente: paciente cooperador sin medición registrada') &&
   idxS.includes('MRC/FSS no evaluables aún'));
 
+console.log('\n3d · El aviso de coordinación exige la sesión (v5.96)');
+// El candado vive en el servicio: sin sesión válida, nada entra al registro.
+global.coordExigirSesion = t => t === 'tok_ok'
+  ? { ok: true, firma: 'MCC' }
+  : { ok: false, error: 'Sesión de coordinación inválida o vencida.' };
+global.ERR.NO_AUTORIZADO = 'NA';
+const antesAviso = DB.NOTIFICACIONES.length;
+const sinSesion = coordAviso({ token: 'malo', texto: 'Cambio de protocolo el viernes' });
+si('★ sin sesión: rechaza y NO registra nada',
+  sinSesion && sinSesion.ok === false && DB.NOTIFICACIONES.length === antesAviso);
+const vacio = coordAviso({ token: 'tok_ok', texto: '   ' });
+si('con sesión pero sin texto: rechaza', vacio && vacio.ok === false && DB.NOTIFICACIONES.length === antesAviso);
+const conSesion = coordAviso({ token: 'tok_ok', texto: 'Cambio de protocolo el viernes — leer la circular' });
+const filaAviso = DB.NOTIFICACIONES[DB.NOTIFICACIONES.length - 1];
+si('★ con sesión: entra al buzón como tipo coord y con la FIRMA de quien avisa',
+  conSesion && conSesion.ok === true && filaAviso.TIPO === 'coord' &&
+  filaAviso.AUTOR === 'MCC' && /📣 Aviso de coordinación/.test(filaAviso.TITULO) &&
+  /Cambio de protocolo/.test(filaAviso.DETALLE));
+
 /* ── Parte 2 · cliente ── */
 const { chromium } = require('playwright-core');
 (async () => {

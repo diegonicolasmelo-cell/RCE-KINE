@@ -19,6 +19,30 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v5.96-aviso-coordinacion (5-sep-2026) — el 📣 de coordinación llega al buzón, y las decisiones de la ronda
+
+Diego cerró tres cosas por dictado:
+- **Plantillas: la selección es POR CHIPS, «por mientras»** — la evolución
+  tipo automática queda en el banco. La tanda 3 quedó desbloqueada.
+- **El aviso de coordinación: «prográmalo»** → esta versión.
+- **«Dile a Manuel que no programe nada»** → NOTA_PARA_MANUEL.md reescrita
+  (la tanda vive en `filtros-vence-hoy`; fusionar cuando esté probada) y
+  copiada a `develop` para que la vea sin buscarla.
+
+**Lo programado**: tarjeta «📣 Aviso al equipo» al final del panel 🔐 (solo
+visible con sesión) → acción `COORD_AVISO` que **exige la sesión de
+coordinación EN EL SERVIDOR** (regla de todas las COORD_*: con
+AUTH_DEV_MODE=TRUE esconder el botón no protege nada) → entra al buzón como
+tipo `coord` con la FIRMA de quien avisa, registro de solo agregar, máx 500
+caracteres. El buzón lo pinta con 📣. Guardia 3d en `buzon_campana.js`
+(rechazo sin sesión sin tocar el registro, rechazo sin texto, firma en la
+fila). **113 verdes.** index + servicios + api; sin esquema nuevo.
+
+Pendiente de la ronda: los puntos 8 y 9 del brainstorm se le citaron
+textuales (no los recordaba); OJO: su comentario del 8 describe cómo CREE
+que funciona (hito = solo narrativa), pero hoy los manuales SÍ suman a la
+estadística — el punto es separarlos. Espera su decisión.
+
 ## v5.95-fss-ne (5-sep-2026) — el «no evaluable» del FSS-ICU, según el manual
 
 Diego citó de memoria la regla del manual del FSS-ICU y pidió verificarla.
