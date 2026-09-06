@@ -33,6 +33,10 @@ navegador del hospital o de su casa.
   `background` explícito desde un token; si no, el fondo lo pone el visor y la
   página se ve oscura igual. Vale también para lo que se publique como
   documento (PRD, planes, resúmenes), no solo para los mockups de pantallas.
+- 🪤 **Emojis en la interfaz: nada posterior a 2019.** El Chrome del hospital
+  corre en Windows 10 y su fuente no trae los emojis nuevos: 🩻 (2021) salió
+  como un cuadrado (6-sep-2026). Para íconos nuevos, SVG propio o un emoji
+  viejo (🖼️, 📋; 🫁 NO: es de 2020).
 
 ### 🔴 CÓMO SE PUBLICA — regla vigente (14-ago-2026, la cambió Diego)
 
@@ -312,7 +316,10 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v6.02-plantillas-de-evolucion** (6-sep, rama
+- **Pegado y con `crearORepararEstructura()` corrido (Diego, 6-sep 04:24)**:
+  la v6.02 completa. **Pendiente de pegar: solo el index v6.03** (tooltip
+  acotado + ícono Rx en SVG). Lo que sigue describe la tanda entera:
+  **v6.02-plantillas-de-evolucion** (6-sep, rama
   `filtros-vence-hoy`, que INCLUYE v6.01…v5.86). 🔴 **Se pegan 8 archivos**
   (`node build/que_pegar.js origin/main`): index (cohete) + servicios + api +
   esquema + dominio + infra + repo + mantenimiento, y UN
