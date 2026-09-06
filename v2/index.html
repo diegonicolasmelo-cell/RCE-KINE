@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.07-gases-texto-de-drive">
+<meta name="rce-version" content="6.08-bandeja-de-gases">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1943,7 +1943,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="text" class="datein dashin" id="tblSearch" placeholder="🔍 Buscar paciente…" style="min-width:200px;" oninput="renderTabla()">
         <button class="dpset" id="btnDocs" onclick="docsAbrir()">📂 Documentos</button>
-        <button class="dpset" onclick="imprimirListaDelDia()" title="Una hoja con todos los pacientes presentes: cama, edad, nombre, RUT, días y fecha, con el diagnóstico y las escalas registradas — reemplaza el recorte diario de la lista">🖨️ Lista del día</button><button class="dpset" onclick="imprimirHojasDelDia()" title="La hoja de registro kinésico (carilla de Cuidados respiratorios) de cada paciente presente, con identificación, diagnóstico, volumen tidal ajustado a talla y fechas de filtros ya impresos">🖨️ Hojas del día</button><button class="dpset" onclick="gsaImportar()" title="Lee los PDF de gases que dejaste en la carpeta de Drive del laboratorio, los empareja por RUT y los deja en la hoja diaria y en la hoja impresa (solo el gas de la mañana; nada entra a la evolución)">🧪 Importar gases</button>
+        <button class="dpset" onclick="imprimirListaDelDia()" title="Una hoja con todos los pacientes presentes: cama, edad, nombre, RUT, días y fecha, con el diagnóstico y las escalas registradas — reemplaza el recorte diario de la lista">🖨️ Lista del día</button><button class="dpset" onclick="imprimirHojasDelDia()" title="La hoja de registro kinésico (carilla de Cuidados respiratorios) de cada paciente presente, con identificación, diagnóstico, volumen tidal ajustado a talla y fechas de filtros ya impresos">🖨️ Hojas del día</button><button class="dpset" onclick="gsaImportar()" title="Lee los PDF de gases que dejaste en la carpeta de Drive del laboratorio, los empareja por RUT y los deja en la hoja diaria y en la hoja impresa (solo el gas de la mañana; nada entra a la evolución)">🧪 Importar gases</button><button class="dpset" id="btnGsaBandeja" onclick="gsaBandejaAbrir()" title="Los gases que el sistema no pudo emparejar solo: los valores ya están guardados, aquí les pones la cama con dos clics">📥 Sin emparejar<span id="gsaBandejaN"></span></button>
         <button class="dpset" onclick="imprimirFiltros()" title="Hoja de la ronda: HME, HEPA y Trach Care de las 18 camas, con el ventilador de cada sala, los que toca cambiar y la casilla para marcarlo">🖨️ Filtros</button>
         <button class="dpset" onclick="cnAbrir()" title="Qué HME, HEPA y Trach Care se cambian en el turno noche de esta fecha, y cuáles quedaron atrasados">🌙 Cambios de esta noche</button>
         <button class="dpset" onclick="regCSV()">⬇️ CSV</button>
@@ -2383,6 +2383,17 @@ document.documentElement.setAttribute('data-piel', 'inst');
 </div>
 
 <!-- MODAL PLANTILLA: editor de una plantilla de evolución (tanda 3, sep-2026) -->
+<!-- 🧪 BANDEJA DE GASES SIN EMPAREJAR (6-sep-2026, pedido de Diego: «si la
+     info está en base de datos, ¿no es más fácil emparejar desde ahí?»).
+     Lo que la máquina no pudo emparejar con certeza lo cierra una persona:
+     los valores ya están guardados, aquí solo se les pone la cama. -->
+<div class="tlmodal" id="gsaMod" role="dialog" aria-modal="true" style="width:min(760px,94vw);max-height:92vh;">
+  <div class="phdr">
+    <div class="ptitle">🧪 Gases sin emparejar</div>
+    <button class="xbtn" onclick="gsaBandejaCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:12px 16px;overflow-y:auto;max-height:82vh;" id="gsaBandeja"></div>
+</div>
 <div class="tlmodal" id="plantMod" role="dialog" aria-modal="true" style="width:min(680px,94vw);max-height:92vh;">
   <div class="phdr">
     <div class="ptitle" id="plantModTit">✏️ Plantilla de evolución</div>
@@ -4675,7 +4686,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.07-gases-texto-de-drive]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.08-bandeja-de-gases]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5637,6 +5648,7 @@ function cerrarTodo(e) {
     if(typeof vmCerrarMod==='function'&&$('vmMod')?.classList.contains('on')) vmCerrarMod();
     if($('bnMod')?.classList.contains('on')) bnCerrar();
     if($('transAviso')?.classList.contains('on')) transAvisoCerrar();
+    if($('gsaMod')?.classList.contains('on')) gsaBandejaCerrar();
     ['mMrc','mFss','mCpax'].forEach(id=>{ const m=$(id); if(m) m.classList.remove('on'); });
   }
 }
@@ -5651,6 +5663,7 @@ document.addEventListener('keydown', e=>{
   if(typeof arcCerrar==='function'&&$('arcMod')?.classList.contains('on')){ arcCerrar(); return; }
   if($('vmMove')?.classList.contains('on')){ vmCerrarMove(); return; }
   if($('bnMod')?.classList.contains('on')){ bnCerrar(); return; }
+  if($('gsaMod')?.classList.contains('on')){ gsaBandejaCerrar(); return; }
   if(typeof vmCerrarMod==='function'&&$('vmMod')?.classList.contains('on')) vmCerrarMod();
 });
 
@@ -16274,7 +16287,108 @@ function gsaImportar(){
     toast(`🧪 Gases importados: ${n}`+(se?` · sin emparejar: ${se}`:'')+(rep?` · repetidos: ${rep}`:'')+(er?` · con error: ${er}`:''), 6000);
     if(se||er) console.warn('GSA sin emparejar / errores:', r.sinEmparejar, r.errores);
     gs('GET_NOTIFICACIONES',{}, d=>{ NOTIFS=(d&&d.notifs)||[]; ntfBadges(); }, ()=>{});
+    // Lo que no se pudo emparejar solo se muestra al tiro: la bandeja está a
+    // un clic y con los valores ya guardados (no hay que volver al PDF).
+    if(se) gsaBandejaAbrir(); else gsaBandejaContar();
   }).catch(e=>{ loading(false); toast('❌ No se pudo importar: '+e.message, 6000); });
+}
+
+/* ══ 📥 BANDEJA: emparejar a mano lo que la máquina no pudo ═══════════════
+   Diego (6-sep-2026): «si la info está en base de datos, ¿no es más fácil
+   emparejar desde ahí a la hoja de registro?». Exacto — y es lo que hace
+   esto. Ojo con lo que NO se puede: la fila sin emparejar NO guarda el RUT
+   ni el nombre (regla dura de privacidad), así que la app no tiene con qué
+   re-emparejar sola; lo que falta lo pone una persona. La única ayuda
+   automática es la SUGERENCIA por el nombre del archivo («gsa7.pdf» → cama
+   7), que se muestra para confirmar, nunca se aplica sola. */
+let _GSA_PEND=[];
+function gsaBandejaCerrar(){ $('gsaMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function gsaBandejaContar(){
+  gs('GET_GSA_PENDIENTES',{}, d=>{
+    const n=((d&&d.pendientes)||[]).length; const e=$('gsaBandejaN'); const b=$('btnGsaBandeja');
+    if(e) e.textContent=n?' ('+n+')':'';
+    if(b) b.style.fontWeight=n?'700':'';
+  }, ()=>{});
+}
+function gsaBandejaAbrir(){
+  $('gsaMod').classList.add('on'); $('ovl').classList.add('on');
+  $('gsaBandeja').innerHTML='<div style="padding:20px;text-align:center;color:#64748b;">Buscando…</div>';
+  gs('GET_GSA_PENDIENTES',{}, d=>{ _GSA_PEND=(d&&d.pendientes)||[]; _gsaBandejaPintar(); gsaBandejaContar(); },
+     e=>{ $('gsaBandeja').innerHTML='<div style="padding:20px;color:#b91c1c;">❌ '+_escSt(String(e))+'</div>'; });
+}
+/** Las camas ocupadas, para el selector: número · nombre (sin RUT). */
+function _gsaCamasOcupadas(){
+  return (DB||[]).filter(c=>c.OCUPADA===true||c.OCUPADA==='TRUE')
+    .slice().sort((a,b)=>(parseInt(a.ID_CAMA)||0)-(parseInt(b.ID_CAMA)||0));
+}
+const _GSA_ETIQ={PH:'pH',PACO2:'PaCO₂',PAO2:'PaO₂',HCO3:'HCO₃',EB:'EB',SATO2:'SatO₂',FIO2:'FiO₂',
+  PAFI:'PaFi',LACTATO:'Lactato',HB:'Hb',HTO:'Hto',PLAQUETAS:'Plaq',INR:'INR',K:'K⁺',NA:'Na⁺',
+  GLICEMIA:'Glic',PCR:'PCR'};
+function _gsaBandejaPintar(){
+  const cont=$('gsaBandeja');
+  if(!_GSA_PEND.length){
+    cont.innerHTML='<div style="padding:24px;text-align:center;color:#64748b;">✅ No hay gases sin emparejar.</div>';
+    return;
+  }
+  const camas=_gsaCamasOcupadas();
+  cont.innerHTML='<div style="font-size:.76rem;color:#64748b;margin-bottom:10px;line-height:1.5;">'+
+    'Estos exámenes ya están guardados con sus valores, pero el sistema no pudo saber de qué paciente son '+
+    '(por eso no aparecen en la hoja diaria). Dile de qué cama es cada uno y pasan al tiro.</div>'+
+    _GSA_PEND.map((g,i)=>{
+      const vals=Object.keys(g.valores||{}).map(k=>`${_GSA_ETIQ[k]||k} <b>${_escSt(String(g.valores[k]).replace('.',','))}</b>`).join(' · ');
+      const opts=camas.map(c=>`<option value="${_escSt(String(c.ID_CAMA))}"${String(c.ID_CAMA)===String(g.camaSugerida)?' selected':''}>Cama ${_escSt(String(c.ID_CAMA))} · ${_escSt(String(c.NOMBRE||''))}</option>`).join('');
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#fff;">
+        <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;">
+          <b style="font-size:.82rem;">📄 ${_escSt(g.ARCHIVO||'(sin nombre)')}</b>
+          ${g.PETICION?`<span style="font-size:.68rem;color:#64748b;">petición ${_escSt(g.PETICION)}</span>`:''}
+          ${g.camaSugerida?`<span style="font-size:.68rem;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;border-radius:20px;padding:1px 8px;">el nombre sugiere la cama ${_escSt(g.camaSugerida)}</span>`:''}
+        </div>
+        ${g.vacio
+          ? '<div style="font-size:.75rem;color:#b45309;margin-top:6px;">⚠️ De este PDF no se pudo leer ningún valor: asignarlo no sirve. Vuelve a apretar «🧪 Importar gases» — si sigue vacío, corre <b>gsaDiagnostico()</b> en el editor.</div>'
+          : `<div style="font-size:.74rem;color:#334155;margin-top:6px;line-height:1.6;">${vals}</div>`}
+        <div style="font-size:.68rem;color:#64748b;margin-top:6px;">Por qué no se emparejó: ${_escSt(g.DETALLE||'—')}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:9px;">
+          <div style="flex:1;min-width:190px;"><label class="plab">Es de la cama…</label>
+            <select id="gsaCama${i}" style="width:100%;">${opts||'<option value="">(no hay camas ocupadas)</option>'}</select></div>
+          <div><label class="plab">Fecha de la toma</label>
+            <input type="date" id="gsaFecha${i}" value="${_escSt(g.FECHA||'')}" style="width:150px;"></div>
+          <div><label class="plab">Hora</label>
+            <input type="time" id="gsaHora${i}" value="${_escSt(g.HORA||'')}" style="width:110px;"></div>
+          <button type="button" class="btn btn-p" style="width:auto;padding:7px 14px;" onclick="gsaBandejaAsignar(${i})">✅ Asignar</button>
+          <button type="button" class="btn" style="width:auto;padding:7px 12px;background:#e2e8f0;color:#334155;" onclick="gsaBandejaDescartar(${i})">🗂️ Descartar</button>
+        </div>
+      </div>`;
+    }).join('');
+}
+function gsaBandejaAsignar(i){
+  const g=_GSA_PEND[i]; if(!g) return;
+  const idCama=v('gsaCama'+i), fecha=v('gsaFecha'+i), hora=v('gsaHora'+i);
+  if(!idCama){ toast('Elige la cama.'); return; }
+  if(!fecha||!hora){ toast('Falta la fecha o la hora de la toma.'); return; }
+  const cama=(DB||[]).find(c=>String(c.ID_CAMA)===String(idCama));
+  uiConfirm({icono:'🧪', titulo:'Asignar el gas',
+    mensaje:`Este examen quedará en la <b>cama ${_escSt(idCama)}</b>${cama&&cama.NOMBRE?' · '+_escSt(cama.NOMBRE):''}, con fecha ${_escSt(fecha.split('-').reverse().join('-'))} ${_escSt(hora)}.<br>Aparecerá en la hoja diaria y en la hoja impresa de ese paciente.`,
+    confirmar:'Asignar'}).then(okk=>{
+    if(!okk) return;
+    loading(true,'Asignando…');
+    api('GSA_ASIGNAR',{idGsa:g.ID_GSA, idCama:idCama, fecha:fecha, hora:hora}).then(()=>{
+      loading(false); toast('✅ Gas asignado a la cama '+idCama);
+      _GSA_PEND.splice(i,1); _gsaBandejaPintar(); gsaBandejaContar();
+    }).catch(e=>{ loading(false); toast('❌ '+e.message, 6000); });
+  });
+}
+function gsaBandejaDescartar(i){
+  const g=_GSA_PEND[i]; if(!g) return;
+  uiConfirm({icono:'🗂️', titulo:'Descartar este informe', tono:'rojo',
+    mensaje:'No se borra: queda guardado como descartado, con tu firma, y el PDF se mueve a «copiados».<br>Úsalo cuando el examen <b>no es de un paciente de la unidad</b>.',
+    confirmar:'Descartar'}).then(okk=>{
+    if(!okk) return;
+    loading(true,'Descartando…');
+    api('GSA_DESCARTAR',{idGsa:g.ID_GSA}).then(()=>{
+      loading(false); toast('🗂️ Informe descartado');
+      _GSA_PEND.splice(i,1); _gsaBandejaPintar(); gsaBandejaContar();
+    }).catch(e=>{ loading(false); toast('❌ '+e.message, 6000); });
+  });
 }
 function imprimirHojasDelDia(){
   const ocupadas=(DB||[]).filter(c=>c.OCUPADA===true||c.OCUPADA==='TRUE')
