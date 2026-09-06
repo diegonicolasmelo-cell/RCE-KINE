@@ -19,6 +19,43 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.10-cultivo-en-la-hoja (6-sep-2026) — el último cultivo, en la última fila de observaciones
+
+Diego, viendo el mockup de las cuatro camas: **«agrégale además en
+observaciones, pero en la última, la fecha del último cultivo y su
+resultado»**.
+
+- `ultimosCultivos(pids)` en `svc_entrega.gs` (acción `GET_ULT_CULTIVOS`):
+  devuelve por episodio el último estudio microbiológico con su fecha, su
+  nombre y el resultado más reciente escrito en el episodio
+  (`EX_CULT_RESULTADO`). El catálogo de nombres que cuentan como cultivo
+  dejó de estar escrito dos veces: ahora es `_ENT_RE_CULTIVO`, que comparten
+  la entrega de turno y la hoja.
+- Va por **PATIENT_ID**, así que la cama que cambió de ocupante no hereda el
+  aspirado del anterior — la misma trampa que la entrega ya había pagado.
+- En la hoja ocupa la **última celda de observaciones** (la fila de PCT):
+  «Cultivo de secreciones 02-09: **Klebsiella pneumoniae BLEE**». **Sin
+  asterisco a propósito**: en esta hoja el asterisco significa «lo copió la
+  máquina desde el PDF del laboratorio», y el cultivo lo escribe la unidad.
+  Con la muestra tomada y el informe sin llegar dice «resultado pendiente»,
+  que también es información.
+- Sale **aunque no haya gas importado**: son datos distintos y viajan por
+  caminos distintos.
+- 🪤 La primera versión leía EVOLUCIONES con `repoLeerColumnas` y `columnas.js`
+  se puso roja con razón: **`svc_entrega.gs` también escribe**, y un objeto
+  parcial guardado por error dejaría en blanco las columnas que no se
+  pidieron. Se cambió a `repoLeerFiltrado` por PATIENT_ID: filas completas,
+  solo las de los pacientes presentes.
+- El viaje se suma a los dos que ya hacía la impresión (reintubaciones y
+  gases) y los tres van **en paralelo**: la hoja no espera tres veces. Si
+  alguno falla, su casilla sale en blanco y la hoja igual se imprime.
+- Guardia `gsa_importada` bloque 5: la celda, la negrita, el «pendiente», el
+  sin-asterisco, que sale sin gas y que sin cultivo queda en blanco.
+  Batería 119 verdes. Sin esquema; se pegan **index + servicios + api**.
+- 📌 **Anotado por Diego para lo siguiente**: «la parte posterior sale
+  apilada, no en el formato correcto» — la carilla 2 (neuromuscular) de la
+  hoja impresa. Sin diseñar todavía.
+
 ## v6.09-lab-en-observaciones (6-sep-2026) — la hoja impresa vuelve a sus filas; Hb, Hto y K⁺ a observaciones
 
 Diego, al confirmar el flujo de los gases: **«lo que me importa es GSA a la
