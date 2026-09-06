@@ -5989,8 +5989,9 @@ function coordAviso(datos) {
 
 /**
  * svc_plantillas.gs — Plantillas de evolución (tanda 3, sep-2026,
- * PRD_PLANTILLAS_EVOLUCION.md). Diego, 5-sep: «la selección de plantilla…
- * como chips, por mientras».
+ * PRD_PLANTILLAS_EVOLUCION.md). v6.04 (Diego, 6-sep): las plantillas nacen
+ * desde el cuadro de texto (📋 y ➕ al seleccionar); comodines por BLOQUE y
+ * por DATO; la evolución tipo se aplica sola.
  *
  * Una plantilla es DE UNA PERSONA (su firma) o DE LA UNIDAD, y tiene un CASO
  * que la ofrece (PVE fracasada, reintubación, TQT…). Vive en la hoja
@@ -6014,9 +6015,14 @@ const PLANT_CASOS_SRV = ['general', 'ingreso', 'vm_nc', 'destete_dif', 'pve_frus
   'post_ext', 'reintub', 'intub', 'autoext', 'tqt', 'destete_tqt', 'decan', 'prono', 'rehab', 'sin_nov'];
 
 // 🔴 MISMA LISTA que PLANT_COMODINES del cliente (la guardia las compara).
-const PLANT_COMODINES_SRV = ['encabezado', 'dia', 'fase', 'via_aerea', 'soporte', 'parametros', 'pve', 'pve_n',
-  'weaning_grado', 'secreciones', 'sedacion', 'hemodinamia', 'neurologico', 'reintubacion', 'extubacion',
-  'tqt', 'decanulacion', 'ktm', 'evaluaciones', 'posicion', 'gases', 'anotaciones', 'plan', 'nota'];
+const PLANT_COMODINES_SRV = ['encabezado', 'dia', 'fase', 'via_aerea', 'soporte', 'parametros',
+  'pve', 'pve_n', 'weaning_grado', 'secreciones', 'sedacion', 'hemodinamia', 'neurologico',
+  'reintubacion', 'extubacion', 'tqt', 'decanulacion', 'ktm', 'evaluaciones', 'posicion',
+  'gases', 'anotaciones', 'plan', 'nota', 'relato', 'dia_estadia', 'diagnostico', 'edad',
+  'via_aerea_tipo', 'tot_numero', 'tot_cm', 'tqt_numero', 'dias_vm', 'dias_va', 'soporte_tipo',
+  'modo', 'vt', 'fr', 'ti', 'pmax', 'pmedia', 'peep', 'ppl', 'autopeep', 'ps', 'fio2', 'spo2',
+  'pafi', 'sedacion_escalon', 'sas', 'sas_meta', 'gcs', 'cooperacion', 'hdn', 'dva',
+  'secr_tipo', 'secr_cantidad'];
 
 const PLANT_NOMBRE_MAX = 40, PLANT_CUERPO_MAX = 4000;
 
@@ -6100,7 +6106,7 @@ function plantillaGuardar(datos, ctx) {
       if (PLANT_CASOS_SRV.indexOf(caso) === -1) return err('Caso desconocido: ' + caso, ERR.VALIDACION);
       const malos = _plantComodinesMalos(cuerpo);
       if (malos) return err('Comodín desconocido: ' + malos + '. Los comodines se eligen del menú, no se escriben.', ERR.VALIDACION);
-      if (!/\{[a-z_]+\}/i.test(cuerpo)) return err('La plantilla no trae ningún comodín: sería el mismo texto para todos los pacientes.', ERR.VALIDACION);
+      if (!/\{[a-z0-9_]+\}/i.test(cuerpo)) return err('La plantilla no trae ningún comodín: sería el mismo texto para todos los pacientes.', ERR.VALIDACION);
 
       let firma = '';
       if (dueno === 'UNIDAD') {

@@ -317,8 +317,10 @@ si tiene más de unos días, se confirma antes de usarla.
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
 - **Pegado y con `crearORepararEstructura()` corrido (Diego, 6-sep 04:24)**:
-  la v6.02 completa. **Pendiente de pegar: solo el index v6.03** (tooltip
-  acotado + ícono Rx en SVG). Lo que sigue describe la tanda entera:
+  la v6.02 completa. **Pendiente de pegar: index + servicios de la v6.04**
+  (plantillas desde el cuadro de texto, sin barra de chips; interacción P-VM
+  que no se arrastra; incluye el tooltip acotado y el ícono Rx de la v6.03).
+  Sin cambio de esquema. Lo que sigue describe la tanda entera:
   **v6.02-plantillas-de-evolucion** (6-sep, rama
   `filtros-vence-hoy`, que INCLUYE v6.01…v5.86). 🔴 **Se pegan 8 archivos**
   (`node build/que_pegar.js origin/main`): index (cohete) + servicios + api +
@@ -428,8 +430,10 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   barra de eventos vive dentro de las plantillas (v6.02).
 - ✅ **Tanda 2** (6-sep): PVE superada sin extubar (v6.00) + gases importados
   (v6.01). Un solo `crearORepararEstructura()`.
-- ✅ **Tanda 3** (6-sep): plantillas de evolución en modo chips (v6.02). El
-  modo «evolución tipo + relato» sigue solo en `prototipo-plantillas-evolucion`.
+- ✅ **Tanda 3** (6-sep): plantillas de evolución. Los chips (v6.02) NO le
+  sirvieron a Diego; la **v6.04** las lleva al cuadro de texto (📋 abajo a la
+  derecha, ➕ verde al seleccionar frases, se aplica sola, comodines por dato
+  y por bloque). Detalle y trampas en BITACORA v6.04.
 - 🎂 **Cumpleaños: CERRADO** (Diego, 6-sep: «cierra los cumpleaños con
   Rodrigo pendiente»). La lista se escribe directo en `KINESIOLOGOS.CUMPLE`
   (dd-mm), nunca en el código; la fecha de Rodrigo queda en blanco hasta que

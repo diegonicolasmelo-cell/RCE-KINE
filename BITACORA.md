@@ -19,6 +19,57 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.04-plantillas-desde-el-texto (6-sep-2026) — los chips no sirvieron; la plantilla nace en el cuadro de texto
+
+Diego probó los chips de la v6.02 en el hospital: «se me hace enredado…
+me gustaría que fuera como TrakCare: en la esquina inferior derecha un
+símbolo de plantilla, e incluso al seleccionar texto, abajo a la izquierda,
+un signo más en un cuadro verde para crear nueva plantilla… que la
+plantilla se adapte a los comodines… será solo narrativa… una evolución
+tipo general y una personalizada anclada a la firma, además personalizadas
+según situación». Pidió feedback sin condescendencia y mockup
+(`https://claude.ai/code/artifact/04cd98f0-06cc-419f-9895-aa6f2d6f9a79`) y
+dijo **sí a las cuatro decisiones**:
+① comodines por DATO y por BLOQUE, los dos en el menú · ② la evolución tipo
+se aplica SOLA al abrir la cama · ③ las de la unidad las publica solo
+coordinación con clave · ④ las frases fijas se permiten, con aviso ámbar.
+
+**Lo que cambió** (index + servicios; la hoja PLANTILLAS_EVOLUCION, el
+servicio, la semilla y la guardia de la v6.02 se conservan):
+- **Se quitó la barra de chips.** Las dos puertas viven en el cuadro de texto:
+  el 📋 abajo a la derecha (con cuántas tengo y cuál está en uso) y el ➕
+  verde abajo a la izquierda, que aparece mientras hay texto seleccionado.
+- **Quién gana, sola**: mía·situación → mía·general → unidad·situación →
+  unidad·general → motor libre. La situación la detecta el formulario
+  (`_plantCaso`). Si la plantilla no nombra los eventos, el relato del turno
+  (PVE, extubación, reintubación, TQT, decanulación…) entra solo antes del
+  Plan (`{relato}`).
+- **Des-rellenar** (`_plantDesrellenar`): las frases seleccionadas se
+  convierten en plantilla. Por BLOQUE, una frase idéntica a una del motor se
+  vuelve el comodín de su bloque (la etiqueta `_B` de `_TXB_ULT`). Por DATO,
+  cada valor del formulario que aparece en la frase pasa a su comodín, con
+  su contexto (`pre`/`post` en `PLANT_DATOS`): «SAS 1 (meta 1)» → «SAS {sas}
+  (meta {sas_meta})». Lo escrito a mano queda FIJO y el editor lo lista en
+  ámbar («saldrá igual en todos tus pacientes»).
+- 31 comodines por dato nuevos (`PLANT_DATOS`: vt, fr, peep, fio2, spo2,
+  pafi, dias_vm, diagnostico, sas, gcs, hdn, secr_tipo…) + `{relato}`.
+  🪤 Un comodín por dato NO puede llamarse igual que uno por bloque:
+  `via_aerea` pisaba la frase del motor con «TOT» — se llama `via_aerea_tipo`.
+  🪤 `fio2`/`spo2` llevan dígito: las expresiones `[a-z_]+` los dejaban con
+  llaves; ahora `[a-z0-9_]+` en cliente, servidor y guardia.
+- Servidor: `PLANT_COMODINES_SRV` = la lista del cliente (56); por eso se
+  pega también **servicios**.
+
+**🪤 La interacción P-VM se arrastraba como asincrónica** (Diego, mismo
+mensaje: «en el texto queda mal»). Dos rendijas: el selector `sAdapt` vive
+dentro de `renderParams` y se re-dibujaba con el valor de la cama ANTERIOR
+abierta en la sesión; y `fillFormReplica` lo heredaba del turno anterior.
+Ahora parte vacío al abrir cualquier cama y NO se replica (solo `fillForm`,
+al reabrir un turno guardado, lo recupera). Guardia
+`interaccion_no_se_arrastra.js`.
+
+- Batería: **119 verdes**. Se pegan index + servicios; sin cambio de esquema.
+
 ## v6.03-tooltip-y-rx (6-sep-2026) — dos detalles vistos en el hospital
 
 Diego pegó la v6.02, corrió `crearORepararEstructura()` y probó en el

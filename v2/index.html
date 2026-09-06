@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.03-tooltip-y-rx">
+<meta name="rce-version" content="6.04-plantillas-desde-el-texto">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1407,6 +1407,20 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
 /* ── Plantillas de evolución (tanda 3, sep-2026, PRD_PLANTILLAS_EVOLUCION.md) ──
    Reusa .fase-chip: la plantilla SUGERIDA va en ámbar (.her) como la fase
    heredada, y queda firme (.on) cuando el colega la toca. */
+/* v6.04 — las dos puertas dentro del cuadro de texto (TrakCare-like, pedido de Diego 6-sep) */
+.rtxt-caja{position:relative;}
+.rtxt-caja textarea{padding-bottom:46px!important;}
+.plant-ico{position:absolute;right:10px;bottom:10px;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--n-purple);font-size:1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.plant-ico.on{background:var(--n-purple-bg);border-color:#d8c8f0;}
+.plant-ico:hover{filter:brightness(.96);}
+.plant-ico-n{position:absolute;top:-6px;right:-6px;background:var(--n-purple);color:#fff;font-size:.6rem;font-weight:800;border-radius:99px;padding:1px 5px;line-height:1.3;}
+.plant-enuso{position:absolute;right:52px;bottom:16px;font-size:.68rem;color:var(--muted);pointer-events:none;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plant-mas{position:absolute;left:10px;bottom:10px;display:inline-flex;align-items:center;gap:8px;background:#15803d;color:#fff;border:none;border-radius:8px;padding:7px 12px 7px 9px;font-size:.78rem;font-weight:700;cursor:pointer;box-shadow:0 2px 6px rgba(21,128,61,.35);z-index:3;}
+.plant-mas b{display:inline-flex;width:20px;height:20px;border-radius:5px;background:#fff;color:#15803d;align-items:center;justify-content:center;font-size:1rem;line-height:1;}
+.plant-pop{position:absolute;right:10px;bottom:50px;width:min(380px,96%);background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);font-size:.8rem;overflow:hidden;display:none;z-index:6;max-height:60vh;overflow-y:auto;}
+.plant-pop.on{display:block;}
+.plant-com-g{width:100%;font-size:.62rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:6px 0 2px;}
+#plantFijas{font-size:.74rem;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:6px 10px;margin-top:6px;}
 #plantMenu{position:fixed;z-index:10000;display:none;width:min(360px,92vw);background:var(--card);border:1px solid var(--border);border-radius:9px;box-shadow:0 6px 22px rgba(0,0,0,.16);overflow:hidden;font-size:.8rem;max-height:70vh;overflow-y:auto;}
 #plantMenu.on{display:block;}
 .pm-g{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--bg);padding:6px 12px;border-top:1px solid var(--border);}
@@ -2339,8 +2353,14 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <div style="min-width:180px;"><label class="plab">Se ofrece cuando…</label><select id="plantCaso" style="width:100%;"></select></div>
       <div style="min-width:150px;"><label class="plab">Dueño</label><select id="plantDueno" style="width:100%;"></select></div>
     </div>
+    <div id="plantModoRow" style="display:none;margin-bottom:8px;">
+      <label class="plab">Cómo se convierten tus frases</label>
+      <label style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;margin-right:12px;cursor:pointer;"><input type="radio" name="plantModo" value="dato" checked onchange="plantReconvertir()"> Por dato — mis palabras, los números del formulario</label>
+      <label style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem;cursor:pointer;"><input type="radio" name="plantModo" value="bloque" onchange="plantReconvertir()"> Por bloque — la frase completa del motor</label>
+    </div>
     <label class="plab">Cuerpo — lo que va entre llaves lo rellena el formulario; lo demás son tus palabras</label>
     <textarea id="plantCuerpo" rows="9"></textarea>
+    <div id="plantFijas" class="hidden"></div>
     <div style="font-size:.68rem;color:var(--muted);margin:6px 0 3px;">Comodines — un clic lo inserta donde está el cursor. Si ese turno no hay dato, la frase entera desaparece. No se escriben a mano: uno desconocido no se guarda.</div>
     <div id="plantComodines" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
     <label class="plab" style="margin-top:8px;">Vista previa con el paciente abierto</label>
@@ -2789,20 +2809,6 @@ document.documentElement.setAttribute('data-piel', 'inst');
             <div style="margin-top:2px;margin-bottom:6px;">
               <label style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;">Fase clínica</label>
               <div id="faseChips" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;"></div>
-            </div>
-            <!-- Plantillas de evolución (tanda 3, sep-2026, PRD_PLANTILLAS_EVOLUCION.md).
-                 Diego, 2-sep: «se podría elegir arriba eventos o plantillas, al estilo
-                 donde están las fases; con esto se preseleccionan las plantillas».
-                 Solo se muestra si hay catálogo cargado (renderPlantBar). -->
-            <div id="plantBar" class="hidden" style="margin-top:2px;margin-bottom:6px;">
-              <div id="plantEvRow" style="margin-bottom:6px;">
-                <label style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;">Evento del turno</label>
-                <div id="plantEvChips" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;"></div>
-              </div>
-              <div>
-                <label style="font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;">Plantilla <span id="plantHint" style="font-weight:600;text-transform:none;opacity:.8;"></span></label>
-                <div id="plantChips" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;align-items:center;"></div>
-              </div>
             </div>
             <!-- Checkboxes y campos de aislamiento/reingreso — ocultos, solo para compatibilidad JS/guardar -->
             <div style="display:none;">
@@ -4323,7 +4329,15 @@ document.documentElement.setAttribute('data-piel', 'inst');
             <button type="button" class="btn btn-c" style="width:auto;padding:8px 20px;font-size:.85rem;font-weight:800;" data-nodirty onclick="copiar()">📋 Copiar Texto</button>
           </div>
         </div>
-        <textarea id="rtxt" rows="20"></textarea>
+        <!-- Plantillas desde el texto (v6.04, Diego 6-sep): el 📋 abajo a la
+             derecha elige/crea; el ➕ verde aparece al seleccionar frases. -->
+        <div class="rtxt-caja">
+          <textarea id="rtxt" rows="20"></textarea>
+          <button type="button" class="plant-mas hidden" id="plantMas" data-nodirty onmousedown="event.preventDefault()" onclick="plantCrearDesdeSeleccion()" title="Crear una plantilla con las frases seleccionadas"><b>+</b> Crear plantilla con lo seleccionado</button>
+          <span class="plant-enuso" id="plantEnUso"></span>
+          <button type="button" class="plant-ico" id="plantIco" data-nodirty onclick="plantPopAbrir()" title="Plantillas de evolución">📋<span class="plant-ico-n hidden" id="plantIcoN"></span></button>
+          <div class="plant-pop" id="plantPop"></div>
+        </div>
       </div>
 
       <!-- ACCIONES — al FINAL del formulario y pegadas abajo (Diego,
@@ -4620,7 +4634,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.03-tooltip-y-rx]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.04-plantillas-desde-el-texto]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5884,6 +5898,10 @@ function fillForm(s) {
     const dec=$('cDecanOcurrio'); if(dec) dec.checked=false; hDecan();
     const dsv=$('cDesvinc'); if(dsv) dsv.checked=false; hDesvinc();
     const gsa=$('cGSA'); if(gsa) gsa.checked=false; hGSA();
+    // Interacción P-VM (Diego, 6-sep: «se arrastra como asincrónico»): el
+    // selector vive dentro de renderParams y se re-dibujaba con el valor de
+    // la cama ANTERIOR abierta en la misma sesión. Parte vacío siempre.
+    const _sa=$('sAdapt'); if(_sa){ _sa.value=''; hAdapt(); }
     const vfo=$('cVfon'); if(vfo) vfo.checked=false; hVfon();
     const tq=$('cTqtO'); if(tq) tq.checked=false; hide('dTqtDet');
     const rin=$('cReintubT'); if(rin) rin.checked=false; hide('dReintubDetT');
@@ -6082,7 +6100,11 @@ function fillFormReplica(s) {
   chk('cUPOT',s.UPOT_ACTIVO); if(s.UPOT_ACTIVO===true||s.UPOT_ACTIVO==='TRUE') show('dUpotDet');
   chk('cUPOTmed',s.UPOT_MEDIDAS);
   _ktmContraSel(s.KTM_CONTRA_RAZON);
-  const _adR=$('sAdapt'); if(_adR&&s.VENT_ADAPTADO!==undefined&&s.VENT_ADAPTADO!==''){ _adR.value=(s.VENT_ADAPTADO===true||s.VENT_ADAPTADO==='TRUE')?'Sincrónico':'Asincrónico'; hAdapt(); }
+  // La interacción P-VM NO se replica (Diego, 6-sep: «de un turno a otro se
+  // arrastra como asincrónico… en el texto queda mal»): es una observación de
+  // ESTE turno. Parte vacía y nada se afirma hasta que alguien elija; al
+  // reabrir un turno guardado (fillForm) sí vuelve lo que se registró.
+  { const _adR=$('sAdapt'); if(_adR){ _adR.value=''; hAdapt(); } }
 
   // Egreso: NO se replica (es específico del turno de egreso)
 
@@ -12461,34 +12483,35 @@ window.Turnos = (function () {
 
 // Pre-selecciona la firma del colega dueño de la cama (tablero de turno).
 // ═══════════════════════════════════════════════════════════════════════════
-//  PLANTILLAS DE EVOLUCIÓN (tanda 3, sep-2026 · PRD_PLANTILLAS_EVOLUCION.md)
-//  Diseño cerrado con Diego (2 y 5-sep): varias plantillas por caso y por
-//  colega; el catálogo se ordena por la cama (las del colega asignado → las
-//  de la unidad → las de otros); el caso del turno sale de lo que el
-//  formulario ya registra; el evento marcado manda sobre la fase. Selección
-//  «como chips, por mientras». Regla madre intacta (v5.85): una plantilla
-//  solo actúa sobre texto VIVO — lo tocado o guardado no se pisa.
-//  El catálogo llega en GET_BOOT (hoja PLANTILLAS_EVOLUCION). Sin filas, la
-//  barra no existe y el formulario se comporta exactamente como antes.
-//  Los comodines son los BLOQUES del motor (genTexto etiqueta cada frase con
-//  _B): la plantilla reordena y narra, el DATO sigue saliendo del único
-//  motor — y TEXTO_GENERADO viaja al servidor tal cual (paridad).
+//  PLANTILLAS DE EVOLUCIÓN — DESDE EL TEXTO (v6.04, sep-2026 ·
+//  PRD_PLANTILLAS_EVOLUCION.md). Diego, 6-sep, tras probar los chips: «se me
+//  hace enredado… me gustaría que fuera como TrakCare: un símbolo de plantilla
+//  en la esquina inferior derecha del cuadro de texto y, al seleccionar
+//  texto, un + verde para crear una nueva. Que la plantilla se adapte a los
+//  comodines; la plantilla será solo narrativa». Sus cuatro síes:
+//   ① comodines por DATO y por BLOQUE, los dos en el menú;
+//   ② la evolución tipo se aplica SOLA al abrir la cama (📋 dice cuál);
+//   ③ las de la UNIDAD las publica solo coordinación con clave;
+//   ④ las frases fijas se permiten, con aviso ámbar.
+//  Quién gana: mía·situación → mía·general → unidad·situación → unidad·general.
+//  Regla madre intacta (v5.85): una plantilla solo actúa sobre texto VIVO.
+//  Los comodines por bloque son las frases del motor (genTexto etiqueta cada
+//  frase con _B); los por dato son el valor pelado del formulario. En los dos
+//  casos el DATO sigue saliendo del formulario, y TEXTO_GENERADO viaja al
+//  servidor tal cual (paridad).
 // ═══════════════════════════════════════════════════════════════════════════
 let PLANT_CAT=[];        // {id, dueno:'MCC'|'UNIDAD', caso, nombre, cuerpo, activo}
-let _plantSel=null;      // id elegida a mano · '' = motor libre · null = sigue la sugerencia
-let _plantConf=false;    // el colega ya eligió (la sugerencia deja de moverla)
-let _plantEv='';         // evento elegido en la barra ('' = lo que registre el formulario)
-const PLANT_CASOS={ general:'Sin caso', ingreso:'Ingreso', vm_nc:'VM sin destete',
+let _plantSel=null;      // id elegida a mano en el 📋 · '' = motor libre · null = la que gana sola
+let _plantConf=false;    // el colega eligió (la resolución automática deja de moverla)
+const PLANT_CASOS={ general:'General', ingreso:'Ingreso', vm_nc:'VM sin destete',
   destete_dif:'Destete diferido', pve_frustra:'PVE fracasada', pve_sup_sin_ext:'PVE superada sin extubar',
   ext:'Extubación', post_ext:'Post-extubación', reintub:'Reintubación', intub:'Intubación',
   autoext:'Autoextubación', tqt:'TQT', destete_tqt:'Destete por TQT',
   decan:'Decanulación', prono:'Prono', rehab:'Rehabilitación', sin_nov:'Sin novedades' };
 const PLANT_ICONO={ ingreso:'📥', vm_nc:'🫁', destete_dif:'💨', pve_frustra:'🌀', pve_sup_sin_ext:'🌀', ext:'✂️',
   post_ext:'🌬️', reintub:'↩️', intub:'🫁', autoext:'⚠️', tqt:'🔧', destete_tqt:'🔧',
-  decan:'🔓', prono:'🙃', rehab:'🏃', sin_nov:'📄', general:'👤' };
-const PLANT_EVENTOS=[['','— según el formulario'],['intub','🫁 Intubación'],['reintub','↩️ Reintubación'],
-  ['ext','✂️ Extubación'],['autoext','⚠️ Autoextubación'],['tqt','🔧 TQT'],['decan','🔓 Decanulación'],['sin_nov','📄 Sin novedades']];
-// Comodín → bloques del motor que lo rellenan (ver TXB_NOMBRE).
+  decan:'🔓', prono:'🙃', rehab:'🏃', sin_nov:'📄', general:'📝' };
+// Comodín por BLOQUE → bloques del motor que lo rellenan (ver TXB_NOMBRE).
 const PLANT_ALIAS={ encabezado:['enc'], dia:['dia'], fase:['fase'], aislamiento:['aisl'],
   sedacion:['sed'], hemodinamia:['hdn'], neurologico:['neuro'], via_aerea:['va','vaCambio'],
   soporte:['sop'], parametros:['pvol','ppres','poxi','param'], intubacion:['intub'],
@@ -12496,27 +12519,63 @@ const PLANT_ALIAS={ encabezado:['enc'], dia:['dia'], fase:['fase'], aislamiento:
   desvinculacion:['desvinc'], vfon:['vfon'], pve:['pve'], gases:['gsa'], auscultacion:['ausc'],
   secreciones:['ktr'], cultivos:['cult'], inhalo:['inhalo'], posicion:['pos'], ktm:['ktm'],
   imt:['imt'], ems:['ems'], educacion:['edu'], evaluaciones:['evalf'], anotaciones:['anotacion'], plan:['plan'], nota:['nota'] };
+/* Comodines por DATO: el valor pelado del formulario, para escribirlo con
+   palabras propias («Vti {vt} ml»). `pre`/`post` son el contexto con el que
+   se reconoce ese número al crear una plantilla desde el texto (SAS 1 y meta
+   1 son el mismo «1»: sin el contexto se confundirían). */
+const _pn=id=>{ const x=parseFloat(String(v(id)||'').replace(',','.')); return isNaN(x)?'':String(x); };
+const PLANT_DATOS={
+  dia_estadia:{ v:()=>{ const n=parseInt(v('fDias'),10); const o=['','1er','2do','3er','4to','5to','6to','7mo','8vo','9no','10mo','11vo','12vo']; return isNaN(n)?'':(n>=1&&n<=12?o[n]:String(n)); }, pre:'(?:en|con) ', post:' día' },
+  diagnostico:{ v:()=>v('fDx')||'' },
+  edad:{ v:()=>v('fEdad')||'', post:' ?a' },
+  via_aerea_tipo:{ v:()=>v('fVA')||'', pre:'mediante ' },
+  tot_numero:{ v:()=>v('fTOTn')||'', pre:'N° ' },
+  tot_cm:{ v:()=>v('fTOTcm')||'', pre:'a ', post:' cm' },
+  tqt_numero:{ v:()=>v('fTQTn')||'', pre:'N° ' },
+  dias_vm:{ v:()=>v('fDiasVM')||'', pre:'\\(día ', post:' de VM' },
+  dias_va:{ v:()=>v('fDiasVA')||'', pre:'\\(día ', post:'\\)' },
+  soporte_tipo:{ v:()=>{ const s=v('fSop')||''; return s==='VM'?'VMI':s; }, pre:'En ' },
+  modo:{ v:()=>v('fModo')||'', pre:'modo ' },
+  vt:{ v:()=>_pn('r_vt'), pre:'Vti? ', post:' ml' }, fr:{ v:()=>_pn('r_fr'), pre:'FR ', post:' rpm' },
+  ti:{ v:()=>_pn('r_ti'), pre:'Ti ', post:' s' }, pmax:{ v:()=>_pn('r_pmax'), pre:'Pmax ' },
+  pmedia:{ v:()=>_pn('r_pmedia'), pre:'Pmedia ' }, peep:{ v:()=>_pn('r_peep'), pre:'PEEP ' },
+  ppl:{ v:()=>_pn('r_ppl'), pre:'Ppl ' }, autopeep:{ v:()=>_pn('r_autopeep'), pre:'AutoPEEP ' },
+  ps:{ v:()=>_pn('r_ps'), pre:'PS ' }, fio2:{ v:()=>_pn('r_fio2'), pre:'FiO2 ', post:'%' },
+  spo2:{ v:()=>_pn('r_spo2'), pre:'SpO2 ', post:'%' }, pafi:{ v:()=>_pn('r_pafi'), pre:'PaFiO2 ' },
+  sedacion_escalon:{ v:()=>{ const m=String(v('fSed')||'').match(/(\d+)/); return m?m[1]:''; }, pre:'escalón ' },
+  sas:{ v:()=>v('fSAS')||'', pre:'SAS ' }, sas_meta:{ v:()=>v('fSASmeta')||'', pre:'meta ' },
+  gcs:{ v:()=>{ const t=$('lblGCS')?.textContent||''; return t==='?'?'':t; }, pre:'GCS ' },
+  cooperacion:{ v:()=>v('fCoop')||'' },
+  hdn:{ v:()=>v('fHEst')||'', pre:'HDN ' }, dva:{ v:()=>v('fDVA')||'' },
+  secr_tipo:{ v:()=>String(v('fSecrCar')||'').toLowerCase(), pre:'Secreciones ' },
+  secr_cantidad:{ v:()=>({'-':'nula','+':'escasa','++':'moderada','+++':'abundante'}[v('fSecrQty')]||''), pre:'en ', post:' cantidad' },
+};
 // 🔴 MISMA LISTA que PLANT_COMODINES_SRV (svc_plantillas.gs); la guardia las compara.
 const PLANT_COMODINES=['encabezado','dia','fase','via_aerea','soporte','parametros','pve','pve_n',
   'weaning_grado','secreciones','sedacion','hemodinamia','neurologico','reintubacion','extubacion',
-  'tqt','decanulacion','ktm','evaluaciones','posicion','gases','anotaciones','plan','nota'];
+  'tqt','decanulacion','ktm','evaluaciones','posicion','gases','anotaciones','plan','nota','relato',
+  'dia_estadia','diagnostico','edad','via_aerea_tipo','tot_numero','tot_cm','tqt_numero','dias_vm','dias_va','soporte_tipo','modo',
+  'vt','fr','ti','pmax','pmedia','peep','ppl','autopeep','ps','fio2','spo2','pafi',
+  'sedacion_escalon','sas','sas_meta','gcs','cooperacion','hdn','dva','secr_tipo','secr_cantidad'];
+const PLANT_COM_BLOQUE=['encabezado','dia','fase','via_aerea','soporte','parametros','pve','pve_n','weaning_grado','secreciones',
+  'sedacion','hemodinamia','neurologico','reintubacion','extubacion','tqt','decanulacion','ktm','evaluaciones','posicion','gases','anotaciones','relato','plan','nota'];
+const PLANT_COM_EVENTO=/\{(relato|pve|extubacion|reintubacion|intubacion|tqt|decanulacion|desvinculacion)\}/i;
 
 function _plantIcono(caso){ return PLANT_ICONO[caso]||'📋'; }
 function _plantFirma(){ return v('fFirma') || (window.Turnos ? (Turnos.firmaDeCama(v('cBed'))||'') : ''); }
 function _camaPanel(){ return ((typeof DB!=='undefined'&&DB)||[]).find(c=>String(c.ID_CAMA)===String(v('cBed')))||{}; }
 
-/* El CASO del turno: lo que el formulario ya registra. El evento elegido en la
-   barra manda sobre todo; después, lo que pasó pesa más que la etapa. No mira
-   la fase clínica salvo para Rehabilitación: Diego avisó que hay colegas que
-   no la actualizan, y una sugerencia colgada de un campo que nadie toca miente. */
+/* La SITUACIÓN del turno: lo que el formulario ya registra. Lo que pasó pesa
+   más que la etapa; la fase clínica solo se mira para Rehabilitación (Diego
+   avisó que hay colegas que no la actualizan). */
 function _plantCaso(){
-  if(_plantEv) return _plantEv;
   const pve=v('fPVEval'), res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
   if(typeof _extReintub==='function' && _extReintub()) return 'reintub';
   if($('cTqtO')?.checked) return 'tqt';
   if($('cDecanOcurrio')?.checked) return 'decan';
   if(typeof _pveSupSinExt==='function' && _pveSupSinExt()) return 'pve_sup_sin_ext';
   if(typeof _extOcurrio==='function' && _extOcurrio()) return ((typeof _extTipo==='function'&&_extTipo()==='autoextubacion')?'autoext':'ext');
+  if($('cIntubO')?.checked) return 'intub';
   if(pve==='si' && res==='frustra') return 'pve_frustra';
   if(pve==='nc') return 'vm_nc';
   if(pve==='no' && !$('cExtSinPve')?.checked && v('fPveSCraz')) return 'destete_dif';
@@ -12526,32 +12585,30 @@ function _plantCaso(){
   if(Array.from(FASES_SEL||[]).some(f=>/rehabilit/i.test(f))) return 'rehab';
   return 'general';
 }
-/* Tres estantes, siempre en este orden (Diego, 2-sep): las del colega de la
-   cama, las de la unidad, las de otros colegas al final. */
 function _plantCatalogo(){
   const f=_plantFirma();
   const act=PLANT_CAT.filter(p=>p && p.activo!==false);
   return { firma:f, mias:act.filter(p=>p.dueno===f), unidad:act.filter(p=>p.dueno==='UNIDAD'),
            otros:act.filter(p=>p.dueno!==f && p.dueno!=='UNIDAD') };
 }
-/* La sugerida: la del colega para el caso → la de la unidad para el caso → la
-   «general» del colega → la general de la unidad → nada (motor libre). Las de
-   OTROS colegas nunca se sugieren solas: se ofrecen en el catálogo. */
-function _plantSugerida(){
+/* Quién gana (decisión ②): mía·situación → mía·general → unidad·situación →
+   unidad·general → nada (motor libre). Las de otros colegas se ofrecen en el
+   📋, nunca se aplican solas. */
+function _plantGanadora(){
   const c=_plantCatalogo(), caso=_plantCaso();
   const busca=(l,k)=>l.find(p=>p.caso===k)||null;
-  return busca(c.mias,caso)||busca(c.unidad,caso)||busca(c.mias,'general')||busca(c.unidad,'general')||null;
+  return busca(c.mias,caso)||busca(c.mias,'general')||busca(c.unidad,caso)||busca(c.unidad,'general')||null;
 }
 function _plantActiva(){
   if(!PLANT_CAT.length || _plantSel==='') return null;
   if(_plantSel) return PLANT_CAT.find(p=>p.id===_plantSel)||null;
-  return _plantSugerida();
+  return _plantGanadora();
 }
-function _plantReset(){ _plantSel=null; _plantConf=false; _plantEv=''; plantMenuCerrar(); }
+function _plantReset(){ _plantSel=null; _plantConf=false; plantPopCerrar(); const m=$('plantMas'); if(m) m.classList.add('hidden'); }
 
-/* Los DATOS: cada comodín se rellena con las frases que el motor produjo para
-   sus bloques. Se calculan sobre genTexto() recién corrido, así _TXB_ULT
-   queda alineado con TEXTO_AUTO (el motor), que es lo que viaja al servidor. */
+/* Los DATOS: por bloque, las frases que el motor produjo (sobre genTexto()
+   recién corrido, así _TXB_ULT queda alineado con TEXTO_AUTO); por dato, el
+   valor del formulario. */
 function _plantDatos(){
   const motor=genTexto(); const tags=(window._TXB_ULT||[]).slice();
   const porBloque={};
@@ -12560,8 +12617,10 @@ function _plantDatos(){
   Object.keys(PLANT_ALIAS).forEach(a=>{ D[a]=PLANT_ALIAS[a].map(k=>(porBloque[k]||[]).join(' ')).filter(Boolean).join(' '); });
   Object.keys(porBloque).forEach(k=>{ if(D[k]===undefined) D[k]=porBloque[k].join(' '); });
   D.plan=(D.plan||'').replace(/^Plan:\s*/i,''); D.nota=(D.nota||'').replace(/^Nota:\s*/i,'');
-  // Derivados del episodio: grado del destete (_weanClase, que antes solo
-  // pintaba la tarjeta) y número de PVE del episodio.
+  Object.keys(PLANT_DATOS).forEach(k=>{ try{ D[k]=String(PLANT_DATOS[k].v()||''); }catch(e){ D[k]=''; } });
+  // El relato: lo que pasó este turno (eventos con hora), para meterlo dentro
+  // de la evolución tipo aunque la plantilla no lo nombre.
+  D.relato=['intub','ext','reintub','tqt','decan','desvinc','pve'].map(k=>(porBloque[k]||[]).join(' ')).filter(Boolean).join(' ');
   const cama=_camaPanel();
   const w=(typeof _weanClase==='function')?_weanClase(cama.WEAN_PVE_JSON,v('gDate')||hoy()):null;
   D.weaning_grado = !w ? '' : (w.clase==='prolongado'
@@ -12573,23 +12632,29 @@ function _plantDatos(){
   return D;
 }
 /* Rellenar: una frase cuyos comodines quedaron TODOS vacíos se va entera (sin
-   huecos, sin «undefined» — el no-objetivo que salió de las fotos del
-   TrakCare). La puntuación se limpia y cada frase parte con mayúscula. */
+   huecos, sin «undefined»). La puntuación se limpia y cada frase parte con
+   mayúscula. Una frase SIN comodines (fija) sale tal cual — decisión ④. */
 function _plantRender(cuerpo){ return _plantRellenar(cuerpo, _plantDatos()); }
 function _plantRellenar(cuerpo, D){
   const out=[];
   String(cuerpo||'').split('\n').forEach(linea=>{
     let hubo=0, llenos=0;
-    let t=linea.replace(/\{([a-z_]+)\}/gi,(m,k)=>{ hubo++; const val=D[k.toLowerCase()]||''; if(val) llenos++; return val; });
+    let t=linea.replace(/\{([a-z0-9_]+)\}/gi,(m,k)=>{ hubo++; const val=D[k.toLowerCase()]||''; if(val) llenos++; return val; });
     if(hubo && !llenos) return;
     t=t.replace(/\s+([,.;:])/g,'$1').replace(/[,;:]\s*([,;:.])/g,'$1').replace(/\(\s*\)/g,'')
        .replace(/\.\s*\./g,'.').replace(/\s{2,}/g,' ').replace(/^[\s,;:.]+|[\s,;:]+$/g,'');
     if(!t) return;
     out.push(t.charAt(0).toUpperCase()+t.slice(1));
   });
+  // El relato del turno entra solo si la plantilla no lo nombra (ni a sus partes):
+  // justo antes del Plan, que es donde se lee natural.
+  if(D.relato && !PLANT_COM_EVENTO.test(String(cuerpo||''))){
+    const i=out.findIndex(l=>/^Plan:/i.test(l));
+    if(i<0) out.push(D.relato); else out.splice(i,0,D.relato);
+  }
   return out.join('\n');
 }
-/* Lo que va a la pantalla: la plantilla activa rellenada, o el motor libre. */
+/* Lo que va a la pantalla: la plantilla que gana, rellenada; o el motor libre. */
 function _textoSalida(){
   const p=_plantActiva();
   if(!p || !String(p.cuerpo||'').trim()) return genTexto();
@@ -12608,85 +12673,136 @@ function _plantAplicar(){
   const ra=$('rarea');
   if(ra && !ra.classList.contains('hidden')) pintar(); else renderPlantBar();
 }
-function plantElegir(id){ _plantSel=id; _plantConf=true; plantMenuCerrar(); _plantAplicar(); }
-function plantEvento(k){ _plantEv=k; _plantSel=null; _plantConf=false; _plantAplicar(); }
+function plantElegir(id){ _plantSel=id; _plantConf=true; plantPopCerrar(); _plantAplicar(); }
 
+/* El 📋 de la esquina: pinta cuántas plantillas tengo y cuál está en uso.
+   (Conserva el nombre renderPlantBar: es lo que llaman el editor de texto y
+   el refresco en vivo desde antes.) */
 function renderPlantBar(){
-  const bar=$('plantBar'); if(!bar) return;
-  const hay=PLANT_CAT.length>0;
-  bar.classList.toggle('hidden', !hay);
-  if(!hay) return;
-  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-  $('plantEvChips').innerHTML=PLANT_EVENTOS.map(([k,l])=>
-    `<button type="button" class="fase-chip${_plantEv===k?' on':''}" data-nodirty onclick="plantEvento('${k}')">${l}</button>`).join('');
-  const sug=_plantSugerida(), act=_plantActiva(), cat=_plantCatalogo(), caso=_plantCaso();
-  const chips=[];
-  if(act){
-    const esSug=!_plantConf && sug && act.id===sug.id;
-    const ajena=act.dueno!==cat.firma && act.dueno!=='UNIDAD';
-    chips.push(`<button type="button" class="fase-chip ${esSug?'her':'on'}" data-nodirty onclick="plantElegir('${esc(act.id)}')" title="${esSug?'Sugerida por el turno — tócala para dejarla firme':'Plantilla en uso'}">${_plantIcono(act.caso)} ${esc(act.nombre)}${ajena?' · '+esc(act.dueno):(act.dueno==='UNIDAD'?' · unidad':'')}${esSug?' — sugerida':''}</button>`);
-  } else {
-    chips.push(`<button type="button" class="fase-chip on" data-nodirty onclick="plantElegir('')">📄 Motor libre</button>`);
-  }
-  chips.push(`<button type="button" class="fase-chip" data-nodirty onclick="plantMenuAbrir(this)" title="Todas las plantillas, ordenadas para esta cama">📚 Catálogo ▾</button>`);
-  if(act) chips.push(`<button type="button" class="fase-chip" data-nodirty onclick="plantElegir('')" title="Volver al texto del motor, sin plantilla">📄 Motor libre</button>`);
-  chips.push(`<button type="button" class="fase-chip fase-chip-add" data-nodirty onclick="plantEditar('${esc(act?act.id:'')}')" title="Editar esta plantilla o crear una nueva">✏️</button>`);
-  $('plantChips').innerHTML=chips.join('');
-  const hint=$('plantHint'); if(hint) hint.textContent = caso==='general' ? '' : ('· caso del turno: '+(PLANT_CASOS[caso]||caso));
+  const ico=$('plantIco'); if(!ico) return;
+  const c=_plantCatalogo(), act=_plantActiva();
+  const n=$('plantIcoN'); if(n){ n.textContent=String(c.mias.length||''); n.classList.toggle('hidden', !c.mias.length); }
+  ico.title = act ? ('Plantilla en uso: '+act.nombre+(act.dueno==='UNIDAD'?' (unidad)':' (mía)')+' · clic para cambiar o crear') : 'Sin plantilla (motor libre) · clic para elegir o crear';
+  ico.classList.toggle('on', !!act);
+  const et=$('plantEnUso'); if(et) et.textContent = act ? (_plantIcono(act.caso)+' '+act.nombre+(act.dueno==='UNIDAD'?' · unidad':' · mía')) : '';
 }
-
-/* Catálogo desplegable: tres estantes, en el orden de siempre, y la puerta a
-   «Mis plantillas». */
-function plantMenuAbrir(btn){
-  let m=$('plantMenu'); if(!m){ m=document.createElement('div'); m.id='plantMenu'; document.body.appendChild(m); }
-  const c=_plantCatalogo(), sug=_plantSugerida(), act=_plantActiva();
+/* El menú del 📋: en uso · mías · unidad · otros · motor libre · editar · mis plantillas. */
+function plantPopAbrir(){
+  const m=$('plantPop'); if(!m) return;
+  if(m.classList.contains('on')){ plantPopCerrar(); return; }
+  const c=_plantCatalogo(), act=_plantActiva(), gana=_plantGanadora(), caso=_plantCaso();
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-  const grupo=(tit,lista,quien)=>!lista.length ? '' : `<div class="pm-g">${tit}</div>`+lista.map(p=>
-    `<div class="pm-it${act&&act.id===p.id?' sel':''}" onclick="plantElegir('${esc(p.id)}')">${_plantIcono(p.caso)} ${esc(p.nombre)}<span class="pm-q">${(sug&&sug.id===p.id)?'sugerida por el turno':esc(quien||p.dueno)}</span></div>`).join('');
-  m.innerHTML = grupo(`De ${esc(c.firma||'—')} · el colega de esta cama`, c.mias, c.firma)
+  const it=(p,quien)=>`<div class="pm-it${act&&act.id===p.id?' sel':''}" onclick="plantElegir('${esc(p.id)}')">${_plantIcono(p.caso)} ${esc(p.nombre)}<span class="pm-q">${(gana&&gana.id===p.id&&!_plantConf)?'se aplicó sola':esc(quien||p.dueno)}</span></div>`;
+  const grupo=(tit,l,quien)=>l.length?`<div class="pm-g">${tit}</div>`+l.map(p=>it(p,quien)).join(''):'';
+  m.innerHTML = `<div class="pm-g">Situación del turno: ${esc(PLANT_CASOS[caso]||caso)}</div>`
+    + grupo(`Mías (${esc(c.firma||'sin firma')})`, c.mias, 'mía')
     + grupo('De la unidad', c.unidad, 'coordinación')
     + grupo('De otros colegas', c.otros)
     + `<div class="pm-it${!act?' sel':''}" onclick="plantElegir('')">📄 Motor libre<span class="pm-q">sin plantilla</span></div>`
-    + `<div class="pm-it" onclick="plantMenuCerrar();plantMisAbrir()">⚙️ Mis plantillas…<span class="pm-q">gestionar</span></div>`;
-  const r=btn.getBoundingClientRect();
-  m.style.left=Math.max(8,Math.min(r.left, innerWidth-350))+'px';
-  m.style.top=Math.min(r.bottom+4, innerHeight-320)+'px';
+    + (act?`<div class="pm-it" onclick="plantPopCerrar();plantEditar('${esc(act.id)}')">✏️ Editar la que está en uso</div>`:'')
+    + `<div class="pm-it" onclick="plantPopCerrar();plantEditar('')">➕ Nueva plantilla<span class="pm-q">o selecciona texto y aprieta el +</span></div>`
+    + `<div class="pm-it" onclick="plantPopCerrar();plantMisAbrir()">⚙️ Mis plantillas…</div>`;
   m.classList.add('on');
-  setTimeout(()=>document.addEventListener('click', _plantMenuFuera, {once:true}),0);
+  setTimeout(()=>document.addEventListener('click', _plantPopFuera, {once:true}),0);
 }
-function _plantMenuFuera(ev){
-  const m=$('plantMenu'); if(!m||!m.classList.contains('on')) return;
-  if(!m.contains(ev.target)) plantMenuCerrar();
-  else setTimeout(()=>document.addEventListener('click', _plantMenuFuera, {once:true}),0);
+function _plantPopFuera(ev){
+  const m=$('plantPop'); if(!m||!m.classList.contains('on')) return;
+  if(!m.contains(ev.target) && ev.target!==$('plantIco') && !$('plantIco')?.contains(ev.target)) plantPopCerrar();
+  else setTimeout(()=>document.addEventListener('click', _plantPopFuera, {once:true}),0);
 }
-function plantMenuCerrar(){ const m=$('plantMenu'); if(m) m.classList.remove('on'); }
+function plantPopCerrar(){ const m=$('plantPop'); if(m) m.classList.remove('on'); }
+function plantMenuCerrar(){ plantPopCerrar(); }
 
-/* ── EDITOR (las dos puertas de Diego, 4-sep: el ✏️ de la barra y «Mis
-   plantillas»). Reglas: nadie parte de página en blanco (se parte de la
-   sugerida o de un esqueleto con los comodines); comodines SOLO por menú (un
-   desconocido rechaza el guardado, también en el servidor); vista previa con
-   el paciente abierto; nombre y caso obligatorios. Las de la UNIDAD las
-   publica solo coordinación (clave). Editar la de otro colega crea una copia
-   propia: la suya no se toca. Nada se borra: se retira. */
+/* ── El ➕ verde: aparece mientras hay texto seleccionado en el cuadro ── */
+function _plantSelLineas(){
+  const t=$('rtxt'); if(!t) return [];
+  const a=t.selectionStart, b=t.selectionEnd; if(a===b) return [];
+  const lineas=t.value.split('\n');
+  const ini=t.value.slice(0,a).split('\n').length-1, fin=t.value.slice(0,b).split('\n').length-1;
+  const out=[]; for(let i=ini;i<=fin;i++){ const l=String(lineas[i]||'').trim(); if(l) out.push(l); }
+  return out;
+}
+function _plantMasRefrescar(){
+  const m=$('plantMas'); if(!m) return;
+  const hay=_plantSelLineas().length>0 && document.activeElement===$('rtxt');
+  m.classList.toggle('hidden', !hay);
+}
+/* ── Des-rellenar: de la frase con datos a la frase con comodines ──
+   Por BLOQUE: si la frase es exactamente una del motor, se convierte en el
+   comodín de su bloque. Por DATO: cada valor del formulario que aparece en la
+   frase (con su contexto) pasa a ser su comodín. Lo que no calza queda FIJO. */
+function _plantDesrellenar(lineas, modo){
+  const motor=genTexto().split('\n'), tags=(window._TXB_ULT||[]).slice();
+  const bloqueDe={}; Object.keys(PLANT_ALIAS).forEach(a=>PLANT_ALIAS[a].forEach(t=>{ bloqueDe[t]=a; }));
+  const usados=new Set(); const fijas=[];
+  const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const salida=lineas.map(l=>{
+    const i=motor.findIndex(m=>m.trim()===l);
+    const alias=i>=0?bloqueDe[tags[i]]:'';
+    if(modo==='bloque'){
+      if(alias){ if(usados.has(alias)) return null; usados.add(alias); return '{'+alias+'}'; }
+      fijas.push(l); return l;
+    }
+    // por dato
+    let t=l, tocada=false;
+    if(alias==='encabezado'||alias==='plan'||alias==='nota'||alias==='anotaciones'||alias==='evaluaciones'||alias==='ktm'||alias==='pve'||alias==='fase'){
+      if(usados.has(alias)) return null; usados.add(alias); return '{'+alias+'}';
+    }
+    const claves=Object.keys(PLANT_DATOS).map(k=>({k, val:String((()=>{ try{ return PLANT_DATOS[k].v(); }catch(e){ return ''; } })()||''), d:PLANT_DATOS[k]}))
+      .filter(x=>x.val).sort((a,b)=>b.val.length-a.val.length);
+    claves.forEach(x=>{
+      const pre=x.d.pre||'', post=x.d.post||'';
+      const re=new RegExp('('+(pre||'(?:^|[^\\wáéíóú])')+')'+esc(x.val)+'(?='+(post||'(?:$|[^\\wáéíóú])')+')','i');
+      if(re.test(t)){ t=t.replace(re,(m,p)=>(p||'')+'{'+x.k+'}'); tocada=true; }
+    });
+    if(!tocada){ if(alias){ usados.add(alias); return '{'+alias+'}'; } fijas.push(l); }
+    return t;
+  }).filter(x=>x!==null);
+  return { cuerpo:salida.join('\n'), fijas };
+}
+let _plantOrigenSel=null;   // líneas seleccionadas con las que se abrió el editor
+function plantCrearDesdeSeleccion(){
+  const lineas=_plantSelLineas(); if(!lineas.length){ toast('Selecciona una o más frases del texto'); return; }
+  _plantOrigenSel=lineas;
+  plantEditar('', { desdeSeleccion:true });
+}
+/* ── EDITOR (dos puertas: el ➕ sobre la selección y el 📋). Reglas de Diego:
+   nadie parte de página en blanco; comodines SOLO por menú; vista previa con
+   el paciente abierto; las de la UNIDAD las publica solo coordinación; editar
+   la de otro crea copia propia; nada se borra: se retira. ── */
 let _plantEditId='';
-function plantEditar(id){
+function plantEditar(id, opt){
+  opt=opt||{};
   const p=id?PLANT_CAT.find(x=>x.id===id):null;
   const yo=_plantFirma()||'';
-  if(!yo){ toast('⚠️ Elige tu firma antes de editar plantillas'); return; }
+  if(!yo){ toast('⚠️ Elige tu firma antes de crear plantillas'); return; }
+  if(!opt.desdeSeleccion) _plantOrigenSel=null;
   const cs=$('plantCaso'); cs.innerHTML=Object.keys(PLANT_CASOS).map(k=>`<option value="${k}">${_plantIcono(k)} ${PLANT_CASOS[k]}</option>`).join('');
   const ds=$('plantDueno'); ds.innerHTML=`<option value="${yo}">${yo} (solo yo la edito)</option><option value="UNIDAD">UNIDAD (solo coordinación)</option>`;
   const ajena=p && p.dueno!==yo && p.dueno!=='UNIDAD';
   const unidadSinClave=p && p.dueno==='UNIDAD' && !(typeof COORD_TK!=='undefined'&&COORD_TK);
   _plantEditId=(p && !ajena && !unidadSinClave)?p.id:'';
-  $('plantModTit').textContent=p?((ajena||unidadSinClave)?`✏️ Copiar «${p.nombre}» como mía`:'✏️ Editar plantilla'):'✏️ Nueva plantilla';
-  $('plantNombre').value=p?((ajena||unidadSinClave)?p.nombre+' (mía)':p.nombre):'';
-  cs.value=p?p.caso:_plantCaso(); if(!cs.value) cs.value='general';
+  const caso=p?p.caso:_plantCaso();
+  $('plantModTit').textContent=p?((ajena||unidadSinClave)?`✏️ Copiar «${p.nombre}» como mía`:'✏️ Editar plantilla'):(opt.desdeSeleccion?'➕ Nueva plantilla desde tu texto':'➕ Nueva plantilla');
+  $('plantNombre').value=p?((ajena||unidadSinClave)?p.nombre+' (mía)':p.nombre):(caso==='general'?'Mi evolución general':'Mi '+(PLANT_CASOS[caso]||caso).toLowerCase());
+  cs.value=caso||'general';
   ds.value=(p && p.dueno==='UNIDAD' && !unidadSinClave)?'UNIDAD':yo;
-  $('plantCuerpo').value=p?p.cuerpo:'{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}';
-  $('plantComodines').innerHTML=PLANT_COMODINES.map(k=>`<span class="plant-com" onclick="plantInsertar('${k}')">{${k}}</span>`).join('');
+  const modoRow=$('plantModoRow'); if(modoRow) modoRow.style.display=opt.desdeSeleccion?'':'none';
+  if(opt.desdeSeleccion){ const r=document.querySelector('input[name="plantModo"][value="dato"]'); if(r) r.checked=true; plantReconvertir(); }
+  else $('plantCuerpo').value=p?p.cuerpo:'{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}';
+  const chip=k=>`<span class="plant-com" onclick="plantInsertar('${k}')">{${k}}</span>`;
+  $('plantComodines').innerHTML='<div class="plant-com-g">Por bloque (la frase completa del motor)</div>'+PLANT_COM_BLOQUE.map(chip).join(' ')
+    +'<div class="plant-com-g">Por dato (el valor pelado, con tus palabras)</div>'+Object.keys(PLANT_DATOS).map(chip).join(' ');
   const del=$('plantModRetirar'); if(del) del.style.display=(p && _plantEditId && (p.dueno===yo || p.dueno==='UNIDAD'))?'':'none';
   plantModNota(); plantPreview();
   $('plantMod').classList.add('on'); $('ovl').classList.add('on');
+}
+function plantReconvertir(){
+  if(!_plantOrigenSel) return;
+  const modo=document.querySelector('input[name="plantModo"]:checked')?.value||'dato';
+  const r=_plantDesrellenar(_plantOrigenSel, modo);
+  $('plantCuerpo').value=r.cuerpo;
+  plantPreview();
 }
 function plantModNota(){
   const n=$('plantModNota'); if(!n) return;
@@ -12695,11 +12811,14 @@ function plantModNota(){
     ? (coord ? '🔐 Se publica como plantilla de la unidad con tu sesión de coordinación.' : '🔐 Una plantilla de la unidad la publica solo coordinación: entra con tu clave en la pestaña 🔐 y vuelve aquí.')
     : '';
 }
-/* Vista previa OBLIGATORIA: se arma con el paciente abierto en el formulario. */
+/* Vista previa OBLIGATORIA con el paciente abierto, y el aviso ámbar de las
+   frases fijas (decisión ④: se permiten, avisando). */
 function plantPreview(){
   const pv=$('plantPreview'); if(!pv) return;
   const cuerpo=$('plantCuerpo').value||'';
   const malos=[]; cuerpo.replace(/\{([^{}]*)\}/g,(m,k)=>{ if(PLANT_COMODINES.indexOf(String(k).trim().toLowerCase())===-1) malos.push('{'+k+'}'); return m; });
+  const fijas=cuerpo.split('\n').map(l=>l.trim()).filter(l=>l && !/\{[a-z0-9_]+\}/i.test(l) && !/^Plan:\s*$/i.test(l));
+  const av=$('plantFijas'); if(av){ av.classList.toggle('hidden', !fijas.length); av.innerHTML=fijas.length?('⚠️ Frases fijas — saldrán IGUAL en todos tus pacientes: '+fijas.map(f=>'«'+String(f).replace(/</g,'&lt;')+'»').join(' · ')+'. Si es lo que quieres, está bien; si no, cambia una palabra por un comodín del menú.'):''; }
   if(malos.length){ pv.innerHTML=`<span style="color:var(--danger);font-weight:700;">Comodín desconocido: ${malos.map(x=>x.replace(/</g,'&lt;')).join(', ')} — elígelo del menú.</span>`; return; }
   let txt=''; try{ txt=v('cBed')?_plantRellenar(cuerpo,_plantDatos()):''; }catch(e){ txt=''; }
   pv.textContent = txt || (v('cBed') ? '(con los datos de este turno no queda ninguna frase: revisa los comodines)' : 'Abre una cama para ver la vista previa con un paciente.');
@@ -12713,7 +12832,7 @@ function plantInsertar(tok){
   t.value=antes+ins+desp; t.focus(); t.setSelectionRange((antes+ins).length,(antes+ins).length);
   plantPreview();
 }
-function plantModCerrar(){ $('plantMod').classList.remove('on'); $('ovl').classList.remove('on'); }
+function plantModCerrar(){ $('plantMod').classList.remove('on'); $('ovl').classList.remove('on'); _plantOrigenSel=null; }
 function plantModGuardar(){
   const nombre=($('plantNombre').value||'').trim(), cuerpo=$('plantCuerpo').value||'';
   if(!nombre){ toast('⚠️ Ponle un nombre a la plantilla'); return; }
@@ -12742,7 +12861,7 @@ function plantModRetirar(){
     }).catch(e=>toast('❌ '+e.message, 6000));
   });
 }
-/* Segunda puerta: «Mis plantillas» — todo el catálogo por estante, con ✏️. */
+/* «Mis plantillas»: todo el catálogo por estante, con ✏️. */
 function plantMisAbrir(){
   const c=_plantCatalogo();
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -12756,8 +12875,12 @@ function plantMisCerrar(){ $('plantListMod').classList.remove('on'); $('ovl').cl
 (function _plantInit(){
   $('fFirma')?.addEventListener('change', ()=>{ if(!_plantConf) _plantSel=null; _plantAplicar(); });
   $('plantDueno')?.addEventListener('change', plantModNota);
-  $('plantCuerpo')?.addEventListener('input', plantPreview);
+  $('plantCuerpo')?.addEventListener('input', ()=>{ _plantOrigenSel=null; plantPreview(); });
+  const t=$('rtxt');
+  if(t){ ['mouseup','keyup','select'].forEach(ev=>t.addEventListener(ev,_plantMasRefrescar)); t.addEventListener('blur',()=>setTimeout(_plantMasRefrescar,150)); }
+  document.addEventListener('selectionchange',()=>{ if(document.activeElement===$('rtxt')) _plantMasRefrescar(); });
 })();
+
 
 function aplicarFirmaTurno(firmaPrevia){
   const sel = $('fFirma'); if(!sel || !window.Turnos) return;

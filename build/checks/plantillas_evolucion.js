@@ -1,6 +1,9 @@
-// plantillas_evolucion.js — PLANTILLAS DE EVOLUCIÓN, MODO CHIPS (tanda 3,
-// sep-2026 · PRD_PLANTILLAS_EVOLUCION.md). Diego, 5-sep: «la selección de
-// plantilla… como chips, por mientras».
+// plantillas_evolucion.js — PLANTILLAS DE EVOLUCIÓN DESDE EL TEXTO (tanda 3,
+// sep-2026 · PRD_PLANTILLAS_EVOLUCION.md). v6.04, Diego 6-sep tras probar los
+// chips: «me gustaría que fuera como TrakCare: un símbolo de plantilla abajo a
+// la derecha del cuadro de texto y, al seleccionar texto, un + verde para
+// crear una nueva»; sus cuatro síes (por dato y por bloque · se aplica sola ·
+// unidad solo coordinación · frases fijas con aviso).
 //
 // LO QUE FIJA (las promesas del PRD):
 //  1. Quien no configure nada no pierde nada: sin catálogo la barra no existe
@@ -78,10 +81,10 @@ eq('caso desconocido se rechaza', plantillaGuardar({ dueno: 'MCC', caso: 'weanin
 
 /* ══ 2 · PARIDAD DE LISTAS cliente ↔ servidor ═══════════════════════════ */
 console.log('\n2 · Cliente y servidor hablan las mismas listas');
-const cliCom = idx.match(/const PLANT_COMODINES=\[([\s\S]*?)\];/)[1].match(/'([a-z_]+)'/g).map(x => x.replace(/'/g, ''));
+const cliCom = idx.match(/const PLANT_COMODINES=\[([\s\S]*?)\];/)[1].match(/'([a-z0-9_]+)'/g).map(x => x.replace(/'/g, ''));
 // Las constantes del servidor se leen del FUENTE (un const dentro de eval no sale al módulo).
 const srvSrc = lee('svc_plantillas.gs');
-const srvCom = srvSrc.match(/const PLANT_COMODINES_SRV = \[([\s\S]*?)\];/)[1].match(/'([a-z_]+)'/g).map(x => x.replace(/'/g, ''));
+const srvCom = srvSrc.match(/const PLANT_COMODINES_SRV = \[([\s\S]*?)\];/)[1].match(/'([a-z0-9_]+)'/g).map(x => x.replace(/'/g, ''));
 const srvCasos = srvSrc.match(/const PLANT_CASOS_SRV = \[([\s\S]*?)\];/)[1].match(/'([a-z_]+)'/g).map(x => x.replace(/'/g, ''));
 eq('★ comodines: cliente = servidor', cliCom.join(','), srvCom.join(','));
 const cliCasos = idx.match(/const PLANT_CASOS=\{([\s\S]*?)\};/)[1].match(/([a-z_]+):'/g).map(x => x.replace(/:'$/, ''));
@@ -99,7 +102,7 @@ si('el dispatcher: GET_PLANTILLAS, PLANTILLA_GUARDAR y PLANTILLA_RETIRAR auditad
 /* ══ 3 · CLIENTE ════════════════════════════════════════════════════════ */
 const { chromium } = require('playwright-core');
 (async () => {
-  console.log('\n3 · Pantalla: barra, sugerencia, relleno, regla madre, editor');
+  console.log('\n3 · Pantalla: 📋 y ➕ en el cuadro, se aplica sola, des-rellenar, regla madre, editor');
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
   const p = await b.newPage({ viewport: { width: 1400, height: 950 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
@@ -123,6 +126,9 @@ const { chromium } = require('playwright-core');
     await p.evaluate(() => {
       const va = document.getElementById('fVA'); va.value = 'TOT'; va.dispatchEvent(new Event('change'));
       if (typeof updateVAUI === 'function') updateVAUI();
+      $('fSop').value = 'VM'; cascadeSop(); $('fModo').value = 'ACVC'; renderParams();
+      $('r_vt').value = '500'; $('r_fr').value = '20'; $('r_peep').value = '8'; $('r_fio2').value = '30'; $('r_spo2').value = '98';
+      $('fDx').value = 'ACV isquémico'; $('fDias').value = '1'; $('fSed').value = 'Escalón 6'; hSed(); $('fSAS').value = '1'; $('fSASmeta').value = '1';
       document.getElementById('fFirma').innerHTML = '<option value="MCC">MCC</option><option value="DMV">DMV</option>';
       document.getElementById('fFirma').value = 'MCC';
       if (document.getElementById('fPVEval').value !== 'si') hPVEtoggle('si');
@@ -132,33 +138,52 @@ const { chromium } = require('playwright-core');
     });
   };
 
-  // Sin catálogo: nada cambia.
+  // Sin catálogo: nada cambia y no hay barra en ninguna parte.
   await abrir();
-  const R0 = await p.evaluate(() => { PLANT_CAT = []; previewTexto(); return { oculta: document.getElementById('plantBar').classList.contains('hidden'), igual: document.getElementById('rtxt').value === genTexto() }; });
-  si('★ promesa 1 · sin catálogo la barra no existe', R0.oculta);
-  si('…y el texto es EXACTAMENTE el del motor', R0.igual);
+  const R0 = await p.evaluate(() => { PLANT_CAT = []; previewTexto(); return { sinBarra: !document.getElementById('plantBar') && !document.getElementById('plantChips'),
+    ico: !!document.getElementById('plantIco'), mas: document.getElementById('plantMas').classList.contains('hidden'),
+    igual: document.getElementById('rtxt').value === genTexto(), enUso: document.getElementById('plantEnUso').textContent }; });
+  si('★ la barra de chips ya no existe', R0.sinBarra);
+  si('el 📋 vive en el cuadro de texto y el ➕ está escondido sin selección', R0.ico && R0.mas);
+  si('★ promesa 1 · sin catálogo el texto es EXACTAMENTE el del motor', R0.igual && R0.enUso === '');
 
-  // Con catálogo (la semilla real de la unidad + una de MCC).
-  const catalogo = sem.concat([{ id: 'p_mcc', dueno: 'MCC', caso: 'pve_frustra', nombre: 'PVE fracasada de MCC', cuerpo: '{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\nSe mantiene trabajo de musculatura respiratoria según tolerancia.\nPlan: {plan}', activo: true }]);
+  // Con catálogo (la semilla real de la unidad + dos de MCC).
+  const catalogo = sem.concat([
+    { id: 'p_mcc', dueno: 'MCC', caso: 'pve_frustra', nombre: 'PVE fracasada de MCC', cuerpo: '{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\nVentila con Vti {vt} ml y FR {fr} rpm, PEEP {peep} y FiO2 {fio2}%.\nSe mantiene trabajo de musculatura respiratoria según tolerancia.\nPlan: {plan}', activo: true },
+    { id: 'p_mcc_gen', dueno: 'MCC', caso: 'general', nombre: 'General de MCC', cuerpo: '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\nPlan: {plan}', activo: true },
+  ]);
   await p.evaluate(cat => { PLANT_CAT = cat; }, catalogo);
   await abrir();
   const R1 = await p.evaluate(() => { previewTexto(); renderPlantBar();
     const act = _plantActiva();
-    return { visible: !document.getElementById('plantBar').classList.contains('hidden'), caso: _plantCaso(), act: act && act.id, sug: !!document.querySelector('#plantChips .fase-chip.her'),
+    return { caso: _plantCaso(), act: act && act.id, enUso: document.getElementById('plantEnUso').textContent, n: document.getElementById('plantIcoN').textContent,
       txt: document.getElementById('rtxt').value, firma: document.getElementById('fFirma').value, motor: genTexto() }; });
-  si('con catálogo la barra aparece', R1.visible);
-  eq('el caso del turno sale del formulario (PVE fracasada)', R1.caso, 'pve_frustra');
-  eq('★ la sugerida es la de MCC (el colega de la cama manda sobre la unidad)', R1.act, 'p_mcc');
-  si('…y se muestra en ámbar como sugerida', R1.sug);
+  eq('la situación del turno sale del formulario (PVE fracasada)', R1.caso, 'pve_frustra');
+  eq('★ decisión ② · se aplicó SOLA la mía de la situación (mía·situación gana)', R1.act, 'p_mcc');
+  si('…y el 📋 dice cuál y cuántas tengo', /PVE fracasada de MCC · mía/.test(R1.enUso) && R1.n === '2');
   si('★ el texto sale rellenado: sin llaves ni «undefined»', !/\{|\}|undefined/.test(R1.txt));
-  si('…con la frase propia de MCC', /Se mantiene trabajo de musculatura respiratoria/.test(R1.txt));
+  si('★ decisión ① · los comodines por DATO se rellenan con el formulario', /Ventila con Vti 500 ml y FR 20 rpm, PEEP 8 y FiO2 30%\./.test(R1.txt));
+  si('…con la frase propia (fija) de MCC', /Se mantiene trabajo de musculatura respiratoria/.test(R1.txt));
   si('…con la 3ª PVE y el weaning (dato del episodio)', /3ª PVE del episodio, weaning difícil \(2 PVE fracasadas\)\./.test(R1.txt));
   si('…con la PVE narrada por el MOTOR (el dato sigue saliendo de ahí)', /Se realiza PVE según protocolo con resultado fallido/.test(R1.txt));
-  si('…y el plan al final', /\nPlan: nueva PVE mañana$/.test(R1.txt));
   eq('promesa 2 · la firma no cambió', R1.firma, 'MCC');
 
-  const R2 = await p.evaluate(() => { plantElegir(''); return { txt: document.getElementById('rtxt').value, motor: genTexto(), chipOn: document.querySelector('#plantChips .fase-chip.on')?.textContent }; });
-  si('«Motor libre» devuelve el texto del motor tal cual', R2.txt === R2.motor && /Motor libre/.test(R2.chipOn));
+  // Sin situación registrada → mía·general; la general no nombra la PVE, así que
+  // el relato del turno entra solo antes del Plan.
+  const R1b = await p.evaluate(() => {
+    const r = document.querySelector('input[name="pveRes"][value="frustra"]'); r.checked = false; hPVEres(); hPVEtoggle('si');   // deselecciona la PVE
+    const gen = _plantGanadora();
+    document.getElementById('fPVEval').value = ''; const g2 = _plantGanadora();
+    hPVEtoggle('si'); const r2 = document.querySelector('input[name="pveRes"][value="frustra"]'); r2.checked = true; hPVEres();
+    _plantSel = 'p_mcc_gen'; _plantConf = true; previewTexto();
+    const txt = document.getElementById('rtxt').value; _plantSel = null; _plantConf = false;
+    return { gen: g2 && g2.id, txt };
+  });
+  eq('sin situación gana mi general', R1b.gen, 'p_mcc_gen');
+  si('★ el relato del turno (la PVE) entra solo antes del Plan aunque la general no lo nombre', /resultado fallido[\s\S]*\nPlan: nueva PVE mañana$/.test(R1b.txt));
+
+  const R2 = await p.evaluate(() => { plantElegir(''); return { txt: document.getElementById('rtxt').value, motor: genTexto(), enUso: document.getElementById('plantEnUso').textContent }; });
+  si('«Motor libre» devuelve el texto del motor tal cual', R2.txt === R2.motor && R2.enUso === '');
 
   const R3 = await p.evaluate(() => {
     const unidad = PLANT_CAT.find(x => x.dueno === 'UNIDAD' && x.caso === 'pve_frustra');
@@ -178,36 +203,67 @@ const { chromium } = require('playwright-core');
     try { guardar(); } catch (e) { window._toasts.push('ERR ' + e.message); }
     window.toast = _t;
   });
-  await p.waitForTimeout(120);   // guardar() manda por api() (promesa): el puente lo anota en _ll
+  await p.waitForTimeout(120);
   const R4 = await p.evaluate(() => ({ pay: (window._ll.find(x => x.a === 'GUARDAR_EVOLUCION') || {}).d || null, toasts: window._toasts, pantalla: window._pantalla }));
   if (!R4.pay) console.log('   (guardar no salió: ' + JSON.stringify(R4.toasts) + ')');
   si('al guardar viaja el texto de la PANTALLA (la plantilla rellenada)', R4.pay && R4.pay.TEXTO_GENERADO === R4.pantalla);
   si('…y TEXTO_AUTO sigue llevando el motor (trazabilidad)', R4.pay && R4.pay.TEXTO_AUTO && R4.pay.TEXTO_AUTO !== R4.pay.TEXTO_GENERADO);
   si('…sin marcar el texto como manual', R4.pay && !R4.pay.TEXTO_MANUAL);
 
+  /* ── El ➕: seleccionar frases del motor y crear la plantilla desde ahí ── */
+  await abrir();
   const R5 = await p.evaluate(() => {
+    plantElegir(''); previewTexto();
+    const t = document.getElementById('rtxt'); const lineas = t.value.split('\n');
+    // selecciona desde la frase del día hasta la de parámetros (líneas 1..3), más una frase escrita a mano
+    t.value = t.value + '\nSe conversa con familia y se explica el plan.';
+    const ini = lineas[0].length + 1, fin = t.value.length;
+    t.focus(); t.setSelectionRange(ini, fin); t.dispatchEvent(new Event('select'));
+    const masVisible = !document.getElementById('plantMas').classList.contains('hidden');
+    plantCrearDesdeSeleccion();
+    const abierto = document.getElementById('plantMod').classList.contains('on');
+    const modoRow = document.getElementById('plantModoRow').style.display !== 'none';
+    const porDato = document.getElementById('plantCuerpo').value;
+    const fijas = document.getElementById('plantFijas').textContent;
+    const prevDato = document.getElementById('plantPreview').textContent;
+    document.querySelector('input[name="plantModo"][value="bloque"]').checked = true; plantReconvertir();
+    const porBloque = document.getElementById('plantCuerpo').value;
+    const nombre = document.getElementById('plantNombre').value, caso = document.getElementById('plantCaso').value;
+    plantModCerrar();
+    return { masVisible, abierto, modoRow, porDato, fijas, prevDato, porBloque, nombre, caso };
+  });
+  si('★ al seleccionar texto aparece el ➕ verde', R5.masVisible);
+  si('el ➕ abre el editor con la fila «por dato / por bloque»', R5.abierto && R5.modoRow);
+  si('★ por DATO: «Vti 500 ml» pasó a «Vti {vt} ml» (des-rellenado con contexto)', /Vti \{vt\} ml/.test(R5.porDato) && /FR \{fr\} rpm/.test(R5.porDato) && /PEEP \{peep\}/.test(R5.porDato));
+  si('…el diagnóstico y el día también', /en contexto de \{diagnostico\}/.test(R5.porDato) && /en \{dia_estadia\} día/.test(R5.porDato));
+  si('…SAS 1 y meta 1 no se confunden', /SAS \{sas\} \(meta \{sas_meta\}\)/.test(R5.porDato));
+  si('★ decisión ④ · la frase escrita a mano queda FIJA y se avisa en ámbar', /Se conversa con familia/.test(R5.porDato) && /Frases fijas/.test(R5.fijas) && /Se conversa con familia/.test(R5.fijas));
+  si('la vista previa devuelve el texto de este paciente (sin llaves)', !/\{/.test(R5.prevDato) && /Vti 500 ml/.test(R5.prevDato));
+  si('★ por BLOQUE: las mismas frases pasan a {dia} {via_aerea} {soporte} {parametros}', /\{dia\}/.test(R5.porBloque) && /\{parametros\}/.test(R5.porBloque) && !/\{vt\}/.test(R5.porBloque));
+  si('el nombre y la situación vienen propuestos', /^Mi /.test(R5.nombre) && R5.caso === 'pve_frustra');
+
+  const R6 = await p.evaluate(() => {
     plantEditar('');
     const abierto = document.getElementById('plantMod').classList.contains('on');
     const esqueleto = document.getElementById('plantCuerpo').value;
-    const preview1 = document.getElementById('plantPreview').textContent;
     document.getElementById('plantCuerpo').value = '{encabezado}\n{pve_fracasda}'; plantPreview();
     const previewMalo = document.getElementById('plantPreview').textContent;
     window._ll = []; window._toasts = []; const _t = window.toast; window.toast = m => window._toasts.push(m);
     document.getElementById('plantNombre').value = 'Rota'; plantModGuardar();
     window.toast = _t;
     const ncom = document.querySelectorAll('#plantComodines .plant-com').length;
-    // copiar la de otro
     plantEditar(PLANT_CAT.find(x => x.dueno === 'UNIDAD' && x.caso === 'tqt').id);
     const tit = document.getElementById('plantModTit').textContent, dueno = document.getElementById('plantDueno').value, nombre = document.getElementById('plantNombre').value;
     plantModCerrar();
-    return { abierto, esqueleto, preview1, previewMalo, llamadas: window._ll.length, toasts: window._toasts, ncom, tit, dueno, nombre };
+    plantPopAbrir(); const pop = document.getElementById('plantPop').textContent; plantPopCerrar();
+    return { abierto, esqueleto, previewMalo, llamadas: window._ll.length, toasts: window._toasts, ncom, tit, dueno, nombre, pop };
   });
-  si('el editor abre y nadie parte de página en blanco (esqueleto con comodines)', R5.abierto && /\{encabezado\}/.test(R5.esqueleto));
-  si('la vista previa está y no trae llaves', R5.preview1.length > 20 && !/\{/.test(R5.preview1));
-  si('★ un comodín tecleado mal se ve en rojo en la vista previa…', /Comodín desconocido: \{pve_fracasda\}/.test(R5.previewMalo));
-  si('…y el guardado NO sale al servidor', R5.llamadas === 0 && R5.toasts.some(t => /Comodín desconocido/.test(t)));
-  eq('los comodines del menú son los de la lista', R5.ncom, cliCom.length);
-  si('editar la de la unidad sin clave = copiar como mía (la suya no se toca)', /Copiar/.test(R5.tit) && R5.dueno === 'MCC' && /\(mía\)$/.test(R5.nombre));
+  si('el editor abre y nadie parte de página en blanco (esqueleto con comodines)', R6.abierto && /\{encabezado\}/.test(R6.esqueleto));
+  si('★ un comodín tecleado mal se ve en rojo en la vista previa…', /Comodín desconocido: \{pve_fracasda\}/.test(R6.previewMalo));
+  si('…y el guardado NO sale al servidor', R6.llamadas === 0 && R6.toasts.some(t => /Comodín desconocido/.test(t)));
+  eq('los comodines del menú son los de la lista', R6.ncom, cliCom.length);
+  si('decisión ③ · editar la de la unidad sin clave = copiar como mía (la suya no se toca)', /Copiar/.test(R6.tit) && R6.dueno === 'MCC' && /\(mía\)$/.test(R6.nombre));
+  si('el menú del 📋 trae los estantes, motor libre, nueva y mis plantillas', /Mías \(MCC\)/.test(R6.pop) && /De la unidad/.test(R6.pop) && /Motor libre/.test(R6.pop) && /Nueva plantilla/.test(R6.pop) && /Mis plantillas/.test(R6.pop));
 
   eq('sin errores de página', errs.length, 0);
   await b.close();
