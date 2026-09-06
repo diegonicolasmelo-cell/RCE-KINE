@@ -317,7 +317,9 @@ si tiene más de unos días, se confirma antes de usarla.
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
 - **Pegado y con `crearORepararEstructura()` corrido (Diego, 6-sep 04:24)**:
-  la v6.02 completa. **Pendiente de pegar: index + servicios de la v6.04**
+  la v6.04 completa (index + servicios, 6-sep 08:58; el ➕ funciona en el
+  hospital). **Pendiente de pegar: solo el index v6.05** (ícono de Synapse
+  dibujado). Historia de la v6.04: index + servicios
   (plantillas desde el cuadro de texto, sin barra de chips; interacción P-VM
   que no se arrastra; incluye el tooltip acotado y el ícono Rx de la v6.03).
   Sin cambio de esquema. Lo que sigue describe la tanda entera:
