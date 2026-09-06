@@ -19,6 +19,48 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.07-gases-texto-de-drive (6-sep-2026) — el gas se importaba pero no llegaba a la hoja diaria
+
+Diego, después de probar el importador en el hospital: «ya las importa a la
+base de datos sin embargo no las pasa a la hoja diaria, me da la impresión
+que es porque falta que rescate el id y la hora».
+
+- **Diagnóstico** (sin poder correr Drive desde aquí; el síntoma calza
+  exacto). El parser de la v6.01 leía el informe **línea por línea**: la
+  etiqueta y su valor tenían que caer en el mismo renglón. Eso era verdad en
+  la capa de texto del PDF (con la que se probó, `pymupdf`), pero el servidor
+  saca el texto con la **conversión PDF→Documento de Drive**, que no respeta
+  las columnas: «Fecha de Ingreso :» queda en un renglón y «04/09/2026
+  03:41:37» en otro. Sin fecha → sin hora → «sin fecha de toma» → la fila se
+  escribe SIN PATIENT_ID (`sin_emparejar`), y la hoja diaria busca por
+  PATIENT_ID. Exactamente «falta el id y la hora».
+- **Arreglo**: `gsaParsear` busca cada etiqueta en el texto ENTERO (bandera
+  `m`) y toma el valor de la VENTANA que sigue, saltos de línea incluidos;
+  la regla de corte no cambia (una palabra antes del número = no hay valor,
+  así un examen vacío no se roba el número del siguiente). La hora puede
+  venir pegada a la fecha, en el renglón siguiente, o no venir: entonces vale
+  la del «Fecha de Informe» (queda dicho en DETALLE: «hora tomada del
+  informe»; solo decide el turno).
+- **Reintento solo**: cada corrida recorre también la bandeja «sin
+  emparejar». Si ahora empareja (el parser arreglado, o el RUT que se
+  registró en la cama después), se importa, la fila vieja queda marcada
+  `reintentado` (no se borra) y el PDF pasa a «copiados». Si sigue sin
+  emparejar, no se anota otra fila. O sea: **con pegar servicios, la próxima
+  corrida (botón 🧪 o las 06:30) recupera los PDF que ya fallaron**.
+- **`gsaDiagnostico()`** para el editor: toma el primer PDF de la entrada (o
+  de «sin emparejar»), lo convierte por el mismo camino y escribe en el
+  registro qué entendió (RUT tapado, petición, fecha, hora, valores,
+  episodio) y los primeros 40 renglones del texto que devolvió Drive. Es la
+  forma de ver el formato real sin adivinar.
+- El DETALLE de un RUT válido que no empareja ahora dice qué revisar («ninguna
+  cama ocupada ni egreso lo tiene registrado… revisar el RUT en la ficha de
+  la cama»): es la otra causa posible del mismo síntoma, y Diego la lee en
+  la hoja.
+- Guardia `gsa_importada.js`: bloque 1b (texto partido por renglones como lo
+  devuelve Drive, hora en renglón aparte, hora del informe, examen vacío) y
+  3b (reintento de la bandeja). Batería 119 verdes. Sin esquema. Se pegan
+  **index + servicios** (el index solo por el sello).
+
 ## v6.06-entrega-bn-de-manuel (6-sep-2026) — lo que Manuel publicó el 2-sep y la tanda pisó
 
 Diego, antes de fusionar: «revisa lo que hizo Manuel antes de que

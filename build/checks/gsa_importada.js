@@ -86,6 +86,7 @@ const DB = { GSA_IMPORTADAS: [], CAMAS_ESTADO: [], ARCHIVO_PACIENTES: [], NOTIFI
 global.repoLeerTodos = (h, k, val) => (DB[h] || []).filter(r => k === undefined || String(r[k]) === String(val)).map(r => Object.assign({}, r));
 global.repoLeerFiltrado = (h, k, pred) => (DB[h] || []).filter(r => pred(r[k])).map(r => Object.assign({}, r));
 global.repoInsertar = (h, o) => { (DB[h] = DB[h] || []).push(Object.assign({}, o)); return o; };
+global.repoActualizarDonde = (h, fn, mut) => { let n = 0; (DB[h] || []).forEach(r => { if (fn(r)) { Object.assign(r, mut(r) || {}); n++; } }); return n; };
 const NOTIFS = []; global.notifRegistrar = n => { NOTIFS.push(n); return 'n'; };
 global.auditar = a => { DB.AUDIT_LOG.push(a); };
 // _rutNormal / rutValido son las reales de svc_camas.gs (se recortan del fuente)
@@ -146,6 +147,98 @@ eq('★ «55» plaquetas siguen siendo 55 (no se parte un número válido)', _gs
 eq('…salvo marcado crítico con mitades iguales', _gsaDesdoblar('5555', true), '55');
 eq('desdoblar «14.314.3»', _gsaDesdoblar('14.314.3', true), '14.3');
 
+/* ══ 1b · EL TEXTO COMO LO DEVUELVE DRIVE (6-sep-2026, reporte de Diego) ══
+   La conversión PDF→Documento no respeta las columnas: «Fecha de Ingreso :»
+   puede quedar en un renglón y la fecha en el siguiente; la hora, en otro; y
+   la etiqueta de un examen separada de su valor. Con el parser línea a línea
+   eso daba «sin fecha de toma» → sin hora → sin PATIENT_ID: importaba la fila
+   pero nunca llegaba a la hoja diaria. */
+console.log('\n1b · El parser lee el texto partido por renglones (como lo devuelve Drive)');
+const T_DRIVE = `SERVICIO DE SALUD COQUIMBO
+Nº Petición
+:
+9040599
+Nombre
+: PACIENTE , DE PRUEBA
+Nº RUT
+:
+11.111.111-1
+Fecha de Ingreso
+:
+04/09/2026
+03:41:37
+F.Nacimiento : 30/03/1961
+HEMATOLOGÍA
+Hemoglobina
+**
+9.9
+g/dl
+14.0 - 17.5
+Hematocrito
+29.4
+%
+Rcto. Plaquetas
+253
+x10³/µL
+PH Y GASES EN SANGRE
+Gases Arteriales
+pH
+*
+7.482
+7.350 - 7.450
+Presión CO2
+*
+31.6
+mm/Hg
+Presión O2
+93.70
+mm/Hg
+Bicarbonato
+25.1
+mmoL/L
+Exceso de Base
+0.8
+FIO2
+40.00
+PO2 / FIO2
+2.34
+mmHg/%
+Saturacion de O2
+98.1
+%
+K+
+3.20
+mmol/L
+Lactato
+0.70
+mmol/L
+Fecha de Informe:
+04/09/2026
+05:02:20
+`;
+const pd = gsaParsear(T_DRIVE);
+eq('★ RUT en el renglón siguiente a la etiqueta', pd.rut, '11.111.111-1');
+eq('petición partida', pd.peticion, '9040599');
+eq('★ fecha de toma en su propio renglón', pd.fecha, '2026-09-04');
+eq('★ hora en el renglón siguiente a la fecha', pd.hora, '03:41');
+eq('…y viene de «Fecha de Ingreso»', pd.horaOrigen, 'ingreso');
+eq('pH con el asterisco en renglón aparte', pd.valores.PH, 7.482);
+eq('PaCO₂', pd.valores.PACO2, 31.6);
+eq('Hb crítica «9.9» sin glifo doble', pd.valores.HB, 9.9);
+eq('Hto', pd.valores.HTO, 29.4);
+eq('plaquetas', pd.valores.PLAQUETAS, 253);
+eq('PaFi 2.34 → 234', pd.valores.PAFI, 234);
+eq('K⁺', pd.valores.K, 3.2);
+eq('lactato', pd.valores.LACTATO, 0.7);
+const T_SIN_HORA = T_DRIVE.replace('04/09/2026\n03:41:37', '04/09/2026');
+const ps = gsaParsear(T_SIN_HORA);
+eq('★ sin hora en la toma: se usa la del informe', ps.hora, '05:02');
+eq('…y queda dicho', ps.horaOrigen, 'informe');
+eq('la fecha sigue siendo la de la toma', ps.fecha, '2026-09-04');
+const T_VACIO = T_DRIVE.replace('Bicarbonato\n25.1\nmmoL/L\n', 'Bicarbonato\nmmoL/L\n');
+eq('un examen sin valor NO se roba el número del siguiente', gsaParsear(T_VACIO).valores.HCO3, undefined);
+eq('el texto original por columnas sigue leyéndose igual', gsaParsear(t1).hora, '03:40');
+
 /* ══ 2 · EL TURNO: SERVIDOR = CLIENTE ═════════════════════════════════════ */
 console.log('\n2 · El turno del gas se calcula igual en el servidor y en el cliente');
 const idx = lee('index.html');
@@ -195,6 +288,7 @@ const sinEmp = DB.GSA_IMPORTADAS.filter(g => g.ESTADO === 'sin_emparejar');
 eq('las dos filas sin emparejar existen', sinEmp.length, 2);
 si('★ …y NINGUNA lleva PATIENT_ID ni RUT', sinEmp.every(g => !g.PATIENT_ID) && !JSON.stringify(DB.GSA_IMPORTADAS).match(/2222222|4444444/));
 si('la del dígito malo dice por qué', sinEmp.some(g => /dígito verificador/.test(g.DETALLE)));
+si('★ la del RUT válido sin cama dice qué revisar (6-sep)', sinEmp.some(g => /revisar el RUT en la ficha de la cama/.test(g.DETALLE)));
 si('★ ningún nombre del informe se guardó', !/PACIENTE|DE PRUEBA/.test(JSON.stringify(DB.GSA_IMPORTADAS)));
 eq('★ los PDF emparejados se MOVIERON a «copiados» (no se borran)', ENTRADA.sub['copiados'].archivos.map(x => x.nombre).sort().join(','), 'gsa1.pdf,gsa18.pdf,gsa1_repetido.pdf');
 eq('los sin emparejar, a su bandeja', ENTRADA.sub['sin emparejar'].archivos.map(x => x.nombre).sort().join(','), 'gsa8.pdf,gsa_sin_episodio.pdf');
@@ -203,6 +297,24 @@ eq('la petición repetida NO se importó dos veces', DB.GSA_IMPORTADAS.filter(g 
 si('el buzón recibió el resumen', NOTIFS.length === 1 && /Gases importados: 2/.test(NOTIFS[0].titulo) && /sin emparejar: 2/.test(NOTIFS[0].titulo));
 const r2 = gsaImportarPendientes({});
 eq('una segunda corrida sin PDF nuevos no hace nada', r2.data.importados.length + r2.data.sinEmparejar.length, 0);
+/* ── 3b · La bandeja «sin emparejar» se reintenta sola (6-sep-2026) ── */
+console.log('\n3b · Un PDF que ayer no se pudo emparejar se reintenta solo en la corrida siguiente');
+// El RUT del PDF gsa_sin_episodio.pdf (44444444-4) recién se registra en la cama 5.
+DB.CAMAS_ESTADO.push({ ID_CAMA: '5', OCUPADA: true, PATIENT_ID: 'pid-cama5', RUT: '44.444.444-4', NOMBRE: 'Z' });
+const r3 = gsaImportarPendientes({});
+eq('★ importados: 1 (el reintento que ahora sí empareja)', r3.data.importados.length, 1);
+eq('reintentados: 1', r3.data.reintentados, 1);
+eq('★ el del dígito malo sigue en la bandeja SIN fila nueva', ENTRADA.sub['sin emparejar'].archivos.map(x => x.nombre).join(','), 'gsa8.pdf');
+eq('…y sin sumar a «sin emparejar» del resumen', r3.data.sinEmparejar.length, 0);
+const g5 = DB.GSA_IMPORTADAS.find(g => g.PATIENT_ID === 'pid-cama5');
+si('★ el gas quedó bajo el episodio de la cama 5, marcado como reintento', !!g5 && g5.ESTADO === 'ok' && /reintento/.test(g5.DETALLE));
+const vieja = DB.GSA_IMPORTADAS.find(g => g.ARCHIVO_ID === 'pdf:gsa_sin_episodio.pdf' && g !== g5);
+si('★ la fila vieja «sin_emparejar» quedó marcada «reintentado», no borrada', !!vieja && vieja.ESTADO === 'reintentado');
+eq('el PDF se movió a «copiados»', ENTRADA.sub['copiados'].archivos.some(x => x.nombre === 'gsa_sin_episodio.pdf'), true);
+const r4 = gsaImportarPendientes({});
+eq('otra corrida sin novedades no hace nada (ni reintenta con fila nueva)', r4.data.importados.length + r4.data.sinEmparejar.length + DB.GSA_IMPORTADAS.filter(g => g.ESTADO === 'sin_emparejar').length, 1);
+si('gsaDiagnostico existe para el editor y tapa el RUT', /function gsaDiagnostico\(/.test(lee('svc_gsa.gs')) && /<RUT>/.test(lee('svc_gsa.gs')));
+
 const dia = gsaDelDia('2026-09-04', ['pid-cama1', 'pid-egresado']).data;
 eq('gsaDelDia entrega por pid la fecha de reloj', Object.keys(dia).sort().join(','), 'pid-cama1,pid-egresado');
 eq('gsaDeEpisodio devuelve solo lo emparejado', gsaDeEpisodio('pid-cama1').length, 1);
