@@ -125,6 +125,15 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   // en una estadía larga lo primero que se caía era la intubación del día 1.
   const hito = t => eventos.push({ t: t, fijo: true });
   const otro = t => eventos.push({ t: t, fijo: false });
+  // «Cambio de soporte respiratorio» fuera de un procedimiento (Manuel,
+  // sep-2026): VMI ↔ VNI ↔ Oxigenoterapia, para episodios que NO están en
+  // TQT (la vía TQT tiene su propio relato: Desvinculación de VM, más abajo).
+  // El catálogo real de VENT_SOPORTE es {VM, VNI, Oxigenoterapia/OAF,
+  // Ambiente} — ver VMAPS en index.html; NO hay que inventar categorías.
+  // No existe una hora exacta registrada para este cambio (solo vive por
+  // TURNO), así que se muestra fecha + turno, nunca una hora inventada.
+  const _SOP_ETIQ = { VM: 'VMI', VNI: 'VNI', 'Oxigenoterapia/OAF': 'Oxigenoterapia', Ambiente: 'Ambiente' };
+  let _sopAnterior = null;
   episodio.forEach(ev => {
     const f = dd(ev.FECHA);
     if (esVerdadero(ev.INTUB_OCURRIO)) hito('🫁 Intubación ' + f + (ev.INTUB_HORA ? ' ' + ev.INTUB_HORA : ''));
@@ -139,7 +148,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
       otro((ev.PVE_RESULTADO === 'superada' ? (sinExt ? '▲ PVE superada sin extubar ' : '▲ PVE superada ') : '▼ PVE frustra ') + f + mot +
         (sinExt && ev.PVE_SUP_SIN_EXT_RAZ ? ' (' + ev.PVE_SUP_SIN_EXT_RAZ + ')' : ''));
     }
-    if (esVerdadero(ev.EXT_OCURRIO)) hito('✂️ Extubación ' + f + (ev.EXT_HORA ? ' ' + ev.EXT_HORA : '') + (ev.EXT_TIPO ? ' (' + ev.EXT_TIPO + ')' : ''));
+    // Negrita (Manuel, sep-2026, 5.86-entrega-bn-negrita): en papel B/N los
+    // hitos de vía aérea, prono/supino y cambios de soporte se distinguen por
+    // PESO, no por color. El cliente pinta los eventos con innerHTML.
+    if (esVerdadero(ev.EXT_OCURRIO)) hito('<b>✂️ Extubación ' + f + (ev.EXT_HORA ? ' ' + ev.EXT_HORA : '') + (ev.EXT_TIPO ? ' (' + ev.EXT_TIPO + ')' : '') + '</b>');
     // Reintubación: evento · hora · CAUSA (Diego, 14-ago-2026). Era el único
     // evento de vía aérea que salía pelado —solo la fecha— y en la ronda se
     // pregunta POR QUÉ falló: poder responder «por mal manejo de secreciones»
@@ -148,10 +160,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     // El «queda con» NO va aquí por decisión suya: eso es del formulario, con
     // el resto de las transiciones de vía aérea.
     if (esVerdadero(ev.EXT_REINTUB)) {
-      hito('⚠️ Reintubación ' + f + (ev.REINTUB_HORA ? ' ' + ev.REINTUB_HORA : '') +
-        (ev.EXT_REINTUB_RAZ ? ' · por ' + String(ev.EXT_REINTUB_RAZ).toLowerCase() : ''));
+      hito('<b>⚠️ Reintubación ' + f + (ev.REINTUB_HORA ? ' ' + ev.REINTUB_HORA : '') +
+        (ev.EXT_REINTUB_RAZ ? ' · por ' + String(ev.EXT_REINTUB_RAZ).toLowerCase() : '') + '</b>');
     }
-    if (esVerdadero(ev.TQT_OCURRIO)) hito('🔪 TQT ' + f + (ev.TQT_HORA ? ' ' + ev.TQT_HORA : '') + (ev.TQT_TECNICA ? ' (' + String(ev.TQT_TECNICA).toLowerCase() + ')' : ''));
+    if (esVerdadero(ev.TQT_OCURRIO)) hito('<b>🔪 TQT ' + f + (ev.TQT_HORA ? ' ' + ev.TQT_HORA : '') + (ev.TQT_TECNICA ? ' (' + String(ev.TQT_TECNICA).toLowerCase() + ')' : '') + '</b>');
     if (esVerdadero(ev.DECAN_OCURRIO)) hito('⭕ Decanulación ' + f + (ev.DECAN_HORA ? ' ' + ev.DECAN_HORA : '') + (esVerdadero(ev.DECAN_RECANUL) ? ' → recanulado' : ''));
     if (esVerdadero(ev.PROC_RCP)) {
       const ciclos = String(ev.PROC_RCP_CICLOS || '').trim();
@@ -163,12 +175,30 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     if (esVerdadero(ev.PROC_IMAGEN)) otro('🩻 Traslado a imagenología ' + f);
     if (esVerdadero(ev.DESVINC_OCURRIO)) {
       const hrs = String(ev.DESVINC_HORAS || '').replace('.', ',');
-      hito('🔌 Desvinculación de VM ' + f + (ev.DESVINC_HORA ? ' ' + ev.DESVINC_HORA : '') +
+      hito('<b>🔌 Desvinculación de VM ' + f + (ev.DESVINC_HORA ? ' ' + ev.DESVINC_HORA : '') +
         (ev.DESVINC_A ? ' → ' + ev.DESVINC_A : '') +
-        (esVerdadero(ev.DESVINC_RECONEXION) ? (' · reconectado' + (hrs ? ' tras ' + hrs + ' h' : '')) : ' · SIN reconexión registrada'));
+        (esVerdadero(ev.DESVINC_RECONEXION) ? (' · reconectado' + (hrs ? ' tras ' + hrs + ' h' : '')) : ' · SIN reconexión registrada') + '</b>');
     }
     if (esVerdadero(ev.TOT_CAMBIO)) otro('🔄 Cambio de tubo ' + f);
     if (esVerdadero(ev.TQT_CAMBIO)) otro('🔄 Cambio de cánula ' + f);
+    // Cambio de soporte fuera de un procedimiento: se compara contra el turno
+    // NO-TQT anterior. Mientras la vía es TQT no se compara (es el terreno de
+    // Desvinculación) y se resetea, para que al decanular no se arrastre un
+    // soporte de hace días como si fuera «el anterior».
+    const _viaTurno = String(ev.VENT_VIA_AEREA || '');
+    const _sopTurno = String(ev.VENT_SOPORTE || '');
+    if (_viaTurno === 'TQT') {
+      _sopAnterior = null;
+    } else if (_sopTurno) {
+      const _yaNarrado = esVerdadero(ev.INTUB_OCURRIO) || esVerdadero(ev.EXT_OCURRIO) ||
+        esVerdadero(ev.TQT_OCURRIO) || esVerdadero(ev.DESVINC_OCURRIO);
+      if (_sopAnterior && _sopAnterior !== _sopTurno && !_yaNarrado) {
+        otro('<b>🔄 Cambio de soporte: ' + (_SOP_ETIQ[_sopAnterior] || _sopAnterior) + ' → ' +
+          (_SOP_ETIQ[_sopTurno] || _sopTurno) + ' ' + f + ' · turno ' +
+          (ev.TURNO === 'Dia' ? '☀️ Día' : '🌙 Noche') + '</b>');
+      }
+      _sopAnterior = _sopTurno;
+    }
     // Esta lista es de lo que OCURRIÓ en el turno: va el cambio de posición,
     // no el hecho de seguir en la misma (antes se repetía turno a turno).
     // Los episodios anteriores a la separación no traen el campo del evento:
@@ -177,11 +207,11 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
       ? esVerdadero(ev.RESP_POS_PRONO) : esVerdadero(ev.RESP_PRONO_EVENTO);
     const _supEv = (ev.RESP_SUPINO_EVENTO === undefined || ev.RESP_SUPINO_EVENTO === '')
       ? esVerdadero(ev.RESP_POS_SUPINO) : esVerdadero(ev.RESP_SUPINO_EVENTO);
-    if (_pronoEv) otro('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));
+    if (_pronoEv) otro('<b>🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : '') + '</b>');
     if (_supEv) {
       const _ph = String(ev.PRONO_HORAS === 0 ? '0' : (ev.PRONO_HORAS || '')).replace('.', ',');
-      otro('🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : '') +
-        (_ph ? ' · tras ' + _ph + ' h en prono' : ''));
+      otro('<b>🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : '') +
+        (_ph ? ' · tras ' + _ph + ' h en prono' : '') + '</b>');
     }
   });
 

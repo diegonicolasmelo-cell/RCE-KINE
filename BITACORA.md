@@ -19,6 +19,52 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.06-entrega-bn-de-manuel (6-sep-2026) — lo que Manuel publicó el 2-sep y la tanda pisó
+
+Diego, antes de fusionar: «revisa lo que hizo Manuel antes de que
+comenzáramos a trabajar para no pisar su progreso». Se revisaron TODAS las
+ramas remotas contra `main` y contra `filtros-vence-hoy`:
+
+- `manuel/velocidad-arranque` → ya en main por contenido (4f27572). Nada.
+- `entrega-blanco-negro-linea-tiempo` (Manuel, 1–2 sep, sello
+  **5.86-entrega-bn-negrita**, «ya publicada en producción» según su commit
+  94c52ee) → **NO estaba en main ni en develop**, y la tanda v5.86→v6.05 se
+  publicó encima: en el hospital corría SIN su trabajo. Su mitad del 30-ago
+  (texto congelado, Preview retirado, conciliación del REM) sí la traía la
+  rama porque nació del mismo tronco; lo que faltaba y se traspasó a mano:
+  · `svc_entrega.gs`: **negrita** en Extubación · Reintubación · TQT ·
+    Desvinculación · Prono · Supino, y el evento nuevo **«🔄 Cambio de
+    soporte: VNI → Oxigenoterapia fecha · turno»** para episodios no-TQT
+    (`_SOP_ETIQ`, `_sopAnterior` se resetea en TQT, `_yaNarrado` evita
+    duplicar el cambio cuando ya lo cuenta una intubación/extubación/TQT/
+    desvinculación). El conteo de bloques de 12 h lo quitó él mismo
+    (68299af): no se trae.
+  · `index.html`: el bloque `@media print` **BLANCO Y NEGRO** de la entrega
+    (todo el texto negro, chips con borde, franja «sin evolución» invertida,
+    ficha heredada con borde discontinuo, `<b>` rojo → subrayado).
+    🪤 **Su regla del chip de cama (fondo negro, número blanco) NO se trajo**:
+    es exactamente el «cuadro negro» que Diego reportó el 4-sep y que la
+    v5.92 dejó blanco con borde. Las dos reglas viven en el mismo bloque; la
+    de la v5.92 manda y el comentario lo explica.
+  · `build/medir_entrega.js`: `construirEventos(i, carga)` con los eventos en
+    `<b>`, para que el presupuesto de hojas mida el costo real de la negrita.
+  Su patch no aplicaba limpio (la v6.00 cambió el contexto de la PVE en
+  `_entFicha`): se aplicó por reemplazo exacto de cada línea.
+- `fix/la-vni-viaja-al-rem-hospital` (22–25 ago) → **queda SIN fusionar, a
+  propósito**. Los inicios de VNI en el 601171 ya están en main; lo que
+  sobra son 8 archivos que nadie documentó en CLAUDE ni en la bitácora:
+  `svc_rem_puente.gs` (el REM del mes «viaja solo» a otra planilla, «REM
+  Hospital»), `demo_datos.gs` (559 líneas de pacientes ficticios),
+  `build/paquete_maqueta.js` y las guardias `puente_rem.js` /
+  `maqueta_demo.js`. Es una integración con un destino externo que Diego no
+  ha aprobado: se le pregunta a él y a Manuel antes de tocarla.
+- Rama `prototipo-plantillas-evolucion`: sigue sin fusionar, por regla.
+
+Fusión: `filtros-vence-hoy` → `develop` (`--no-ff`) → `main` (`--no-ff`),
+pedido explícito de Diego («fusiona la rama una vez que compruebes qué hizo»).
+Sin cambio de esquema. Batería: **119 verdes, 0 rojas**; espejo regenerado.
+Se pegan **index + servicios** (la v6.05 del ícono va incluida).
+
 ## v6.04-plantillas-desde-el-texto (6-sep-2026) — los chips no sirvieron; la plantilla nace en el cuadro de texto
 
 Diego probó los chips de la v6.02 en el hospital: «se me hace enredado…

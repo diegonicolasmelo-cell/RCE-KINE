@@ -318,8 +318,13 @@ si tiene más de unos días, se confirma antes de usarla.
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
 - **Pegado y con `crearORepararEstructura()` corrido (Diego, 6-sep 04:24)**:
   la v6.04 completa (index + servicios, 6-sep 08:58; el ➕ funciona en el
-  hospital). **Pendiente de pegar: solo el index v6.05** (ícono de Synapse
-  dibujado). Historia de la v6.04: index + servicios
+  hospital). **Pendiente de pegar: index + servicios de la v6.06** (trae el
+  ícono de Synapse de la v6.05 y el traspaso de la entrega en blanco y negro
+  de Manuel — su 5.86-entrega-bn-negrita estaba publicada y la tanda la pisó;
+  ver BITACORA v6.06). **Fusionado el 6-sep**: `filtros-vence-hoy` →
+  `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
+  (puente «REM Hospital» + maqueta de pacientes ficticios) quedó SIN fusionar
+  a propósito: destino externo no aprobado por Diego. Historia de la v6.04: index + servicios
   (plantillas desde el cuadro de texto, sin barra de chips; interacción P-VM
   que no se arrastra; incluye el tooltip acotado y el ícono Rx de la v6.03).
   Sin cambio de esquema. Lo que sigue describe la tanda entera:

@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.05-icono-synapse">
+<meta name="rce-version" content="6.06-entrega-bn-de-manuel">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -536,6 +536,47 @@ tr.r-tot td.tv{color:#fde68a!important;font-family:'Courier New',monospace;font-
   .ent-firma{padding:0 7px 1px;font-size:.52rem;line-height:1.1;}
   .ent-heredado{font-size:.58rem;padding:1px 7px;}
   .ent-sinevo-strip{font-size:.58rem;padding:1px 7px;}
+
+  /* ─────────────────────────────────────────────────────────────────────
+     BLANCO Y NEGRO (sep-2026, pedido de Manuel; sello 5.86-entrega-bn-negrita)
+     La impresora de la unidad no es a color: los grises de pantalla (#94a3b8,
+     #64748b, los chips de color con fondo al 10%) salían como un gris lavado y
+     el papel costaba leerlo. En papel TODO el texto es negro, los fondos son
+     blancos y lo que en pantalla se distingue por color acá se distingue por
+     BORDE o por PESO: los chips llevan borde negro fino, la franja «sin
+     evolución» invierte (blanco sobre negro), la ficha heredada lleva borde
+     discontinuo y la sin evolución borde grueso. Las reglas van con !important
+     porque los colores de los chips vienen en línea desde renderEntrega. Los
+     tamaños NO cambian: el presupuesto de hojas se mide
+     (build/medir_entrega.js) y se cuida aparte.
+     🪤 Se traspasó a mano el 6-sep-2026 (la rama de Manuel no había llegado a
+     main y la v6.02+ la pisó en producción). Su regla para el chip de la cama
+     (fondo negro, número blanco) NO se trajo: Diego reportó el 4-sep que ese
+     chip salía como cuadro negro y la v5.92 lo dejó blanco con borde (arriba).
+     ───────────────────────────────────────────────────────────────────── */
+  #tcE,#tcE *{color:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .ent-head{border-bottom-color:#000;}
+  .ent-pill{background:#fff!important;border-color:#000!important;}
+  .ent-ficha{border:1px solid #000;}
+  .ent-fh{background:#fff!important;border-bottom:1px solid #000;}
+  .ent-fh-dx{font-style:italic;}
+  .ent-tag{background:#fff!important;border:1px solid #000!important;}
+  .ent-p1{border-bottom:1px dotted #000;}
+  .ent-c + .ent-c:before{color:#000!important;}
+  .ent-p2 .ent-pend{background:#fff!important;border-top:1px dashed #000;}
+  .ent-pend-chip{color:#000!important;font-weight:800!important;}
+  .ent-plan-print,.ent-pend textarea{color:#000!important;}
+  .ent-firma{border-top:none;}
+  .ent-foot{border-top-color:#000;}
+  .ent-foot .ent-sign-line{border-top-color:#000;}
+  /* Las tres franjas de aviso: distintas por borde y por inversión, no por tono. */
+  .ent-ficha-sinevo{border:2.5px solid #000;}
+  .ent-ficha-heredada{border:2px dashed #000;}
+  .ent-heredado{background:#fff!important;border-left:4px solid #000;}
+  .ent-sinevo-strip{background:#000!important;color:#fff!important;}
+  /* Un <b> que en pantalla iba en rojo (VENCIDO, BNM, HDN inestable) sigue
+     resaltado: negrita + subrayado, que la impresora sí sabe hacer. */
+  .ent-v b[style*="color"]{text-decoration:underline;}
 }
 /* ── Hojas del día (registro kinésico V0.2) + Hoja PVE — verticales ── */
 #rkPrint,#pvePrint{display:none;}
@@ -4634,7 +4675,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.05-icono-synapse]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.06-entrega-bn-de-manuel]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}

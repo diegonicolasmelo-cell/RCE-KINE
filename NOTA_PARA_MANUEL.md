@@ -1,4 +1,4 @@
-# 🤝 Nota para Manuel — actualizada el 6-sep-2026
+# 🤝 Nota para Manuel — actualizada el 6-sep-2026 (tanda fusionada)
 
 **Mensaje de Diego (5-sep, textual):** *«dile a Manuel que no programe nada —
 estoy haciendo esto en una rama paralela y, una vez que tengamos todo listo y
@@ -6,19 +6,31 @@ probado, podríamos juntar con sus cambios, si es que tiene».*
 
 ---
 
-## 🔴 Lo importante, en dos líneas
+## 🔴 Lo importante (6-sep-2026, después de fusionar)
 
-1. **NO programes ni publiques nada por ahora.** Diego está probando una tanda
-   grande (v5.86 → v6.02) que vive completa en la rama **`filtros-vence-hoy`**.
-2. Cuando él la dé por probada, **se fusiona con lo tuyo** (si tienes algo en
-   curso, guárdalo en su rama y avisa por aquí o por Slack).
+1. **La tanda de Diego (v5.86 → v6.06) YA ESTÁ en `develop` y en `main`.**
+   Diego la probó en producción y pidió fusionarla. Rama nueva = sale de
+   `develop`, como siempre.
+2. **Tu `entrega-blanco-negro-linea-tiempo` (5.86-entrega-bn-negrita) no
+   había llegado a main y la tanda la pisó en producción.** Se traspasó a
+   mano en la **v6.06**: negrita en los eventos, «🔄 Cambio de soporte», el
+   `@media print` blanco y negro y `construirEventos` del medidor. Lo único
+   que NO se trajo es el chip de cama invertido (fondo negro): Diego lo
+   reportó como «cuadro negro» el 4-sep y la v5.92 lo dejó blanco con borde.
+   Si ves algo más tuyo que falte, dilo aquí.
+3. **Tu `fix/la-vni-viaja-al-rem-hospital` sigue SIN fusionar, a propósito.**
+   Los inicios de VNI en el 601171 ya están en main. Lo que queda (puente
+   «REM Hospital», `demo_datos.gs`, `paquete_maqueta.js` y sus guardias) es
+   una integración con una planilla externa que no está documentada ni
+   aprobada por Diego: hay que contarle qué es y que él decida.
 
 ## Lo que hay ahora mismo en el repo
 
 | Rama | Qué es | ¿Se toca? |
 |---|---|---|
-| `main` / `develop` | Lo aprobado hasta la **v5.85**. | Solo leer |
-| **`filtros-vence-hoy`** | **La tanda en prueba: v5.86 → v6.02** (incluye y reemplaza a `nota-timeline-synapse-cumpleanos`). Diego la está pegando y probando en producción por partes. | La trabaja Diego con su sesión |
+| `main` / `develop` | **Todo hasta la v6.06** (incluye tu 5.85 y tu 5.86-entrega-bn). | Rama nueva desde `develop` |
+| `filtros-vence-hoy` | La tanda ya fusionada; queda como historia. | No |
+| `fix/la-vni-viaja-al-rem-hospital` | Tu puente REM Hospital + maqueta. **Pendiente de decisión de Diego.** | Tú, después de hablar con él |
 | `prototipo-plantillas-evolucion` | 🚫 Prototipo de plantillas. NO se pega ni se fusiona. | No |
 
 ## Qué trae la tanda v5.86 → v6.02 (118 guardias verdes)
