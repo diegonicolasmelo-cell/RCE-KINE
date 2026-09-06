@@ -5262,11 +5262,25 @@ function _gsaDesdoblar(tok, critico) {
   return t;
 }
 
-/** Primer número después de la etiqueta en la línea; null si no lo hay. */
-function _gsaNumeroTras(linea, re) {
-  const m = String(linea).match(re);
+/**
+ * Primer número después de la etiqueta; null si no lo hay.
+ * 🪤 (6-sep-2026, reporte de Diego: «importa a la base de datos pero no pasa
+ * a la hoja diaria… falta que rescate el id y la hora»). Hasta la v6.06 esto
+ * se evaluaba LÍNEA POR LÍNEA: la etiqueta y su valor tenían que caer en el
+ * mismo renglón. El texto que devuelve la conversión PDF→Documento de Drive
+ * no respeta las columnas del informe como la capa de texto del PDF: puede
+ * dejar «Fecha de Ingreso :» en un renglón y «04/09/2026 03:41:37» en el
+ * siguiente. Sin fecha → sin hora → «sin fecha de toma» → sin PATIENT_ID.
+ * Ahora la etiqueta se busca en el texto ENTERO (bandera m: `^` es inicio de
+ * renglón) y el valor se toma de la VENTANA que sigue, saltos de línea
+ * incluidos. La regla de corte no cambia: si antes del número aparece una
+ * palabra (la unidad, la etiqueta siguiente), no hay valor.
+ */
+function _gsaNumeroTras(texto, re) {
+  const reM = new RegExp(re.source, re.flags.indexOf('m') === -1 ? re.flags + 'm' : re.flags);
+  const m = String(texto).match(reM);
   if (!m) return null;
-  const resto = String(linea).slice(m.index + m[0].length);
+  const resto = String(texto).slice(m.index + m[0].length, m.index + m[0].length + 160);
   const crudos = resto.split(/\s+/).filter(function (t) { return t && t !== ':' && t !== '-'; });
   let critico = false;
   for (let i = 0; i < crudos.length; i++) {
@@ -5286,25 +5300,34 @@ function _gsaNumeroTras(linea, re) {
  * bloque que repita etiquetas).
  */
 function gsaParsear(texto) {
-  const out = { rut: '', peticion: '', fecha: '', hora: '', valores: {}, venoso: false };
-  const lineas = String(texto || '').split(/\r?\n/);
-  lineas.forEach(function (l) {
-    if (!out.rut) {
-      const m = l.match(/RUT\s*:?\s*([0-9][0-9.]{4,}\s?-?\s?[0-9kK])\b/);
-      if (m) out.rut = m[1].replace(/\s/g, '');
-    }
-    if (!out.peticion) { const m = l.match(/Petici[oó]n\s*:?\s*(\d{4,})/i); if (m) out.peticion = m[1]; }
-    if (!out.fecha) {
-      const m = l.match(/Fecha de Ingreso\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})/i);
-      if (m) { out.fecha = m[3] + '-' + m[2] + '-' + m[1]; out.hora = ('0' + m[4]).slice(-2) + ':' + m[5]; }
-    }
-    _GSA_CAMPOS.forEach(function (c) {
-      if (out.valores[c[0]] !== undefined) return;
-      const n = _gsaNumeroTras(l, c[1]);
-      if (n !== null) out.valores[c[0]] = n;
-    });
+  const out = { rut: '', peticion: '', fecha: '', hora: '', horaOrigen: '', valores: {}, venoso: false };
+  const T = String(texto || '').replace(/\r/g, '');
+  // Todo se busca en el texto ENTERO: etiqueta y valor pueden quedar en
+  // renglones distintos según cómo Drive convierta el PDF (ver _gsaNumeroTras).
+  let m = T.match(/RUT\s*:?\s*([0-9][0-9.]{4,}\s?-?\s?[0-9kK])\b/);
+  if (m) out.rut = m[1].replace(/\s/g, '');
+  m = T.match(/Petici[oó]n\s*:?\s*(\d{4,})/i);
+  if (m) out.peticion = m[1];
+  // La toma = «Fecha de Ingreso» (al laboratorio). La hora puede venir pegada
+  // a la fecha, en el renglón siguiente, o no venir: entonces vale la hora del
+  // «Fecha de Informe» (el resultado sale minutos después de la toma; sirve
+  // para decidir el turno, que es lo único que se calcula con ella).
+  const _fh = function (etiqueta) {
+    const x = T.match(new RegExp(etiqueta + '\\s*:?\\s*(\\d{2})\\/(\\d{2})\\/(\\d{4})([\\s\\S]{0,60})', 'i'));
+    if (!x) return null;
+    const h = x[4].match(/^\s*(\d{1,2}):(\d{2})/);
+    return { fecha: x[3] + '-' + x[2] + '-' + x[1], hora: h ? ('0' + h[1]).slice(-2) + ':' + h[2] : '' };
+  };
+  const ing = _fh('Fecha de Ingreso'), inf = _fh('Fecha de Informe');
+  if (ing) { out.fecha = ing.fecha; out.hora = ing.hora; out.horaOrigen = ing.hora ? 'ingreso' : ''; }
+  if (!out.hora && inf && inf.hora && (!out.fecha || out.fecha === inf.fecha)) {
+    out.fecha = out.fecha || inf.fecha; out.hora = inf.hora; out.horaOrigen = 'informe';
+  }
+  _GSA_CAMPOS.forEach(function (c) {
+    const n = _gsaNumeroTras(T, c[1]);
+    if (n !== null) out.valores[c[0]] = n;
   });
-  out.venoso = /Gases Venosos/i.test(texto) && !/Gases Arteriales/i.test(texto);
+  out.venoso = /Gases Venosos/i.test(T) && !/Gases Arteriales/i.test(T);
   // PaFi: si el informe no la trae calculada, se deriva (PaO₂ / FiO₂ en fracción).
   if (out.valores.PAFI === undefined && out.valores.PAO2 !== undefined && out.valores.FIO2 > 0) {
     out.valores.PAFI = Math.round(out.valores.PAO2 / (out.valores.FIO2 / 100));
@@ -5393,17 +5416,25 @@ function gsaImportarPendientes(ctx) {
       const sinEmp = _gsaSub(carpeta, GSA_SUB_SIN);
       const yaPet = {};
       repoLeerTodos('GSA_IMPORTADAS').forEach(function (g) { if (g.PETICION && String(g.ESTADO) === 'ok') yaPet[String(g.PETICION)] = true; });
-      const res = { importados: [], sinEmparejar: [], repetidos: 0, errores: [] };
+      const res = { importados: [], sinEmparejar: [], repetidos: 0, errores: [], reintentados: 0 };
+      // Se recorre la carpeta de entrada y DESPUÉS la bandeja «sin emparejar»
+      // (6-sep-2026): un PDF que no se pudo leer ayer —por el parser, o porque
+      // el RUT de la cama se registró después— se vuelve a intentar solo. Si
+      // sigue sin emparejar, se queda donde está y NO se anota otra fila.
+      const cola = [];
       const it = carpeta.getFilesByType(MimeType.PDF);
-      let n = 0;
-      while (it.hasNext() && n < GSA_MAX_POR_CORRIDA) {
-        const f = it.next(); n++;
+      while (it.hasNext() && cola.length < GSA_MAX_POR_CORRIDA) cola.push({ f: it.next(), reintento: false });
+      const it2 = sinEmp.getFilesByType(MimeType.PDF);
+      while (it2.hasNext() && cola.length < GSA_MAX_POR_CORRIDA) cola.push({ f: it2.next(), reintento: true });
+      cola.forEach(function (item) {
+        const f = item.f;
         try {
           const p = gsaParsear(_gsaTextoDePdf(f));
-          if (p.peticion && yaPet[p.peticion]) { res.repetidos++; f.moveTo(copiados); continue; }
+          if (p.peticion && yaPet[p.peticion]) { res.repetidos++; f.moveTo(copiados); return; }
           const motivo = !p.rut ? 'sin RUT legible' : !rutValido(p.rut) ? 'RUT no valida (dígito verificador)'
-            : !p.fecha ? 'sin fecha de toma' : '';
+            : !p.fecha ? 'sin fecha de toma' : !p.hora ? 'sin hora de toma' : '';
           const ep = motivo ? null : _gsaEpisodioPorRut(p.rut, p.fecha);
+          const motivoFinal = motivo || (ep ? '' : 'RUT válido, pero ninguna cama ocupada ni egreso lo tiene registrado en esa fecha (revisar el RUT en la ficha de la cama)');
           const base = {
             ID_GSA: uid('gsa'), FECHA: p.fecha, HORA: p.hora,
             PH: p.valores.PH, PACO2: p.valores.PACO2, PAO2: p.valores.PAO2, HCO3: p.valores.HCO3, EB: p.valores.EB,
@@ -5415,20 +5446,30 @@ function gsaImportarPendientes(ctx) {
           Object.keys(base).forEach(function (k) { if (base[k] === undefined || base[k] === null) base[k] = ''; });
           if (!ep) {
             // 🔴 Regla dura: sin certeza no se escribe en nadie. Ni el RUT se guarda.
+            if (item.reintento) return;   // ya tiene su fila y su bandeja: nada nuevo que anotar
             repoInsertar('GSA_IMPORTADAS', Object.assign(base, { PATIENT_ID: '', ID_CAMA: '', TURNO_KEY: '',
-              ESTADO: 'sin_emparejar', DETALLE: motivo || 'RUT sin episodio en esa fecha' }));
+              ESTADO: 'sin_emparejar', DETALLE: motivoFinal }));
             f.moveTo(sinEmp);
-            res.sinEmparejar.push(f.getName() + ' — ' + (motivo || 'RUT sin episodio en esa fecha'));
-            continue;
+            res.sinEmparejar.push(f.getName() + ' — ' + motivoFinal);
+            return;
           }
           const tl = turnoLogicoServidor(p.fecha, p.hora);
+          const detalle = [p.venoso ? 'venoso' : '', ep.tipo === 'egresado' ? 'episodio egresado' : '',
+            p.horaOrigen === 'informe' ? 'hora tomada del informe' : '', item.reintento ? 'reintento' : ''].filter(Boolean).join(' · ');
           repoInsertar('GSA_IMPORTADAS', Object.assign(base, { PATIENT_ID: ep.pid, ID_CAMA: ep.idCama, TURNO_KEY: tl.turnoKey,
-            ESTADO: 'ok', DETALLE: (p.venoso ? 'venoso' : '') + (ep.tipo === 'egresado' ? ' (episodio egresado)' : '') }));
+            ESTADO: 'ok', DETALLE: detalle }));
           if (p.peticion) yaPet[p.peticion] = true;
+          if (item.reintento) {
+            // La fila vieja «sin_emparejar» del MISMO archivo queda marcada, no borrada.
+            const idArch = f.getId();
+            try { repoActualizarDonde('GSA_IMPORTADAS', function (g) { return String(g.ARCHIVO_ID) === String(idArch) && String(g.ESTADO) === 'sin_emparejar'; },
+              function () { return { ESTADO: 'reintentado', DETALLE: 'emparejado en un reintento posterior' }; }); } catch (e) {}
+            res.reintentados++;
+          }
           f.moveTo(copiados);
           res.importados.push({ cama: ep.idCama, hora: p.hora, fecha: p.fecha });
         } catch (e) { res.errores.push(f.getName() + ': ' + e.message); }
-      }
+      });
       if (res.importados.length || res.sinEmparejar.length || res.errores.length) {
         try {
           const camas = res.importados.map(function (x) { return x.cama; }).filter(Boolean).sort(function (a, b) { return a - b; });
@@ -5488,6 +5529,38 @@ function gsaImportarDesdeTrigger() {
   try { auditar({ email: 'trigger', accion: 'GSA_IMPORTAR', entidad: 'GSA_IMPORTADAS', resumen: r.ok ? (r.data.importados.length + ' importados, ' + r.data.sinEmparejar.length + ' sin emparejar') : ('ERROR ' + r.error) }); } catch (e) {}
   return r;
 }
+/**
+ * gsaDiagnostico — para correr desde el editor cuando un PDF «no pasa».
+ * Toma el primer PDF de la carpeta de entrada (o, si está vacía, el primero
+ * de «sin emparejar»), lo convierte con el MISMO camino que la importación y
+ * escribe en el registro qué entendió el parser y cómo se ve el texto que
+ * devolvió Drive. No mueve ni escribe nada. El RUT y el nombre salen
+ * tapados: el registro del editor no es lugar para datos de un paciente.
+ */
+function gsaDiagnostico() {
+  const carpeta = _gsaCarpeta();
+  let it = carpeta.getFilesByType(MimeType.PDF), origen = 'entrada';
+  if (!it.hasNext()) { it = _gsaSub(carpeta, GSA_SUB_SIN).getFilesByType(MimeType.PDF); origen = GSA_SUB_SIN; }
+  if (!it.hasNext()) { Logger.log('No hay ningún PDF ni en la entrada ni en «' + GSA_SUB_SIN + '».'); return null; }
+  const f = it.next();
+  const texto = _gsaTextoDePdf(f);
+  const p = gsaParsear(texto);
+  const tapa = function (t) {
+    return String(t).replace(/\d{1,2}\.?\d{3}\.?\d{3}\s?-?\s?[\dkK]\b/g, '<RUT>')
+      .replace(/(Nombre\s*:?\s*)[^\n]*/gi, '$1<NOMBRE>');
+  };
+  const lineas = texto.replace(/\r/g, '').split('\n');
+  const out = ['📄 ' + f.getName() + ' (en «' + origen + '»)',
+    'RUT: ' + (!p.rut ? '❌ no encontrado' : rutValido(p.rut) ? '✅ encontrado y válido' : '⚠️ encontrado pero NO valida'),
+    'Petición: ' + (p.peticion || '❌'), 'Fecha de toma: ' + (p.fecha || '❌'),
+    'Hora: ' + (p.hora || '❌') + (p.horaOrigen ? ' (' + p.horaOrigen + ')' : ''),
+    'Venoso: ' + p.venoso, 'Valores: ' + JSON.stringify(p.valores),
+    'Episodio: ' + (p.rut && p.fecha ? JSON.stringify(_gsaEpisodioPorRut(p.rut, p.fecha)) : '(no se buscó)'),
+    '— Texto que devolvió Drive: ' + lineas.length + ' renglones; los primeros 40 —'].concat(lineas.slice(0, 40).map(tapa));
+  Logger.log(out.join('\n'));
+  return out.join('\n');
+}
+
 /** Para correrla a mano desde el editor y ver el resumen en el registro. */
 function gsaImportarAhora() {
   const r = gsaImportarPendientes({ email: 'editor', firma: '' });
