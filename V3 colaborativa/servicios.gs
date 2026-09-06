@@ -1878,6 +1878,10 @@ function _docsArchivos(carpeta) {
  * sin importar cuántas camas se elijan.
  */
 
+// Qué NOMBRE_PROC cuenta como estudio microbiológico. Un solo catálogo: lo
+// usan la entrega de turno y la hoja impresa (ultimosCultivos).
+const _ENT_RE_CULTIVO = /CULTIVO|HISOPADO|PCR|FILMARRAY|MINI ?LAB|CCAET/;
+
 function obtenerEntregaTurno(idCamas, fecha, turno) {
   try {
     if (!idCamas || !idCamas.length) return err('No se seleccionaron camas.', ERR.VALIDACION);
@@ -1931,8 +1935,7 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
       const pidCu = String((camaPorId[id] && camaPorId[id].PATIENT_ID) || '');
       const pidPr = String(p.PATIENT_ID || '');
       if (pidCu && pidPr && pidCu !== pidPr) return;
-      const nom = String(p.NOMBRE_PROC || '').toUpperCase();
-      if (!/CULTIVO|HISOPADO|PCR|FILMARRAY|MINI ?LAB|CCAET/.test(nom)) return;
+      if (!_ENT_RE_CULTIVO.test(String(p.NOMBRE_PROC || '').toUpperCase())) return;
       const iso = _statISO(p.FECHA);
       if (!iso) return;
       if (!cultivoPorCama[id] || iso > cultivoPorCama[id].iso) cultivoPorCama[id] = { iso: iso, nombre: p.NOMBRE_PROC };
@@ -1967,6 +1970,58 @@ function obtenerEntregaTurno(idCamas, fecha, turno) {
       fichas: fichas,
     });
   } catch (e) { return err('obtenerEntregaTurno: ' + e.message, ERR.INTERNO, e); }
+}
+
+/**
+ * ultimosCultivos — el último estudio microbiológico de cada episodio, con su
+ * resultado, para la HOJA IMPRESA (Diego, 6-sep-2026: «agrégale además en
+ * observaciones, pero en la última, la fecha del último cultivo y su
+ * resultado»). Mismas reglas que la entrega, en un solo lugar: el catálogo de
+ * nombres que cuentan como cultivo y el resultado más reciente escrito en el
+ * episodio. Va por PATIENT_ID, así que la cama que cambió de ocupante no puede
+ * heredar el aspirado del anterior.
+ * @return {{[pid:string]: {fecha:string, nombre:string, resultado:string}}}
+ */
+function ultimosCultivos(pids) {
+  try {
+    const lista = (pids || []).map(String).filter(function (x) { return x !== ''; });
+    if (!lista.length) return ok({});
+    const quiero = {};
+    lista.forEach(function (p) { quiero[p] = true; });
+    const ult = {};
+    repoLeerTodos('PROCEDIMIENTOS').forEach(function (p) {
+      const pid = String(p.PATIENT_ID || '');
+      if (!pid || !quiero[pid]) return;
+      if (!_ENT_RE_CULTIVO.test(String(p.NOMBRE_PROC || '').toUpperCase())) return;
+      const iso = _statISO(p.FECHA);
+      if (!iso) return;
+      if (!ult[pid] || iso > ult[pid].iso) ult[pid] = { iso: iso, nombre: String(p.NOMBRE_PROC || '') };
+    });
+    if (!Object.keys(ult).length) return ok({});
+    // El RESULTADO no vive en PROCEDIMIENTOS sino en la evolución que lo
+    // informó: se toma el más reciente del episodio, como en la entrega.
+    // 🪤 Se lee con repoLeerFiltrado y NO con repoLeerColumnas: este archivo
+    // también escribe (guardarEntrega), y un objeto parcial guardado por error
+    // dejaría en blanco las columnas que no se pidieron. La guardia
+    // columnas.js vigila exactamente eso, archivo por archivo. Filtrar por
+    // PATIENT_ID baja solo las filas de los pacientes presentes, completas.
+    const res = {};
+    repoLeerFiltrado('EVOLUCIONES', 'PATIENT_ID', function (v) { return !!ult[String(v)]; }).forEach(function (e) {
+      const pid = String(e.PATIENT_ID || '');
+      if (!pid || !ult[pid]) return;
+      const r = String(e.EX_CULT_RESULTADO || '').trim();
+      if (!r) return;
+      const tk = String(e.TURNO_KEY || '');
+      if (!res[pid] || tk > res[pid].tk) res[pid] = { tk: tk, r: r };
+    });
+    const out = {};
+    Object.keys(ult).forEach(function (pid) {
+      const iso = ult[pid].iso;
+      out[pid] = { fecha: iso.slice(8, 10) + '-' + iso.slice(5, 7), nombre: ult[pid].nombre,
+        resultado: res[pid] ? res[pid].r : '' };
+    });
+    return ok(out);
+  } catch (e) { return err('ultimosCultivos: ' + e.message, ERR.INTERNO, e); }
 }
 
 /** Ficha de entrega de una cama. */
