@@ -90,9 +90,14 @@ r = api('GUARDAR_EVOLUCION', evoBase('6', 'Paciente Bravo', { RESP_KTR_CANT: 3 }
 eq('se guarda el turno de B', r.ok, true);
 
 // 🔴 EL ASSERT QUE IMPORTA. Antes del arreglo esto devolvía el pid de A.
-const filaB = evosDe('CAMA_6_' + TK).find(e => String(e.PAC_NOMBRE || '').indexOf('Bravo') > -1)
-           || evosDe('CAMA_6_' + TK)[0];
+// v5.99: la fila de B ya NO comparte clave con la de A — nace aparte, con el
+// sufijo del episodio (la de A sigue intacta bajo la clave base). Se busca
+// por cama + turno + nombre, no por clave.
+const filasTurno6 = DB.EVOLUCIONES.filter(e => String(e.ID_CAMA) === '6' && String(e.TURNO_KEY) === TK);
+const filaB = filasTurno6.find(e => String(e.PAC_NOMBRE || '').indexOf('Bravo') > -1) || filasTurno6[0];
 eq('LA EVOLUCIÓN DE B LLEVA EL PACIENTE DE B, no el de A', filaB.PATIENT_ID, PID_B);
+eq('★ v5.99: la evolución de A NO se pisó (sigue con su paciente y su KTR)',
+  (evosDe('CAMA_6_' + TK)[0] || {}).PATIENT_ID + '|' + (evosDe('CAMA_6_' + TK)[0] || {}).RESP_KTR_CANT, PID_A + '|2');
 eq('…y el censo de la cama también', cama('6').PATIENT_ID, PID_B);
 si('…y el nombre del censo es el de B', String(cama('6').NOMBRE || '').indexOf('Bravo') > -1);
 

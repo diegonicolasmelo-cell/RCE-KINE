@@ -23,6 +23,24 @@ function diasEntre(desdeISO, hastaISO) {
   } catch (e) { return 0; }
 }
 
+/**
+ * turnoLogicoServidor — ESPEJO de _turnoLogico del cliente (index.html), con
+ * los MISMOS cortes de CONFIG (tanda 2b, sep-2026). Existe porque la
+ * importación de la GSA corre en el servidor: un gas de las 04:00 pertenece a
+ * la NOCHE del día anterior, y si la unidad cambia los horarios en CONFIG los
+ * dos lados tienen que moverse juntos (la guardia gsa_importada lo compara).
+ * @return {{fecha:string, turno:string, turnoKey:string}}
+ */
+function turnoLogicoServidor(fechaISO, hora) {
+  const dia = parseInt(leerConfig('TURNO_DIA_INICIO', '9'), 10) || 9;
+  const noche = parseInt(leerConfig('TURNO_NOCHE_INICIO', '21'), 10) || 21;
+  const h = parseInt(String(hora || '00:00').slice(0, 2), 10) || 0;
+  let f = String(fechaISO || '').slice(0, 10), turno;
+  if (h >= dia && h < noche) turno = 'Dia';
+  else { turno = 'Noche'; if (h < dia) f = _restarDias(f, 1); }
+  return { fecha: f, turno: turno, turnoKey: f + '-' + turno };
+}
+
 /** Hora actual "HH:mm". Se deriva de ahoraTS() para que exista UNA sola
     fuente de reloj (los arneses y la simulación la sustituyen). */
 function _horaAhora() {

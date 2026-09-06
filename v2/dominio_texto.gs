@@ -309,7 +309,12 @@ function generarTextoEvolucion(d) {
       return;
     }
     if (pveVal === 'si') {
-      if (pveRes === 'superada') {
+      if (pveRes === 'superada' && esVerdadero(d.PVE_SUP_SIN_EXT)) {
+        // Tanda 2a (PRD_PVE_SUPERADA_SIN_EXTUBAR): la prueba se superó y NO se
+        // extubó. Paridad con genTexto del cliente.
+        const sr = v('PVE_SUP_SIN_EXT_RAZ');
+        txt.push(`Se realiza PVE con resultado superado. No se extuba${sr ? ' por ' + _lcIni(sr) : ''}; mantiene ventilación mecánica.`);
+      } else if (pveRes === 'superada') {
         txt.push(`Se realiza PVE con resultado superado, progresando a extubación${horaTxt}.`);
         if (esVerdadero(d.EXT_REINTUB)) {
           const rz = v('EXT_REINTUB_RAZ'), rh = v('REINTUB_HORA');
@@ -598,6 +603,15 @@ function generarTextoEvolucion(d) {
 
   // 11. Planes y firma
   const planes = v('PLAN_PLANES'), nota = v('PLAN_NOTA_TURNO'), firma = v('PLAN_FIRMA_KINE');
+  // 📌 Anotaciones del turno (v5.97): hechos sin estadística, narrados antes
+  // de la Nota. Espejo EXACTO del cliente (genTexto) — mantener en paridad.
+  try {
+    (JSON.parse(String(v('ANOTACIONES_JSON') || '[]')) || []).forEach(function (a) {
+      const _t = String((a && a.t) || '').trim(); if (!_t) return;
+      const _h = String((a && a.h) || '').trim();
+      txt.push(_t + (_h ? ` a las ${_h}` : '') + '.');
+    });
+  } catch (e) { /* JSON malo: la evolución sale sin anotaciones */ }
   // Observaciones ANTES del plan (22-ago-2026, pedido de Manuel): el plan es lo
   // pendiente para el turno siguiente y cierra el texto. Espejo del cliente.
   if (nota)   txt.push(`Nota: ${nota}`);

@@ -103,10 +103,12 @@ const mrc1 = (idx.match(/id="fMrcD1"[\s\S]{0,400}?<\/select>/) || [''])[0];
 eq('★ los casilleros de MRC siguen siendo números pelados',
   /<option>0<\/option>/.test(mrc1), true);
 
-/* ══ 5 · EL TOTAL SE SIGUE CALCULANDO IGUAL ═════════════════════════════ */
-console.log('\n5 · La suma no cambió');
+/* ══ 5 · EL TOTAL SIGUE EXIGIENDO LOS 5 ÍTEMS DECLARADOS ═══════════════
+   (v5.95: «declarado» ahora es puntaje O «NE»; la aritmética del NE —
+   promedio hasta 2, no calculable con más— la fija fss_ne.js) ═══════════ */
+console.log('\n5 · La suma exige los 5 ítems declarados');
 eq('sumFSS sigue sumando los 5 ítems', /const vals=\[1,2,3,4,5\]\.map\(i=>v\('fFssIt'\+i\)\);/.test(idx), true);
-eq('…y exige los 5 para dar el total', /if\(con\.length===5\)\{/.test(idx), true);
+eq('…y sin los 5 declarados no hay total', /if\(sinDeclarar>0\)\{/.test(idx) && idx.includes("$('fFSS').value=''; interpFSS();"), true);
 eq('sumMRC sigue con sus 6 movimientos por lado',
   /const d=\[1,2,3,4,5,6\]\.map\(i=>v\('fMrcD'\+i\)\)/.test(idx), true);
 

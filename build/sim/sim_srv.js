@@ -108,6 +108,9 @@ global.repoEscribirFila = (h, fila, obj) => {
   global._colsExigirCompleto(h, obj, 'repoEscribirFila');
   DB[h][fila - 2] = Object.assign({}, obj);
 };
+global.repoLeerColumnasConFila = (h, campos) => (DB[h] || []).map((o, i) => {
+  const obj = {}; campos.forEach(c => { obj[c] = (c in o) ? o[c] : ''; }); return { fila: i + 2, obj };
+});
 global.repoLeerTodosConFila = h =>
   (DB[h] || []).map((r, i) => ({ obj: Object.assign({}, r), fila: i + 2 }));
 global.repoEliminarFilas = (h, filas) => {

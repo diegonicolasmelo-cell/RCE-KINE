@@ -33,6 +33,10 @@ navegador del hospital o de su casa.
   `background` explícito desde un token; si no, el fondo lo pone el visor y la
   página se ve oscura igual. Vale también para lo que se publique como
   documento (PRD, planes, resúmenes), no solo para los mockups de pantallas.
+- 🪤 **Emojis en la interfaz: nada posterior a 2019.** El Chrome del hospital
+  corre en Windows 10 y su fuente no trae los emojis nuevos: 🩻 (2021) salió
+  como un cuadrado (6-sep-2026). Para íconos nuevos, SVG propio o un emoji
+  viejo (🖼️, 📋; 🫁 NO: es de 2020).
 
 ### 🔴 CÓMO SE PUBLICA — regla vigente (14-ago-2026, la cambió Diego)
 
@@ -159,13 +163,13 @@ ciegas):
   `~/.ssh/config` (`Host github.com` → `IdentityFile`, `IdentitiesOnly yes`).
   No hay token de por medio: si `git push` pide usuario y contraseña, el
   problema es esa configuración, no las credenciales.
-  El proyecto GAS de producción usa un layout de 9 .gs: los 15 `svc_*.gs`
-  (de 31 `.gs` en `v2/`) viajan fusionados como `servicios.gs`
+  El proyecto GAS de producción usa un layout de 9 .gs: los 19 `svc_*.gs`
+  (de 35 `.gs` en `v2/`) viajan fusionados como `servicios.gs`
   (`build/fusionar_servicios.js`, que los toma por glob: la cifra sube sola al
   agregar un servicio).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 23 hojas; **EVOLUCIONES tiene 386 columnas** y `testEsquema`
+- `esquema.gs`: 26 hojas (24 NOTIFICACIONES —buzón, de SOLO agregar—, 25 GSA_IMPORTADAS —gases del laboratorio, sin RUT—, 26 PLANTILLAS_EVOLUCION —catálogo, se conserva en el reset—); **EVOLUCIONES tiene 396 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -212,8 +216,8 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**89 guardias** en `build/checks/*.js`; **48 usan navegador**
-(`chromium.launch`) y 41 son Node puro. Se juzgan **SOLO por el código de
+**118 guardias** en `build/checks/*.js` (6-sep-2026); poco más de la mitad usan navegador
+(`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
 «arreglar» código sano.
@@ -224,7 +228,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 21-ago-2026: 89 verdes, 0 rojas.** El corredor
+**Estado al 6-sep-2026: 118 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -312,10 +316,66 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.67-candado** (21-ago) — el ➕ exige sesión
-  de coordinación para corregir el pasado o un episodio cerrado; el turno de
-  hoy (incluida la noche en curso) sigue libre. **Sin cambio de esquema**.
-  Entrega contra `1bccc30` (la V38 real): **index + servicios**.
+- **Pegado y con `crearORepararEstructura()` corrido (Diego, 6-sep 04:24)**:
+  la v6.04 completa (index + servicios, 6-sep 08:58; el ➕ funciona en el
+  hospital). **Pendiente de pegar: index + servicios de la v6.06** (trae el
+  ícono de Synapse de la v6.05 y el traspaso de la entrega en blanco y negro
+  de Manuel — su 5.86-entrega-bn-negrita estaba publicada y la tanda la pisó;
+  ver BITACORA v6.06). **Fusionado el 6-sep**: `filtros-vence-hoy` →
+  `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
+  (puente «REM Hospital» + maqueta de pacientes ficticios) quedó SIN fusionar
+  a propósito: destino externo no aprobado por Diego. Historia de la v6.04: index + servicios
+  (plantillas desde el cuadro de texto, sin barra de chips; interacción P-VM
+  que no se arrastra; incluye el tooltip acotado y el ícono Rx de la v6.03).
+  Sin cambio de esquema. Lo que sigue describe la tanda entera:
+  **v6.02-plantillas-de-evolucion** (6-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v6.01…v5.86). 🔴 **Se pegan 8 archivos**
+  (`node build/que_pegar.js origin/main`): index (cohete) + servicios + api +
+  esquema + dominio + infra + repo + mantenimiento, y UN
+  `crearORepararEstructura()` (EVOLUCIONES 396 columnas; hojas
+  GSA_IMPORTADAS y PLANTILLAS_EVOLUCION con sus semillas). Después, desde el
+  editor: `instalarTriggerGSA()` (crea la carpeta de Drive de los PDF y el
+  disparador de las 06:30) y, cuando quiera medir la marcha blanca,
+  `auditoriaIntegridad()` (solo lectura). La v5.99 arregla el R1 de la
+  auditoría (la cama que rota sin alta ya no pisa la evolución del
+  anterior), la v6.00 es la PVE superada sin extubar (PRD), la v6.01 la
+  importación del gas de la mañana desde los PDF del laboratorio y la v6.02
+  las plantillas de evolución en modo chips. Detalle de cada una en
+  BITACORA. Lo que sigue es la historia previa de la tanda:
+  la v5.97 (5-sep). La v5.97 agrega las
+  «📌 Anotaciones del turno» (constancia sin estadística, narradas en la
+  evolución antes de la Nota; hora opcional) y **cambia esquema**
+  (EVOLUCIONES suma ANOTACIONES_JSON al final ⇒ 394 columnas) — el MISMO
+  crearORepararEstructura() de la tanda lo cubre; se pega también
+  **dominio** (cambió dominio_texto). La v5.96 agrega el aviso
+  📣 de coordinación al buzón (index + servicios + api, sin esquema nuevo) y
+  actualiza NOTA_PARA_MANUEL.md (Diego: «dile a Manuel que no programe nada
+  hasta fusionar»). La v5.95 agrega el «NE»
+  del FSS-ICU según el manual oficial (hasta 2 se promedian, con más no hay
+  total; guardia fss_ne — solo index). La v5.94 deriva el MOTIVO
+  de las MRC/FSS que faltan desde la cooperación registrada (campana solo al
+  cooperador sin medir; tooltip en tarjeta; motivo escrito en la entrega —
+  sin esquema). La v5.93 agrega la alerta
+  «Pendiente medir pimometría» a la campana y **cambia esquema** (CAMAS_ESTADO
+  suma ULT_PS/ULT_PIM/ULT_PIM_FECHA al final + CONFIG PIMO_PS_MAX=14 y
+  PIMO_VM_DIAS=21) — el MISMO crearORepararEstructura() de la v5.91 lo
+  cubre. La v5.92 imprime el chip
+  de la cama de la entrega invertido (cuadro negro en papel B/N) y hace
+  OBLIGATORIO el criterio de la suspensión de KTM en sesión, que ahora sale
+  también en la ficha de entrega (guardia ktm_suspension_motivo). La v5.91
+  **cambia esquema** (hoja NOTIFICACIONES) ⇒
+  `crearORepararEstructura()`, y toca servicios + api + esquema +
+  mantenimiento + index: se pegan LOS CINCO.
+  La v5.88 lleva «Vencen hoy» a la hoja diaria impresa y al modal; la v5.89
+  arregla el botón 🩻 (copiar ANTES de window.open: la apertura consume la
+  activación del clic y la copia fallaba en silencio — guardia que fija el
+  orden en nota_synapse_cumple.js). Diego YA publicó la tanda anterior
+  (probó Synapse en el hospital el 4-sep): esta entrega es solo el index. La v5.86 **cambia esquema**
+  (KINESIOLOGOS.CUMPLE + CONFIG.SYNAPSE_URL) ⇒ `crearORepararEstructura()`;
+  la v5.87 es solo index. Si la v5.86 aún no se pegó, se pega TODO junto con
+  el index de la 5.87 (index + servicios + api + esquema); si ya se pegó,
+  solo el index. Lo anterior pendiente (v5.67-candado) quedó incluido en
+  entregas previas — confirmar contra el editor, nunca suponer.
 - **Flujo de ramas vigente (traspaso de Manuel)**: rama nueva por cambio
   salida de `develop` (nombre en español) → `git merge --no-ff -m` a
   `develop` (el `-m` NO es opcional: sin él el merge queda colgado a medias)
@@ -329,11 +389,41 @@ si tiene más de unos días, se confirma antes de usarla.
 
 ### 🔴 Antes de armar una entrega: `node build/que_pegar.js <ref-publicada>`
 
-El repo tiene 31 `.gs` y el editor 9, así que **qué archivos pegar no se
+El repo tiene 35 `.gs` y el editor 9, así que **qué archivos pegar no se
 recuerda: se calcula**. La herramienta agrupa los cambios por archivo del
 editor y avisa si cambió el esquema. Se le pasa **la referencia de lo que está
 publicado de verdad** (`e48dcf4` para la v5.50), no `main` — main puede ir
 adelante de producción, que es exactamente lo que pasó el 14-ago.
+
+### 🔍 Auditoría del guardado (5-sep-2026) — leerla antes de tocar el guardado o de hacer la estadística
+
+Diego pidió revisar cómo se guarda la información («lo guardado no se puede
+perder ni sobreescribir con otra acción que no sea guardar»; «no programes
+nada, solo audita»). El detalle vive en `BITACORA.md` (entrada «Auditoría del
+guardado») y el informe publicado en
+`https://claude.ai/code/artifact/9446deef-c67e-464f-9fc0-21b79e38bb5a`.
+Lo que hay que tener presente:
+
+- ✅ **R1 ARREGLADO en la v5.99** (6-sep; Diego: «debería crear fila
+  nueva»): `_ubicarFilaGuardado` ubica la fila por episodio y, si la de la
+  clave es de otra persona, abre una fila aparte (`CAMA_n_turno~pid`). La del
+  anterior queda intacta; la campana avisa las filas que siguen colgando de
+  la cama. 🪤 Los lectores por cama (previa, prono, contadores) siguen SIN
+  filtrar por pid a propósito (decisión del 6-ago, `checks/prono_paciente.js`).
+  Pendiente de fondo que dejó Diego: «obligatorio pedir el RUT y ligar los
+  eventos a ese ID y no a la cama» — es el camino para que un re-ingreso no
+  estrene pid; no está programado.
+- 🔴 **R3**: el backup diario solo corre si `instalarTriggerBackup` se
+  ejecutó una vez — verificar el disparador es el pendiente nº1 antes de la
+  estadística de fin de mes.
+- ✅ C1/C2 cerrados en la v5.99: `coordCorregirFicha` y
+  `guardarAsignacionTurno` corren en `conLock`. ✅ M4: `auditoriaIntegridad()`
+  (mantenimiento.gs, solo lectura) busca las huellas A-E; correrla antes de
+  la estadística y leer el registro. M3 (guardia neutralización↔fusión) y M5
+  quedan abiertos.
+- El checklist pre-estadística (①-⑦) está en el informe; incluye la
+  conciliación REM (faltan las cifras de papel de agosto) y publicar la
+  tanda (hoy v6.02) antes de generar cifras.
 
 ### 🗺️ El plan de todo lo pendiente, en una página
 
@@ -342,18 +432,74 @@ implementar y qué falta por cerrar, para posteriormente hacer la programación�
 Está publicado y **es el mejor punto de entrada para retomar**:
 `https://claude.ai/code/artifact/f12ae3e1-ea58-4e88-af4e-954d51017aa6`
 
-- **Tanda 1 — sin cambio de esquema**: eventos manuales + botón de Synapse con
-  copia del RUT + cumpleaños de la mascota. Un solo pegado.
-- **Tanda 2 — con cambio de esquema**: PVE superada sin extubar + hoja de gases
-  importados. **Van juntas a propósito** para correr `crearORepararEstructura()`
-  UNA vez.
-- **Tanda 3 — las plantillas** (PRD escrito + prototipo andando).
-
-Para arrancar la tanda 1 solo faltan tres respuestas de Diego: ① C1 o C2 para
-los eventos manuales ② si le sirve el Synapse con copiar-y-pegar el RUT ③ la
-lista de cumpleaños.
+- ✅ **Tanda 1**: Synapse (v5.89) + cumpleaños (v5.86/v5.90/v5.98) hechos; los
+  eventos manuales se resolvieron como «📌 Anotaciones del turno» (v5.97) y la
+  barra de eventos vive dentro de las plantillas (v6.02).
+- ✅ **Tanda 2** (6-sep): PVE superada sin extubar (v6.00) + gases importados
+  (v6.01). Un solo `crearORepararEstructura()`.
+- ✅ **Tanda 3** (6-sep): plantillas de evolución. Los chips (v6.02) NO le
+  sirvieron a Diego; la **v6.04** las lleva al cuadro de texto (📋 abajo a la
+  derecha, ➕ verde al seleccionar frases, se aplica sola, comodines por dato
+  y por bloque). Detalle y trampas en BITACORA v6.04.
+- 🎂 **Cumpleaños: CERRADO** (Diego, 6-sep: «cierra los cumpleaños con
+  Rodrigo pendiente»). La lista se escribe directo en `KINESIOLOGOS.CUMPLE`
+  (dd-mm), nunca en el código; la fecha de Rodrigo queda en blanco hasta que
+  la mande.
+- 🔒 Seguridad (Diego, 6-sep): la clave de Synapse la maneja el hospital (no
+  depende de nosotros); **pendiente poner el repo en privado** (lo hace Diego
+  en GitHub: Settings → General → Danger zone → Change visibility).
 
 ### Esperando decisión de Diego
+
+- ✅ 🔔 **Buzón + campana: PROGRAMADOS en la v5.91** (4-sep; Diego aprobó el
+  mockup y fijó el formato de alerta «HME vencido (fecha en que vence) ·
+  cama 7 · rótulo 31-08» y la regla del registro: de SOLO AGREGAR, nada se
+  pisa — hoja NOTIFICACIONES + guardia buzon_campana). Esperando su prueba
+  en la mañana. Pendiente del área: el «aviso de coordinación» desde 🔐.
+  Historia original:
+- 🔔 **Buzón de notificaciones + campana de alertas en la barra superior**
+  (pedido de Diego, 4-sep-2026). ✅ **Reparto APROBADO por Diego el 4-sep**
+  («okye me parece»): la **campana** agrega lo
+  que la app YA calcula regado por las vistas (HME/Trach Care vencidos,
+  evaluaciones envejecidas >EVAL_DIAS_ALERTA, VM en cama sin ventilador
+  ~13901, mantención por vencer ~13729, cierre de año) — se limpia sola al
+  resolverse porque es cálculo en vivo, sin estado de leído; el **buzón**
+  lleva lo humano (notas 📌 del turno, cumpleaños, avisos de coordinación,
+  «se publicó vX.Y») con leído/no-leído POR NAVEGADOR (localStorage; no hay
+  login, así que no puede ser por persona). Nada sale por correo. ✅ **Día uno
+  APROBADO por Diego (4-sep)**: notas 📌 + cumpleaños + avisos de versión.
+  ✅ **El «aviso de coordinación» quedó PROGRAMADO en la v5.96** (5-sep,
+  «prográmalo»): tarjeta 📣 en el panel 🔐 con sesión activa → COORD_AVISO
+  (exige la sesión EN EL SERVIDOR, como toda COORD_*) → tipo `coord` en el
+  buzón con la firma; guardia 3d en buzon_campana. **Siguiente paso: mockup de la barra con campana y buzón**
+  (enviado, esperando su OK visual antes de programar).
+
+- ✅ 🏷️ **Filtros: declarar LO QUE VENCE HOY — RESUELTO en la v5.87** (4-sep,
+  Diego eligió la opción B del mockup). Al programarla apareció que el chip
+  del formulario (`calcInsumosDias`) era un QUINTO consumidor que la
+  corrección del 10-ago no alcanzó: avisaba una noche TARDE (`d===dur` en vez
+  de `frec-1`), contradiciendo al panel «Cambios de esta noche» — probable
+  raíz de la confusión. Detalle en BITACORA v5.87; guardias `disp_fecha`,
+  `dispositivos_reglas` y `hepa_fijo_y_orden_texto` alineadas. Historia
+  original del pedido:
+  (pedido de Diego, 4-sep-2026, con PRD dictado). Su rutina real: él sabe
+  qué FECHAS DE ETIQUETA caducan hoy y recorre el libro buscando
+  coincidencias — hoy 03-09 vence el HME etiquetado 02-09 (día 2) y el
+  Trach Care/HEPA etiquetado 01-09 (día 3); lo nuevo se etiqueta 04-09
+  porque el cambio es en la madrugada del día siguiente. **La aritmética de
+  su ejemplo CUADRA con las reglas vigentes de la app** (HME día 2, Trach
+  Care/HEPA día 3, cambio nocturno): no cambia ninguna regla, cambia la
+  REDACCIÓN. Textual: «no me interesa con qué fecha debería quedar… se ha
+  prestado para confusión». En el apartado de filtros del formulario, en
+  vez de proyectar la fecha futura de cambio («Cambio: 04-09»), declarar la
+  coincidencia como en el libro: «vence hoy lo etiquetado el 02-09». El
+  panel «Cambios de esta noche» (GET_CAMBIOS_NOCHE) ya hace la lista por
+  cama y se mantiene. Mockup/opciones enviadas, esperando su elección.
+
+- ✅ 🎂 **Pose cumpleañera de Don Mauri: APROBADA e INTEGRADA en la v5.90**
+  (4-sep). Es la pose `festejo` de Diego con gorro/confeti compuestos encima
+  — novena pose `cumple` en `MAURI`; con la mascota persona reemplaza al
+  emoji-gorro (que queda solo para Servi). Guardia en nota_synapse_cumple.
 
 - 🔴 **Tandas C y D (eventos manuales + reintubación) — DETENIDAS EN EL
   MOCKUP esperando 4 respuestas** (2-sep-2026; Diego pidió «recuérdamelo
@@ -365,11 +511,28 @@ lista de cumpleaños.
   turno» (recomendada) o C2 botón al costado? ② Tanda D: ¿D1 fila de pills
   bajo Vía aérea (recomendada), D2 tres celdas previo→evento→queda, o D3
   casilla mínima? ③ Alcance de D: ¿la fila reemplaza también
-  intubación/extubación o SOLO reintubación? ④ ¿El catálogo de motivos de
-  `fReintubRaz` está completo? Con las respuestas se programa (guardias
+  intubación/extubación o SOLO reintubación? ✅ La ④ ya la respondió
+  (4-sep-2026): **el catálogo de motivos de `fReintubRaz` está bien como
+  está**. Ojo: la barra de plantillas absorbe la fila de eventos de la
+  tanda D, así que ② y ③ probablemente mueren con ella — confirmarlo al
+  programar. Con lo que falte se programa (guardias
   nuevas para ambas tandas; las columnas REINTUB_* y el tiempo extubado se
   conservan tal cual). Pendiente hermano: cifras del REM de papel de agosto
   para correr la conciliación.
+- 🖋️ **CÓMO SE VEN LAS PLANTILLAS EN TRAKCARE — detalle de terreno de Diego
+  (2-sep-2026), para cuando se retome el diseño de la selección**: el ícono de
+  plantillas está en la **esquina inferior derecha del cuadro de texto**; ahí
+  aparecen todas, codificadas. Para **agregar una nueva se SELECCIONA texto**,
+  lo que habilita un **botón verde en la esquina inferior izquierda** que
+  permite personalizarla. Su idea propia encima: que lo que la app ya sabe
+  **aparezca como sugerencia al dejar un espacio para autocompletar**.
+  · **La otra opción que él plantea**: que salga la evolución personalizada (o
+  la de la unidad por defecto) y que **abajo se pueda formatear con el formato
+  personalizado por evento**, ya que viene con información prellenada.
+  · 🔴 **«Esto es lo que más me está complicando por ahora — déjalo para el
+  último.»** O sea: el CATÁLOGO de plantillas por caso se puede ir armando,
+  pero **CÓMO SE SELECCIONAN es la tarea abierta** y no se programa hasta que
+  él lo cierre.
 - 🆕 **Plantillas de evolución tipo TrakCare** (2-sep-2026, idea de Diego
   desde una capacitación). **Diego ya eligió: la B** (plantilla personal con
   comodines) **fusionada con la A** — «plantillas personalizadas desplegadas
@@ -421,6 +584,23 @@ lista de cumpleaños.
   **solo por coordinación** · **la barra SÍ reemplaza la fila de eventos de
   la tanda D** («así anunciamos de entrada qué plantilla utilizaremos por
   defecto»).
+  · ✅ **Confirmado por Diego el 4-sep-2026**: los motivos de «PVE superada
+  sin extubar» del PRD **están bien**, y el catálogo de motivos de
+  reintubación actual también. Esas dos preguntas quedan cerradas.
+  · ✅ **Cerrado por Diego el 4-sep-2026 — el EDITOR de plantillas tiene DOS
+  puertas** (eligió la opción 1): un ícono en el cuadro de texto de la
+  evolución (como TrakCare, abre con el caso actual preseleccionado) Y una
+  sección «Mis plantillas» para gestionarlas todas. Reglas de configuración
+  propuestas y aceptadas con esa elección: nadie parte de página en blanco
+  (duplicar la de la unidad/colega, o «guardar esta evolución como
+  plantilla»); comodines SOLO por menú, jamás tipeados (typo = plantilla
+  rota en silencio, lección TrakCare) y un comodín desconocido rechaza el
+  guardado; vista previa obligatoria con paciente de ejemplo; nombre
+  legible + caso obligatorio; la primera carga son las 13 de la unidad ya
+  redactadas. ✅ **La SELECCIÓN quedó decidida el 5-sep: BARRA DE CHIPS,
+  «por mientras»** («la selección de plantilla… como chips, por mientras, y
+  después lo vemos con posterioridad») — la tanda 3 quedó desbloqueada; la
+  evolución-tipo automática queda en el banco para revisarla después.
   · 📄 **Los dos PRD ya están escritos y esperan su visto bueno**:
   `PRD_PLANTILLAS_EVOLUCION.md` y `PRD_PVE_SUPERADA_SIN_EXTUBAR.md` (con
   historia, no-objetivos, flujo hoy→mañana, inventario de consumidores y
@@ -458,12 +638,12 @@ lista de cumpleaños.
   (defecto `PB,Avea`, por prefijo, editable sin código). Detalle en la
   bitácora; guardia `dispositivos_reglas.js`.
 
-- **FSS-ICU · el «no evaluado»** (mockup en `scratchpad/mockup_fss_no_evaluado.html`).
-  La app suma a secas: falta distinguir «incapaz por debilidad» (que es el 0 de
-  la escala) de «no se pudo evaluar», y aplicar la regla oficial —hasta 2 sin
-  evaluar se les asigna el promedio, con más de 2 el total no se calcula—.
-  Tres preguntas abiertas: cómo se declara, qué pasa con el campo cuando no se
-  puede calcular, y si se anota la razón.
+- ✅ **FSS-ICU · el «no evaluado»: RESUELTO en la v5.95** (5-sep; Diego citó
+  el manual y la fuente oficial —improvelto.com— lo confirma). Opción «NE»
+  por ítem; hasta 2 NE se imputan con el promedio (redondeado), con más de 2
+  el total no se calcula; el 0 queda solo para debilidad real. La RAZÓN del
+  NE no se anota (el manual no la exige); si algún día se quiere, es campo
+  nuevo. Guardia fss_ne.js.
 - ✅ **MR850 (punto 6 del brainstorm): SON 4, categoría APOYO** (Diego,
   14-ago) — 1 en la cama 2 y 3 en bodega. Falta solo la acción de DATOS en el
   tablero: dar de baja la única cargada con nombre propio y crear el stock por
@@ -476,14 +656,39 @@ lista de cumpleaños.
 
 ### Anotado y NO programado (pedido explícito de Diego)
 
+- ✅ 📋 **MRC/FSS pendientes con MOTIVO: PROGRAMADO en la v5.94** (5-sep;
+  Diego: «es sedación/cooperación… decide tú dónde»). El motivo se DERIVA de
+  `ULT_COOP`, sin campo nuevo: cooperador sin medir = campana + tooltip +
+  motivo en la entrega («evaluable desde ya»); no cooperador = badge gris
+  «no evaluables aún» con la cooperación registrada, SIN campana (no es
+  olvido). Detalle en BITACORA v5.94. Sigue abierto el pendiente HERMANO del
+  FSS-ICU «no evaluado» (distinguir «incapaz por debilidad» = 0 real de «no
+  se pudo evaluar», con la regla del promedio hasta 2 ítems).
+- ✅ 🫁 **Pimometría pendiente: PROGRAMADA en la v5.93** (5-sep). Regla:
+  VM + CPAP/PS + soporte bajo PIMO_PS_MAX (CONFIG, 14) + (destete prolongado
+  por Boles 2007 —espejo `_weanClaseSrv` de `_weanClase`— o VM ≥
+  PIMO_VM_DIAS días, CONFIG, 21 por NAMDRC 2005) + sin Pimáx del episodio
+  (`ULT_PIM`, arrastre nuevo en CAMAS_ESTADO). Se apaga al registrar fPIM.
+  Literatura revisada a pedido de Diego: VM prolongada = ≥21 días (NAMDRC);
+  destete prolongado = >7 días desde la 1ª PVE o ≥3 fracasadas (Boles/WIND)
+  — su «>7 días» era el del destete. Detalle en BITACORA v5.93.
+
 - 🧠 **Brainstorm de terreno** — 9 puntos, en `BITACORA.md`. Resueltos el 1, 2,
-  3, 4, 5 y 7. **Abiertos: el 6** (MR850), **el 8** (separar «marca un hito» de
-  «cuenta en la estadística») y **el 9**.
-- 🔴 **Punto 9 · Al reabrir una evolución guardada se desmarcan los botones que
-  no se heredan** (reportado por Diego el 14-ago desde el uso). Es el mismo
-  comportamiento que Manuel decidió dejar como estaba el 9-ago; que lo reporte
-  ahora el dueño del proyecto **reabre esa decisión**. Candidato a PRD: hay que
-  decidir qué botones se conservan al reabrir, y eso es regla clínica.
+  3, 4, 5 y 7. **Abierto: solo el 6** (MR850, acción de datos). El 9 quedó
+  CERRADO el 5-sep («déjalo como Manuel») y **el 8 quedó RESUELTO en la
+  v5.97**: Diego lo afinó a «información que no sume a estadística pero que
+  aparezca en la evolución» → bloque 📌 Anotaciones del turno (BITACORA
+  v5.97). El ➕ de Manuel queda intacto para anotar sin abrir el formulario. OJO con el
+  8: su comentario de voz («marcar un hito no cuenta en las estadísticas, es
+  historia narrativa») describe cómo CREE que funciona — pero HOY los eventos
+  y procedimientos manuales SÍ van a la estadística además del hito; el punto
+  8 es justamente poder separarlos. Aclarado en el mensaje, esperando su
+  decisión con los puntos a la vista.
+- ✅ **Punto 9 · CERRADO por Diego el 5-sep-2026: «déjalo como Manuel»** — se
+  mantiene la decisión de Manuel del 9-ago: al reabrir una evolución guardada
+  los botones no heredables se desmarcan y se re-marcan a mano si hace falta.
+  No se programa nada. (Si vuelve a molestar en el uso, se retoma como PRD
+  con la pregunta de qué botones conservar.)
 - **Prono / posicionamiento / HSA** — diseño conversado, falta que Diego mande
   el protocolo HSA de la unidad para poder programarlo.
 - **Stock de cánulas TQT** — aprobado en concepto, faltan inventario y umbrales.
@@ -519,8 +724,11 @@ lista de cumpleaños.
   está bloqueado.
   · **Consecuencias de diseño, ya firmes**: lo realista es un botón que abre
   Synapse en otra pestaña. Y el enlace que se usa a mano lleva un **token de
-  sesión** en la dirección, así que no sirve como enlace fijo: hay que usar la
-  URL base del login.
+  sesión** en la dirección — pero Diego verificó (4-sep) que **al caducar
+  redirige solo al inicio de sesión**: «es un click más pero vale la pena».
+  O sea el enlace con token TAMBIÉN sirve como enlace fijo; para
+  `CONFIG.SYNAPSE_URL` da lo mismo cuál se pegue, la URL base sigue siendo
+  la más limpia.
   · **Truco sin código que da el «verlos juntos»**: abrir Synapse en una segunda
   ventana de Chrome y usar ⊞ Win + ← / ⊞ Win + → para dejarlos lado a lado.
   · 🔑 **CÓMO FUNCIONA HOY, contado por Diego (2-sep)**: Synapse **ya está

@@ -1,4 +1,4 @@
-# 🤝 Nota para Manuel — actualizada el 5-sep-2026
+# 🤝 Nota para Manuel — actualizada el 6-sep-2026 (tanda fusionada)
 
 **Mensaje de Diego (5-sep, textual):** *«dile a Manuel que no programe nada —
 estoy haciendo esto en una rama paralela y, una vez que tengamos todo listo y
@@ -6,22 +6,34 @@ probado, podríamos juntar con sus cambios, si es que tiene».*
 
 ---
 
-## 🔴 Lo importante, en dos líneas
+## 🔴 Lo importante (6-sep-2026, después de fusionar)
 
-1. **NO programes ni publiques nada por ahora.** Diego está probando una tanda
-   grande (v5.86 → v5.96) que vive completa en la rama **`filtros-vence-hoy`**.
-2. Cuando él la dé por probada, **se fusiona con lo tuyo** (si tienes algo en
-   curso, guárdalo en su rama y avisa por aquí o por Slack).
+1. **La tanda de Diego (v5.86 → v6.06) YA ESTÁ en `develop` y en `main`.**
+   Diego la probó en producción y pidió fusionarla. Rama nueva = sale de
+   `develop`, como siempre.
+2. **Tu `entrega-blanco-negro-linea-tiempo` (5.86-entrega-bn-negrita) no
+   había llegado a main y la tanda la pisó en producción.** Se traspasó a
+   mano en la **v6.06**: negrita en los eventos, «🔄 Cambio de soporte», el
+   `@media print` blanco y negro y `construirEventos` del medidor. Lo único
+   que NO se trajo es el chip de cama invertido (fondo negro): Diego lo
+   reportó como «cuadro negro» el 4-sep y la v5.92 lo dejó blanco con borde.
+   Si ves algo más tuyo que falte, dilo aquí.
+3. **Tu `fix/la-vni-viaja-al-rem-hospital` sigue SIN fusionar, a propósito.**
+   Los inicios de VNI en el 601171 ya están en main. Lo que queda (puente
+   «REM Hospital», `demo_datos.gs`, `paquete_maqueta.js` y sus guardias) es
+   una integración con una planilla externa que no está documentada ni
+   aprobada por Diego: hay que contarle qué es y que él decida.
 
 ## Lo que hay ahora mismo en el repo
 
 | Rama | Qué es | ¿Se toca? |
 |---|---|---|
-| `main` / `develop` | Lo aprobado hasta la **v5.85**. | Solo leer |
-| **`filtros-vence-hoy`** | **La tanda en prueba: v5.86 → v5.96** (incluye y reemplaza a `nota-timeline-synapse-cumpleanos`). Diego la está pegando y probando en producción por partes. | La trabaja Diego con su sesión |
+| `main` / `develop` | **Todo hasta la v6.06** (incluye tu 5.85 y tu 5.86-entrega-bn). | Rama nueva desde `develop` |
+| `filtros-vence-hoy` | La tanda ya fusionada; queda como historia. | No |
+| `fix/la-vni-viaja-al-rem-hospital` | Tu puente REM Hospital + maqueta. **Pendiente de decisión de Diego.** | Tú, después de hablar con él |
 | `prototipo-plantillas-evolucion` | 🚫 Prototipo de plantillas. NO se pega ni se fusiona. | No |
 
-## Qué trae la tanda v5.86 → v5.96 (113 guardias verdes)
+## Qué trae la tanda v5.86 → v6.02 (118 guardias verdes)
 
 - 📌 Nota del turno → hito en timeline · 🩻 botón Synapse (copia RUT) ·
   🎂 cumpleaños en la mascota (v5.86) y pose dibujada (v5.90)
@@ -38,10 +50,24 @@ probado, podríamos juntar con sus cambios, si es que tiene».*
 - 🫁 alerta «pendiente medir pimometría» (v5.93) · 📋 motivo de MRC/FSS
   pendientes derivado de la cooperación (v5.94) · «NE» del FSS-ICU según el
   manual (v5.95)
+- 📌 Anotaciones del turno (v5.97) · 🎂 pose de Don Mauri dibujada por Diego (v5.98)
+- 🔴 **v5.99 — la evolución se guarda POR EPISODIO**: tu `_ubicarEvolucionDeTurno`
+  cubría las lecturas y el ➕; el guardado seguía ubicando la fila por
+  `CAMA_n_turno` y pisaba la del anterior en una rotación sin alta. Ahora
+  `_ubicarFilaGuardado` abre fila aparte (`CAMA_n_turno~pid`). Los lectores por
+  cama siguen sin filtrar por pid (tu decisión del 6-ago, respetada). Además:
+  `conLock` en coordCorregirFicha y guardarAsignacionTurno; `auditoriaIntegridad()`.
+- 🫁 PVE superada sin extubar (v6.00, 2 columnas al final de EVOLUCIONES ⇒ 396)
+- 🧪 Gases del laboratorio importados desde PDF (v6.01, hoja GSA_IMPORTADAS,
+  `svc_gsa.gs`, `turnoLogicoServidor` en infra_fechas)
+- 📋 Plantillas de evolución en modo chips (v6.02, hoja PLANTILLAS_EVOLUCION,
+  `svc_plantillas.gs`)
 
-**Cambia esquema** (hoja NOTIFICACIONES + columnas ULT_PS/ULT_PIM/ULT_PIM_FECHA
-en CAMAS_ESTADO + CUMPLE en KINESIOLOGOS + claves CONFIG) ⇒ un solo
-`crearORepararEstructura()`, que corre Diego.
+**Cambia esquema** (hojas NOTIFICACIONES, GSA_IMPORTADAS y PLANTILLAS_EVOLUCION
++ columnas ULT_PS/ULT_PIM/ULT_PIM_FECHA en CAMAS_ESTADO + CUMPLE en KINESIOLOGOS
++ ANOTACIONES_JSON, PVE_SUP_SIN_EXT, PVE_SUP_SIN_EXT_RAZ al final de EVOLUCIONES
++ claves CONFIG) ⇒ un solo `crearORepararEstructura()`, que corre Diego. Se
+pegan 8 archivos del editor (`node build/que_pegar.js origin/main`).
 
 ## Si necesitas tocar algo urgente
 

@@ -145,15 +145,19 @@ const { chromium } = require('playwright-core');
   eq('cliente: en turno Día no se corre la fecha', R.efDia, '2026-07-31');
   eq('el circuito instalado la noche del 31 se ETIQUETA el 1 de agosto',
     R.fechado.hme === '2026-08-01' && R.fechado.hepa === '2026-08-01' && R.fechado.tc === '2026-08-01', true);
-  // SEMÁNTICA NUEVA (ago-2026, validada por Diego): el chip muestra la FECHA
-  // EXACTA de cambio, no un contador de días.
-  eq('esa misma noche el chip trae la fecha exacta (01+2 = 03-08)', /Cambio: 03-08/.test(R.diaHME), true);
-  eq('el 2-ago avisa que el cambio es mañana en la noche', /Cambio: 03-08 \(mañana en la noche\)/.test(R.hme02), true);
-  eq('la noche del 3-ago dice CAMBIAR ESTA NOCHE', /Cambiar ESTA NOCHE \(03-08\)/.test(R.hme03), true);
-  eq('…y el HEPA de la misma cama aún no (su noche es la del 4)', /Cambio: 04-08/.test(R.hepa03), true);
-  // v5.60 (Diego): el vencido dice CAMBIAR HOY primero — la fecha del cambio
-  // real se corre a hoy; la que se saltó queda como dato, no como plan.
-  eq('el 4-ago sin cambio queda VENCIDO: cambiar hoy (debió el 03-08)', /VENCIDO — cambiar hoy \(debió el 03-08\)/.test(R.hme04), true);
+  // SEMÁNTICA v5.87 (Diego, 4-sep-2026: «declarar lo que vence hoy»): el chip
+  // habla por COINCIDENCIA de etiqueta, como el libro de la unidad, y con la
+  // MISMA cuenta que el resto del sistema — el cambio se ejecuta en la
+  // madrugada de etiqueta+frec, o sea con frec-1 días cumplidos.
+  // 🪤 Hasta la 5.86 este chip usaba d===frec y anunciaba una noche TARDE:
+  // era el quinto consumidor que la corrección del 10-ago no alcanzó (esta
+  // misma guardia cementaba la cuenta vieja). El HME etiquetado 01-08
+  // (frec 2) se cambia la NOCHE del 02 (madrugada del 03), no la del 03.
+  eq('la noche que lo instala aún cuenta bien (le quedan 2 noches)', /le quedan 2 noches/.test(R.diaHME), true);
+  eq('el 2-ago el HME VENCE HOY — su cambio es esta noche (madrugada del 03)', /VENCE HOY \(etiqueta 01-08\)/.test(R.hme02), true);
+  eq('la noche del 3-ago sin cambio ya está VENCIDO: debió anoche', /VENCIDO — cambiar hoy \(etiqueta 01-08, debió anoche\)/.test(R.hme03), true);
+  eq('…y el HEPA de la misma cama VENCE HOY (frec 3: su noche es la del 03)', /VENCE HOY \(etiqueta 01-08\)/.test(R.hepa03), true);
+  eq('el 4-ago sin cambio: VENCIDO hace 2 noches', /VENCIDO — cambiar hoy \(etiqueta 01-08, hace 2 noches\)/.test(R.hme04), true);
 
   await b.close();
   if (errs.length) { console.log('❌ errores JS: ' + errs.join(' | ')); fails.push('js'); }

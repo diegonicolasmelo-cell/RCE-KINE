@@ -1,5 +1,5 @@
 /**
- * servicios.gs — TODOS los servicios en un solo archivo (fusión de los 16 svc_*.gs).
+ * servicios.gs — TODOS los servicios en un solo archivo (fusión de los 19 svc_*.gs).
  * En Apps Script los archivos comparten un único espacio global, así que esta
  * fusión es puramente organizativa: mismo código, menos pegado.
  */
@@ -620,7 +620,9 @@ function _reetiquetarEpisodioACama(patientId, idCamaNueva) {
   const pid = String(patientId), nueva = String(idCamaNueva);
   repoActualizarDonde('EVOLUCIONES',
     e => String(e.PATIENT_ID) === pid,
-    e => ({ ID_CAMA: nueva, ID_EVOLUCION: 'CAMA_' + nueva + '_' + e.TURNO_KEY }));
+    // v5.99: se cambia SOLO el tramo de la cama; el sufijo «~pid» de una fila
+    // nacida en una rotación sin alta viaja intacto (sigue siendo distinta).
+    e => ({ ID_CAMA: nueva, ID_EVOLUCION: String(e.ID_EVOLUCION || '').replace(/^CAMA_[^_]+_/, 'CAMA_' + nueva + '_') || ('CAMA_' + nueva + '_' + e.TURNO_KEY) }));
   repoActualizarDonde('TIMELINE',
     h => String(h.PATIENT_ID) === pid,
     () => ({ ID_CAMA: nueva }));
@@ -1674,6 +1676,13 @@ function _coordRecalcularDias(ubic, campos) {
  *   5. sello visible + AUDIT_LOG, con la firma de QUIEN entró
  */
 function coordCorregirFicha(datos) {
+  // v5.99 (auditoría C1): la corrección reescribe campos de CAMAS_ESTADO, la
+  // misma fila que el guardado del turno escribe COMPLETA al final. Sin el
+  // candado, una corrección simultánea con un guardado se perdían una a la
+  // otra sin ruido. El mismo conLock del guardado los pone en fila.
+  return conLock(function () { return _coordCorregirFichaInterno(datos); });
+}
+function _coordCorregirFichaInterno(datos) {
   try {
     const g = coordExigirSesion(datos && datos.token);
     if (!g.ok) return g;
@@ -1982,6 +1991,15 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   // en una estadía larga lo primero que se caía era la intubación del día 1.
   const hito = t => eventos.push({ t: t, fijo: true });
   const otro = t => eventos.push({ t: t, fijo: false });
+  // «Cambio de soporte respiratorio» fuera de un procedimiento (Manuel,
+  // sep-2026): VMI ↔ VNI ↔ Oxigenoterapia, para episodios que NO están en
+  // TQT (la vía TQT tiene su propio relato: Desvinculación de VM, más abajo).
+  // El catálogo real de VENT_SOPORTE es {VM, VNI, Oxigenoterapia/OAF,
+  // Ambiente} — ver VMAPS en index.html; NO hay que inventar categorías.
+  // No existe una hora exacta registrada para este cambio (solo vive por
+  // TURNO), así que se muestra fecha + turno, nunca una hora inventada.
+  const _SOP_ETIQ = { VM: 'VMI', VNI: 'VNI', 'Oxigenoterapia/OAF': 'Oxigenoterapia', Ambiente: 'Ambiente' };
+  let _sopAnterior = null;
   episodio.forEach(ev => {
     const f = dd(ev.FECHA);
     if (esVerdadero(ev.INTUB_OCURRIO)) hito('🫁 Intubación ' + f + (ev.INTUB_HORA ? ' ' + ev.INTUB_HORA : ''));
@@ -1990,9 +2008,16 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
       if (ev.PVE_RESULTADO === 'frustra') {
         try { const m = JSON.parse(ev.PVE_FR_MOTIVOS || '[]'); if (m.length) mot = ' (' + m.join(', ') + ')'; } catch (x) {}
       }
-      otro((ev.PVE_RESULTADO === 'superada' ? '▲ PVE superada ' : '▼ PVE frustra ') + f + mot);
+      // Tanda 2a: superada sin extubar se dice explícito — la entrega no
+      // puede insinuar una extubación que no hubo.
+      const sinExt = ev.PVE_RESULTADO === 'superada' && esVerdadero(ev.PVE_SUP_SIN_EXT);
+      otro((ev.PVE_RESULTADO === 'superada' ? (sinExt ? '▲ PVE superada sin extubar ' : '▲ PVE superada ') : '▼ PVE frustra ') + f + mot +
+        (sinExt && ev.PVE_SUP_SIN_EXT_RAZ ? ' (' + ev.PVE_SUP_SIN_EXT_RAZ + ')' : ''));
     }
-    if (esVerdadero(ev.EXT_OCURRIO)) hito('✂️ Extubación ' + f + (ev.EXT_HORA ? ' ' + ev.EXT_HORA : '') + (ev.EXT_TIPO ? ' (' + ev.EXT_TIPO + ')' : ''));
+    // Negrita (Manuel, sep-2026, 5.86-entrega-bn-negrita): en papel B/N los
+    // hitos de vía aérea, prono/supino y cambios de soporte se distinguen por
+    // PESO, no por color. El cliente pinta los eventos con innerHTML.
+    if (esVerdadero(ev.EXT_OCURRIO)) hito('<b>✂️ Extubación ' + f + (ev.EXT_HORA ? ' ' + ev.EXT_HORA : '') + (ev.EXT_TIPO ? ' (' + ev.EXT_TIPO + ')' : '') + '</b>');
     // Reintubación: evento · hora · CAUSA (Diego, 14-ago-2026). Era el único
     // evento de vía aérea que salía pelado —solo la fecha— y en la ronda se
     // pregunta POR QUÉ falló: poder responder «por mal manejo de secreciones»
@@ -2001,10 +2026,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     // El «queda con» NO va aquí por decisión suya: eso es del formulario, con
     // el resto de las transiciones de vía aérea.
     if (esVerdadero(ev.EXT_REINTUB)) {
-      hito('⚠️ Reintubación ' + f + (ev.REINTUB_HORA ? ' ' + ev.REINTUB_HORA : '') +
-        (ev.EXT_REINTUB_RAZ ? ' · por ' + String(ev.EXT_REINTUB_RAZ).toLowerCase() : ''));
+      hito('<b>⚠️ Reintubación ' + f + (ev.REINTUB_HORA ? ' ' + ev.REINTUB_HORA : '') +
+        (ev.EXT_REINTUB_RAZ ? ' · por ' + String(ev.EXT_REINTUB_RAZ).toLowerCase() : '') + '</b>');
     }
-    if (esVerdadero(ev.TQT_OCURRIO)) hito('🔪 TQT ' + f + (ev.TQT_HORA ? ' ' + ev.TQT_HORA : '') + (ev.TQT_TECNICA ? ' (' + String(ev.TQT_TECNICA).toLowerCase() + ')' : ''));
+    if (esVerdadero(ev.TQT_OCURRIO)) hito('<b>🔪 TQT ' + f + (ev.TQT_HORA ? ' ' + ev.TQT_HORA : '') + (ev.TQT_TECNICA ? ' (' + String(ev.TQT_TECNICA).toLowerCase() + ')' : '') + '</b>');
     if (esVerdadero(ev.DECAN_OCURRIO)) hito('⭕ Decanulación ' + f + (ev.DECAN_HORA ? ' ' + ev.DECAN_HORA : '') + (esVerdadero(ev.DECAN_RECANUL) ? ' → recanulado' : ''));
     if (esVerdadero(ev.PROC_RCP)) {
       const ciclos = String(ev.PROC_RCP_CICLOS || '').trim();
@@ -2016,12 +2041,30 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     if (esVerdadero(ev.PROC_IMAGEN)) otro('🩻 Traslado a imagenología ' + f);
     if (esVerdadero(ev.DESVINC_OCURRIO)) {
       const hrs = String(ev.DESVINC_HORAS || '').replace('.', ',');
-      hito('🔌 Desvinculación de VM ' + f + (ev.DESVINC_HORA ? ' ' + ev.DESVINC_HORA : '') +
+      hito('<b>🔌 Desvinculación de VM ' + f + (ev.DESVINC_HORA ? ' ' + ev.DESVINC_HORA : '') +
         (ev.DESVINC_A ? ' → ' + ev.DESVINC_A : '') +
-        (esVerdadero(ev.DESVINC_RECONEXION) ? (' · reconectado' + (hrs ? ' tras ' + hrs + ' h' : '')) : ' · SIN reconexión registrada'));
+        (esVerdadero(ev.DESVINC_RECONEXION) ? (' · reconectado' + (hrs ? ' tras ' + hrs + ' h' : '')) : ' · SIN reconexión registrada') + '</b>');
     }
     if (esVerdadero(ev.TOT_CAMBIO)) otro('🔄 Cambio de tubo ' + f);
     if (esVerdadero(ev.TQT_CAMBIO)) otro('🔄 Cambio de cánula ' + f);
+    // Cambio de soporte fuera de un procedimiento: se compara contra el turno
+    // NO-TQT anterior. Mientras la vía es TQT no se compara (es el terreno de
+    // Desvinculación) y se resetea, para que al decanular no se arrastre un
+    // soporte de hace días como si fuera «el anterior».
+    const _viaTurno = String(ev.VENT_VIA_AEREA || '');
+    const _sopTurno = String(ev.VENT_SOPORTE || '');
+    if (_viaTurno === 'TQT') {
+      _sopAnterior = null;
+    } else if (_sopTurno) {
+      const _yaNarrado = esVerdadero(ev.INTUB_OCURRIO) || esVerdadero(ev.EXT_OCURRIO) ||
+        esVerdadero(ev.TQT_OCURRIO) || esVerdadero(ev.DESVINC_OCURRIO);
+      if (_sopAnterior && _sopAnterior !== _sopTurno && !_yaNarrado) {
+        otro('<b>🔄 Cambio de soporte: ' + (_SOP_ETIQ[_sopAnterior] || _sopAnterior) + ' → ' +
+          (_SOP_ETIQ[_sopTurno] || _sopTurno) + ' ' + f + ' · turno ' +
+          (ev.TURNO === 'Dia' ? '☀️ Día' : '🌙 Noche') + '</b>');
+      }
+      _sopAnterior = _sopTurno;
+    }
     // Esta lista es de lo que OCURRIÓ en el turno: va el cambio de posición,
     // no el hecho de seguir en la misma (antes se repetía turno a turno).
     // Los episodios anteriores a la separación no traen el campo del evento:
@@ -2030,11 +2073,11 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
       ? esVerdadero(ev.RESP_POS_PRONO) : esVerdadero(ev.RESP_PRONO_EVENTO);
     const _supEv = (ev.RESP_SUPINO_EVENTO === undefined || ev.RESP_SUPINO_EVENTO === '')
       ? esVerdadero(ev.RESP_POS_SUPINO) : esVerdadero(ev.RESP_SUPINO_EVENTO);
-    if (_pronoEv) otro('🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : ''));
+    if (_pronoEv) otro('<b>🔃 Prono ' + f + (ev.RESP_PRONO_HORA ? ' ' + ev.RESP_PRONO_HORA + ' hrs' : '') + '</b>');
     if (_supEv) {
       const _ph = String(ev.PRONO_HORAS === 0 ? '0' : (ev.PRONO_HORAS || '')).replace('.', ',');
-      otro('🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : '') +
-        (_ph ? ' · tras ' + _ph + ' h en prono' : ''));
+      otro('<b>🔃 Supino ' + f + (ev.RESP_SUPINO_HORA ? ' ' + ev.RESP_SUPINO_HORA + ' hrs' : '') +
+        (_ph ? ' · tras ' + _ph + ' h en prono' : '') + '</b>');
     }
   });
 
@@ -2150,8 +2193,16 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
   if (parseInt(diasEst) >= 21) alertas.push(diasEst + 'd UCI');
   if (esVerdadero(c.KTM_SUSP)) alertas.push('KTM contraindicada');
   const coop = /^cooperador$/i.test(String(c.ULT_COOP || '').trim());
-  if (coop && val(c.ULT_MRC) === '') alertas.push('MRC-SS pendiente');
-  if (coop && val(c.ULT_FSS) === '') alertas.push('FSS-ICU pendiente');
+  // El MOTIVO va escrito al lado del chip (Diego, 5-sep-2026: «para saber la
+  // razón»; y sobre el origen del motivo: «es sedación/cooperación… decide
+  // tú» → se DERIVA de lo ya registrado, sin campo nuevo). Cooperador sin
+  // medición = evaluable desde ya (olvido); no cooperador = no evaluable aún.
+  if (coop && val(c.ULT_MRC) === '') alertas.push('MRC-SS pendiente — cooperador, evaluable desde ya');
+  if (coop && val(c.ULT_FSS) === '') alertas.push('FSS-ICU pendiente — cooperador, evaluable desde ya');
+  if (!coop && val(c.ULT_MRC) === '' && val(c.ULT_FSS) === '') {
+    const _cp = String(c.ULT_COOP || '').trim();
+    alertas.push('MRC/FSS no evaluables aún — ' + (_cp ? 'cooperación: ' + _cp : 'sedación/cooperación sin registrar'));
+  }
   // Evaluaciones ENVEJECIDAS (cooperador con valor antiguo): mismo patrón que
   // los dispositivos por vencer, con corte configurable EVAL_DIAS_ALERTA.
   const cutEval = parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5;
@@ -2262,6 +2313,10 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
     ktmRealizada: e ? esVerdadero(e.KTM_REALIZADA) : false,
     ktmSuspendida: e ? esVerdadero(e.KTM_SUSPENDIDA) : esVerdadero(c.KTM_SUSP),
     ktmContra: e ? val(e.KTM_CONTRA_RAZON, val(e.KTM_CONTRA_CAT)) : '',
+    // Suspendida DURANTE la sesión por señal de alerta: el motivo debe salir
+    // en la entrega (Diego, 4-sep-2026), igual que ya salía en la evolución.
+    ktmAlerta: e ? esVerdadero(e.KTM_ALERTA) : false,
+    ktmAlertaRaz: e ? val(e.KTM_ALERTA_RAZ, val(e.KTM_ALERTA_CAT)) : '',
     ktr: e ? val(e.RESP_KTR_CANT, '') : '',
     eventos: eventosTxt,
     evals: evals,
@@ -3709,7 +3764,11 @@ function guardarEvolucion(datos, ctx) {
         datos.PLAN_FIRMA_KINE = '';   // mejor sin firma que con basura (la UI la exige de todos modos)
       }
 
-      const idEvolucion = 'CAMA_' + idCama + '_' + turnoKey;
+      // Clave HISTÓRICA de la fila: cama + turno. Desde la v5.99 es solo el
+      // punto de partida — la fila real la decide _ubicarFilaGuardado, que
+      // mira de QUIÉN es cada fila de este turno (ver abajo).
+      const idEvolucionBase = 'CAMA_' + idCama + '_' + turnoKey;
+      let idEvolucion = idEvolucionBase;
       const p = turnoKey.split('-');
       const fecha = p[0] + '-' + p[1] + '-' + p[2];
       const turno = p[3] || 'Dia';
@@ -3766,7 +3825,22 @@ function guardarEvolucion(datos, ctx) {
       const _declPayload = esVerdadero(_payloadKTM.KTM_REALIZADA) ||
         esVerdadero(_payloadKTM.KTM_SUSPENDIDA) || esVerdadero(_payloadKTM.KTM_NO_REALIZADA);
 
-      const filaEvo = repoBuscarFila('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
+      /* 🔴 LA FILA SE UBICA POR EPISODIO, NO SOLO POR LA CLAVE (v5.99,
+         auditoría del 5-sep-2026, hallazgo R1; Diego: «debería crear fila
+         nueva»). Con la clave sola, una cama que rota SIN alta dejaba la fila
+         del paciente anterior bajo 'CAMA_n_turno', el `_otroEpisodio` de más
+         abajo saltaba la fusión… y el upsert final igual caía en ESA fila: la
+         evolución del anterior se pisaba entera. Manuel midió 39 camas con dos
+         episodios en el mismo turno en agosto. Ahora: si la fila de la clave
+         es de OTRA persona, este guardado abre una fila propia con ID aparte
+         y la del anterior queda intacta. */
+      const _ubic = _ubicarFilaGuardado(idCama, turnoKey, String(cama.PATIENT_ID || ''));
+      if (_ubic.ambigua) {
+        return err('La cama ' + idCama + ' tiene DOS evoluciones del mismo paciente en el turno ' +
+          turnoKey + '. No se guarda sobre ninguna: avisar a coordinación (auditoriaIntegridad).', ERR.VALIDACION);
+      }
+      const filaEvo = _ubic.fila;
+      idEvolucion = _ubic.id;
       const _prev = filaEvo === -1 ? null : repoLeerFila('EVOLUCIONES', filaEvo);
       if (_prev) {
         // 🔴 LA IDENTIDAD NO SE HEREDA (20-ago-2026). La copia de abajo traía
@@ -3884,6 +3958,14 @@ function guardarEvolucion(datos, ctx) {
       // llena solo cuando alguien de verdad lo pide.
       let _evosCamaMemo = null;
       const _evosCama = function () {
+        // 🪤 A PROPÓSITO sin filtrar por PATIENT_ID (v5.99 lo intentó y lo
+        // quitó el mismo día; ya se había probado y revertido el 6-ago-2026,
+        // ver checks/prono_paciente.js): a un paciente al que se le repara la
+        // cama y se re-ingresa le toca un pid NUEVO, y el filtro le escondería
+        // sus propios días de VM, su BDT y su prono en curso. Lo que sí cambió
+        // en la v5.99 es que la fila del anterior ya no se PISA; que sus filas
+        // sigan colgando de la cama lo avisa la campana hasta que alguien dé
+        // el alta pendiente.
         if (_evosCamaMemo === null) _evosCamaMemo = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', idCama);
         return _evosCamaMemo;
       };
@@ -4091,6 +4173,16 @@ function guardarEvolucion(datos, ctx) {
         }
       })();
 
+      // PVE superada SIN extubar (tanda 2a): el candado también en la escritura.
+      // Con la marca puesta no puede quedar NADA de extubación en la fila —
+      // ni la hora ni el soporte post-extubación—, venga de donde venga.
+      if (esVerdadero(datos.PVE_SUP_SIN_EXT)) {
+        datos.EXT_OCURRIO = false; datos.EXT_HORA = ''; datos.EXT_TS = ''; datos.EXT_TIPO = '';
+        datos.EXT_PE_MODO = ''; datos.EXT_POST_DET = '';
+      } else if ('PVE_SUP_SIN_EXT' in datos) {
+        datos.PVE_SUP_SIN_EXT_RAZ = '';   // volver a «Sí, se extubó» no deja residuos
+      }
+
       // Texto clínico: el de la PANTALLA (cliente) si vino; si no, se genera.
       datos.TEXTO_GENERADO = _textoCliente || generarTextoEvolucion(datos);
       // Respaldo del motor: si el cliente no lo trae (API sin navegador) y no
@@ -4130,6 +4222,48 @@ function guardarEvolucion(datos, ctx) {
         });
       }
 
+      // 📌 NOTA DEL TURNO → hito en la línea de tiempo (Diego, 2-sep-2026).
+      // La nota YA era el texto libre propio de ese turno: no se hereda al
+      // siguiente y entra a la evolución como «Nota: …». Lo único que le
+      // faltaba era dejar rastro en el historial, que era el motivo original
+      // de los «eventos manuales» — así que no hizo falta un bloque nuevo en
+      // el formulario, solo darle salida a lo que ya se escribe.
+      // Tipo 'nota': el cliente YA tenía su color reservado (ámbar) y su
+      // filtro en la pestaña de eventos; y está en _TIPOS_HITO_AUTO para que
+      // al re-guardar se REEMPLACE en vez de duplicarse.
+      const _notaTurno = String(evo.PLAN_NOTA_TURNO || '').trim();
+      if (_notaTurno) {
+        hitosExtra.push({
+          tipo: 'nota',
+          texto: '📌 Nota: ' + (_notaTurno.length > 220 ? _notaTurno.slice(0, 219) + '…' : _notaTurno),
+          autor: evo.PLAN_FIRMA_KINE, autorEmail: ctx.email || '',
+        });
+        // 📨 Y al buzón (v5.91). El hito de arriba se REEMPLAZA al re-guardar;
+        // el buzón es de solo agregar: la nota re-guardada idéntica no se
+        // duplica, y la CAMBIADA entra como fila nueva sin pisar la anterior
+        // (regla de Diego, 4-sep-2026).
+        if (typeof notifRegistrar === 'function') {
+          notifRegistrar({ tipo: 'nota', titulo: '📌 Nota del turno — cama ' + idCama,
+            detalle: _notaTurno, refCama: idCama, autor: String(evo.PLAN_FIRMA_KINE || ''),
+            origenId: String(evo.ID_EVOLUCION || (idCama + '|' + turnoKey)) });
+        }
+      }
+
+      /* 📌 ANOTACIONES DEL TURNO (v5.97, Diego 5-sep-2026): hechos SIN
+         estadística que sí se narran — el «Otro» del ➕ pero desde el
+         formulario. Cada una deja su hito tipo 'nota' (tipo auto: el
+         re-guardado los regenera, no los duplica) y JAMÁS toca
+         PROCEDIMIENTOS. */
+      try {
+        (JSON.parse(String(evo.ANOTACIONES_JSON || '[]')) || []).forEach(function (a) {
+          const _t = String((a && a.t) || '').trim(); if (!_t) return;
+          const _h = String((a && a.h) || '').trim();
+          hitosExtra.push({ tipo: 'nota',
+            texto: '📌 ' + (_t.length > 200 ? _t.slice(0, 199) + '…' : _t) + (_h ? ' (' + _h + ')' : ''),
+            autor: evo.PLAN_FIRMA_KINE, autorEmail: ctx.email || '' });
+        });
+      } catch (e) { /* un JSON malo no tumba el guardado */ }
+
       // Procedimientos (filas) + hitos automáticos
       // UN evento por ciclo prono→supino (ago-2026, Bloque C de Diego): la
       // SUPINACIÓN no entra a PROCEDIMIENTOS — la estadística contaría DOS
@@ -4154,7 +4288,10 @@ function guardarEvolucion(datos, ctx) {
       }
 
       SpreadsheetApp.flush();
-      return ok({ idEvolucion, idCama, patientId, turnoKey, accion: esNuevo ? 'crear' : 'actualizar', entidad: 'EVOLUCIONES', TEXTO_GENERADO: evo.TEXTO_GENERADO || '' });
+      // El resumen del AUDIT_LOG dice si la fila nació aparte por una rotación
+      // sin alta: es la huella que después busca auditoriaIntegridad().
+      const _accion = esNuevo ? (_ubic.ajena ? 'crear (fila aparte: la cama rotó sin alta)' : 'crear') : 'actualizar';
+      return ok({ idEvolucion, idCama, patientId, turnoKey, accion: _accion, entidad: 'EVOLUCIONES', TEXTO_GENERADO: evo.TEXTO_GENERADO || '' });
     } catch (e) { return err('guardarEvolucion: ' + e.message, ERR.INTERNO, e); }
   });
 }
@@ -4309,6 +4446,11 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     ULT_FSS: val(evo.EVAL_T_FSS, cama.ULT_FSS),
     ULT_FSS_FECHA: val(evo.EVAL_T_FSS, '') !== '' ? fecha : (cama.ULT_FSS_FECHA || ''),
     ULT_DINAMO: val(evo.EVAL_T_DINAMO, cama.ULT_DINAMO),
+    // Pimometría (v5.93): la presión de soporte y la Pimáx del episodio, para
+    // que la campana decida mirando solo la cama.
+    ULT_PS: val(evo.VENT_PS, cama.ULT_PS),
+    ULT_PIM: val(evo.EVAL_T_PIM, cama.ULT_PIM),
+    ULT_PIM_FECHA: val(evo.EVAL_T_PIM, '') !== '' ? fecha : (cama.ULT_PIM_FECHA || ''),
     // Dispositivos del circuito: cada uno sigue a lo que le da sentido, no
     // todos al soporte VM (Diego, 14-ago-2026). Al salir de VM el circuito se
     // descarta, PERO el Trach Care pertenece a la VÍA AÉREA y sobrevive si el
@@ -4478,6 +4620,51 @@ function _tiempoExtubado(evo, idCama, fecha, turno, _evosFn) {
 
 // ═══ LECTURA ══════════════════════════════════════════════
 /**
+ * _ubicarFilaGuardado — en qué fila de EVOLUCIONES se ESCRIBE el turno (v5.99).
+ *
+ * Es la pareja de escritura de `_ubicarEvolucionDeTurno`: barata a propósito
+ * (baja solo las 5 primeras columnas de la hoja viva — ID, cama, pid, cod,
+ * turno) porque corre dentro de CADA guardado, y solo mira la hoja viva
+ * porque ahí es donde se escribe.
+ *
+ * Reglas, en orden:
+ *   1. Sin filas de esta cama en este turno → fila nueva con la clave base.
+ *   2. Con pid en la cama: manda la fila DE ESE pid. Dos filas del mismo pid
+ *      en el mismo turno es un duplicado real → `{ambigua:true}` (no se
+ *      elige: elegir es el bug).
+ *   3. Sin fila del pid pero con una SIN pid (legacy, cama cargada sin
+ *      ingreso formal) → se adopta, como siempre se hizo.
+ *   4. Todas son de OTRA persona → fila NUEVA con ID propio
+ *      ('CAMA_n_turno~' + 8 letras del pid). La del anterior no se toca.
+ *   5. Sin pid en la cama (payload viejo, smoke) → la de la clave base, o la
+ *      primera: el comportamiento histórico.
+ *
+ * @return {{fila:number, id:string, nueva:boolean, motivo:string, ajena?:Object}|{ambigua:true}}
+ */
+function _ubicarFilaGuardado(idCama, turnoKey, pidCama) {
+  const base = 'CAMA_' + idCama + '_' + turnoKey;
+  const cands = [];
+  repoLeerColumnasConFila('EVOLUCIONES', ['ID_EVOLUCION', 'ID_CAMA', 'PATIENT_ID', 'TURNO_KEY']).forEach(function (f) {
+    if (String(f.obj.ID_CAMA).trim() !== String(idCama)) return;
+    if (String(f.obj.TURNO_KEY).trim() !== String(turnoKey)) return;
+    cands.push({ fila: f.fila, id: String(f.obj.ID_EVOLUCION).trim(), pid: String(f.obj.PATIENT_ID || '').trim() });
+  });
+  if (!cands.length) return { fila: -1, id: base, nueva: true, motivo: 'turno nuevo' };
+  const pid = String(pidCama || '').trim();
+  if (pid) {
+    const mias = cands.filter(function (x) { return x.pid === pid; });
+    if (mias.length > 1) return { ambigua: true };
+    if (mias.length === 1) return { fila: mias[0].fila, id: mias[0].id, nueva: false, motivo: 'mismo episodio' };
+    const legacy = cands.filter(function (x) { return !x.pid; })[0];
+    if (legacy) return { fila: legacy.fila, id: legacy.id, nueva: false, motivo: 'fila sin episodio: se adopta' };
+    return { fila: -1, id: base + '~' + pid.replace(/-/g, '').slice(0, 8), nueva: true,
+      motivo: 'la cama rotó sin alta: fila aparte', ajena: cands[0] };
+  }
+  const porClave = cands.filter(function (x) { return x.id === base; })[0] || cands[0];
+  return { fila: porClave.fila, id: porClave.id, nueva: false, motivo: 'por clave (sin pid en la cama)' };
+}
+
+/**
  * _ubicarEvolucionDeTurno — ubica LA fila de un turno por EPISODIO, no por clave.
  *
  * 🔴 POR QUÉ EXISTE. `ID_EVOLUCION = 'CAMA_<n>_<turnoKey>'` identifica una CAMA
@@ -4629,7 +4816,7 @@ function obtenerEvolucionPrevia(idCama, turnoKey, _evos) {
 /**
  * Turno actual + previa en UNA llamada (evita 2 round-trips seriales al abrir el panel).
  */
-function obtenerEvoTurno(idCama, turnoKey) {
+function obtenerEvoTurno(idCama, turnoKey, patientId) {
   try {
     // UNA sola bajada del episodio responde las TRES preguntas: el turno
     // actual, la previa y la pronación abierta miran exactamente las mismas
@@ -4638,11 +4825,22 @@ function obtenerEvoTurno(idCama, turnoKey) {
     // ID_EVOLUCION es 'CAMA_<idCama>_<turnoKey>', así que dentro de las filas
     // de la cama, coincidir en TURNO_KEY ⇔ coincidir en ID_EVOLUCION (misma
     // primera-fila que devolvía la búsqueda por columna).
+    /* v5.99: si la cama rotó sin alta, en ESTE turno pueden convivir la fila
+       del anterior y la del actual (la del anterior ya no se pisa). El turno
+       que se ABRE es el del ocupante actual: el cliente manda su pid (lo tiene
+       en la tarjeta, sin viaje extra). Las demás filas de la cama NO se
+       filtran por pid, a propósito — la previa y el prono abierto siguen
+       leyéndose por cama (decisión del 6-ago-2026, checks/prono_paciente.js:
+       filtrar escondía la pronación real de un paciente re-ingresado). */
+    const _pidCama = String(patientId || '');
     const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
     const tk = String(turnoKey);
     let actual = null;
     for (let i = 0; i < evos.length; i++) {
-      if (String(evos[i].TURNO_KEY || '') === tk) { actual = evos[i]; break; }
+      if (String(evos[i].TURNO_KEY || '') !== tk) continue;
+      // Con pid en la cama manda la fila del pid; una sin pid solo si no hay otra.
+      if (!actual || (_pidCama && String(evos[i].PATIENT_ID || '') === _pidCama)) actual = evos[i];
+      if (_pidCama && String(evos[i].PATIENT_ID || '') === _pidCama) break;
     }
     // La previa viaja SIEMPRE, también cuando el turno ya está guardado: el
     // formulario la usa para mostrar «Antes: X → Y» bajo los campos de estado
@@ -4775,7 +4973,10 @@ function obtenerHistorialPaciente(idCama, patientId) {
     }
     evos.sort((a, b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
 
-    return ok({ hitos, evoluciones: evos });
+    // 🧪 Los gases importados del laboratorio (tanda 2b) viajan con el
+    // historial: la hoja diaria los mezcla en su fila GSA.
+    const gsa = (typeof gsaDeEpisodio === 'function') ? gsaDeEpisodio(patientId) : [];
+    return ok({ hitos, evoluciones: evos, gsa: gsa });
   } catch (e) { return err('obtenerHistorialPaciente: ' + e.message, ERR.INTERNO, e); }
 }
 
@@ -4974,6 +5175,324 @@ function _pronoAbiertoTS(idCama, turnoKey, _evos) {
     });
     return abierto;
   } catch (e) { return ''; }
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+// ── svc_gsa.gs ──
+// ════════════════════════════════════════════════════════════════════
+
+/**
+ * svc_gsa.gs — El gas de la mañana llega solo desde los PDF del laboratorio
+ * (tanda 2b, sep-2026).
+ *
+ * LA HISTORIA (Diego, 2-sep-2026): de turno noche, los gases se toman a las
+ * 04:00, el resultado llega a las 06:00 y la hoja se imprime a las 07:00 —
+ * pero la GSA, la Hb, el Hto y los valores para la rehabilitación se pasan a
+ * mano, y eso termina a las 10:00. «Ya se perdieron horas valiosas para
+ * corregir algún valor alterado o plantear la posibilidad de rehabilitación».
+ * El valor no es ahorrar tecleo: son tres horas de anticipación clínica.
+ *
+ * QUÉ HACE: lee los PDF que Diego deja en una carpeta de Drive (CONFIG
+ * GSA_CARPETA_ID; si no existe, se crea «RCE-KINE — Gases del laboratorio» en
+ * la raíz), saca el texto con la conversión PDF→Documento de la propia API de
+ * Drive (los PDF del laboratorio traen capa de texto: no hay OCR de por
+ * medio), empareja por RUT con el episodio y guarda los valores en la hoja
+ * GSA_IMPORTADAS. Después mueve el PDF a «copiados» o a «sin emparejar».
+ *
+ * DECISIONES DE DIEGO (2-sep-2026), todas respetadas aquí:
+ *   · Solo el gas de la mañana: el resto se escribe a mano. Es una rutina de
+ *     una vez al día (instalarTriggerGSA, 06:30) más el botón 🧪 de la app.
+ *   · El gas importado NO entra a la evolución ni al REM: va a la hoja diaria
+ *     y a la hoja impresa. Por eso vive en una hoja aparte y EVOLUCIONES no
+ *     cambia.
+ *   · Hb y Hto en fila propia; plaquetas, K⁺, INR y glicemia solo si están
+ *     alterados (eso lo decide la hoja impresa, aquí se guardan todos).
+ *   · No borrar: MOVER a subcarpeta. Un dato mal copiado con el original
+ *     borrado no tiene a qué volver.
+ *   · Regla dura: si no se puede emparejar con certeza NO se escribe en
+ *     ningún paciente. La fila queda «sin_emparejar» (sin RUT) y el archivo
+ *     en su bandeja. Un gas en la cama equivocada es peor que uno que falta.
+ *
+ * 🔒 El RUT se usa para emparejar y NO se persiste aquí: la fila guarda
+ * PATIENT_ID. El nombre del informe tampoco se guarda. Los PDF SÍ son dato
+ * identificable: la carpeta de Drive va restringida (eso es de Diego).
+ *
+ * 🪤 Los PDF traen los VALORES EN NEGRITA DUPLICADOS en el texto («9.99.9»
+ * por 9.9, «14.314.3» por 14.3): la capa de texto repite el glifo. Por eso
+ * _gsaDesdoblar existe y la guardia lo prueba con el formato real.
+ *
+ * 🪤 El turno se calcula en el SERVIDOR con turnoLogicoServidor
+ * (infra_fechas.gs), que lee TURNO_DIA_INICIO / TURNO_NOCHE_INICIO de CONFIG
+ * igual que el cliente: un gas de las 04:00 cae en la NOCHE del día anterior
+ * (columna NOCHE de la hoja diaria); la hoja impresa lo busca por FECHA de
+ * reloj (es la hoja del día en que se tomó).
+ */
+
+const GSA_CARPETA_NOMBRE = 'RCE-KINE — Gases del laboratorio';
+const GSA_SUB_COPIADOS = 'copiados';
+const GSA_SUB_SIN = 'sin emparejar';
+const GSA_MAX_POR_CORRIDA = 40;
+
+/** Qué se lee de cada informe: [columna, expresión que ubica la línea]. */
+const _GSA_CAMPOS = [
+  ['PH', /^\s*pH\s/],                          // sensible a mayúsculas: «PH Y GASES» es el título
+  ['PACO2', /Presi[oó]n\s+CO2/i], ['PAO2', /Presi[oó]n\s+O2/i],
+  ['EB', /Exceso de Base/i], ['HCO3', /Bicarbonato/i],
+  ['FIO2', /^\s*FIO2\b/i], ['PAFI', /PO2\s*\/\s*FIO2/i],
+  ['SATO2', /Saturaci[oó]n de O2/i], ['LACTATO', /^\s*Lactato\b/i],
+  ['HB', /^\s*Hemoglobina\b/i], ['HTO', /^\s*Hematocrito\b/i],
+  ['PLAQUETAS', /Rcto\.?\s*Plaquetas/i], ['INR', /^\s*INR\b/],
+  ['K', /^\s*K\+/], ['NA', /^\s*Na\+/], ['GLICEMIA', /^\s*Glucosa\b/i],
+  ['PCR', /Prote[ií]na C Reactiva/i],
+];
+
+/**
+ * «9.99.9» → «9.9»: el texto del PDF repite lo que va en NEGRITA (los valores
+ * críticos, marcados «**»). Un número que ya es válido no se toca — «55»
+ * plaquetas son 55, no 5 — salvo que venga marcado crítico y sus dos mitades
+ * sean idénticas («5555» tras «**»).
+ */
+function _gsaDesdoblar(tok, critico) {
+  const t = String(tok || '');
+  const n = t.length;
+  const esNum = /^-?\d+([.,]\d+)?$/.test(t);
+  if (esNum && !critico) return t;
+  if (n >= 2 && n % 2 === 0 && t.slice(0, n / 2) === t.slice(n / 2)) return t.slice(0, n / 2);
+  return t;
+}
+
+/** Primer número después de la etiqueta en la línea; null si no lo hay. */
+function _gsaNumeroTras(linea, re) {
+  const m = String(linea).match(re);
+  if (!m) return null;
+  const resto = String(linea).slice(m.index + m[0].length);
+  const crudos = resto.split(/\s+/).filter(function (t) { return t && t !== ':' && t !== '-'; });
+  let critico = false;
+  for (let i = 0; i < crudos.length; i++) {
+    if (/^\*+$/.test(crudos[i])) { critico = crudos[i].length >= 2; continue; }
+    const t = _gsaDesdoblar(crudos[i], critico);
+    const x = t.replace(',', '.');
+    if (/^-?\d+(\.\d+)?$/.test(x)) return parseFloat(x);
+    if (/[A-Za-zµ%\/]/.test(t)) return null;   // llegó la unidad sin número: no hay valor
+  }
+  return null;
+}
+
+/**
+ * gsaParsear — del texto del informe a {rut, peticion, fecha, hora, valores}.
+ * Tolerante al orden: recorre línea a línea y toma la PRIMERA aparición de
+ * cada dato (en el informe los gases arteriales van antes que cualquier otro
+ * bloque que repita etiquetas).
+ */
+function gsaParsear(texto) {
+  const out = { rut: '', peticion: '', fecha: '', hora: '', valores: {}, venoso: false };
+  const lineas = String(texto || '').split(/\r?\n/);
+  lineas.forEach(function (l) {
+    if (!out.rut) {
+      const m = l.match(/RUT\s*:?\s*([0-9][0-9.]{4,}\s?-?\s?[0-9kK])\b/);
+      if (m) out.rut = m[1].replace(/\s/g, '');
+    }
+    if (!out.peticion) { const m = l.match(/Petici[oó]n\s*:?\s*(\d{4,})/i); if (m) out.peticion = m[1]; }
+    if (!out.fecha) {
+      const m = l.match(/Fecha de Ingreso\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})\s+(\d{1,2}):(\d{2})/i);
+      if (m) { out.fecha = m[3] + '-' + m[2] + '-' + m[1]; out.hora = ('0' + m[4]).slice(-2) + ':' + m[5]; }
+    }
+    _GSA_CAMPOS.forEach(function (c) {
+      if (out.valores[c[0]] !== undefined) return;
+      const n = _gsaNumeroTras(l, c[1]);
+      if (n !== null) out.valores[c[0]] = n;
+    });
+  });
+  out.venoso = /Gases Venosos/i.test(texto) && !/Gases Arteriales/i.test(texto);
+  // PaFi: si el informe no la trae calculada, se deriva (PaO₂ / FiO₂ en fracción).
+  if (out.valores.PAFI === undefined && out.valores.PAO2 !== undefined && out.valores.FIO2 > 0) {
+    out.valores.PAFI = Math.round(out.valores.PAO2 / (out.valores.FIO2 / 100));
+  } else if (out.valores.PAFI !== undefined && out.valores.PAFI < 10) {
+    // El informe la expresa en mmHg/% (2.34): la hoja la lee en mmHg (234).
+    out.valores.PAFI = Math.round(out.valores.PAFI * 100);
+  }
+  return out;
+}
+
+/** La carpeta de entrada (CONFIG GSA_CARPETA_ID; si falta, se crea y se anota). */
+function _gsaCarpeta() {
+  const id = String(leerConfig('GSA_CARPETA_ID', '')).trim();
+  if (id) {
+    try { return DriveApp.getFolderById(id); }
+    catch (e) { throw new Error('GSA_CARPETA_ID de CONFIG no abre ninguna carpeta: ' + e.message); }
+  }
+  const ex = DriveApp.getRootFolder().getFoldersByName(GSA_CARPETA_NOMBRE);
+  const f = ex.hasNext() ? ex.next() : DriveApp.createFolder(GSA_CARPETA_NOMBRE);
+  try { escribirConfig('GSA_CARPETA_ID', f.getId()); } catch (e) { /* sin CONFIG igual sirve */ }
+  return f;
+}
+function _gsaSub(carpeta, nombre) {
+  const it = carpeta.getFoldersByName(nombre);
+  return it.hasNext() ? it.next() : carpeta.createFolder(nombre);
+}
+
+/**
+ * Texto de un PDF vía la API de Drive: copia como Documento de Google
+ * (conversión con la capa de texto del PDF), exporta a texto plano y bota la
+ * copia. Usa el alcance de Drive que el proyecto ya tiene: sin servicios
+ * avanzados ni permisos nuevos.
+ */
+function _gsaTextoDePdf(file) {
+  const token = ScriptApp.getOAuthToken();
+  const r = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(file.getId()) + '/copy', {
+    method: 'post', contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + token },
+    payload: JSON.stringify({ name: 'tmp_gsa_' + file.getName(), mimeType: 'application/vnd.google-apps.document' }),
+    muteHttpExceptions: true,
+  });
+  if (r.getResponseCode() >= 300) {
+    throw new Error('Drive no pudo convertir el PDF (' + r.getResponseCode() + '): ' + String(r.getContentText()).slice(0, 160));
+  }
+  const docId = JSON.parse(r.getContentText()).id;
+  try {
+    const t = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(docId) + '/export?mimeType=text%2Fplain', {
+      headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true,
+    });
+    if (t.getResponseCode() >= 300) throw new Error('Drive no pudo exportar el texto (' + t.getResponseCode() + ')');
+    return t.getContentText('UTF-8');
+  } finally {
+    try { DriveApp.getFileById(docId).setTrashed(true); } catch (e) { /* la copia temporal no importa */ }
+  }
+}
+
+/**
+ * Episodio de un RUT en la fecha de la toma: la cama ocupada primero; si no,
+ * el egresado cuya estadía contiene la fecha. Sin certeza → null.
+ */
+function _gsaEpisodioPorRut(rut, fechaISO) {
+  const r = _rutNormal(rut);
+  if (!r) return null;
+  const camas = repoLeerTodos('CAMAS_ESTADO').filter(function (c) { return esVerdadero(c.OCUPADA) && _rutNormal(c.RUT) === r; });
+  if (camas.length === 1 && camas[0].PATIENT_ID) return { pid: String(camas[0].PATIENT_ID), idCama: String(camas[0].ID_CAMA), tipo: 'activo' };
+  if (camas.length > 1) return null;   // dos camas con el mismo RUT: nadie decide por el colega
+  const f = String(fechaISO || '').slice(0, 10);
+  const eg = repoLeerTodos('ARCHIVO_PACIENTES').filter(function (a) {
+    if (_rutNormal(a.RUT) !== r || !a.PATIENT_ID) return false;
+    const fi = String(a.FECHA_INGRESO || '').slice(0, 10), fe = String(a.FECHA_EGRESO || '').slice(0, 10);
+    return f && fi && fe && fi <= f && f <= fe;
+  });
+  if (eg.length === 1) return { pid: String(eg[0].PATIENT_ID), idCama: String(eg[0].CAMA_ORIGEN || ''), tipo: 'egresado' };
+  return null;
+}
+
+/**
+ * gsaImportarPendientes — la rutina. Corre desde el disparador de las 06:30 y
+ * desde el botón 🧪 de la app. Devuelve el resumen y lo deja en el buzón.
+ */
+function gsaImportarPendientes(ctx) {
+  return conLock(function () {
+    try {
+      const carpeta = _gsaCarpeta();
+      const copiados = _gsaSub(carpeta, GSA_SUB_COPIADOS);
+      const sinEmp = _gsaSub(carpeta, GSA_SUB_SIN);
+      const yaPet = {};
+      repoLeerTodos('GSA_IMPORTADAS').forEach(function (g) { if (g.PETICION && String(g.ESTADO) === 'ok') yaPet[String(g.PETICION)] = true; });
+      const res = { importados: [], sinEmparejar: [], repetidos: 0, errores: [] };
+      const it = carpeta.getFilesByType(MimeType.PDF);
+      let n = 0;
+      while (it.hasNext() && n < GSA_MAX_POR_CORRIDA) {
+        const f = it.next(); n++;
+        try {
+          const p = gsaParsear(_gsaTextoDePdf(f));
+          if (p.peticion && yaPet[p.peticion]) { res.repetidos++; f.moveTo(copiados); continue; }
+          const motivo = !p.rut ? 'sin RUT legible' : !rutValido(p.rut) ? 'RUT no valida (dígito verificador)'
+            : !p.fecha ? 'sin fecha de toma' : '';
+          const ep = motivo ? null : _gsaEpisodioPorRut(p.rut, p.fecha);
+          const base = {
+            ID_GSA: uid('gsa'), FECHA: p.fecha, HORA: p.hora,
+            PH: p.valores.PH, PACO2: p.valores.PACO2, PAO2: p.valores.PAO2, HCO3: p.valores.HCO3, EB: p.valores.EB,
+            SATO2: p.valores.SATO2, FIO2: p.valores.FIO2, PAFI: p.valores.PAFI, LACTATO: p.valores.LACTATO,
+            HB: p.valores.HB, HTO: p.valores.HTO, PLAQUETAS: p.valores.PLAQUETAS, INR: p.valores.INR,
+            K: p.valores.K, NA: p.valores.NA, GLICEMIA: p.valores.GLICEMIA, PCR: p.valores.PCR,
+            ARCHIVO: f.getName(), ARCHIVO_ID: f.getId(), PETICION: p.peticion, TS_IMPORT: ahoraTS(),
+          };
+          Object.keys(base).forEach(function (k) { if (base[k] === undefined || base[k] === null) base[k] = ''; });
+          if (!ep) {
+            // 🔴 Regla dura: sin certeza no se escribe en nadie. Ni el RUT se guarda.
+            repoInsertar('GSA_IMPORTADAS', Object.assign(base, { PATIENT_ID: '', ID_CAMA: '', TURNO_KEY: '',
+              ESTADO: 'sin_emparejar', DETALLE: motivo || 'RUT sin episodio en esa fecha' }));
+            f.moveTo(sinEmp);
+            res.sinEmparejar.push(f.getName() + ' — ' + (motivo || 'RUT sin episodio en esa fecha'));
+            continue;
+          }
+          const tl = turnoLogicoServidor(p.fecha, p.hora);
+          repoInsertar('GSA_IMPORTADAS', Object.assign(base, { PATIENT_ID: ep.pid, ID_CAMA: ep.idCama, TURNO_KEY: tl.turnoKey,
+            ESTADO: 'ok', DETALLE: (p.venoso ? 'venoso' : '') + (ep.tipo === 'egresado' ? ' (episodio egresado)' : '') }));
+          if (p.peticion) yaPet[p.peticion] = true;
+          f.moveTo(copiados);
+          res.importados.push({ cama: ep.idCama, hora: p.hora, fecha: p.fecha });
+        } catch (e) { res.errores.push(f.getName() + ': ' + e.message); }
+      }
+      if (res.importados.length || res.sinEmparejar.length || res.errores.length) {
+        try {
+          const camas = res.importados.map(function (x) { return x.cama; }).filter(Boolean).sort(function (a, b) { return a - b; });
+          notifRegistrar({ tipo: 'gsa',
+            titulo: '🧪 Gases importados: ' + res.importados.length + (res.sinEmparejar.length ? ' · sin emparejar: ' + res.sinEmparejar.length : '') + (res.errores.length ? ' · con error: ' + res.errores.length : ''),
+            detalle: (camas.length ? 'camas ' + camas.join(', ') : '') + (res.sinEmparejar.length ? ' · revisar la carpeta «sin emparejar»' : ''),
+            origenId: 'gsa:' + ahoraTS() });
+        } catch (e) { /* el buzón nunca tumba la importación */ }
+      }
+      return ok(Object.assign(res, { accion: 'gsa_importar', entidad: 'GSA_IMPORTADAS' }));
+    } catch (e) { return err('gsaImportarPendientes: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/** Gases importados de una FECHA de reloj, por PATIENT_ID (para la hoja impresa). */
+function gsaDelDia(fecha, pids) {
+  try {
+    const f = String(fecha || hoyISO()).slice(0, 10);
+    const quiero = {};
+    (pids || []).forEach(function (p) { if (p) quiero[String(p)] = true; });
+    const out = {};
+    repoLeerFiltrado('GSA_IMPORTADAS', 'FECHA', function (k) { return String(k).slice(0, 10) === f; }).forEach(function (g) {
+      const pid = String(g.PATIENT_ID || '');
+      if (!pid || String(g.ESTADO) !== 'ok') return;
+      if (Object.keys(quiero).length && !quiero[pid]) return;
+      (out[pid] = out[pid] || []).push(g);
+    });
+    Object.keys(out).forEach(function (pid) { out[pid].sort(function (a, b) { return String(a.HORA).localeCompare(String(b.HORA)); }); });
+    return ok(out);
+  } catch (e) { return err('gsaDelDia: ' + e.message, ERR.INTERNO, e); }
+}
+
+/** Gases importados de un episodio (viajan con el historial → hoja diaria). */
+function gsaDeEpisodio(patientId) {
+  const pid = String(patientId || '');
+  if (!pid) return [];
+  try {
+    return repoLeerTodos('GSA_IMPORTADAS', 'PATIENT_ID', pid)
+      .filter(function (g) { return String(g.ESTADO) === 'ok'; })
+      .sort(function (a, b) { return (String(a.FECHA) + a.HORA).localeCompare(String(b.FECHA) + b.HORA); });
+  } catch (e) { return []; }
+}
+
+/** Disparador diario (06:30 ± 15 min): los resultados llegan ~06:00, la hoja se imprime a las 07:00. */
+function instalarTriggerGSA() {
+  const ya = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'gsaImportarDesdeTrigger'; });
+  if (!ya) {
+    ScriptApp.newTrigger('gsaImportarDesdeTrigger').timeBased().everyDays(1).atHour(6).nearMinute(30).create();
+    console.log('⏰ Disparador de gases instalado (06:30 aprox.).');
+  } else console.log('⏰ El disparador de gases ya estaba instalado.');
+  const c = _gsaCarpeta();
+  console.log('📂 Carpeta de entrada: ' + c.getUrl());
+  return ok({ carpeta: c.getUrl() });
+}
+function gsaImportarDesdeTrigger() {
+  const r = gsaImportarPendientes({ email: 'trigger', firma: '' });
+  try { auditar({ email: 'trigger', accion: 'GSA_IMPORTAR', entidad: 'GSA_IMPORTADAS', resumen: r.ok ? (r.data.importados.length + ' importados, ' + r.data.sinEmparejar.length + ' sin emparejar') : ('ERROR ' + r.error) }); } catch (e) {}
+  return r;
+}
+/** Para correrla a mano desde el editor y ver el resumen en el registro. */
+function gsaImportarAhora() {
+  const r = gsaImportarPendientes({ email: 'editor', firma: '' });
+  Logger.log(JSON.stringify(r, null, 2));
+  return r;
 }
 
 
@@ -5248,6 +5767,423 @@ function calcularIndicadores(desde, hasta) {
       tendencia: tendencia,
     });
   } catch (e) { return err('calcularIndicadores: ' + e.message, ERR.INTERNO, e); }
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+// ── svc_notificaciones.gs ──
+// ════════════════════════════════════════════════════════════════════
+
+/**
+ * svc_notificaciones.gs — El buzón 📨 y la campana 🔔 (v5.91, 4-sep-2026).
+ *
+ * Reparto aprobado por Diego el 4-sep:
+ *  · CAMPANA (alertasUnidad): lo que la app DETECTA de los datos y exige
+ *    acción. No inventa detección nueva — junta lo que ya se calculaba
+ *    regado por las vistas (dispositivos vencidos, evaluaciones envejecidas,
+ *    VM sin ventilador, mantención, cierre de año). Es cálculo EN VIVO: no
+ *    se guarda ni lleva «leído» — al resolverse, desaparece sola.
+ *  · BUZÓN (hoja NOTIFICACIONES): lo que una PERSONA quiere contarle al
+ *    equipo. Día uno: notas 📌 del turno + avisos de versión (los
+ *    cumpleaños los deriva el cliente del GET_BOOT, no se guardan).
+ *
+ * 🔴 REGLA DE DIEGO (4-sep, textual: «OJO cómo se registra para después
+ * consultar y que la información perdure si se cambia y no pise nada de lo
+ * anterior»): la hoja NOTIFICACIONES es DE SOLO AGREGAR. Nada se edita ni
+ * se borra desde el código. Si una nota se re-guarda idéntica, no se
+ * duplica; si se re-guarda CAMBIADA, se agrega una fila nueva y la versión
+ * anterior QUEDA — el historial completo es consultable para siempre.
+ * (La TIMELINE reemplaza el hito de la nota al re-guardar; este registro es
+ * justamente la memoria que aquello no conserva.)
+ */
+
+/** Agrega una notificación al registro. Devuelve el ID o null si era idéntica. */
+function notifRegistrar(n) {
+  try {
+    const tipo = String((n && n.tipo) || '').trim();
+    const titulo = String((n && n.titulo) || '').trim();
+    if (!tipo || !titulo) return null;
+    const detalle = String((n && n.detalle) || '').trim();
+    const origen = String((n && n.origenId) || '').trim();
+    if (origen) {
+      const previas = repoLeerTodos('NOTIFICACIONES')
+        .filter(function (x) { return String(x.TIPO) === tipo && String(x.ORIGEN_ID) === origen; });
+      // Idéntica a una existente → no se duplica. Distinta → SE AGREGA
+      // (y la anterior queda: regla de solo-agregar, nunca pisar).
+      if (previas.some(function (x) { return String(x.TITULO) === titulo && String(x.DETALLE) === detalle; })) return null;
+    }
+    const fila = {
+      ID_NOTIF: uid('ntf'), TS: ahoraTS(), FECHA: hoyISO(), TIPO: tipo,
+      TITULO: titulo, DETALLE: detalle, REF_CAMA: String((n && n.refCama) || ''),
+      AUTOR: String((n && n.autor) || ''), ORIGEN_ID: origen,
+    };
+    repoInsertar('NOTIFICACIONES', fila);
+    return fila.ID_NOTIF;
+  } catch (e) { return null; }
+}
+
+/** Las últimas notificaciones, de la más nueva a la más vieja. */
+function notifListar(datos) {
+  try {
+    const lim = Math.min(parseInt((datos && datos.limite) || 60, 10) || 60, 200);
+    const filas = repoLeerTodos('NOTIFICACIONES')
+      .sort(function (a, b) { return String(b.TS).localeCompare(String(a.TS)); })
+      .slice(0, lim);
+    return ok({ notifs: filas });
+  } catch (e) { return err('notifListar: ' + e.message, ERR.INTERNO, e); }
+}
+
+/** «Se publicó la vX.Y» — el cliente manda su sello en el boot y la primera
+ *  vez que el servidor lo ve, queda registrado. Las siguientes, ya existe. */
+function notifVersionVista(version) {
+  const v = String(version || '').trim();
+  if (!v || v.length > 60) return;
+  notifRegistrar({ tipo: 'version', titulo: '🚀 Se publicó la versión ' + v, origenId: 'v:' + v });
+}
+
+/**
+ * La campana: TODAS las alertas activas de la unidad, calculadas en vivo.
+ * Formato de cada fila fijado por Diego (4-sep): «HME vencido (fecha en que
+ * vence) · cama 7 · rótulo 31-08», con su «Ir a…». nivel: rojo|ambar.
+ */
+function alertasUnidad(fecha) {
+  const ref = String(fecha || hoyISO()).slice(0, 10);
+  const dd = function (iso) { return iso ? String(iso).slice(8, 10) + '-' + String(iso).slice(5, 7) : ''; };
+  const alertas = [];
+  try {
+    const camas = repoLeerTodos('CAMAS_ESTADO').filter(function (c) { return esVerdadero(c.OCUPADA); });
+    const nomDisp = { hme: 'HME', hepa: 'Filtro HEPA', tc: 'Trach Care' };
+
+    camas.forEach(function (c) {
+      const idCama = String(c.ID_CAMA);
+
+      // ── Dispositivos VENCIDOS (los «vence hoy» viven en Cambios de esta noche) ──
+      estadoDispositivos(c, ref).forEach(function (x) {
+        if (!x.aplica || !x.vence) return;
+        // «Fecha en que vence» = la noche en que tocaba: etiqueta + frec - 1.
+        const vencio = _sumarDiasISO(x.fecha, x.frec - 1);
+        alertas.push({ nivel: 'rojo', icono: x.icono || '🏷️', cama: idCama, ir: 'cama',
+          titulo: (nomDisp[x.k] || x.nombre) + ' vencido (' + dd(vencio) + ')',
+          detalle: 'rótulo ' + dd(x.fecha) });
+      });
+
+      // ── Evaluaciones envejecidas: cooperador con MRC/FSS antigua ──
+      // Mismo criterio del badge de la tarjeta (>EVAL_DIAS_ALERTA días).
+      if (/^cooperador$/i.test(String(c.ULT_COOP || '').trim())) {
+        const cut = parseInt(leerConfig('EVAL_DIAS_ALERTA', '5'), 10) || 5;
+        // Pendientes de la PRIMERA medición (Diego, 5-sep-2026): cooperador
+        // sin MRC/FSS es el olvido real — al no cooperador no se le alerta
+        // (no es olvido: no se puede evaluar; su motivo va en tarjeta y
+        // entrega, no en la campana).
+        [['MRC-ss', c.ULT_MRC], ['FSS-ICU', c.ULT_FSS]].forEach(function (e) {
+          if (e[1] !== '' && e[1] != null) return;
+          alertas.push({ nivel: 'ambar', icono: '📋', cama: idCama, ir: 'cama',
+            titulo: e[0] + ' pendiente',
+            detalle: 'paciente cooperador sin medición en el episodio — evaluable desde ya' });
+        });
+        [['MRC-ss', c.ULT_MRC, c.ULT_MRC_FECHA], ['FSS-ICU', c.ULT_FSS, c.ULT_FSS_FECHA]].forEach(function (e) {
+          if (e[1] === '' || e[1] == null || !e[2]) return;
+          const f = String(e[2]).slice(0, 10);
+          const edad = Math.round((new Date(ref) - new Date(f)) / 864e5);
+          if (edad > cut) alertas.push({ nivel: 'ambar', icono: '📋', cama: idCama, ir: 'cama',
+            titulo: e[0] + ' sin re-evaluar (hace ' + edad + ' días)',
+            detalle: 'última ' + e[1] + ' el ' + dd(f) });
+        });
+      }
+
+      /* ── Pendiente medir pimometría (Diego, 5-sep-2026): paciente en VM,
+         modo espontáneo (CPAP/PS — así se llama aquí, no «PSV»), con soporte
+         bajo que no logra bajar más. «Prolongado» tiene DOS caminos, ambos de
+         la literatura: destete prolongado (Boles 2007 / WIND: ≥3 PVE
+         fracasadas o más de 7 días desde la primera — espejo de _weanClase
+         del cliente) o VM larga por días (NAMDRC 2005: ≥21 días, editable en
+         CONFIG PIMO_VM_DIAS). El porqué clínico, textual de Diego: «nos
+         orienta a saber por qué no se está pudiendo disminuir el soporte y si
+         requiere algún tipo de rehabilitación pulmonar». Se apaga sola al
+         registrar la Pimáx (fPIM) en el episodio. ── */
+      if (String(c.SOPORTE) === 'VM' && String(c.MODO) === 'CPAP/PS' &&
+          (c.ULT_PIM === '' || c.ULT_PIM == null)) {
+        const ps = parseFloat(c.ULT_PS);
+        const psMax = parseFloat(leerConfig('PIMO_PS_MAX', '14')) || 14;
+        if (!isNaN(ps) && ps < psMax) {
+          const wc = _weanClaseSrv(c.WEAN_PVE_JSON, ref);
+          const vmDias = c.FECHA_INICIO_SOPORTE
+            ? Math.max(0, Math.round((new Date(ref) - new Date(_statISO(c.FECHA_INICIO_SOPORTE))) / 864e5)) : 0;
+          const vmCorte = parseInt(leerConfig('PIMO_VM_DIAS', '21'), 10) || 21;
+          const motivo = (wc && wc.clase === 'prolongado')
+            ? 'destete prolongado: ' + (wc.frustras >= 3 ? wc.frustras + ' PVE fracasadas' : wc.dias + ' días desde la primera PVE')
+            : (vmDias >= vmCorte ? 'VM prolongada: ' + vmDias + ' días' : '');
+          if (motivo) alertas.push({ nivel: 'ambar', icono: '🫁', cama: idCama, ir: 'cama',
+            titulo: 'Pendiente medir pimometría (soporte ' + ps + ' cmH2O)',
+            detalle: motivo + ' — orienta por qué no baja el soporte y si requiere rehabilitación pulmonar' });
+        }
+      }
+
+      // ── Paciente en VM sin ventilador asignado en el tablero ──
+      if (String(c.SOPORTE) === 'VM' && !_ventNombreDeCama(idCama)) {
+        alertas.push({ nivel: 'rojo', icono: '🫁', cama: idCama, ir: 'tablero',
+          titulo: 'Paciente en VM sin ventilador asignado',
+          detalle: 'el tablero de equipos no tiene ninguno en esta cama' });
+      }
+    });
+
+    // ── Mantención de ventiladores: vencida, o programada dentro de 7 días ──
+    repoLeerTodos('VENTILADORES').forEach(function (x) {
+      if (!esVerdadero(x.ACTIVO)) return;
+      const prox = _statISO(x.FECHA_MANT_PROX);
+      if (!prox) return;
+      const d = Math.round((new Date(prox) - new Date(ref)) / 864e5);
+      if (d < 0) alertas.push({ nivel: 'rojo', icono: '🛠️', cama: '', ir: 'tablero',
+        titulo: 'Mantención vencida — ' + String(x.NOMBRE || 'equipo'),
+        detalle: 'programada para el ' + dd(prox) + ' (hace ' + Math.abs(d) + ' días)' });
+      else if (d <= 7) alertas.push({ nivel: 'ambar', icono: '🛠️', cama: '', ir: 'tablero',
+        titulo: 'Mantención por vencer — ' + String(x.NOMBRE || 'equipo'),
+        detalle: (d === 0 ? 'programada para HOY' : 'programada para el ' + dd(prox) + ' (en ' + d + ' días)') });
+    });
+
+    // ── Cama que rotó SIN alta: quedan evoluciones del anterior en la hoja viva ──
+    // (v5.99, auditoría R1). Desde la v5.99 el guardado ya no las pisa, pero
+    // siguen colgando de la cama hasta que alguien dé el alta pendiente o
+    // corra repararEvolucionesAjenas. Se avisa por cama, con el conteo.
+    try {
+      const ajenas = {};
+      repoLeerColumnasConFila('EVOLUCIONES', ['ID_CAMA', 'PATIENT_ID']).forEach(function (f) {
+        const e = f.obj;
+        const c = camas.filter(function (x) { return String(x.ID_CAMA) === String(e.ID_CAMA); })[0];
+        const pe = String(e.PATIENT_ID || ''), pc = c ? String(c.PATIENT_ID || '') : '';
+        if (!c || !pc || !pe || pe === pc) return;
+        ajenas[String(e.ID_CAMA)] = (ajenas[String(e.ID_CAMA)] || 0) + 1;
+      });
+      Object.keys(ajenas).forEach(function (idCama) {
+        alertas.push({ nivel: 'ambar', icono: '🛏️', cama: idCama, ir: 'cama',
+          titulo: 'Evoluciones de un paciente anterior sin archivar (' + ajenas[idCama] + ')',
+          detalle: 'la cama rotó sin dar el alta — dar el alta pendiente o correr repararEvolucionesAjenas' });
+      });
+    } catch (e) { /* sin esta lectura la campana sigue */ }
+
+    // ── Cierre de año pendiente (26-dic a febrero, si queda por trasladar) ──
+    try {
+      const ci = (typeof avisoCierreAnio === 'function') ? avisoCierreAnio() : null;
+      if (ci) alertas.push({ nivel: 'ambar', icono: '🗓️', cama: '', ir: '',
+        titulo: 'Cierre de año pendiente',
+        detalle: String(ci.texto || ci.mensaje || 'quedan evoluciones del año anterior por archivar') });
+    } catch (e) { /* el aviso nunca tumba la campana */ }
+
+    // Rojas primero, y dentro de cada nivel por cama.
+    alertas.sort(function (a, b) {
+      if (a.nivel !== b.nivel) return a.nivel === 'rojo' ? -1 : 1;
+      return (parseInt(a.cama) || 99) - (parseInt(b.cama) || 99);
+    });
+  } catch (e) { /* una campana rota no puede tumbar el boot */ }
+  return alertas;
+}
+
+/** Espejo EXACTO de _weanClase del cliente (index, Boles 2007 / WIND):
+ *  prolongado = 3 o más PVE fracasadas, o más de 7 días desde la primera PVE;
+ *  difícil = al menos una fracasada. Si cambias la regla, cámbiala en los dos
+ *  lados — la guardia buzon_campana fija este espejo. */
+function _weanClaseSrv(json, fechaRef) {
+  let w = {};
+  try { w = JSON.parse(json || '{}') || {}; } catch (e) { return null; }
+  const ks = Object.keys(w).sort();
+  if (!ks.length) return null;
+  const primer = ks[0].slice(0, 10);
+  const frustras = ks.filter(function (k) { return w[k] === 'frustra'; }).length;
+  const ms = new Date(String(fechaRef).slice(0, 10)) - new Date(primer);
+  const d = ms < 0 ? 0 : Math.floor(ms / 864e5);
+  const clase = (frustras >= 3 || d > 7) ? 'prolongado' : (frustras >= 1 ? 'dificil' : '');
+  return clase ? { clase: clase, frustras: frustras, dias: d, primerPve: primer } : null;
+}
+
+/** 📣 Aviso de coordinación al buzón del equipo (v5.96; Diego, 5-sep-2026:
+ *  «el aviso de coordinación, el buzón: prográmalo»). El candado vive AQUÍ,
+ *  en el servidor: con AUTH_DEV_MODE=TRUE cualquiera con el enlace llega al
+ *  dispatcher, así que la acción vuelve a exigir la sesión de coordinación
+ *  (misma regla de todas las COORD_*). El registro es de solo agregar. */
+function coordAviso(datos) {
+  try {
+    const ses = coordExigirSesion(String((datos && datos.token) || ''));
+    if (!ses.ok) return err(ses.error || 'Publicar un aviso requiere sesión de coordinación: entra en la pestaña 🔐 y vuelve a intentarlo.', ERR.NO_AUTORIZADO);
+    const texto = String((datos && datos.texto) || '').trim();
+    if (!texto) return err('Escribe el aviso antes de publicarlo.', ERR.VALIDACION);
+    if (texto.length > 500) return err('El aviso es muy largo (máximo 500 caracteres).', ERR.VALIDACION);
+    const id = notifRegistrar({ tipo: 'coord', titulo: '📣 Aviso de coordinación', detalle: texto, autor: String(ses.firma || '') });
+    return id ? ok({ id: id }) : err('No se pudo registrar el aviso.', ERR.INTERNO);
+  } catch (e) { return err('coordAviso: ' + e.message, ERR.INTERNO, e); }
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+// ── svc_plantillas.gs ──
+// ════════════════════════════════════════════════════════════════════
+
+/**
+ * svc_plantillas.gs — Plantillas de evolución (tanda 3, sep-2026,
+ * PRD_PLANTILLAS_EVOLUCION.md). v6.04 (Diego, 6-sep): las plantillas nacen
+ * desde el cuadro de texto (📋 y ➕ al seleccionar); comodines por BLOQUE y
+ * por DATO; la evolución tipo se aplica sola.
+ *
+ * Una plantilla es DE UNA PERSONA (su firma) o DE LA UNIDAD, y tiene un CASO
+ * que la ofrece (PVE fracasada, reintubación, TQT…). Vive en la hoja
+ * PLANTILLAS_EVOLUCION — un catálogo aparte: EVOLUCIONES no cambia (NO2 del
+ * PRD). El texto se arma en el CLIENTE con los bloques del motor (genTexto
+ * etiqueta cada frase con _B) y viaja al servidor como TEXTO_GENERADO, que
+ * el guardado ya respeta tal cual: el dato sigue saliendo del único motor.
+ *
+ * Reglas que se hacen cumplir AQUÍ (por aquí pasa todo, también lo que no
+ * venga del navegador):
+ *   · Una plantilla de la UNIDAD la publica solo coordinación (sesión viva
+ *     en el servidor, como toda acción COORD_*). NO5: un typo guardado se
+ *     replica en cada ficha.
+ *   · Comodines SOLO del catálogo: uno desconocido rechaza el guardado
+ *     (lección TrakCare: un typo = plantilla rota en silencio).
+ *   · Nombre legible y caso obligatorios; cuerpo acotado.
+ *   · Nadie borra: se desactiva (ACTIVO=false) y queda en la hoja.
+ */
+
+const PLANT_CASOS_SRV = ['general', 'ingreso', 'vm_nc', 'destete_dif', 'pve_frustra', 'pve_sup_sin_ext', 'ext',
+  'post_ext', 'reintub', 'intub', 'autoext', 'tqt', 'destete_tqt', 'decan', 'prono', 'rehab', 'sin_nov'];
+
+// 🔴 MISMA LISTA que PLANT_COMODINES del cliente (la guardia las compara).
+const PLANT_COMODINES_SRV = ['encabezado', 'dia', 'fase', 'via_aerea', 'soporte', 'parametros',
+  'pve', 'pve_n', 'weaning_grado', 'secreciones', 'sedacion', 'hemodinamia', 'neurologico',
+  'reintubacion', 'extubacion', 'tqt', 'decanulacion', 'ktm', 'evaluaciones', 'posicion',
+  'gases', 'anotaciones', 'plan', 'nota', 'relato', 'dia_estadia', 'diagnostico', 'edad',
+  'via_aerea_tipo', 'tot_numero', 'tot_cm', 'tqt_numero', 'dias_vm', 'dias_va', 'soporte_tipo',
+  'modo', 'vt', 'fr', 'ti', 'pmax', 'pmedia', 'peep', 'ppl', 'autopeep', 'ps', 'fio2', 'spo2',
+  'pafi', 'sedacion_escalon', 'sas', 'sas_meta', 'gcs', 'cooperacion', 'hdn', 'dva',
+  'secr_tipo', 'secr_cantidad'];
+
+const PLANT_NOMBRE_MAX = 40, PLANT_CUERPO_MAX = 4000;
+
+/** Las 13 de la unidad (Diego cerró el catálogo el 2-sep). Se siembran UNA vez. */
+const PLANTILLAS_UNIDAD_SEMILLA = [
+  ['general', 'Evolución de la unidad', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{sedacion} {hemodinamia} {neurologico}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['ingreso', 'Ingreso a la unidad', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{sedacion} {hemodinamia} {neurologico}\n{secreciones}\n{evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['vm_nc', 'VM sin destete', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{sedacion} {hemodinamia} {neurologico}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['destete_dif', 'Destete diferido', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{sedacion} {hemodinamia}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['pve_frustra', 'PVE fracasada', '{encabezado}\n{dia} {fase}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['pve_sup_sin_ext', 'PVE superada sin extubar', '{encabezado}\n{dia} {fase}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['ext', 'Extubación', '{encabezado}\n{dia} {fase}\n{pve}\n{extubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['post_ext', 'Post-extubación', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['reintub', 'Reintubación', '{encabezado}\n{dia} {fase}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['intub', 'Intubación', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['autoext', 'Autoextubación', '{encabezado}\n{dia} {fase}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['tqt', 'Traqueostomía', '{encabezado}\n{dia} {fase}\n{tqt}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['destete_tqt', 'Destete por TQT', '{encabezado}\n{dia} {fase} {weaning_grado}.\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['decan', 'Decanulación', '{encabezado}\n{dia} {fase}\n{decanulacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['prono', 'Prono', '{encabezado}\n{dia} {fase}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{gases}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['rehab', 'Rehabilitación', '{encabezado}\n{dia} {fase}\n{evaluaciones}\n{ktm}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['sin_nov', 'Sin novedades', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+];
+
+/** Siembra las de la unidad si la hoja está vacía (la llama crearORepararEstructura). */
+function plantillasSembrarUnidad() {
+  try {
+    if (repoLeerTodos('PLANTILLAS_EVOLUCION').length) return 0;
+    const filas = PLANTILLAS_UNIDAD_SEMILLA.map(function (t, i) {
+      return { ID: 'plu_' + t[0], DUENO: 'UNIDAD', CASO: t[0], NOMBRE: t[1], CUERPO: t[2], ACTIVO: true,
+        ORDEN: i + 1, ACTUALIZADO: ahoraTS(), ACTUALIZADO_POR: 'sistema' };
+    });
+    repoInsertarVarios('PLANTILLAS_EVOLUCION', filas);
+    return filas.length;
+  } catch (e) { console.warn('plantillasSembrarUnidad: ' + e.message); return 0; }
+}
+
+/** Catálogo activo, tal como lo consume la barra (viaja en GET_BOOT). */
+function plantillasListar() {
+  try {
+    return repoLeerTodos('PLANTILLAS_EVOLUCION')
+      .filter(function (p) { return esVerdadero(p.ACTIVO); })
+      .sort(function (a, b) { return (parseInt(a.ORDEN) || 0) - (parseInt(b.ORDEN) || 0); })
+      .map(function (p) {
+        return { id: String(p.ID), dueno: String(p.DUENO || ''), caso: String(p.CASO || 'general'),
+          nombre: String(p.NOMBRE || ''), cuerpo: String(p.CUERPO || ''), activo: true,
+          actualizado: String(p.ACTUALIZADO || ''), por: String(p.ACTUALIZADO_POR || '') };
+      });
+  } catch (e) { return []; }
+}
+
+/** Comodines desconocidos en un cuerpo ('' si todos existen). */
+function _plantComodinesMalos(cuerpo) {
+  const malos = [];
+  String(cuerpo || '').replace(/\{([^{}]*)\}/g, function (m, k) {
+    if (PLANT_COMODINES_SRV.indexOf(String(k).trim().toLowerCase()) === -1) malos.push('{' + k + '}');
+    return m;
+  });
+  return malos.join(', ');
+}
+
+/**
+ * plantillaGuardar — crea o edita. datos: {id?, dueno, caso, nombre, cuerpo, token?}
+ * Sin login no hay cómo probar que quien manda «MCC» es MCC: la firma es la
+ * misma confianza con la que se firma la evolución. Lo de la UNIDAD sí exige
+ * la clave de coordinación.
+ */
+function plantillaGuardar(datos, ctx) {
+  return conLock(function () {
+    try {
+      datos = datos || {};
+      const dueno = String(datos.dueno || '').trim().toUpperCase();
+      const caso = String(datos.caso || 'general').trim();
+      const nombre = String(datos.nombre || '').trim();
+      const cuerpo = String(datos.cuerpo || '').replace(/\r/g, '');
+      if (!dueno || dueno.length > 15) return err('Falta la firma dueña de la plantilla.', ERR.VALIDACION);
+      if (!nombre) return err('Ponle un nombre a la plantilla.', ERR.VALIDACION);
+      if (nombre.length > PLANT_NOMBRE_MAX) return err('El nombre es muy largo (máx. ' + PLANT_NOMBRE_MAX + ').', ERR.VALIDACION);
+      if (!cuerpo.trim()) return err('La plantilla está vacía.', ERR.VALIDACION);
+      if (cuerpo.length > PLANT_CUERPO_MAX) return err('La plantilla es muy larga (máx. ' + PLANT_CUERPO_MAX + ' caracteres).', ERR.VALIDACION);
+      if (PLANT_CASOS_SRV.indexOf(caso) === -1) return err('Caso desconocido: ' + caso, ERR.VALIDACION);
+      const malos = _plantComodinesMalos(cuerpo);
+      if (malos) return err('Comodín desconocido: ' + malos + '. Los comodines se eligen del menú, no se escriben.', ERR.VALIDACION);
+      if (!/\{[a-z0-9_]+\}/i.test(cuerpo)) return err('La plantilla no trae ningún comodín: sería el mismo texto para todos los pacientes.', ERR.VALIDACION);
+
+      let firma = '';
+      if (dueno === 'UNIDAD') {
+        const g = coordExigirSesion(datos.token);
+        if (!g.ok) return g;
+        firma = g.firma;
+      }
+      const id = String(datos.id || '').trim();
+      let previa = null;
+      if (id) {
+        previa = repoBuscarPorId('PLANTILLAS_EVOLUCION', 'ID', id);
+        if (!previa) return err('Esa plantilla ya no existe.', ERR.NO_ENCONTRADO);
+        // Editar la de OTRO colega no se puede: se copia como propia (lo hace
+        // el cliente). Aquí se rechaza por si llega por otra vía.
+        if (String(previa.DUENO) !== dueno) return err('No puedes editar la plantilla de otra persona: cópiala como tuya.', ERR.NO_AUTORIZADO);
+      }
+      const fila = {
+        ID: id || uid('pl'), DUENO: dueno, CASO: caso, NOMBRE: nombre, CUERPO: cuerpo, ACTIVO: true,
+        ORDEN: previa ? previa.ORDEN : (repoLeerTodos('PLANTILLAS_EVOLUCION').length + 1),
+        ACTUALIZADO: ahoraTS(), ACTUALIZADO_POR: firma || dueno,
+      };
+      repoUpsert('PLANTILLAS_EVOLUCION', 'ID', fila.ID, fila);
+      return ok({ id: fila.ID, plantilla: { id: fila.ID, dueno: dueno, caso: caso, nombre: nombre, cuerpo: cuerpo, activo: true,
+        actualizado: fila.ACTUALIZADO, por: fila.ACTUALIZADO_POR }, accion: previa ? 'plantilla_editada' : 'plantilla_creada', entidad: 'PLANTILLAS_EVOLUCION' });
+    } catch (e) { return err('plantillaGuardar: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/** Retira una plantilla (ACTIVO=false; nada se borra). La propia, o la de la unidad con clave. */
+function plantillaDesactivar(datos) {
+  return conLock(function () {
+    try {
+      datos = datos || {};
+      const id = String(datos.id || '').trim();
+      const p = id ? repoBuscarPorId('PLANTILLAS_EVOLUCION', 'ID', id) : null;
+      if (!p) return err('Esa plantilla no existe.', ERR.NO_ENCONTRADO);
+      const dueno = String(datos.dueno || '').trim().toUpperCase();
+      if (String(p.DUENO) === 'UNIDAD') {
+        const g = coordExigirSesion(datos.token);
+        if (!g.ok) return g;
+      } else if (String(p.DUENO) !== dueno) {
+        return err('Solo el dueño de la plantilla puede retirarla.', ERR.NO_AUTORIZADO);
+      }
+      repoActualizar('PLANTILLAS_EVOLUCION', 'ID', id, { ACTIVO: false, ACTUALIZADO: ahoraTS(), ACTUALIZADO_POR: dueno || 'coordinacion' });
+      return ok({ id: id, accion: 'plantilla_retirada', entidad: 'PLANTILLAS_EVOLUCION' });
+    } catch (e) { return err('plantillaDesactivar: ' + e.message, ERR.INTERNO, e); }
+  });
 }
 
 
@@ -5980,7 +6916,7 @@ function obtenerStats(desde, hasta) {
   const pacientes = {};   // PATIENT_ID → { rem, vm }
   const vmDiasSet = {};   // 'pid|fecha' → true (días-paciente en VM)
   let dia = 0, noche = 0, ingresos = 0, turnosVM = 0;
-  let intub = 0, ext = 0, extProg = 0, autoext = 0, pveSi = 0, pveSup = 0, pveFrus = 0;
+  let intub = 0, ext = 0, extProg = 0, autoext = 0, pveSi = 0, pveSup = 0, pveFrus = 0, pveSupSinExt = 0;
   let decan = 0, recanul = 0, cambiosTOT = 0;
   let ktmR = 0, ktmC = 0, ktmN = 0, ktrSes = 0, imtSes = 0, ktmTiempo = 0, ktmTiempoN = 0;
   const ktmNiveles = {}, ktmMotivosNo = {}, procs = {}, catResp = {}, catMotor = {};
@@ -6056,7 +6992,9 @@ function obtenerStats(desde, hasta) {
       if (String(e.EXT_TIPO || '').toLowerCase().indexOf('autoext') !== -1) autoext++;
     }
     if (e.PVE_VAL === 'si') pveSi++;
-    if (e.PVE_RESULTADO === 'superada') pveSup++;
+    // Tanda 2a: la superada sin extubar SÍ es una PVE superada (la prueba se
+    // superó) y se muestra APARTE para que nadie la lea como extubación.
+    if (e.PVE_RESULTADO === 'superada') { pveSup++; if (esVerdadero(e.PVE_SUP_SIN_EXT)) pveSupSinExt++; }
     if (e.PVE_RESULTADO === 'frustra') pveFrus++;
     if (e.PVE_VAL === 'no') {
       pveNo++;
@@ -6180,7 +7118,7 @@ function obtenerStats(desde, hasta) {
     eventos: {
       intubaciones: intub, extubaciones: ext, extubProgramadas: extProg, autoextubaciones: autoext,
       reintubaciones: reintubs, tasaReintubPct: ext > 0 ? r1(reintubs / ext * 100) : 0,
-      pveRealizadas: pveSi, pveSuperadas: pveSup, pveFrustras: pveFrus,
+      pveRealizadas: pveSi, pveSuperadas: pveSup, pveSupSinExt: pveSupSinExt, pveFrustras: pveFrus,
       pveExitoPct: (pveSup + pveFrus) > 0 ? r1(pveSup / (pveSup + pveFrus) * 100) : 0,
       decanulaciones: decan, recanulaciones: recanul, cambiosTOT: cambiosTOT,
     },
@@ -6427,7 +7365,10 @@ const PROC_TO_HITO = {
 // procedimientos. Todo lo que no esté aquí sobrevive a un re-guardado — y esa
 // es la única protección que tienen los hitos escritos a mano: 'ingreso',
 // 'egreso', 'cultivo', 'evento' y 'anexo' están fuera a propósito.
-const _TIPOS_HITO_AUTO = ['via_aerea', 'procedimiento', 'kine', 'general'];
+// 'nota' entra aquí (2-sep-2026) para que el hito 📌 de la nota del turno se
+// REEMPLACE al re-guardar la evolución: si el colega corrige la nota, el
+// historial muestra la corregida y no las dos.
+const _TIPOS_HITO_AUTO = ['via_aerea', 'procedimiento', 'kine', 'general', 'nota'];
 
 /**
  * Prefijo del texto con que se escribe el hito de un procedimiento ANEXADO
@@ -6651,6 +7592,11 @@ function obtenerAsignacionTurno(key) {
 
 /** datos: { key, data: JSON string {team, assign} } */
 function guardarAsignacionTurno(datos) {
+  // v5.99 (auditoría C2): dos personas repartiendo camas a la vez se pisaban
+  // la propiedad entera (lectura-modificación-escritura sin candado).
+  return conLock(function () { return _guardarAsignacionTurnoInterno(datos); });
+}
+function _guardarAsignacionTurnoInterno(datos) {
   try {
     const key = String((datos && datos.key) || '');
     if (!_asigKeyValida(key)) return err('Clave de turno inválida: ' + key, ERR.VALIDACION);

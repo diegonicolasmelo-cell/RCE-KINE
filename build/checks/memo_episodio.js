@@ -96,6 +96,7 @@ global.repoUpsertEnFila = (h, f2, o) => {
 };
 global.repoEscribirFila = (h, f2, o) => { cuenta('actualizar:' + h); _reemplazarFila(h, f2, o); };
 global.repoLeerTodosConFila = h => { cuenta('leerTodosConFila:' + h); return (DB[h] || []).map((r, i) => ({ obj: Object.assign({}, r), fila: i + 2 })); };
+global.repoLeerColumnasConFila = (h, campos) => { cuenta('leerTodosConFila:' + h); return (DB[h] || []).map((r, i) => { const o = {}; campos.forEach(c => { o[c] = (c in r) ? r[c] : ''; }); return { obj: o, fila: i + 2 }; }); };
 global.repoEliminarFilas = (h, fl) => { cuenta('eliminar:' + h); (fl || []).map(f2 => f2 - 2).sort((a, b) => b - a).forEach(i => DB[h].splice(i, 1)); return (fl || []).length; };
 global.repoEliminarPorCols = (h, cs, pred) => {
   cuenta('eliminar:' + h);

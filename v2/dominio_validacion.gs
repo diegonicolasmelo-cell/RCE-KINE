@@ -166,8 +166,18 @@ var _PVE_RAZON_EXIGE_MOTIVO = ['Otra'];
 function validarPVE(d) {
   const errs = [];
   if (!d) return errs;
-  if (String(d.PVE_VAL || '') !== 'no') return errs;   // ausente o 'si'/'nc': nada que validar
   const vv = function (x) { return x === true || String(x) === 'true' || String(x) === 'TRUE'; };
+  // PVE superada SIN extubar (tanda 2a): la razón es obligatoria y la
+  // extubación no puede venir marcada a la vez (el candado del PRD, en el
+  // servidor: por aquí pasa también el ➕ del Registro Diario).
+  if (String(d.PVE_VAL || '') === 'si' && vv(d.PVE_SUP_SIN_EXT)) {
+    if (String(d.PVE_RESULTADO || '') !== 'superada') errs.push('PVE: «no se extubó» solo aplica a una PVE superada.');
+    if (!String(d.PVE_SUP_SIN_EXT_RAZ || '').trim()) errs.push('PVE superada sin extubar: indica por qué no se extubó.');
+    if (/^Otra$/i.test(String(d.PVE_SUP_SIN_EXT_RAZ || '').trim())) errs.push('PVE superada sin extubar: «Otra» necesita que describas el motivo.');
+    if (vv(d.EXT_OCURRIO)) errs.push('PVE superada sin extubar: no puede venir marcada una extubación en el mismo turno.');
+    return errs;
+  }
+  if (String(d.PVE_VAL || '') !== 'no') return errs;   // ausente o 'si'/'nc': nada que validar
   // Extubación sin PVE: el evento del turno es otro y el formulario manda los
   // PVE_SC_* vacíos a propósito.
   // 🪤 Salvo `sin_condiciones`, que NO es una extubación (decisión clínica

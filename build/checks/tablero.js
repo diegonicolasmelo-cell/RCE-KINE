@@ -328,6 +328,9 @@ RANGOS.forEach(([etiqueta, d, h]) => {
     // listan uno por uno: una adición no declarada sigue haciendo caer el A/B,
     // que es lo que impide que esta excepción se convierta en un colador.
     const NUEVOS = ['obtenerStats.data.ktm.motivosContra', 'obtenerStats.data.ktm.motivosNoReal',
+                    // sep-2026 · tanda 2a: PVE superadas SIN extubar, contadas
+                    // aparte (aditivo: pveSuperadas sigue igual).
+                    'obtenerStats.data.eventos.pveSupSinExt',
                     'obtenerStats.data.ktm.otros', 'obtenerStats.data.ktm.sinFundamento',
                     'obtenerStats.data.ktm.sinMotivo',
                     // 28-ago-2026 · el porqué de la PVE no realizada, que estaba

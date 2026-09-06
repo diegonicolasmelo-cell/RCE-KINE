@@ -95,6 +95,7 @@ const _reemplazarFila = (h, f2, o) => { const r = DB[h][f2 - 2]; Object.keys(r).
 global.repoUpsertEnFila = (h, f2, o) => { if (f2 === -1) { (DB[h] = DB[h] || []).push(Object.assign({}, o)); return 'crear'; } _reemplazarFila(h, f2, o); return 'actualizar'; };
 global.repoEscribirFila = (h, f2, o) => _reemplazarFila(h, f2, o);
 global.repoLeerTodosConFila = h => { cuenta('leer:' + h); return (DB[h] || []).map((r, i) => ({ obj: Object.assign({}, r), fila: i + 2 })); };
+global.repoLeerColumnasConFila = (h, campos) => { cuenta('leer:' + h); return (DB[h] || []).map((r, i) => { const o = {}; campos.forEach(c => { o[c] = (c in r) ? r[c] : ''; }); return { obj: o, fila: i + 2 }; }); };
 global.repoEliminarFilas = (h, fl) => { (fl || []).map(f2 => f2 - 2).sort((a, b) => b - a).forEach(i => DB[h].splice(i, 1)); return (fl || []).length; };
 global.repoEliminarPorCols = (h, cs, pred) => { const a = (DB[h] || []).length; DB[h] = (DB[h] || []).filter(r => { const o = {}; cs.forEach(c => { o[c] = r[c]; }); return !pred(o); }); return a - DB[h].length; };
 global.repoInsertarVarios = (h, os) => { (os || []).forEach(o => (DB[h] = DB[h] || []).push(Object.assign({}, o))); return (os || []).length; };
@@ -292,7 +293,11 @@ DB.EVOLUCIONES.push({ ID_EVOLUCION: 'CAMA_4_' + TK_NUEVO, ID_CAMA: '4', PATIENT_
 limpiarCamasManual('4');
 ingresarB();
 supinaB();
-const colision = filaDe(TK_NUEVO);
+// v5.99: la fila del nuevo ya NO comparte clave con la del anterior (nace
+// aparte, con sufijo del episodio; la del anterior queda intacta). Se busca la
+// del nuevo por paciente, no por clave.
+const colision = DB.EVOLUCIONES.find(e => String(e.ID_CAMA) === '4' && e.TURNO_KEY === TK_NUEVO && e.PATIENT_ID !== 'pA') || {};
+eq('v5.99 · la fila del anterior en ese turno sigue intacta', (filaDe(TK_NUEVO).PATIENT_ID || '') + '|' + (filaDe(TK_NUEVO).PAC_DIAGNOSTICO || ''), 'pA|SDRA');
 // CARACTERIZACIÓN: hay un CUARTO lector, y es el que escribe. obtenerEvolucion
 // busca por ID_EVOLUCION = CAMA_<cama>_<turnoKey>, sin paciente, y
 // guardarEvolucion fusiona esa fila en el payload. Por eso filtrar en los tres
