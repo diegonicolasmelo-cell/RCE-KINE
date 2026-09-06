@@ -408,11 +408,11 @@ const { chromium } = require('playwright-core');
     return { html, vacia, hoja };
   });
   si('★ el pH va con asterisco y en NEGRITA con flecha ↑ (7,48 > 7,50? no: 7,482 → sin flecha)', /<td class="rk-c rk-lab">7,48\*<\/td>/.test(R.html));
-  si('★ la Hb 6,8 sale en negrita con ↓ y asterisco (corte < 7 de Diego)', /<td class="rk-c rk-lab"><b>6,8↓<\/b>\*<\/td>/.test(R.html));
-  si('Hto tiene fila propia', /<td class="rk-c">Hto<\/td><td class="rk-c rk-lab">20,2\*<\/td>/.test(R.html));
+  si('★ la hoja tiene SOLO las filas del formulario oficial: sin fila Hb ni Hto (Diego, 6-sep)', !/<td class="rk-c">Hb<\/td>/.test(R.html) && !/<td class="rk-c">Hto<\/td>/.test(R.html));
   si('la hora del gas va en la 1ª columna con asterisco', /<td class="rk-c rk-lab">03:40\*<\/td>/.test(R.html));
   si('PaFi 234 sin flecha (≥ 200)', /<td class="rk-c rk-lab">234\*<\/td>/.test(R.html));
-  si('★ en observaciones SOLO lo alterado: plaquetas 55↓ y K⁺ 3,2↓', /Lab 03:40\*: <b>Plaq 55↓<\/b> · <b>K⁺ 3,2↓<\/b>/.test(R.html) && !/Glic/.test(R.html) && !/INR 1,07/.test(R.html));
+  si('★ observaciones: Hb (6,8↓ negrita), Hto y K⁺ SIEMPRE; plaquetas solo por alteradas; ni INR ni glicemia normales',
+    /Lab 03:40\*: <b>Hb 6,8↓<\/b> · Hto 20,2 · <b>K⁺ 3,2↓<\/b> · <b>Plaq 55↓<\/b>/.test(R.html) && !/Glic/.test(R.html) && !/INR 1,07/.test(R.html));
   si('sin gases importados la hoja sale como antes (laboratorio en blanco, sin marcadores)', !/\{\{L_/.test(R.vacia) && !/\*<\/td>/.test(R.vacia));
   si('ningún marcador {{L_…}} quedó sin reemplazar', !/\{\{L_/.test(R.html));
   si('★ la hoja diaria muestra el gas del lab en la NOCHE del 3 aunque ese turno no tenga evolución', /🧪 lab 03:40/.test(R.hoja) && /03-sep/.test(R.hoja));

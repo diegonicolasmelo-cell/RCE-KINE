@@ -327,7 +327,8 @@ si tiene más de unos días, se confirma antes de usarla.
   la bandeja «sin emparejar» y hay `gsaDiagnostico()` para ver el texto real
   desde el editor) y **la bandeja 📥 de la v6.08** para emparejar a mano lo
   que la máquina no pudo, desde los valores que YA están en la base (se pega
-  también **api**; ver BITACORA v6.08, v6.07 y v6.06). **Fusionado el 6-sep**: `filtros-vence-hoy` →
+  también **api**) y **la v6.09** (Hb, Hto y K⁺ a observaciones de la hoja
+  impresa, que vuelve a las filas oficiales; ver BITACORA v6.09…v6.06). **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
   (puente «REM Hospital» + maqueta de pacientes ficticios) quedó SIN fusionar
   a propósito: destino externo no aprobado por Diego. Historia de la v6.04: index + servicios
