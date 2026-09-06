@@ -19,6 +19,164 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.02-plantillas-de-evolucion (6-sep-2026) — la tanda 3 llega a producción, en modo chips
+
+Diego, 5-sep: «la selección de plantilla… como chips, por mientras». Se portó
+el prototipo de la rama `prototipo-plantillas-evolucion` (solo el modo chips;
+el modo «evolución tipo + relato» queda en esa rama como banco) a la línea de
+producción, con persistencia real.
+
+- **Hoja nueva `PLANTILLAS_EVOLUCION`** (26ª): ID · DUENO (firma o `UNIDAD`) ·
+  CASO · NOMBRE · CUERPO · ACTIVO · ORDEN · ACTUALIZADO · ACTUALIZADO_POR.
+  EVOLUCIONES no cambia por esto (NO2 del PRD). El reset la CONSERVA (es
+  configuración). `crearORepararEstructura()` siembra las **13 de la unidad**
+  (más «general» y «PVE superada sin extubar» del PRD hermano) solo si la hoja
+  está vacía.
+- **`svc_plantillas.gs`**: `plantillasListar` (viaja en GET_BOOT),
+  `plantillaGuardar` y `plantillaDesactivar`. Reglas del servidor: una de la
+  UNIDAD exige sesión de coordinación viva (`coordExigirSesion`, como toda
+  COORD_*); comodín desconocido rechaza el guardado; nombre ≤ 40, cuerpo ≤
+  4000, caso del catálogo; editar la de otro se rechaza (el cliente la copia
+  como propia); nada se borra, se retira (ACTIVO=false).
+- **Cliente**: barra bajo la fase clínica (fila «Evento del turno» + fila
+  «Plantilla»), el caso se deduce del formulario (reintubación > TQT >
+  decanulación > PVE superada sin extubar > extubación/autoextubación > PVE
+  fracasada > VM sin destete > destete diferido > ingreso > prono > destete
+  por TQT > rehabilitación), la sugerida va en ámbar y se fija al tocarla;
+  catálogo en tres estantes (colega de la cama → unidad → otros); «Motor
+  libre» vuelve al texto de siempre. Los comodines son los BLOQUES del motor
+  (`_B` / TXB): el dato sigue saliendo del único motor y `TEXTO_GENERADO`
+  viaja tal cual (paridad). Regla madre intacta: sobre texto tocado o guardado
+  se pregunta con `uiConfirm`.
+- **Editor con dos puertas** (Diego, 4-sep): el ✏️ de la barra y «⚙️ Mis
+  plantillas…» al final del catálogo. Nadie parte en blanco (esqueleto con
+  comodines o copia de la sugerida); comodines SOLO por menú (un typo se ve en
+  rojo en la vista previa y no sale al servidor); **vista previa obligatoria**
+  con el paciente abierto; la de la unidad sin clave se abre como «copiar como
+  mía»; 🗂️ Retirar para las propias.
+- 🪤 Al portar: un `const` declarado dentro de `eval()` no sale al módulo de la
+  guardia (las listas del servidor se leen del fuente por regex); y
+  `abrirPanel` pide GET_EVO_TURNO cuya respuesta corre `aplicarFirmaTurno` y
+  deja la firma en '' — en el arnés la firma se fija DESPUÉS de esperar.
+- Guardia `plantillas_evolucion.js` (servidor + paridad de listas cliente↔
+  servidor + pantalla). **Cambia esquema** (hoja nueva) ⇒ el MISMO
+  `crearORepararEstructura()` de la tanda.
+
+## v6.01-gases-del-laboratorio (6-sep-2026) — el gas de la mañana llega solo desde el PDF
+
+La historia del PRD (Diego, 2-sep): gases a las 04:00, resultado a las 06:00,
+hoja impresa a las 07:00… y los valores pasados a mano a las 10:00. El 6-sep
+mandó **cuatro PDF reales** del laboratorio (gsa1 = cama 1, etc.) y confirmó
+que **no exporta CSV**. Medido con los PDF: **traen capa de texto** (no hace
+falta OCR), y el texto repite los glifos de los valores en negrita («9.99.9»
+por 9,9 — los críticos, marcados «**»).
+
+- **Hoja nueva `GSA_IMPORTADAS`** (25ª): PATIENT_ID · cama · FECHA/HORA de la
+  toma · TURNO_KEY · pH · PaCO₂ · PaO₂ · HCO₃ · EB · SatO₂ · FiO₂ · PaFi ·
+  lactato · Hb · Hto · plaquetas · INR · K⁺ · Na⁺ · glicemia · PCR · archivo ·
+  petición · ESTADO (`ok` / `sin_emparejar`). **Guarda PATIENT_ID, nunca el
+  RUT ni el nombre del informe.** El reset la vacía.
+- **`svc_gsa.gs`**: carpeta de Drive `RCE-KINE — Gases del laboratorio`
+  (CONFIG `GSA_CARPETA_ID`, se crea sola); PDF→texto con la **API de Drive**
+  (copiar como Documento + exportar texto plano, con el alcance `drive` que el
+  proyecto YA tiene: sin servicios avanzados ni permisos nuevos);
+  `gsaParsear` tolerante al orden (RUT, Nº petición, «Fecha de Ingreso» =
+  fecha/hora de la toma, valores; PaFi 2.34 mmHg/% → 234; `_gsaDesdoblar`
+  parte «14.314.3» y NO parte «55»); emparejamiento por RUT contra la cama
+  ocupada o el egresado cuya estadía contiene la fecha (`_gsaEpisodioPorRut`,
+  con `rutValido` como verificador gratis); **regla dura**: sin certeza no se
+  escribe en nadie; petición repetida no se importa dos veces; el PDF se MUEVE
+  a `copiados` o `sin emparejar` (nunca se borra); resumen al buzón (tipo
+  `gsa`, 🧪).
+- **`turnoLogicoServidor`** en `infra_fechas.gs`: espejo de `_turnoLogico`
+  del cliente con los mismos cortes de CONFIG (04:00 → NOCHE del día
+  anterior). La guardia compara los dos lados, también con cortes cambiados.
+- **Disparador** `instalarTriggerGSA()` (06:30 aprox., diario) + botón
+  **🧪 Importar gases** en la barra de Registro (acción `GSA_IMPORTAR`,
+  auditada) para la noche que los PDF lleguen tarde.
+- **Hoja impresa** (`rkHojaHTML`): el gas de la mañana en la **1ª columna** de
+  laboratorio con **asterisco** (= vino del lab), **negrita + flecha ↑↓** para
+  lo fuera de rango (se imprime en B/N), **Hb y Hto en fila propia**, y en
+  observaciones solo lo alterado (Plaq · K⁺ · INR · Glic). Cortes de Diego:
+  Hb < 7 · Plaq < 100 · K⁺ < 3,5 o > 5,5 · pH < 7,30 o > 7,50 · PaCO₂ > 50 ·
+  PaFi < 200; **supuestos míos**: INR > 1,5 · glicemia < 70 o > 180. Los
+  gases viajan con `GET_REINTUB_N` al imprimir (`GET_GSA_DIA`, misma espera).
+- **Hoja diaria** (historial): `GET_HISTORIAL_PACIENTE` trae `gsa`; la fila
+  GSA **mezcla** el gas importado (chip 🧪 lab + hora) en la columna del turno
+  aunque ese turno no tenga evolución todavía, y una fila nueva «Hb / Hto /
+  Plaq / K⁺».
+- **Nada entra a la evolución ni al REM** (decisión de Diego). Guardia
+  `gsa_importada.js` con un informe sintético en el formato real (datos
+  inventados). **Cambia esquema** ⇒ `crearORepararEstructura()`.
+- Pendiente de terreno: la conversión de Drive puede ordenar el texto
+  distinto que la lectura local; el parser es tolerante, pero el primer PDF
+  real que se importe en producción hay que mirarlo (buzón + hoja).
+
+## v6.00-pve-superada-sin-extubar (6-sep-2026) — tanda 2a, el PRD aprobado
+
+- Rama «superada» con **«¿Se extubó?»** (Sí por defecto = todo como hoy; No →
+  razón obligatoria: pabellón/procedimiento programado · indicación médica ·
+  sin condiciones de vía aérea · se difiere · Otra con detalle) y se esconde
+  hora, soporte PE, evaluación post y reintubación anidada.
+- **El candado**: `_extOcurrio()` y `_extTipo()` dejan de asumir «superada =
+  extubado»; el servidor valida (`validarPVE`: razón obligatoria, «Otra» con
+  detalle, no puede venir EXT_OCURRIO a la vez, solo sobre superada) y el
+  guardado **limpia** hora/tipo/PE/post si viene la marca; sin la marca la
+  razón se vacía (promesa 3).
+- Dos columnas al final de EVOLUCIONES: `PVE_SUP_SIN_EXT`, `PVE_SUP_SIN_EXT_RAZ`
+  ⇒ **396 columnas** (`testEsquema` y `neuro_dve_pic` actualizadas).
+- Texto en paridad: «Se realiza PVE con resultado superado. No se extuba por
+  {razón}; mantiene ventilación mecánica.» · entrega: «▲ PVE superada sin
+  extubar (razón)» · hoja UCI: chip «✓ superada · sin extubar» · hitos ·
+  estadística: la PVE cuenta como superada y `pveSupSinExt` se muestra aparte
+  («N superadas (M sin extubar)») — `tablero.js` la declara en NUEVOS.
+- Guardia `pve_superada_sin_extubar.js` (promesas 1-4 del PRD).
+
+## v5.99-guardado-por-episodio (6-sep-2026) — el arreglo R1: nada se pisa
+
+Diego (6-sep): «respecto al punto de pérdida por sobreescritura creo que
+debería crear fila nueva». Y de paso dio la pista de fondo: «quizás deba ser
+obligatorio pedir el RUT y así crear eventos ligados a ese ID y no a la cama».
+
+- **`_ubicarFilaGuardado`** (svc_evoluciones): baja solo las 5 columnas de
+  identidad de la hoja viva (`repoLeerColumnasConFila`, primitiva nueva en
+  repo.gs, marcada parcial) y decide: turno nuevo → clave base; fila del
+  mismo pid → esa; fila sin pid (legacy) → se adopta; **todas de OTRA
+  persona → fila NUEVA con ID `CAMA_n_turno~<8 del pid>`**, la del anterior
+  queda idéntica; dos filas del mismo pid → `ambigua` (no se elige: error).
+  `guardarEvolucion` ya no usa `repoBuscarFila` por clave.
+- `GET_EVO_TURNO` recibe el `patientId` de la tarjeta (sin viaje extra: el
+  guard `guardado_viajes` lo habría contado) y abre la fila del ocupante
+  actual. El traslado conserva el sufijo. El AUDIT_LOG deja «crear (fila
+  aparte: la cama rotó sin alta)».
+- 🪤 **Lo que NO se hizo, a propósito**: filtrar por pid los lectores por cama
+  (previa, prono abierto, contadores). Se implementó y se quitó el mismo día
+  porque `prono_paciente.js` documenta que ya se probó y revirtió el 6-ago:
+  a un paciente re-ingresado tras reparar la cama le toca un pid NUEVO y el
+  filtro le esconde sus propios datos. Lo que sigue colgando del anterior lo
+  avisa ahora la **campana** («Evoluciones de un paciente anterior sin
+  archivar (N) · dar el alta pendiente o correr repararEvolucionesAjenas»).
+- **Candados C1/C2**: `coordCorregirFicha` y `guardarAsignacionTurno` van en
+  `conLock`.
+- **`auditoriaIntegridad()`** (mantenimiento, SOLO lectura): A claves
+  repetidas · B camas con filas ajenas · C episodios cuyo primer guardado en
+  la cama fue «actualizar» (sospecha de sobreescritura pre-v5.99, desde
+  AUDIT_LOG) y cuántas filas aparte abrió la v5.99 · D cama+turno con dos
+  episodios · E episodios archivados sin evoluciones. Sin nombres ni RUT.
+- Guardia `guardado_por_episodio.js`; `episodio_no_se_mezcla` y
+  `prono_paciente` actualizadas al modelo de filas (la del anterior intacta).
+  Ocho guardias sumaron el doble de `repoLeerColumnasConFila`.
+- 🪤 Manuel ya había medido el problema (20-ago: «39 veces en agosto») y
+  escrito `_ubicarEvolucionDeTurno` para las LECTURAS y el ➕; el guardado
+  seguía por clave. Esto cierra ese lado.
+
+## v5.98-mauri-cumple-diego (6-sep-2026) — la pose cumpleañera es suya
+
+Diego mandó su ilustración (gorro de fiesta y torta «Happy Birthday»).
+Recortada, escalada a 71×170 y en WebP (6 KB) reemplaza al montaje de la
+v5.90. Solo index. Cumpleaños: la lista va en `KINESIOLOGOS.CUMPLE` (dd-mm),
+directo en la planilla — nunca en el código; Rodrigo queda pendiente.
+
 ## Auditoría del guardado (5-sep-2026) — «lo guardado no se puede perder ni sobreescribir»
 
 Diego cerró la tanda pidiendo una revisión completa de código y base de

@@ -159,13 +159,13 @@ ciegas):
   `~/.ssh/config` (`Host github.com` → `IdentityFile`, `IdentitiesOnly yes`).
   No hay token de por medio: si `git push` pide usuario y contraseña, el
   problema es esa configuración, no las credenciales.
-  El proyecto GAS de producción usa un layout de 9 .gs: los 17 `svc_*.gs`
-  (de 32 `.gs` en `v2/`) viajan fusionados como `servicios.gs`
+  El proyecto GAS de producción usa un layout de 9 .gs: los 19 `svc_*.gs`
+  (de 35 `.gs` en `v2/`) viajan fusionados como `servicios.gs`
   (`build/fusionar_servicios.js`, que los toma por glob: la cifra sube sola al
   agregar un servicio).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 24 hojas (la 24ª es NOTIFICACIONES, el buzón — de SOLO agregar); **EVOLUCIONES tiene 394 columnas** y `testEsquema`
+- `esquema.gs`: 26 hojas (24 NOTIFICACIONES —buzón, de SOLO agregar—, 25 GSA_IMPORTADAS —gases del laboratorio, sin RUT—, 26 PLANTILLAS_EVOLUCION —catálogo, se conserva en el reset—); **EVOLUCIONES tiene 396 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -212,8 +212,8 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**89 guardias** en `build/checks/*.js`; **48 usan navegador**
-(`chromium.launch`) y 41 son Node puro. Se juzgan **SOLO por el código de
+**118 guardias** en `build/checks/*.js` (6-sep-2026); poco más de la mitad usan navegador
+(`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
 «arreglar» código sano.
@@ -224,7 +224,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 21-ago-2026: 89 verdes, 0 rojas.** El corredor
+**Estado al 6-sep-2026: 118 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -312,8 +312,21 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.97-anotaciones-turno** (5-sep, rama
-  `filtros-vence-hoy`, que INCLUYE v5.96…v5.86). La v5.97 agrega las
+- **Pendiente de publicar**: **v6.02-plantillas-de-evolucion** (6-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v6.01…v5.86). 🔴 **Se pegan 8 archivos**
+  (`node build/que_pegar.js origin/main`): index (cohete) + servicios + api +
+  esquema + dominio + infra + repo + mantenimiento, y UN
+  `crearORepararEstructura()` (EVOLUCIONES 396 columnas; hojas
+  GSA_IMPORTADAS y PLANTILLAS_EVOLUCION con sus semillas). Después, desde el
+  editor: `instalarTriggerGSA()` (crea la carpeta de Drive de los PDF y el
+  disparador de las 06:30) y, cuando quiera medir la marcha blanca,
+  `auditoriaIntegridad()` (solo lectura). La v5.99 arregla el R1 de la
+  auditoría (la cama que rota sin alta ya no pisa la evolución del
+  anterior), la v6.00 es la PVE superada sin extubar (PRD), la v6.01 la
+  importación del gas de la mañana desde los PDF del laboratorio y la v6.02
+  las plantillas de evolución en modo chips. Detalle de cada una en
+  BITACORA. Lo que sigue es la historia previa de la tanda:
+  la v5.97 (5-sep). La v5.97 agrega las
   «📌 Anotaciones del turno» (constancia sin estadística, narradas en la
   evolución antes de la Nota; hora opcional) y **cambia esquema**
   (EVOLUCIONES suma ANOTACIONES_JSON al final ⇒ 394 columnas) — el MISMO
@@ -360,7 +373,7 @@ si tiene más de unos días, se confirma antes de usarla.
 
 ### 🔴 Antes de armar una entrega: `node build/que_pegar.js <ref-publicada>`
 
-El repo tiene 31 `.gs` y el editor 9, así que **qué archivos pegar no se
+El repo tiene 35 `.gs` y el editor 9, así que **qué archivos pegar no se
 recuerda: se calcula**. La herramienta agrupa los cambios por archivo del
 editor y avisa si cambió el esquema. Se le pasa **la referencia de lo que está
 publicado de verdad** (`e48dcf4` para la v5.50), no `main` — main puede ir
@@ -375,19 +388,26 @@ guardado») y el informe publicado en
 `https://claude.ai/code/artifact/9446deef-c67e-464f-9fc0-21b79e38bb5a`.
 Lo que hay que tener presente:
 
-- 🔴 **R1, el hallazgo grande**: rotar una cama SIN dar el alta pisa la
-  evolución del paciente anterior si el nuevo se guarda en el mismo turno
-  (`_otroEpisodio` salta la fusión pero la escritura cae en la misma fila —
-  svc_evoluciones.gs:104-106 vs :434). El arreglo (M1) NO está programado:
-  espera decisión de Diego.
+- ✅ **R1 ARREGLADO en la v5.99** (6-sep; Diego: «debería crear fila
+  nueva»): `_ubicarFilaGuardado` ubica la fila por episodio y, si la de la
+  clave es de otra persona, abre una fila aparte (`CAMA_n_turno~pid`). La del
+  anterior queda intacta; la campana avisa las filas que siguen colgando de
+  la cama. 🪤 Los lectores por cama (previa, prono, contadores) siguen SIN
+  filtrar por pid a propósito (decisión del 6-ago, `checks/prono_paciente.js`).
+  Pendiente de fondo que dejó Diego: «obligatorio pedir el RUT y ligar los
+  eventos a ese ID y no a la cama» — es el camino para que un re-ingreso no
+  estrene pid; no está programado.
 - 🔴 **R3**: el backup diario solo corre si `instalarTriggerBackup` se
   ejecutó una vez — verificar el disparador es el pendiente nº1 antes de la
   estadística de fin de mes.
-- 🟠 C1/C2: `coordCorregirFicha` y `guardarAsignacionTurno` escriben sin
-  `conLock`. Al tocar cualquiera de los dos, ponérselo (M2).
+- ✅ C1/C2 cerrados en la v5.99: `coordCorregirFicha` y
+  `guardarAsignacionTurno` corren en `conLock`. ✅ M4: `auditoriaIntegridad()`
+  (mantenimiento.gs, solo lectura) busca las huellas A-E; correrla antes de
+  la estadística y leer el registro. M3 (guardia neutralización↔fusión) y M5
+  quedan abiertos.
 - El checklist pre-estadística (①-⑦) está en el informe; incluye la
   conciliación REM (faltan las cifras de papel de agosto) y publicar la
-  v5.97 antes de generar cifras.
+  tanda (hoy v6.02) antes de generar cifras.
 
 ### 🗺️ El plan de todo lo pendiente, en una página
 
@@ -396,16 +416,20 @@ implementar y qué falta por cerrar, para posteriormente hacer la programación�
 Está publicado y **es el mejor punto de entrada para retomar**:
 `https://claude.ai/code/artifact/f12ae3e1-ea58-4e88-af4e-954d51017aa6`
 
-- **Tanda 1 — sin cambio de esquema**: eventos manuales + botón de Synapse con
-  copia del RUT + cumpleaños de la mascota. Un solo pegado.
-- **Tanda 2 — con cambio de esquema**: PVE superada sin extubar + hoja de gases
-  importados. **Van juntas a propósito** para correr `crearORepararEstructura()`
-  UNA vez.
-- **Tanda 3 — las plantillas** (PRD escrito + prototipo andando).
-
-Para arrancar la tanda 1 solo faltan tres respuestas de Diego: ① C1 o C2 para
-los eventos manuales ② si le sirve el Synapse con copiar-y-pegar el RUT ③ la
-lista de cumpleaños.
+- ✅ **Tanda 1**: Synapse (v5.89) + cumpleaños (v5.86/v5.90/v5.98) hechos; los
+  eventos manuales se resolvieron como «📌 Anotaciones del turno» (v5.97) y la
+  barra de eventos vive dentro de las plantillas (v6.02).
+- ✅ **Tanda 2** (6-sep): PVE superada sin extubar (v6.00) + gases importados
+  (v6.01). Un solo `crearORepararEstructura()`.
+- ✅ **Tanda 3** (6-sep): plantillas de evolución en modo chips (v6.02). El
+  modo «evolución tipo + relato» sigue solo en `prototipo-plantillas-evolucion`.
+- 🎂 **Cumpleaños: CERRADO** (Diego, 6-sep: «cierra los cumpleaños con
+  Rodrigo pendiente»). La lista se escribe directo en `KINESIOLOGOS.CUMPLE`
+  (dd-mm), nunca en el código; la fecha de Rodrigo queda en blanco hasta que
+  la mande.
+- 🔒 Seguridad (Diego, 6-sep): la clave de Synapse la maneja el hospital (no
+  depende de nosotros); **pendiente poner el repo en privado** (lo hace Diego
+  en GitHub: Settings → General → Danger zone → Change visibility).
 
 ### Esperando decisión de Diego
 

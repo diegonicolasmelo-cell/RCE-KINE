@@ -536,6 +536,13 @@ const ESQUEMA = {
     ['ARCHIVO','texto'],['ARCHIVO_ID','texto'],['PETICION','texto'],['TS_IMPORT','ts'],
     ['ESTADO','texto'],['DETALLE','texto'],
   ]},
+  // 📋 Plantillas de evolución (tanda 3, sep-2026, PRD_PLANTILLAS_EVOLUCION):
+  // catálogo aparte — de una firma o de la UNIDAD, por caso. EVOLUCIONES no
+  // cambia por esto. Nada se borra: ACTIVO=false.
+  PLANTILLAS_EVOLUCION: { headerRows: 1, cols: [
+    ['ID','texto'],['DUENO','texto'],['CASO','texto'],['NOMBRE','texto'],['CUERPO','texto'],
+    ['ACTIVO','bool'],['ORDEN','entero'],['ACTUALIZADO','ts'],['ACTUALIZADO_POR','texto'],
+  ]},
 };
 
 // ── Derivados (generados una sola vez desde ESQUEMA) ───────
@@ -877,6 +884,12 @@ function _sembrar(ss) {
       ['MCC','Magdalena Contardo Cisternas','',true,true],
     ];
     hK.getRange(2, 1, seed.length, 5).setValues(seed);
+  }
+
+  // PLANTILLAS_EVOLUCION — las 13 de la unidad (tanda 3): solo si está vacía.
+  if (typeof plantillasSembrarUnidad === 'function') {
+    const nP = plantillasSembrarUnidad();
+    if (nP) console.log('📋 Plantillas de la unidad sembradas: ' + nP);
   }
 
   // CAMAS_ESTADO — sembrar NUM_CAMAS camas vacías

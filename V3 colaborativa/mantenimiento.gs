@@ -160,7 +160,7 @@ const _RESET_VACIAR = [
   'GSA_IMPORTADAS',   // gases importados de la marcha que se resetea
 ];
 // Hojas que NO se tocan (configuración de la unidad).
-const _RESET_CONSERVAR = ['CONFIG', 'CATALOGOS', 'CAT_MATRICES', 'KINESIOLOGOS', 'INDICADORES_HISTORICO'];
+const _RESET_CONSERVAR = ['CONFIG', 'CATALOGOS', 'CAT_MATRICES', 'KINESIOLOGOS', 'INDICADORES_HISTORICO', 'PLANTILLAS_EVOLUCION'];
 
 /** Paso 1 — SIMULACRO: informa qué se borraría. No modifica nada. */
 function resetearBaseDeDatos() {

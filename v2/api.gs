@@ -73,6 +73,9 @@ function api(accion, datos, token) {
       case 'GET_NOTIFICACIONES': return notifListar(datos);
       case 'GET_REINTUB_N':      return contarReintubaciones(datos.pids);
       case 'GET_GSA_DIA':        return gsaDelDia(datos.fecha, datos.pids);
+      case 'GET_PLANTILLAS':     return ok({ plantillas: plantillasListar() });
+      case 'PLANTILLA_GUARDAR':  return _auditar(ctx, accion, () => plantillaGuardar(datos, ctx), datos);
+      case 'PLANTILLA_RETIRAR':  return _auditar(ctx, accion, () => plantillaDesactivar(datos), datos);
       case 'GSA_IMPORTAR':       return _auditar(ctx, accion, () => gsaImportarPendientes(ctx), datos);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
@@ -238,6 +241,9 @@ function obtenerBoot(datos, ctx, auth) {
       yo: { email: ctx.email, firma: ctx.firma, dev: !!(auth && auth.dev) },
       config: _configUI(),
       fases: catalogo('FASE_CLINICA'),
+      // 📋 Plantillas de evolución (tanda 3): el catálogo entero, la barra lo
+      // ordena por cama. Sin filas, la barra no existe y el formulario es el de siempre.
+      plantillas: (typeof plantillasListar === 'function') ? plantillasListar() : [],
       // 🎂 Quién está de cumpleaños hoy (vacío casi todos los días).
       cumples: cumpleanosDeHoy((datos && datos.fecha) || hoyISO()),
       camas: (rCamas && rCamas.ok) ? rCamas.data : [],
