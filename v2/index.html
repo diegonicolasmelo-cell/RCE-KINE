@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.02-plantillas-de-evolucion">
+<meta name="rce-version" content="6.03-tooltip-y-rx">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1425,7 +1425,7 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
    Vive al lado del ✏️: mismo tamaño y mismo comportamiento (no abre el panel).
    Solo aparece si la cama tiene RUT y CONFIG.SYNAPSE_URL está puesta. */
 .pname-img{background:none;border:none;cursor:pointer;font-size:.82rem;line-height:1;
-  padding:0 2px;opacity:.55;flex:none;}
+  padding:0 2px;opacity:.55;flex:none;color:#1f2937;display:inline-flex;align-items:center;}
 .pname-img:hover{opacity:1;}
 
 /* ── VERSIÓN MÓVIL (≤740px): barra inferior, hoja «Más» y acordeón ───────────
@@ -4245,7 +4245,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
             <div style="border-top:1px solid #eef2f6;padding-top:8px;">
               <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#b45309;margin-bottom:6px;">⚠️ Eventos del turno (no derivables)</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-                <div class="check wa"><input type="checkbox" id="cProcImagen" onchange="_renderAutoProcs()"><label for="cProcImagen">🩻 Traslado a imagenología</label></div>
+                <div class="check wa"><input type="checkbox" id="cProcImagen" onchange="_renderAutoProcs()"><label for="cProcImagen">🖼️ Traslado a imagenología</label></div>
                 <div class="check wa"><input type="checkbox" id="cProcPabellon" onchange="_renderAutoProcs()"><label for="cProcPabellon">🏥 Traslado a pabellón</label></div>
                 <div class="check wa"><input type="checkbox" id="cProcAsistMed" onchange="_renderAutoProcs()"><label for="cProcAsistMed">🤝 Asistencia en procedimiento médico</label></div>
                 <div class="check wa"><input type="checkbox" id="cProcRCP" onchange="hRCP()"><label for="cProcRCP" style="font-weight:700;color:var(--danger);">🚨 RCP</label></div>
@@ -4620,7 +4620,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.02-plantillas-de-evolucion]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.03-tooltip-y-rx]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5025,8 +5025,9 @@ function renderGrid() {
         const _sm=x=>x!==''&&x!=null;
         if(!_sm(c.ULT_MRC)&&!_sm(c.ULT_FSS)){
           const _cp=String(c.ULT_COOP||'').trim();
-          const _mot=_cp?`última cooperación registrada: ${_cp}`:'sedación/cooperación sin registrar aún';
-          al+=`<span class="abadge" style="background:#64748b14;color:#64748b;border:1px solid #64748b44;" title="MRC-ss y FSS-ICU sin medir: se evalúan cuando el paciente coopere. Motivo actual: ${_mot}. La primera medición se pide sola (campana) cuando pase a cooperador.">📋 MRC/FSS no evaluables aún</span>`;
+          // Diego, 6-sep: tooltip acotado — «Sin medir: motivo».
+          const _mot=_cp?_cp:'cooperación sin registrar';
+          al+=`<span class="abadge" style="background:#64748b14;color:#64748b;border:1px solid #64748b44;" title="Sin medir: ${_mot}">📋 MRC/FSS no evaluables aún</span>`;
         }
       }
 
@@ -15320,12 +15321,16 @@ function _catNivel(pje,n){ return pje<=n?'Baja':(pje<=n*2?'Media':'Alta'); }
 //  la URL, ni a una exportación, ni al servidor. La regla se respeta entera.
 // ═══════════════════════════════════════════════════════════════════════════
 function _synURL(){ return String((window.CFG&&CFG.SYNAPSE_URL)||'').trim(); }
+// 🪤 El emoji 🩻 (2021) NO existe en la fuente del Chrome del hospital
+// (Windows 10): salía un cuadrado (Diego, 6-sep). El ícono es un SVG propio,
+// que se dibuja igual en cualquier equipo.
+const _RX_SVG='<svg class="rx-ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="2" y="3" width="20" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><text x="12" y="16.6" text-anchor="middle" font-size="10.5" font-weight="800" fill="currentColor" font-family="system-ui,Segoe UI,sans-serif">Rx</text></svg>';
 
 /** El botón solo existe con URL configurada Y con RUT que copiar. */
 function _synBotonHTML(c){
   if(!_synURL() || !c || !String(c.RUT||'').trim() || c._RETRO) return '';
   return '<button type="button" class="pname-img" title="Abrir Synapse y copiar el RUT para pegarlo en el buscador"'+
-    ' onclick="event.stopPropagation();abrirSynapse(\''+String(c.ID_CAMA)+'\')">🩻</button>';
+    ' onclick="event.stopPropagation();abrirSynapse(\''+String(c.ID_CAMA)+'\')">'+_RX_SVG+'</button>';
 }
 
 /* Copiar + abrir. El copiado usa `execCommand` sobre un textarea temporal —la
@@ -15358,7 +15363,7 @@ function abrirSynapse(idCama){
   const w=window.open(url,'_blank','noopener');
   if(!w) toast('⚠️ Chrome bloqueó la pestaña — permite las ventanas emergentes de este sitio');
   else if(ok) toast('📋 RUT copiado — pégalo en el buscador de Synapse');
-  else if(rut) uiConfirm({ icono:'🩻', titulo:'Copia el RUT a mano',
+  else if(rut) uiConfirm({ icono:'🖼️', titulo:'Copia el RUT a mano',
     mensaje:'El navegador no dejó copiarlo solo. Es este:<br><b style="font-size:1.1rem;">'+
       String(rut).replace(/[<>&]/g,'')+'</b>', confirmar:'Listo' });
 }
