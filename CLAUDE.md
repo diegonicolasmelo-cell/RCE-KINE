@@ -318,10 +318,14 @@ si tiene más de unos días, se confirma antes de usarla.
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
 - **Pegado y con `crearORepararEstructura()` corrido (Diego, 6-sep 04:24)**:
   la v6.04 completa (index + servicios, 6-sep 08:58; el ➕ funciona en el
-  hospital). **Pendiente de pegar: index + servicios de la v6.06** (trae el
-  ícono de Synapse de la v6.05 y el traspaso de la entrega en blanco y negro
-  de Manuel — su 5.86-entrega-bn-negrita estaba publicada y la tanda la pisó;
-  ver BITACORA v6.06). **Fusionado el 6-sep**: `filtros-vence-hoy` →
+  hospital). **Pendiente de pegar: index + servicios de la v6.07** (trae el
+  ícono de Synapse de la v6.05, el traspaso de la entrega en blanco y negro
+  de Manuel de la v6.06 — su 5.86-entrega-bn-negrita estaba publicada y la
+  tanda la pisó — y el arreglo del importador de gases de la v6.07: el texto
+  que devuelve Drive parte etiqueta y valor en renglones distintos y el
+  parser línea a línea perdía fecha, hora y PATIENT_ID; ahora reintenta solo
+  la bandeja «sin emparejar» y hay `gsaDiagnostico()` para ver el texto real
+  desde el editor; ver BITACORA v6.07 y v6.06). **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
   (puente «REM Hospital» + maqueta de pacientes ficticios) quedó SIN fusionar
   a propósito: destino externo no aprobado por Diego. Historia de la v6.04: index + servicios
