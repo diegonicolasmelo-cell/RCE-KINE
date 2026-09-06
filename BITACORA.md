@@ -19,6 +19,23 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.03-tooltip-y-rx (6-sep-2026) — dos detalles vistos en el hospital
+
+Diego pegó la v6.02, corrió `crearORepararEstructura()` y probó en el
+Chrome del hospital. Dos observaciones, las dos solo index:
+
+- **Tooltip del badge «MRC/FSS no evaluables aún»**: «está bien… pero
+  muestra el tooltip acotado: Sin medir: Motivo». Ahora dice
+  `Sin medir: No cooperador` (la cooperación registrada) o «Sin medir:
+  cooperación sin registrar».
+- 🪤 **El emoji 🩻 sale como un cuadrado en el hospital.** Es Emoji 14
+  (2021) y la fuente de Windows 10 no lo trae. El botón de Synapse pasó a un
+  **SVG propio** (`_RX_SVG`, un recuadro con «Rx») que se dibuja igual en
+  cualquier equipo; el checkbox de traslado a imagenología y el diálogo usan
+  🖼️ (Emoji 1.0). Regla para el futuro: **no usar emojis posteriores a 2019
+  en la interfaz** — el equipo del hospital corre Windows 10.
+- Batería: 118 verdes.
+
 ## v6.02-plantillas-de-evolucion (6-sep-2026) — la tanda 3 llega a producción, en modo chips
 
 Diego, 5-sep: «la selección de plantilla… como chips, por mientras». Se portó
