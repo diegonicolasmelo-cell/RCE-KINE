@@ -24,6 +24,19 @@ navegador del hospital o de su casa.
 - **Cada entrega de archivos** debe decir: qué archivos pegar, si hay que
   correr `crearORepararEstructura()`, y cómo se publica (ver la regla de abajo;
   usar la skill `entrega-gas`; el index SIEMPRE en formato cohete).
+- ☀️ **TODO mockup, artefacto o HTML que se le entregue va en TEMA CLARO**
+  (pedido de Diego, 2-sep-2026: «desde ahora en adelante todos los mockup y HTML
+  generados que sean con el tema claro o del día»). **Cómo se hace**: definir la
+  paleta clara en el `:root` pelado y **no escribir** los bloques
+  `@media (prefers-color-scheme: dark)` ni `:root[data-theme="dark"]` — así el
+  artefacto no sigue el tema del que lo abre. El `body` **siempre** con
+  `background` explícito desde un token; si no, el fondo lo pone el visor y la
+  página se ve oscura igual. Vale también para lo que se publique como
+  documento (PRD, planes, resúmenes), no solo para los mockups de pantallas.
+- 🪤 **Emojis en la interfaz: nada posterior a 2019.** El Chrome del hospital
+  corre en Windows 10 y su fuente no trae los emojis nuevos: 🩻 (2021) salió
+  como un cuadrado (6-sep-2026). Para íconos nuevos, SVG propio o un emoji
+  viejo (🖼️, 📋; 🫁 NO: es de 2020).
 
 ### 🔴 CÓMO SE PUBLICA — regla vigente (14-ago-2026, la cambió Diego)
 
@@ -150,13 +163,13 @@ ciegas):
   `~/.ssh/config` (`Host github.com` → `IdentityFile`, `IdentitiesOnly yes`).
   No hay token de por medio: si `git push` pide usuario y contraseña, el
   problema es esa configuración, no las credenciales.
-  El proyecto GAS de producción usa un layout de 9 .gs: los 15 `svc_*.gs`
-  (de 31 `.gs` en `v2/`) viajan fusionados como `servicios.gs`
+  El proyecto GAS de producción usa un layout de 9 .gs: los 19 `svc_*.gs`
+  (de 35 `.gs` en `v2/`) viajan fusionados como `servicios.gs`
   (`build/fusionar_servicios.js`, que los toma por glob: la cifra sube sola al
   agregar un servicio).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 23 hojas; **EVOLUCIONES tiene 386 columnas** y `testEsquema`
+- `esquema.gs`: 26 hojas (24 NOTIFICACIONES —buzón, de SOLO agregar—, 25 GSA_IMPORTADAS —gases del laboratorio, sin RUT—, 26 PLANTILLAS_EVOLUCION —catálogo, se conserva en el reset—); **EVOLUCIONES tiene 396 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -203,8 +216,8 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**89 guardias** en `build/checks/*.js`; **48 usan navegador**
-(`chromium.launch`) y 41 son Node puro. Se juzgan **SOLO por el código de
+**118 guardias** en `build/checks/*.js` (6-sep-2026); poco más de la mitad usan navegador
+(`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
 «arreglar» código sano.
@@ -215,7 +228,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 21-ago-2026: 89 verdes, 0 rojas.** El corredor
+**Estado al 6-sep-2026: 118 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -303,10 +316,66 @@ si tiene más de unos días, se confirma antes de usarla.
   /exec no se pudo medir desde la sesión del 21-ago porque el proxy bloquea
   script.google.com). Incluye v5.59–v5.62, Modo Coordinación y la tanda del
   episodio; `crearORepararEstructura()` y `coordSembrarClaves()` ya corridos.
-- **Pendiente de publicar**: **v5.67-candado** (21-ago) — el ➕ exige sesión
-  de coordinación para corregir el pasado o un episodio cerrado; el turno de
-  hoy (incluida la noche en curso) sigue libre. **Sin cambio de esquema**.
-  Entrega contra `1bccc30` (la V38 real): **index + servicios**.
+- **Pegado y con `crearORepararEstructura()` corrido (Diego, 6-sep 04:24)**:
+  la v6.04 completa (index + servicios, 6-sep 08:58; el ➕ funciona en el
+  hospital). **Pendiente de pegar: index + servicios de la v6.06** (trae el
+  ícono de Synapse de la v6.05 y el traspaso de la entrega en blanco y negro
+  de Manuel — su 5.86-entrega-bn-negrita estaba publicada y la tanda la pisó;
+  ver BITACORA v6.06). **Fusionado el 6-sep**: `filtros-vence-hoy` →
+  `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
+  (puente «REM Hospital» + maqueta de pacientes ficticios) quedó SIN fusionar
+  a propósito: destino externo no aprobado por Diego. Historia de la v6.04: index + servicios
+  (plantillas desde el cuadro de texto, sin barra de chips; interacción P-VM
+  que no se arrastra; incluye el tooltip acotado y el ícono Rx de la v6.03).
+  Sin cambio de esquema. Lo que sigue describe la tanda entera:
+  **v6.02-plantillas-de-evolucion** (6-sep, rama
+  `filtros-vence-hoy`, que INCLUYE v6.01…v5.86). 🔴 **Se pegan 8 archivos**
+  (`node build/que_pegar.js origin/main`): index (cohete) + servicios + api +
+  esquema + dominio + infra + repo + mantenimiento, y UN
+  `crearORepararEstructura()` (EVOLUCIONES 396 columnas; hojas
+  GSA_IMPORTADAS y PLANTILLAS_EVOLUCION con sus semillas). Después, desde el
+  editor: `instalarTriggerGSA()` (crea la carpeta de Drive de los PDF y el
+  disparador de las 06:30) y, cuando quiera medir la marcha blanca,
+  `auditoriaIntegridad()` (solo lectura). La v5.99 arregla el R1 de la
+  auditoría (la cama que rota sin alta ya no pisa la evolución del
+  anterior), la v6.00 es la PVE superada sin extubar (PRD), la v6.01 la
+  importación del gas de la mañana desde los PDF del laboratorio y la v6.02
+  las plantillas de evolución en modo chips. Detalle de cada una en
+  BITACORA. Lo que sigue es la historia previa de la tanda:
+  la v5.97 (5-sep). La v5.97 agrega las
+  «📌 Anotaciones del turno» (constancia sin estadística, narradas en la
+  evolución antes de la Nota; hora opcional) y **cambia esquema**
+  (EVOLUCIONES suma ANOTACIONES_JSON al final ⇒ 394 columnas) — el MISMO
+  crearORepararEstructura() de la tanda lo cubre; se pega también
+  **dominio** (cambió dominio_texto). La v5.96 agrega el aviso
+  📣 de coordinación al buzón (index + servicios + api, sin esquema nuevo) y
+  actualiza NOTA_PARA_MANUEL.md (Diego: «dile a Manuel que no programe nada
+  hasta fusionar»). La v5.95 agrega el «NE»
+  del FSS-ICU según el manual oficial (hasta 2 se promedian, con más no hay
+  total; guardia fss_ne — solo index). La v5.94 deriva el MOTIVO
+  de las MRC/FSS que faltan desde la cooperación registrada (campana solo al
+  cooperador sin medir; tooltip en tarjeta; motivo escrito en la entrega —
+  sin esquema). La v5.93 agrega la alerta
+  «Pendiente medir pimometría» a la campana y **cambia esquema** (CAMAS_ESTADO
+  suma ULT_PS/ULT_PIM/ULT_PIM_FECHA al final + CONFIG PIMO_PS_MAX=14 y
+  PIMO_VM_DIAS=21) — el MISMO crearORepararEstructura() de la v5.91 lo
+  cubre. La v5.92 imprime el chip
+  de la cama de la entrega invertido (cuadro negro en papel B/N) y hace
+  OBLIGATORIO el criterio de la suspensión de KTM en sesión, que ahora sale
+  también en la ficha de entrega (guardia ktm_suspension_motivo). La v5.91
+  **cambia esquema** (hoja NOTIFICACIONES) ⇒
+  `crearORepararEstructura()`, y toca servicios + api + esquema +
+  mantenimiento + index: se pegan LOS CINCO.
+  La v5.88 lleva «Vencen hoy» a la hoja diaria impresa y al modal; la v5.89
+  arregla el botón 🩻 (copiar ANTES de window.open: la apertura consume la
+  activación del clic y la copia fallaba en silencio — guardia que fija el
+  orden en nota_synapse_cumple.js). Diego YA publicó la tanda anterior
+  (probó Synapse en el hospital el 4-sep): esta entrega es solo el index. La v5.86 **cambia esquema**
+  (KINESIOLOGOS.CUMPLE + CONFIG.SYNAPSE_URL) ⇒ `crearORepararEstructura()`;
+  la v5.87 es solo index. Si la v5.86 aún no se pegó, se pega TODO junto con
+  el index de la 5.87 (index + servicios + api + esquema); si ya se pegó,
+  solo el index. Lo anterior pendiente (v5.67-candado) quedó incluido en
+  entregas previas — confirmar contra el editor, nunca suponer.
 - **Flujo de ramas vigente (traspaso de Manuel)**: rama nueva por cambio
   salida de `develop` (nombre en español) → `git merge --no-ff -m` a
   `develop` (el `-m` NO es opcional: sin él el merge queda colgado a medias)
@@ -320,14 +389,248 @@ si tiene más de unos días, se confirma antes de usarla.
 
 ### 🔴 Antes de armar una entrega: `node build/que_pegar.js <ref-publicada>`
 
-El repo tiene 31 `.gs` y el editor 9, así que **qué archivos pegar no se
+El repo tiene 35 `.gs` y el editor 9, así que **qué archivos pegar no se
 recuerda: se calcula**. La herramienta agrupa los cambios por archivo del
 editor y avisa si cambió el esquema. Se le pasa **la referencia de lo que está
 publicado de verdad** (`e48dcf4` para la v5.50), no `main` — main puede ir
 adelante de producción, que es exactamente lo que pasó el 14-ago.
 
+### 🔍 Auditoría del guardado (5-sep-2026) — leerla antes de tocar el guardado o de hacer la estadística
+
+Diego pidió revisar cómo se guarda la información («lo guardado no se puede
+perder ni sobreescribir con otra acción que no sea guardar»; «no programes
+nada, solo audita»). El detalle vive en `BITACORA.md` (entrada «Auditoría del
+guardado») y el informe publicado en
+`https://claude.ai/code/artifact/9446deef-c67e-464f-9fc0-21b79e38bb5a`.
+Lo que hay que tener presente:
+
+- ✅ **R1 ARREGLADO en la v5.99** (6-sep; Diego: «debería crear fila
+  nueva»): `_ubicarFilaGuardado` ubica la fila por episodio y, si la de la
+  clave es de otra persona, abre una fila aparte (`CAMA_n_turno~pid`). La del
+  anterior queda intacta; la campana avisa las filas que siguen colgando de
+  la cama. 🪤 Los lectores por cama (previa, prono, contadores) siguen SIN
+  filtrar por pid a propósito (decisión del 6-ago, `checks/prono_paciente.js`).
+  Pendiente de fondo que dejó Diego: «obligatorio pedir el RUT y ligar los
+  eventos a ese ID y no a la cama» — es el camino para que un re-ingreso no
+  estrene pid; no está programado.
+- 🔴 **R3**: el backup diario solo corre si `instalarTriggerBackup` se
+  ejecutó una vez — verificar el disparador es el pendiente nº1 antes de la
+  estadística de fin de mes.
+- ✅ C1/C2 cerrados en la v5.99: `coordCorregirFicha` y
+  `guardarAsignacionTurno` corren en `conLock`. ✅ M4: `auditoriaIntegridad()`
+  (mantenimiento.gs, solo lectura) busca las huellas A-E; correrla antes de
+  la estadística y leer el registro. M3 (guardia neutralización↔fusión) y M5
+  quedan abiertos.
+- El checklist pre-estadística (①-⑦) está en el informe; incluye la
+  conciliación REM (faltan las cifras de papel de agosto) y publicar la
+  tanda (hoy v6.02) antes de generar cifras.
+
+### 🗺️ El plan de todo lo pendiente, en una página
+
+Al cerrar el 2-sep-2026 Diego pidió «un resumen con las cosas que hay que
+implementar y qué falta por cerrar, para posteriormente hacer la programación».
+Está publicado y **es el mejor punto de entrada para retomar**:
+`https://claude.ai/code/artifact/f12ae3e1-ea58-4e88-af4e-954d51017aa6`
+
+- ✅ **Tanda 1**: Synapse (v5.89) + cumpleaños (v5.86/v5.90/v5.98) hechos; los
+  eventos manuales se resolvieron como «📌 Anotaciones del turno» (v5.97) y la
+  barra de eventos vive dentro de las plantillas (v6.02).
+- ✅ **Tanda 2** (6-sep): PVE superada sin extubar (v6.00) + gases importados
+  (v6.01). Un solo `crearORepararEstructura()`.
+- ✅ **Tanda 3** (6-sep): plantillas de evolución. Los chips (v6.02) NO le
+  sirvieron a Diego; la **v6.04** las lleva al cuadro de texto (📋 abajo a la
+  derecha, ➕ verde al seleccionar frases, se aplica sola, comodines por dato
+  y por bloque). Detalle y trampas en BITACORA v6.04.
+- 🎂 **Cumpleaños: CERRADO** (Diego, 6-sep: «cierra los cumpleaños con
+  Rodrigo pendiente»). La lista se escribe directo en `KINESIOLOGOS.CUMPLE`
+  (dd-mm), nunca en el código; la fecha de Rodrigo queda en blanco hasta que
+  la mande.
+- 🔒 Seguridad (Diego, 6-sep): la clave de Synapse la maneja el hospital (no
+  depende de nosotros); **pendiente poner el repo en privado** (lo hace Diego
+  en GitHub: Settings → General → Danger zone → Change visibility).
+
 ### Esperando decisión de Diego
 
+- ✅ 🔔 **Buzón + campana: PROGRAMADOS en la v5.91** (4-sep; Diego aprobó el
+  mockup y fijó el formato de alerta «HME vencido (fecha en que vence) ·
+  cama 7 · rótulo 31-08» y la regla del registro: de SOLO AGREGAR, nada se
+  pisa — hoja NOTIFICACIONES + guardia buzon_campana). Esperando su prueba
+  en la mañana. Pendiente del área: el «aviso de coordinación» desde 🔐.
+  Historia original:
+- 🔔 **Buzón de notificaciones + campana de alertas en la barra superior**
+  (pedido de Diego, 4-sep-2026). ✅ **Reparto APROBADO por Diego el 4-sep**
+  («okye me parece»): la **campana** agrega lo
+  que la app YA calcula regado por las vistas (HME/Trach Care vencidos,
+  evaluaciones envejecidas >EVAL_DIAS_ALERTA, VM en cama sin ventilador
+  ~13901, mantención por vencer ~13729, cierre de año) — se limpia sola al
+  resolverse porque es cálculo en vivo, sin estado de leído; el **buzón**
+  lleva lo humano (notas 📌 del turno, cumpleaños, avisos de coordinación,
+  «se publicó vX.Y») con leído/no-leído POR NAVEGADOR (localStorage; no hay
+  login, así que no puede ser por persona). Nada sale por correo. ✅ **Día uno
+  APROBADO por Diego (4-sep)**: notas 📌 + cumpleaños + avisos de versión.
+  ✅ **El «aviso de coordinación» quedó PROGRAMADO en la v5.96** (5-sep,
+  «prográmalo»): tarjeta 📣 en el panel 🔐 con sesión activa → COORD_AVISO
+  (exige la sesión EN EL SERVIDOR, como toda COORD_*) → tipo `coord` en el
+  buzón con la firma; guardia 3d en buzon_campana. **Siguiente paso: mockup de la barra con campana y buzón**
+  (enviado, esperando su OK visual antes de programar).
+
+- ✅ 🏷️ **Filtros: declarar LO QUE VENCE HOY — RESUELTO en la v5.87** (4-sep,
+  Diego eligió la opción B del mockup). Al programarla apareció que el chip
+  del formulario (`calcInsumosDias`) era un QUINTO consumidor que la
+  corrección del 10-ago no alcanzó: avisaba una noche TARDE (`d===dur` en vez
+  de `frec-1`), contradiciendo al panel «Cambios de esta noche» — probable
+  raíz de la confusión. Detalle en BITACORA v5.87; guardias `disp_fecha`,
+  `dispositivos_reglas` y `hepa_fijo_y_orden_texto` alineadas. Historia
+  original del pedido:
+  (pedido de Diego, 4-sep-2026, con PRD dictado). Su rutina real: él sabe
+  qué FECHAS DE ETIQUETA caducan hoy y recorre el libro buscando
+  coincidencias — hoy 03-09 vence el HME etiquetado 02-09 (día 2) y el
+  Trach Care/HEPA etiquetado 01-09 (día 3); lo nuevo se etiqueta 04-09
+  porque el cambio es en la madrugada del día siguiente. **La aritmética de
+  su ejemplo CUADRA con las reglas vigentes de la app** (HME día 2, Trach
+  Care/HEPA día 3, cambio nocturno): no cambia ninguna regla, cambia la
+  REDACCIÓN. Textual: «no me interesa con qué fecha debería quedar… se ha
+  prestado para confusión». En el apartado de filtros del formulario, en
+  vez de proyectar la fecha futura de cambio («Cambio: 04-09»), declarar la
+  coincidencia como en el libro: «vence hoy lo etiquetado el 02-09». El
+  panel «Cambios de esta noche» (GET_CAMBIOS_NOCHE) ya hace la lista por
+  cama y se mantiene. Mockup/opciones enviadas, esperando su elección.
+
+- ✅ 🎂 **Pose cumpleañera de Don Mauri: APROBADA e INTEGRADA en la v5.90**
+  (4-sep). Es la pose `festejo` de Diego con gorro/confeti compuestos encima
+  — novena pose `cumple` en `MAURI`; con la mascota persona reemplaza al
+  emoji-gorro (que queda solo para Servi). Guardia en nota_synapse_cumple.
+
+- 🔴 **Tandas C y D (eventos manuales + reintubación) — DETENIDAS EN EL
+  MOCKUP esperando 4 respuestas** (2-sep-2026; Diego pidió «recuérdamelo
+  después», estaba en capacitación). Mockup publicado:
+  `https://claude.ai/code/artifact/52e36ecd-92dc-404e-9ce0-3b212be81f70`.
+  Ya decidido por él: A+B ejecutadas (texto tal cual + REM conciliación,
+  v5.85 en `develop`/`main`), y **el evento manual SÍ entra en el texto de
+  la evolución**. Falta que elija: ① Tanda C: ¿C1 bloque «📌 Eventos del
+  turno» (recomendada) o C2 botón al costado? ② Tanda D: ¿D1 fila de pills
+  bajo Vía aérea (recomendada), D2 tres celdas previo→evento→queda, o D3
+  casilla mínima? ③ Alcance de D: ¿la fila reemplaza también
+  intubación/extubación o SOLO reintubación? ✅ La ④ ya la respondió
+  (4-sep-2026): **el catálogo de motivos de `fReintubRaz` está bien como
+  está**. Ojo: la barra de plantillas absorbe la fila de eventos de la
+  tanda D, así que ② y ③ probablemente mueren con ella — confirmarlo al
+  programar. Con lo que falte se programa (guardias
+  nuevas para ambas tandas; las columnas REINTUB_* y el tiempo extubado se
+  conservan tal cual). Pendiente hermano: cifras del REM de papel de agosto
+  para correr la conciliación.
+- 🖋️ **CÓMO SE VEN LAS PLANTILLAS EN TRAKCARE — detalle de terreno de Diego
+  (2-sep-2026), para cuando se retome el diseño de la selección**: el ícono de
+  plantillas está en la **esquina inferior derecha del cuadro de texto**; ahí
+  aparecen todas, codificadas. Para **agregar una nueva se SELECCIONA texto**,
+  lo que habilita un **botón verde en la esquina inferior izquierda** que
+  permite personalizarla. Su idea propia encima: que lo que la app ya sabe
+  **aparezca como sugerencia al dejar un espacio para autocompletar**.
+  · **La otra opción que él plantea**: que salga la evolución personalizada (o
+  la de la unidad por defecto) y que **abajo se pueda formatear con el formato
+  personalizado por evento**, ya que viene con información prellenada.
+  · 🔴 **«Esto es lo que más me está complicando por ahora — déjalo para el
+  último.»** O sea: el CATÁLOGO de plantillas por caso se puede ir armando,
+  pero **CÓMO SE SELECCIONAN es la tarea abierta** y no se programa hasta que
+  él lo cierre.
+- 🆕 **Plantillas de evolución tipo TrakCare** (2-sep-2026, idea de Diego
+  desde una capacitación). **Diego ya eligió: la B** (plantilla personal con
+  comodines) **fusionada con la A** — «plantillas personalizadas desplegadas
+  por caso… eso igual es personalizado». O sea A y B dejan de ser dos
+  caminos: una plantilla es **de una persona Y tiene un caso que la ofrece**.
+  Mockup con la evaluación de TrakCare y el diseño:
+  `https://claude.ai/code/artifact/f812cb92-ac90-4950-bc5c-e91188b378d0`.
+  Sus dos casos, textuales: ① **barra de chips arriba, «al estilo donde
+  están las fases»**, para elegir evento o plantilla — el evento/fase
+  **pre-selecciona** la plantilla (esto **absorbe la fila de eventos de la
+  tanda D**); ② **la cama asignada a un colega evoluciona con la plantilla
+  que él definió** — la cañería ya existe: el tablero de turno reparte
+  camas→firma y el formulario abre con esa firma (`renderFases`/Turnos,
+  index ~11711 y ~10312). Regla de oro que él fijó: **«el formulario aporta
+  datos que son rellenables, lo demás es narrativa»** — el comodín se
+  rellena solo, a diferencia de TrakCare.
+  · 🔍 **Lo que se aprendió mirando el TrakCare real** (fotos del ambiente
+  UAT, módulo `epr.CannedText`): es una biblioteca de textos enlatados con
+  **huecos literales que el médico rellena a mano** («Paciente se reintuba a
+  las **x** hrs por **motivo**»); **inserta crudo al cursor** (quedó
+  `holaPaciente se reintuba…`, sin espacio ni mayúscula); alcance por
+  usuario («Guardado por / Guardado para: Usuario»), lo que confirma los dos
+  estantes; códigos crípticos por iniciales (`RHMAB1`, `iUEH`, `LGM1`) y
+  lista paginada sin filtro; y **los typos guardados se replican** en cada
+  ficha («embaazada», «compromispo», «anamanesis»). De ahí salen cinco
+  no-objetivos y sus guardias futuras.
+  · **Cerrado el 2-sep**: varias plantillas **por caso Y por colega**; el
+  catálogo **se filtra al seleccionar la cama** (primero las del colega
+  asignado, luego las de la unidad, y las **de otros colegas al final** —
+  se pueden usar igual); usar la plantilla de otro NO cambia la firma.
+  · 🔴 **Corrección clínica de Diego**: «el proceso de weaning es un proceso
+  largo, **no siempre define extubar**». O sea **la fase es del PACIENTE**
+  (dura semanas, se hereda) **y el caso de la plantilla es del TURNO**. Un
+  caso «Weaning» a secas estaba mal. Catálogo propuesto de 13 casos anclado
+  a lo que el formulario YA registra: VM sin destete (`PVE_VAL='nc'`) ·
+  Destete diferido (`PVE_VAL='no'` + una de las 9 razones de `fPveSCraz`) ·
+  PVE fracasada (`PVE_RESULTADO='frustra'`) · Extubación (`'superada'`) ·
+  Post-extubación · Reintubación · TQT · Destete por TQT · Decanulación ·
+  Ingreso · Prono · Rehabilitación · Sin novedades.
+  · 🔑 **Decisión de diseño para que el catálogo no explote**: el grado del
+  destete NO abre casos nuevos, viaja como comodín `{weaning_grado}`. La
+  app ya lo calcula en **`_weanClase`** (index ~4513): *difícil* = ≥1 PVE
+  fracasada, *prolongado* = ≥3 fracasos o >7 días desde la 1ª PVE; hoy solo
+  pinta la tarjeta de cama.
+  · ✅ **TODO CERRADO por Diego el 2-sep**: el catálogo de 13 casos está
+  bien (si faltan, avisa después) · **«PVE superada sin extubar» SÍ existe**
+  (ver la regla clínica más abajo) · cada colega edita las suyas y hay **un
+  juego de la unidad** de respaldo «por si alguien no quiere», editable
+  **solo por coordinación** · **la barra SÍ reemplaza la fila de eventos de
+  la tanda D** («así anunciamos de entrada qué plantilla utilizaremos por
+  defecto»).
+  · ✅ **Confirmado por Diego el 4-sep-2026**: los motivos de «PVE superada
+  sin extubar» del PRD **están bien**, y el catálogo de motivos de
+  reintubación actual también. Esas dos preguntas quedan cerradas.
+  · ✅ **Cerrado por Diego el 4-sep-2026 — el EDITOR de plantillas tiene DOS
+  puertas** (eligió la opción 1): un ícono en el cuadro de texto de la
+  evolución (como TrakCare, abre con el caso actual preseleccionado) Y una
+  sección «Mis plantillas» para gestionarlas todas. Reglas de configuración
+  propuestas y aceptadas con esa elección: nadie parte de página en blanco
+  (duplicar la de la unidad/colega, o «guardar esta evolución como
+  plantilla»); comodines SOLO por menú, jamás tipeados (typo = plantilla
+  rota en silencio, lección TrakCare) y un comodín desconocido rechaza el
+  guardado; vista previa obligatoria con paciente de ejemplo; nombre
+  legible + caso obligatorio; la primera carga son las 13 de la unidad ya
+  redactadas. ✅ **La SELECCIÓN quedó decidida el 5-sep: BARRA DE CHIPS,
+  «por mientras»** («la selección de plantilla… como chips, por mientras, y
+  después lo vemos con posterioridad») — la tanda 3 quedó desbloqueada; la
+  evolución-tipo automática queda en el banco para revisarla después.
+  · 📄 **Los dos PRD ya están escritos y esperan su visto bueno**:
+  `PRD_PLANTILLAS_EVOLUCION.md` y `PRD_PVE_SUPERADA_SIN_EXTUBAR.md` (con
+  historia, no-objetivos, flujo hoy→mañana, inventario de consumidores y
+  pseudo-código). Leerlos ANTES de programar nada de esto. Versión leíble
+  publicada: `https://claude.ai/code/artifact/b2d465e8-b327-4632-a631-48af529f8631`.
+  · 🖥️ **Mockup de las 5 pantallas** con la piel real del formulario (barra
+  de chips, catálogo por cama, texto resultante, la pregunta «¿se extubó?»
+  y el editor de plantillas):
+  `https://claude.ai/code/artifact/3cb8491a-cc2b-4a74-bad3-a343b9998722`.
+  · 🧪 **PROTOTIPO EN VIVO en la rama `prototipo-plantillas-evolucion`**
+  (2-sep; Diego: «verlo en vivo pero que no tope nada de lo hecho por
+  Manuel… mejor es editarlo con una construcción»). **NO se fusiona a
+  develop ni a main hasta que él lo apruebe; NO se pega en el editor.**
+  Página de prueba (la app real + puente simulado + 4 camas de mentira, sin
+  RUT): `https://claude.ai/code/artifact/c0d501cf-6c88-4880-9a37-4c34ae7a935c`
+  — se regenera con `node build/prototipo_plantillas.js <salida.html>`.
+  Trae la barra (evento + plantilla, con interruptor a una sola fila por su
+  duda «mucho chip, mucha información»), el catálogo por cama en tres
+  estantes, la sugerencia en ámbar, el editor de plantillas y la regla
+  madre (con texto tocado o guardado se pregunta antes). **Los comodines
+  son los bloques del motor** (`_B()` de `genTexto`): el dato sigue
+  saliendo del único motor, que es lo que sostiene la paridad. Sin catálogo
+  cargado la barra no existe: producción no cambia. Batería en la rama:
+  108 verdes; `paridad_v3` roja A PROPÓSITO (el espejo de producción no se
+  regenera en un prototipo). 🪤 El modo de presión de soporte se llama
+  **`CPAP/PS`** en la app, no «PSV»: un dato de prueba con «PSV» deja los
+  parámetros vacíos sin avisar.
+  · Regla madre intocable: nada pisa texto tocado o guardado (v5.85). Sin
+  cambio de esquema en EVOLUCIONES: hoja-catálogo aparte. **La opción C
+  (frases rápidas) queda en el banco**, no descartada.
 - ✅ **HEPA fijo en PB y Avea: RESUELTO en la v5.60** (14-ago, con las tres
   respuestas de Diego: instalación como referencia sin cambio · la Vela sigue
   con ciclo · sin ventilador no aplica HEPA). La regla vive en
@@ -335,12 +638,12 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
   (defecto `PB,Avea`, por prefijo, editable sin código). Detalle en la
   bitácora; guardia `dispositivos_reglas.js`.
 
-- **FSS-ICU · el «no evaluado»** (mockup en `scratchpad/mockup_fss_no_evaluado.html`).
-  La app suma a secas: falta distinguir «incapaz por debilidad» (que es el 0 de
-  la escala) de «no se pudo evaluar», y aplicar la regla oficial —hasta 2 sin
-  evaluar se les asigna el promedio, con más de 2 el total no se calcula—.
-  Tres preguntas abiertas: cómo se declara, qué pasa con el campo cuando no se
-  puede calcular, y si se anota la razón.
+- ✅ **FSS-ICU · el «no evaluado»: RESUELTO en la v5.95** (5-sep; Diego citó
+  el manual y la fuente oficial —improvelto.com— lo confirma). Opción «NE»
+  por ítem; hasta 2 NE se imputan con el promedio (redondeado), con más de 2
+  el total no se calcula; el 0 queda solo para debilidad real. La RAZÓN del
+  NE no se anota (el manual no la exige); si algún día se quiere, es campo
+  nuevo. Guardia fss_ne.js.
 - ✅ **MR850 (punto 6 del brainstorm): SON 4, categoría APOYO** (Diego,
   14-ago) — 1 en la cama 2 y 3 en bodega. Falta solo la acción de DATOS en el
   tablero: dar de baja la única cargada con nombre propio y crear el stock por
@@ -353,23 +656,261 @@ adelante de producción, que es exactamente lo que pasó el 14-ago.
 
 ### Anotado y NO programado (pedido explícito de Diego)
 
+- ✅ 📋 **MRC/FSS pendientes con MOTIVO: PROGRAMADO en la v5.94** (5-sep;
+  Diego: «es sedación/cooperación… decide tú dónde»). El motivo se DERIVA de
+  `ULT_COOP`, sin campo nuevo: cooperador sin medir = campana + tooltip +
+  motivo en la entrega («evaluable desde ya»); no cooperador = badge gris
+  «no evaluables aún» con la cooperación registrada, SIN campana (no es
+  olvido). Detalle en BITACORA v5.94. Sigue abierto el pendiente HERMANO del
+  FSS-ICU «no evaluado» (distinguir «incapaz por debilidad» = 0 real de «no
+  se pudo evaluar», con la regla del promedio hasta 2 ítems).
+- ✅ 🫁 **Pimometría pendiente: PROGRAMADA en la v5.93** (5-sep). Regla:
+  VM + CPAP/PS + soporte bajo PIMO_PS_MAX (CONFIG, 14) + (destete prolongado
+  por Boles 2007 —espejo `_weanClaseSrv` de `_weanClase`— o VM ≥
+  PIMO_VM_DIAS días, CONFIG, 21 por NAMDRC 2005) + sin Pimáx del episodio
+  (`ULT_PIM`, arrastre nuevo en CAMAS_ESTADO). Se apaga al registrar fPIM.
+  Literatura revisada a pedido de Diego: VM prolongada = ≥21 días (NAMDRC);
+  destete prolongado = >7 días desde la 1ª PVE o ≥3 fracasadas (Boles/WIND)
+  — su «>7 días» era el del destete. Detalle en BITACORA v5.93.
+
 - 🧠 **Brainstorm de terreno** — 9 puntos, en `BITACORA.md`. Resueltos el 1, 2,
-  3, 4, 5 y 7. **Abiertos: el 6** (MR850), **el 8** (separar «marca un hito» de
-  «cuenta en la estadística») y **el 9**.
-- 🔴 **Punto 9 · Al reabrir una evolución guardada se desmarcan los botones que
-  no se heredan** (reportado por Diego el 14-ago desde el uso). Es el mismo
-  comportamiento que Manuel decidió dejar como estaba el 9-ago; que lo reporte
-  ahora el dueño del proyecto **reabre esa decisión**. Candidato a PRD: hay que
-  decidir qué botones se conservan al reabrir, y eso es regla clínica.
+  3, 4, 5 y 7. **Abierto: solo el 6** (MR850, acción de datos). El 9 quedó
+  CERRADO el 5-sep («déjalo como Manuel») y **el 8 quedó RESUELTO en la
+  v5.97**: Diego lo afinó a «información que no sume a estadística pero que
+  aparezca en la evolución» → bloque 📌 Anotaciones del turno (BITACORA
+  v5.97). El ➕ de Manuel queda intacto para anotar sin abrir el formulario. OJO con el
+  8: su comentario de voz («marcar un hito no cuenta en las estadísticas, es
+  historia narrativa») describe cómo CREE que funciona — pero HOY los eventos
+  y procedimientos manuales SÍ van a la estadística además del hito; el punto
+  8 es justamente poder separarlos. Aclarado en el mensaje, esperando su
+  decisión con los puntos a la vista.
+- ✅ **Punto 9 · CERRADO por Diego el 5-sep-2026: «déjalo como Manuel»** — se
+  mantiene la decisión de Manuel del 9-ago: al reabrir una evolución guardada
+  los botones no heredables se desmarcan y se re-marcan a mano si hace falta.
+  No se programa nada. (Si vuelve a molestar en el uso, se retoma como PRD
+  con la pregunta de qué botones conservar.)
 - **Prono / posicionamiento / HSA** — diseño conversado, falta que Diego mande
   el protocolo HSA de la unidad para poder programarlo.
 - **Stock de cánulas TQT** — aprobado en concepto, faltan inventario y umbrales.
 - **Mi estilo** (evolución personalizada por colega) — diseño cerrado, esperando
-  material: ~20-30 evoluciones editadas por persona.
+  material: ~20-30 evoluciones editadas por persona. ⚠️ **Lo reemplaza el
+  `PRD_PLANTILLAS_EVOLUCION.md`**: con plantillas declaradas por cada uno ya no
+  hace falta juntar ese material.
 - **Guardado por bloques** — analizado y descartado por ahora, con los números
   en la bitácora. Reabrir solo con datos nuevos de uso.
 
+**Pedidos nuevos del 2-sep-2026 (solo anotados, sin diseño ni código):**
+
+- 🖼️ **Enlazar Synapse para ver imágenes.** Synapse (el visor de imágenes) **no
+  aparece en ninguna parte del proyecto**: es integración nueva, no un ajuste.
+  Lo que Diego confirmó el 2-sep: **se usa en Chrome**, es una instancia
+  **alojada fuera del hospital** (`sscssl.synapsetimed.cl`), y **exige su propio
+  usuario y contraseña** con una pantalla de inicio de sesión tipo STS.
+  🔴 **Las credenciales NO se guardan en este repo ni en el código** (el repo es
+  público y el historial no se borra). Hoy se entra con **una cuenta compartida
+  del servicio**, lo que además significa que no queda registro de quién miró
+  qué: es decisión de Diego y de informática, no del proyecto.
+  · 🪤 **MEDIDO, NO SUPUESTO — SYNAPSE NO SE PUEDE EMBEBER** (2-sep-2026).
+  Diego preguntó si se podía verlo dentro de la app. Se le mandó una página de
+  prueba con un iframe y la corrió en el Chrome del hospital. La consola:
+  `Refused to display 'https://sscssl.synapsetimed.cl/' in a frame because it
+  set 'X-Frame-Options' to 'sameorigin'`. O sea **solo se deja mostrar dentro de
+  su propio dominio**: no es configuración nuestra ni permiso que se pueda
+  pedir, lo decide su servidor. Explica además por qué BUDA lo ABRE en vez de
+  incrustarlo. **No volver a proponer iframe, «SPA» ni visor embebido.**
+  · 💡 Aclaración que hubo que hacerle: **el RCE ya ES una SPA** (un solo
+  index.html con pestañas que cambian sin recargar). Ese término no da la
+  capacidad de mostrar otro sitio adentro; lo que haría falta es un iframe, y
+  está bloqueado.
+  · **Consecuencias de diseño, ya firmes**: lo realista es un botón que abre
+  Synapse en otra pestaña. Y el enlace que se usa a mano lleva un **token de
+  sesión** en la dirección — pero Diego verificó (4-sep) que **al caducar
+  redirige solo al inicio de sesión**: «es un click más pero vale la pena».
+  O sea el enlace con token TAMBIÉN sirve como enlace fijo; para
+  `CONFIG.SYNAPSE_URL` da lo mismo cuál se pegue, la URL base sigue siendo
+  la más limpia.
+  · **Truco sin código que da el «verlos juntos»**: abrir Synapse en una segunda
+  ventana de Chrome y usar ⊞ Win + ← / ⊞ Win + → para dejarlos lado a lado.
+  · 🔑 **CÓMO FUNCIONA HOY, contado por Diego (2-sep)**: Synapse **ya está
+  integrado en BUDA**. Hace clic en «Imaginología» y **entra directo, sin pedir
+  usuario ni contraseña** (probablemente SSO o por IP del hospital). Lo único
+  que NO hace es **copiar el RUT**: eso lo teclea a mano cada vez. Su pedido es
+  «lo más similar a eso».
+  · ✅ **La parte que SÍ se puede hacer, y es justo el paso que él repite**:
+  **copiar el RUT al portapapeles con un clic**. La app ya copia al
+  portapapeles en dos lugares (`copiar()` con `execCommand`, y el informe REM
+  con `navigator.clipboard`), así que la técnica está probada aquí dentro.
+  Flujo propuesto: ícono 🩻 en la tarjeta del paciente → **copia el RUT** y
+  **abre Synapse en otra pestaña** → él pega. Chrome ya tiene guardada la
+  credencial. 🔴 El RUT viaja al portapapeles del propio equipo, **nunca en la
+  URL ni a ninguna exportación**: la regla se respeta.
+  · **Lo que falta preguntar a informática o al proveedor**: si la instancia
+  admite enlace directo al paciente o al estudio (Synapse suele tener uno con
+  parámetro) y con qué identificador. Con eso el clic llevaría directo a las
+  imágenes; sin eso, el flujo de arriba ya ahorra el tecleo. 🔴 Si ese parámetro
+  fuera el RUT, **no va en la dirección**: el RUT no sale de la app.
+- 🩸 **La GSA arterial se copie sola a la hoja de registro diaria.** 🪤 Precisión
+  verificada: la fila de GSA **YA EXISTE** en la hoja diaria (`gsa` en `HJ_F`,
+  index ~7939, se pinta con `GSA_TOMADA`) y el formulario ya guarda pH, PaO₂,
+  PaCO₂, HCO₃, EB, lactato, SaO₂, FiO₂ e interpretación. Lo que falta **no es la
+  fila: es la captura automática**.
+  · **Formato confirmado por Diego (2-sep): se descarga del sistema en PDF**, y
+  se puede dejar en una carpeta o un lugar fijo.
+  · 🔴 **Preguntar ANTES de programar el camino difícil**: ¿el sistema exporta
+  también **CSV, TXT o HL7**? Apps Script no lee PDF; habría que convertirlo con
+  el OCR de Drive y sacar los valores con expresiones, que se rompe en silencio
+  el día que cambie el formato del informe. Un CSV hace el trabajo diez veces
+  más confiable. Los analizadores de gases habituales exportan texto.
+  · **Confirmado por Diego (2-sep): el informe de GSA trae NOMBRE y RUT.** Con
+  eso el emparejamiento deja de ser una adivinanza, y **la cañería ya está
+  escrita**: `episodiosPorRut()` (`svc_camas.gs:676`) busca un RUT en
+  CAMAS_ESTADO (camas ocupadas) **y** en ARCHIVO_PACIENTES (egresados) y
+  devuelve el episodio; se escribió para el aviso de reingreso y sirve igual
+  aquí. Normaliza con `_rutNormal()` (quita puntos y guión, K mayúscula), así
+  que el formato con que venga en el PDF no importa.
+  · 🔑 **`rutValido()` (módulo 11) es un verificador de OCR gratis**: si la
+  lectura del PDF equivoca un dígito del RUT, el dígito verificador lo caza casi
+  siempre. Convierte el campo más peligroso del parseo en el más seguro — si el
+  RUT no valida, el archivo va directo a «sin emparejar» y no se escribe nada.
+  · **El RUT se usa para emparejar y NO se escribe** en EVOLUCIONES: la regla
+  del `PAC_RUT` transitorio ya existe y aplica igual. El PDF sí es dato
+  identificable (nombre + RUT), así que su carpeta de Drive va restringida.
+  · **Confirmado por Diego (2-sep): el informe trae la fecha cronológica de la
+  toma y su horario.** Con eso el turno se calcula solo y **la regla ya está
+  escrita**: `_turnoLogico(now)` (index ~4543) convierte un momento en
+  `{fecha, turno}` y ya resuelve el cruce de medianoche — antes de las 9 es
+  turno **Noche del día anterior**. Lee los cortes de CONFIG
+  (`TURNO_DIA_INICIO`=9, `TURNO_NOCHE_INICIO`=21), o sea que si la unidad
+  cambia los horarios no hay que tocar código.
+  🪤 Pero `_turnoLogico` **vive solo en el cliente**; la importación de la GSA
+  corre en el SERVIDOR (rutina que lee Drive), así que hay que llevar esa misma
+  regla a `infra_fechas.gs` — **leyendo la CONFIG, no con el 9 y el 21
+  escritos a mano**, o el día que Diego cambie el horario los gases se irán al
+  turno equivocado en silencio. Guardia obligatoria: los dos lados dan el mismo
+  turno para la misma hora.
+  · ✅ **Alcance cerrado por Diego (2-sep): SOLO el gas de la mañana.** «El resto
+  se escribe a mano; es para optimizar la mañana.» Eso mata la pregunta de los
+  varios gases por turno (queda uno, el de la mañana) y convierte esto en una
+  **rutina que corre una vez al día**, no en un vigilante permanente.
+  · ✅ **Decisión de Diego (2-sep): el gas importado NO entra a la evolución.
+  «Iría solo a la hoja diaria, por el momento.»** Es la decisión que más riesgo
+  saca del proyecto: no toca EVOLUCIONES (ni sus 386 columnas), no toca el REM
+  ni las estadísticas, no puede pisar un registro firmado, y **desaparece la
+  trampa del corte de turno** —el gas de las 07:00 ya no tiene que elegir
+  evolución, solo columna en la hoja—.
+  · 🪤 **Pero la hoja diaria no tiene de dónde leerlo hoy.** Se arma **en el
+  cliente desde `TL_EVOS`**, o sea desde las evoluciones: la fila `gsa` (`HJ_F`,
+  index ~7877) lee `e.GSA_TOMADA`. Si el dato no entra a la evolución, hace
+  falta **una fuente aparte**: hoja nueva tipo `GSA_IMPORTADAS`
+  (PATIENT_ID · fecha · hora · pH · PaO₂ · PaCO₂ · HCO₃ · EB · lactato · SaO₂ ·
+  FiO₂ · archivo de origen) que viaje al cliente junto al historial y que la
+  fila `gsa` **mezcle** con lo que ya venga de la evolución. Esto sí es cambio
+  de servidor — la hoja UCI hasta hoy no tenía ninguno.
+  · **Cómo conviven los dos gases del día**: el de la mañana llega importado y
+  el resto los escribe el colega a mano en su evolución. Los dos caen en la
+  columna DÍA, así que la celda tiene que poder mostrar más de uno, con su hora
+  y marcando cuál vino del laboratorio.
+  · **Consecuencia que Diego debe tener clara**: al no entrar a la evolución, el
+  gas importado **no se narra en el texto** (`dominio_texto.gs:369` solo mira
+  `GSA_TOMADA` de la fila del turno) ni aparece en la entrega. Se ve en la hoja
+  diaria y nada más — que es exactamente lo que pidió, y por eso dijo «por el
+  momento». Guardar los valores completos en la hoja nueva deja la puerta
+  abierta a alimentar la evolución después sin volver a importar nada.
+  · **Recomendación sobre el borrado**: Diego pidió que el archivo «se borre
+  después de copiar». Propuesta a discutir: **no borrar, mover** a una
+  subcarpeta «copiados» con retención corta. Con un dato clínico mal copiado y
+  el original borrado no hay a qué volver ni cómo auditar.
+  · **Regla dura del emparejamiento**: si no se puede emparejar con certeza,
+  **no se escribe nada** y el archivo queda en una bandeja «sin emparejar» para
+  hacerlo a mano. Un gas en la cama equivocada es peor que un gas que falta.
+  · 📖 **LA HISTORIA DEL PRD, dictada por Diego (2-sep)**: está de turno noche.
+  Los gases se toman a las **04:00**, el resultado llega a las **06:00** y la
+  hoja se imprime a las **07:00** — pero la GSA, la Hb, el Hto y otros valores
+  para la rehabilitación se pasan **a mano**, y eso termina a las **10:00**.
+  «Ya se perdieron horas valiosas para corregir algún valor alterado o plantear
+  la posibilidad de rehabilitación.» Después: descarga los PDF, los archiva, y a
+  las 07:00 la hoja sale impresa con todo — identifica errores y deja el plan al
+  colega entrante. 🔑 **El valor no es ahorrar tecleo: son tres horas de
+  anticipación clínica.**
+  · 🆕 **NO es solo la GSA.** Diego nombró **Hb, Hto y «otros valores importantes
+  para la rhb», que hoy van en la columna de comentarios**. La hoja impresa
+  (`rkHojaHTML`) ya tiene el bloque LABORATORIO con filas GSA: pH · PaCO₂ · PaO₂ ·
+  HCO₃ · EB · SatO₂ · PaFi · Lactato · PCR · PCT, **seis columnas de horario en
+  blanco** y la columna ancha «Procedimientos y observaciones». Hb/Hto/plaquetas
+  **no tienen fila**: por eso van en observaciones.
+  · 🖼️ **Mockup sobre la hoja real**:
+  `https://claude.ai/code/artifact/c33c487d-948c-4187-9eb6-1cc98efe61e4`
+  — el gas de las 04:00 ocupa la 1ª columna (las otras 5 quedan para los gases
+  del día, a mano), los valores de laboratorio van en observaciones, y lo
+  importado se marca con `°` y sombreado suave para distinguir lo que copió una
+  máquina de lo que escribió una persona.
+  · **Turno**: el gas de las 04:00 cae en la columna **NOCHE**, que es cuando se
+  toma y quién está de turno. No hay conflicto con la evolución porque el dato
+  no entra ahí.
+  · ✅ **Cerrado por Diego (2-sep)**: **Hb y Hto en fila propia** («no sé si
+  calza» → 📏 **medido: sí calza**. La carilla útil es 1093 px y la hoja usa
+  **914 px** con cualquier paciente —TOT, TQT o natural, nombre corto o largo—,
+  o sea sobran **179 px = 12 filas** de 14 px; con Hb y Hto quedan 942 px y aún
+  sobran 10 filas). **Plaquetas y K⁺ NO llevan fila fija**: aparecen en
+  observaciones **solo cuando están alterados**. La lista de valores para la
+  rehabilitación (Hb · Hto · Plaquetas · INR · K⁺ · Glicemia) quedó confirmada.
+  · 🖨️ **CERRADO (2-sep) y ojo con esto: LA HOJA SE IMPRIME EN BLANCO Y NEGRO.**
+  Diego lo dijo al ver el mockup, y tumba cualquier diseño que dependa del color
+  —el rojo de «alterado» tampoco se veía—. Las marcas que sí salen en la
+  impresora: **asterisco** para lo que vino del laboratorio y **negrita + flecha
+  ↑↓** para lo que está fuera de rango (la flecha además dice hacia dónde, que
+  el color no decía). Vale para cualquier cosa que se diseñe sobre la hoja
+  impresa, no solo para la GSA.
+  · ✅ **Cortes confirmados**: **Hb < 7** (lo corrigió Diego; yo había propuesto
+  8) · Plaquetas <100.000 · K⁺ <3,5 o >5,5 · pH <7,30 o >7,50 · PaCO₂ >50 ·
+  PaFi <200.
+  · **Estado del formato**: Diego confirma que **el sistema exporta en PDF** y no
+  sabe si ofrece otra opción; preguntó qué era un CSV. Queda explicado en el
+  mockup, con dónde mirar («Exportar / Descargar como / Guardar como») y la
+  pregunta para informática. **Mientras no se sepa, el diseño asume PDF.**
+  · Falta todavía **un PDF de ejemplo real** (anonimizado o con paciente de
+  prueba) para saber qué se puede sacar de él.
+- 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
+  existe: es **Servi**, seleccionable entre Servi y el kinesiólogo (`mascToggle`,
+  index ~1681), y hoy solo hace el tutorial y los globos.
+  · ✅ **Diseño contado por Diego (2-sep)**: el día del cumpleaños la mascota
+  aparece **con gorro y globos** — el cambio visual es el anzuelo, «la gente se
+  va a interesar visualmente y va a hacerle clic»— y al tocarla sale un **globo
+  de diálogo**: «Hoy está de cumpleaños tal», que se puede cerrar. Su intención,
+  textual: **«darle un toque mucho más humano y más cercano a la plataforma»**.
+  · Falta decidir: dónde vive la lista (natural: una columna nueva en
+  `KINESIOLOGOS`, como el `EMAIL` que ya está ahí) y qué pasa si hay **dos
+  cumpleaños el mismo día**.
+  🔴 Son datos personales de los funcionarios: van en la planilla, nunca
+  escritos en el código, y no salen a ninguna exportación.
+- 💭 **Que la mascota recuerde situaciones.** Idea abierta y sin definir todavía
+  qué es «una situación»: hitos de la unidad, cosas que pasaron con un paciente,
+  o logros del equipo. **Antes de diseñar hay que preguntarle a Diego qué tiene
+  en la cabeza**, porque «recordar situaciones de pacientes» y «recordar
+  situaciones del equipo» son dos productos distintos — y el primero toca datos
+  clínicos.
+
 ### Reglas clínicas que conviene tener a mano
+
+- 🫁 **UNA PVE SUPERADA NO SIEMPRE TERMINA EN EXTUBACIÓN** (Diego, 2-sep-2026:
+  «sí existe»). El formulario **hoy asume que sí**: al marcar «superada» pide la
+  hora de extubación y `_extOcurrio()` (index ~11390) devuelve verdadero. Eso
+  obliga al colega a mentir —inventar una hora, marcar «fracasada», o dejar la
+  PVE en «No» y perder la prueba—. Es un hueco en una matriz por lo demás
+  completa: el caso espejo, «extubación SIN PVE», ya existe (`cExtSinPve`).
+  · **La buena noticia**: ningún consumidor cuenta extubaciones por
+  `PVE_RESULTADO`; **todos leen `EXT_OCURRIO`** (REM, stats, entrega, tiempo
+  extubado). `_extOcurrio()` es el punto único donde vive la suposición.
+  · Arreglo escrito en `PRD_PVE_SUPERADA_SIN_EXTUBAR.md` (2 columnas nuevas al
+  final de EVOLUCIONES ⇒ **exige `crearORepararEstructura()`**). **No programado
+  todavía.**
+- 🌀 **El weaning es un proceso largo y la fase NO es el caso** (Diego,
+  2-sep-2026: «el proceso de weaning es un proceso largo, no siempre define
+  extubar»). La **fase clínica es del PACIENTE** y dura semanas (se hereda); lo
+  que hay que escribir **hoy** es del TURNO. Un paciente puede pasar veinte días
+  en fase Weaning con turnos «no corresponde» → «PVE fracasada» → «TQT» →
+  «destete por TQT». Vale para cualquier cosa que se diseñe sobre el destete, no
+  solo para las plantillas.
 
 - 🫁 **«VM» ES SIEMPRE VENTILACIÓN MECÁNICA INVASIVA.** La VNI es ventilación
   mecánica en lo clínico, pero **aquí cuenta aparte y jamás suma a los días de

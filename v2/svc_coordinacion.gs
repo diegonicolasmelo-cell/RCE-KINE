@@ -660,6 +660,13 @@ function _coordRecalcularDias(ubic, campos) {
  *   5. sello visible + AUDIT_LOG, con la firma de QUIEN entró
  */
 function coordCorregirFicha(datos) {
+  // v5.99 (auditoría C1): la corrección reescribe campos de CAMAS_ESTADO, la
+  // misma fila que el guardado del turno escribe COMPLETA al final. Sin el
+  // candado, una corrección simultánea con un guardado se perdían una a la
+  // otra sin ruido. El mismo conLock del guardado los pone en fila.
+  return conLock(function () { return _coordCorregirFichaInterno(datos); });
+}
+function _coordCorregirFichaInterno(datos) {
   try {
     const g = coordExigirSesion(datos && datos.token);
     if (!g.ok) return g;

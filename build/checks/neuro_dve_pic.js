@@ -171,8 +171,10 @@ const v2 = path.resolve(__dirname, '..', '..', 'v2');
   });
   const iSed = evo.indexOf("'SED_FARMACOS'"), iNeu = evo.indexOf("'NEURO_DVE'");
   si('van al FINAL de la lista (insertarlas al medio desalinea la hoja)', iNeu > iSed && iSed !== -1);
-  si('el total escrito a mano de testEsquema subió a 393',
-    /TOTAL_COLS\.EVOLUCIONES !== 393/.test(esq));
+  // v5.97 sumó ANOTACIONES_JSON ⇒ 394; la tanda 2a (PVE superada sin
+  // extubar) sumó 2 ⇒ 396. Esta guardia acompaña al total.
+  si('el total escrito a mano de testEsquema subió a 396',
+    /TOTAL_COLS\.EVOLUCIONES !== 396/.test(esq));
 
   eq('sin errores JS', errs.join(' | '), '');
   await b.close();

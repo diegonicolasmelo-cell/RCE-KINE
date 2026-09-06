@@ -19,6 +19,635 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.06-entrega-bn-de-manuel (6-sep-2026) — lo que Manuel publicó el 2-sep y la tanda pisó
+
+Diego, antes de fusionar: «revisa lo que hizo Manuel antes de que
+comenzáramos a trabajar para no pisar su progreso». Se revisaron TODAS las
+ramas remotas contra `main` y contra `filtros-vence-hoy`:
+
+- `manuel/velocidad-arranque` → ya en main por contenido (4f27572). Nada.
+- `entrega-blanco-negro-linea-tiempo` (Manuel, 1–2 sep, sello
+  **5.86-entrega-bn-negrita**, «ya publicada en producción» según su commit
+  94c52ee) → **NO estaba en main ni en develop**, y la tanda v5.86→v6.05 se
+  publicó encima: en el hospital corría SIN su trabajo. Su mitad del 30-ago
+  (texto congelado, Preview retirado, conciliación del REM) sí la traía la
+  rama porque nació del mismo tronco; lo que faltaba y se traspasó a mano:
+  · `svc_entrega.gs`: **negrita** en Extubación · Reintubación · TQT ·
+    Desvinculación · Prono · Supino, y el evento nuevo **«🔄 Cambio de
+    soporte: VNI → Oxigenoterapia fecha · turno»** para episodios no-TQT
+    (`_SOP_ETIQ`, `_sopAnterior` se resetea en TQT, `_yaNarrado` evita
+    duplicar el cambio cuando ya lo cuenta una intubación/extubación/TQT/
+    desvinculación). El conteo de bloques de 12 h lo quitó él mismo
+    (68299af): no se trae.
+  · `index.html`: el bloque `@media print` **BLANCO Y NEGRO** de la entrega
+    (todo el texto negro, chips con borde, franja «sin evolución» invertida,
+    ficha heredada con borde discontinuo, `<b>` rojo → subrayado).
+    🪤 **Su regla del chip de cama (fondo negro, número blanco) NO se trajo**:
+    es exactamente el «cuadro negro» que Diego reportó el 4-sep y que la
+    v5.92 dejó blanco con borde. Las dos reglas viven en el mismo bloque; la
+    de la v5.92 manda y el comentario lo explica.
+  · `build/medir_entrega.js`: `construirEventos(i, carga)` con los eventos en
+    `<b>`, para que el presupuesto de hojas mida el costo real de la negrita.
+  Su patch no aplicaba limpio (la v6.00 cambió el contexto de la PVE en
+  `_entFicha`): se aplicó por reemplazo exacto de cada línea.
+- `fix/la-vni-viaja-al-rem-hospital` (22–25 ago) → **queda SIN fusionar, a
+  propósito**. Los inicios de VNI en el 601171 ya están en main; lo que
+  sobra son 8 archivos que nadie documentó en CLAUDE ni en la bitácora:
+  `svc_rem_puente.gs` (el REM del mes «viaja solo» a otra planilla, «REM
+  Hospital»), `demo_datos.gs` (559 líneas de pacientes ficticios),
+  `build/paquete_maqueta.js` y las guardias `puente_rem.js` /
+  `maqueta_demo.js`. Es una integración con un destino externo que Diego no
+  ha aprobado: se le pregunta a él y a Manuel antes de tocarla.
+- Rama `prototipo-plantillas-evolucion`: sigue sin fusionar, por regla.
+
+Fusión: `filtros-vence-hoy` → `develop` (`--no-ff`) → `main` (`--no-ff`),
+pedido explícito de Diego («fusiona la rama una vez que compruebes qué hizo»).
+Sin cambio de esquema. Batería: **119 verdes, 0 rojas**; espejo regenerado.
+Se pegan **index + servicios** (la v6.05 del ícono va incluida).
+
+## v6.04-plantillas-desde-el-texto (6-sep-2026) — los chips no sirvieron; la plantilla nace en el cuadro de texto
+
+Diego probó los chips de la v6.02 en el hospital: «se me hace enredado…
+me gustaría que fuera como TrakCare: en la esquina inferior derecha un
+símbolo de plantilla, e incluso al seleccionar texto, abajo a la izquierda,
+un signo más en un cuadro verde para crear nueva plantilla… que la
+plantilla se adapte a los comodines… será solo narrativa… una evolución
+tipo general y una personalizada anclada a la firma, además personalizadas
+según situación». Pidió feedback sin condescendencia y mockup
+(`https://claude.ai/code/artifact/04cd98f0-06cc-419f-9895-aa6f2d6f9a79`) y
+dijo **sí a las cuatro decisiones**:
+① comodines por DATO y por BLOQUE, los dos en el menú · ② la evolución tipo
+se aplica SOLA al abrir la cama · ③ las de la unidad las publica solo
+coordinación con clave · ④ las frases fijas se permiten, con aviso ámbar.
+
+**Lo que cambió** (index + servicios; la hoja PLANTILLAS_EVOLUCION, el
+servicio, la semilla y la guardia de la v6.02 se conservan):
+- **Se quitó la barra de chips.** Las dos puertas viven en el cuadro de texto:
+  el 📋 abajo a la derecha (con cuántas tengo y cuál está en uso) y el ➕
+  verde abajo a la izquierda, que aparece mientras hay texto seleccionado.
+- **Quién gana, sola**: mía·situación → mía·general → unidad·situación →
+  unidad·general → motor libre. La situación la detecta el formulario
+  (`_plantCaso`). Si la plantilla no nombra los eventos, el relato del turno
+  (PVE, extubación, reintubación, TQT, decanulación…) entra solo antes del
+  Plan (`{relato}`).
+- **Des-rellenar** (`_plantDesrellenar`): las frases seleccionadas se
+  convierten en plantilla. Por BLOQUE, una frase idéntica a una del motor se
+  vuelve el comodín de su bloque (la etiqueta `_B` de `_TXB_ULT`). Por DATO,
+  cada valor del formulario que aparece en la frase pasa a su comodín, con
+  su contexto (`pre`/`post` en `PLANT_DATOS`): «SAS 1 (meta 1)» → «SAS {sas}
+  (meta {sas_meta})». Lo escrito a mano queda FIJO y el editor lo lista en
+  ámbar («saldrá igual en todos tus pacientes»).
+- 31 comodines por dato nuevos (`PLANT_DATOS`: vt, fr, peep, fio2, spo2,
+  pafi, dias_vm, diagnostico, sas, gcs, hdn, secr_tipo…) + `{relato}`.
+  🪤 Un comodín por dato NO puede llamarse igual que uno por bloque:
+  `via_aerea` pisaba la frase del motor con «TOT» — se llama `via_aerea_tipo`.
+  🪤 `fio2`/`spo2` llevan dígito: las expresiones `[a-z_]+` los dejaban con
+  llaves; ahora `[a-z0-9_]+` en cliente, servidor y guardia.
+- Servidor: `PLANT_COMODINES_SRV` = la lista del cliente (56); por eso se
+  pega también **servicios**.
+
+**🪤 La interacción P-VM se arrastraba como asincrónica** (Diego, mismo
+mensaje: «en el texto queda mal»). Dos rendijas: el selector `sAdapt` vive
+dentro de `renderParams` y se re-dibujaba con el valor de la cama ANTERIOR
+abierta en la sesión; y `fillFormReplica` lo heredaba del turno anterior.
+Ahora parte vacío al abrir cualquier cama y NO se replica (solo `fillForm`,
+al reabrir un turno guardado, lo recupera). Guardia
+`interaccion_no_se_arrastra.js`.
+
+- Batería: **119 verdes**. Se pegan index + servicios; sin cambio de esquema.
+
+## v6.03-tooltip-y-rx (6-sep-2026) — dos detalles vistos en el hospital
+
+Diego pegó la v6.02, corrió `crearORepararEstructura()` y probó en el
+Chrome del hospital. Dos observaciones, las dos solo index:
+
+- **Tooltip del badge «MRC/FSS no evaluables aún»**: «está bien… pero
+  muestra el tooltip acotado: Sin medir: Motivo». Ahora dice
+  `Sin medir: No cooperador` (la cooperación registrada) o «Sin medir:
+  cooperación sin registrar».
+- 🪤 **El emoji 🩻 sale como un cuadrado en el hospital.** Es Emoji 14
+  (2021) y la fuente de Windows 10 no lo trae. El botón de Synapse pasó a un
+  **SVG propio** (`_RX_SVG`, un recuadro con «Rx») que se dibuja igual en
+  cualquier equipo; el checkbox de traslado a imagenología y el diálogo usan
+  🖼️ (Emoji 1.0). Regla para el futuro: **no usar emojis posteriores a 2019
+  en la interfaz** — el equipo del hospital corre Windows 10.
+- Batería: 118 verdes.
+
+## v6.02-plantillas-de-evolucion (6-sep-2026) — la tanda 3 llega a producción, en modo chips
+
+Diego, 5-sep: «la selección de plantilla… como chips, por mientras». Se portó
+el prototipo de la rama `prototipo-plantillas-evolucion` (solo el modo chips;
+el modo «evolución tipo + relato» queda en esa rama como banco) a la línea de
+producción, con persistencia real.
+
+- **Hoja nueva `PLANTILLAS_EVOLUCION`** (26ª): ID · DUENO (firma o `UNIDAD`) ·
+  CASO · NOMBRE · CUERPO · ACTIVO · ORDEN · ACTUALIZADO · ACTUALIZADO_POR.
+  EVOLUCIONES no cambia por esto (NO2 del PRD). El reset la CONSERVA (es
+  configuración). `crearORepararEstructura()` siembra las **13 de la unidad**
+  (más «general» y «PVE superada sin extubar» del PRD hermano) solo si la hoja
+  está vacía.
+- **`svc_plantillas.gs`**: `plantillasListar` (viaja en GET_BOOT),
+  `plantillaGuardar` y `plantillaDesactivar`. Reglas del servidor: una de la
+  UNIDAD exige sesión de coordinación viva (`coordExigirSesion`, como toda
+  COORD_*); comodín desconocido rechaza el guardado; nombre ≤ 40, cuerpo ≤
+  4000, caso del catálogo; editar la de otro se rechaza (el cliente la copia
+  como propia); nada se borra, se retira (ACTIVO=false).
+- **Cliente**: barra bajo la fase clínica (fila «Evento del turno» + fila
+  «Plantilla»), el caso se deduce del formulario (reintubación > TQT >
+  decanulación > PVE superada sin extubar > extubación/autoextubación > PVE
+  fracasada > VM sin destete > destete diferido > ingreso > prono > destete
+  por TQT > rehabilitación), la sugerida va en ámbar y se fija al tocarla;
+  catálogo en tres estantes (colega de la cama → unidad → otros); «Motor
+  libre» vuelve al texto de siempre. Los comodines son los BLOQUES del motor
+  (`_B` / TXB): el dato sigue saliendo del único motor y `TEXTO_GENERADO`
+  viaja tal cual (paridad). Regla madre intacta: sobre texto tocado o guardado
+  se pregunta con `uiConfirm`.
+- **Editor con dos puertas** (Diego, 4-sep): el ✏️ de la barra y «⚙️ Mis
+  plantillas…» al final del catálogo. Nadie parte en blanco (esqueleto con
+  comodines o copia de la sugerida); comodines SOLO por menú (un typo se ve en
+  rojo en la vista previa y no sale al servidor); **vista previa obligatoria**
+  con el paciente abierto; la de la unidad sin clave se abre como «copiar como
+  mía»; 🗂️ Retirar para las propias.
+- 🪤 Al portar: un `const` declarado dentro de `eval()` no sale al módulo de la
+  guardia (las listas del servidor se leen del fuente por regex); y
+  `abrirPanel` pide GET_EVO_TURNO cuya respuesta corre `aplicarFirmaTurno` y
+  deja la firma en '' — en el arnés la firma se fija DESPUÉS de esperar.
+- Guardia `plantillas_evolucion.js` (servidor + paridad de listas cliente↔
+  servidor + pantalla). **Cambia esquema** (hoja nueva) ⇒ el MISMO
+  `crearORepararEstructura()` de la tanda.
+
+## v6.01-gases-del-laboratorio (6-sep-2026) — el gas de la mañana llega solo desde el PDF
+
+La historia del PRD (Diego, 2-sep): gases a las 04:00, resultado a las 06:00,
+hoja impresa a las 07:00… y los valores pasados a mano a las 10:00. El 6-sep
+mandó **cuatro PDF reales** del laboratorio (gsa1 = cama 1, etc.) y confirmó
+que **no exporta CSV**. Medido con los PDF: **traen capa de texto** (no hace
+falta OCR), y el texto repite los glifos de los valores en negrita («9.99.9»
+por 9,9 — los críticos, marcados «**»).
+
+- **Hoja nueva `GSA_IMPORTADAS`** (25ª): PATIENT_ID · cama · FECHA/HORA de la
+  toma · TURNO_KEY · pH · PaCO₂ · PaO₂ · HCO₃ · EB · SatO₂ · FiO₂ · PaFi ·
+  lactato · Hb · Hto · plaquetas · INR · K⁺ · Na⁺ · glicemia · PCR · archivo ·
+  petición · ESTADO (`ok` / `sin_emparejar`). **Guarda PATIENT_ID, nunca el
+  RUT ni el nombre del informe.** El reset la vacía.
+- **`svc_gsa.gs`**: carpeta de Drive `RCE-KINE — Gases del laboratorio`
+  (CONFIG `GSA_CARPETA_ID`, se crea sola); PDF→texto con la **API de Drive**
+  (copiar como Documento + exportar texto plano, con el alcance `drive` que el
+  proyecto YA tiene: sin servicios avanzados ni permisos nuevos);
+  `gsaParsear` tolerante al orden (RUT, Nº petición, «Fecha de Ingreso» =
+  fecha/hora de la toma, valores; PaFi 2.34 mmHg/% → 234; `_gsaDesdoblar`
+  parte «14.314.3» y NO parte «55»); emparejamiento por RUT contra la cama
+  ocupada o el egresado cuya estadía contiene la fecha (`_gsaEpisodioPorRut`,
+  con `rutValido` como verificador gratis); **regla dura**: sin certeza no se
+  escribe en nadie; petición repetida no se importa dos veces; el PDF se MUEVE
+  a `copiados` o `sin emparejar` (nunca se borra); resumen al buzón (tipo
+  `gsa`, 🧪).
+- **`turnoLogicoServidor`** en `infra_fechas.gs`: espejo de `_turnoLogico`
+  del cliente con los mismos cortes de CONFIG (04:00 → NOCHE del día
+  anterior). La guardia compara los dos lados, también con cortes cambiados.
+- **Disparador** `instalarTriggerGSA()` (06:30 aprox., diario) + botón
+  **🧪 Importar gases** en la barra de Registro (acción `GSA_IMPORTAR`,
+  auditada) para la noche que los PDF lleguen tarde.
+- **Hoja impresa** (`rkHojaHTML`): el gas de la mañana en la **1ª columna** de
+  laboratorio con **asterisco** (= vino del lab), **negrita + flecha ↑↓** para
+  lo fuera de rango (se imprime en B/N), **Hb y Hto en fila propia**, y en
+  observaciones solo lo alterado (Plaq · K⁺ · INR · Glic). Cortes de Diego:
+  Hb < 7 · Plaq < 100 · K⁺ < 3,5 o > 5,5 · pH < 7,30 o > 7,50 · PaCO₂ > 50 ·
+  PaFi < 200; **supuestos míos**: INR > 1,5 · glicemia < 70 o > 180. Los
+  gases viajan con `GET_REINTUB_N` al imprimir (`GET_GSA_DIA`, misma espera).
+- **Hoja diaria** (historial): `GET_HISTORIAL_PACIENTE` trae `gsa`; la fila
+  GSA **mezcla** el gas importado (chip 🧪 lab + hora) en la columna del turno
+  aunque ese turno no tenga evolución todavía, y una fila nueva «Hb / Hto /
+  Plaq / K⁺».
+- **Nada entra a la evolución ni al REM** (decisión de Diego). Guardia
+  `gsa_importada.js` con un informe sintético en el formato real (datos
+  inventados). **Cambia esquema** ⇒ `crearORepararEstructura()`.
+- Pendiente de terreno: la conversión de Drive puede ordenar el texto
+  distinto que la lectura local; el parser es tolerante, pero el primer PDF
+  real que se importe en producción hay que mirarlo (buzón + hoja).
+
+## v6.00-pve-superada-sin-extubar (6-sep-2026) — tanda 2a, el PRD aprobado
+
+- Rama «superada» con **«¿Se extubó?»** (Sí por defecto = todo como hoy; No →
+  razón obligatoria: pabellón/procedimiento programado · indicación médica ·
+  sin condiciones de vía aérea · se difiere · Otra con detalle) y se esconde
+  hora, soporte PE, evaluación post y reintubación anidada.
+- **El candado**: `_extOcurrio()` y `_extTipo()` dejan de asumir «superada =
+  extubado»; el servidor valida (`validarPVE`: razón obligatoria, «Otra» con
+  detalle, no puede venir EXT_OCURRIO a la vez, solo sobre superada) y el
+  guardado **limpia** hora/tipo/PE/post si viene la marca; sin la marca la
+  razón se vacía (promesa 3).
+- Dos columnas al final de EVOLUCIONES: `PVE_SUP_SIN_EXT`, `PVE_SUP_SIN_EXT_RAZ`
+  ⇒ **396 columnas** (`testEsquema` y `neuro_dve_pic` actualizadas).
+- Texto en paridad: «Se realiza PVE con resultado superado. No se extuba por
+  {razón}; mantiene ventilación mecánica.» · entrega: «▲ PVE superada sin
+  extubar (razón)» · hoja UCI: chip «✓ superada · sin extubar» · hitos ·
+  estadística: la PVE cuenta como superada y `pveSupSinExt` se muestra aparte
+  («N superadas (M sin extubar)») — `tablero.js` la declara en NUEVOS.
+- Guardia `pve_superada_sin_extubar.js` (promesas 1-4 del PRD).
+
+## v5.99-guardado-por-episodio (6-sep-2026) — el arreglo R1: nada se pisa
+
+Diego (6-sep): «respecto al punto de pérdida por sobreescritura creo que
+debería crear fila nueva». Y de paso dio la pista de fondo: «quizás deba ser
+obligatorio pedir el RUT y así crear eventos ligados a ese ID y no a la cama».
+
+- **`_ubicarFilaGuardado`** (svc_evoluciones): baja solo las 5 columnas de
+  identidad de la hoja viva (`repoLeerColumnasConFila`, primitiva nueva en
+  repo.gs, marcada parcial) y decide: turno nuevo → clave base; fila del
+  mismo pid → esa; fila sin pid (legacy) → se adopta; **todas de OTRA
+  persona → fila NUEVA con ID `CAMA_n_turno~<8 del pid>`**, la del anterior
+  queda idéntica; dos filas del mismo pid → `ambigua` (no se elige: error).
+  `guardarEvolucion` ya no usa `repoBuscarFila` por clave.
+- `GET_EVO_TURNO` recibe el `patientId` de la tarjeta (sin viaje extra: el
+  guard `guardado_viajes` lo habría contado) y abre la fila del ocupante
+  actual. El traslado conserva el sufijo. El AUDIT_LOG deja «crear (fila
+  aparte: la cama rotó sin alta)».
+- 🪤 **Lo que NO se hizo, a propósito**: filtrar por pid los lectores por cama
+  (previa, prono abierto, contadores). Se implementó y se quitó el mismo día
+  porque `prono_paciente.js` documenta que ya se probó y revirtió el 6-ago:
+  a un paciente re-ingresado tras reparar la cama le toca un pid NUEVO y el
+  filtro le esconde sus propios datos. Lo que sigue colgando del anterior lo
+  avisa ahora la **campana** («Evoluciones de un paciente anterior sin
+  archivar (N) · dar el alta pendiente o correr repararEvolucionesAjenas»).
+- **Candados C1/C2**: `coordCorregirFicha` y `guardarAsignacionTurno` van en
+  `conLock`.
+- **`auditoriaIntegridad()`** (mantenimiento, SOLO lectura): A claves
+  repetidas · B camas con filas ajenas · C episodios cuyo primer guardado en
+  la cama fue «actualizar» (sospecha de sobreescritura pre-v5.99, desde
+  AUDIT_LOG) y cuántas filas aparte abrió la v5.99 · D cama+turno con dos
+  episodios · E episodios archivados sin evoluciones. Sin nombres ni RUT.
+- Guardia `guardado_por_episodio.js`; `episodio_no_se_mezcla` y
+  `prono_paciente` actualizadas al modelo de filas (la del anterior intacta).
+  Ocho guardias sumaron el doble de `repoLeerColumnasConFila`.
+- 🪤 Manuel ya había medido el problema (20-ago: «39 veces en agosto») y
+  escrito `_ubicarEvolucionDeTurno` para las LECTURAS y el ➕; el guardado
+  seguía por clave. Esto cierra ese lado.
+
+## v5.98-mauri-cumple-diego (6-sep-2026) — la pose cumpleañera es suya
+
+Diego mandó su ilustración (gorro de fiesta y torta «Happy Birthday»).
+Recortada, escalada a 71×170 y en WebP (6 KB) reemplaza al montaje de la
+v5.90. Solo index. Cumpleaños: la lista va en `KINESIOLOGOS.CUMPLE` (dd-mm),
+directo en la planilla — nunca en el código; Rodrigo queda pendiente.
+
+## Auditoría del guardado (5-sep-2026) — «lo guardado no se puede perder ni sobreescribir»
+
+Diego cerró la tanda pidiendo una revisión completa de código y base de
+datos, con la regla que le importa clara: «lo guardado no se puede perder ni
+sobreescribir con otra acción que no sea guardar», porque a fin de mes se
+hace la estadística. Condición explícita: **«no programes nada, solo
+audita»** — así que aquí no hay ni una línea de código nueva, solo hallazgos.
+
+Informe completo publicado (tema claro):
+`https://claude.ai/code/artifact/9446deef-c67e-464f-9fc0-21b79e38bb5a`
+
+**Los tres hallazgos rojos:**
+
+- **R1 — La rotación de cama SIN dar el alta pisa la evolución del paciente
+  anterior.** La clave de la fila de EVOLUCIONES es cama+turno: si un
+  paciente sale y otro entra a la misma cama EN EL MISMO TURNO sin pasar por
+  «Dar alta», el guardado del nuevo cae en la MISMA fila. `_otroEpisodio`
+  (svc_evoluciones.gs:104-106) detecta el cambio de episodio y con razón NO
+  fusiona los datos viejos… pero la escritura (`repoUpsertEnFila`, :434)
+  sigue apuntando a esa fila y la sobreescribe entera. La evolución anterior
+  se pierde de forma permanente (solo queda el backup diario de Drive). El
+  flujo correcto —alta primero— no tiene el problema: el alta archiva y
+  limpia. Es exactamente la clase de pérdida que Diego describe.
+- **R2 — El punto 9 (reabrir desmarca botones)** borra al re-guardar los
+  seis botones no heredables (SOF/SNF/SNT/SET/asistencia de tos/inhalo) si
+  no se re-marcan a mano. Verificado con grep: NINGÚN consumidor de
+  estadística ni REM los lee — la pérdida es solo documental (texto de la
+  evolución). Diego ya lo decidió el 5-sep («déjalo como Manuel»): riesgo
+  aceptado, queda escrito para que no sorprenda.
+- **R3 — La superficie de pérdida más grande no es el código: es la planilla
+  abierta.** Con `AUTH_DEV_MODE=TRUE` y la hoja compartida, cualquiera con
+  acceso puede editar celdas a mano sin pasar por `_auditar`. Y el backup
+  diario de Drive (svc_backup.gs) SOLO corre si `instalarTriggerBackup` se
+  ejecutó una vez desde el editor — desde esta sesión no se puede verificar
+  si el disparador está instalado. **Verificarlo es el pendiente nº1 antes
+  de la estadística.**
+
+**Los cuatro ámbar (carreras sin candado):** C1 `coordCorregirFicha` escribe
+CAMAS_ESTADO sin `conLock` (una corrección de coordinación simultánea con un
+guardado puede perderse una a la otra); C2 `guardarAsignacionTurno` igual;
+C3 `notifVersionVista` escribe durante GET_BOOT sin candado (peor caso: aviso
+de versión duplicado, benigno); C4 no existe guardia que ate «campos que se
+neutralizan al reabrir» con «protecciones de la fusión» — si mañana un campo
+neutralizado SÍ alimenta estadística, nada avisa.
+
+**Lo que se verificó y protege BIEN** (para no arreglar lo sano): la fusión
+«lo presente pisa, lo ausente se hereda» con sus protecciones (trío KTM,
+ES_INGRESO, identidad jamás heredada); `_colsExigirCompleto` (una lectura
+parcial no se puede escribir de vuelta); borrado de tramos de abajo hacia
+arriba; regla de congelado del texto (v5.85); buzón de SOLO agregar;
+AUDIT_LOG en cada escritura del dispatcher; el guardado del cliente reintenta
+y al abrir un turno SIEMPRE pide `GET_EVO_TURNO` fresco (el caché de 60 s es
+solo para pintar la grilla).
+
+**Checklist pre-estadística** (①-⑦, en el informe): verificar el disparador
+del backup → `auditoriaCalidad()` → los cuatro simulacros de mantenimiento →
+conciliación REM contra el papel de agosto (faltan las cifras) → recordar que
+`obtenerStats` solo ve activos → contar filas KTM pre-20-ago sin estado →
+publicar la v5.97 ANTES de generar cifras.
+
+**Mejoras propuestas M1-M5, NINGUNA programada** (las decide Diego): M1
+arreglar R1 (que `_otroEpisodio` archive/aparte en vez de pisar) · M2
+candados en C1/C2 · M3 la guardia de C4 · M4 una `auditoriaIntegridad()` que
+busque huellas de R1 en los datos ya guardados · M5 medición retroactiva de
+cuántas veces pasó R1 desde el 1-ago.
+
+## v5.97-anotaciones-turno (5-sep-2026) — el «Otro» de Manuel, pero dentro de la evolución
+
+Diego afinó su punto 8 del brainstorm hasta esto: «agregar información que no
+sume a estadística, como el Otro de Manuel, pero que aparezca en la evolución
+para anotarla — es complementario a lo de Manuel pero en el módulo
+evolución». Decisiones suyas: hora OPCIONAL y el bloque ENCIMA de la Nota.
+
+**Bloque «📌 Anotaciones del turno»** al final del formulario: texto + hora
+opcional + «Agregar», se apilan (máx 8, 200 caracteres c/u, con ✕ para
+quitar). Cada anotación:
+- **Se narra en la evolución** antes de la Nota: «EEG realizado a las
+  14:00.» / sin hora «Evaluado por neurología.» — cliente (`genTexto`, con
+  etiqueta de bloque `anotacion` alineada 1:1) y servidor (`dominio_texto`)
+  en paridad exacta.
+- **Deja su hito 📌** tipo `nota` (tipo auto: el re-guardado regenera, no
+  duplica).
+- **JAMÁS toca PROCEDIMIENTOS**: constancia pura, cero estadística.
+- No es heredable (como la Nota): cada turno anota lo suyo. El refresco del
+  texto respeta la regla madre v5.85 (nunca pisa texto tocado/congelado).
+
+Reparto final del punto 8: el ➕ de Manuel sigue para anotar SIN abrir el
+formulario (no entra al texto); esto para cuando ya estás evolucionando y
+quieres que salga en lo que se copia a BUDA/TrakCare.
+
+- **Cambia esquema**: `ANOTACIONES_JSON` al FINAL de EVOLUCIONES (⇒ 394
+  columnas; `testEsquema` y la guardia `neuro_dve_pic` actualizados) — el
+  mismo `crearORepararEstructura()` de la tanda lo cubre.
+- Guardia nueva **`anotaciones_turno.js`** (18 asserts: paridad de texto,
+  hitos, orden, bloques, no-PROCEDIMIENTOS). **114 verdes.**
+- Entrega: index + servicios + esquema + **dominio** (primera vez en la
+  tanda: cambió `dominio_texto.gs`).
+- 🪤 Del reinicio del contenedor: el clon nuevo venía SHALLOW y sin
+  node_modules — `tablero`/`guardado_viajes` fallaban por historia git
+  faltante, no por código. `git fetch --unshallow` + reinstalar
+  playwright-core los devolvió a verde.
+
+## v5.96-aviso-coordinacion (5-sep-2026) — el 📣 de coordinación llega al buzón, y las decisiones de la ronda
+
+Diego cerró tres cosas por dictado:
+- **Plantillas: la selección es POR CHIPS, «por mientras»** — la evolución
+  tipo automática queda en el banco. La tanda 3 quedó desbloqueada.
+- **El aviso de coordinación: «prográmalo»** → esta versión.
+- **«Dile a Manuel que no programe nada»** → NOTA_PARA_MANUEL.md reescrita
+  (la tanda vive en `filtros-vence-hoy`; fusionar cuando esté probada) y
+  copiada a `develop` para que la vea sin buscarla.
+
+**Lo programado**: tarjeta «📣 Aviso al equipo» al final del panel 🔐 (solo
+visible con sesión) → acción `COORD_AVISO` que **exige la sesión de
+coordinación EN EL SERVIDOR** (regla de todas las COORD_*: con
+AUTH_DEV_MODE=TRUE esconder el botón no protege nada) → entra al buzón como
+tipo `coord` con la FIRMA de quien avisa, registro de solo agregar, máx 500
+caracteres. El buzón lo pinta con 📣. Guardia 3d en `buzon_campana.js`
+(rechazo sin sesión sin tocar el registro, rechazo sin texto, firma en la
+fila). **113 verdes.** index + servicios + api; sin esquema nuevo.
+
+Pendiente de la ronda: los puntos 8 y 9 del brainstorm se le citaron
+textuales (no los recordaba); OJO: su comentario del 8 describe cómo CREE
+que funciona (hito = solo narrativa), pero hoy los manuales SÍ suman a la
+estadística — el punto es separarlos. Espera su decisión.
+
+## v5.95-fss-ne (5-sep-2026) — el «no evaluable» del FSS-ICU, según el manual
+
+Diego citó de memoria la regla del manual del FSS-ICU y pidió verificarla.
+**Verificada en la fuente oficial (improvelto.com, grupo de Needham; la
+versión chilena es de González-Seguel/Merino-Osorio et al.)**: un ítem no
+realizable por causa DISTINTA a debilidad **no se puntúa** (el 0 es solo
+debilidad real); con **hasta 2** ítems así, a cada uno se le imputa el
+**promedio de los puntuados**; con **más de 2, el total no se calcula**.
+
+- Cada uno de los 5 ítems (`fFssIt1..5`) gana la opción **«NE — No evaluable
+  por causa distinta a debilidad»**; el 0 conserva su texto de debilidad.
+- `sumFSS` aplica la regla: 5 puntuados = suma directa · ≤2 NE = promedio
+  imputado (redondeado: EVAL_T_FSS es columna entera) con mensaje que lo
+  explica · >2 NE = total vacío y «NO calculable» · ítems sin declarar =
+  parcial. Antes sumaba a secas: el colega debía mentir un 0 o perder la
+  evaluación completa.
+- El «NE» viaja literal en EVAL_FSS_IT* (el desglose de la Hoja UCI lo
+  muestra tal cual; el sugeridor de CPAx ya ignoraba lo no numérico).
+- Guardia nueva `fss_ne.js` (aritmética completa en Chromium);
+  `escalas_desc` actualizada («declarado» ahora es puntaje o NE).
+  **113 verdes.** Solo index — cierra el pendiente «FSS-ICU no evaluado».
+
+## v5.94-mrc-fss-motivo (5-sep-2026) — el porqué de las evaluaciones que faltan, derivado de la cooperación
+
+Diego cerró la pregunta de diseño con «es sedación/cooperación… no sé dónde
+anotarlo, decide tú». Decisión tomada: **el motivo se DERIVA de la
+cooperación ya registrada (`ULT_COOP`), sin campo nuevo ni tecleo extra** —
+la app ya sabía la razón, solo no la contaba.
+
+Dos estados, tres lugares:
+- **Cooperador sin MRC/FSS** (el olvido real): 🔔 campana «MRC-ss pendiente ·
+  paciente cooperador sin medición en el episodio — evaluable desde ya»;
+  tarjeta: el badge «📋 MRC pend.» gana tooltip con ese motivo; entrega: el
+  chip pasa a «MRC-SS pendiente — cooperador, evaluable desde ya».
+- **NO cooperador sin mediciones** (estado, no olvido): SIN campana (las
+  alertas detectan olvidos, regla de la casa); tarjeta: badge gris nuevo
+  «📋 MRC/FSS no evaluables aún» con tooltip «última cooperación registrada:
+  X» (o «sedación/cooperación sin registrar aún»); entrega: chip
+  «MRC/FSS no evaluables aún — cooperación: X».
+
+- Sin cambio de esquema (todo sale de ULT_COOP/ULT_MRC/ULT_FSS que ya
+  viajaban a la cama). Guardia: sección 3c de `buzon_campana.js`.
+  **112 verdes.**
+
+## v5.93-pimometria (5-sep-2026) — «Pendiente medir pimometría» en la campana
+
+Diego respondió las preguntas de su dictado (Pimáx «se registra en PIM» —
+existe: `EVAL_T_PIM`, campo `fPIM` con interpretación) y pidió revisar la
+literatura sobre «VM prolongada» porque no recordaba el corte.
+
+**Lo revisado**: son DOS definiciones distintas. **VM prolongada** = ≥21 días
+consecutivos de VM por ≥6 h/día (consenso NAMDRC 2005, Chest). **Destete
+prolongado** = más de 7 días desde la primera PVE o ≥3 PVE fracasadas
+(Boles 2007 ERS/ATS; el estudio WIND lo refina). El «>7 días» que Diego
+recordaba es el del DESTETE — exactamente la clase `prolongado` que
+`_weanClase` ya calcula en el cliente. La alerta usa AMBOS caminos.
+
+**La regla programada** (en `alertasUnidad`): paciente en VM + modo
+**CPAP/PS** + última presión de soporte **menor a PIMO_PS_MAX** (CONFIG,
+defecto 14) + (**destete prolongado** por Boles o **VM ≥ PIMO_VM_DIAS**
+días, CONFIG, defecto 21 por NAMDRC) + **sin Pimáx en el episodio** →
+ámbar «Pendiente medir pimometría (soporte N cmH2O)» con el motivo y su
+«Ir a la cama». Se apaga sola al registrar la Pimáx en el formulario.
+
+- Cambio de esquema: CAMAS_ESTADO suma **ULT_PS · ULT_PIM · ULT_PIM_FECHA**
+  al FINAL (arrastre en el guardado junto a los ULT_*) y CONFIG suma
+  PIMO_PS_MAX y PIMO_VM_DIAS ⇒ el mismo `crearORepararEstructura()` de la
+  v5.91 lo cubre.
+- **`_weanClaseSrv`** en svc_notificaciones = espejo EXACTO de `_weanClase`
+  del cliente; la guardia compara la regla en los dos lados.
+- Guardia: sección 3b de `buzon_campana.js` (los dos caminos, el apagado con
+  Pimáx, el soporte no-bajo, y el espejo). **112 verdes.**
+- Pendiente hermano SIN programar (falta decisión de Diego): MRC/FSS
+  pendientes con MOTIVO visible — de dónde sale el motivo.
+
+## v5.92-ktm-motivo-cama-bn (4-sep-2026) — el motivo de la suspensión en sesión y el cuadro negro del papel
+
+Dos pedidos de Diego antes de irse a descansar:
+
+- 🖨️ **«La cama se ve negra al imprimir la entrega»**: el chip de la cama es
+  número blanco sobre azul oscuro (`--pdark`); en pantalla y celular se ve
+  bien, pero comprimido en el papel B/N el fondo se traga el número y sale un
+  cuadro negro. En `@media print` el chip se INVIERTE: fondo blanco, número
+  negro, borde de 1,5 px. Misma regla de la unidad que la GSA: la impresora
+  es blanco y negro.
+- ⚠️ **La suspensión de KTM EN SESIÓN exige su motivo** («se inició y se
+  suspendió por X… hacer obligatorio el campo y que salga en entrega y
+  evolución»). Antes el criterio era opcional (el texto decía «sin
+  especificar») y la entrega NO lo mostraba (solo mostraba la
+  contraindicación previa, no la suspensión en sesión):
+  · `guardar()` bloquea con toast + scroll si `cKTMalert` está marcada sin
+    `fKTMalertRaz` — mismo patrón que las otras obligatorias; el riel y el
+    chip del celular lo anuncian («criterio de la suspensión de KTM en
+    sesión»).
+  · La ficha de entrega suma `ktmAlerta`/`ktmAlertaRaz` (svc_entrega) y el
+    cliente pinta «⚠️ KTM suspendida en sesión (motivo)».
+  · La evolución ya lo narraba (`dominio_texto` 555): con el campo
+    obligatorio, el «sin especificar» queda solo para filas históricas.
+- Guardia nueva **`ktm_suspension_motivo.js`** (bloqueo real en Chromium +
+  las tres piezas en las fuentes + el chip invertido). **112 verdes.**
+- Entrega: index + servicios (api/esquema/mantenimiento sin cambios desde la
+  v5.91, pero viajan de nuevo con nombre v592 para que la mañana sea UN solo
+  juego de archivos).
+
+## v5.91-buzon-campana (4-sep-2026) — la campana 🔔 y el buzón 📨 llegan a la barra
+
+Diego aprobó el mockup («me parece, programa el buzón y la campana») con dos
+precisiones: el formato de alerta — **«HME vencido (fecha en que vence) ·
+cama 7 · rótulo 31-08»**, así en cada caso — y su OJO textual: «cómo se
+registra para después consultar y que la información perdure si se cambia y
+no pise nada de lo anterior».
+
+- **Campana (`alertasUnidad`, servidor)**: cálculo EN VIVO, sin estado de
+  leído — junta dispositivos VENCIDOS (por coincidencia de etiqueta),
+  MRC/FSS envejecidas en cooperador (>EVAL_DIAS_ALERTA), VM sin ventilador
+  asignado, mantención vencida o a ≤7 días, y el cierre de año. Rojas
+  primero; cada fila con su «Ir a la cama / al tablero».
+- **Buzón (hoja `NOTIFICACIONES`, la 24ª)**: 🔴 **DE SOLO AGREGAR** — la
+  respuesta al OJO de Diego. `notifRegistrar` no duplica la nota re-guardada
+  idéntica y agrega la CAMBIADA como fila nueva (la anterior queda,
+  consultable para siempre; la TIMELINE en cambio reemplaza su hito). Día
+  uno aprobado: notas 📌 (enganchadas al guardado), avisos de versión (el
+  cliente manda su sello en el boot; se registra la primera vez que el
+  servidor lo ve) y cumpleaños (derivados del boot, no se guardan).
+- **Cliente**: 🔔📨 en `.hbar-actions` con número rojo pintado desde el
+  boot; dos modales estilo «Cambios de esta noche»; leído/no-leído POR
+  NAVEGADOR (localStorage, tope 400) — el punto azul se congela al ABRIR el
+  panel para no borrarse en la cara del que mira (trampa cazada por la
+  guardia: el refresco del servidor repintaba y la primera pintada ya había
+  marcado leído).
+- 🪤 En móvil el buscador dependía de que el resto de la fila lo empujara a
+  su fila propia; los dos botones nuevos cambiaban el empujón. Ahora
+  `flex:1 1 100%` explícito (guardia `movil.js` lo cazó).
+- `NOTIFICACIONES` clasificada en `_RESET_VACIAR` (guardia `reset.js`).
+- Guardia nueva **`buzon_campana.js`** (16 asserts, servidor + Chromium).
+  **111 verdes, 0 rojas.**
+- Entrega: index + servicios + api + esquema + mantenimiento, y
+  **`crearORepararEstructura()`** por la hoja nueva. Nuevo servicio
+  `svc_notificaciones.gs` (17 svc; la fusión lo toma sola por glob).
+
+## v5.90-mauri-cumple (4-sep-2026) — la pose cumpleañera entra a la app
+
+Diego aprobó la propuesta («el visto bueno a Don Mauri cumpleañero»). La pose
+NO es un dibujo nuevo: es su propia ilustración `festejo` con gorro de fiesta,
+pompón, confeti y serpentinas compuestos encima (PIL; el PNG de trabajo y el
+script quedaron en el scratchpad de la sesión).
+
+- Novena pose **`cumple`** en `MAURI` (WebP 5,7 KB, recortada, transparente).
+- `mauriEstado`: si hay cumpleaños, la pose de fiesta manda sobre el sofá
+  (día) y el sueño (noche). `cumpleAplicar` refresca la pose al llegar o
+  pasar el cumpleaños.
+- El emoji-gorro 🎉 del botón queda SOLO para Servi
+  (`html[data-masc="persona"] #tutBtn.cumple .cump-deco{display:none}`):
+  Don Mauri trae el gorro dibujado.
+- Guardia `nota_synapse_cumple`: cuatro asserts nuevos (pose puesta, emoji
+  oculto con persona, vuelta a la normalidad, Servi conserva su emoji).
+  **110 verdes.** Solo index.
+
+## v5.89-synapse-copia (4-sep-2026) — el botón 🩻 sí copia el RUT: el orden del clic
+
+Diego probó en el hospital: «entro bien a Synapse pero no copia el RUT». La
+causa: `abrirSynapse` abría la pestaña PRIMERO y copiaba después — y Chrome
+le da al clic una **activación transitoria de un solo uso que `window.open`
+CONSUME**, así que `execCommand('copy')` llegaba sin permiso y devolvía
+false en silencio (por eso salía el diálogo de «copia el RUT a mano»).
+
+- Arreglo de dos líneas: **copiar PRIMERO, abrir después**. `execCommand` no
+  gasta la activación, así que la pestaña se abre igual en el mismo clic sin
+  que el bloqueador de emergentes la tome por sospechosa. Comentario 🪤 en el
+  código: NO invertir el orden.
+- Guardia `nota_synapse_cumple.js` reforzada: instrumenta `execCommand` y
+  `window.open` y **exige la secuencia copy→open** — el orden ya no puede
+  volver a invertirse sin ponerse roja. 110 verdes.
+- Solo index; sin esquema.
+
+## v5.88-vence-hoy-hojas (4-sep-2026) — «Vencen hoy» en la hoja diaria impresa y en el modal, y el gorro de Don Mauri
+
+Diego mandó el diseño exacto tras ver el modal en producción. Dos consumidores
+más adoptan la declaración por coincidencia de etiqueta (la cuenta sigue
+siendo la de siempre, frec-1, estadoDispositivos):
+
+- **Hoja diaria impresa (`rkHojaHTML`)**: el título del bloque de filtros pasa
+  a «FECHAS FILTROS Y SONDA… (Vencen hoy: HME dd-mm · Trachcare dd-mm · HEPA
+  dd-mm)» y cada etiqueta se imprime con **asterisco + (Cambiar)** cuando
+  coincide o quedó atrás — «más simple, sin tanto rodeo»: la fecha futura de
+  cambio YA NO se imprime. El vencido dice «(Cambiar HOY — atrasado)» sin
+  fecha pasada (regla v5.60b intacta). El asterisco es la marca que sobrevive
+  al blanco y negro, la misma convención del diseño de la GSA.
+- **Modal «Cambios de esta noche» (`cnRender`)**: abre declarando «🏷️ Vencen
+  hoy: …» y la lista sigue tal cual.
+- Nuevas piezas: `_venceHoyTexto` (la declaración, leyendo `_FL_DEF`/CONFIG),
+  `_rkEtiqueta` (el asterisco), `_rkCambioTag` simplificado.
+- Guardias `hoja_registro_dia` y `dispositivos_reglas` re-escritas a la
+  semántica nueva. **110 verdes, 0 rojas.** Solo index, sin esquema.
+- 🎂 **Don Mauri cumpleañero**: NO se redibujó — se tomó la pose `festejo`
+  (ilustración del propio Diego) y se le compuso encima gorro de fiesta con
+  franjas, pompón, confeti y serpentinas (PIL, +30 px de lienzo arriba).
+  Enviada como PNG para su visto bueno; NO integrada aún a `MAURI` (espera
+  su aprobación o su propio dibujo).
+
+## v5.87-filtros-vence-hoy (4-sep-2026) — el chip de filtros declara la coincidencia y deja de avisar tarde
+
+Diego dictó un PRD desde su rutina real de supervisión: él sabe qué FECHAS DE
+ETIQUETA caducan hoy (hoy 03 vence el HME del 02 y el Trach Care/HEPA del 01;
+lo nuevo se etiqueta 04, la madrugada) y recorre el libro buscando
+coincidencias. Pidió que el apartado de filtros del formulario hable así —
+«no me interesa con qué fecha debería quedar… se ha prestado para confusión»
+— y eligió la opción B del mockup (solo cambia la frase de cada chip).
+
+**Al programarla apareció un bug real**: la corrección del 10-ago (el cambio
+se ejecuta en la madrugada de `etiqueta+frec`, o sea el aviso sale con
+`frec-1` días cumplidos) alcanzó a estadoDispositivos, la entrega, la hoja de
+control de filtros y la Hoja UCI — pero `calcInsumosDias` (el chip del
+formulario) era un QUINTO consumidor que nadie contó: seguía con `d===dur` y
+anunciaba «Cambiar ESTA NOCHE» una noche tarde, contradiciendo al panel
+«Cambios de esta noche» de la misma pantalla. La guardia `disp_fecha.js`
+cementaba la cuenta vieja con sus asserts. Probable raíz de la confusión que
+Diego reportaba.
+
+- Chip nuevo: `Al día — le queda(n) N noche(s)` · `🏷️ VENCE HOY (etiqueta
+  dd-mm)` en `frec-1` · `🏷️ VENCIDO — cambiar hoy (etiqueta dd-mm, debió
+  anoche / hace N noches)` (sigue liderando con la acción, regla v5.60b).
+- La resta ya no usa `dias()` (tiene piso en 0): la noche que instala el
+  circuito etiqueta MAÑANA y el conteo debe partir de −1. Resta cruda con
+  mediodía Z, como `_flEstado`.
+- Guardias: `disp_fecha.js` re-escrita a la semántica corregida,
+  `dispositivos_reglas.js` y `hepa_fijo_y_orden_texto.js` alineadas.
+  **110 verdes, 0 rojas.**
+- Sin cambio de esquema ni de servidor: solo index. La entrega reemplaza a la
+  de la v5.86 si aún no se pegó (mismos 3 .gs + este index).
+
 ## ✅ EN PRODUCCIÓN: Versión 37, sello 5.65-coordinacion (20-ago-2026, 15:27)
 
 Misma implementación `AKfycbxMKE6…`. Verificada contra el `/exec` real
@@ -3632,3 +4261,59 @@ semilla solo se aplica si la hoja está vacía.
   relativa, detalle en la entrada del PR #4). Batería: **89 verdes, 0
   rojas**. Entrega contra la V38 publicada (`1bccc30`): **index + servicios**.
   Sin cambio de esquema.
+
+## v5.85-texto-propio-y-rem (30-ago-2026) — tandas A y B de los siete puntos
+
+Diego levantó siete puntos desde el turno. Dos ya los había resuelto Manuel y se
+descartaron sin tocar nada (ver abajo); de los otros cinco, se ejecutan hoy las
+tandas A y B que él aprobó tras el mockup.
+
+- **A · El texto es de quien lo escribe** (punto 1: «el texto guardado se guarda
+  tal cual… en ocasiones se vuelve a hacer click y se reinicia»). CAUSA: el
+  texto se regeneraba EN VIVO con cada cambio del formulario, y para decidir si
+  podía hacerlo comparaba LETRA POR LETRA lo de pantalla contra lo último del
+  motor. Dos fugas: (1) un turno YA GUARDADO sin marca manual volvía como
+  «texto del generador» y el primer clic lo reescribía entero — ahí se perdía
+  lo escrito; (2) si la edición volvía a coincidir con lo generado, el sistema
+  concluía que no habías editado y retomaba el control.
+  Regla nueva, sin comparaciones: **tocarlo una vez —o que el turno ya esté
+  guardado— lo CONGELA**, y nada vuelve a reescribirlo (ni casillas, ni el
+  guardado, ni reabrirlo mañana). Dos banderas separadas a propósito:
+  `_textoManual` (lo escribió una persona, badge visible) y `_textoCongelado`
+  (nadie lo regenera solo) — un guardado sin retoques tampoco puede
+  reescribirse, pero marcarlo «editado a mano» sería mentir. Un panel nuevo
+  vuelve a estar en vivo: congelar de más obligaría a escribir todo a mano.
+  **👁️ Preview salió de la barra** («solamente existirá botón de guardar»); el
+  texto está siempre a la vista y 🔄 Regenerar sigue con confirmación.
+  Guardia `texto_congelado.js`, vista ROJA primero (9 fallos).
+- **A · «Deterioro» en vez de «Alteración» del nivel de consciencia** (punto 5).
+  Un solo lugar; las evoluciones viejas se siguen viendo por `poblar()` con su
+  «(registro anterior)», el mismo trato de 'Mascarilla'→'MR'.
+- **B · Conciliación del REM** (puntos 3 y 4: «la discrepancia entre REM real y
+  el que genera RCE»). **No cambia NINGUNA cifra**: abre cada casilla y lista
+  las filas que la componen —cama, paciente, fecha y el porqué— para ponerla al
+  lado del papel. Y marca ⚠️ lo que el sistema clasificó de una forma que
+  podría no ser la que espera la unidad: el egreso cuyo motivo suena a
+  fallecimiento pero no dice «fallec…» (**«Óbito» cuenta como ALTA**), el que
+  no tiene motivo escrito, la evaluación del día de ingreso (ya contada en
+  B.2), la extubación «sin condiciones» (que por decisión de jul-2026 no cuenta
+  como extubación), y los marcados ES_INGRESO cuyo episodio empezó otro mes.
+  Se detallan además las asistencias de vía aérea (601171) y las PVE.
+  🔒 Sin RUT: la regla del REM vale también para su conciliación, y hay assert.
+  Guardia `rem_conciliacion.js` con un mes de prueba que reproduce los cinco
+  casos reportados.
+  🪤 Arnés: la plantilla oficial encadena una docena de métodos de rango
+  (`merge`, `breakApart`, `setBorder`…) y usa constantes de estilo. Enumerarlos
+  a mano dejaba la guardia rota con cada método nuevo: se resolvió con un
+  `Proxy` que acepta cualquier llamada y se devuelve a sí mismo.
+- **Descartados sin tocar código, porque Manuel ya los había arreglado**: los
+  ingresos del REM (5.76: agosto pasó de 72 a ~59 — el arranque marcó como
+  ingreso a 13 pacientes que venían de julio) y, muy probablemente, el «PVE = 3»
+  (5.77: hasta esa versión Estadísticas leía SOLO la hoja viva, así que todo
+  egresado desaparecía del mes con sus PVE). Queda pendiente que Diego
+  confirme el PVE con la versión publicada y mande las cifras del REM de papel.
+- **Anotado para la tanda C** (decisión ya tomada por Diego, 30-ago): el evento
+  manual **entra también al texto de la evolución**, no solo a la línea de
+  tiempo.
+- Batería: **109 verdes, 0 rojas**. Espejo «V3 colaborativa» regenerado (la
+  guardia `paridad_v3` de Manuel lo pidió, y funcionó). Sin cambio de esquema.

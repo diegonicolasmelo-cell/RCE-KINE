@@ -126,7 +126,7 @@ function obtenerStats(desde, hasta) {
   const pacientes = {};   // PATIENT_ID → { rem, vm }
   const vmDiasSet = {};   // 'pid|fecha' → true (días-paciente en VM)
   let dia = 0, noche = 0, ingresos = 0, turnosVM = 0;
-  let intub = 0, ext = 0, extProg = 0, autoext = 0, pveSi = 0, pveSup = 0, pveFrus = 0;
+  let intub = 0, ext = 0, extProg = 0, autoext = 0, pveSi = 0, pveSup = 0, pveFrus = 0, pveSupSinExt = 0;
   let decan = 0, recanul = 0, cambiosTOT = 0;
   let ktmR = 0, ktmC = 0, ktmN = 0, ktrSes = 0, imtSes = 0, ktmTiempo = 0, ktmTiempoN = 0;
   const ktmNiveles = {}, ktmMotivosNo = {}, procs = {}, catResp = {}, catMotor = {};
@@ -202,7 +202,9 @@ function obtenerStats(desde, hasta) {
       if (String(e.EXT_TIPO || '').toLowerCase().indexOf('autoext') !== -1) autoext++;
     }
     if (e.PVE_VAL === 'si') pveSi++;
-    if (e.PVE_RESULTADO === 'superada') pveSup++;
+    // Tanda 2a: la superada sin extubar SÍ es una PVE superada (la prueba se
+    // superó) y se muestra APARTE para que nadie la lea como extubación.
+    if (e.PVE_RESULTADO === 'superada') { pveSup++; if (esVerdadero(e.PVE_SUP_SIN_EXT)) pveSupSinExt++; }
     if (e.PVE_RESULTADO === 'frustra') pveFrus++;
     if (e.PVE_VAL === 'no') {
       pveNo++;
@@ -326,7 +328,7 @@ function obtenerStats(desde, hasta) {
     eventos: {
       intubaciones: intub, extubaciones: ext, extubProgramadas: extProg, autoextubaciones: autoext,
       reintubaciones: reintubs, tasaReintubPct: ext > 0 ? r1(reintubs / ext * 100) : 0,
-      pveRealizadas: pveSi, pveSuperadas: pveSup, pveFrustras: pveFrus,
+      pveRealizadas: pveSi, pveSuperadas: pveSup, pveSupSinExt: pveSupSinExt, pveFrustras: pveFrus,
       pveExitoPct: (pveSup + pveFrus) > 0 ? r1(pveSup / (pveSup + pveFrus) * 100) : 0,
       decanulaciones: decan, recanulaciones: recanul, cambiosTOT: cambiosTOT,
     },

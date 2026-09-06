@@ -282,7 +282,15 @@ const _COLS_EVOLUCIONES = [
   // en la familia HEMO_) solo se piden cuando hay captor instalado.
   ['NEURO_DVE','bool'],           // derivación ventricular externa instalada
   ['NEURO_DVE_ALTURA','decimal'], // altura de la DVE en cmH2O (solo con DVE)
-  ['NEURO_PIC_CAPTOR','bool']     // captor de PIC: habilita PIC y PPC
+  ['NEURO_PIC_CAPTOR','bool'],    // captor de PIC: habilita PIC y PPC
+  // 📌 Anotaciones del turno (v5.97, Diego 5-sep-2026): hechos SIN estadística
+  // que sí se narran en la evolución — JSON [{t:texto, h:hora opcional}].
+  // Complementa al «Otro» del ➕ (que solo deja hito) desde el formulario.
+  // — SIEMPRE AL FINAL
+  ['ANOTACIONES_JSON','json'],
+  // PVE superada SIN extubación (tanda 2a, sep-2026, PRD_PVE_SUPERADA_SIN_EXTUBAR):
+  // la prueba se superó y el paciente igual quedó en VM, con su razón. — AL FINAL
+  ['PVE_SUP_SIN_EXT','bool'],['PVE_SUP_SIN_EXT_RAZ','texto']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -357,6 +365,11 @@ const ESQUEMA = {
     // turno (decisión de Manuel, 18-ago: «normalmente no se modifica, así que
     // no debería poder modificarla»).  — SIEMPRE AL FINAL
     ['CORRECCIONES_JSON','json'],
+    // 🫁 Pimometría pendiente (v5.93, Diego 5-sep-2026): la campana necesita
+    // saber, MIRANDO SOLO LA CAMA, la última presión de soporte guardada y si
+    // la Pimáx ya se midió en el episodio. Arrastre desde el guardado, como
+    // los ULT_* de arriba.  — SIEMPRE AL FINAL
+    ['ULT_PS','decimal'],['ULT_PIM','decimal'],['ULT_PIM_FECHA','texto'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -447,6 +460,11 @@ const ESQUEMA = {
   KINESIOLOGOS: { headerRows: 1, cols: [
     ['FIRMA','texto'],['NOMBRE','texto'],['EMAIL','email'],['APOYO','bool'],['ACTIVO','bool'],
     ['TRATAMIENTO','texto'],   // Klgo. | Klga. — para la firma del texto clínico (vacío = Klgo.)
+    // Cumpleaños (2-sep-2026, pedido de Diego): 'dd-mm' o 'dd/mm'. El AÑO NO
+    // se guarda a propósito — para saludar no hace falta la edad de nadie.
+    // Va AL FINAL de la lista: la reparación reescribe encabezados y meterla
+    // al medio desalinearía las filas que ya están cargadas.
+    ['CUMPLE','texto'],
   ]},
   ESTADISTICAS_REM: { headerRows: 1, cols: [
     ['MES','texto'],['INGRESOS','entero'],['DIAS_CAMA','entero'],['TURNOS_VM','entero'],['TURNOS_KTM','entero'],
@@ -496,6 +514,34 @@ const ESQUEMA = {
   IMPORTAR: { headerRows: 1, cols: [
     ['CAMA','texto'],['NOMBRE','texto'],['EDAD','texto'],['SEXO','texto'],['FECHA_INGRESO','texto'],
     ['DIAGNOSTICO','texto'],['DIAG_REM','texto'],['VIA_SOPORTE','texto'],['TALLA','texto'],
+  ]},
+  // 📨 El buzón (v5.91). 🔴 DE SOLO AGREGAR (regla de Diego, 4-sep-2026):
+  // nada se edita ni se borra desde el código — si una nota cambia, se agrega
+  // la versión nueva y la anterior queda, consultable para siempre.
+  NOTIFICACIONES: { headerRows: 1, cols: [
+    ['ID_NOTIF','texto'],['TS','ts'],['FECHA','texto'],['TIPO','texto'],
+    ['TITULO','texto'],['DETALLE','texto'],['REF_CAMA','texto'],['AUTOR','texto'],
+    ['ORIGEN_ID','texto'],
+  ]},
+  // 🧪 Gases importados desde los PDF del laboratorio (tanda 2b, sep-2026).
+  // Hoja APARTE a propósito: el gas importado no entra a la evolución ni al
+  // REM (decisión de Diego, 2-sep) — alimenta la hoja diaria y la impresa.
+  // Guarda PATIENT_ID, nunca el RUT ni el nombre del informe.
+  GSA_IMPORTADAS: { headerRows: 1, cols: [
+    ['ID_GSA','texto'],['PATIENT_ID','uuid'],['ID_CAMA','texto'],['FECHA','texto'],['HORA','texto'],
+    ['TURNO_KEY','texto'],['PH','decimal'],['PACO2','decimal'],['PAO2','decimal'],['HCO3','decimal'],
+    ['EB','decimal'],['SATO2','decimal'],['FIO2','decimal'],['PAFI','decimal'],['LACTATO','decimal'],
+    ['HB','decimal'],['HTO','decimal'],['PLAQUETAS','decimal'],['INR','decimal'],['K','decimal'],
+    ['NA','decimal'],['GLICEMIA','decimal'],['PCR','decimal'],
+    ['ARCHIVO','texto'],['ARCHIVO_ID','texto'],['PETICION','texto'],['TS_IMPORT','ts'],
+    ['ESTADO','texto'],['DETALLE','texto'],
+  ]},
+  // 📋 Plantillas de evolución (tanda 3, sep-2026, PRD_PLANTILLAS_EVOLUCION):
+  // catálogo aparte — de una firma o de la UNIDAD, por caso. EVOLUCIONES no
+  // cambia por esto. Nada se borra: ACTIVO=false.
+  PLANTILLAS_EVOLUCION: { headerRows: 1, cols: [
+    ['ID','texto'],['DUENO','texto'],['CASO','texto'],['NOMBRE','texto'],['CUERPO','texto'],
+    ['ACTIVO','bool'],['ORDEN','entero'],['ACTUALIZADO','ts'],['ACTUALIZADO_POR','texto'],
   ]},
 };
 
@@ -732,6 +778,11 @@ function _sembrar(ss) {
     // inicio del día sigue contando como la noche del día anterior)
     ['TURNO_DIA_INICIO', '9'],
     ['TURNO_NOCHE_INICIO', '21'],
+    // Visor de imágenes (2-sep-2026). Vacío = el botón 🩻 no aparece en las
+    // tarjetas. Se pone la URL BASE del login, nunca un enlace con token de
+    // sesión: ésos caducan. Medido ese día: Synapse manda X-Frame-Options
+    // 'sameorigin', así que NO se puede embeber — el botón abre otra pestaña.
+    ['SYNAPSE_URL', ''],
     // Interpretación clínica (cortes ajustables por el equipo sin tocar código)
     ['CPAX_ACTIVO', 'TRUE'],        // FALSE oculta la sección CPAx del panel
     ['CORTE_MRC_DAUCI', '48'],      // MRC-SS < corte = DAUCI
@@ -740,6 +791,12 @@ function _sembrar(ss) {
     ['CORTE_DINAMO_M', '7'],        // kg, mujeres
     ['CORTE_FSS_INDEP', '27'],      // FSS-ICU >= corte = independencia funcional
     ['EVAL_DIAS_ALERTA', '5'],      // días sin re-evaluar MRC/FSS (cooperador) antes de alertar
+    // Pimometría pendiente (v5.93): en CPAP/PS con soporte BAJO este valor y
+    // destete prolongado (Boles 2007) o VM de PIMO_VM_DIAS días (NAMDRC
+    // 2005: 21), la campana pide medir Pimáx. Editables sin tocar código.
+    ['GSA_CARPETA_ID', ''],         // carpeta de Drive con los PDF del laboratorio (se crea sola si falta)
+    ['PIMO_PS_MAX', '14'],
+    ['PIMO_VM_DIAS', '21'],
     ['PVE_TURNOS_ALERTA', '2'],     // turnos seguidos candidato a PVE sin PVE antes de alertar
     ['FREC_HME_DIAS', '2'],         // días entre cambios de filtro HME
     ['FREC_HEPA_DIAS', '3'],        // días entre cambios de filtro HEPA
@@ -829,6 +886,12 @@ function _sembrar(ss) {
     hK.getRange(2, 1, seed.length, 5).setValues(seed);
   }
 
+  // PLANTILLAS_EVOLUCION — las 13 de la unidad (tanda 3): solo si está vacía.
+  if (typeof plantillasSembrarUnidad === 'function') {
+    const nP = plantillasSembrarUnidad();
+    if (nP) console.log('📋 Plantillas de la unidad sembradas: ' + nP);
+  }
+
   // CAMAS_ESTADO — sembrar NUM_CAMAS camas vacías
   const hCam = ss.getSheetByName('CAMAS_ESTADO');
   const filaDatos = FILA_DATOS.CAMAS_ESTADO;
@@ -871,12 +934,12 @@ function testEsquema() {
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
   // Salvaguarda contra el borrado accidental de columnas: el número va a mano
-  // y HAY QUE SUBIRLO al agregar una (393 = 390 + NEURO_DVE, NEURO_DVE_ALTURA
+  // y HAY QUE SUBIRLO al agregar una (396 = 394 + PVE_SUP_SIN_EXT, PVE_SUP_SIN_EXT_RAZ, sep-2026; antes 394 = 393 + ANOTACIONES_JSON; antes 393 = 390 + NEURO_DVE, NEURO_DVE_ALTURA
   // y NEURO_PIC_CAPTOR, ago-2026; antes 390 = 387 + SED_SAS_META, SED_VIGIL y
   // SED_FARMACOS). Si
   // aparece este ❌ tras sumar una columna, la hoja está bien y lo que falta es
   // actualizar esta línea.
-  if (TOTAL_COLS.EVOLUCIONES !== 393) errs.push("EVOLUCIONES != 393 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 396) errs.push("EVOLUCIONES != 396 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

@@ -37,7 +37,7 @@ function api(accion, datos, token) {
       case 'GET_CAMA':         return obtenerCama(datos.idCama);
       case 'GET_TIMELINE':     return obtenerTimeline(datos.idCama);
       case 'GET_EVOLUCION':          return obtenerEvolucion(datos.idCama, datos.turnoKey, datos.patientId);
-      case 'GET_EVO_TURNO':          return obtenerEvoTurno(datos.idCama, datos.turnoKey);
+      case 'GET_EVO_TURNO':          return obtenerEvoTurno(datos.idCama, datos.turnoKey, datos.patientId || '');
       case 'GET_EVOLUCION_PREVIA':   return obtenerEvolucionPrevia(datos.idCama, datos.turnoKey);
       case 'GET_EVOLUCIONES_RECIENTES': return obtenerEvolucionesRecientes(datos.idCama, datos.limite || 14);
       case 'GET_HISTORIAL_PACIENTE': return obtenerHistorialPaciente(datos.idCama, datos.patientId || '');
@@ -69,7 +69,14 @@ function api(accion, datos, token) {
       case 'GET_MOVS_STOCK':     return obtenerMovimientosStock(datos.id || '', datos.limite || 20);
       case 'GET_DOCUMENTOS':     return obtenerDocumentos(!!datos.refrescar);
       case 'GET_CAMBIOS_NOCHE':  return cambiosEstaNoche(datos.fecha);
+      case 'GET_ALERTAS':        return ok({ alertas: alertasUnidad(datos && datos.fecha) });
+      case 'GET_NOTIFICACIONES': return notifListar(datos);
       case 'GET_REINTUB_N':      return contarReintubaciones(datos.pids);
+      case 'GET_GSA_DIA':        return gsaDelDia(datos.fecha, datos.pids);
+      case 'GET_PLANTILLAS':     return ok({ plantillas: plantillasListar() });
+      case 'PLANTILLA_GUARDAR':  return _auditar(ctx, accion, () => plantillaGuardar(datos, ctx), datos);
+      case 'PLANTILLA_RETIRAR':  return _auditar(ctx, accion, () => plantillaDesactivar(datos), datos);
+      case 'GSA_IMPORTAR':       return _auditar(ctx, accion, () => gsaImportarPendientes(ctx), datos);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
       // ── Escrituras (auditadas) ──
@@ -149,6 +156,8 @@ function api(accion, datos, token) {
       case 'COORD_CAMBIAR_CLAVE':return coordCambiarClave(datos);
       case 'COORD_RESTABLECER':  return coordRestablecerClave(datos);
       case 'COORD_FICHA':        return coordFicha(datos);
+      // 📣 Aviso al buzón del equipo — exige sesión DENTRO del servicio.
+      case 'COORD_AVISO':        return coordAviso(datos);
       case 'COORD_CORREGIR':     return coordCorregirFicha(datos);
 
       default:
@@ -157,6 +166,39 @@ function api(accion, datos, token) {
   } catch (e) {
     return err('Error en ' + accion + ': ' + e.message, ERR.INTERNO, e);
   }
+}
+
+/**
+ * 🎂 Cumpleaños de HOY, desde la columna CUMPLE de KINESIOLOGOS
+ * (2-sep-2026, pedido de Diego: «darle un toque mucho más humano y más
+ * cercano a la plataforma»).
+ *
+ * Devuelve [{firma, nombre}] — puede venir más de uno el mismo día.
+ * · La fecha se lee como 'dd-mm' o 'dd/mm'; el AÑO no se guarda ni se usa.
+ * · Solo entran los ACTIVOS: nadie saluda a quien ya no está en la unidad.
+ * · Si la columna no existe todavía (planilla sin reparar), devuelve [] y no
+ *   revienta: la mascota simplemente sigue como siempre.
+ * 🔴 Son datos personales de los funcionarios. Salen SOLO a la pantalla de la
+ *    app; no van a ninguna exportación, ni al REM, ni al imprimible.
+ */
+function cumpleanosDeHoy(fechaISO) {
+  try {
+    const f = String(fechaISO || hoyISO()).slice(0, 10);
+    const dd = f.slice(8, 10), mm = f.slice(5, 7);
+    const hoy = dd + '-' + mm;
+    return repoLeerTodos('KINESIOLOGOS')
+      .filter(function (k) {
+        if (String(k.ACTIVO) === 'false' || k.ACTIVO === false) return false;
+        const c = String(k.CUMPLE || '').trim();
+        if (!c) return false;
+        // Acepta dd-mm, dd/mm y de paso dd-mm-aaaa (el año se ignora).
+        const m = c.match(/^(\d{1,2})[-\/.](\d{1,2})/);
+        if (!m) return false;
+        const p2 = function (n) { return ('0' + parseInt(n, 10)).slice(-2); };
+        return p2(m[1]) + '-' + p2(m[2]) === hoy;
+      })
+      .map(function (k) { return { firma: String(k.FIRMA || ''), nombre: String(k.NOMBRE || '') }; });
+  } catch (e) { return []; }
 }
 
 /** Config de interfaz (compartida por GET_CONFIG_UI y GET_BOOT). */
@@ -170,6 +212,8 @@ function _configUI() {
     EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
     CUFF_MIN: parseInt(leerConfig('CUFF_MIN', '20')) || 20,
     CUFF_MAX: parseInt(leerConfig('CUFF_MAX', '30')) || 30,
+    // Visor de imágenes: vacío = sin botón 🩻 (ver CONFIG.SYNAPSE_URL).
+    SYNAPSE_URL: String(leerConfig('SYNAPSE_URL', '') || '').trim(),
     PTT_OK: parseFloat(leerConfig('PTT_OK', '10')) || 10,
     PTT_ALERTA: parseFloat(leerConfig('PTT_ALERTA', '12')) || 12,
     BANNERS: {
@@ -183,6 +227,9 @@ function _configUI() {
 /** Todo lo que el arranque necesita, en una sola respuesta. */
 function obtenerBoot(datos, ctx, auth) {
   try {
+    // 🚀 El cliente manda su sello de versión: la primera vez que el servidor
+    // ve uno nuevo, queda registrado en el buzón («se publicó la vX.Y»).
+    try { if (typeof notifVersionVista === 'function') notifVersionVista(datos && datos.version); } catch (e) {}
     const rCamas = obtenerTodasLasCamas();
     const rEvos = obtenerEvosDelDia((datos && datos.fecha) || hoyISO());
     let asignacion = null;
@@ -194,6 +241,11 @@ function obtenerBoot(datos, ctx, auth) {
       yo: { email: ctx.email, firma: ctx.firma, dev: !!(auth && auth.dev) },
       config: _configUI(),
       fases: catalogo('FASE_CLINICA'),
+      // 📋 Plantillas de evolución (tanda 3): el catálogo entero, la barra lo
+      // ordena por cama. Sin filas, la barra no existe y el formulario es el de siempre.
+      plantillas: (typeof plantillasListar === 'function') ? plantillasListar() : [],
+      // 🎂 Quién está de cumpleaños hoy (vacío casi todos los días).
+      cumples: cumpleanosDeHoy((datos && datos.fecha) || hoyISO()),
       camas: (rCamas && rCamas.ok) ? rCamas.data : [],
       evos: (rEvos && rEvos.ok) ? rEvos.data : [],
       asignacion: asignacion,
@@ -203,6 +255,10 @@ function obtenerBoot(datos, ctx, auth) {
       // Recordatorio de cierre de año (solo entre el 26-dic y febrero, y solo
       // si quedan evoluciones de egresados del año anterior sin trasladar).
       cierre: (typeof avisoCierreAnio === 'function') ? avisoCierreAnio() : null,
+      // 🔔📨 La campana (cálculo en vivo) y el buzón (hoja NOTIFICACIONES),
+      // para que los números salgan pintados desde el arranque.
+      alertas: (typeof alertasUnidad === 'function') ? alertasUnidad((datos && datos.fecha) || hoyISO()) : [],
+      notifs: (function () { try { const r = notifListar({}); return (r && r.ok) ? r.data.notifs : []; } catch (e) { return []; } })(),
     });
   } catch (e) { return err('obtenerBoot: ' + e.message, ERR.INTERNO, e); }
 }

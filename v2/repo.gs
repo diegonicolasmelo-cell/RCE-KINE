@@ -291,6 +291,37 @@ function repoBuscarFila(hoja, colKey, id) {
   return -1;
 }
 
+/**
+ * Filas de una hoja con su NÚMERO y solo los campos pedidos (v5.99).
+ *
+ * Para quien necesita ubicar una fila por más de una columna (cama + turno +
+ * paciente) sin bajar la hoja entera: baja el bloque contiguo entre la
+ * primera y la última columna pedidas, así que conviene pedir columnas
+ * vecinas (en EVOLUCIONES las 5 de identidad son las 5 primeras). Los valores
+ * van crudos (sin pasar por el esquema): sirve para columnas de texto.
+ * @return {Array<{fila:number, obj:Object}>}
+ */
+function repoLeerColumnasConFila(hoja, campos) {
+  const h = _hoja(hoja);
+  const fi = FILA_DATOS[hoja], ult = h.getLastRow();
+  if (ult < fi) return [];
+  const colmap = COL[hoja];
+  const idx = campos.map(function (c) {
+    if (!colmap[c]) throw new Error('Columna desconocida: ' + c + ' en ' + hoja);
+    return colmap[c];
+  });
+  const lo = Math.min.apply(null, idx), hi = Math.max.apply(null, idx);
+  const vals = h.getRange(fi, lo, ult - fi + 1, hi - lo + 1).getValues();
+  const out = [];
+  for (let i = 0; i < vals.length; i++) {
+    const obj = {};
+    for (let j = 0; j < campos.length; j++) obj[campos[j]] = vals[i][colmap[campos[j]] - lo];
+    // Marcado como leído a medias: nadie puede escribirlo de vuelta entero.
+    out.push({ fila: fi + i, obj: _colsMarcar(obj, hoja, campos) });
+  }
+  return out;
+}
+
 /** Objeto de la fila cuyo campo colKey == id, o null. */
 function repoBuscarPorId(hoja, colKey, id) {
   const f = repoBuscarFila(hoja, colKey, id);
