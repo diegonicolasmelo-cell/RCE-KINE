@@ -19,6 +19,47 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.08-bandeja-de-gases (6-sep-2026) — «si la info está en la base, ¿no es más fácil emparejar desde ahí?»
+
+Diego, al leer el arreglo de la v6.07: **«pero si la info está en base de
+datos, ¿no es más fácil emparejar desde ahí a la hoja de registro?»**. Tiene
+razón a medias, y la mitad que tiene razón valía una versión.
+
+- **Lo que SÍ está en la fila sin emparejar**: los valores del examen, la
+  petición, el nombre del archivo y —si el parser las leyó— la fecha y la
+  hora. O sea el trabajo caro (leer el PDF) ya está hecho: **no hay que
+  volver al PDF para nada**.
+- **Lo que NO está, y por eso la app no puede sola**: el RUT y el nombre. La
+  regla dura del PRD dice que sin certeza no se guarda identidad, así que la
+  fila es un examen sin dueño. La máquina ya hizo su intento y falló; no hay
+  un segundo dato con el que reintentar. **Lo que falta lo pone una
+  persona** — y eso es exactamente lo que faltaba construir: el PRD ya decía
+  «el archivo queda en una bandeja para hacerlo a mano», pero la bandeja
+  nunca se hizo.
+- **La bandeja (📥 Sin emparejar, al lado del 🧪)**: lista cada examen con
+  sus valores a la vista (para reconocerlo), por qué no se emparejó, un
+  selector de cama, y fecha y hora si el informe no las traía. Dos clics y el
+  gas queda en el paciente: aparece en la hoja diaria y en la impresa. Se
+  abre sola después de importar si algo quedó pendiente.
+- **La ayuda que sí se puede dar sin adivinar**: Diego nombra los PDF por
+  cama («gsa7.pdf» = cama 7, dato suyo del 6-sep). El número del nombre se
+  ofrece como **sugerencia** —preseleccionada, con el nombre de quien está en
+  esa cama— pero **nunca se aplica sola**: un PDF mal nombrado pondría un gas
+  en la cama equivocada, que es justo lo que la regla dura evita.
+- **🗂️ Descartar** para el informe que no es de la unidad: no borra, marca la
+  fila `descartado` con quién y por qué, y saca el PDF de la bandeja.
+- Todo pasa por `conLock` y por `_auditar`; la fila que no vale se descarta,
+  nunca se borra; y la bandeja **no devuelve RUT ni nombre del paciente**
+  (assert en la guardia).
+- 🪤 El arnés de la guardia no tenía `repoActualizar` (solo `repoActualizarDonde`):
+  sin ese shim la asignación fallaba en silencio dentro del try. Añadido.
+- Guardia `gsa_importada.js` bloque 3c: sugerencia por nombre, los rechazos
+  (sin cama, cama vacía, id inexistente, ya asignado), el turno calculado con
+  la misma regla, el PDF a «copiados», la privacidad, y **la prueba que
+  importa: después de asignar, `gsaDelDia` ya lo entrega para la hoja
+  diaria**. Batería 119 verdes. Sin cambio de esquema: se pegan **index +
+  servicios + api**.
+
 ## v6.07-gases-texto-de-drive (6-sep-2026) — el gas se importaba pero no llegaba a la hoja diaria
 
 Diego, después de probar el importador en el hospital: «ya las importa a la

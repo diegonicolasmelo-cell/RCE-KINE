@@ -86,6 +86,7 @@ const DB = { GSA_IMPORTADAS: [], CAMAS_ESTADO: [], ARCHIVO_PACIENTES: [], NOTIFI
 global.repoLeerTodos = (h, k, val) => (DB[h] || []).filter(r => k === undefined || String(r[k]) === String(val)).map(r => Object.assign({}, r));
 global.repoLeerFiltrado = (h, k, pred) => (DB[h] || []).filter(r => pred(r[k])).map(r => Object.assign({}, r));
 global.repoInsertar = (h, o) => { (DB[h] = DB[h] || []).push(Object.assign({}, o)); return o; };
+global.repoActualizar = (h, k, id, campos) => { const r = (DB[h] || []).find(x => String(x[k]) === String(id)); if (!r) return false; Object.assign(r, campos); return true; };
 global.repoActualizarDonde = (h, fn, mut) => { let n = 0; (DB[h] || []).forEach(r => { if (fn(r)) { Object.assign(r, mut(r) || {}); n++; } }); return n; };
 const NOTIFS = []; global.notifRegistrar = n => { NOTIFS.push(n); return 'n'; };
 global.auditar = a => { DB.AUDIT_LOG.push(a); };
@@ -106,7 +107,11 @@ const mkPdf = (nombre, texto) => { const a = { nombre, texto, en: ENTRADA, getNa
   moveTo(dest) { a.en.archivos = a.en.archivos.filter(x => x !== a); a.en = dest; dest.archivos.push(a); } }; ENTRADA.archivos.push(a); return a; };
 const TEXTOS = {};
 global.DriveApp = { getRootFolder: () => RAIZ, getFolderById: id => { if (id === ENTRADA.getId()) return ENTRADA; throw new Error('no existe'); },
-  getFileById: id => ({ setTrashed: () => {} }) };
+  getFileById: id => {
+    const todos = [ENTRADA].concat(Object.keys(ENTRADA.sub).map(k => ENTRADA.sub[k]));
+    for (const c of todos) { const f = c.archivos.find(x => x.getId() === id); if (f) return f; }
+    return { setTrashed: () => {}, moveTo: () => {} };
+  } };
 global.ScriptApp = { getOAuthToken: () => 'tok', getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ everyDays: () => ({ atHour: () => ({ nearMinute: () => ({ create: () => {} }) }) }) }) }) };
 global.UrlFetchApp = { fetch: (url, opt) => {
   if (/\/copy/.test(url)) { const id = decodeURIComponent(url.match(/files\/([^/]+)\/copy/)[1]); return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ id: 'doc:' + id }) }; }
@@ -314,6 +319,50 @@ eq('el PDF se movió a «copiados»', ENTRADA.sub['copiados'].archivos.some(x =>
 const r4 = gsaImportarPendientes({});
 eq('otra corrida sin novedades no hace nada (ni reintenta con fila nueva)', r4.data.importados.length + r4.data.sinEmparejar.length + DB.GSA_IMPORTADAS.filter(g => g.ESTADO === 'sin_emparejar').length, 1);
 si('gsaDiagnostico existe para el editor y tapa el RUT', /function gsaDiagnostico\(/.test(lee('svc_gsa.gs')) && /<RUT>/.test(lee('svc_gsa.gs')));
+
+/* ── 3c · LA BANDEJA: emparejar a mano desde lo que YA está en la base ──
+   Diego (6-sep-2026): «si la info está en base de datos, ¿no es más fácil
+   emparejar desde ahí a la hoja de registro?». Sí: los valores ya están
+   guardados, lo único que falta es la cama, y eso lo pone una persona —la
+   fila sin emparejar NO guarda el RUT, así que la app no puede sola. */
+console.log('\n3c · La bandeja: una persona le pone la cama y el gas llega a la hoja diaria');
+eq('el nombre del archivo sugiere la cama (gsa7.pdf)', _gsaCamaDelNombre('gsa7.pdf'), '7');
+eq('…con separador y mayúsculas (GSA 18.pdf)', _gsaCamaDelNombre('GSA 18.pdf'), '18');
+eq('…sin ceros de más (gsa01_repetido.pdf)', _gsaCamaDelNombre('gsa01_repetido.pdf'), '1');
+eq('un nombre cualquiera no sugiere nada', _gsaCamaDelNombre('informe_laboratorio.pdf'), '');
+const pend = gsaPendientes().data.pendientes;
+eq('★ la bandeja muestra el que sigue sin emparejar', pend.length, 1);
+eq('…con su archivo', pend[0].ARCHIVO, 'gsa8.pdf');
+si('★ …y con los VALORES ya guardados (por eso no hay que volver al PDF)', !pend[0].vacio && pend[0].valores.PH === 7.482);
+si('★ la bandeja NO devuelve el RUT ni el nombre del paciente', !/\d{7,8}\s?-\s?[\dkK]|2\.222\.222|PACIENTE|DE PRUEBA/.test(JSON.stringify(pend)));
+eq('la cama 8 no está ocupada, así que no se sugiere nada', pend[0].camaSugerida, '');
+DB.CAMAS_ESTADO.push({ ID_CAMA: '8', OCUPADA: true, PATIENT_ID: 'pid-cama8', RUT: '55.555.555-5', NOMBRE: 'W' });
+eq('★ con la cama 8 ocupada, el nombre del archivo la sugiere', gsaPendientes().data.pendientes[0].camaSugerida, '8');
+const idPend = pend[0].ID_GSA;
+si('sin cama no se asigna', !gsaAsignar({ idGsa: idPend, idCama: '' }, {}).ok);
+si('a una cama vacía tampoco', !gsaAsignar({ idGsa: idPend, idCama: '12' }, {}).ok);
+si('un gas que no existe tampoco', !gsaAsignar({ idGsa: 'nope', idCama: '3' }, {}).ok);
+const rA = gsaAsignar({ idGsa: idPend, idCama: '3', fecha: '2026-09-04', hora: '03:46' }, { firma: 'DMV' });
+si('★ una persona lo asigna a la cama 3 (el RUT del informe venía mal escrito)', rA.ok);
+const gA = DB.GSA_IMPORTADAS.find(g => g.ID_GSA === idPend);
+eq('…queda bajo el PATIENT_ID de esa cama', gA.PATIENT_ID, 'pid-cama3');
+eq('…con estado ok', gA.ESTADO, 'ok');
+eq('…y el turno calculado con la MISMA regla del importador', gA.TURNO_KEY, '2026-09-03-Noche');
+si('…dejando dicho quién lo hizo', /asignado a mano por DMV/.test(gA.DETALLE));
+si('★ el PDF pasó a «copiados», como los que emparejan solos', ENTRADA.sub['copiados'].archivos.some(x => x.nombre === 'gsa8.pdf'));
+eq('la bandeja queda vacía', gsaPendientes().data.pendientes.length, 0);
+si('★ …y AHORA el gas llega a la hoja diaria de ese paciente', !!gsaDelDia('2026-09-04', ['pid-cama3']).data['pid-cama3']);
+eq('★ …con sus valores completos', gsaDelDia('2026-09-04', ['pid-cama3']).data['pid-cama3'][0].PH, 7.482);
+si('un gas ya asignado no se puede volver a asignar', !gsaAsignar({ idGsa: idPend, idCama: '1' }, {}).ok);
+// Descartar: no borra, marca.
+DB.GSA_IMPORTADAS.push({ ID_GSA: 'gsa_desc', ESTADO: 'sin_emparejar', ARCHIVO: 'ajeno.pdf', FECHA: '2026-09-04', HORA: '05:00', PETICION: '', ARCHIVO_ID: '', PATIENT_ID: '', TS_IMPORT: '2026-09-04 06:31:00', PH: 7.4 });
+si('descartar responde ok', gsaDescartar({ idGsa: 'gsa_desc', motivo: 'no es de la unidad' }, { firma: 'DMV' }).ok);
+const gD = DB.GSA_IMPORTADAS.find(g => g.ID_GSA === 'gsa_desc');
+eq('★ el descartado NO se borra: queda marcado', gD.ESTADO, 'descartado');
+si('…con quién y por qué', /descartado por DMV: no es de la unidad/.test(gD.DETALLE));
+eq('y sale de la bandeja', gsaPendientes().data.pendientes.length, 0);
+si('el dispatcher expone la bandeja (asignar y descartar, auditados)',
+  /case 'GET_GSA_PENDIENTES'/.test(lee('api.gs')) && /case 'GSA_ASIGNAR':\s*return _auditar/.test(lee('api.gs')) && /case 'GSA_DESCARTAR':\s*return _auditar/.test(lee('api.gs')));
 
 const dia = gsaDelDia('2026-09-04', ['pid-cama1', 'pid-egresado']).data;
 eq('gsaDelDia entrega por pid la fecha de reloj', Object.keys(dia).sort().join(','), 'pid-cama1,pid-egresado');
