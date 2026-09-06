@@ -330,7 +330,12 @@ si tiene más de unos días, se confirma antes de usarla.
   también **api**) y **la v6.09** (Hb, Hto y K⁺ a observaciones de la hoja
   impresa, que vuelve a las filas oficiales) y **la v6.10** (el último cultivo
   del episodio con su resultado, en la última fila de observaciones; ver
-  BITACORA v6.10…v6.06). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  BITACORA v6.10…v6.06) y **la v6.11** (revisión de las 17 plantillas de la
+  unidad: diez comodines que el motor escribía y ninguna plantilla podía
+  nombrar —`{intubacion}` entre ellos— más dos semillas corregidas;
+  revisión publicada en
+  `https://claude.ai/code/artifact/6bfc0c67-d807-4cc8-a234-f2fe6d28d85b`,
+  con tres preguntas abiertas para Diego). 🔜 **Pendiente que dejó anotado Diego**: la carilla
   2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
   correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
