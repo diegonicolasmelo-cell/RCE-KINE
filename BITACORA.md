@@ -19,6 +19,20 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.09-lab-en-observaciones (6-sep-2026) — la hoja impresa vuelve a sus filas; Hb, Hto y K⁺ a observaciones
+
+Diego, al confirmar el flujo de los gases: **«lo que me importa es GSA a la
+columna definida. Hto y Hb en observaciones. K⁺ igual.»** Cambia la decisión
+del 2-sep («Hb y Hto en fila propia», que la v6.01 había programado tras
+medir que cabía): la hoja impresa **vuelve a las filas del formulario
+oficial** (pH · PaCO₂ · PaO₂ · HCO₃ · EB · SatO₂ · PaFi · Lactato · PCR ·
+PCT) y **Hb, Hto y K⁺ van SIEMPRE en la columna de observaciones**, en
+negrita con flecha cuando se salen del corte. Plaquetas, INR y glicemia
+siguen apareciendo solo alterados, como estaba. Solo index; guardia
+`gsa_importada` bloque 5 ajustada. Y quedó confirmado el flujo tal como él lo
+describió: PDF a la carpeta → GSA_IMPORTADAS por RUT → a la hoja cuando se
+imprime (o desde la bandeja 📥 si el RUT no calzó).
+
 ## v6.08-bandeja-de-gases (6-sep-2026) — «si la info está en la base, ¿no es más fácil emparejar desde ahí?»
 
 Diego, al leer el arreglo de la v6.07: **«pero si la info está en base de
