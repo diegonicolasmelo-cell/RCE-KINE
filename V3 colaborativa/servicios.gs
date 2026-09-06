@@ -620,7 +620,9 @@ function _reetiquetarEpisodioACama(patientId, idCamaNueva) {
   const pid = String(patientId), nueva = String(idCamaNueva);
   repoActualizarDonde('EVOLUCIONES',
     e => String(e.PATIENT_ID) === pid,
-    e => ({ ID_CAMA: nueva, ID_EVOLUCION: 'CAMA_' + nueva + '_' + e.TURNO_KEY }));
+    // v5.99: se cambia SOLO el tramo de la cama; el sufijo «~pid» de una fila
+    // nacida en una rotación sin alta viaja intacto (sigue siendo distinta).
+    e => ({ ID_CAMA: nueva, ID_EVOLUCION: String(e.ID_EVOLUCION || '').replace(/^CAMA_[^_]+_/, 'CAMA_' + nueva + '_') || ('CAMA_' + nueva + '_' + e.TURNO_KEY) }));
   repoActualizarDonde('TIMELINE',
     h => String(h.PATIENT_ID) === pid,
     () => ({ ID_CAMA: nueva }));
@@ -1674,6 +1676,13 @@ function _coordRecalcularDias(ubic, campos) {
  *   5. sello visible + AUDIT_LOG, con la firma de QUIEN entró
  */
 function coordCorregirFicha(datos) {
+  // v5.99 (auditoría C1): la corrección reescribe campos de CAMAS_ESTADO, la
+  // misma fila que el guardado del turno escribe COMPLETA al final. Sin el
+  // candado, una corrección simultánea con un guardado se perdían una a la
+  // otra sin ruido. El mismo conLock del guardado los pone en fila.
+  return conLock(function () { return _coordCorregirFichaInterno(datos); });
+}
+function _coordCorregirFichaInterno(datos) {
   try {
     const g = coordExigirSesion(datos && datos.token);
     if (!g.ok) return g;
@@ -3721,7 +3730,11 @@ function guardarEvolucion(datos, ctx) {
         datos.PLAN_FIRMA_KINE = '';   // mejor sin firma que con basura (la UI la exige de todos modos)
       }
 
-      const idEvolucion = 'CAMA_' + idCama + '_' + turnoKey;
+      // Clave HISTÓRICA de la fila: cama + turno. Desde la v5.99 es solo el
+      // punto de partida — la fila real la decide _ubicarFilaGuardado, que
+      // mira de QUIÉN es cada fila de este turno (ver abajo).
+      const idEvolucionBase = 'CAMA_' + idCama + '_' + turnoKey;
+      let idEvolucion = idEvolucionBase;
       const p = turnoKey.split('-');
       const fecha = p[0] + '-' + p[1] + '-' + p[2];
       const turno = p[3] || 'Dia';
@@ -3778,7 +3791,22 @@ function guardarEvolucion(datos, ctx) {
       const _declPayload = esVerdadero(_payloadKTM.KTM_REALIZADA) ||
         esVerdadero(_payloadKTM.KTM_SUSPENDIDA) || esVerdadero(_payloadKTM.KTM_NO_REALIZADA);
 
-      const filaEvo = repoBuscarFila('EVOLUCIONES', 'ID_EVOLUCION', idEvolucion);
+      /* 🔴 LA FILA SE UBICA POR EPISODIO, NO SOLO POR LA CLAVE (v5.99,
+         auditoría del 5-sep-2026, hallazgo R1; Diego: «debería crear fila
+         nueva»). Con la clave sola, una cama que rota SIN alta dejaba la fila
+         del paciente anterior bajo 'CAMA_n_turno', el `_otroEpisodio` de más
+         abajo saltaba la fusión… y el upsert final igual caía en ESA fila: la
+         evolución del anterior se pisaba entera. Manuel midió 39 camas con dos
+         episodios en el mismo turno en agosto. Ahora: si la fila de la clave
+         es de OTRA persona, este guardado abre una fila propia con ID aparte
+         y la del anterior queda intacta. */
+      const _ubic = _ubicarFilaGuardado(idCama, turnoKey, String(cama.PATIENT_ID || ''));
+      if (_ubic.ambigua) {
+        return err('La cama ' + idCama + ' tiene DOS evoluciones del mismo paciente en el turno ' +
+          turnoKey + '. No se guarda sobre ninguna: avisar a coordinación (auditoriaIntegridad).', ERR.VALIDACION);
+      }
+      const filaEvo = _ubic.fila;
+      idEvolucion = _ubic.id;
       const _prev = filaEvo === -1 ? null : repoLeerFila('EVOLUCIONES', filaEvo);
       if (_prev) {
         // 🔴 LA IDENTIDAD NO SE HEREDA (20-ago-2026). La copia de abajo traía
@@ -3896,6 +3924,14 @@ function guardarEvolucion(datos, ctx) {
       // llena solo cuando alguien de verdad lo pide.
       let _evosCamaMemo = null;
       const _evosCama = function () {
+        // 🪤 A PROPÓSITO sin filtrar por PATIENT_ID (v5.99 lo intentó y lo
+        // quitó el mismo día; ya se había probado y revertido el 6-ago-2026,
+        // ver checks/prono_paciente.js): a un paciente al que se le repara la
+        // cama y se re-ingresa le toca un pid NUEVO, y el filtro le escondería
+        // sus propios días de VM, su BDT y su prono en curso. Lo que sí cambió
+        // en la v5.99 es que la fila del anterior ya no se PISA; que sus filas
+        // sigan colgando de la cama lo avisa la campana hasta que alguien dé
+        // el alta pendiente.
         if (_evosCamaMemo === null) _evosCamaMemo = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', idCama);
         return _evosCamaMemo;
       };
@@ -4208,7 +4244,10 @@ function guardarEvolucion(datos, ctx) {
       }
 
       SpreadsheetApp.flush();
-      return ok({ idEvolucion, idCama, patientId, turnoKey, accion: esNuevo ? 'crear' : 'actualizar', entidad: 'EVOLUCIONES', TEXTO_GENERADO: evo.TEXTO_GENERADO || '' });
+      // El resumen del AUDIT_LOG dice si la fila nació aparte por una rotación
+      // sin alta: es la huella que después busca auditoriaIntegridad().
+      const _accion = esNuevo ? (_ubic.ajena ? 'crear (fila aparte: la cama rotó sin alta)' : 'crear') : 'actualizar';
+      return ok({ idEvolucion, idCama, patientId, turnoKey, accion: _accion, entidad: 'EVOLUCIONES', TEXTO_GENERADO: evo.TEXTO_GENERADO || '' });
     } catch (e) { return err('guardarEvolucion: ' + e.message, ERR.INTERNO, e); }
   });
 }
@@ -4537,6 +4576,51 @@ function _tiempoExtubado(evo, idCama, fecha, turno, _evosFn) {
 
 // ═══ LECTURA ══════════════════════════════════════════════
 /**
+ * _ubicarFilaGuardado — en qué fila de EVOLUCIONES se ESCRIBE el turno (v5.99).
+ *
+ * Es la pareja de escritura de `_ubicarEvolucionDeTurno`: barata a propósito
+ * (baja solo las 5 primeras columnas de la hoja viva — ID, cama, pid, cod,
+ * turno) porque corre dentro de CADA guardado, y solo mira la hoja viva
+ * porque ahí es donde se escribe.
+ *
+ * Reglas, en orden:
+ *   1. Sin filas de esta cama en este turno → fila nueva con la clave base.
+ *   2. Con pid en la cama: manda la fila DE ESE pid. Dos filas del mismo pid
+ *      en el mismo turno es un duplicado real → `{ambigua:true}` (no se
+ *      elige: elegir es el bug).
+ *   3. Sin fila del pid pero con una SIN pid (legacy, cama cargada sin
+ *      ingreso formal) → se adopta, como siempre se hizo.
+ *   4. Todas son de OTRA persona → fila NUEVA con ID propio
+ *      ('CAMA_n_turno~' + 8 letras del pid). La del anterior no se toca.
+ *   5. Sin pid en la cama (payload viejo, smoke) → la de la clave base, o la
+ *      primera: el comportamiento histórico.
+ *
+ * @return {{fila:number, id:string, nueva:boolean, motivo:string, ajena?:Object}|{ambigua:true}}
+ */
+function _ubicarFilaGuardado(idCama, turnoKey, pidCama) {
+  const base = 'CAMA_' + idCama + '_' + turnoKey;
+  const cands = [];
+  repoLeerColumnasConFila('EVOLUCIONES', ['ID_EVOLUCION', 'ID_CAMA', 'PATIENT_ID', 'TURNO_KEY']).forEach(function (f) {
+    if (String(f.obj.ID_CAMA).trim() !== String(idCama)) return;
+    if (String(f.obj.TURNO_KEY).trim() !== String(turnoKey)) return;
+    cands.push({ fila: f.fila, id: String(f.obj.ID_EVOLUCION).trim(), pid: String(f.obj.PATIENT_ID || '').trim() });
+  });
+  if (!cands.length) return { fila: -1, id: base, nueva: true, motivo: 'turno nuevo' };
+  const pid = String(pidCama || '').trim();
+  if (pid) {
+    const mias = cands.filter(function (x) { return x.pid === pid; });
+    if (mias.length > 1) return { ambigua: true };
+    if (mias.length === 1) return { fila: mias[0].fila, id: mias[0].id, nueva: false, motivo: 'mismo episodio' };
+    const legacy = cands.filter(function (x) { return !x.pid; })[0];
+    if (legacy) return { fila: legacy.fila, id: legacy.id, nueva: false, motivo: 'fila sin episodio: se adopta' };
+    return { fila: -1, id: base + '~' + pid.replace(/-/g, '').slice(0, 8), nueva: true,
+      motivo: 'la cama rotó sin alta: fila aparte', ajena: cands[0] };
+  }
+  const porClave = cands.filter(function (x) { return x.id === base; })[0] || cands[0];
+  return { fila: porClave.fila, id: porClave.id, nueva: false, motivo: 'por clave (sin pid en la cama)' };
+}
+
+/**
  * _ubicarEvolucionDeTurno — ubica LA fila de un turno por EPISODIO, no por clave.
  *
  * 🔴 POR QUÉ EXISTE. `ID_EVOLUCION = 'CAMA_<n>_<turnoKey>'` identifica una CAMA
@@ -4688,7 +4772,7 @@ function obtenerEvolucionPrevia(idCama, turnoKey, _evos) {
 /**
  * Turno actual + previa en UNA llamada (evita 2 round-trips seriales al abrir el panel).
  */
-function obtenerEvoTurno(idCama, turnoKey) {
+function obtenerEvoTurno(idCama, turnoKey, patientId) {
   try {
     // UNA sola bajada del episodio responde las TRES preguntas: el turno
     // actual, la previa y la pronación abierta miran exactamente las mismas
@@ -4697,11 +4781,22 @@ function obtenerEvoTurno(idCama, turnoKey) {
     // ID_EVOLUCION es 'CAMA_<idCama>_<turnoKey>', así que dentro de las filas
     // de la cama, coincidir en TURNO_KEY ⇔ coincidir en ID_EVOLUCION (misma
     // primera-fila que devolvía la búsqueda por columna).
+    /* v5.99: si la cama rotó sin alta, en ESTE turno pueden convivir la fila
+       del anterior y la del actual (la del anterior ya no se pisa). El turno
+       que se ABRE es el del ocupante actual: el cliente manda su pid (lo tiene
+       en la tarjeta, sin viaje extra). Las demás filas de la cama NO se
+       filtran por pid, a propósito — la previa y el prono abierto siguen
+       leyéndose por cama (decisión del 6-ago-2026, checks/prono_paciente.js:
+       filtrar escondía la pronación real de un paciente re-ingresado). */
+    const _pidCama = String(patientId || '');
     const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', String(idCama));
     const tk = String(turnoKey);
     let actual = null;
     for (let i = 0; i < evos.length; i++) {
-      if (String(evos[i].TURNO_KEY || '') === tk) { actual = evos[i]; break; }
+      if (String(evos[i].TURNO_KEY || '') !== tk) continue;
+      // Con pid en la cama manda la fila del pid; una sin pid solo si no hay otra.
+      if (!actual || (_pidCama && String(evos[i].PATIENT_ID || '') === _pidCama)) actual = evos[i];
+      if (_pidCama && String(evos[i].PATIENT_ID || '') === _pidCama) break;
     }
     // La previa viaja SIEMPRE, también cuando el turno ya está guardado: el
     // formulario la usa para mostrar «Antes: X → Y» bajo los campos de estado
@@ -5480,6 +5575,26 @@ function alertasUnidad(fecha) {
         titulo: 'Mantención por vencer — ' + String(x.NOMBRE || 'equipo'),
         detalle: (d === 0 ? 'programada para HOY' : 'programada para el ' + dd(prox) + ' (en ' + d + ' días)') });
     });
+
+    // ── Cama que rotó SIN alta: quedan evoluciones del anterior en la hoja viva ──
+    // (v5.99, auditoría R1). Desde la v5.99 el guardado ya no las pisa, pero
+    // siguen colgando de la cama hasta que alguien dé el alta pendiente o
+    // corra repararEvolucionesAjenas. Se avisa por cama, con el conteo.
+    try {
+      const ajenas = {};
+      repoLeerColumnasConFila('EVOLUCIONES', ['ID_CAMA', 'PATIENT_ID']).forEach(function (f) {
+        const e = f.obj;
+        const c = camas.filter(function (x) { return String(x.ID_CAMA) === String(e.ID_CAMA); })[0];
+        const pe = String(e.PATIENT_ID || ''), pc = c ? String(c.PATIENT_ID || '') : '';
+        if (!c || !pc || !pe || pe === pc) return;
+        ajenas[String(e.ID_CAMA)] = (ajenas[String(e.ID_CAMA)] || 0) + 1;
+      });
+      Object.keys(ajenas).forEach(function (idCama) {
+        alertas.push({ nivel: 'ambar', icono: '🛏️', cama: idCama, ir: 'cama',
+          titulo: 'Evoluciones de un paciente anterior sin archivar (' + ajenas[idCama] + ')',
+          detalle: 'la cama rotó sin dar el alta — dar el alta pendiente o correr repararEvolucionesAjenas' });
+      });
+    } catch (e) { /* sin esta lectura la campana sigue */ }
 
     // ── Cierre de año pendiente (26-dic a febrero, si queda por trasladar) ──
     try {
@@ -6936,6 +7051,11 @@ function obtenerAsignacionTurno(key) {
 
 /** datos: { key, data: JSON string {team, assign} } */
 function guardarAsignacionTurno(datos) {
+  // v5.99 (auditoría C2): dos personas repartiendo camas a la vez se pisaban
+  // la propiedad entera (lectura-modificación-escritura sin candado).
+  return conLock(function () { return _guardarAsignacionTurnoInterno(datos); });
+}
+function _guardarAsignacionTurnoInterno(datos) {
   try {
     const key = String((datos && datos.key) || '');
     if (!_asigKeyValida(key)) return err('Clave de turno inválida: ' + key, ERR.VALIDACION);

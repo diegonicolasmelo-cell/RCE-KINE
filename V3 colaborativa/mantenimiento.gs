@@ -721,6 +721,120 @@ function _mtoRepararAjenas(escribir) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  AUDITORÍA DE INTEGRIDAD — SOLO LECTURA (v5.99, sep-2026)
+//
+//  Nace de la auditoría del guardado del 5-sep-2026 (hallazgo R1: una cama
+//  que rota sin alta pisaba la evolución del paciente anterior) y del pedido
+//  de Diego: «eso puede haber alterado los datos de la marcha blanca». Esta
+//  rutina NO escribe nada: busca las huellas que deja ese fallo y las
+//  informa, para que la estadística de fin de mes se haga sabiendo qué hay.
+//
+//  Qué mira, en orden:
+//   A. Claves ID_EVOLUCION repetidas en la hoja viva (dos filas, una clave).
+//   B. Camas ocupadas con filas de OTRO paciente en la hoja viva (la cama
+//      rotó sin alta y las evoluciones del anterior siguen ahí; las archiva
+//      repararEvolucionesAjenasCONFIRMAR, con simulacro primero).
+//   C. En AUDIT_LOG: episodios cuyo PRIMER guardado en una cama fue
+//      «actualizar» — o sea cayó sobre una fila que ya existía. Antes de la
+//      v5.99 eso es la firma de una sobreescritura (o de una fila legacy sin
+//      pid adoptada). Desde la v5.99 la rotación deja «crear (fila aparte…)».
+//   D. Cama + turno con dos episodios distintos (viva + archivo): informativo
+//      —pasa cada vez que un paciente egresa y otro ingresa el mismo turno—.
+//   E. Episodios del ARCHIVO_PACIENTES sin ninguna evolución archivada.
+// ═══════════════════════════════════════════════════════════════════════
+function auditoriaIntegridad() {
+  try {
+    const out = { A_clavesRepetidas: [], B_camasConAjenas: [], C_primerGuardadoSobreFila: [],
+      C_filasAparteDesdeV599: 0, D_turnosConDosEpisodios: 0, E_episodiosSinEvoluciones: [] };
+    const lineas = [];
+
+    // A + B + D — hoja viva y archivo, solo las columnas que hacen falta.
+    // Solo las columnas de identidad (las 5 primeras de la hoja): nunca la fila entera.
+    const _cols = function (hoja) {
+      return repoLeerColumnasConFila(hoja, ['ID_EVOLUCION', 'ID_CAMA', 'PATIENT_ID', 'TURNO_KEY']).map(function (f) { return f.obj; });
+    };
+    const vivas = _cols('EVOLUCIONES');
+    const archiv = _cols('EVOLUCIONES_ARCHIVO');
+    const porClave = {};
+    vivas.forEach(function (e) { const k = String(e.ID_EVOLUCION || ''); (porClave[k] = porClave[k] || []).push(e); });
+    Object.keys(porClave).forEach(function (k) {
+      if (porClave[k].length > 1) out.A_clavesRepetidas.push({ clave: k, filas: porClave[k].length,
+        pids: porClave[k].map(function (e) { return String(e.PATIENT_ID || '').slice(0, 8); }) });
+    });
+
+    const camas = {};
+    repoLeerTodos('CAMAS_ESTADO').forEach(function (c) {
+      camas[String(c.ID_CAMA)] = { ocupada: esVerdadero(c.OCUPADA), pid: String(c.PATIENT_ID || ''), nombre: String(c.NOMBRE || '') };
+    });
+    const ajenasPorCama = {};
+    vivas.forEach(function (e) {
+      const c = camas[String(e.ID_CAMA)]; const pe = String(e.PATIENT_ID || '');
+      if (!c || !c.ocupada || !c.pid || !pe || pe === c.pid) return;
+      (ajenasPorCama[String(e.ID_CAMA)] = ajenasPorCama[String(e.ID_CAMA)] || []).push(String(e.TURNO_KEY));
+    });
+    Object.keys(ajenasPorCama).sort(function (a, b) { return parseInt(a, 10) - parseInt(b, 10); }).forEach(function (cama) {
+      out.B_camasConAjenas.push({ cama: cama, filas: ajenasPorCama[cama].length,
+        turnos: ajenasPorCama[cama].sort().slice(0, 6) });
+    });
+
+    const pidsPorTurno = {};
+    vivas.concat(archiv).forEach(function (e) {
+      const k = String(e.ID_CAMA) + '|' + String(e.TURNO_KEY); const pe = String(e.PATIENT_ID || '');
+      if (!pe) return;
+      (pidsPorTurno[k] = pidsPorTurno[k] || {})[pe] = true;
+    });
+    Object.keys(pidsPorTurno).forEach(function (k) { if (Object.keys(pidsPorTurno[k]).length > 1) out.D_turnosConDosEpisodios++; });
+
+    // C — AUDIT_LOG: el primer guardado de cada (cama, episodio).
+    try {
+      const log = repoLeerTodos('AUDIT_LOG').filter(function (a) { return String(a.ACCION) === 'GUARDAR_EVOLUCION'; })
+        .sort(function (a, b) { return String(a.TIMESTAMP).localeCompare(String(b.TIMESTAMP)); });
+      const visto = {};
+      log.forEach(function (a) {
+        const k = String(a.ID_ENTIDAD) + '|' + String(a.PATIENT_ID || '');
+        const res = String(a.RESUMEN || '');
+        if (/fila aparte/.test(res)) out.C_filasAparteDesdeV599++;
+        if (visto[k] || !a.PATIENT_ID) return;
+        visto[k] = true;
+        if (/^actualizar/.test(res)) {
+          out.C_primerGuardadoSobreFila.push({ cama: String(a.ID_ENTIDAD), pid: String(a.PATIENT_ID).slice(0, 8),
+            cuando: String(a.TIMESTAMP).slice(0, 16), firma: String(a.FIRMA || '') });
+        }
+      });
+    } catch (e) { lineas.push('  (AUDIT_LOG no se pudo leer: ' + e.message + ')'); }
+
+    // E — episodios archivados sin evoluciones.
+    const conEvo = {};
+    archiv.forEach(function (e) { if (e.PATIENT_ID) conEvo[String(e.PATIENT_ID)] = true; });
+    vivas.forEach(function (e) { if (e.PATIENT_ID) conEvo[String(e.PATIENT_ID)] = true; });
+    repoLeerTodos('ARCHIVO_PACIENTES').forEach(function (a) {
+      const pid = String(a.PATIENT_ID || '');
+      if (pid && !conEvo[pid]) out.E_episodiosSinEvoluciones.push({ pid: pid.slice(0, 8), cama: String(a.CAMA_ORIGEN || ''),
+        ingreso: String(a.FECHA_INGRESO || '').slice(0, 10), egreso: String(a.FECHA_EGRESO || '').slice(0, 10) });
+    });
+
+    // Informe legible (sin nombres ni RUT: solo camas, turnos y 8 letras del pid).
+    lineas.unshift('AUDITORÍA DE INTEGRIDAD — solo lectura, nada se modificó');
+    lineas.push('A · Claves repetidas en la hoja viva: ' + out.A_clavesRepetidas.length +
+      (out.A_clavesRepetidas.length ? '\n' + out.A_clavesRepetidas.map(function (x) { return '   · ' + x.clave + ' ×' + x.filas + ' (pids ' + x.pids.join(', ') + ')'; }).join('\n') : ''));
+    lineas.push('B · Camas ocupadas con evoluciones de OTRO paciente: ' + out.B_camasConAjenas.length +
+      (out.B_camasConAjenas.length ? '\n' + out.B_camasConAjenas.map(function (x) { return '   · cama ' + x.cama + ': ' + x.filas + ' fila(s) — ' + x.turnos.join(', ') + (x.filas > 6 ? '…' : ''); }).join('\n') +
+        '\n   → repararEvolucionesAjenasSIMULACRO() y después CONFIRMAR.' : ''));
+    lineas.push('C · Episodios cuyo primer guardado cayó sobre una fila existente (sospecha de sobreescritura pre-v5.99): ' +
+      out.C_primerGuardadoSobreFila.length +
+      (out.C_primerGuardadoSobreFila.length ? '\n' + out.C_primerGuardadoSobreFila.map(function (x) { return '   · cama ' + x.cama + ' · ' + x.cuando + ' · ' + x.firma + ' · pid ' + x.pid; }).join('\n') : '') +
+      '\n   Filas abiertas aparte por rotación sin alta desde la v5.99: ' + out.C_filasAparteDesdeV599);
+    lineas.push('D · Cama+turno con dos episodios (egreso e ingreso el mismo turno, informativo): ' + out.D_turnosConDosEpisodios);
+    lineas.push('E · Episodios archivados sin ninguna evolución: ' + out.E_episodiosSinEvoluciones.length +
+      (out.E_episodiosSinEvoluciones.length ? '\n' + out.E_episodiosSinEvoluciones.map(function (x) { return '   · cama ' + x.cama + ' · ' + x.ingreso + ' → ' + x.egreso + ' · pid ' + x.pid; }).join('\n') : ''));
+    const msg = lineas.join('\n');
+    Logger.log(msg);
+    out.mensaje = msg;
+    return ok(out);
+  } catch (e) { return err('auditoriaIntegridad: ' + e.message, ERR.INTERNO, e); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 //  TIEMPO EXTUBADO — RECÁLCULO CON EL RELOJ REAL (ago-2026)
 //
 //  `TIEMPO_EXTUBADO` (hoja REINTUBACIONES) son las horas entre la extubación

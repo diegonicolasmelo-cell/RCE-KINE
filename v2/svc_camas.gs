@@ -305,7 +305,9 @@ function _reetiquetarEpisodioACama(patientId, idCamaNueva) {
   const pid = String(patientId), nueva = String(idCamaNueva);
   repoActualizarDonde('EVOLUCIONES',
     e => String(e.PATIENT_ID) === pid,
-    e => ({ ID_CAMA: nueva, ID_EVOLUCION: 'CAMA_' + nueva + '_' + e.TURNO_KEY }));
+    // v5.99: se cambia SOLO el tramo de la cama; el sufijo «~pid» de una fila
+    // nacida en una rotación sin alta viaja intacto (sigue siendo distinta).
+    e => ({ ID_CAMA: nueva, ID_EVOLUCION: String(e.ID_EVOLUCION || '').replace(/^CAMA_[^_]+_/, 'CAMA_' + nueva + '_') || ('CAMA_' + nueva + '_' + e.TURNO_KEY) }));
   repoActualizarDonde('TIMELINE',
     h => String(h.PATIENT_ID) === pid,
     () => ({ ID_CAMA: nueva }));

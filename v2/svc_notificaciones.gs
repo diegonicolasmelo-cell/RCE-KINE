@@ -165,6 +165,26 @@ function alertasUnidad(fecha) {
         detalle: (d === 0 ? 'programada para HOY' : 'programada para el ' + dd(prox) + ' (en ' + d + ' días)') });
     });
 
+    // ── Cama que rotó SIN alta: quedan evoluciones del anterior en la hoja viva ──
+    // (v5.99, auditoría R1). Desde la v5.99 el guardado ya no las pisa, pero
+    // siguen colgando de la cama hasta que alguien dé el alta pendiente o
+    // corra repararEvolucionesAjenas. Se avisa por cama, con el conteo.
+    try {
+      const ajenas = {};
+      repoLeerColumnasConFila('EVOLUCIONES', ['ID_CAMA', 'PATIENT_ID']).forEach(function (f) {
+        const e = f.obj;
+        const c = camas.filter(function (x) { return String(x.ID_CAMA) === String(e.ID_CAMA); })[0];
+        const pe = String(e.PATIENT_ID || ''), pc = c ? String(c.PATIENT_ID || '') : '';
+        if (!c || !pc || !pe || pe === pc) return;
+        ajenas[String(e.ID_CAMA)] = (ajenas[String(e.ID_CAMA)] || 0) + 1;
+      });
+      Object.keys(ajenas).forEach(function (idCama) {
+        alertas.push({ nivel: 'ambar', icono: '🛏️', cama: idCama, ir: 'cama',
+          titulo: 'Evoluciones de un paciente anterior sin archivar (' + ajenas[idCama] + ')',
+          detalle: 'la cama rotó sin dar el alta — dar el alta pendiente o correr repararEvolucionesAjenas' });
+      });
+    } catch (e) { /* sin esta lectura la campana sigue */ }
+
     // ── Cierre de año pendiente (26-dic a febrero, si queda por trasladar) ──
     try {
       const ci = (typeof avisoCierreAnio === 'function') ? avisoCierreAnio() : null;

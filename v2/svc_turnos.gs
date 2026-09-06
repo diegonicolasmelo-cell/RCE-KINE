@@ -29,6 +29,11 @@ function obtenerAsignacionTurno(key) {
 
 /** datos: { key, data: JSON string {team, assign} } */
 function guardarAsignacionTurno(datos) {
+  // v5.99 (auditoría C2): dos personas repartiendo camas a la vez se pisaban
+  // la propiedad entera (lectura-modificación-escritura sin candado).
+  return conLock(function () { return _guardarAsignacionTurnoInterno(datos); });
+}
+function _guardarAsignacionTurnoInterno(datos) {
   try {
     const key = String((datos && datos.key) || '');
     if (!_asigKeyValida(key)) return err('Clave de turno inválida: ' + key, ERR.VALIDACION);

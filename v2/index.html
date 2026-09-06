@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.98-mauri-cumple-diego">
+<meta name="rce-version" content="5.99-guardado-por-episodio">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4525,7 +4525,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.98-mauri-cumple-diego]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.99-guardado-por-episodio]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5210,7 +5210,10 @@ function abrirPanel(id, esIng, verFicha) {
   if(!esIng) {
     loading(true,'Cargando evolución...');
     // v2: una sola llamada combinada (turno actual + turno previo)
-    gs('GET_EVO_TURNO',{idCama:id,turnoKey:tkey}, r=>{
+    // v5.99: viaja el paciente de la tarjeta para que el servidor devuelva SU
+    // fila si la cama rotó sin alta (sin viaje extra a CAMAS_ESTADO).
+    const _pidTarjeta=String(((typeof DB!=='undefined'&&DB)||[]).find(c=>String(c.ID_CAMA)===String(id))?.PATIENT_ID||'');
+    gs('GET_EVO_TURNO',{idCama:id,turnoKey:tkey,patientId:_pidTarjeta}, r=>{
       loading(false);
       // Pronación ABIERTA del episodio (puede ser de otro turno y otro colega):
       // con ella se narra «tras X h en prono» al supinar.
