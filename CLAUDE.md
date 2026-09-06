@@ -328,7 +328,11 @@ si tiene más de unos días, se confirma antes de usarla.
   desde el editor) y **la bandeja 📥 de la v6.08** para emparejar a mano lo
   que la máquina no pudo, desde los valores que YA están en la base (se pega
   también **api**) y **la v6.09** (Hb, Hto y K⁺ a observaciones de la hoja
-  impresa, que vuelve a las filas oficiales; ver BITACORA v6.09…v6.06). **Fusionado el 6-sep**: `filtros-vence-hoy` →
+  impresa, que vuelve a las filas oficiales) y **la v6.10** (el último cultivo
+  del episodio con su resultado, en la última fila de observaciones; ver
+  BITACORA v6.10…v6.06). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
+  correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
   (puente «REM Hospital» + maqueta de pacientes ficticios) quedó SIN fusionar
   a propósito: destino externo no aprobado por Diego. Historia de la v6.04: index + servicios

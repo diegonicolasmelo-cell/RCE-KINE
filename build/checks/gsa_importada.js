@@ -395,17 +395,23 @@ const { chromium } = require('playwright-core');
   await p.waitForTimeout(500);
   const R = await p.evaluate(() => {
     const c = { OCUPADA: 'TRUE', ID_CAMA: '1', PATIENT_ID: 'pid-cama1', NOMBRE: 'PRUEBA', FECHA_INGRESO: '2026-09-01', VIA_AEREA: 'TOT' };
+    // El último cultivo va en la ÚLTIMA fila de observaciones (Diego, 6-sep).
+    window.RK_CULT = { 'pid-cama1': { fecha: '02-09', nombre: 'Cultivo de secreciones', resultado: 'Klebsiella pneumoniae BLEE' } };
     window.GSA_DIA = { 'pid-cama1': [{ HORA: '03:40', PH: 7.482, PACO2: 31.6, PAO2: 93.7, HCO3: 25.1, EB: 0.8, SATO2: 98.1, FIO2: 40, PAFI: 234, LACTATO: 0.7, HB: 6.8, HTO: 20.2, PLAQUETAS: 55, INR: 1.07, K: 3.2, GLICEMIA: 141, PCR: 175 }] };
     const html = rkHojaHTML(c, '2026-09-04', true);
     window.GSA_DIA = {};
-    const vacia = rkHojaHTML(c, '2026-09-04', true);
+    const vacia = rkHojaHTML(c, '2026-09-04', true);        // sin gas, pero CON cultivo
+    window.RK_CULT = { 'pid-cama1': { fecha: '05-09', nombre: 'Hisopado nasal', resultado: '' } };
+    const pendiente = rkHojaHTML(c, '2026-09-04', true);
+    window.RK_CULT = {};
+    const sinCultivo = rkHojaHTML(c, '2026-09-04', true);
     // Hoja diaria: un turno con gas y sin evolución + un turno con las dos
     TL_EVOS = [{ TURNO_KEY: '2026-09-04-Dia', FECHA: '2026-09-04', TURNO: 'Dia', GSA_TOMADA: true, GSA_HORA: '14:00', GSA_PH: 7.4, VENT_SOPORTE: 'VM' }];
     TL_GSA = [{ TURNO_KEY: '2026-09-03-Noche', FECHA: '2026-09-04', HORA: '03:40', PH: 7.482, PACO2: 31.6, PAO2: 93.7, PAFI: 234, HB: 6.8, HTO: 20.2, PLAQUETAS: 55, K: 3.2 },
               { TURNO_KEY: '2026-09-04-Dia', FECHA: '2026-09-04', HORA: '10:30', PH: 7.35, PACO2: 44, PAO2: 80, PAFI: 200 }];
     HJ_SEG = 'todo'; HJ_RANGO = 99; HJ_VACIAS = false;
     const hoja = hojaUCI();
-    return { html, vacia, hoja };
+    return { html, vacia, pendiente, sinCultivo, hoja };
   });
   si('★ el pH va con asterisco y en NEGRITA con flecha ↑ (7,48 > 7,50? no: 7,482 → sin flecha)', /<td class="rk-c rk-lab">7,48\*<\/td>/.test(R.html));
   si('★ la hoja tiene SOLO las filas del formulario oficial: sin fila Hb ni Hto (Diego, 6-sep)', !/<td class="rk-c">Hb<\/td>/.test(R.html) && !/<td class="rk-c">Hto<\/td>/.test(R.html));
@@ -414,6 +420,12 @@ const { chromium } = require('playwright-core');
   si('★ observaciones: Hb (6,8↓ negrita), Hto y K⁺ SIEMPRE; plaquetas solo por alteradas; ni INR ni glicemia normales',
     /Lab 03:40\*: <b>Hb 6,8↓<\/b> · Hto 20,2 · <b>K⁺ 3,2↓<\/b> · <b>Plaq 55↓<\/b>/.test(R.html) && !/Glic/.test(R.html) && !/INR 1,07/.test(R.html));
   si('sin gases importados la hoja sale como antes (laboratorio en blanco, sin marcadores)', !/\{\{L_/.test(R.vacia) && !/\*<\/td>/.test(R.vacia));
+  si('★ el último cultivo va en la ÚLTIMA fila de observaciones, con su fecha y resultado en negrita (Diego, 6-sep)',
+    /<td class="rk-c">PCT<\/td>[\s\S]{0,260}?Cultivo de secreciones 02-09: <b>Klebsiella pneumoniae BLEE<\/b>/.test(R.html));
+  si('★ …y SIN asterisco: no lo copió el laboratorio, lo escribió la unidad', !/Cultivo de secreciones 02-09\*/.test(R.html));
+  si('★ el cultivo sale aunque NO haya gas importado (son datos distintos)', /Cultivo de secreciones 02-09/.test(R.vacia));
+  si('★ una muestra tomada sin informe todavía dice «pendiente» (avisa que está en curso)', /Hisopado nasal 05-09: resultado pendiente/.test(R.pendiente));
+  si('sin cultivo del episodio la celda queda en blanco', !/resultado pendiente|Cultivo de secreciones/.test(R.sinCultivo) && !/\{\{L_/.test(R.sinCultivo));
   si('ningún marcador {{L_…}} quedó sin reemplazar', !/\{\{L_/.test(R.html));
   si('★ la hoja diaria muestra el gas del lab en la NOCHE del 3 aunque ese turno no tenga evolución', /🧪 lab 03:40/.test(R.hoja) && /03-sep/.test(R.hoja));
   si('…y en el DÍA del 4 conviven el gas del colega (14:00) y el del lab (10:30)', /pH 7,4/.test(R.hoja) && /🧪 lab 10:30/.test(R.hoja));
