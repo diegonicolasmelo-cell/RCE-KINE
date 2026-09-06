@@ -6096,12 +6096,44 @@ function notifListar(datos) {
   } catch (e) { return err('notifListar: ' + e.message, ERR.INTERNO, e); }
 }
 
+/**
+ * NOVEDADES — el resumen que lee el EQUIPO cuando la app se actualiza (Diego,
+ * 6-sep-2026: «que en las novedades de actualización salga un resumen de la
+ * actualización para los colegas, algo simple»).
+ *
+ * 🔴 CÓMO SE ESCRIBE UNA ENTRADA, que no es un changelog:
+ *  1. Va la clave del sello COMPLETO, y resume **todo lo que el equipo verá
+ *     distinto al pasar a esa versión**, no solo lo que cambió en ella. El
+ *     servidor solo ve el sello que arranca: si se publica saltando de la
+ *     6.04 a la 6.11, las entradas del medio NUNCA se registran, así que la
+ *     de la 6.11 tiene que contar la tanda entera.
+ *  2. En palabras de la unidad, no del código: qué botón apretar y qué pasa.
+ *     Nada de nombres de función, hojas ni versiones internas.
+ *  3. Pocas líneas. Lo que no cabe en cuatro, no es una novedad: es un
+ *     manual, y ese vive en la pestaña de documentación.
+ *  4. Una línea por cambio, con su emoji de la interfaz (≤2019: el Chrome del
+ *     hospital no dibuja los nuevos).
+ * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
+ */
+const NOVEDADES = {
+  '6.12-novedades-para-el-equipo': [
+    '🧪 Los gases de la mañana se copian solos desde los PDF del laboratorio y salen en la hoja del día. Ya no hay que pasarlos a mano.',
+    '📥 El gas que no se pudo emparejar queda en «Sin emparejar», al lado del botón de importar: se le elige la cama y listo.',
+    '🖨️ La hoja del día trae el gas de la mañana, con Hb, Hto y K⁺ en observaciones y el último cultivo con su resultado.',
+    '📋 Las plantillas de evolución se abren desde el ícono del cuadro de texto, y al seleccionar una frase aparece el ➕ verde para guardarla.',
+  ],
+};
+
 /** «Se publicó la vX.Y» — el cliente manda su sello en el boot y la primera
- *  vez que el servidor lo ve, queda registrado. Las siguientes, ya existe. */
+ *  vez que el servidor lo ve, queda registrado. Las siguientes, ya existe.
+ *  Con resumen escrito (NOVEDADES) el aviso lo lleva; sin él, va escueto. */
 function notifVersionVista(version) {
   const v = String(version || '').trim();
   if (!v || v.length > 60) return;
-  notifRegistrar({ tipo: 'version', titulo: '🚀 Se publicó la versión ' + v, origenId: 'v:' + v });
+  const lineas = NOVEDADES[v];
+  notifRegistrar({ tipo: 'version', origenId: 'v:' + v,
+    titulo: lineas ? ('🚀 Novedades de la versión ' + v.split('-')[0]) : ('🚀 Se publicó la versión ' + v),
+    detalle: lineas ? lineas.join('\n') : '' });
 }
 
 /**
