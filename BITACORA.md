@@ -19,6 +19,37 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.12-novedades-para-el-equipo (6-sep-2026) — el buzón cuenta qué cambió, en palabras de la unidad
+
+Diego: «que en las novedades de actualización salga un resumen de la
+actualización para los colegas, algo simple».
+
+- Hasta hoy el aviso decía «🚀 Se publicó la versión 6.11-comodines-que-
+  faltaban» y nada más: el sello es lenguaje de programador y no le dice
+  nada al que entra a evolucionar. Ahora hay un **catálogo `NOVEDADES`** en
+  `svc_notificaciones.gs`, del sello a unas pocas líneas escritas para el
+  equipo, y el aviso las lleva como detalle: «🚀 Novedades de la versión
+  6.12» + qué botón apretar y qué pasa.
+- 🔴 **La regla al escribir una entrada** (queda en el comentario del
+  catálogo, porque es lo que se olvida): resume **todo lo que el equipo verá
+  distinto al pasar a esa versión**, no lo que cambió en ella. El servidor
+  solo ve el sello que ARRANCA: publicando de la 6.04 a la 6.12, las
+  entradas del medio nunca se registran. La de la 6.12 cuenta la tanda
+  entera (gases importados, bandeja, hoja del día, plantillas).
+- Un sello **sin** entrada no es un error: sale el aviso escueto de siempre.
+  Nada se inventa.
+- El detalle se guardaba en una sola línea porque el buzón lo pintaba sin
+  respetar los saltos: `white-space:pre-line` en la tarjeta, que de paso
+  arregla las notas 📌 de varias líneas.
+- Se respeta la regla de solo-agregar: mismo `origenId` `v:<sello>`, así que
+  re-arrancar no duplica; si el resumen se corrige, entra fila nueva y la
+  anterior queda.
+- Guardia `buzon_campana` bloque 2b: que el sello con resumen lo lleve, que
+  el título traiga solo el número, que venga en varias líneas, que **no haya
+  jerga de programador** ni emojis posteriores a 2019, que ninguna línea pase
+  de 170 caracteres, que no se duplique y que la pantalla respete los saltos.
+  Batería 119 verdes. Sin esquema; se pegan **index + servicios + api**.
+
 ## v6.11-comodines-que-faltaban (6-sep-2026) — revisando las 17 de la unidad apareció un candado invisible
 
 Diego: «revisemos la evolución tipo desde acá para dejar las de coordinación

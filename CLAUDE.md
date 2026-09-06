@@ -335,7 +335,11 @@ si tiene más de unos días, se confirma antes de usarla.
   nombrar —`{intubacion}` entre ellos— más dos semillas corregidas;
   revisión publicada en
   `https://claude.ai/code/artifact/6bfc0c67-d807-4cc8-a234-f2fe6d28d85b`,
-  con tres preguntas abiertas para Diego). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  con tres preguntas abiertas para Diego) y **la v6.12** (el aviso de versión
+  del buzón lleva un resumen escrito para el equipo: catálogo `NOVEDADES` en
+  `svc_notificaciones.gs` — la entrada resume LA TANDA que el equipo verá al
+  pasar a ese sello, no solo esa versión, porque el servidor solo ve el sello
+  que arranca). 🔜 **Pendiente que dejó anotado Diego**: la carilla
   2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
   correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel

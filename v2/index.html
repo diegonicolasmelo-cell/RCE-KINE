@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.11-comodines-que-faltaban">
+<meta name="rce-version" content="6.12-novedades-para-el-equipo">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4686,7 +4686,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.11-comodines-que-faltaban]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.12-novedades-para-el-equipo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -7586,7 +7586,7 @@ function buzRender(){
     return `<div style="display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);${nueva?'background:#eef4fb;':''}border-radius:7px;margin-bottom:6px;font-size:.8rem;">
       <span>${x.ic}</span>
       <div style="flex:1;"><b>${_docsEsc(x.tit)}${nueva?' <span style="color:var(--primary);font-size:.6rem;vertical-align:2px;">●</span>':''}</b>
-        ${x.det?`<div style="font-size:.76rem;">${_docsEsc(x.det)}</div>`:''}
+        ${x.det?`<div style="font-size:.76rem;white-space:pre-line;line-height:1.5;">${_docsEsc(x.det)}</div>`:''}
         ${meta?`<div style="color:var(--muted);font-size:.7rem;">${meta}</div>`:''}</div>
       ${ir}</div>`;
   }).join('');

@@ -52,6 +52,32 @@ notifVersionVista('5.91-buzon-campana'); notifVersionVista('5.91-buzon-campana')
 eq('dos boots con la misma versión = un solo aviso',
   DB.NOTIFICACIONES.filter(x => x.TIPO === 'version').length, 1);
 si('…con el título esperado', /Se publicó la versión 5\.91/.test(DB.NOTIFICACIONES[2].TITULO));
+eq('un sello SIN resumen escrito va escueto (no se inventa nada)', DB.NOTIFICACIONES[2].DETALLE, '');
+
+/* ── 2b · El resumen para los colegas (Diego, 6-sep-2026) ── */
+// El catálogo vive dentro del .gs evaluado (su `const` no llega al global del
+// arnés): el sello se lee del fuente, que además prueba que la clave existe.
+const srcNotif = fs.readFileSync(path.join(__dirname, '..', '..', 'v2', 'svc_notificaciones.gs'), 'utf8');
+const mNov = srcNotif.match(/const NOVEDADES = \{\s*'([^']+)'/);
+si('★ hay al menos un resumen escrito en NOVEDADES', !!mNov);
+const selloConNov = mNov ? mNov[1] : '';
+notifVersionVista(selloConNov);
+const nv = DB.NOTIFICACIONES[DB.NOTIFICACIONES.length - 1];
+si('★ un sello CON resumen lo lleva en el detalle', !!nv.DETALLE);
+si('★ el título dice «Novedades» y solo el número, sin el nombre interno del sello',
+  /^🚀 Novedades de la versión \d+\.\d+$/.test(nv.TITULO));
+si('★ el resumen viene en líneas (una novedad por línea)', nv.DETALLE.split('\n').length >= 2);
+si('★ …y ninguna línea habla en jerga de programador',
+  !/\.gs\b|función|comodín|PATIENT_ID|hoja EVOLUCIONES|guardia/i.test(nv.DETALLE));
+si('★ los emojis del resumen son de la interfaz vieja (el Chrome del hospital no dibuja los nuevos)',
+  !/🩻|🫁|🛜|🩼|🫆/.test(nv.DETALLE));
+eq('cada línea es corta y legible de un vistazo (≤ 170 caracteres)',
+  nv.DETALLE.split('\n').filter(function (l) { return l.length > 170; }).length, 0);
+notifVersionVista(selloConNov);
+eq('…y tampoco se duplica al arrancar de nuevo',
+  DB.NOTIFICACIONES.filter(function (x) { return String(x.ORIGEN_ID) === 'v:' + selloConNov; }).length, 1);
+si('★ la pantalla respeta los saltos de línea del resumen (pre-line en el buzón)',
+  /x\.det\?`<div style="font-size:\.76rem;white-space:pre-line;/.test(fs.readFileSync(path.join(__dirname, '..', '..', 'v2', 'index.html'), 'utf8')));
 
 console.log('\n3 · La campana, con el formato que dictó Diego');
 DB.CAMAS_ESTADO = [
