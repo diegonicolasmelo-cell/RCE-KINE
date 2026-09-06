@@ -19,6 +19,46 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.11-comodines-que-faltaban (6-sep-2026) — revisando las 17 de la unidad apareció un candado invisible
+
+Diego: «revisemos la evolución tipo desde acá para dejar las de coordinación
+listas». Se renderizaron las 17 semillas **con la app real** (motor de texto +
+`_plantRellenar`) sobre un paciente de prueba, una por caso, y eso destapó
+dos cosas que ninguna lectura del código habría mostrado:
+
+- 🔴 **Diez bloques que el motor escribe y ninguna plantilla podía nombrar**:
+  `intubacion`, `desvinculacion`, `aislamiento`, `auscultacion`, `cultivos`,
+  `inhalo`, `vfon`, `imt`, `ems`, `educacion`. Están en `PLANT_ALIAS` —o sea
+  `_plantDatos()` YA les daba valor— pero faltaban en `PLANT_COMODINES` y en
+  `PLANT_COMODINES_SRV`, que son la lista autorizada: escribir
+  `{intubacion}` hacía que `plantillaGuardar` rechazara la plantilla por
+  «comodín desconocido». El código medio lo sabía: `PLANT_COM_EVENTO` ya
+  nombraba `intubacion` y `desvinculacion`. Añadidos a las dos listas, **en
+  el mismo orden** (la guardia las compara posición por posición).
+- **Consecuencia visible del candado**: la plantilla de **Intubación** no
+  podía nombrar su propio evento, así que el relato se inyectaba antes del
+  «Plan:» y la intubación salía al FINAL, después de los gases. Corregida: la
+  semilla ahora dice `{intubacion}` en el tercer renglón.
+- **Destete por TQT**: la línea era `{dia} {fase} {weaning_grado}.` y con
+  `{fase}` vacío quedaba «…adquirida en la comunidad. weaning difícil» —
+  minúscula pegada a un punto, porque la mayúscula solo se aplica al primer
+  carácter de cada renglón. El grado pasa a su propia frase.
+- Página de revisión publicada con las 17 (texto generado + estructura):
+  `https://claude.ai/code/artifact/6bfc0c67-d807-4cc8-a234-f2fe6d28d85b`
+- 🪤 **Método que vale la pena repetir**: leer una plantilla no dice nada;
+  hay que RENDERIZARLA. El escenario de prueba también engaña — la primera
+  corrida decía que Reintubación y Prono no narraban su evento, y era el dato
+  falso (una reintubación sin extubación previa, un prono sin la posición
+  marcada). Antes de acusar a la plantilla, revisar el escenario.
+- **Esperando decisión de Diego** (en la página): si «Sin novedades» debe
+  incluir HDN y neurológico; si el orden distinto de Rehabilitación y Prono
+  le sirve; y en qué plantillas quiere los cultivos y el aislamiento, que
+  recién ahora se pueden nombrar.
+- Batería 119 verdes. Sin esquema. Se pegan **index + servicios + api**.
+  🔴 Las semillas solo se escriben en una hoja PLANTILLAS_EVOLUCION **vacía**:
+  si ya se sembró, las dos corregidas se editan desde «Mis plantillas» (o se
+  borra la hoja y se vuelve a correr `crearORepararEstructura()`).
+
 ## v6.10-cultivo-en-la-hoja (6-sep-2026) — el último cultivo, en la última fila de observaciones
 
 Diego, viendo el mockup de las cuatro camas: **«agrégale además en

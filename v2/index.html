@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.10-cultivo-en-la-hoja">
+<meta name="rce-version" content="6.11-comodines-que-faltaban">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4686,7 +4686,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.10-cultivo-en-la-hoja]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.11-comodines-que-faltaban]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -12605,14 +12605,23 @@ const PLANT_DATOS={
   secr_cantidad:{ v:()=>({'-':'nula','+':'escasa','++':'moderada','+++':'abundante'}[v('fSecrQty')]||''), pre:'en ', post:' cantidad' },
 };
 // 🔴 MISMA LISTA que PLANT_COMODINES_SRV (svc_plantillas.gs); la guardia las compara.
+/* 🪤 6-sep-2026, revisando las plantillas de la unidad con Diego: diez bloques
+   que el motor SÍ escribe —intubación, desvinculación, aislamiento,
+   auscultación, cultivos, inhaloterapia, válvula de fonación, IMT, EMS y
+   educación— faltaban en esta lista. Como `_plantDatos()` los rellena desde
+   PLANT_ALIAS, ya tenían valor; lo que no tenían era permiso: escribir
+   {intubacion} en una plantilla la hacía RECHAZAR por «comodín desconocido»,
+   y por eso la plantilla de Intubación no podía nombrar su propio evento. */
 const PLANT_COMODINES=['encabezado','dia','fase','via_aerea','soporte','parametros','pve','pve_n',
   'weaning_grado','secreciones','sedacion','hemodinamia','neurologico','reintubacion','extubacion',
   'tqt','decanulacion','ktm','evaluaciones','posicion','gases','anotaciones','plan','nota','relato',
+  'intubacion','desvinculacion','aislamiento','auscultacion','cultivos','inhalo','vfon','imt','ems','educacion',
   'dia_estadia','diagnostico','edad','via_aerea_tipo','tot_numero','tot_cm','tqt_numero','dias_vm','dias_va','soporte_tipo','modo',
   'vt','fr','ti','pmax','pmedia','peep','ppl','autopeep','ps','fio2','spo2','pafi',
   'sedacion_escalon','sas','sas_meta','gcs','cooperacion','hdn','dva','secr_tipo','secr_cantidad'];
 const PLANT_COM_BLOQUE=['encabezado','dia','fase','via_aerea','soporte','parametros','pve','pve_n','weaning_grado','secreciones',
-  'sedacion','hemodinamia','neurologico','reintubacion','extubacion','tqt','decanulacion','ktm','evaluaciones','posicion','gases','anotaciones','relato','plan','nota'];
+  'sedacion','hemodinamia','neurologico','reintubacion','extubacion','tqt','decanulacion','ktm','evaluaciones','posicion','gases','anotaciones','relato','plan','nota',
+  'intubacion','desvinculacion','aislamiento','auscultacion','cultivos','inhalo','vfon','imt','ems','educacion'];
 const PLANT_COM_EVENTO=/\{(relato|pve|extubacion|reintubacion|intubacion|tqt|decanulacion|desvinculacion)\}/i;
 
 function _plantIcono(caso){ return PLANT_ICONO[caso]||'📋'; }
