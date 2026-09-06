@@ -523,6 +523,19 @@ const ESQUEMA = {
     ['TITULO','texto'],['DETALLE','texto'],['REF_CAMA','texto'],['AUTOR','texto'],
     ['ORIGEN_ID','texto'],
   ]},
+  // 🧪 Gases importados desde los PDF del laboratorio (tanda 2b, sep-2026).
+  // Hoja APARTE a propósito: el gas importado no entra a la evolución ni al
+  // REM (decisión de Diego, 2-sep) — alimenta la hoja diaria y la impresa.
+  // Guarda PATIENT_ID, nunca el RUT ni el nombre del informe.
+  GSA_IMPORTADAS: { headerRows: 1, cols: [
+    ['ID_GSA','texto'],['PATIENT_ID','uuid'],['ID_CAMA','texto'],['FECHA','texto'],['HORA','texto'],
+    ['TURNO_KEY','texto'],['PH','decimal'],['PACO2','decimal'],['PAO2','decimal'],['HCO3','decimal'],
+    ['EB','decimal'],['SATO2','decimal'],['FIO2','decimal'],['PAFI','decimal'],['LACTATO','decimal'],
+    ['HB','decimal'],['HTO','decimal'],['PLAQUETAS','decimal'],['INR','decimal'],['K','decimal'],
+    ['NA','decimal'],['GLICEMIA','decimal'],['PCR','decimal'],
+    ['ARCHIVO','texto'],['ARCHIVO_ID','texto'],['PETICION','texto'],['TS_IMPORT','ts'],
+    ['ESTADO','texto'],['DETALLE','texto'],
+  ]},
 };
 
 // ── Derivados (generados una sola vez desde ESQUEMA) ───────
@@ -774,6 +787,7 @@ function _sembrar(ss) {
     // Pimometría pendiente (v5.93): en CPAP/PS con soporte BAJO este valor y
     // destete prolongado (Boles 2007) o VM de PIMO_VM_DIAS días (NAMDRC
     // 2005: 21), la campana pide medir Pimáx. Editables sin tocar código.
+    ['GSA_CARPETA_ID', ''],         // carpeta de Drive con los PDF del laboratorio (se crea sola si falta)
     ['PIMO_PS_MAX', '14'],
     ['PIMO_VM_DIAS', '21'],
     ['PVE_TURNOS_ALERTA', '2'],     // turnos seguidos candidato a PVE sin PVE antes de alertar

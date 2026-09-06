@@ -1233,7 +1233,10 @@ function obtenerHistorialPaciente(idCama, patientId) {
     }
     evos.sort((a, b) => String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)));
 
-    return ok({ hitos, evoluciones: evos });
+    // 🧪 Los gases importados del laboratorio (tanda 2b) viajan con el
+    // historial: la hoja diaria los mezcla en su fila GSA.
+    const gsa = (typeof gsaDeEpisodio === 'function') ? gsaDeEpisodio(patientId) : [];
+    return ok({ hitos, evoluciones: evos, gsa: gsa });
   } catch (e) { return err('obtenerHistorialPaciente: ' + e.message, ERR.INTERNO, e); }
 }
 

@@ -72,6 +72,8 @@ function api(accion, datos, token) {
       case 'GET_ALERTAS':        return ok({ alertas: alertasUnidad(datos && datos.fecha) });
       case 'GET_NOTIFICACIONES': return notifListar(datos);
       case 'GET_REINTUB_N':      return contarReintubaciones(datos.pids);
+      case 'GET_GSA_DIA':        return gsaDelDia(datos.fecha, datos.pids);
+      case 'GSA_IMPORTAR':       return _auditar(ctx, accion, () => gsaImportarPendientes(ctx), datos);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
       // ── Escrituras (auditadas) ──
