@@ -309,7 +309,12 @@ function generarTextoEvolucion(d) {
       return;
     }
     if (pveVal === 'si') {
-      if (pveRes === 'superada') {
+      if (pveRes === 'superada' && esVerdadero(d.PVE_SUP_SIN_EXT)) {
+        // Tanda 2a (PRD_PVE_SUPERADA_SIN_EXTUBAR): la prueba se superó y NO se
+        // extubó. Paridad con genTexto del cliente.
+        const sr = v('PVE_SUP_SIN_EXT_RAZ');
+        txt.push(`Se realiza PVE con resultado superado. No se extuba${sr ? ' por ' + _lcIni(sr) : ''}; mantiene ventilación mecánica.`);
+      } else if (pveRes === 'superada') {
         txt.push(`Se realiza PVE con resultado superado, progresando a extubación${horaTxt}.`);
         if (esVerdadero(d.EXT_REINTUB)) {
           const rz = v('EXT_REINTUB_RAZ'), rh = v('REINTUB_HORA');

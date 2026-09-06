@@ -287,7 +287,10 @@ const _COLS_EVOLUCIONES = [
   // que sí se narran en la evolución — JSON [{t:texto, h:hora opcional}].
   // Complementa al «Otro» del ➕ (que solo deja hito) desde el formulario.
   // — SIEMPRE AL FINAL
-  ['ANOTACIONES_JSON','json']
+  ['ANOTACIONES_JSON','json'],
+  // PVE superada SIN extubación (tanda 2a, sep-2026, PRD_PVE_SUPERADA_SIN_EXTUBAR):
+  // la prueba se superó y el paciente igual quedó en VM, con su razón. — AL FINAL
+  ['PVE_SUP_SIN_EXT','bool'],['PVE_SUP_SIN_EXT_RAZ','texto']
 ];
 
 // ── Definición de todas las hojas ──────────────────────────
@@ -904,12 +907,12 @@ function testEsquema() {
     if (TOTAL_COLS[hoja] !== nombres.length) errs.push(hoja + ': TOTAL_COLS inconsistente');
   });
   // Salvaguarda contra el borrado accidental de columnas: el número va a mano
-  // y HAY QUE SUBIRLO al agregar una (394 = 393 + ANOTACIONES_JSON, sep-2026; antes 393 = 390 + NEURO_DVE, NEURO_DVE_ALTURA
+  // y HAY QUE SUBIRLO al agregar una (396 = 394 + PVE_SUP_SIN_EXT, PVE_SUP_SIN_EXT_RAZ, sep-2026; antes 394 = 393 + ANOTACIONES_JSON; antes 393 = 390 + NEURO_DVE, NEURO_DVE_ALTURA
   // y NEURO_PIC_CAPTOR, ago-2026; antes 390 = 387 + SED_SAS_META, SED_VIGIL y
   // SED_FARMACOS). Si
   // aparece este ❌ tras sumar una columna, la hoja está bien y lo que falta es
   // actualizar esta línea.
-  if (TOTAL_COLS.EVOLUCIONES !== 394) errs.push("EVOLUCIONES != 394 columnas: " + TOTAL_COLS.EVOLUCIONES);
+  if (TOTAL_COLS.EVOLUCIONES !== 396) errs.push("EVOLUCIONES != 396 columnas: " + TOTAL_COLS.EVOLUCIONES);
   console.log(errs.length ? '❌ ' + errs.join(' | ') : '✅ Esquema OK (' + Object.keys(ESQUEMA).length + ' hojas)');
   return errs;
 }

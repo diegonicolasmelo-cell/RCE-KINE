@@ -433,6 +433,16 @@ function guardarEvolucion(datos, ctx) {
         }
       })();
 
+      // PVE superada SIN extubar (tanda 2a): el candado también en la escritura.
+      // Con la marca puesta no puede quedar NADA de extubación en la fila —
+      // ni la hora ni el soporte post-extubación—, venga de donde venga.
+      if (esVerdadero(datos.PVE_SUP_SIN_EXT)) {
+        datos.EXT_OCURRIO = false; datos.EXT_HORA = ''; datos.EXT_TS = ''; datos.EXT_TIPO = '';
+        datos.EXT_PE_MODO = ''; datos.EXT_POST_DET = '';
+      } else if ('PVE_SUP_SIN_EXT' in datos) {
+        datos.PVE_SUP_SIN_EXT_RAZ = '';   // volver a «Sí, se extubó» no deja residuos
+      }
+
       // Texto clínico: el de la PANTALLA (cliente) si vino; si no, se genera.
       datos.TEXTO_GENERADO = _textoCliente || generarTextoEvolucion(datos);
       // Respaldo del motor: si el cliente no lo trae (API sin navegador) y no

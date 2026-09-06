@@ -133,7 +133,11 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
       if (ev.PVE_RESULTADO === 'frustra') {
         try { const m = JSON.parse(ev.PVE_FR_MOTIVOS || '[]'); if (m.length) mot = ' (' + m.join(', ') + ')'; } catch (x) {}
       }
-      otro((ev.PVE_RESULTADO === 'superada' ? '▲ PVE superada ' : '▼ PVE frustra ') + f + mot);
+      // Tanda 2a: superada sin extubar se dice explícito — la entrega no
+      // puede insinuar una extubación que no hubo.
+      const sinExt = ev.PVE_RESULTADO === 'superada' && esVerdadero(ev.PVE_SUP_SIN_EXT);
+      otro((ev.PVE_RESULTADO === 'superada' ? (sinExt ? '▲ PVE superada sin extubar ' : '▲ PVE superada ') : '▼ PVE frustra ') + f + mot +
+        (sinExt && ev.PVE_SUP_SIN_EXT_RAZ ? ' (' + ev.PVE_SUP_SIN_EXT_RAZ + ')' : ''));
     }
     if (esVerdadero(ev.EXT_OCURRIO)) hito('✂️ Extubación ' + f + (ev.EXT_HORA ? ' ' + ev.EXT_HORA : '') + (ev.EXT_TIPO ? ' (' + ev.EXT_TIPO + ')' : ''));
     // Reintubación: evento · hora · CAUSA (Diego, 14-ago-2026). Era el único

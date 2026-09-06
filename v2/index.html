@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.99-guardado-por-episodio">
+<meta name="rce-version" content="6.00-pve-superada-sin-extubar">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -3381,6 +3381,31 @@ document.documentElement.setAttribute('data-piel', 'inst');
 
                   <!-- Superada → hora + soporte PE + eval post + reintubación -->
                   <div id="dPVESuperada" class="hidden" style="margin-top:8px;">
+                    <!-- ¿SE EXTUBÓ? (tanda 2a, sep-2026 — PRD_PVE_SUPERADA_SIN_EXTUBAR).
+                         Diego, 2-sep: «PVE superada sin extubar sí existe». Antes
+                         «superada» ERA «se extubó» y obligaba a inventar una hora,
+                         marcar fracasada o perder la prueba. Por defecto Sí
+                         (todo sigue igual); con No se pide la razón y nada de
+                         extubación viaja al servidor. -->
+                    <div id="dPVESupExt" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                      <label style="font-size:.72rem;font-weight:700;color:#15803d;">¿Se extubó?</label>
+                      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #bbf7d0;background:#f0fdf4;">
+                        <input type="radio" name="pveSupExt" value="si" checked onchange="hPveSupExt()"> Sí
+                      </label>
+                      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.78rem;padding:3px 10px;border-radius:6px;border:1px solid #fed7aa;background:#fff7ed;">
+                        <input type="radio" name="pveSupExt" value="no" onchange="hPveSupExt()"> No, sigue en VM
+                      </label>
+                      <select id="fPveSupRaz" class="hidden" onchange="hPveSupExt()" style="height:28px;font-size:.78rem;border:1px solid #fed7aa;border-radius:5px;padding:0 6px;flex:1;min-width:220px;background:#fff;">
+                        <option value="">-- ¿por qué no se extubó? --</option>
+                        <option>Pabellón o procedimiento programado</option>
+                        <option>Indicación médica de mantener soporte</option>
+                        <option>Sin condiciones de vía aérea (tos débil, secreciones)</option>
+                        <option>Se difiere al turno siguiente</option>
+                        <option>Otra</option>
+                      </select>
+                      <input type="text" id="fPveSupDet" class="hidden" placeholder="Describe el motivo (obligatorio con «Otra»)" style="height:28px;border:1px solid #fed7aa;border-radius:6px;padding:0 10px;flex:2;min-width:180px;font-size:.78rem;background:#fff;">
+                    </div>
+                    <div id="dPVESupExtSi">
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                       <label style="font-size:.72rem;font-weight:700;color:#15803d;">Hora extubación:</label>
                       <input type="time" id="fExtHora" style="height:28px;font-size:.78rem;border:1px solid #bbf7d0;border-radius:5px;padding:0 6px;">
@@ -3437,6 +3462,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
                       </div>
                     <!-- El panel «Queda con» (módulo completo) se inserta aquí -->
                     </div>
+                    </div><!-- /dPVESupExtSi -->
                   </div>
 
                   <!-- Fracasada → razón del fracaso → FIN -->
@@ -4525,7 +4551,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.99-guardado-por-episodio]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.00-pve-superada-sin-extubar]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -6083,7 +6109,7 @@ function _podarEventosPayload(p){
   const del=ks=>ks.forEach(k=>{ delete p[k]; });
   const va=v('fVA');
   const pveActivo=(va==='TOT') && !!v('fPVEval');
-  if(!pveActivo) del(['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_SC_DET','PVE_VAL','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO']);
+  if(!pveActivo) del(['PVE_RESULTADO','PVE_FR_MOTIVOS','PVE_SC_RAZON','PVE_SC_DET','PVE_VAL','PVE_SUP_SIN_EXT','PVE_SUP_SIN_EXT_RAZ','EXT_OCURRIO','EXT_HORA','EXT_TS','EXT_TIPO','EXT_MOTIVO','EXT_POST_DET','EXT_PE_VA','EXT_PE_SOP','EXT_PE_MODO']);
   const decanActivo=(va==='TQT') && !!$('cDecanOcurrio')?.checked;
   if(!decanActivo) del(['DECAN_OCURRIO','DECAN_HORA','DECAN_TIPO','DECAN_QUEDA_DISP','DECAN_QUEDA_FLUJO','DECAN_QUEDA_SPO2','DECAN_DET','DECAN_RECANUL']);
   // v4.6: la TQT se anota con la VA previa en TOT (estado previo → evento);
@@ -6425,6 +6451,17 @@ function guardar() {
     _ptG.style.outline='2px solid var(--danger)'; setTimeout(()=>{_ptG.style.outline='';},2500);
     return;
   }
+  // ★ PVE SUPERADA SIN EXTUBAR EXIGE LA RAZÓN (tanda 2a, sep-2026) ★
+  if(_pveSupSinExt() && !_pveSupRazon()){
+    toast('⚠️ La PVE se superó y no se extubó: indica por qué');
+    const sr=$('fPveSupRaz'); if(sr){ sr.scrollIntoView({behavior:'smooth',block:'center'}); sr.focus(); sr.style.outline='2px solid var(--danger)'; setTimeout(()=>{sr.style.outline='';},2500); }
+    return;
+  }
+  if(_pveSupSinExt() && String(v('fPveSupRaz')||'').trim()==='Otra' && !String(v('fPveSupDet')||'').trim()){
+    toast('⚠️ Describe el motivo: «Otra» no dice por sí sola por qué no se extubó');
+    const sd=$('fPveSupDet'); if(sd){ sd.scrollIntoView({behavior:'smooth',block:'center'}); sd.focus(); sd.style.outline='2px solid var(--danger)'; setTimeout(()=>{sd.style.outline='';},2500); }
+    return;
+  }
   // ★ LA RAZÓN DE NO HACER KTM ES OBLIGATORIA (ago-2026, Diego): «no
   // realizada» o «contraindicada» sin el porqué no dice nada clínicamente ★
   if($('bKTMn')?.classList.contains('on') && $('bKTMn').offsetParent!==null && !v('fKTMnoRaz')){
@@ -6727,6 +6764,8 @@ function guardar() {
     PROC_RCP_DET:    bv('cProcRCP') ? v('fRCPdet') : '',
     // ★ PVE diaria
     PVE_RESULTADO:   (document.querySelector('input[name="pveRes"]:checked')?.value)||'',
+    PVE_SUP_SIN_EXT: _pveSupSinExt(),
+    PVE_SUP_SIN_EXT_RAZ: _pveSupRazon(),
     PVE_FR_MOTIVOS:  JSON.stringify(Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value)),
     PVE_SC_RAZON:    v('fPVEval')==='no' && !$('cExtSinPve')?.checked ? v('fPveSCraz') : '',
     PVE_SC_DET:      v('fPVEval')==='no' && !$('cExtSinPve')?.checked ? v('fPveSCdet') : '',
@@ -8140,6 +8179,7 @@ const HJ_F = {
             if(v==='si') return _hjChip('✓ Realizada','ok');
             return _hjChip(v==='nc'?'No corresponde':'No','gray'); }},
   pveRes:{l:'Resultado PVE', per:'t', f:e=>{ const r=String(e.PVE_RESULTADO||''); if(!r) return '';
+            if(/super/i.test(r) && _hjT(e.PVE_SUP_SIN_EXT)) return _hjChip('✓ superada · sin extubar','warn');
             return /super/i.test(r)?_hjChip('✓ '+r,'ok'):_hjChip('✕ '+r,'bad'); }},
   pveMot:{l:'Motivo (fracaso / no PVE)', per:'t', f:e=>{
             const m=_hjJson(e.PVE_FR_MOTIVOS); if(m.length) return m.join(' · ');
@@ -8393,7 +8433,7 @@ function _tlEventosSlot(e){
   const esT=x=>x===true||x==='TRUE';
   const out=[];
   if(esT(e.INTUB_OCURRIO)) out.push(['🫁','Intubación','#b91c1c']);
-  if(e.PVE_RESULTADO==='superada') out.push(['▲','PVE superada','#16a34a']);
+  if(e.PVE_RESULTADO==='superada') out.push(['▲', esT(e.PVE_SUP_SIN_EXT)?'PVE superada (sin extubar)':'PVE superada', esT(e.PVE_SUP_SIN_EXT)?'#b45309':'#16a34a']);
   else if(e.PVE_RESULTADO==='frustra') out.push(['▲','PVE frustra','#dc2626']);
   else if(e.PVE_VAL==='si') out.push(['▲','PVE','#7c3aed']);
   if(esT(e.EXT_OCURRIO)) out.push(['✂️','Extubación','#16a34a']);
@@ -9472,7 +9512,11 @@ function genTexto() {
       const _res=document.querySelector('input[name="pveRes"]:checked')?.value||'';
       const _mots=Array.from(document.querySelectorAll('input[name="pveFrMot"]:checked')).map(c=>c.value);
       const _mstr=_mots.length?_mots.slice(0,-1).join(', ')+((_mots.length>1)?' y ':'')+_mots[_mots.length-1]:'aspectos clínicos';
-      if(_res==='superada'){
+      if(_res==='superada' && _pveSupSinExt()){
+        // Tanda 2a: la prueba se superó y NO se extubó. Espejo en dominio_texto.gs.
+        const _sr=_pveSupRazon();
+        _B('pve'); L.push(`Se realiza PVE con resultado superado. No se extuba${_sr?' por '+_lcIni(_sr):''}; mantiene ventilación mecánica.`);
+      } else if(_res==='superada'){
         _B('pve'); L.push(`Se realiza PVE con resultado superado, progresando a extubación${_horaTxt}.`);
         if(_reint){
           let _rt=`Sin embargo, paciente evoluciona con ${(_rraz||'falla respiratoria').toLowerCase()} por lo que se reintuba${v('fReintubHoraN1')?' a las '+v('fReintubHoraN1')+' hrs':''}${_reintubEquipoTxt()}.`;
@@ -11318,6 +11362,41 @@ function _pveCleanSi(){
   const pe=$('peModo'); if(pe) pe.value=''; renderParamsPE();
   const h=$('fExtHora'); if(h) h.value='';
   const p=$('fPostExtDet'); if(p) p.value='';
+  const se=document.querySelector('input[name="pveSupExt"][value="si"]'); if(se) se.checked=true;
+  ['fPveSupRaz','fPveSupDet'].forEach(id=>{ const e=$(id); if(e) e.value=''; });
+  hPveSupExt();
+}
+/* ── PVE superada SIN extubar (tanda 2a) ──
+   Con «No» se esconde todo lo de la extubación (hora, soporte PE, evaluación
+   post, reintubación anidada) y se pide la razón. Volver a «Sí» recupera el
+   flujo completo y deja la razón vacía (promesa 3 del PRD). */
+function _pveSupSinExt(){
+  if(v('fPVEval')!=='si') return false;
+  if(document.querySelector('input[name="pveRes"]:checked')?.value!=='superada') return false;
+  return document.querySelector('input[name="pveSupExt"]:checked')?.value==='no';
+}
+function _pveSupRazon(){
+  if(!_pveSupSinExt()) return '';
+  const r=String(v('fPveSupRaz')||'').trim(), d=String(v('fPveSupDet')||'').trim();
+  if(!r) return '';
+  return r==='Otra' ? (d?('Otra: '+d):'Otra') : r;
+}
+function hPveSupExt(){
+  const sin=_pveSupSinExt();
+  const si=$('dPVESupExtSi'); if(si) si.classList.toggle('hidden', sin);
+  const sel=$('fPveSupRaz'), det=$('fPveSupDet');
+  if(sel) sel.classList.toggle('hidden', !sin);
+  const esOtra=sin && String(v('fPveSupRaz')||'').trim()==='Otra';
+  if(det) det.classList.toggle('hidden', !esOtra);
+  if(sin){
+    // Nada de extubación puede quedar armado por debajo.
+    const h=$('fExtHora'); if(h) h.value='';
+    const pe=$('peModo'); if(pe && pe.value){ pe.value=''; renderParamsPE(); }
+    const p=$('fPostExtDet'); if(p) p.value='';
+    const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); }
+  } else if(sel){ sel.value=''; if(det) det.value=''; }
+  if(sel) sel.style.borderColor=(sin && !String(v('fPveSupRaz')||'').trim())?'var(--danger)':'#fed7aa';
+  if(typeof _rtxtLive==='function') _rtxtLive();
 }
 function _pveCleanNo(){
   document.querySelectorAll('input[name="extTipo"]').forEach(r=>r.checked=false);
@@ -11439,7 +11518,7 @@ function hPveSCraz(){
 function hPVEres(){
   const res=document.querySelector('input[name="pveRes"]:checked')?.value;
   if(res==='superada'){ show('dPVESuperada'); hide('dPVEFracasada');
-    document.querySelectorAll('input[name="pveFrMot"]').forEach(c=>c.checked=false); }
+    document.querySelectorAll('input[name="pveFrMot"]').forEach(c=>c.checked=false); hPveSupExt(); }
   else if(res==='frustra'){ hide('dPVESuperada'); show('dPVEFracasada');
     const cr=$('cReintub'); if(cr&&cr.checked){ cr.checked=false; hide('dReintubDet'); } }
   else { hide('dPVESuperada'); hide('dPVEFracasada'); }
@@ -11710,7 +11789,8 @@ function renderParamsPE(){
 // ── Helpers unificados PVE ──
 function _extOcurrio(){
   const pve=v('fPVEval');
-  if(pve==='si') return document.querySelector('input[name="pveRes"]:checked')?.value==='superada';
+  // El candado del PRD: «superada» ya no significa «se extubó» por sí sola.
+  if(pve==='si') return document.querySelector('input[name="pveRes"]:checked')?.value==='superada' && !_pveSupSinExt();
   if(pve==='no'){
     // sin extubación declarada no hay extubación, aunque no se haya hecho PVE
     if(!$('cExtSinPve')?.checked) return false;
@@ -11747,7 +11827,7 @@ function _extPeModo(){ return v('fPVEval')==='si'?v('peModo'):v('peModoNo'); }
 function _extPostDet(){ return v('fPVEval')==='si'?v('fPostExtDet'):v('fPostExtDetNo'); }
 function _extTipo(){
   const pve=v('fPVEval');
-  if(pve==='si') return document.querySelector('input[name="pveRes"]:checked')?.value==='superada'?'protocolo':'';
+  if(pve==='si') return (document.querySelector('input[name="pveRes"]:checked')?.value==='superada' && !_pveSupSinExt())?'protocolo':'';
   if(!$('cExtSinPve')?.checked) return '';
   return document.querySelector('input[name="extTipo"]:checked')?.value||'';
 }
@@ -14659,7 +14739,7 @@ function renderStats(d){
   h+='<div class="dash-sec-title">Vía aérea y weaning</div><div class="kpi-grid">';
   h+=_kpi('Intubaciones', ev.intubaciones, '', '#dc2626');
   h+=_kpi('Extubaciones', ev.extubaciones, `${ev.extubProgramadas||0} programadas · ${ev.autoextubaciones||0} autoext.`, '#16a34a');
-  h+=_kpi('PVE éxito', (ev.pveExitoPct||0)+'%', `${ev.pveSuperadas||0} superadas · ${ev.pveFrustras||0} frustras`, '#7c3aed');
+  h+=_kpi('PVE éxito', (ev.pveExitoPct||0)+'%', `${ev.pveSuperadas||0} superadas${ev.pveSupSinExt?` (${ev.pveSupSinExt} sin extubar)`:''} · ${ev.pveFrustras||0} frustras`, '#7c3aed');
   h+=_kpi('PVE no realizadas', pv.noRealizadas, `${ev.pveRealizadas||0} turnos con PVE realizada`, '#a21caf');
   h+=_kpi('Reintubaciones', ev.reintubaciones, `tasa ${ev.tasaReintubPct||0}% de las extubaciones`, '#b91c1c');
   h+=_kpi('Decanulaciones', ev.decanulaciones, `${ev.recanulaciones||0} recanulaciones`, '#0d9488');
