@@ -462,9 +462,11 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   derecha, ➕ verde al seleccionar frases, se aplica sola, comodines por dato
   y por bloque). Detalle y trampas en BITACORA v6.04.
 - 🎂 **Cumpleaños: CERRADO** (Diego, 6-sep: «cierra los cumpleaños con
-  Rodrigo pendiente»). La lista se escribe directo en `KINESIOLOGOS.CUMPLE`
-  (dd-mm), nunca en el código; la fecha de Rodrigo queda en blanco hasta que
-  la mande.
+  Rodrigo pendiente»; el 6-sep mandó la fecha que faltaba). La lista se
+  escribe directo en `KINESIOLOGOS.CUMPLE` (dd-mm) y **la escribe Diego en la
+  planilla**: son datos personales de los funcionarios y este repo es
+  público, así que ninguna fecha se anota aquí ni en el código — ni siquiera
+  «de paso» al cerrar un pendiente.
 - 🔒 Seguridad (Diego, 6-sep): la clave de Synapse la maneja el hospital (no
   depende de nosotros); **pendiente poner el repo en privado** (lo hace Diego
   en GitHub: Settings → General → Danger zone → Change visibility).
