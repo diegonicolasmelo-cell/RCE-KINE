@@ -77,6 +77,9 @@ function api(accion, datos, token) {
       case 'PLANTILLA_GUARDAR':  return _auditar(ctx, accion, () => plantillaGuardar(datos, ctx), datos);
       case 'PLANTILLA_RETIRAR':  return _auditar(ctx, accion, () => plantillaDesactivar(datos), datos);
       case 'GSA_IMPORTAR':       return _auditar(ctx, accion, () => gsaImportarPendientes(ctx), datos);
+      case 'GET_GSA_PENDIENTES': return gsaPendientes();
+      case 'GSA_ASIGNAR':        return _auditar(ctx, accion, () => gsaAsignar(datos, ctx), datos);
+      case 'GSA_DESCARTAR':      return _auditar(ctx, accion, () => gsaDescartar(datos, ctx), datos);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
 
       // ── Escrituras (auditadas) ──

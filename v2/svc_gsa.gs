@@ -329,6 +329,141 @@ function gsaDeEpisodio(patientId) {
   } catch (e) { return []; }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   LA BANDEJA: EMPAREJAR A MANO DESDE LO QUE YA ESTÁ EN LA BASE
+   ──────────────────────────────────────────────────────────────────────────
+   Diego, 6-sep-2026: «si la info está en base de datos, ¿no es más fácil
+   emparejar desde ahí a la hoja de registro?». Sí — y era el plan desde el
+   PRD («si no se puede emparejar con certeza, el archivo queda en una bandeja
+   para hacerlo a mano»), solo que la bandeja nunca se construyó.
+
+   Lo que SÍ queda en la fila sin emparejar: los valores, la petición, el
+   nombre del archivo, y la fecha y hora si el parser las alcanzó a leer.
+   Lo que NO queda, a propósito: el RUT y el nombre del paciente. La regla
+   dura de privacidad dice que sin certeza no se guarda identidad, así que
+   NO hay nada en la base con qué re-emparejar solo: la máquina ya hizo su
+   intento y falló. Lo que falta lo pone una PERSONA, que es lo que aquí se
+   hace posible con dos clics.
+
+   La ayuda que sí se puede dar sin adivinar: Diego nombra los PDF por cama
+   («gsa7.pdf» = cama 7), así que el número del nombre se ofrece como
+   SUGERENCIA — se muestra la cama y quién está en ella, y él confirma. Nunca
+   se asigna solo por el nombre de un archivo: un PDF mal nombrado pondría un
+   gas en la cama equivocada, que es justo lo que la regla dura evita.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** El número de cama que sugiere el nombre del archivo («gsa7.pdf» → '7'). */
+function _gsaCamaDelNombre(nombre) {
+  const m = String(nombre || '').replace(/\.pdf$/i, '').match(/gsa\D{0,2}(\d{1,2})/i);
+  return m ? String(parseInt(m[1], 10)) : '';
+}
+
+/**
+ * gsaPendientes — lo que quedó sin emparejar, para la bandeja de la app.
+ * Devuelve los valores tal cual (para reconocer el examen), el nombre del
+ * archivo, y la cama que sugiere ese nombre SI esa cama está ocupada.
+ * `vacio` marca el PDF que no se pudo leer: asignarlo no sirve de nada, hay
+ * que volver a importarlo.
+ */
+function gsaPendientes() {
+  try {
+    const ocupadas = {};
+    repoLeerTodos('CAMAS_ESTADO').forEach(function (c) {
+      if (esVerdadero(c.OCUPADA) && c.PATIENT_ID) ocupadas[String(c.ID_CAMA)] = String(c.PATIENT_ID);
+    });
+    const out = repoLeerFiltrado('GSA_IMPORTADAS', 'ESTADO', function (v) { return String(v) === 'sin_emparejar'; })
+      .map(function (g) {
+        const sug = _gsaCamaDelNombre(g.ARCHIVO);
+        const vals = {};
+        ['PH', 'PACO2', 'PAO2', 'HCO3', 'EB', 'SATO2', 'FIO2', 'PAFI', 'LACTATO',
+          'HB', 'HTO', 'PLAQUETAS', 'INR', 'K', 'NA', 'GLICEMIA', 'PCR'].forEach(function (k) {
+            if (g[k] !== '' && g[k] !== null && g[k] !== undefined) vals[k] = g[k];
+          });
+        return { ID_GSA: String(g.ID_GSA), FECHA: String(g.FECHA || ''), HORA: String(g.HORA || ''),
+          ARCHIVO: String(g.ARCHIVO || ''), PETICION: String(g.PETICION || ''), DETALLE: String(g.DETALLE || ''),
+          TS_IMPORT: String(g.TS_IMPORT || ''), valores: vals, vacio: Object.keys(vals).length === 0,
+          camaSugerida: (sug && ocupadas[sug]) ? sug : '' };
+      })
+      .sort(function (a, b) { return String(b.TS_IMPORT).localeCompare(String(a.TS_IMPORT)); });
+    return ok({ pendientes: out });
+  } catch (e) { return err('gsaPendientes: ' + e.message, ERR.INTERNO, e); }
+}
+
+/**
+ * gsaAsignar — una persona dice de qué cama es este gas. {idGsa, idCama,
+ * fecha, hora}. La fecha y la hora solo se piden si el informe no las traía;
+ * con ellas se calcula el turno con la MISMA regla del importador.
+ */
+function gsaAsignar(datos, ctx) {
+  return conLock(function () {
+    try {
+      const d = datos || {};
+      const id = String(d.idGsa || '');
+      if (!id) return err('Falta el gas que se quiere asignar.', ERR.VALIDACION);
+      const fila = repoLeerTodos('GSA_IMPORTADAS', 'ID_GSA', id)[0];
+      if (!fila) return err('Ese gas ya no está en la bandeja.', ERR.VALIDACION);
+      if (String(fila.ESTADO) !== 'sin_emparejar') {
+        return err('Ese gas ya no está sin emparejar (quedó «' + fila.ESTADO + '»).', ERR.VALIDACION);
+      }
+      const idCama = String(d.idCama || '');
+      const cama = repoLeerTodos('CAMAS_ESTADO', 'ID_CAMA', idCama)[0];
+      if (!cama || !esVerdadero(cama.OCUPADA) || !cama.PATIENT_ID) {
+        return err('La cama ' + (idCama || '—') + ' no tiene un paciente hospitalizado.', ERR.VALIDACION);
+      }
+      const fecha = String(d.fecha || fila.FECHA || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return err('Falta la fecha de la toma (el informe no la traía).', ERR.VALIDACION);
+      const hora = String(d.hora || fila.HORA || '').slice(0, 5);
+      if (!/^\d{2}:\d{2}$/.test(hora)) return err('Falta la hora de la toma (el informe no la traía).', ERR.VALIDACION);
+      // La misma petición no puede quedar cargada dos veces.
+      if (fila.PETICION) {
+        const rep = repoLeerFiltrado('GSA_IMPORTADAS', 'PETICION', function (v) { return String(v) === String(fila.PETICION); })
+          .some(function (g) { return String(g.ESTADO) === 'ok' && String(g.ID_GSA) !== id; });
+        if (rep) return err('Ese examen (petición ' + fila.PETICION + ') ya está cargado en un paciente.', ERR.VALIDACION);
+      }
+      const tl = turnoLogicoServidor(fecha, hora);
+      const quien = (ctx && ctx.firma) ? ctx.firma : 'la unidad';
+      repoActualizar('GSA_IMPORTADAS', 'ID_GSA', id, {
+        PATIENT_ID: String(cama.PATIENT_ID), ID_CAMA: idCama, FECHA: fecha, HORA: hora,
+        TURNO_KEY: tl.turnoKey, ESTADO: 'ok', DETALLE: 'asignado a mano por ' + quien,
+      });
+      // El PDF sigue el mismo camino que los emparejados solos: a «copiados».
+      try {
+        if (fila.ARCHIVO_ID) {
+          const carpeta = _gsaCarpeta();
+          DriveApp.getFileById(String(fila.ARCHIVO_ID)).moveTo(_gsaSub(carpeta, GSA_SUB_COPIADOS));
+        }
+      } catch (e) { /* que el archivo no se pueda mover no invalida el dato */ }
+      return ok({ idGsa: id, idCama: idCama, patientId: String(cama.PATIENT_ID), fecha: fecha, hora: hora,
+        turnoKey: tl.turnoKey, accion: 'gsa_asignar', entidad: 'GSA_IMPORTADAS' });
+    } catch (e) { return err('gsaAsignar: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/**
+ * gsaDescartar — este informe no es de la unidad (o es un duplicado en papel).
+ * No se borra la fila: queda «descartado» con quién y por qué, y el PDF se va
+ * a «copiados» para que la bandeja no lo vuelva a mostrar.
+ */
+function gsaDescartar(datos, ctx) {
+  return conLock(function () {
+    try {
+      const id = String((datos || {}).idGsa || '');
+      const fila = id ? repoLeerTodos('GSA_IMPORTADAS', 'ID_GSA', id)[0] : null;
+      if (!fila) return err('Ese gas ya no está en la bandeja.', ERR.VALIDACION);
+      if (String(fila.ESTADO) !== 'sin_emparejar') return err('Ese gas ya no está sin emparejar.', ERR.VALIDACION);
+      const quien = (ctx && ctx.firma) ? ctx.firma : 'la unidad';
+      const motivo = String((datos || {}).motivo || '').slice(0, 120);
+      repoActualizar('GSA_IMPORTADAS', 'ID_GSA', id, {
+        ESTADO: 'descartado', DETALLE: 'descartado por ' + quien + (motivo ? ': ' + motivo : ''),
+      });
+      try {
+        if (fila.ARCHIVO_ID) DriveApp.getFileById(String(fila.ARCHIVO_ID)).moveTo(_gsaSub(_gsaCarpeta(), GSA_SUB_COPIADOS));
+      } catch (e) { /* igual que arriba */ }
+      return ok({ idGsa: id, accion: 'gsa_descartar', entidad: 'GSA_IMPORTADAS' });
+    } catch (e) { return err('gsaDescartar: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
 /** Disparador diario (06:30 ± 15 min): los resultados llegan ~06:00, la hoja se imprime a las 07:00. */
 function instalarTriggerGSA() {
   const ya = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'gsaImportarDesdeTrigger'; });
