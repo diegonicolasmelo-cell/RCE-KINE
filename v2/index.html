@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.13-carga-de-cumpleanos">
+<meta name="rce-version" content="6.14-manda-la-cama">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4719,7 +4719,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.13-carga-de-cumpleanos]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.14-manda-la-cama]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -6098,14 +6098,36 @@ function fillFormReplica(s) {
     hSecrAuto();   // 'auto' replicado apaga características/reología también al cargar
   }
 
-  // Vía aérea — prioriza estado FINAL si hubo extubación en turno anterior.
-  // fillCama ya dejó la VA vigente de la cama; solo se sobrescribe si el valor
-  // replicado es válido (evita que un dato vacío/basura borre la selección).
+  /* Vía aérea heredada — 🪤 MANDA LA CAMA, NO EL TURNO ANTERIOR.
+     (7-sep-2026, reportado por Diego desde el uso: «evolucionó al paciente de
+     la cama 17, registró PVE no, PERO NO EXTUBÓ, y le reinició los días de VM
+     y de TOT a 0».)
+     CAUSA: aquí se copiaba el estado FINAL del turno anterior POR ENCIMA de lo
+     que dice la cama. Con una fila previa que terminaba en «Natural /
+     Ambiente», el formulario se abría diciendo que el paciente ya no tenía
+     tubo —aunque la cama decía TOT— y los contadores seguían mostrando sus 13
+     días, así que nada se veía raro. Al guardar, el servidor leía «Natural»,
+     concluía que la vía aérea había cambiado, borraba FECHA_INICIO_VA y
+     pasaba el soporte a Ambiente: días de VM y de TOT a 0. La PVE no tuvo
+     nada que ver — solo fue el turno en que le tocó guardar.
+     REGLA: la CAMA es el estado vigente (la actualiza cada guardado y cada
+     corrección de coordinación); la fila del turno anterior es una foto que
+     puede haber envejecido. Si discrepan, manda la cama. El estado final del
+     turno anterior solo se usa cuando la cama no dice nada, y el soporte y el
+     modo se replican únicamente si las dos coinciden en la vía aérea. */
+  const _vaCama = String((DB.find(x=>String(x.ID_CAMA)===String(v('cBed')))||{}).VIA_AEREA||'').trim();
   const _vaF = String(s.VENT_VIA_AEREA_FINAL||s.VENT_VIA_AEREA||'').trim();
   const _sopF = s.VENT_SOPORTE_FINAL||s.VENT_SOPORTE;
   const _modoF = s.VENT_MODO_FINAL||s.VENT_MODO;
-  if(_VA_VALIDAS.includes(_vaF)){ $('fVA').value=_vaF; cascadeVA(_sopF); }
-  if(_sopF) cascadeSop(_modoF);
+  if(!_VA_VALIDAS.includes(_vaCama)){
+    // La cama no tiene vía aérea válida: ahí sí sirve lo del turno anterior.
+    if(_VA_VALIDAS.includes(_vaF)){ $('fVA').value=_vaF; cascadeVA(_sopF); }
+    if(_sopF) cascadeSop(_modoF);
+  } else if(_vaF === _vaCama){
+    // Coinciden: se replica el soporte y el modo, que es la continuidad útil.
+    if(_sopF) cascadeSop(_modoF);
+  }
+  // Si discrepan no se toca nada: fillCama ya dejó puesta la vía aérea de la cama.
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM);
   set('fTOTfij',s.TOT_FIJACION); // posición/fijación del TOT: persiste turno a turno
   set('fTQTn',s.VENT_TQT_CALIBRE); set('fTQTt',s.VENT_TQT_TIPO);
