@@ -115,6 +115,31 @@ const CAMA = { ID_CAMA: '17', OCUPADA: true, NOMBRE: 'PACIENTE 17', PATIENT_ID: 
     manotazo.conEvento.dVM !== manotazo.llegada.dVM || manotazo.conEvento.dTOT !== manotazo.llegada.dTOT);
   await p.close();
 
+  /* ── 1c · LOS TRAMOS DE VM SE SUMAN Y NO SE PIERDEN ──
+     Regla de Diego (7-sep-2026): «los días de VM se cuentan corridos desde la
+     primera intubación pero son efectivos hasta la extubación; si requiere
+     reintubación se suma a un total de VM, pero son días nuevos de VM desde la
+     reintubación». O sea: total = tramos anteriores + tramo vigente, y el
+     tramo vigente arranca en la reintubación. */
+  console.log('\n1c · Tras una reintubación, el total de VM se conserva turno a turno');
+  p = await abrir({ TURNO_KEY: '2026-09-06-Noche', VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM',
+    VENT_MODO: 'ACVC', VENT_VIA_AEREA_FINAL: 'TOT', VENT_SOPORTE_FINAL: 'VM',
+    DIAS_VM_PREVIOS: 3, N_REINTUB: 1, PLAN_FIRMA_KINE: 'ALN' });
+  const tramos = await p.evaluate(() => ({ previos: _diasVMPrevios, nReintub: _nReintub,
+    muestra: v('fDiasVM'), etiqueta: document.getElementById('lblDiasVM').textContent }));
+  eq('★ el turno nuevo conserva los 3 días del tramo anterior', tramos.previos, 3);
+  eq('★ …y las reintubaciones del episodio', tramos.nReintub, 1);
+  eq('★ el campo muestra total/episodio, no solo el tramo vigente (3 previos + 13 del tramo)', tramos.muestra, '16/13');
+  eq('…con su etiqueta', tramos.etiqueta, 'VM tot/ep');
+  await p.close();
+  // Sin reintubaciones no se inventa nada: un solo tramo se ve como siempre.
+  p = await abrir({ TURNO_KEY: '2026-09-06-Noche', VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM',
+    VENT_MODO: 'ACVC', VENT_VIA_AEREA_FINAL: 'TOT', VENT_SOPORTE_FINAL: 'VM', PLAN_FIRMA_KINE: 'ALN' });
+  const unTramo = await p.evaluate(() => ({ previos: _diasVMPrevios, muestra: v('fDiasVM'),
+    etiqueta: document.getElementById('lblDiasVM').textContent }));
+  si('un episodio de un solo tramo se ve como siempre', unTramo.previos === 0 && unTramo.etiqueta === 'Días VM' && unTramo.muestra === '13');
+  await p.close();
+
   console.log('\n2 · Si el turno anterior discrepa de la cama, manda la CAMA');
   p = await abrir({ TURNO_KEY: '2026-09-06-Noche', VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM',
     VENT_MODO: 'ACVC', VENT_VIA_AEREA_FINAL: 'Natural', VENT_SOPORTE_FINAL: 'Ambiente',
