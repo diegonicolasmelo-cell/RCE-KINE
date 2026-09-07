@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.18-deshacer-por-el-blanco">
+<meta name="rce-version" content="6.19-nada-se-pisa-sin-guardar">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4719,7 +4719,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.18-deshacer-por-el-blanco]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.19-nada-se-pisa-sin-guardar]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5521,7 +5521,9 @@ function _snapPanel() {
       _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
       _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
       _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
-      _iniVA, _iniSop, _iniDias: _iniDias?{..._iniDias}:null, _transAvisoOk, _secrHeredado,
+      _iniVA, _iniSop, _iniDias: _iniDias?{..._iniDias}:null,
+      _iniCampos: _iniCampos?{..._iniCampos}:null, _iniKTM,
+      _transAvisoOk, _secrHeredado,
       _rtxtGen, _textoManual, _formDirty, _faseHeredada,
     },
   };
@@ -5551,7 +5553,8 @@ function _restaurarMin(m) {
   _vaAnterior = V._vaAnterior; _vmHistFlag = V._vmHistFlag; _evoEventoGuardado = V._evoEventoGuardado;
   _transIntubEsteTurno = V._transIntubEsteTurno; _vaAntesIntub = V._vaAntesIntub;
   _dispSnapshot = V._dispSnapshot; _totSnapshot = V._totSnapshot; _tqtSnapshot = V._tqtSnapshot;
-  _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _iniDias = V._iniDias || null; _transAvisoOk = !!V._transAvisoOk;
+  _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _iniDias = V._iniDias || null;
+  _iniCampos = V._iniCampos || null; _iniKTM = (V._iniKTM == null ? null : V._iniKTM); _transAvisoOk = !!V._transAvisoOk;
   _secrHeredado = !!V._secrHeredado;
   _rtxtGen = V._rtxtGen || ''; _setTextoManual(!!V._textoManual);
   _formDirty = !!V._formDirty; _faseHeredada = !!V._faseHeredada;
@@ -6366,8 +6369,49 @@ function _podarEventosPayload(p){
 /* El estado de LLEGADA del panel: con qué vía aérea y soporte se abrió, y con
    qué contadores. Se toma en los cuatro caminos de apertura, después de
    rellenar. Sirve para deshacer un manotazo en el select (ver cascadeVA). */
+/* ── Deshacer una cascada clínica (Diego, 7-sep-2026: «que se restaure a lo
+   que había al abrir el panel») ──────────────────────────────────────────────
+   Probando los 99 controles apareció que varias cascadas ACTÚAN bien pero no
+   se REVIERTEN: marcar BNM pone Glasgow 1/1, S5Q<3, «No cooperador» y KTM
+   contraindicada —todo correcto—, pero desmarcarlo dejaba al paciente marcado
+   como no cooperador y con una contraindicación absoluta que nadie escribió.
+   Igual con SAS, con el Glasgow, y con la humidificación activa, que borra la
+   fecha del filtro HME y no la repone.
+   REGLA: si el control vuelve al valor con el que se ABRIÓ el panel, lo que su
+   cascada escribió vuelve también. Es para el error —el manotazo—, no para
+   deshacer lo que alguien decidió a conciencia: mientras el control esté en
+   otro valor, la cascada manda. */
+const _CASCADAS={
+  fVA:   ['fGCSV'],
+  cBNM:  ['fGCSO','fGCSV','fGCSM','fS5Q','fCoop','fKTMct','fKTMcat','fKTMraz','fKTMcontra'],
+  fSAS:  ['fGCSO','fGCSV','fGCSM','fS5Q','fCoop'],
+  fGCSO: ['fS5Q','fCoop'], fGCSV: ['fS5Q','fCoop'], fGCSM: ['fS5Q','fCoop'],
+  fS5Q:  ['fCoop'],
+  cHAct: ['fFecHME'],
+  cTqtO: ['poTqtModo'], cIntubO: ['poIntubModo'], poReintubSop: ['poReintubModo'],
+};
+const _CASC_KTM=['cBNM','fSAS'];   // además devuelven el estado de la KTM
+function _campoVal(id){ const e=$(id); return e ? ((e.type==='checkbox'||e.type==='radio')?String(e.checked):String(e.value||'')) : null; }
+function _campoPon(id,val){ const e=$(id); if(!e||val==null) return;
+  if(e.type==='checkbox'||e.type==='radio') e.checked=(val==='true'); else e.value=val; }
+function _ktmEstado(){ return $('bKTMr')?.classList.contains('on')?'r':($('bKTMs')?.classList.contains('on')?'s':($('bKTMn')?.classList.contains('on')?'n':'')); }
+/** Si el disparador volvió a su valor de llegada, se restaura lo que tocó. */
+function _deshacerCascada(id){
+  if(!_iniCampos || !_CASCADAS[id]) return;
+  if(_campoVal(id)!==_iniCampos[id]) return;         // sigue cambiado: manda la cascada
+  _CASCADAS[id].forEach(k=>_campoPon(k,_iniCampos[k]));
+  if(_CASC_KTM.indexOf(id)!==-1 && typeof setKTMstate==='function' && _iniKTM!=null) setKTMstate(_iniKTM);
+  try{ if(typeof calcGCS==='function') calcGCS(); }catch(e){}
+  try{ if(typeof aplicarGatesEval==='function') aplicarGatesEval(); }catch(e){}
+  try{ if(typeof calcInsumosDias==='function') calcInsumosDias(); }catch(e){}
+}
 function _snapIniEstado(){
   _iniVA=v('fVA')||''; _iniSop=v('fSop')||'';
+  _iniCampos={}; Object.keys(_CASCADAS).forEach(k=>{
+    _iniCampos[k]=_campoVal(k);
+    _CASCADAS[k].forEach(d=>{ if(_iniCampos[d]===undefined) _iniCampos[d]=_campoVal(d); });
+  });
+  _iniKTM=_ktmEstado();
   _iniDias={ _diasVABase, _diasTOTBase, _diasTQTBase, _fechaInicioVA, _fechaInicioTQT,
     _diasVMEpisodio, _diasVMPrevios, _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
     _transIntubEsteTurno };
@@ -9060,6 +9104,11 @@ function _bindPanelListeners(){
   $('kf')?.addEventListener('change', ()=>{ _formDirty=true; });
 }
 _bindPanelListeners();
+/* El deshacer va enganchado al FORMULARIO y no dentro de cada manejador: al
+   burbujear, este oyente corre DESPUÉS del `onchange` propio del control, que
+   es justo cuando hay que mirar si la cascada dejó algo que devolver. */
+$('kf')?.addEventListener('change', ev=>{ const id=ev.target && ev.target.id;
+  if(id && _CASCADAS[id]) { try{ _deshacerCascada(id); }catch(e){} } });
 
 /* previewTexto — el botón 👁️ Preview SALIÓ de la barra de acciones (Diego,
    30-ago-2026: «solamente existirá botón de guardar»). El texto vive siempre a
@@ -11442,6 +11491,8 @@ let _fechaInicioVNI='';  // fecha inicio VNI actual
 let _diasVMSellado='';
 let _diasVNISellado='';
 let _iniDias=null;       // contadores con los que se abrió el panel (para deshacer)
+let _iniCampos=null;     // campos que tocan las cascadas, como llegaron
+let _iniKTM=null;        // estado de la KTM al abrir (lo cambian BNM y SAS 1)
 let _vaAnterior='';      // VA previa para detectar transiciones
 let _vmHistFlag=false;   // historial de VM detectado en los datos cargados (evo previa / cama)
 let _evoEventoGuardado=false; // el turno cargado YA tiene un evento único guardado (extub/PVE/decan/intub/reintub)

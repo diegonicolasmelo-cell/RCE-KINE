@@ -19,6 +19,33 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.19-nada-se-pisa-sin-guardar (7-sep-2026) — las ocho cascadas se deshacen; 0 de 99
+
+Diego, decidiendo sobre el informe de las ocho cascadas: **«que restaure lo que
+había al abrir el panel. Aunque entiendo que es solo en caso de error, entonces
+que se restaure a lo que había al abrir el panel.»**
+
+- **Deshacer simétrico, con una regla sola**: si el control vuelve al valor con
+  el que se ABRIÓ el panel, lo que su cascada escribió vuelve también. Mientras
+  el control esté en otro valor, **la cascada manda** — no se toca lo que
+  alguien decidió a conciencia; esto es para el manotazo.
+- La mecánica no vive dentro de cada manejador: hay una tabla `_CASCADAS`
+  (disparador → campos que toca) y un oyente en el FORMULARIO. Al burbujear
+  corre DESPUÉS del `onchange` propio del control, que es cuando hay que mirar
+  si quedó algo por devolver. Agregar una cascada nueva es una línea en la
+  tabla, no un `if` escondido en otra función.
+- Cubre: `fVA`→Glasgow verbal (el «1T» del intubado), `cBNM`→Glasgow, S5Q,
+  cooperación, KTM contraindicada **y el estado de la KTM**, `fSAS` y los tres
+  Glasgow→la cadena de cooperación, `cHAct`→la fecha del filtro HME, y los
+  tres modos por defecto de los paneles «queda con». Sobrevive a minimizar.
+- **Resultado medido: 0 de 99 controles dejan rastro** (eran 9).
+- Guardia nueva **`panel_no_pisa_datos.js`**: la misma prueba, permanente.
+  Falla si un control nuevo —o un cambio en uno viejo— vuelve a modificar
+  datos sin guardar. Es la red que faltaba: hasta hoy esta familia de errores
+  solo se descubría en el hospital, con un paciente real de por medio.
+  Batería **122 guardias**, todas verdes.
+- Sin esquema; se pegan **index + servicios + api + esquema + mantenimiento**.
+
 ## v6.18-deshacer-por-el-blanco (7-sep-2026) — se probaron los 99 controles del panel, uno por uno
 
 Diego: «quedé bastante preocupado con los datos que se pierden durante la
