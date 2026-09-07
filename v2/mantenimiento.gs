@@ -830,7 +830,10 @@ function _relojesDeLaUnidad() {
       conEvento[String(e.PATIENT_ID || '') + '|' + String(e.ID_CAMA || '')] = true;
     }
   });
-  const L = ['⏱️ RELOJES DE LA UNIDAD   (hoy: ' + hoy + ')', ''];
+  // El encabezado dice CUÁNTAS se revisaron: sin ese número, ver una sola cama
+  // marcada se confunde con «revisó una sola cama» (le pasó a Diego, 7-sep).
+  const L = ['⏱️ RELOJES DE LA UNIDAD   (hoy: ' + hoy + ')',
+    '   ' + camas.length + ' camas ocupadas revisadas', ''];
   const sospechosas = [];
   camas.forEach(function (c) {
     const id = String(c.ID_CAMA);
@@ -857,7 +860,8 @@ function _relojesDeLaUnidad() {
     // que pedirle a alguien que llame a la función con la cama no sirve de nada.
     sospechosas.forEach(function (n) { L.push('', '  ────────────────────────────────────────', revisarRelojesCama(n)); });
   }
-  L.push('', '  👉 Para corregir una fecha: 🔐 COORDINACIÓN → corregir ficha. Ahí queda protegida.');
+  L.push('', '  Revisadas ' + camas.length + ' camas · con el reloj sospechoso: ' + sospechosas.length + '.');
+  L.push('  👉 Para corregir una fecha: 🔐 COORDINACIÓN → corregir ficha. Ahí queda protegida.');
   const txt = L.join('\n');
   Logger.log(txt);
   return txt;
