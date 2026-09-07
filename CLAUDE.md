@@ -355,7 +355,10 @@ si tiene más de unos días, se confirma antes de usarla.
   **la v6.16** (equivocarse en el select de vía aérea y volver atrás ya no
   destruye los contadores: `_snapIniEstado` guarda el estado de llegada y
   `cascadeVA` lo restaura si no hay evento declarado; PRD de Diego en
-  BITACORA v6.16). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  BITACORA v6.16) y **la v6.17** (el total de VM se perdía al turno siguiente:
+  `fillFormReplica` no reponía DIAS_VM_PREVIOS ni N_REINTUB, así que un
+  episodio reintubado perdía su tramo anterior en silencio —«13» en vez de
+  «16/13»— y eso viajaba al REM). 🔜 **Pendiente que dejó anotado Diego**: la carilla
   2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
   correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
@@ -937,6 +940,14 @@ Está publicado y **es el mejor punto de entrada para retomar**:
 
 ### Reglas clínicas que conviene tener a mano
 
+- ⏱️ **CÓMO SE CUENTAN LOS DÍAS DE VM** (Diego, 7-sep-2026, textual): «se
+  cuentan corridos desde la primera intubación **pero son efectivos hasta la
+  extubación**; si requiere reintubación **se suma a un total de VM**, pero
+  son **días nuevos de VM desde la reintubación**». O sea: total = tramos
+  anteriores (`DIAS_VM_PREVIOS`) + tramo vigente (desde el ancla de la cama),
+  y la pantalla lo muestra como «VM tot/ep» cuando hubo reintubaciones. Los
+  días de ESTADÍA son otro reloj (`FECHA_INGRESO`) y no se detienen nunca.
+  Guardia: `pve_no_toca_los_dias` bloque 1c.
 - 🫁 **UNA PVE SUPERADA NO SIEMPRE TERMINA EN EXTUBACIÓN** (Diego, 2-sep-2026:
   «sí existe»). El formulario **hoy asume que sí**: al marcar «superada» pide la
   hora de extubación y `_extOcurrio()` (index ~11390) devuelve verdadero. Eso

@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.16-deshacer-el-manotazo">
+<meta name="rce-version" content="6.17-los-tramos-de-vm-se-suman">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4719,7 +4719,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.16-deshacer-el-manotazo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.17-los-tramos-de-vm-se-suman]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -6128,6 +6128,23 @@ function fillFormReplica(s) {
     if(_sopF) cascadeSop(_modoF);
   }
   // Si discrepan no se toca nada: fillCama ya dejó puesta la vía aérea de la cama.
+
+  /* 🔴 LOS TRAMOS ANTERIORES DE VM VIAJAN TURNO A TURNO (7-sep-2026).
+     Regla de Diego: «los días de VM se cuentan corridos desde la primera
+     intubación, pero son efectivos hasta la extubación; si requiere
+     reintubación se suma a un total de VM, pero son días nuevos de VM desde la
+     reintubación». El total vive en DIAS_VM_PREVIOS —al extubar, los días del
+     tramo se pliegan ahí— y el tramo vigente sale del ancla de la cama.
+     🪤 `fillForm` (reabrir el turno propio) sí los restauraba, pero
+     `fillFormReplica` NO: en el PRIMER turno nuevo tras una reintubación,
+     `fillCama` los dejaba en 0 y el guardado escribía 0. El paciente perdía
+     sus tramos anteriores en silencio —el «6/3» volvía a ser «3» y la etiqueta
+     «VM tot/ep» desaparecía—, que es justo lo contrario de la regla.
+     El tramo vigente NO se toca aquí: manda el ancla de la cama (v6.14). */
+  _diasVMPrevios  = parseInt(s.DIAS_VM_PREVIOS)  || 0;
+  _diasVNIPrevios = parseInt(s.DIAS_VNI_PREVIOS) || 0;
+  _nReintub       = parseInt(s.N_REINTUB)        || 0;
+  actualizarContadores();
   set('fTOTn',s.VENT_TOT_NUM); set('fTOTcm',s.VENT_TOT_CM);
   set('fTOTfij',s.TOT_FIJACION); // posición/fijación del TOT: persiste turno a turno
   set('fTQTn',s.VENT_TQT_CALIBRE); set('fTQTt',s.VENT_TQT_TIPO);

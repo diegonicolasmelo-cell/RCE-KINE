@@ -19,6 +19,37 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.17-los-tramos-de-vm-se-suman (7-sep-2026) — el total de VM se perdía al turno siguiente
+
+Diego, al preguntarle cómo cuenta la unidad: «los días de VM se cuentan
+corridos desde la primera intubación **pero son efectivos hasta la
+extubación**; si requiere reintubación **se suma a un total de VM**, pero son
+**días nuevos de VM desde la reintubación**».
+
+- Esa regla ya estaba programada: al extubar, los días del tramo se pliegan a
+  `DIAS_VM_PREVIOS`; al reintubar, `FECHA_INICIO_VM` arranca de nuevo; y la
+  pantalla muestra «VM tot/ep» con total y tramo vigente. **No hacía falta
+  ningún PRD ni modelo nuevo.**
+- 🔴 **Pero el total se perdía.** `fillForm` (reabrir el turno propio) sí
+  restauraba `DIAS_VM_PREVIOS` y `N_REINTUB`; **`fillFormReplica` no**. En el
+  PRIMER turno nuevo tras una reintubación, `fillCama` los dejaba en 0, nadie
+  los reponía, y el guardado escribía 0: los tramos anteriores desaparecían en
+  silencio. Medido con la guardia: un paciente con 3 días previos + 13 del
+  tramo mostraba **«13»** en vez de **«16/13»**, y la etiqueta «VM tot/ep»
+  desaparecía. El error se comía un tramo entero de VM por episodio
+  reintubado — y eso va al REM.
+- **ARREGLO**: `fillFormReplica` repone los tres acumuladores del turno
+  anterior (`DIAS_VM_PREVIOS`, `DIAS_VNI_PREVIOS`, `N_REINTUB`). El tramo
+  vigente NO se toca: manda el ancla de la cama (regla de la v6.14).
+- Guardia `pve_no_toca_los_dias` bloque 1c, con la regla de Diego citada.
+  **Verificada su capacidad de detección**: sin el arreglo se pone roja en los
+  tres asserts.
+- 🪤 Al escribir la guardia puse «6/3» de memoria y salió «16/13»: la cama del
+  arnés lleva 13 días de tramo, no 3. Era la expectativa la equivocada, no el
+  código — conviene leer el número antes de acusar.
+- Batería 121 verdes. Sin esquema; se pegan **index + servicios + api +
+  esquema + mantenimiento**.
+
 ## v6.16-deshacer-el-manotazo (7-sep-2026) — equivocarse en el select ya no destruye los días
 
 PRD dictado por Diego, con su historia:
