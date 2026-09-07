@@ -19,6 +19,54 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.14-manda-la-cama (7-sep-2026) — la cama 17 amaneció con los días en 0
+
+Diego, desde el uso: «Aline evolucionó al paciente de la cama 17, registró
+PVE/extubación: **no** —PERO NO EXTUBÓ— y le reinició los días de VM y de TOT
+a 0. Recuerda que PVE no significa extubar, por lo que no debe tocar los
+días». Y después: «el texto narrativo lo relata como día 0 pero días en la
+unidad aparecen 10; tuvimos que añadir a mano los 6 días (3+3 previos)».
+
+- **La PVE no tuvo nada que ver.** Se reprodujo el «No» sobre el formulario
+  real: `_extOcurrio()` queda en falso, la vía aérea sigue en TOT, el soporte
+  en VM y los contadores no se mueven. Fue el turno en que le tocó guardar,
+  no la causa.
+- 🔴 **CAUSA REAL**: `fillFormReplica` —el relleno del turno HEREDADO— copiaba
+  el estado FINAL del turno anterior **por encima de la cama**. Con una fila
+  previa que terminaba en «Natural / Ambiente», el formulario se abría
+  diciendo que el paciente ya no tenía tubo, **aunque la cama decía TOT**. Y
+  como los contadores se pintan desde la CAMA, seguían mostrando sus días:
+  nada se veía raro en pantalla. Al guardar, el servidor comparaba
+  `vaNew='Natural'` contra `vaAnt='TOT'`, concluía cambio de vía aérea,
+  borraba FECHA_INICIO_VA y bajaba el soporte a Ambiente. Días de VM y de TOT
+  a 0 — y los días de estadía intactos, porque esos cuelgan de FECHA_INGRESO,
+  que nadie tocó. Eso explica exactamente los dos números que vio Diego.
+- **ARREGLO — manda la cama.** La cama es el estado vigente: la actualiza cada
+  guardado y cada corrección de coordinación. La fila del turno anterior es
+  una foto que puede haber envejecido. Ahora el estado final heredado solo se
+  usa cuando la cama no tiene vía aérea, y el soporte y el modo se replican
+  únicamente si ambas coinciden en la vía aérea. Si discrepan, no se toca
+  nada. `fillForm` (reabrir el turno PROPIO) no cambia: ahí el final sí es de
+  ese turno.
+- 🪤 **`regresion_ui.js` estaba fijando el bug**: exigía que un valor válido
+  del turno anterior se replicara SIEMPRE, incluso pisando la cama. Se
+  reescribió ese bloque con la razón escrita — una guardia que consagra un
+  comportamiento equivocado es peor que no tenerla.
+- Guardia nueva **`pve_no_toca_los_dias.js`** con la regla de Diego: ninguna
+  variante de PVE (no · no corresponde · fracasada · superada sin extubar)
+  mueve FECHA_INICIO_VA ni FECHA_INICIO_SOPORTE, ni en el formulario ni en el
+  servidor; el turno anterior no destuba a la cama; y una extubación
+  DECLARADA sí cambia el estado (se protege del accidente, no del registro
+  verdadero). **Verificada su capacidad de detección**: sin el arreglo, se
+  pone roja en los dos asserts del bloque 2.
+- **`revisarRelojesCama(17)`** en mantenimiento.gs, de SOLO lectura: imprime
+  las tres anclas de la cama con sus días, las correcciones de coordinación y
+  el recorrido de los últimos diez turnos con la vía aérea y el soporte de
+  cada uno. El turno donde el ancla saltó a su propia fecha es el que rompió
+  la cuenta.
+- Batería **120 guardias, todas verdes**. Sin esquema; se pegan **index +
+  servicios + api + mantenimiento**.
+
 ## v6.13-carga-de-cumpleanos (7-sep-2026) — la pantalla de carga celebra, y el que anuncia se ve
 
 Diego: «cuando alguien esté de cumpleaños la pantalla de carga igual tendrá a

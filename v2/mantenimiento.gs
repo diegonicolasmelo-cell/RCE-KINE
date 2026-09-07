@@ -743,6 +743,67 @@ function _mtoRepararAjenas(escribir) {
 //      —pasa cada vez que un paciente egresa y otro ingresa el mismo turno—.
 //   E. Episodios del ARCHIVO_PACIENTES sin ninguna evolución archivada.
 // ═══════════════════════════════════════════════════════════════════════
+/**
+ * revisarRelojesCama — SOLO LECTURA. Para cuando los días de VM o de vía aérea
+ * de una cama no cuadran (reporte de Diego, 7-sep-2026: «el texto lo relata
+ * como día 0 pero días en la unidad aparecen 10»).
+ *
+ * Imprime en el registro las tres cosas que hacen falta para entender y
+ * reparar: el estado vigente de la cama con sus dos anclas, los días que salen
+ * de cada ancla, y el recorrido de los últimos turnos con la vía aérea y el
+ * soporte que quedaron guardados en cada uno. El turno donde el ancla saltó a
+ * la fecha del propio turno es el que rompió la cuenta.
+ *
+ * No escribe nada. La reparación se hace desde 🔐 COORDINACIÓN → corregir
+ * ficha, que además deja la fecha protegida contra el guardado del turno.
+ * Uso desde el editor:  revisarRelojesCama(17)
+ */
+function revisarRelojesCama(idCama) {
+  const id = String(idCama || '').trim();
+  if (!id) { Logger.log('Dime la cama: revisarRelojesCama(17)'); return null; }
+  const c = repoLeerTodos('CAMAS_ESTADO', 'ID_CAMA', id)[0];
+  if (!c) { Logger.log('No existe la cama ' + id + '.'); return null; }
+  const hoy = hoyISO();
+  const L = ['🛏️ CAMA ' + id + (c.NOMBRE ? ' · ' + c.NOMBRE : '') + '   (hoy: ' + hoy + ')',
+    '   ocupada: ' + esVerdadero(c.OCUPADA) + ' · episodio: ' + (c.PATIENT_ID || '—'),
+    '   vía aérea: ' + (c.VIA_AEREA || '—') + ' · soporte: ' + (c.SOPORTE || '—'),
+    '',
+    '   ⏱️ ANCLAS (de aquí salen los días; se corrigen en 🔐 COORDINACIÓN)',
+    '     ingreso a la unidad : ' + (c.FECHA_INGRESO || '—') + '   → ' + diasEntre(c.FECHA_INGRESO, hoy) + ' días',
+    '     inicio de vía aérea : ' + (c.FECHA_INICIO_VA || '—') + '   → ' + (c.FECHA_INICIO_VA ? diasEntre(c.FECHA_INICIO_VA, hoy) : '—') + ' días',
+    '     inicio de ventilación: ' + (c.FECHA_INICIO_SOPORTE || '—') + '   → ' + (c.FECHA_INICIO_SOPORTE ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : '—') + ' días'];
+  const corr = String(c.CORRECCIONES_JSON || '').trim();
+  L.push('     correcciones de coordinación: ' + (corr && corr !== '[]' ? corr : 'ninguna'));
+  if (c.FECHA_INGRESO && c.FECHA_INICIO_VA && String(c.FECHA_INICIO_VA) > String(c.FECHA_INGRESO)) {
+    L.push('     ⚠️ la vía aérea arranca DESPUÉS del ingreso: revisa si es real (TQT, reintubación) o si se reinició sola.');
+  }
+  L.push('', '   📋 ÚLTIMOS TURNOS GUARDADOS (el que cambió la vía aérea es el que movió el reloj)');
+  const pid = String(c.PATIENT_ID || '');
+  const evos = repoLeerTodos('EVOLUCIONES', 'ID_CAMA', id)
+    .filter(function (e) { return !pid || !e.PATIENT_ID || String(e.PATIENT_ID) === pid; })
+    .sort(function (a, b) { return String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)); })
+    .slice(-10);
+  if (!evos.length) L.push('     (sin evoluciones guardadas)');
+  evos.forEach(function (e) {
+    const fin = String(e.VENT_VIA_AEREA_FINAL || '');
+    const va = String(e.VENT_VIA_AEREA || '—');
+    L.push('     ' + String(e.TURNO_KEY || '') +
+      ' · VA ' + va + (fin && fin !== va ? ' → ' + fin : '') +
+      ' · soporte ' + String(e.VENT_SOPORTE || '—') + (e.VENT_SOPORTE_FINAL && e.VENT_SOPORTE_FINAL !== e.VENT_SOPORTE ? ' → ' + e.VENT_SOPORTE_FINAL : '') +
+      ' · PVE ' + (e.PVE_VAL || '—') + (e.PVE_RESULTADO ? '/' + e.PVE_RESULTADO : '') +
+      (esVerdadero(e.EXT_OCURRIO) ? ' · ✂️ EXTUBACIÓN' : '') +
+      (esVerdadero(e.INTUB_OCURRIO) ? ' · 🫁 intubación' : '') +
+      (esVerdadero(e.TQT_OCURRIO) ? ' · 🔪 TQT' : '') +
+      ' · ' + String(e.PLAN_FIRMA_KINE || ''));
+  });
+  L.push('', '   👉 Para repararlo: deja la cama en su vía aérea y soporte reales, y después',
+             '      corrige las dos fechas en 🔐 COORDINACIÓN → corregir ficha. Una fecha',
+             '      corregida ahí queda protegida: el guardado del turno ya no la pisa.');
+  const txt = L.join('\n');
+  Logger.log(txt);
+  return txt;
+}
+
 function auditoriaIntegridad() {
   try {
     const out = { A_clavesRepetidas: [], B_camasConAjenas: [], C_primerGuardadoSobreFila: [],
