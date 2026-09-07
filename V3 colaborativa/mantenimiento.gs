@@ -756,11 +756,16 @@ function _mtoRepararAjenas(escribir) {
  *
  * No escribe nada. La reparación se hace desde 🔐 COORDINACIÓN → corregir
  * ficha, que además deja la fecha protegida contra el guardado del turno.
- * Uso desde el editor:  revisarRelojesCama(17)
+ *
+ * 🪤 El botón ▶ del editor NO sabe pasar argumentos (7-sep-2026, preguntado
+ * por Diego). Por eso SIN argumento la función revisa TODAS las camas
+ * ocupadas y marca las sospechosas: se elige en la lista, se aprieta ▶ y
+ * listo. Con argumento —`revisarRelojesCama(17)` desde otra función— da el
+ * detalle de una sola cama.
  */
 function revisarRelojesCama(idCama) {
-  const id = String(idCama || '').trim();
-  if (!id) { Logger.log('Dime la cama: revisarRelojesCama(17)'); return null; }
+  const id = String(idCama == null ? '' : idCama).trim();
+  if (!id) return _relojesDeLaUnidad();
   const c = repoLeerTodos('CAMAS_ESTADO', 'ID_CAMA', id)[0];
   if (!c) { Logger.log('No existe la cama ' + id + '.'); return null; }
   const hoy = hoyISO();
@@ -799,6 +804,60 @@ function revisarRelojesCama(idCama) {
   L.push('', '   👉 Para repararlo: deja la cama en su vía aérea y soporte reales, y después',
              '      corrige las dos fechas en 🔐 COORDINACIÓN → corregir ficha. Una fecha',
              '      corregida ahí queda protegida: el guardado del turno ya no la pisa.');
+  const txt = L.join('\n');
+  Logger.log(txt);
+  return txt;
+}
+
+/**
+ * Los relojes de TODAS las camas ocupadas, en una tabla, con las sospechosas
+ * marcadas. Es lo que sale al correr `revisarRelojesCama` sin argumento.
+ * Sospechosa = tiene vía aérea o ventilación puesta y su ancla arrancó
+ * DESPUÉS del ingreso sin que ningún turno declarara el evento que lo
+ * justifique (intubación, TQT, reintubación). Es exactamente la huella que
+ * dejó el error de la cama 17: el reloj saltó solo.
+ */
+function _relojesDeLaUnidad() {
+  const hoy = hoyISO();
+  const camas = repoLeerTodos('CAMAS_ESTADO')
+    .filter(function (c) { return esVerdadero(c.OCUPADA); })
+    .sort(function (a, b) { return (parseInt(a.ID_CAMA, 10) || 0) - (parseInt(b.ID_CAMA, 10) || 0); });
+  if (!camas.length) { Logger.log('No hay camas ocupadas.'); return 'No hay camas ocupadas.'; }
+  // ¿Qué episodios declararon un evento de vía aérea? Una sola pasada.
+  const conEvento = {};
+  repoLeerTodos('EVOLUCIONES').forEach(function (e) {
+    if (esVerdadero(e.INTUB_OCURRIO) || esVerdadero(e.TQT_OCURRIO) || esVerdadero(e.EXT_REINTUB)) {
+      conEvento[String(e.PATIENT_ID || '') + '|' + String(e.ID_CAMA || '')] = true;
+    }
+  });
+  const L = ['⏱️ RELOJES DE LA UNIDAD   (hoy: ' + hoy + ')', ''];
+  const sospechosas = [];
+  camas.forEach(function (c) {
+    const id = String(c.ID_CAMA);
+    const dIng = c.FECHA_INGRESO ? diasEntre(c.FECHA_INGRESO, hoy) : '—';
+    const dVA = c.FECHA_INICIO_VA ? diasEntre(c.FECHA_INICIO_VA, hoy) : '—';
+    const dVM = (String(c.SOPORTE) === 'VM' && c.FECHA_INICIO_SOPORTE) ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : '—';
+    const tieneVA = c.VIA_AEREA && String(c.VIA_AEREA) !== 'Natural';
+    const saltoVA = tieneVA && c.FECHA_INGRESO && c.FECHA_INICIO_VA &&
+      String(c.FECHA_INICIO_VA) > String(c.FECHA_INGRESO) &&
+      !conEvento[String(c.PATIENT_ID || '') + '|' + id];
+    if (saltoVA) sospechosas.push(id);
+    L.push((saltoVA ? '  ⚠️ ' : '     ') + 'cama ' + (id.length < 2 ? ' ' + id : id) +
+      ' · ' + (String(c.VIA_AEREA || '—') + '        ').slice(0, 8) +
+      ' · ' + (String(c.SOPORTE || '—') + '                  ').slice(0, 18) +
+      ' · estadía ' + dIng + ' d · vía aérea ' + dVA + ' d · VM ' + dVM + ' d');
+  });
+  L.push('');
+  if (!sospechosas.length) {
+    L.push('  ✅ Ninguna cama tiene el reloj de vía aérea arrancado sin su evento.');
+  } else {
+    L.push('  ⚠️ El reloj de vía aérea de estas camas arrancó DESPUÉS del ingreso sin que');
+    L.push('     ningún turno declarara el evento que lo explique: ' + sospechosas.join(', '));
+    // El detalle sale aquí mismo: el botón ▶ del editor no pasa argumentos, así
+    // que pedirle a alguien que llame a la función con la cama no sirve de nada.
+    sospechosas.forEach(function (n) { L.push('', '  ────────────────────────────────────────', revisarRelojesCama(n)); });
+  }
+  L.push('', '  👉 Para corregir una fecha: 🔐 COORDINACIÓN → corregir ficha. Ahí queda protegida.');
   const txt = L.join('\n');
   Logger.log(txt);
   return txt;

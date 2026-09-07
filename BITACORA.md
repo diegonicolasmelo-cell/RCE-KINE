@@ -59,11 +59,18 @@ unidad aparecen 10; tuvimos que añadir a mano los 6 días (3+3 previos)».
   DECLARADA sí cambia el estado (se protege del accidente, no del registro
   verdadero). **Verificada su capacidad de detección**: sin el arreglo, se
   pone roja en los dos asserts del bloque 2.
-- **`revisarRelojesCama(17)`** en mantenimiento.gs, de SOLO lectura: imprime
-  las tres anclas de la cama con sus días, las correcciones de coordinación y
-  el recorrido de los últimos diez turnos con la vía aérea y el soporte de
-  cada uno. El turno donde el ancla saltó a su propia fecha es el que rompió
-  la cuenta.
+- **`revisarRelojesCama`** en mantenimiento.gs, de SOLO lectura: imprime las
+  tres anclas de una cama con sus días, las correcciones de coordinación y el
+  recorrido de sus últimos diez turnos con la vía aérea y el soporte de cada
+  uno. El turno donde el ancla saltó a su propia fecha es el que rompió la
+  cuenta.
+  🪤 **El botón ▶ del editor NO pasa argumentos** (lo preguntó Diego al tiro:
+  «¿dónde corro revisar cama 17?»). Por eso SIN argumento la función revisa
+  TODAS las camas ocupadas, marca las sospechosas —vía aérea puesta cuyo reloj
+  arrancó DESPUÉS del ingreso sin que ningún turno declarara intubación, TQT o
+  reintubación: la huella exacta del error— e **imprime el detalle de cada una
+  ahí mismo**. Se elige en la lista, se aprieta ▶ y no hay que escribir nada.
+  Sirve además para saber si el error alcanzó a otras camas en silencio.
 - Batería **120 guardias, todas verdes**. Sin esquema; se pegan **index +
   servicios + api + mantenimiento**.
 
