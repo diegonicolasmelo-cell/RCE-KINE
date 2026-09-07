@@ -1010,8 +1010,30 @@ pestaña 🔐 COORDINACIÓN — sin abrir el editor.
 `repararEvolucionesAjenasSIMULACRO/CONFIRMAR` · `corregirTiempoExtubadoSIMULACRO/CONFIRMAR`
 · `corregirPronosRepetidos` · `resellarDiasSoporte*` · `corregirIngresos*` ·
 `archivarAnioHistorico*` · `resetearBaseDeDatos*` · `cargarInventarioInicial` ·
-`medirArranque` · `medirGuardado` · `verificarTablero` / `medirTablero`.
-El detalle de cada una, en `BITACORA.md`.
+`medirArranque` · `medirGuardado` · `verificarTablero` / `medirTablero` ·
+`plantillasResembrarSimular` / `plantillasResembrarAplicarAhora` /
+`plantillasRestaurarDesde`. El detalle de cada una, en `BITACORA.md`.
+
+🪤 **Cambiar `PLANTILLAS_UNIDAD_SEMILLA` NO cambia lo que lee el turno**
+(7-sep-2026). `plantillasSembrarUnidad()` escribe **solo si
+`PLANTILLAS_EVOLUCION` está vacía**, y en la unidad está sembrada desde v6.02:
+el orden nuevo del texto se quedó en el repositorio sin llegar a nadie. Para eso
+está la **re-siembra** de `svc_plantillas.gs`. Lo que hay que saber al tocarla:
+
+- No reemplaza «todas»: solo las plantillas de la unidad cuyo cuerpo **sigue
+  siendo uno de los que este repositorio publicó** (`PLANTILLAS_UNIDAD_PUBLICADAS`).
+  Lo que coordinación editó a mano se salta y se informa — perderlo en silencio
+  es la misma clase de error que esconder una pronación real.
+- 🔴 **Al cambiar la semilla hay que MOVER el cuerpo saliente a
+  `PLANTILLAS_UNIDAD_PUBLICADAS`.** Si no, la re-siembra siguiente creerá que
+  coordinación lo escribió y no tocará ni una. La guardia
+  `checks/resiembra_plantillas.js` lo comprueba.
+- Respalda la hoja entera en `PLANTILLAS_BAK_<yyyyMMdd_HHmmss>` (oculta, fuera
+  de ESQUEMA: `testEsquema` y `cuadrarEncabezados` no la ven) **antes** de la
+  primera escritura, y no escribe nada si el respaldo falla.
+- Idempotente por el cuerpo, no por una marca: la segunda corrida no escribe.
+- Nunca toca las plantillas **personales** (`DUENO` ≠ `UNIDAD`) ni las retiradas
+  (`ACTIVO=false`).
 
 ### Privacidad — no se negocia
 

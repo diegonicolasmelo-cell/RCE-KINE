@@ -886,7 +886,8 @@ function _sembrar(ss) {
     hK.getRange(2, 1, seed.length, 5).setValues(seed);
   }
 
-  // PLANTILLAS_EVOLUCION — las 13 de la unidad (tanda 3): solo si está vacía.
+  // PLANTILLAS_EVOLUCION — las 17 de la unidad (tanda 3): solo si está vacía.
+  // Ya sembrada, el orden nuevo lo lleva la re-siembra de svc_plantillas.gs.
   if (typeof plantillasSembrarUnidad === 'function') {
     const nP = plantillasSembrarUnidad();
     if (nP) console.log('📋 Plantillas de la unidad sembradas: ' + nP);
