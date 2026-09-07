@@ -358,7 +358,11 @@ si tiene más de unos días, se confirma antes de usarla.
   BITACORA v6.16) y **la v6.17** (el total de VM se perdía al turno siguiente:
   `fillFormReplica` no reponía DIAS_VM_PREVIOS ni N_REINTUB, así que un
   episodio reintubado perdía su tramo anterior en silencio —«13» en vez de
-  «16/13»— y eso viajaba al REM). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  «16/13»— y eso viajaba al REM) y **la v6.18** (se probaron los 99 controles
+  del panel uno por uno: `fVA` seguía perdiendo los contadores si el select
+  pasaba por la opción EN BLANCO —`_vaAnterior` quedaba falsy y el deshacer no
+  entraba—; 8 cascadas clínicas más no se revierten y esperan decisión de
+  Diego, ver BITACORA v6.18). 🔜 **Pendiente que dejó anotado Diego**: la carilla
   2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
   correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
