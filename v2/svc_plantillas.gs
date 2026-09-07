@@ -40,24 +40,37 @@ const PLANT_COMODINES_SRV = ['encabezado', 'dia', 'fase', 'via_aerea', 'soporte'
 
 const PLANT_NOMBRE_MAX = 40, PLANT_CUERPO_MAX = 4000;
 
+/* 🪤 7-sep-2026, Manuel desde el turno: «la sedoanalgesia, GCS y hemodinamia
+   quedó al penúltimo punto, sobre PLAN». EL ORDEN DEL TEXTO VIVE EN DOS SITIOS:
+   el motor (genTexto/_B en index.html y su espejo generarTextoEvolucion en
+   dominio_texto.gs) Y el cuerpo de cada plantilla de aquí abajo. Desde v6.02 la
+   plantilla de la UNIDAD se aplica SOLA, así que es ELLA la que ordena lo que
+   lee el turno. Estas semillas ponían el bloque neuro-hemodinámico debajo de la
+   vía aérea, el soporte y los parámetros; como _plantRellenar() descarta las
+   líneas sin valor, en un turno tranquilo terminaba pegado al Plan.
+   Ahora va donde lo pone el motor: justo después del día y la fase.
+   Al tocar este catálogo, correr build/checks/orden_neuro_en_plantillas.js.
+   ⚠️ CAMBIAR LA SEMILLA NO CAMBIA LO SEMBRADO: plantillasSembrarUnidad() solo
+   escribe si PLANTILLAS_EVOLUCION está vacía. En una unidad que ya las tiene,
+   el orden nuevo lo publica COORDINACIÓN editando la plantilla en la app. */
 /** Las 13 de la unidad (Diego cerró el catálogo el 2-sep). Se siembran UNA vez. */
 const PLANTILLAS_UNIDAD_SEMILLA = [
-  ['general', 'Evolución de la unidad', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{sedacion} {hemodinamia} {neurologico}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['ingreso', 'Ingreso a la unidad', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{sedacion} {hemodinamia} {neurologico}\n{secreciones}\n{evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['vm_nc', 'VM sin destete', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{sedacion} {hemodinamia} {neurologico}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['destete_dif', 'Destete diferido', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{sedacion} {hemodinamia}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['pve_frustra', 'PVE fracasada', '{encabezado}\n{dia} {fase}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['pve_sup_sin_ext', 'PVE superada sin extubar', '{encabezado}\n{dia} {fase}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['ext', 'Extubación', '{encabezado}\n{dia} {fase}\n{pve}\n{extubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['post_ext', 'Post-extubación', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['reintub', 'Reintubación', '{encabezado}\n{dia} {fase}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['intub', 'Intubación', '{encabezado}\n{dia} {fase}\n{intubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['autoext', 'Autoextubación', '{encabezado}\n{dia} {fase}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['tqt', 'Traqueostomía', '{encabezado}\n{dia} {fase}\n{tqt}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['destete_tqt', 'Destete por TQT', '{encabezado}\n{dia} {fase}\n{weaning_grado}.\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['decan', 'Decanulación', '{encabezado}\n{dia} {fase}\n{decanulacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['prono', 'Prono', '{encabezado}\n{dia} {fase}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{gases}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}'],
-  ['rehab', 'Rehabilitación', '{encabezado}\n{dia} {fase}\n{evaluaciones}\n{ktm}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['general', 'Evolución de la unidad', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['ingreso', 'Ingreso a la unidad', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['vm_nc', 'VM sin destete', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['destete_dif', 'Destete diferido', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['pve_frustra', 'PVE fracasada', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['pve_sup_sin_ext', 'PVE superada sin extubar', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['ext', 'Extubación', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{pve}\n{extubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['post_ext', 'Post-extubación', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['reintub', 'Reintubación', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['intub', 'Intubación', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{intubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['autoext', 'Autoextubación', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['tqt', 'Traqueostomía', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{tqt}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['destete_tqt', 'Destete por TQT', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia}\n{weaning_grado}.\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['decan', 'Decanulación', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{decanulacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['prono', 'Prono', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{gases}\n{secreciones}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}'],
+  ['rehab', 'Rehabilitación', '{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{evaluaciones}\n{ktm}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
   ['sin_nov', 'Sin novedades', '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}'],
 ];
 
