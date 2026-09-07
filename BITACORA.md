@@ -19,6 +19,42 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.16-deshacer-el-manotazo (7-sep-2026) — equivocarse en el select ya no destruye los días
+
+PRD dictado por Diego, con su historia:
+
+> «Diego evoluciona a sus pacientes a cargo. Me equivoco y modifico la vía
+> aérea pero no confirmo nada. Al terminar de evolucionar se da cuenta de que
+> se reiniciaron los días de vía aérea y no se pueden corregir, lo que causa
+> confusión y frustración en el equipo, además de datos falsos.
+> **Cómo debería ser**: Diego se equivoca en vía aérea pero corrige de nuevo
+> de Natural a TOT; por suerte aún no guarda y no se modificó nada. Los datos
+> son cercanos a la realidad.»
+
+- **CAUSA**: `cascadeVA` mutaba los contadores EN EL ACTO y de forma
+  irreversible. TOT→Natural hacía `_diasVMPrevios += _diasVMEpisodio;
+  _diasVMEpisodio = 0`, y el camino de vuelta Natural→TOT caía en la rama
+  «primera intubación», que pone `_diasTOTBase = 0`. Medido con la guardia:
+  **13 días de TOT quedaban en 0** sin haber guardado nada. Ese estado
+  destrozado era además lo que viajaba después al servidor.
+- **ARREGLO**: `_snapIniEstado()` —que ya existía y se llama en los cuatro
+  caminos de apertura del panel— ahora guarda también los contadores. Si el
+  select vuelve al valor con el que se ABRIÓ el panel y **no hay ningún evento
+  declarado** (intubación, TQT, decanulación, extubación, reintubación,
+  desvinculación), se restaura el estado de llegada tal cual y no se toca nada
+  más. Con un evento declarado manda el evento: eso ya no es un manotazo, es
+  el registro clínico. El deshacer sobrevive a minimizar el panel.
+- **Sirve para cualquier camino**, no solo Natural→TOT: la guardia prueba
+  TOT→TQT→Natural→TOT y también vuelve intacto.
+- 🪤 La primera versión restauraba con `eval(k+'=…')` sobre las claves del
+  snapshot. Se reescribió con asignaciones explícitas: en un archivo que se
+  pega a mano, un `eval` es una trampa esperando.
+- Guardia `pve_no_toca_los_dias` bloque 1b, con la historia de Diego escrita
+  arriba. **Verificada su capacidad de detección**: sin el arreglo se pone
+  roja con los 13 días en 0.
+- Batería 121 verdes. Sin esquema; se pegan **index + servicios + api +
+  esquema + mantenimiento** (los cuatro últimos vienen de la v6.15).
+
 ## v6.15-plantillas-solo-coordinacion (7-sep-2026) — las plantillas se apagan para el equipo
 
 Diego: «en el editor de plantillas no salen todos los campos y tuvimos un
