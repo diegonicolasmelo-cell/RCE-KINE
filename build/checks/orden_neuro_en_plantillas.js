@@ -117,6 +117,85 @@ const pegadasAlPlan = PLANTILLAS_UNIDAD_SEMILLA.filter(([, , c]) => {
 eq('★ el bloque no queda como última ni penúltima línea de ninguna semilla',
   pegadasAlPlan.join(',') || 'ninguna', 'ninguna');
 
+/* ── 3bis · GCS Y HEMODINAMIA SE VEN SIEMPRE (Manuel, 7-sep-2026) ─────────
+   «Su glasgow que siempre está evaluado». Manuel decidió que el GCS y la
+   hemodinamia aparecen en TODA evolución —incluida «sin novedades»— y que la
+   sedoanalgesia solo si hay algo que contar.
+
+   🪤 EL GCS NO VIVE DONDE PARECE. No está en {neurologico} (ese es el
+   NEUROMONITOREO: PIC, PPC, DVE, vacío en casi todos los pacientes) sino DENTRO
+   de {sedacion}: el bloque `sed` del motor arma una sola línea con
+   sedoanalgesia + GCS + cooperación + CAM-ICU. Por eso {sedacion} va SOLA en su
+   línea: si comparte línea con otro comodín no cambia nada, pero si alguien la
+   vuelve condicional o la funde con otra, el GCS de Manuel se va con ella.
+   Y como _plantRellenar() bota la línea cuyos comodines vienen TODOS vacíos, el
+   neuromonitoreo viaja pegado a la hemodinamia, que el motor siempre llena.
+
+   Esta sección mide la PROPIEDAD por COMPORTAMIENTO: corre el verdadero
+   _plantRellenar() —extraído del index, no reescrito aquí— sobre las 17
+   semillas con un turno en que SOLO sedoanalgesia y hemodinamia tienen valor.
+   Si el GCS o la hemodinamia desaparecen, esto cae. */
+
+// El GCS se narra dentro del bloque de sedoanalgesia. Si alguien lo muda de
+// bloque, el resto de esta sección deja de proteger lo que dice proteger.
+const tSed = cuerpoMotor.slice(cuerpoMotor.indexOf("const sed=gv('fSed')"),
+                               cuerpoMotor.indexOf("_B('sed')"));
+eq('★ el GCS se narra dentro del bloque de sedoanalgesia del motor',
+  tSed.includes('GCS ') && tSed.length > 100, true);
+
+// El _plantRellenar() de verdad, tal cual está en el index.
+const ri = IDX.indexOf('function _plantRellenar(cuerpo, D){');
+const rf = IDX.indexOf('\n}\n', ri) + 2;
+eq('_plantRellenar se encuentra en el index', ri > 0 && rf > ri, true);
+const rellenar = new Function('PLANT_COM_EVENTO',
+  IDX.slice(ri, rf) + '\nreturn _plantRellenar;')(/\{(relato|pve)\}/i);
+
+// El turno más pobre posible: el motor solo llenó lo que llena SIEMPRE.
+const D_MINIMO = {};
+Object.keys(PLANT_ALIAS).forEach(a => { D_MINIMO[a] = ''; });
+D_MINIMO.sedacion    = 'Sin sedoanalgesia. GCS 15/15 (O:4, V:5, M:6).';
+D_MINIMO.hemodinamia = 'HDN estable s/DVA.';
+
+const sinGcs = [], sinHdn = [];
+PLANTILLAS_UNIDAD_SEMILLA.forEach(([caso, , cuerpo]) => {
+  const t = rellenar(cuerpo, D_MINIMO);
+  if (!t.includes('GCS ')) sinGcs.push(caso);
+  if (!t.includes('HDN '))  sinHdn.push(caso);
+});
+eq('las 17 semillas de la unidad siguen ahí', PLANTILLAS_UNIDAD_SEMILLA.length, 17);
+eq('★ en un turno sin datos, NINGUNA semilla se queda sin GCS',
+  sinGcs.join(',') || 'ninguna', 'ninguna');
+eq('★ …ni sin hemodinamia', sinHdn.join(',') || 'ninguna', 'ninguna');
+
+// {sedacion} sola en su línea: es la única forma de que el descarte de líneas
+// vacías no pueda llevarse el GCS junto con otro comodín.
+const acompanada = PLANTILLAS_UNIDAD_SEMILLA.filter(([, , c]) =>
+  String(c).split('\n').some(l =>
+    l.includes('{sedacion}') && /\{[a-z0-9_]+\}/g.test(l.replace('{sedacion}', ''))
+  )).map(t => t[0]);
+eq('★ {sedacion} no comparte línea con ningún otro comodín',
+  acompanada.join(',') || 'ninguna', 'ninguna');
+
+/* ── 3ter · La guardia CAE si alguien quita el dato (❌ simulados) ────────── */
+// Sin esto, lo de arriba podría estar pasando por vacuidad.
+const mut = (fn) => PLANTILLAS_UNIDAD_SEMILLA.map(([c, n, b]) => [c, n, fn(b)]);
+const cae = (etiqueta, semillas, marca) => {
+  const rotas2 = semillas.filter(([, , c]) => !rellenar(c, D_MINIMO).includes(marca));
+  console.log((rotas2.length ? '✅' : '❌') +
+    ' [prueba de la propia guardia] ' + etiqueta + ': ' + rotas2.length + '/17 caen');
+  if (!rotas2.length) fails.push('la guardia no detecta ' + etiqueta);
+};
+cae('quitar {hemodinamia} deja semillas sin HDN',
+  mut(b => b.replace(/\{hemodinamia\}/g, '')), 'HDN ');
+cae('quitar {sedacion} deja semillas sin GCS',
+  mut(b => b.replace(/\{sedacion\}/g, '')), 'GCS ');
+// Y el caso que motivó las dos líneas: fundirlas de vuelta en una sola hace que
+// un turno sin neuromonitoreo NO pierda nada… pero un turno sin sedoanalgesia
+// ni hemodinamia se llevaría ambas. Lo que sí cae es fundir sedación con un
+// comodín vacío y borrar la hemodinamia: el GCS se va con la línea.
+cae('fundir {sedacion} con un comodín vacío y sin hemodinamia se lleva el GCS',
+  mut(b => b.replace(/\{sedacion\}\n\{hemodinamia\} \{neurologico\}/, '{neurologico}')), 'GCS ');
+
 /* ── 4 · La guardia mide de verdad: el orden viejo TIENE que caer ─────────── */
 // (❌ simulado a propósito — no suma a las fallas.)
 const VIEJO = '{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{nota}\nPlan: {plan}';
