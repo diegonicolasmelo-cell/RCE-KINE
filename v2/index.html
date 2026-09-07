@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.15-plantillas-solo-coordinacion">
+<meta name="rce-version" content="6.16-deshacer-el-manotazo">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4719,7 +4719,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.15-plantillas-solo-coordinacion]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.16-deshacer-el-manotazo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5521,7 +5521,7 @@ function _snapPanel() {
       _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
       _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
       _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
-      _iniVA, _iniSop, _transAvisoOk, _secrHeredado,
+      _iniVA, _iniSop, _iniDias: _iniDias?{..._iniDias}:null, _transAvisoOk, _secrHeredado,
       _rtxtGen, _textoManual, _formDirty, _faseHeredada,
     },
   };
@@ -5551,7 +5551,7 @@ function _restaurarMin(m) {
   _vaAnterior = V._vaAnterior; _vmHistFlag = V._vmHistFlag; _evoEventoGuardado = V._evoEventoGuardado;
   _transIntubEsteTurno = V._transIntubEsteTurno; _vaAntesIntub = V._vaAntesIntub;
   _dispSnapshot = V._dispSnapshot; _totSnapshot = V._totSnapshot; _tqtSnapshot = V._tqtSnapshot;
-  _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _transAvisoOk = !!V._transAvisoOk;
+  _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _iniDias = V._iniDias || null; _transAvisoOk = !!V._transAvisoOk;
   _secrHeredado = !!V._secrHeredado;
   _rtxtGen = V._rtxtGen || ''; _setTextoManual(!!V._textoManual);
   _formDirty = !!V._formDirty; _faseHeredada = !!V._faseHeredada;
@@ -6346,7 +6346,23 @@ function _podarEventosPayload(p){
 // (b) Aviso NO bloqueante al guardar si la vía aérea/soporte cambió respecto
 //     al estado con que abrió el turno y no hay ningún evento que lo explique.
 //     El registro del evento es SIEMPRE manual — esto solo detecta el olvido.
-function _snapIniEstado(){ _iniVA=v('fVA')||''; _iniSop=v('fSop')||''; }
+/* El estado de LLEGADA del panel: con qué vía aérea y soporte se abrió, y con
+   qué contadores. Se toma en los cuatro caminos de apertura, después de
+   rellenar. Sirve para deshacer un manotazo en el select (ver cascadeVA). */
+function _snapIniEstado(){
+  _iniVA=v('fVA')||''; _iniSop=v('fSop')||'';
+  _iniDias={ _diasVABase, _diasTOTBase, _diasTQTBase, _fechaInicioVA, _fechaInicioTQT,
+    _diasVMEpisodio, _diasVMPrevios, _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
+    _transIntubEsteTurno };
+}
+/** ¿Hay algún evento de vía aérea DECLARADO en este turno? */
+function _hayEventoVA(){
+  if($('cIntubO')?.checked || $('cTqtO')?.checked || $('cDecanOcurrio')?.checked) return true;
+  if($('cDesvinc')?.checked) return true;
+  try{ if(typeof _extOcurrio==='function' && _extOcurrio()) return true; }catch(e){}
+  try{ if(typeof _extReintub==='function' && _extReintub()) return true; }catch(e){}
+  return false;
+}
 
 /** Turno inmediatamente anterior a (fecha, turno): Dia←Noche de ayer, Noche←Dia. */
 function _turnoPrevioKey(fecha,turno){
@@ -10032,6 +10048,31 @@ function poblar(id, opts, def) {
 function cascadeVA(preSop) {
   const va=v('fVA'); const r=VMAPS[va]||VMAPS[''];
   poblar('fSop', r.sops, preSop); cascadeSop();
+  /* 🔴 DESHACER EL MANOTAZO (Diego, 7-sep-2026, con su historia:
+     «me equivoco y modifico la vía aérea pero no confirmo nada… al terminar de
+     evolucionar se dio cuenta de que se reiniciaron los días de vía aérea y no
+     se pueden corregir: confusión, frustración y datos falsos. Cómo debería
+     ser: me equivoco pero corrijo de nuevo de Natural a TOT; por suerte aún no
+     guardo y no se modificó nada»).
+     Hasta la v6.15 cada cambio del select mutaba los contadores EN EL ACTO y
+     de forma irreversible: TOT→Natural congelaba los días de VM, y volver
+     Natural→TOT los ponía en 0 —el camino de vuelta pasaba por «primera
+     intubación»—. Nada de eso se había guardado todavía.
+     Ahora, si el select vuelve al valor con el que se ABRIÓ el panel y no hay
+     ningún evento declarado (intubación, TQT, decanulación, extubación,
+     reintubación, desvinculación), se restaura el estado de llegada tal cual y
+     no se toca nada más. Con un evento declarado manda el evento: eso ya no es
+     un manotazo, es el registro clínico. */
+  if(_vaAnterior && _vaAnterior!==va && v('cIng')!=='true' && va===_iniVA && _iniDias && !_hayEventoVA()){
+    const S=_iniDias;
+    _diasVABase=S._diasVABase; _diasTOTBase=S._diasTOTBase; _diasTQTBase=S._diasTQTBase;
+    _fechaInicioVA=S._fechaInicioVA; _fechaInicioTQT=S._fechaInicioTQT;
+    _diasVMEpisodio=S._diasVMEpisodio; _diasVMPrevios=S._diasVMPrevios;
+    _diasVNIEpisodio=S._diasVNIEpisodio; _diasVNIPrevios=S._diasVNIPrevios;
+    _fechaInicioVNI=S._fechaInicioVNI; _transIntubEsteTurno=S._transIntubEsteTurno;
+    _vaAnterior=va; actualizarContadores(); _pintarPrevios();
+    return;
+  }
   // En INGRESO nunca hay "transición" de vía aérea: se registra el estado de
   // llegada (aunque el kine pase por Natural→TOT explorando el select).
   if(_vaAnterior && _vaAnterior!==va && v('cIng')!=='true'){
@@ -11378,6 +11419,7 @@ let _fechaInicioVNI='';  // fecha inicio VNI actual
 // aparecía sin sus días de VM — el contador vivo daba 0 y pisaba el sellado).
 let _diasVMSellado='';
 let _diasVNISellado='';
+let _iniDias=null;       // contadores con los que se abrió el panel (para deshacer)
 let _vaAnterior='';      // VA previa para detectar transiciones
 let _vmHistFlag=false;   // historial de VM detectado en los datos cargados (evo previa / cama)
 let _evoEventoGuardado=false; // el turno cargado YA tiene un evento único guardado (extub/PVE/decan/intub/reintub)

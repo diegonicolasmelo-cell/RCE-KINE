@@ -79,6 +79,42 @@ const CAMA = { ID_CAMA: '17', OCUPADA: true, NOMBRE: 'PACIENTE 17', PATIENT_ID: 
   si('★ PVE superada SIN extubar: gana la prueba y sigue intubado', !supSin.ext && supSin.va === 'TOT' && supSin.sop === 'VM');
   await p.close();
 
+  /* ── 1b · EL MANOTAZO EN EL SELECT SE DESHACE (PRD de Diego, 7-sep-2026) ──
+     «Me equivoco y modifico la vía aérea pero no confirmo nada… al terminar de
+     evolucionar me doy cuenta de que se reiniciaron los días de vía aérea y no
+     se pueden corregir: confusión, frustración y datos falsos. Cómo debería
+     ser: me equivoco pero corrijo de nuevo de Natural a TOT; por suerte aún no
+     guardo y no se modificó nada.» */
+  console.log('\n1b · Cambiar la vía aérea por error y volver atrás no deja rastro');
+  p = await abrir(null);
+  const manotazo = await p.evaluate(() => {
+    const foto = () => ({ va: v('fVA'), sop: v('fSop'), dTOT: v('fDiasTOT'), dVA: v('fDiasVA'), dVM: v('fDiasVM') });
+    const llegada = foto();
+    const sel = document.getElementById('fVA');
+    sel.value = 'Natural'; cascadeVA(); const enNatural = foto();
+    sel.value = 'TOT'; cascadeVA(); const devuelta = foto();
+    // Y el camino largo: TOT → TQT → Natural → TOT, todo sin declarar nada.
+    sel.value = 'TQT'; cascadeVA(); sel.value = 'Natural'; cascadeVA();
+    sel.value = 'TOT'; cascadeVA(); const vueltaLarga = foto();
+    // Con un evento DECLARADO manda el evento, no el deshacer.
+    const ti = document.getElementById('cTqtO');
+    ti.checked = true; if (typeof hTqtO === 'function') hTqtO();
+    sel.value = 'TQT'; cascadeVA(); sel.value = 'TOT'; cascadeVA();
+    const conEvento = foto();
+    ti.checked = false; if (typeof hTqtO === 'function') hTqtO();
+    return { llegada, enNatural, devuelta, vueltaLarga, conEvento };
+  });
+  eq('★ vuelve a TOT y los días quedan como llegaron',
+    JSON.stringify(manotazo.devuelta), JSON.stringify(manotazo.llegada));
+  si('★ …incluidos los días de VM (el bug los dejaba en 0)', manotazo.devuelta.dVM === manotazo.llegada.dVM && manotazo.llegada.dVM !== '0');
+  eq('★ el camino largo TOT→TQT→Natural→TOT tampoco deja rastro',
+    JSON.stringify(manotazo.vueltaLarga), JSON.stringify(manotazo.llegada));
+  si('mientras está en Natural los contadores no se pierden (el dato sigue siendo el de la cama)',
+    manotazo.enNatural.dVM === manotazo.llegada.dVM);
+  si('★ pero con un evento DECLARADO manda el evento, no el deshacer',
+    manotazo.conEvento.dVM !== manotazo.llegada.dVM || manotazo.conEvento.dTOT !== manotazo.llegada.dTOT);
+  await p.close();
+
   console.log('\n2 · Si el turno anterior discrepa de la cama, manda la CAMA');
   p = await abrir({ TURNO_KEY: '2026-09-06-Noche', VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM',
     VENT_MODO: 'ACVC', VENT_VIA_AEREA_FINAL: 'Natural', VENT_SOPORTE_FINAL: 'Ambiente',

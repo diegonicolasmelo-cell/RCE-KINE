@@ -351,7 +351,11 @@ si tiene más de unos días, se confirma antes de usarla.
   Diego —«tuvimos problemas de experiencia de usuario negativas»—: interruptor
   `CONFIG.PLANTILLAS_ACTIVAS`, FALSE por defecto; el texto es el motor de
   siempre y el editor 📋 lo ve solo coordinación con sesión 🔐, para armar
-  las 17 de la unidad. Se enciende poniendo TRUE en la planilla, sin pegar). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  las 17 de la unidad. Se enciende poniendo TRUE en la planilla, sin pegar) y
+  **la v6.16** (equivocarse en el select de vía aérea y volver atrás ya no
+  destruye los contadores: `_snapIniEstado` guarda el estado de llegada y
+  `cascadeVA` lo restaura si no hay evento declarado; PRD de Diego en
+  BITACORA v6.16). 🔜 **Pendiente que dejó anotado Diego**: la carilla
   2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
   correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
