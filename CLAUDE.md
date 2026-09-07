@@ -216,7 +216,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**120 guardias** en `build/checks/*.js` (7-sep-2026); poco más de la mitad usan navegador
+**122 guardias** en `build/checks/*.js` (7-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -228,7 +228,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 7-sep-2026: 120 verdes, 0 rojas.** El corredor
+**Estado al 7-sep-2026: 122 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -362,7 +362,10 @@ si tiene más de unos días, se confirma antes de usarla.
   del panel uno por uno: `fVA` seguía perdiendo los contadores si el select
   pasaba por la opción EN BLANCO —`_vaAnterior` quedaba falsy y el deshacer no
   entraba—; 8 cascadas clínicas más no se revierten y esperan decisión de
-  Diego, ver BITACORA v6.18). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  Diego, ver BITACORA v6.18) y **la v6.19** (esas ocho se deshacen: si el
+  control vuelve al valor con que se abrió el panel, lo que su cascada
+  escribió vuelve también —tabla `_CASCADAS` + oyente en el formulario—;
+  medido 0 de 99, y guardia nueva `panel_no_pisa_datos` que lo vigila). 🔜 **Pendiente que dejó anotado Diego**: la carilla
   2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
   correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
