@@ -339,7 +339,10 @@ si tiene más de unos días, se confirma antes de usarla.
   del buzón lleva un resumen escrito para el equipo: catálogo `NOVEDADES` en
   `svc_notificaciones.gs` — la entrada resume LA TANDA que el equipo verá al
   pasar a ese sello, no solo esa versión, porque el servidor solo ve el sello
-  que arranca). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  que arranca) y **la v6.13** (la pantalla de carga celebra con la pose
+  festejo, gorro y confeti 🎊 cuando alguien cumple —el día se recuerda en el
+  navegador porque el boot llega después de pintarla— y el botón que anuncia
+  crece de 62 a 92 px). 🔜 **Pendiente que dejó anotado Diego**: la carilla
   2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
   correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel

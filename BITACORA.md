@@ -19,6 +19,37 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.13-carga-de-cumpleanos (7-sep-2026) — la pantalla de carga celebra, y el que anuncia se ve
+
+Diego: «cuando alguien esté de cumpleaños la pantalla de carga igual tendrá a
+Don Mauri cumpleañero, pero **tu imagen celebrando**, que estaba muy buena, y
+además agrégale confeti 🎊; y el que anuncia quién es, la imagen que yo te
+pasé, pero **en una escala más grande porque se ve muy pequeño**».
+
+- Quedan las DOS versiones, cada una donde luce: la **pantalla de carga** usa
+  la pose `festejo` con gorro y globos compuestos encima —el montaje de la
+  v5.90— más confeti cayendo sobre todo el telón; el **botón que anuncia**
+  sigue con la ilustración propia de Diego (`cumple`, v5.98) y pasa de 62 a
+  **92 px** (72 en el celular).
+- 🪤 **El cumpleaños lo sabe el servidor y llega con el boot, o sea DESPUÉS de
+  que la pantalla de carga ya se pintó.** No se puede saber antes sin inventar.
+  Solución: el día queda anotado en el navegador (`rce_cumple_dia`), así que
+  la primera carga del día en un computador sale sobria y todas las siguientes
+  salen de fiesta. No se adivina nada — solo se recuerda lo que el servidor ya
+  dijo, y la marca se borra sola cuando el cumpleaños pasa.
+- El confeti son ocho 🎊 (emoji de 2010, que el Chrome del hospital sí dibuja)
+  con retardo y duración propios para que caigan desordenados; se apagan
+  enteros con «reducir movimiento» del sistema.
+- El globo del saludo sube de 80 a 112 px: con la mascota crecida le quedaba
+  encima.
+- 🪤 Al probarlo: `mauriEstado()` sale por la puerta de atrás si
+  `mascActual()!=='persona'`, y eso lee **localStorage**, no el atributo
+  `data-masc`. Un arnés que solo pone el atributo mide la pose equivocada.
+- Guardia `nota_synapse_cumple`: telón sobrio sin cumpleaños, pose festejo
+  con él, gorro y confeti presentes, las ocho piezas con retardos distintos,
+  el emoji correcto, el crecimiento 62→92, el día anotado y su borrado.
+  Batería 119 verdes. Sin esquema; se pegan **index + servicios + api**.
+
 ## v6.12-novedades-para-el-equipo (6-sep-2026) — el buzón cuenta qué cambió, en palabras de la unidad
 
 Diego: «que en las novedades de actualización salga un resumen de la
