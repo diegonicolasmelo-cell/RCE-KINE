@@ -19,6 +19,30 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## auditoriaDeUso (7-sep-2026) — qué funciones se usan de verdad
+
+Diego, camino a depurar pestañas y estadística: «siento que tenemos muchas
+funciones que no están siendo exploradas, entonces podríamos centralizar y
+acotar». Se decidió medirlo en vez de decidirlo por impresión.
+
+- `auditoriaDeUso()` en mantenimiento.gs, de SOLO lectura: cuenta las acciones
+  de AUDIT_LOG en total y en los últimos 30 días, ordenadas de más a menos, y
+  lista las que NUNCA se usaron comparando contra el catálogo `AUDIT_ACCIONES`
+  (las 30 acciones de escritura del dispatcher + las de coordinación).
+- 🔴 **Lo que NO mide, escrito en el propio informe**: el registro guarda lo
+  que se ESCRIBE, no lo que se MIRA. Las 19 acciones `GET_*` no dejan huella a
+  propósito —nadie quiere un registro de quién abrió qué pantalla—, así que
+  esto **no dice qué pestañas se visitan**. Para eso manda el criterio del
+  equipo. Decirlo evita la conclusión falsa de «nadie usa Estadísticas».
+- 🔒 No sale ningún dato de paciente: solo nombres de acción y cuentas. Los
+  correos y las firmas del registro NO se leen — la pregunta es qué se usa, no
+  quién lo usa.
+- 🪤 Al mapear la cobertura, el primer grep dijo «solo 5 acciones auditadas»:
+  el `_auditar` va en la línea SIGUIENTE al `case`, y el patrón de una línea no
+  lo veía. Son 30. Vale para cualquier auditoría futura sobre api.gs.
+- Solo toca `mantenimiento.gs`; **no cambia el sello** (el index no se toca) y
+  viaja con la entrega de la v6.17.
+
 ## v6.17-los-tramos-de-vm-se-suman (7-sep-2026) — el total de VM se perdía al turno siguiente
 
 Diego, al preguntarle cómo cuenta la unidad: «los días de VM se cuentan

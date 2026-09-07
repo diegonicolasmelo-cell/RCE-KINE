@@ -867,6 +867,73 @@ function _relojesDeLaUnidad() {
   return txt;
 }
 
+/**
+ * auditoriaDeUso — SOLO LECTURA. Qué funciones de la app se usan de verdad y
+ * cuáles no ha tocado nadie (Diego, 7-sep-2026: «siento que tenemos muchas
+ * funciones que no están siendo exploradas, podríamos centralizar y acotar»).
+ *
+ * Cuenta las acciones registradas en AUDIT_LOG, en total y en los últimos 30
+ * días, y lista las que NUNCA se han usado. Con eso se decide qué se depura,
+ * qué se centraliza y qué queda solo para coordinación — con datos y no con
+ * impresiones.
+ *
+ * 🔴 QUÉ NO MIDE, para no sacar conclusiones de más: el registro guarda lo que
+ * se ESCRIBE, no lo que se MIRA. Las 19 acciones de lectura (GET_*) no dejan
+ * huella a propósito —nadie quiere un registro de quién abrió qué pantalla—,
+ * así que esto NO dice qué pestañas se visitan. Para eso mandan el criterio
+ * clínico y lo que el equipo cuente.
+ *
+ * 🔒 No sale ningún dato de paciente: solo nombres de acción y cuentas. Los
+ * correos y las firmas del registro NO se leen: la pregunta es qué se usa, no
+ * quién lo usa.
+ * Uso desde el editor:  auditoriaDeUso()
+ */
+function auditoriaDeUso() {
+  const hoy = hoyISO();
+  const desde30 = _restarDias(hoy, 30);
+  const filas = repoLeerTodos('AUDIT_LOG');
+  if (!filas.length) { Logger.log('El registro de auditoría está vacío.'); return 'vacío'; }
+  const tot = {}, ult = {};
+  let primera = '', ultima = '';
+  filas.forEach(function (f) {
+    const a = String(f.ACCION || '').trim(); if (!a) return;
+    const ts = String(f.TIMESTAMP || '').slice(0, 10);
+    tot[a] = (tot[a] || 0) + 1;
+    if (ts && ts >= desde30) ult[a] = (ult[a] || 0) + 1;
+    if (ts) { if (!primera || ts < primera) primera = ts; if (!ultima || ts > ultima) ultima = ts; }
+  });
+  const usadas = Object.keys(tot).sort(function (a, b) { return tot[b] - tot[a]; });
+  const L = ['📊 USO DE LA APP   (registro del ' + primera + ' al ' + ultima + ')',
+    '   ' + filas.length + ' acciones registradas · ' + usadas.length + ' funciones distintas',
+    '',
+    '   ACCIÓN                          TOTAL   ÚLT. 30 DÍAS'];
+  usadas.forEach(function (a) {
+    L.push('   ' + (a + '                              ').slice(0, 30) +
+      ('      ' + tot[a]).slice(-6) + '   ' + ('      ' + (ult[a] || 0)).slice(-6) +
+      ((ult[a] || 0) === 0 ? '   ← sin uso este mes' : ''));
+  });
+  // Lo que NUNCA se usó: se compara contra el catálogo de acciones auditadas.
+  const nunca = AUDIT_ACCIONES.filter(function (a) { return !tot[a]; });
+  L.push('', nunca.length
+    ? '   🕸️ NUNCA se han usado (' + nunca.length + '):\n      ' + nunca.join(', ')
+    : '   ✅ Todas las funciones que dejan huella se han usado alguna vez.');
+  L.push('', '   🔎 Ojo: esto mide lo que se ESCRIBE. Abrir una pestaña no deja huella,',
+             '      así que no dice qué vistas se visitan — eso lo sabe el equipo.');
+  const txt = L.join('\n');
+  Logger.log(txt);
+  return txt;
+}
+
+/** Catálogo de acciones que dejan huella, para saber cuáles NUNCA se usaron. */
+var AUDIT_ACCIONES = ['AGREGAR_FASE', 'AGREGAR_HITO', 'AJUSTAR_STOCK', 'ANEXAR_EVENTO',
+  'ANULAR_ANEXO', 'ANULAR_EVENTO', 'ASIGNAR_STOCK', 'BAJA_VENTILADOR', 'CONFIRMAR_DISPOSITIVOS',
+  'DAR_ALTA', 'GENERAR_REM', 'GSA_ASIGNAR', 'GSA_DESCARTAR', 'GSA_IMPORTAR',
+  'GUARDAR_ENTREGA_TURNO', 'GUARDAR_EVOLUCION', 'GUARDAR_STOCK', 'GUARDAR_SUGERENCIA',
+  'GUARDAR_VENTILADOR', 'INGRESAR_PACIENTE', 'INTERCAMBIAR_CAMAS', 'LIMPIAR_CAMA',
+  'MOVER_A_CAMA_VACIA', 'MOVER_VENTILADOR', 'MOVER_VENTILADORES_LOTE', 'PLANTILLA_GUARDAR',
+  'PLANTILLA_RETIRAR', 'REGISTRAR_FALLA_VM', 'SET_ASIGNACION_TURNO', 'SET_BANNER',
+  'SET_SUGERENCIA_ESTADO', 'COORD_CORRIGE_FICHA', 'COORD_ENTRADA'];
+
 function auditoriaIntegridad() {
   try {
     const out = { A_clavesRepetidas: [], B_camasConAjenas: [], C_primerGuardadoSobreFila: [],

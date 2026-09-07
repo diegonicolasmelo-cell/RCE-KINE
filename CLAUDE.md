@@ -1038,6 +1038,7 @@ pestaña 🔐 COORDINACIÓN — sin abrir el editor.
 
 ### Rutinas de mantenimiento disponibles (simulacro primero, siempre)
 
+`auditoriaDeUso` (qué funciones se usan y cuáles nunca; solo lectura) ·
 `repararEvolucionesAjenasSIMULACRO/CONFIRMAR` · `corregirTiempoExtubadoSIMULACRO/CONFIRMAR`
 · `corregirPronosRepetidos` · `resellarDiasSoporte*` · `corregirIngresos*` ·
 `archivarAnioHistorico*` · `resetearBaseDeDatos*` · `cargarInventarioInicial` ·
