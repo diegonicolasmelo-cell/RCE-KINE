@@ -119,8 +119,10 @@ eq('★ el bloque no queda como última ni penúltima línea de ninguna semilla'
 
 /* ── 3bis · GCS Y HEMODINAMIA SE VEN SIEMPRE (Manuel, 7-sep-2026) ─────────
    «Su glasgow que siempre está evaluado». Manuel decidió que el GCS y la
-   hemodinamia aparecen en TODA evolución —incluida «sin novedades»— y que la
-   sedoanalgesia solo si hay algo que contar.
+   hemodinamia aparecen en TODA evolución —incluida «sin novedades»—. La línea
+   de {sedacion} NO es condicional y no puede serlo: el motor la emite en todo
+   turno y en uno sin sedoanalgesia escribe «Sin sedoanalgesia. GCS 15/15
+   (O:4, V:5, M:6).», porque el Glasgow viaja dentro de ese mismo campo.
 
    🪤 EL GCS NO VIVE DONDE PARECE. No está en {neurologico} (ese es el
    NEUROMONITOREO: PIC, PPC, DVE, vacío en casi todos los pacientes) sino DENTRO

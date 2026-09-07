@@ -6365,7 +6365,10 @@ const PLANT_NOMBRE_MAX = 40, PLANT_CUERPO_MAX = 4000;
    Ahora va donde lo pone el motor: justo después del día y la fase.
 
    🪤 7-sep-2026, DOS LÍNEAS Y NO UNA — decisión clínica de Manuel: el GCS y la
-   hemodinamia se ven SIEMPRE; la sedoanalgesia solo si hay algo que contar.
+   hemodinamia se ven SIEMPRE. La línea de {sedacion} NO es condicional y no
+   puede serlo: el motor la emite en TODO turno, y en uno sin sedoanalgesia
+   escribe «Sin sedoanalgesia. GCS 15/15 (O:4, V:5, M:6).» — el Glasgow viaja
+   dentro de ella (dominio_texto.gs: sedStr += ` GCS ...`, sin condición).
    Ojo con dónde vive cada dato, porque no es donde parece:
      {sedacion}    = bloque `sed` del motor, que junta sedoanalgesia + GCS +
                      cooperación + CAM-ICU EN UNA SOLA LÍNEA. Por eso {sedacion}
