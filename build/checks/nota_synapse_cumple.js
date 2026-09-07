@@ -176,6 +176,52 @@ const si = (l, c) => eq(l, !!c, true);
   si('…al pasar el cumpleaños vuelve la pose normal', pose.vuelve);
   si('★ Servi conserva el gorro de emoji', pose.serviEmoji);
 
+  /* 🎂 v6.13 (Diego, 7-sep-2026): la PANTALLA DE CARGA también celebra, con la
+     pose FESTEJO (la que él aprobó) más gorro, globos y confeti; y el que
+     ANUNCIA quién cumple va más grande, «porque se ve muy pequeño». */
+  const fiesta = await p.evaluate(() => {
+    try { localStorage.setItem(MASC_KEY, 'persona'); } catch (e) {}
+    mascAplicar();
+    const lov = document.getElementById('lov');
+    const lovImg = lov.querySelector('.masc-persona');
+    const btnImg = document.querySelector('#tutBtn .masc-persona');
+    // Antes del cumpleaños: telón sobrio.
+    cumpleAplicar([]);
+    const sobrio = { clase: lov.classList.contains('cumple'),
+                     pose: lovImg.src === mauriSrc('sofa'),
+                     confeti: getComputedStyle(document.getElementById('lovConfeti')).display,
+                     alto: getComputedStyle(btnImg).height };
+    cumpleAplicar([{ firma: 'DMV', nombre: 'Diego Melo Villagrán' }]);
+    const conf = document.querySelectorAll('#lovConfeti span');
+    const fest = { clase: lov.classList.contains('cumple'),
+                   pose: lovImg.src === mauriSrc('festejo'),
+                   gorro: getComputedStyle(lov.querySelector('.cump-gorro')).display,
+                   confeti: getComputedStyle(document.getElementById('lovConfeti')).display,
+                   piezas: conf.length,
+                   emoji: [...conf].every(x => x.textContent === '🎊'),
+                   sueltas: new Set([...conf].map(x => x.style.animationDelay)).size,
+                   alto: getComputedStyle(btnImg).height,
+                   dia: (function () { try { return localStorage.getItem('rce_cumple_dia'); } catch (e) { return ''; } })() };
+    // Y el recuerdo se borra cuando ya no hay nadie de cumpleaños.
+    cumpleAplicar([]);
+    let borrado = ''; try { borrado = localStorage.getItem('rce_cumple_dia') || ''; } catch (e) {}
+    return { sobrio, fest, borrado, hoy: hoy() };
+  });
+  si('un día normal la pantalla de carga NO celebra (sofá, sin confeti)',
+    !fiesta.sobrio.clase && fiesta.sobrio.pose && fiesta.sobrio.confeti === 'none');
+  si('★ con cumpleaños la pantalla de carga usa la pose FESTEJO', fiesta.fest.clase && fiesta.fest.pose);
+  si('★ …con el gorro encima y el confeti cayendo',
+    fiesta.fest.gorro !== 'none' && fiesta.fest.confeti !== 'none' && fiesta.fest.piezas >= 6);
+  si('★ el confeti es 🎊 (emoji de 2010: el Chrome del hospital lo dibuja)', fiesta.fest.emoji);
+  si('…y cada pieza cae con su propio retardo (si no, sería una fila)', fiesta.fest.sueltas >= 4);
+  si('★ el que ANUNCIA crece de 62 a 92 px (Diego: «se ve muy pequeño»)',
+    fiesta.sobrio.alto === '62px' && fiesta.fest.alto === '92px');
+  si('★ el día queda anotado, porque el boot llega DESPUÉS de pintar la carga',
+    fiesta.fest.dia === fiesta.hoy);
+  si('…y se borra solo cuando ya no hay cumpleaños', fiesta.borrado === '');
+  si('el globo del saludo sube para no chocar con la mascota crecida',
+    /#cumpleGlobo\{position:fixed;right:14px;bottom:112px;/.test(fs.readFileSync(path.join(V2, 'index.html'), 'utf8')));
+
   // Sin cumpleaños, la mascota vuelve a la ayuda de siempre
   const sinCumple = await p.evaluate(() => {
     cumpleAplicar([]);

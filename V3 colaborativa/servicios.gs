@@ -6116,7 +6116,7 @@ function notifListar(datos) {
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
 const NOVEDADES = {
-  '6.12-novedades-para-el-equipo': [
+  '6.13-carga-de-cumpleanos': [
     '🧪 Los gases de la mañana se copian solos desde los PDF del laboratorio y salen en la hoja del día. Ya no hay que pasarlos a mano.',
     '📥 El gas que no se pudo emparejar queda en «Sin emparejar», al lado del botón de importar: se le elige la cama y listo.',
     '🖨️ La hoja del día trae el gas de la mañana, con Hb, Hto y K⁺ en observaciones y el último cultivo con su resultado.',
