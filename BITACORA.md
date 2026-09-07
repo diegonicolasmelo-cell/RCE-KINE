@@ -19,6 +19,44 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.15-plantillas-solo-coordinacion (7-sep-2026) — las plantillas se apagan para el equipo
+
+Diego: «en el editor de plantillas no salen todos los campos y tuvimos un
+error con eso, por lo que por mientras te solicito volver al estilo de
+evolución anterior a la plantilla, y que la plantilla esté solo habilitada
+para el perfil del coordinador… una vez se arme la plantilla recién volver a
+implementarla, ya que tuvimos problemas de experiencia de usuario negativas».
+
+- **Interruptor en CONFIG: `PLANTILLAS_ACTIVAS`, FALSE por defecto.** Viaja
+  en `_configUI()` y el cliente lo lee en `_plantHabilitadas()`. Encender es
+  poner TRUE en la planilla: no se pega nada. Y si vuelve a molestar, se
+  apaga igual de rápido.
+- **Apagado = el motor de siempre, byte a byte.** `_plantActiva()` devuelve
+  null y `_textoSalida()` es `genTexto()`. Es exactamente la promesa 1 de la
+  tanda 3 («sin catálogo cargado, producción no cambia»): el motor nunca se
+  fue, las plantillas solo lo envolvían. El 📋 y el ➕ desaparecen para el
+  equipo; `plantElegir` no aplica nada aunque alguien lo llame.
+- **Con sesión de COORDINACIÓN (🔐) el 📋 vuelve, pero solo como puerta del
+  EDITOR**: menú reducido a «Nueva plantilla» y «Mis plantillas», sin nada
+  que aplicar; el texto de coordinación también sigue siendo el motor. Así
+  arman y previsualizan las de la unidad sin tocar ninguna evolución. Entrar
+  y salir de la sesión repinta el 📋.
+- **Los comodines del editor son TODOS**: la guardia cuenta los chips del
+  menú contra `PLANT_COMODINES` (67, con los diez que faltaban desde la
+  v6.11). Falta que Diego diga QUÉ campo no salía: si era uno de los diez, ya
+  está; si es otra cosa, es el siguiente arreglo.
+- Las plantillas personales que ya se crearon **no se pierden**: quedan en
+  PLANTILLAS_EVOLUCION y vuelven a aplicarse al encender.
+- NOVEDADES del buzón: la línea de plantillas ahora dice que quedan apagadas
+  mientras coordinación las termina.
+- Guardia `plantillas_evolucion` bloque 7 (diez asserts: motor exacto, sin
+  📋 ni ➕ para el equipo, elegir a mano no aplica, coordinación ve el editor
+  con todos los comodines y sin menú de aplicar, al salir se esconde, y el
+  interruptor sembrado en CONFIG). El arnés de los bloques anteriores enciende
+  el interruptor explícitamente. Batería 121 verdes. Sin cambio de esquema
+  (la fila CONFIG nace con el próximo `crearORepararEstructura()`; hasta
+  entonces manda el valor por defecto, FALSE).
+
 ## v6.14-manda-la-cama (7-sep-2026) — la cama 17 amaneció con los días en 0
 
 Diego, desde el uso: «Aline evolucionó al paciente de la cama 17, registró

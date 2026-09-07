@@ -795,6 +795,10 @@ function _sembrar(ss) {
     // destete prolongado (Boles 2007) o VM de PIMO_VM_DIAS días (NAMDRC
     // 2005: 21), la campana pide medir Pimáx. Editables sin tocar código.
     ['GSA_CARPETA_ID', ''],         // carpeta de Drive con los PDF del laboratorio (se crea sola si falta)
+    // 📋 Plantillas de evolución para el equipo. FALSE (7-sep-2026, Diego):
+    // el texto vuelve al motor de siempre y el editor lo ve solo coordinación
+    // mientras arma las plantillas. Se enciende poniendo TRUE aquí.
+    ['PLANTILLAS_ACTIVAS', 'FALSE'],
     ['PIMO_PS_MAX', '14'],
     ['PIMO_VM_DIAS', '21'],
     ['PVE_TURNOS_ALERTA', '2'],     // turnos seguidos candidato a PVE sin PVE antes de alertar

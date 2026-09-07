@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.14-manda-la-cama">
+<meta name="rce-version" content="6.15-plantillas-solo-coordinacion">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4719,7 +4719,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.14-manda-la-cama]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.15-plantillas-solo-coordinacion]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -12737,7 +12737,21 @@ function _plantGanadora(){
   const busca=(l,k)=>l.find(p=>p.caso===k)||null;
   return busca(c.mias,caso)||busca(c.mias,'general')||busca(c.unidad,caso)||busca(c.unidad,'general')||null;
 }
+/* ── 🔴 INTERRUPTOR DE LAS PLANTILLAS (Diego, 7-sep-2026) ──────────────────
+   «En el editor de plantillas no salen todos los campos y tuvimos un error con
+   eso… desactiva la plantilla y vuelve al sistema anterior tal cual se estaba
+   generando; luego la plantilla ese sistema solo lo verá coordinación».
+   CONFIG.PLANTILLAS_ACTIVAS (FALSE por defecto):
+   · APAGADO: ninguna plantilla se aplica —_plantActiva() devuelve null y
+     _textoSalida() es genTexto(), el motor de siempre, byte a byte—. El 📋 y
+     el ➕ desaparecen para el equipo. Con sesión de COORDINACIÓN (🔐) el 📋
+     vuelve, pero solo como puerta del EDITOR: para armar y previsualizar las
+     de la unidad, nunca para aplicarlas al texto.
+   · ENCENDIDO: todo como en la v6.04. Se enciende en la planilla, sin pegar. */
+function _plantHabilitadas(){ return !!(window.CFG && CFG.PLANTILLAS_ACTIVAS===true); }
+function _plantEditorVisible(){ return _plantHabilitadas() || (typeof COORD_TK!=='undefined' && !!COORD_TK); }
 function _plantActiva(){
+  if(!_plantHabilitadas()) return null;   // apagadas: el motor manda, siempre
   if(!PLANT_CAT.length || _plantSel==='') return null;
   if(_plantSel) return PLANT_CAT.find(p=>p.id===_plantSel)||null;
   return _plantGanadora();
@@ -12811,13 +12825,27 @@ function _plantAplicar(){
   const ra=$('rarea');
   if(ra && !ra.classList.contains('hidden')) pintar(); else renderPlantBar();
 }
-function plantElegir(id){ _plantSel=id; _plantConf=true; plantPopCerrar(); _plantAplicar(); }
+function plantElegir(id){
+  if(!_plantHabilitadas()){ plantPopCerrar(); toast('📋 Las plantillas están apagadas para el equipo por ahora (CONFIG PLANTILLAS_ACTIVAS).'); return; }
+  _plantSel=id; _plantConf=true; plantPopCerrar(); _plantAplicar(); }
 
 /* El 📋 de la esquina: pinta cuántas plantillas tengo y cuál está en uso.
    (Conserva el nombre renderPlantBar: es lo que llaman el editor de texto y
    el refresco en vivo desde antes.) */
 function renderPlantBar(){
   const ico=$('plantIco'); if(!ico) return;
+  const ver=_plantEditorVisible();
+  ico.classList.toggle('hidden', !ver);
+  const et0=$('plantEnUso'); if(et0 && !ver) et0.textContent='';
+  if(!ver) return;
+  if(!_plantHabilitadas()){
+    // Apagadas para el equipo: el ícono es solo la puerta del editor de coordinación.
+    const n0=$('plantIcoN'); if(n0) n0.classList.add('hidden');
+    ico.title='Plantillas APAGADAS para el equipo (CONFIG PLANTILLAS_ACTIVAS) · aquí coordinación las prepara';
+    ico.classList.remove('on');
+    if(et0) et0.textContent='';
+    return;
+  }
   const c=_plantCatalogo(), act=_plantActiva();
   const n=$('plantIcoN'); if(n){ n.textContent=String(c.mias.length||''); n.classList.toggle('hidden', !c.mias.length); }
   ico.title = act ? ('Plantilla en uso: '+act.nombre+(act.dueno==='UNIDAD'?' (unidad)':' (mía)')+' · clic para cambiar o crear') : 'Sin plantilla (motor libre) · clic para elegir o crear';
@@ -12828,6 +12856,15 @@ function renderPlantBar(){
 function plantPopAbrir(){
   const m=$('plantPop'); if(!m) return;
   if(m.classList.contains('on')){ plantPopCerrar(); return; }
+  if(!_plantHabilitadas()){
+    // Modo edición de coordinación: nada que APLICAR, solo armar y revisar.
+    m.innerHTML = `<div class="pm-g">Plantillas apagadas para el equipo · modo edición (coordinación)</div>`
+      + `<div class="pm-it" onclick="plantPopCerrar();plantEditar('')">➕ Nueva plantilla</div>`
+      + `<div class="pm-it" onclick="plantPopCerrar();plantMisAbrir()">⚙️ Mis plantillas…</div>`;
+    m.classList.add('on');
+    setTimeout(()=>document.addEventListener('click', _plantPopFuera, {once:true}),0);
+    return;
+  }
   const c=_plantCatalogo(), act=_plantActiva(), gana=_plantGanadora(), caso=_plantCaso();
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
   const it=(p,quien)=>`<div class="pm-it${act&&act.id===p.id?' sel':''}" onclick="plantElegir('${esc(p.id)}')">${_plantIcono(p.caso)} ${esc(p.nombre)}<span class="pm-q">${(gana&&gana.id===p.id&&!_plantConf)?'se aplicó sola':esc(quien||p.dueno)}</span></div>`;
@@ -12862,7 +12899,7 @@ function _plantSelLineas(){
 }
 function _plantMasRefrescar(){
   const m=$('plantMas'); if(!m) return;
-  const hay=_plantSelLineas().length>0 && document.activeElement===$('rtxt');
+  const hay=_plantEditorVisible() && _plantSelLineas().length>0 && document.activeElement===$('rtxt');
   m.classList.toggle('hidden', !hay);
 }
 /* ── Des-rellenar: de la frase con datos a la frase con comodines ──
@@ -14240,6 +14277,7 @@ function coordEntrar(){
 function _coordEntrarCon(usuario, clave, ok, fail){
   gs('COORD_ENTRAR',{usuario:usuario, clave:clave}, r=>{
     COORD_TK=r.token; COORD_FIRMA=r.firma; COORD_USUARIO=usuario;
+    if(typeof renderPlantBar==='function') renderPlantBar();   // 📋 de edición para coordinación
     _coordUltimaAct=Date.now(); _coordBolsilloGuardar();   // sobrevive al F5
     coordInit(); toast('🔐 Modo Coordinación · '+r.firma);
     if(r.debeCambiarClave) coordCambiarClavePedir(true);
@@ -14266,6 +14304,7 @@ function coordSalir(motivo){
   const tk=COORD_TK;
   const limpiar=()=>{
     COORD_TK=null; COORD_FIRMA=''; COORD_USUARIO=''; COORD_PID='';
+    if(typeof renderPlantBar==='function') renderPlantBar();
     _coordBolsilloBorrar();   // que un F5 posterior no resucite la sesión cerrada
     $('coordRes').innerHTML='<div class="pivot-empty">Escribe al menos dos letras, o un RUT.</div>';
     $('coordFicha').innerHTML=''; $('coordQ').value='';
@@ -14350,6 +14389,7 @@ function _coordReanudar(){
   gs('COORD_ESTADO',{token:b.token}, r=>{
     if(r && r.viva){
       COORD_TK=b.token; COORD_FIRMA=r.firma||b.firma||''; COORD_USUARIO=r.usuario||b.usuario||'';
+      if(typeof renderPlantBar==='function') renderPlantBar();
       _coordIdleArmar(); _coordBolsilloGuardar(); hSesRender();
       if(typeof ATAB!=='undefined' && ATAB==='C') coordInit();
       toast('🔓 Modo Coordinación sigue abierto · '+COORD_FIRMA, 2600);
