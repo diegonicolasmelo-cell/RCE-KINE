@@ -19,6 +19,50 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.18-deshacer-por-el-blanco (7-sep-2026) — se probaron los 99 controles del panel, uno por uno
+
+Diego: «quedé bastante preocupado con los datos que se pierden durante la
+estadía… me gustaría que lo que se modifica no cambie nada hasta guardar, me
+refiero a lo que pasó con los días de VM al cambiar vía aérea. ¿Eso podría
+pasar con otros campos? Revísalo».
+
+**Método**: en vez de leer código, se probó. Un arnés abre el panel con una
+cama realista y, para CADA control con manejador (99), lo cambia, lo devuelve
+a su valor original y compara una foto completa —todos los campos del
+formulario más 16 variables internas (contadores, anclas, fases,
+procedimientos)—. Cualquier diferencia tras cambiar y volver es un dato que se
+modificó sin guardar. El panel se reabre entre control y control para que el
+daño de uno no contamine al siguiente. Herramienta en el scratchpad
+(`probar_controles.js`); vale la pena volver a correrla al tocar el panel.
+
+**Resultado: 9 de 99 controles dejaban rastro.** Uno era un bug de la misma
+familia del reportado y se arregla aquí; los otros ocho son cascadas clínicas
+que actúan bien pero **no se deshacen**, y quedan para decidir con Diego.
+
+- 🔴 **ARREGLADO — `fVA` pasando por la opción EN BLANCO.** El deshacer de la
+  v6.16 vivía dentro del guardia `if(_vaAnterior && _vaAnterior!==va …)`. Al
+  pasar por la opción vacía del select, `_vaAnterior` quedaba en `''` —
+  falsy— y **el camino de vuelta no entraba al bloque**: los contadores
+  seguían congelados (`_diasVMEpisodio 9 → 0`, `_diasVMPrevios 0 → 9`). O sea
+  el arreglo de ayer cubría el camino corto y no el que pasa por el blanco.
+  Ahora el deshacer se comprueba antes y por su cuenta: basta con volver al
+  valor de llegada sin ningún evento declarado. Guardia `pve_no_toca_los_dias`
+  bloque 1b, con el camino del blanco.
+- **PENDIENTES DE DECISIÓN (informe a Diego)**, todos del mismo patrón —la
+  cascada se aplica y no se revierte—:
+  · `fVA` → `fGCSV` (con TOT la V del Glasgow es «1T»; al volver queda «5»).
+  · `cBNM` → GCS O:1 M:1, S5Q «lt3», «No cooperador», KTM contraindicada
+    Absoluta/BNM. Desmarcarlo no restaura nada: el paciente queda marcado no
+    cooperador y con contraindicación absoluta que nadie escribió.
+  · `fSAS`, `fGCSM`, `fS5Q` → la misma cadena de cooperación (`autoCoopera`).
+  · `cHAct` (humidificación activa) → BORRA la fecha del filtro HME y
+    desmarcarlo no la repone.
+  · `cTqtO`, `cIntubO`, `poReintubSop` → dejan el modo del panel «queda con»
+    en ACVC (bajo riesgo: solo pesa si el evento se declara).
+- 🪤 Lección de método: el primer arreglo de una familia rara vez la cierra.
+  Probar los 99 controles costó una tarde y encontró el hueco que la lectura
+  del código no vio.
+
 ## auditoriaDeUso (7-sep-2026) — qué funciones se usan de verdad
 
 Diego, camino a depurar pestañas y estadística: «siento que tenemos muchas

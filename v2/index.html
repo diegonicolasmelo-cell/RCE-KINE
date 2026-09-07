@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.17-los-tramos-de-vm-se-suman">
+<meta name="rce-version" content="6.18-deshacer-por-el-blanco">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4719,7 +4719,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.17-los-tramos-de-vm-se-suman]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.18-deshacer-por-el-blanco]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -10080,7 +10080,12 @@ function cascadeVA(preSop) {
      reintubación, desvinculación), se restaura el estado de llegada tal cual y
      no se toca nada más. Con un evento declarado manda el evento: eso ya no es
      un manotazo, es el registro clínico. */
-  if(_vaAnterior && _vaAnterior!==va && v('cIng')!=='true' && va===_iniVA && _iniDias && !_hayEventoVA()){
+  /* 🪤 El guardia de abajo empieza con `_vaAnterior &&`, así que si el select
+     PASÓ POR LA OPCIÓN EN BLANCO el camino de vuelta no entraba aquí y los
+     contadores quedaban congelados igual (encontrado el 7-sep-2026 probando
+     los 99 controles del panel uno por uno). Por eso el deshacer se comprueba
+     ANTES y por su cuenta: basta con volver al valor de llegada. */
+  if(v('cIng')!=='true' && _iniDias && va===_iniVA && va!==_vaAnterior && !_hayEventoVA()){
     const S=_iniDias;
     _diasVABase=S._diasVABase; _diasTOTBase=S._diasTOTBase; _diasTQTBase=S._diasTQTBase;
     _fechaInicioVA=S._fechaInicioVA; _fechaInicioTQT=S._fechaInicioTQT;

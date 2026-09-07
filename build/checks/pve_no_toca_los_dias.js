@@ -96,19 +96,26 @@ const CAMA = { ID_CAMA: '17', OCUPADA: true, NOMBRE: 'PACIENTE 17', PATIENT_ID: 
     // Y el camino largo: TOT → TQT → Natural → TOT, todo sin declarar nada.
     sel.value = 'TQT'; cascadeVA(); sel.value = 'Natural'; cascadeVA();
     sel.value = 'TOT'; cascadeVA(); const vueltaLarga = foto();
+    // 🪤 Pasando por la opción EN BLANCO: el guardia de la transición empieza
+    // con `_vaAnterior &&`, así que por ahí el deshacer no se disparaba
+    // (encontrado el 7-sep probando los 99 controles del panel uno por uno).
+    sel.value = ''; cascadeVA(); sel.value = 'TOT'; cascadeVA();
+    const porElBlanco = foto();
     // Con un evento DECLARADO manda el evento, no el deshacer.
     const ti = document.getElementById('cTqtO');
     ti.checked = true; if (typeof hTqtO === 'function') hTqtO();
     sel.value = 'TQT'; cascadeVA(); sel.value = 'TOT'; cascadeVA();
     const conEvento = foto();
     ti.checked = false; if (typeof hTqtO === 'function') hTqtO();
-    return { llegada, enNatural, devuelta, vueltaLarga, conEvento };
+    return { llegada, enNatural, devuelta, vueltaLarga, porElBlanco, conEvento };
   });
   eq('★ vuelve a TOT y los días quedan como llegaron',
     JSON.stringify(manotazo.devuelta), JSON.stringify(manotazo.llegada));
   si('★ …incluidos los días de VM (el bug los dejaba en 0)', manotazo.devuelta.dVM === manotazo.llegada.dVM && manotazo.llegada.dVM !== '0');
   eq('★ el camino largo TOT→TQT→Natural→TOT tampoco deja rastro',
     JSON.stringify(manotazo.vueltaLarga), JSON.stringify(manotazo.llegada));
+  eq('★ …ni pasando por la opción en blanco',
+    JSON.stringify(manotazo.porElBlanco), JSON.stringify(manotazo.llegada));
   si('mientras está en Natural los contadores no se pierden (el dato sigue siendo el de la cama)',
     manotazo.enNatural.dVM === manotazo.llegada.dVM);
   si('★ pero con un evento DECLARADO manda el evento, no el deshacer',
