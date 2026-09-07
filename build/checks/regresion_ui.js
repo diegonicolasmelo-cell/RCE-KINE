@@ -19,20 +19,35 @@ const path = require('path');
   const fails=[]; const eq=(l,g,w)=>{const okk=String(g)===String(w);console.log((okk?'✅':'❌')+' '+l+': '+JSON.stringify(g));if(!okk)fails.push(l);};
 
   // ── BUG 2: VA robusta ──
+  // 🔴 REGLA CAMBIADA EL 7-sep-2026 (reporte de Diego, cama 17). Hasta la
+  // v6.13 este bloque exigía que un valor válido del turno anterior se
+  // replicara SIEMPRE, incluso pisando la vía aérea de la cama. Eso ERA el
+  // bug: con una fila previa terminada en «Natural», el formulario se abría
+  // sin tubo aunque la cama dijera TOT, y al guardar el servidor borraba
+  // FECHA_INICIO_VA — días de VM y de TOT a 0. Ahora MANDA LA CAMA, que es el
+  // estado vigente; el turno anterior es una foto que puede haber envejecido.
+  // Lo que NO cambió: un valor con basura nunca borra la selección.
+  // La regla completa vive en checks/pve_no_toca_los_dias.js.
   const VA = await p.evaluate(()=>{
     $('sp').classList.add('on'); $('kf').reset(); $('cIng').value='false'; $('cBed').value='3';
-    DB=[{ID_CAMA:'3',VIA_AEREA:'TQT',SOPORTE:'VM',MODO:'CPAP/PS'}];
     const r={};
-    // a) valor válido replica
-    $('fVA').value=''; fillFormReplica({VENT_VIA_AEREA:'TOT',VENT_SOPORTE:'VM',VENT_MODO:'CPAP/PS'}); r.valido=$('fVA').value;
-    // b) valor con espacio (basura) → NO borra; cae a la cama (fillCama la habría puesto; aquí simulamos fVA ya con la cama)
-    $('fVA').value='TQT'; fillFormReplica({VENT_VIA_AEREA:' TOT ',VENT_SOPORTE:'VM'}); r.espacio=$('fVA').value;   // trim → TOT válido
-    // c) valor inválido → conserva lo que había (TQT de la cama)
+    // a) la cama SIN vía aérea: ahí sí sirve la del turno anterior
+    DB=[{ID_CAMA:'3',VIA_AEREA:'',SOPORTE:'',MODO:''}];
+    $('fVA').value=''; fillFormReplica({VENT_VIA_AEREA:'TOT',VENT_SOPORTE:'VM',VENT_MODO:'CPAP/PS'}); r.sinCama=$('fVA').value;
+    // b) la cama CON vía aérea y el turno anterior con otra → manda la cama
+    DB=[{ID_CAMA:'3',VIA_AEREA:'TQT',SOPORTE:'VM',MODO:'CPAP/PS'}];
+    $('fVA').value='TQT'; fillFormReplica({VENT_VIA_AEREA:'TOT',VENT_SOPORTE:'VM',VENT_MODO:'CPAP/PS'}); r.mandaCama=$('fVA').value;
+    // c) el caso que rompió la cama 17: el turno anterior terminó extubado
+    $('fVA').value='TQT'; fillFormReplica({VENT_VIA_AEREA:'TQT',VENT_SOPORTE:'VM',VENT_VIA_AEREA_FINAL:'Natural',VENT_SOPORTE_FINAL:'Ambiente'});
+    r.exFinal=$('fVA').value; r.exSop=$('fSop').value;
+    // d) valor inválido → conserva lo que había (TQT de la cama)
     $('fVA').value='TQT'; fillFormReplica({VENT_VIA_AEREA:'xxx',VENT_SOPORTE:'VM'}); r.invalido=$('fVA').value;
     return r;
   });
-  eq('VA válida se replica', VA.valido, 'TOT');
-  eq('VA con espacios → trim y aplica', VA.espacio, 'TOT');
+  eq('sin vía aérea en la cama, se replica la del turno anterior', VA.sinCama, 'TOT');
+  eq('★ con vía aérea en la cama, MANDA LA CAMA', VA.mandaCama, 'TQT');
+  eq('★ un turno anterior terminado en «Natural» no destuba a la cama', VA.exFinal, 'TQT');
+  eq('★ …ni le baja el soporte', VA.exSop, 'VM');
   eq('VA basura → NO borra la selección previa', VA.invalido, 'TQT');
 
   // fillForm (turno guardado) con VA vacía → cae a la cama

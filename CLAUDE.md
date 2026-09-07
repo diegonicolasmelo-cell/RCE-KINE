@@ -216,7 +216,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**118 guardias** en `build/checks/*.js` (6-sep-2026); poco más de la mitad usan navegador
+**120 guardias** en `build/checks/*.js` (7-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -228,7 +228,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 6-sep-2026: 118 verdes, 0 rojas.** El corredor
+**Estado al 7-sep-2026: 120 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -342,7 +342,11 @@ si tiene más de unos días, se confirma antes de usarla.
   que arranca) y **la v6.13** (la pantalla de carga celebra con la pose
   festejo, gorro y confeti 🎊 cuando alguien cumple —el día se recuerda en el
   navegador porque el boot llega después de pintarla— y el botón que anuncia
-  crece de 62 a 92 px). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  crece de 62 a 92 px) y **la v6.14** (la cama 17 con los días de VM y TOT en
+  0: el turno heredado copiaba el estado final del turno anterior por encima
+  de la cama y la «destubaba» en silencio; ahora MANDA LA CAMA. Guardia nueva
+  `pve_no_toca_los_dias` con la regla de Diego —ninguna PVE toca los relojes—
+  y `revisarRelojesCama(n)` en mantenimiento para diagnosticar una cama). 🔜 **Pendiente que dejó anotado Diego**: la carilla
   2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
   correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel

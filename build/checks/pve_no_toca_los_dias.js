@@ -1,0 +1,148 @@
+// pve_no_toca_los_dias.js — 🔴 UNA PVE NO ES UNA EXTUBACIÓN, Y NADIE REINICIA
+// LOS DÍAS SIN UN EVENTO DECLARADO (v6.14, 7-sep-2026).
+//
+// DE DÓNDE SALE. Reporte de Diego desde el uso: «Aline evolucionó al paciente
+// de la cama 17, registró PVE/extubación: NO —pero NO extubó— y le reinició
+// los días de VM y de TOT a 0. Recuerda que PVE no significa extubar, por lo
+// que no debe tocar los días».
+//
+// LO QUE SE ENCONTRÓ AL REPRODUCIRLO. La PVE no tuvo nada que ver: el «No»
+// deja `_extOcurrio()` en falso y el formulario intacto (bloque 1). La causa
+// estaba en el turno HEREDADO: `fillFormReplica` copiaba el estado FINAL del
+// turno anterior POR ENCIMA de la cama. Con una fila previa que terminaba en
+// «Natural / Ambiente», el formulario se abría sin tubo aunque la cama dijera
+// TOT —y los contadores seguían mostrando los días de la cama, así que no se
+// veía nada raro—. Al guardar, el servidor leía «Natural», concluía cambio de
+// vía aérea, borraba FECHA_INICIO_VA y bajaba el soporte a Ambiente: días de
+// VM y de TOT a 0.
+//
+// LO QUE FIJA:
+//  1. Con PVE «No» (y «no corresponde») el formulario no toca vía aérea,
+//     soporte ni contadores, y no declara extubación.
+//  2. Si la fila del turno anterior discrepa de la cama, MANDA LA CAMA.
+//  3. Ninguna variante de PVE mueve FECHA_INICIO_VA ni FECHA_INICIO_SOPORTE
+//     en el servidor (incluida «superada sin extubar», que es PVE ganada y
+//     paciente todavía intubado).
+//  4. Una extubación DECLARADA sí cambia el estado: la regla protege del
+//     accidente, no del registro clínico verdadero.
+//
+// Uso: node build/checks/pve_no_toca_los_dias.js
+const path = require('path');
+const fails = [];
+const eq = (l, g, w) => { const okk = String(g) === String(w);
+  console.log((okk ? '✅' : '❌') + ' ' + l + ': ' + JSON.stringify(g) + (okk ? '' : ' (esperado ' + JSON.stringify(w) + ')'));
+  if (!okk) fails.push(l); };
+const si = (l, c) => eq(l, !!c, true);
+
+/* ══ 1 y 2 · EL FORMULARIO ═══════════════════════════════════════════════ */
+const { chromium } = require('playwright-core');
+const CAMA = { ID_CAMA: '17', OCUPADA: true, NOMBRE: 'PACIENTE 17', PATIENT_ID: 'p17',
+  VIA_AEREA: 'TOT', SOPORTE: 'VM', MODO: 'ACVC', TOT_NUMERO: '7.5', TOT_CM_LABIO: '22',
+  FECHA_INICIO_VA: '2026-08-25', FECHA_INICIO_SOPORTE: '2026-08-25',
+  TS_INICIO_VA: '2026-08-25 10:00:00', TS_INICIO_SOPORTE: '2026-08-25 10:00:00',
+  DIAS_VA: 13, DIAS_VM: 13, FECHA_INGRESO: '2026-08-25' };
+
+(async () => {
+  const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
+  const abrir = async (previa) => {
+    const p = await b.newPage({ viewport: { width: 1400, height: 950 } });
+    await p.addInitScript((prev) => {
+      window.google = { script: { run: { withSuccessHandler(o) { return { withFailureHandler() { return {
+        api(a) { const data = a === 'GET_CONFIG_UI' ? { NUM_CAMAS: 18, BANNERS: {} }
+                            : a === 'GET_EVO_TURNO' ? { actual: null, previa: prev } : null;
+          setTimeout(() => o({ ok: true, data }), 5); } }; } }; } } } };
+    }, previa);
+    await p.goto('file://' + path.join(__dirname, '..', '..', 'v2', 'index.html'));
+    await p.waitForTimeout(600);
+    await p.evaluate((c) => { DB = [c]; abrirPanel('17', false, false); }, CAMA);
+    await p.waitForTimeout(350);
+    return p;
+  };
+
+  console.log('1 · Con PVE «No» el formulario no toca nada de la vía aérea');
+  let p = await abrir(null);
+  const antes = await p.evaluate(() => ({ va: v('fVA'), sop: v('fSop'), dvа: v('fDiasVA'), dvm: v('fDiasVM') }));
+  const conNo = await p.evaluate(() => { hPVEtoggle('no');
+    return { va: v('fVA'), sop: v('fSop'), dva: v('fDiasVA'), dvm: v('fDiasVM'),
+             ext: _extOcurrio(), tipo: _extTipo() }; });
+  eq('la vía aérea sigue siendo TOT', conNo.va, 'TOT');
+  eq('el soporte sigue siendo VM', conNo.sop, 'VM');
+  si('★ los días NO se mueven', conNo.dva === antes.dvа && conNo.dvm === antes.dvm);
+  si('★ «No» no declara extubación', !conNo.ext && conNo.tipo === '');
+  const conNc = await p.evaluate(() => { hPVEtoggle('nc');
+    return { va: v('fVA'), sop: v('fSop'), ext: _extOcurrio() }; });
+  si('«no corresponde» tampoco', conNc.va === 'TOT' && conNc.sop === 'VM' && !conNc.ext);
+  const supSin = await p.evaluate(() => { hPVEtoggle('si');
+    const r = document.querySelector('input[name="pveRes"][value="superada"]'); r.checked = true; hPVEres();
+    const n = document.querySelector('input[name="pveSupExt"][value="no"]'); if (n) { n.checked = true; hPveSupExt(); }
+    return { ext: _extOcurrio(), va: v('fVA'), sop: v('fSop') }; });
+  si('★ PVE superada SIN extubar: gana la prueba y sigue intubado', !supSin.ext && supSin.va === 'TOT' && supSin.sop === 'VM');
+  await p.close();
+
+  console.log('\n2 · Si el turno anterior discrepa de la cama, manda la CAMA');
+  p = await abrir({ TURNO_KEY: '2026-09-06-Noche', VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM',
+    VENT_MODO: 'ACVC', VENT_VIA_AEREA_FINAL: 'Natural', VENT_SOPORTE_FINAL: 'Ambiente',
+    VENT_MODO_FINAL: '', PLAN_FIRMA_KINE: 'ALN' });
+  const heredado = await p.evaluate(() => ({ va: v('fVA'), sop: v('fSop'), modo: v('fModo') }));
+  eq('★ la vía aérea es la de la cama (TOT), no el «Natural» heredado', heredado.va, 'TOT');
+  eq('★ …y el soporte es VM, no «Ambiente»', heredado.sop, 'VM');
+  await p.close();
+
+  // …pero cuando coinciden, la continuidad se replica igual que siempre.
+  p = await abrir({ TURNO_KEY: '2026-09-06-Noche', VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM',
+    VENT_MODO: 'PC', VENT_VIA_AEREA_FINAL: 'TOT', VENT_SOPORTE_FINAL: 'VM',
+    VENT_MODO_FINAL: 'PC', PLAN_FIRMA_KINE: 'ALN' });
+  const igual = await p.evaluate(() => ({ va: v('fVA'), sop: v('fSop'), modo: v('fModo') }));
+  si('cuando coinciden, el modo del turno anterior sí se hereda', igual.va === 'TOT' && igual.sop === 'VM' && igual.modo === 'PC');
+  await p.close();
+  await b.close();
+
+  /* ══ 3 y 4 · EL SERVIDOR ═══════════════════════════════════════════════ */
+  console.log('\n3 · Ninguna PVE mueve los relojes en el servidor');
+  const { api, DB } = require('../sim/sim_srv.js');
+  const bed = () => DB.CAMAS_ESTADO.find(c => String(c.ID_CAMA) === '6') || {};
+  let r = api('INGRESAR_PACIENTE', { idCama: '6', nombre: 'Paciente 17', edad: 60, sexo: 'M',
+    diagnostico: 'NAC grave', fechaIngreso: '2026-08-25', viaAerea: 'TOT', soporte: 'VM',
+    modo: 'ACVC', firmaKine: 'DMV' }, null);
+  si('ingresa el paciente', r.ok);
+  const ANCLA_VA = '2026-08-25', ANCLA_SOP = '2026-08-25';
+  const reponer = () => { const c = bed(); c.FECHA_INICIO_VA = ANCLA_VA; c.FECHA_INICIO_SOPORTE = ANCLA_SOP;
+    c.TS_INICIO_VA = ANCLA_VA + ' 10:00:00'; c.TS_INICIO_SOPORTE = ANCLA_SOP + ' 10:00:00';
+    c.VIA_AEREA = 'TOT'; c.SOPORTE = 'VM'; };
+  const guardar = (n, extra) => {
+    reponer();
+    const r2 = api('GUARDAR_EVOLUCION', Object.assign({
+      idCama: '6', turnoKey: '2026-09-0' + n + '-Dia', FECHA: '2026-09-0' + n, TURNO: 'Dia',
+      PAC_NOMBRE: 'Paciente 17', VENT_VIA_AEREA: 'TOT', VENT_SOPORTE: 'VM', VENT_MODO: 'ACVC',
+      VENT_VIA_AEREA_FINAL: 'TOT', VENT_SOPORTE_FINAL: 'VM', VENT_MODO_FINAL: 'ACVC',
+      VENT_VT: 450, VENT_FR: 16, VENT_PEEP: 8, VENT_FIO2: 40,
+      SED_TIPO: 'Escalón 4', SED_SAS: '3', HEMO_ESTADO: 'Estable',
+      PLAN_PLANES: 'seguir', PLAN_FIRMA_KINE: 'ALN',
+      // Estos tres viajan SIEMPRE desde el formulario, haya o no extubación:
+      EXT_PE_VA: 'Natural', EXT_PE_SOP: 'Ambiente', EXT_PE_MODO: '',
+    }, extra), null);
+    const c = bed();
+    return { ok: r2.ok, error: r2.error, va: c.VIA_AEREA, sop: c.SOPORTE,
+             fva: c.FECHA_INICIO_VA, fsop: c.FECHA_INICIO_SOPORTE };
+  };
+  const intacto = (x) => x.ok && x.va === 'TOT' && x.sop === 'VM' && x.fva === ANCLA_VA && x.fsop === ANCLA_SOP;
+
+  si('★ PVE «no» (destete diferido) deja los dos relojes intactos',
+    intacto(guardar(1, { PVE_VAL: 'no', PVE_SC_RAZON: 'Sedación profunda' })));
+  si('★ PVE «no corresponde» también', intacto(guardar(2, { PVE_VAL: 'nc' })));
+  si('★ PVE fracasada también', intacto(guardar(3, { PVE_VAL: 'si', PVE_RESULTADO: 'frustra', PVE_FR_MOTIVOS: '["FR > 35 rpm"]' })));
+  si('★ PVE superada SIN extubar también (el paciente sigue conectado)',
+    intacto(guardar(4, { PVE_VAL: 'si', PVE_RESULTADO: 'superada',
+      PVE_SUP_SIN_EXT: true, PVE_SUP_SIN_EXT_RAZ: 'Sin cupo de vigilancia', EXT_OCURRIO: false })));
+
+  console.log('\n4 · Una extubación DECLARADA sí cambia el estado (no se rompió lo que sí debe pasar)');
+  const ext = guardar(5, { PVE_VAL: 'si', PVE_RESULTADO: 'superada', EXT_OCURRIO: true,
+    EXT_TIPO: 'protocolo', EXT_HORA: '11:20',
+    VENT_VIA_AEREA_FINAL: 'Natural', VENT_SOPORTE_FINAL: 'Oxigenoterapia/OAF', VENT_MODO_FINAL: 'NRC' });
+  si('★ con extubación declarada la cama pasa a Natural y suelta el reloj de vía aérea',
+    ext.ok && ext.va === 'Natural' && ext.sop === 'Oxigenoterapia/OAF' && ext.fva === '');
+
+  console.log(fails.length ? '\n❌ ' + fails.length + ' FALLOS:\n' + fails.map(f => '  - ' + f).join('\n')
+                           : '\n✅ pve_no_toca_los_dias: todo verde');
+  process.exit(fails.length ? 1 : 0);
+})();
