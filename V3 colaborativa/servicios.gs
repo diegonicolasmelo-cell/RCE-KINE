@@ -6116,11 +6116,11 @@ function notifListar(datos) {
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
 const NOVEDADES = {
-  '6.14-manda-la-cama': [
+  '6.15-plantillas-solo-coordinacion': [
     '🧪 Los gases de la mañana se copian solos desde los PDF del laboratorio y salen en la hoja del día. Ya no hay que pasarlos a mano.',
     '📥 El gas que no se pudo emparejar queda en «Sin emparejar», al lado del botón de importar: se le elige la cama y listo.',
     '🖨️ La hoja del día trae el gas de la mañana, con Hb, Hto y K⁺ en observaciones y el último cultivo con su resultado.',
-    '📋 Las plantillas de evolución se abren desde el ícono del cuadro de texto, y al seleccionar una frase aparece el ➕ verde para guardarla.',
+    '📋 Las plantillas de evolución quedan apagadas por ahora: el texto vuelve a ser el de siempre mientras coordinación las termina de armar.',
   ],
 };
 

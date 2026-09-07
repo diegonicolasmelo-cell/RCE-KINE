@@ -346,7 +346,12 @@ si tiene más de unos días, se confirma antes de usarla.
   0: el turno heredado copiaba el estado final del turno anterior por encima
   de la cama y la «destubaba» en silencio; ahora MANDA LA CAMA. Guardia nueva
   `pve_no_toca_los_dias` con la regla de Diego —ninguna PVE toca los relojes—
-  y `revisarRelojesCama(n)` en mantenimiento para diagnosticar una cama). 🔜 **Pendiente que dejó anotado Diego**: la carilla
+  y `revisarRelojesCama(n)` en mantenimiento para diagnosticar una cama) y
+  **la v6.15** (🔴 **plantillas APAGADAS para el equipo** por pedido de
+  Diego —«tuvimos problemas de experiencia de usuario negativas»—: interruptor
+  `CONFIG.PLANTILLAS_ACTIVAS`, FALSE por defecto; el texto es el motor de
+  siempre y el editor 📋 lo ve solo coordinación con sesión 🔐, para armar
+  las 17 de la unidad. Se enciende poniendo TRUE en la planilla, sin pegar). 🔜 **Pendiente que dejó anotado Diego**: la carilla
   2 de la hoja impresa (neuromuscular) «sale apilada, no en el formato
   correcto» — sin diseñar. **Fusionado el 6-sep**: `filtros-vence-hoy` →
   `develop` → `main`. 🔴 La rama `fix/la-vni-viaja-al-rem-hospital` de Manuel
@@ -464,10 +469,17 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   barra de eventos vive dentro de las plantillas (v6.02).
 - ✅ **Tanda 2** (6-sep): PVE superada sin extubar (v6.00) + gases importados
   (v6.01). Un solo `crearORepararEstructura()`.
-- ✅ **Tanda 3** (6-sep): plantillas de evolución. Los chips (v6.02) NO le
+- ⏸️ **Tanda 3** (6-sep): plantillas de evolución. Los chips (v6.02) NO le
   sirvieron a Diego; la **v6.04** las lleva al cuadro de texto (📋 abajo a la
   derecha, ➕ verde al seleccionar frases, se aplica sola, comodines por dato
   y por bloque). Detalle y trampas en BITACORA v6.04.
+  🔴 **APAGADAS PARA EL EQUIPO desde la v6.15 (7-sep, Diego: «volver al
+  sistema anterior tal cual… la plantilla solo la verá coordinación»)**:
+  `CONFIG.PLANTILLAS_ACTIVAS=FALSE`. El texto es el motor de siempre; el 📋
+  solo aparece con sesión de coordinación y solo como EDITOR. Se reactivan
+  para todos poniendo TRUE en CONFIG cuando las 17 de la unidad estén listas
+  y revisadas (la página de revisión de la v6.11 sirve para eso). Pendiente:
+  Diego debe decir QUÉ campo «no salía» en el editor.
 - 🎂 **Cumpleaños: CERRADO** (Diego, 6-sep: «cierra los cumpleaños con
   Rodrigo pendiente»; el 6-sep mandó la fecha que faltaba). La lista se
   escribe directo en `KINESIOLOGOS.CUMPLE` (dd-mm) y **la escribe Diego en la

@@ -212,6 +212,11 @@ function _configUI() {
     TURNO_DIA_INICIO: parseInt(leerConfig('TURNO_DIA_INICIO', '9')) || 9,
     TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
     EDITOR_TEXTO_DEMO: leerConfig('EDITOR_TEXTO_DEMO', 'FALSE') === 'TRUE',
+    // 📋 Plantillas de evolución para el EQUIPO (7-sep-2026, Diego: «desactiva
+    // la plantilla y vuelve al sistema anterior tal cual»). Apagado = el texto
+    // es el del motor, byte a byte, y el editor solo lo ve coordinación.
+    // Encender es poner TRUE en CONFIG, no pegar nada.
+    PLANTILLAS_ACTIVAS: leerConfig('PLANTILLAS_ACTIVAS', 'FALSE') === 'TRUE',
     EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
     CUFF_MIN: parseInt(leerConfig('CUFF_MIN', '20')) || 20,
     CUFF_MAX: parseInt(leerConfig('CUFF_MAX', '30')) || 30,

@@ -109,7 +109,7 @@ const { chromium } = require('playwright-core');
   await p.addInitScript(() => {
     window._ll = [];
     window.google = { script: { run: { withSuccessHandler(okF) { return { withFailureHandler() { return {
-      api(a, d) { window._ll.push({ a, d }); setTimeout(() => okF({ ok: true, data: (a === 'GET_CONFIG_UI' ? { NUM_CAMAS: 12, BANNERS: {} } : null) }), 5); }
+      api(a, d) { window._ll.push({ a, d }); setTimeout(() => okF({ ok: true, data: (a === 'GET_CONFIG_UI' ? { NUM_CAMAS: 12, BANNERS: {}, PLANTILLAS_ACTIVAS: true } : null) }), 5); }
     }; } }; } } } };
   });
   await p.goto('file://' + path.join(v2, 'index.html'));
@@ -264,6 +264,49 @@ const { chromium } = require('playwright-core');
   eq('los comodines del menú son los de la lista', R6.ncom, cliCom.length);
   si('decisión ③ · editar la de la unidad sin clave = copiar como mía (la suya no se toca)', /Copiar/.test(R6.tit) && R6.dueno === 'MCC' && /\(mía\)$/.test(R6.nombre));
   si('el menú del 📋 trae los estantes, motor libre, nueva y mis plantillas', /Mías \(MCC\)/.test(R6.pop) && /De la unidad/.test(R6.pop) && /Motor libre/.test(R6.pop) && /Nueva plantilla/.test(R6.pop) && /Mis plantillas/.test(R6.pop));
+
+  /* ══ 7 · EL INTERRUPTOR (Diego, 7-sep-2026): apagadas para el equipo, editor solo para coordinación ══ */
+  console.log('\n7 · CONFIG.PLANTILLAS_ACTIVAS=FALSE: el motor de siempre para todos; el editor, solo coordinación');
+  const R7 = await p.evaluate(() => {
+    window.CFG = Object.assign({}, window.CFG || {}, { PLANTILLAS_ACTIVAS: false });
+    COORD_TK = null; _plantSel = null; _plantConf = false; _textoManual = false; _textoCongelado = false;
+    renderPlantBar(); _plantAplicar();
+    const t = document.getElementById('rtxt');
+    const r = { txt: t.value, motor: genTexto(), act: _plantActiva(),
+      icoOculto: document.getElementById('plantIco').classList.contains('hidden'),
+      enUso: document.getElementById('plantEnUso').textContent };
+    // Selecciona texto: el ➕ NO puede aparecer para el equipo.
+    t.focus(); t.setSelectionRange(0, 20); _plantMasRefrescar();
+    r.masOculto = document.getElementById('plantMas').classList.contains('hidden');
+    // Elegir una plantilla a mano tampoco la aplica.
+    plantElegir('p_mcc'); r.txtTrasElegir = t.value;
+    // Entra coordinación: vuelve el 📋, pero solo como editor.
+    COORD_TK = 'tok'; renderPlantBar();
+    r.icoCoord = !document.getElementById('plantIco').classList.contains('hidden');
+    r.tituloCoord = document.getElementById('plantIco').title;
+    plantPopAbrir(); const pop = document.getElementById('plantPop').innerHTML; plantPopCerrar();
+    r.popSinAplicar = !/plantElegir\(/.test(pop) && /Nueva plantilla/.test(pop) && /Mis plantillas/.test(pop) && /apagadas/i.test(pop);
+    r.txtCoord = t.value; r.actCoord = _plantActiva();
+    plantEditar(''); r.editorAbre = document.getElementById('plantMod').classList.contains('on');
+    r.ncomEditor = document.querySelectorAll('#plantComodines .plant-com').length;
+    plantModCerrar();
+    // Sale coordinación: el 📋 se esconde otra vez.
+    COORD_TK = null; renderPlantBar();
+    r.icoOcultoDespues = document.getElementById('plantIco').classList.contains('hidden');
+    window.CFG.PLANTILLAS_ACTIVAS = true; renderPlantBar();
+    return r;
+  });
+  si('★ apagadas: el texto es EXACTAMENTE el del motor y ninguna plantilla está activa', R7.txt === R7.motor && R7.act === null && R7.enUso === '');
+  si('★ apagadas: el 📋 no existe para el equipo', R7.icoOculto);
+  si('★ apagadas: el ➕ no aparece ni con texto seleccionado', R7.masOculto);
+  si('★ apagadas: elegir una plantilla a mano no cambia el texto', R7.txtTrasElegir === R7.motor);
+  si('★ con sesión de COORDINACIÓN vuelve el 📋…', R7.icoCoord && /APAGADAS/.test(R7.tituloCoord));
+  si('…pero su menú solo arma y revisa: nada que aplicar', R7.popSinAplicar);
+  si('…y el texto de coordinación sigue siendo el motor (no se aplica ni a ella)', R7.txtCoord === R7.motor && R7.actCoord === null);
+  si('…el editor abre y muestra TODOS los comodines', R7.editorAbre && R7.ncomEditor === cliCom.length);
+  si('al salir coordinación el 📋 se esconde otra vez', R7.icoOcultoDespues);
+  si('el interruptor viaja en la config: FALSE por defecto y sembrado en CONFIG',
+    /PLANTILLAS_ACTIVAS: leerConfig\('PLANTILLAS_ACTIVAS', 'FALSE'\) === 'TRUE'/.test(lee('api.gs')) && /\['PLANTILLAS_ACTIVAS', 'FALSE'\]/.test(lee('esquema.gs')));
 
   eq('sin errores de página', errs.length, 0);
   await b.close();
