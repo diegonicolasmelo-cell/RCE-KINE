@@ -722,6 +722,21 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   camas desde la v5.18).
 - **`PRD_PUBLICAR_SIN_PC.md`** — cuatro decisiones, la primera es dónde vive la
   credencial de Google (alcanza al Drive, o sea a la planilla con los RUT).
+- 📲 **`PRD_PWA_Y_LOGIN_REAL.md`** (8-sep-2026, lo pidió Diego) — servir la
+  pantalla desde un sitio propio para que se instale como app, dejar Apps Script
+  solo entregando datos, y exigir identidad real de Google para escribir. **NO
+  programado**: espera dos respuestas de informática (¿el hospital permite un
+  dominio externo? ¿hay correo institucional?) y cuatro decisiones de Diego.
+  Publicado: `https://claude.ai/code/artifact/6fadea55-7e67-43d9-ae49-3cdd7455e1b6`.
+  🔑 Lo que hay que tener claro antes de retomarlo: **la base de datos NO se
+  mueve** —sigue en la planilla y Apps Script sigue siendo el único que la
+  abre—; lo único que cambia es quién sirve la pantalla. El transporte del
+  cliente vive en UN solo sitio (`api(accion,datos)`, index ~4736: cuatro
+  menciones de `google.script.run` en 13.000 líneas), así que el costo real son
+  **las 73 guardias con navegador** que simulan ese puente. Y el riesgo nuevo es
+  el reintento: una llamada por internet puede escribir dos veces, así que toda
+  escritura necesita número de petición. **PWA sin login real no se hace: son la
+  misma tanda.**
 - **MRC**: la leyenda usa la graduación estándar. Si el protocolo de la unidad
   tiene otra redacción, se cambia en un solo lugar.
 
