@@ -815,6 +815,44 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   O sea el enlace con token TAMBIÉN sirve como enlace fijo; para
   `CONFIG.SYNAPSE_URL` da lo mismo cuál se pegue, la URL base sigue siendo
   la más limpia.
+  · ✅ **HALLAZGO DE TERRENO (8-sep-2026, Diego lo usó en su turno): el botón de
+  Synapse YA SIRVE COMO COPIADOR DE RUT PARA CUALQUIER OTRO SISTEMA.** «Me
+  ahorré el clic del RUT con el botón de Synapse… solo seleccionaba el ícono del
+  paciente que quería revisar, con la otra plataforma abierta, y así acceder de
+  forma más expedita.» O sea el valor no estaba en abrir Synapse: estaba en
+  **copiar el RUT**, y eso vale para el LIS, para BUDA o para lo que sea.
+  · 🔜 **Fricción que quedó a la vista**: hoy, para copiar el RUT hay que abrir
+  una pestaña de Synapse **aunque no se quiera**. Falta un atajo que SOLO copie.
+  Sin programar: esperando que Diego elija (botón aparte vs. lista de atajos en
+  CONFIG, cada uno con nombre y URL; URL vacía = solo copia).
+
+- 🧪 **LIS del laboratorio — atajo pendiente de una prueba (8-sep-2026).** Diego
+  pasó la dirección del LIS del hospital (CSP de InterSystems, misma familia que
+  TrakCare). 🔴 **La dirección NO se escribe en este repo** (es una IP interna del
+  hospital y el repo sigue siendo público): va en `CONFIG.LIS_URL`, como se hizo
+  con `SYNAPSE_URL`, que en `esquema.gs` nace vacía a propósito.
+  · 🪤 **Solo lo han usado en Firefox**, porque así quedó en los escritorios;
+  **nunca lo intentaron en Chrome**. Eso NO significa que no funcione: significa
+  que no se ha probado. Diego lo prueba mañana en el hospital.
+  · **Por qué importa**: una página web **no puede elegir en qué navegador se
+  abre un enlace**. Si la app corre en Chrome y el LIS solo anda en Firefox, el
+  botón puede copiar el RUT pero NO puede abrir la pestaña útil. `firefox://` no
+  es un esquema estándar y un manejador propio en cada PC es proyecto de
+  informática, no nuestro.
+  · **Lo que funciona igual, pase lo que pase**: el portapapeles de Windows es
+  uno solo, así que copiar en Chrome y pegar en Firefox funciona. Es el 90% del
+  ahorro — lo engorroso es teclear el RUT, no abrir la página.
+  · **Diseño propuesto (sin programar)**: el mismo botón con dos velocidades —
+  con `LIS_URL` vacía solo copia el RUT y avisa; con `LIS_URL` puesta además
+  abre la pestaña, como Synapse. Se enciende desde la planilla el día que se
+  confirme Chrome, sin pegar código.
+  · 🔴 **Y un límite de arquitectura que conviene tener escrito**: el servidor
+  **NUNCA va a poder leer del LIS**. Es una IP interna del hospital y nuestro
+  servidor corre en los computadores de Google, fuera de esa red — solo el
+  NAVEGADOR de un PC del hospital llega ahí. Por eso los gases se importan desde
+  una carpeta de Drive y no del LIS, **y eso no cambia con la PWA**: la PWA mueve
+  la pantalla, no el servidor.
+
   · **Truco sin código que da el «verlos juntos»**: abrir Synapse en una segunda
   ventana de Chrome y usar ⊞ Win + ← / ⊞ Win + → para dejarlos lado a lado.
   · 🔑 **CÓMO FUNCIONA HOY, contado por Diego (2-sep)**: Synapse **ya está
