@@ -32,11 +32,15 @@ const PLANT_COMODINES_SRV = ['encabezado', 'dia', 'fase', 'via_aerea', 'soporte'
   'gases', 'anotaciones', 'plan', 'nota', 'relato',
   'intubacion', 'desvinculacion', 'aislamiento', 'auscultacion', 'cultivos', 'inhalo', 'vfon',
   'imt', 'ems', 'educacion',
+  'aet', 'reingreso', 'upot',
   'dia_estadia', 'diagnostico', 'edad',
   'via_aerea_tipo', 'tot_numero', 'tot_cm', 'tqt_numero', 'dias_vm', 'dias_va', 'soporte_tipo',
   'modo', 'vt', 'fr', 'ti', 'pmax', 'pmedia', 'peep', 'ppl', 'autopeep', 'ps', 'fio2', 'spo2',
   'pafi', 'sedacion_escalon', 'sas', 'sas_meta', 'gcs', 'cooperacion', 'hdn', 'dva',
-  'secr_tipo', 'secr_cantidad'];
+  'secr_tipo', 'secr_cantidad',
+  'gcs_o', 'gcs_v', 'gcs_m', 's5q', 'camicu', 'mp', 'ruidos',
+  'ph', 'paco2', 'pao2', 'hco3', 'eb', 'lactato', 'sato2', 'mrc', 'fss', 'pimax',
+  'dias_tot', 'dias_tqt', 'dva_n', 'ipap', 'epap', 'flujo', 'litros', 'uma'];
 
 const PLANT_NOMBRE_MAX = 40, PLANT_CUERPO_MAX = 4000;
 

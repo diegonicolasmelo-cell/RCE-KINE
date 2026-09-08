@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.19-nada-se-pisa-sin-guardar">
+<meta name="rce-version" content="6.20-auscultacion-y-comodines">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4719,7 +4719,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.19-nada-se-pisa-sin-guardar]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.20-auscultacion-y-comodines]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -9155,6 +9155,7 @@ const TXB_NOMBRE={ enc:'Encabezado', fase:'Fase clínica', sed:'Sedoanalgesia',
   vfon:'Válvula de fonación', pve:'PVE', gsa:'Gases arteriales', ausc:'Auscultación',
   ktr:'KTR', cult:'Cultivos', inhalo:'Inhaloterapia', pos:'Posicionamiento',
   ktm:'KTM', imt:'IMT', ems:'EMS', edu:'Educación', evalf:'Evaluaciones',
+  aet:'AET', upot:'UPOT / procuramiento', reing:'Reingreso',
   plan:'Plan', nota:'Nota del turno', firma:'Firma' };
 /* ¿Qué bloques narran algo distinto de lo que el formulario dice HOY?
    Solo tiene sentido con edición manual: ahí la regeneración queda EN PAUSA
@@ -9637,7 +9638,15 @@ function genTexto() {
   }
   const mp=v('fMPVal'), ru=v('fRuidosVal'), ruLoc=v('fRuidosLoc');
   _B('ausc');
-  if(mp||ru){
+  /* 🪤 8-sep-2026, lo reportó Álvaro desde el turno: el formulario deja
+     anotar VARIOS ruidos agregados (el bloque «+ ruido» → EX_RUIDOS_JSON) y los
+     guardaba bien, pero el TEXTO narraba solo el del select. Quien anotaba
+     crépitos bibasales y sibilancias difusas leía uno solo en su propia
+     evolución. Ahora se listan todos y «sin ruidos agregados» se afirma solo
+     cuando no quedó ninguno. Misma redacción en dominio_texto.gs (paridad). */
+  const _auscRu=_auscRuidos();
+  const _auscCon=_auscRu.con, _auscSin=_auscRu.sin;
+  if(mp||_auscCon.length||_auscSin){
     let e='Auscultación';
     if(mp){
       const _mpTxt = mp==='Presente Bilateral' ? 'MP(+) bilateral'
@@ -9645,13 +9654,8 @@ function genTexto() {
                    : 'MP(+), '+mp;
       e+=`: ${_mpTxt}`;
     }
-    if(ru){
-      // Se decide con el VALOR DEL SELECT, sin distinguir mayúsculas (Diego,
-      // ago-2026): antes se miraba un estado de chips que no siempre calzaba
-      // y salía el oxímoron «…con Sin ruidos agregados».
-      if(/^sin ruidos/i.test(ru)) e+=', sin ruidos agregados';
-      else { e+=(mp?', con ':': ')+ru; if(ruLoc) e+=` ${ruLoc}`; }
-    }
+    if(_auscCon.length){ e+=(mp?', con ':': ')+_auscRu.txt; }
+    else if(_auscSin){ e+=(mp?', sin ruidos agregados':': sin ruidos agregados'); }
     L.push(e+'.');
   }
   // ── KTR (primero) ──
@@ -12762,7 +12766,13 @@ const PLANT_ALIAS={ encabezado:['enc'], dia:['dia'], fase:['fase'], aislamiento:
   reintubacion:['reintub'], tqt:['tqt'], extubacion:['ext'], decanulacion:['decan'],
   desvinculacion:['desvinc'], vfon:['vfon'], pve:['pve'], gases:['gsa'], auscultacion:['ausc'],
   secreciones:['ktr'], cultivos:['cult'], inhalo:['inhalo'], posicion:['pos'], ktm:['ktm'],
-  imt:['imt'], ems:['ems'], educacion:['edu'], evaluaciones:['evalf'], anotaciones:['anotacion'], plan:['plan'], nota:['nota'] };
+  imt:['imt'], ems:['ems'], educacion:['edu'], evaluaciones:['evalf'], anotaciones:['anotacion'], plan:['plan'], nota:['nota'],
+  /* 🪤 8-sep-2026: tres bloques MÁS que el motor escribía y ninguna plantilla
+     podía nombrar — misma trampa que los diez de la v6.11. `aet` (adecuación
+     del esfuerzo terapéutico), `reing` (reingreso a UCI) y `upot` (seguimiento
+     por UPOT y test de apnea). Sin comodín, escribirlos rechazaba la plantilla
+     entera; y la de Ingreso no podía nombrar el reingreso. */
+  aet:['aet'], reingreso:['reing'], upot:['upot'] };
 /* Comodines por DATO: el valor pelado del formulario, para escribirlo con
    palabras propias («Vti {vt} ml»). `pre`/`post` son el contexto con el que
    se reconoce ese número al crear una plantilla desde el texto (SAS 1 y meta
@@ -12793,6 +12803,34 @@ const PLANT_DATOS={
   hdn:{ v:()=>v('fHEst')||'', pre:'HDN ' }, dva:{ v:()=>v('fDVA')||'' },
   secr_tipo:{ v:()=>String(v('fSecrCar')||'').toLowerCase(), pre:'Secreciones ' },
   secr_cantidad:{ v:()=>({'-':'nula','+':'escasa','++':'moderada','+++':'abundante'}[v('fSecrQty')]||''), pre:'en ', post:' cantidad' },
+  /* 🔑 8-sep-2026, pedido de Diego: «no puedo personalizarlo, aparece el bloque
+     completo — quiero cambiar Sedoanalgesia por Sedado». Un comodín de BLOQUE
+     trae la frase del motor y no se puede tocar; para redactarla con palabras
+     propias hace falta el DATO suelto, y de estos no había ninguno. Con ellos
+     {sedacion} se puede reemplazar por una línea escrita a mano sin perder
+     nada: el dato lo sigue poniendo el formulario. */
+  gcs_o:{ v:()=>v('fGCSO')||'', pre:'O:' }, gcs_v:{ v:()=>v('fGCSV')||'', pre:'V:' },
+  gcs_m:{ v:()=>v('fGCSM')||'', pre:'M:' },
+  /* 🪤 El S5Q se guarda como clave («lt3»/«gte3»), no como texto: el comodín
+     tiene que traducirlo igual que el motor (dominio_texto.gs) o la plantilla
+     escribiría «S5Q gte3» en la ficha. */
+  s5q:{ v:()=>({lt3:'<3',gte3:'\u2265'+'3'}[v('fS5Q')]||''), pre:'S5Q ' },
+  camicu:{ v:()=>({pos:'positivo',neg:'negativo',ne:'no evaluable'}[v('fCAMICU')]||''), pre:'CAM-ICU ' },
+  mp:{ v:()=>v('fMPVal')||'', pre:'MP ' },
+  ruidos:{ v:()=>{ try{ return _auscRuidos().txt; }catch(e){ return ''; } }, pre:'con ' },
+  ph:{ v:()=>_pn('fGsaPh'), pre:'pH ' }, paco2:{ v:()=>_pn('fGsaPaco2'), pre:'PaCO2 ' },
+  pao2:{ v:()=>_pn('fGsaPao2'), pre:'PaO2 ' }, hco3:{ v:()=>_pn('fGsaHco3'), pre:'HCO3 ' },
+  eb:{ v:()=>_pn('fGsaEb'), pre:'EB ' }, lactato:{ v:()=>_pn('fGsaLact'), pre:'Lactato ' },
+  sato2:{ v:()=>_pn('fGsaSao2'), pre:'SatO2 ', post:'%' },
+  mrc:{ v:()=>v('fMRC')||'', pre:'MRC-ss ', post:'/60' },
+  fss:{ v:()=>v('fFSS')||'', pre:'FSS-ICU ', post:'/35' },
+  pimax:{ v:()=>v('fPIM')||'', pre:'Pim[aá]x ' },
+  dias_tot:{ v:()=>v('fDiasTOT')||'', pre:'d[ií]a ', post:' de TOT' },
+  dias_tqt:{ v:()=>v('fDiasTQT')||'', pre:'d[ií]a ', post:' de TQT' },
+  dva_n:{ v:()=>v('fDVAcnt')||'', post:' DVA' },
+  ipap:{ v:()=>_pn('r_ipap'), pre:'IPAP ' }, epap:{ v:()=>_pn('r_epap'), pre:'EPAP ' },
+  flujo:{ v:()=>_pn('r_flujo'), pre:'flujo ' }, litros:{ v:()=>_pn('r_litros'), post:' l/min' },
+  uma:{ v:()=>v('r_uma')||'', pre:'UMA ' },
 };
 // 🔴 MISMA LISTA que PLANT_COMODINES_SRV (svc_plantillas.gs); la guardia las compara.
 /* 🪤 6-sep-2026, revisando las plantillas de la unidad con Diego: diez bloques
@@ -12806,12 +12844,17 @@ const PLANT_COMODINES=['encabezado','dia','fase','via_aerea','soporte','parametr
   'weaning_grado','secreciones','sedacion','hemodinamia','neurologico','reintubacion','extubacion',
   'tqt','decanulacion','ktm','evaluaciones','posicion','gases','anotaciones','plan','nota','relato',
   'intubacion','desvinculacion','aislamiento','auscultacion','cultivos','inhalo','vfon','imt','ems','educacion',
+  'aet','reingreso','upot',
   'dia_estadia','diagnostico','edad','via_aerea_tipo','tot_numero','tot_cm','tqt_numero','dias_vm','dias_va','soporte_tipo','modo',
   'vt','fr','ti','pmax','pmedia','peep','ppl','autopeep','ps','fio2','spo2','pafi',
-  'sedacion_escalon','sas','sas_meta','gcs','cooperacion','hdn','dva','secr_tipo','secr_cantidad'];
+  'sedacion_escalon','sas','sas_meta','gcs','cooperacion','hdn','dva','secr_tipo','secr_cantidad',
+  'gcs_o','gcs_v','gcs_m','s5q','camicu','mp','ruidos',
+  'ph','paco2','pao2','hco3','eb','lactato','sato2','mrc','fss','pimax',
+  'dias_tot','dias_tqt','dva_n','ipap','epap','flujo','litros','uma'];
 const PLANT_COM_BLOQUE=['encabezado','dia','fase','via_aerea','soporte','parametros','pve','pve_n','weaning_grado','secreciones',
   'sedacion','hemodinamia','neurologico','reintubacion','extubacion','tqt','decanulacion','ktm','evaluaciones','posicion','gases','anotaciones','relato','plan','nota',
-  'intubacion','desvinculacion','aislamiento','auscultacion','cultivos','inhalo','vfon','imt','ems','educacion'];
+  'intubacion','desvinculacion','aislamiento','auscultacion','cultivos','inhalo','vfon','imt','ems','educacion',
+  'aet','reingreso','upot'];
 const PLANT_COM_EVENTO=/\{(relato|pve|extubacion|reintubacion|intubacion|tqt|decanulacion|desvinculacion)\}/i;
 
 function _plantIcono(caso){ return PLANT_ICONO[caso]||'📋'; }
@@ -13336,6 +13379,17 @@ function ruidosExtraJSON(){
 function setRuidosExtra(jsonStr){
   const box=$('ruidosExtra'); if(box) box.innerHTML='';
   try{ (JSON.parse(jsonStr||'[]')||[]).forEach(r=>addRuidoRow(r.tipo,r.loc)); }catch(e){}
+}
+/* Los ruidos agregados TAL COMO LOS LEE EL TEXTO: el del select más los del
+   bloque «+ ruido». Una sola fuente para genTexto() y para el comodín
+   {ruidos} — antes el texto solo veía el primero (v6.20). */
+function _auscRuidos(){
+  const rs=[{tipo:v('fRuidosVal'),loc:v('fRuidosLoc')}];
+  try{ (JSON.parse(ruidosExtraJSON()||'[]')||[]).forEach(r=>rs.push(r)); }catch(e){}
+  const con=rs.filter(r=>r.tipo&&!/^sin ruidos/i.test(r.tipo));
+  const sin=rs.some(r=>/^sin ruidos/i.test(r.tipo||''));
+  const l=con.map(r=>(r.tipo==='Otro'&&r.loc)?String(r.loc):(String(r.tipo)+(r.loc?' '+r.loc:'')));
+  return {con:con, sin:sin, txt:l.length>1?(l.slice(0,-1).join(', ')+' y '+l[l.length-1]):(l[0]||'')};
 }
 
 //  Desplegables de Evaluaciones Funcionales: se abren solos si traen datos

@@ -6116,10 +6116,11 @@ function notifListar(datos) {
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
 const NOVEDADES = {
-  '6.19-nada-se-pisa-sin-guardar': [
-    '🧪 Los gases de la mañana se copian solos desde los PDF del laboratorio y salen en la hoja del día. Ya no hay que pasarlos a mano.',
-    '📥 El gas que no se pudo emparejar queda en «Sin emparejar», al lado del botón de importar: se le elige la cama y listo.',
+  '6.20-auscultacion-y-comodines': [
+    '🧪 Los gases de la mañana se copian solos desde los PDF del laboratorio y salen en la hoja del día, sin pasarlos a mano.',
+    '📥 El que no se pudo emparejar queda en «Sin emparejar», al lado del botón de importar: se le elige la cama y listo.',
     '🖨️ La hoja del día trae el gas de la mañana, con Hb, Hto y K⁺ en observaciones y el último cultivo con su resultado.',
+    '🩺 La auscultación ya no pierde ruidos: si anotas más de uno, la evolución los nombra todos. Antes escribía solo el primero.',
     '📋 Las plantillas de evolución quedan apagadas por ahora: el texto vuelve a ser el de siempre mientras coordinación las termina de armar.',
   ],
 };
@@ -6346,11 +6347,15 @@ const PLANT_COMODINES_SRV = ['encabezado', 'dia', 'fase', 'via_aerea', 'soporte'
   'gases', 'anotaciones', 'plan', 'nota', 'relato',
   'intubacion', 'desvinculacion', 'aislamiento', 'auscultacion', 'cultivos', 'inhalo', 'vfon',
   'imt', 'ems', 'educacion',
+  'aet', 'reingreso', 'upot',
   'dia_estadia', 'diagnostico', 'edad',
   'via_aerea_tipo', 'tot_numero', 'tot_cm', 'tqt_numero', 'dias_vm', 'dias_va', 'soporte_tipo',
   'modo', 'vt', 'fr', 'ti', 'pmax', 'pmedia', 'peep', 'ppl', 'autopeep', 'ps', 'fio2', 'spo2',
   'pafi', 'sedacion_escalon', 'sas', 'sas_meta', 'gcs', 'cooperacion', 'hdn', 'dva',
-  'secr_tipo', 'secr_cantidad'];
+  'secr_tipo', 'secr_cantidad',
+  'gcs_o', 'gcs_v', 'gcs_m', 's5q', 'camicu', 'mp', 'ruidos',
+  'ph', 'paco2', 'pao2', 'hco3', 'eb', 'lactato', 'sato2', 'mrc', 'fss', 'pimax',
+  'dias_tot', 'dias_tqt', 'dva_n', 'ipap', 'epap', 'flujo', 'litros', 'uma'];
 
 const PLANT_NOMBRE_MAX = 40, PLANT_CUERPO_MAX = 4000;
 
