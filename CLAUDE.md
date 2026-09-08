@@ -36,7 +36,14 @@ navegador del hospital o de su casa.
 - 🪤 **Emojis en la interfaz: nada posterior a 2019.** El Chrome del hospital
   corre en Windows 10 y su fuente no trae los emojis nuevos: 🩻 (2021) salió
   como un cuadrado (6-sep-2026). Para íconos nuevos, SVG propio o un emoji
-  viejo (🖼️, 📋; 🫁 NO: es de 2020).
+  viejo (🖼️, 📋).
+  · 🔴 **La regla es para ELEGIR un ícono nuevo, no para barrer los que ya
+  están.** El 8-sep di por roto el 🫁 (2020) solo por la fecha; está en unos 25
+  lugares visibles desde hace meses —«🫁 Respiratorio» del formulario, tablero
+  de ventiladores, línea de tiempo, entrega, campana— y Diego nunca reportó
+  cuadrados. **No se cambió nada.** Antes de declarar roto un emoji que ya vive
+  en producción: `grep -rn` para ver dónde más está, y preguntarle a Diego si
+  lo ve. El terreno manda sobre la tabla de versiones.
 
 ### 🔴 CÓMO SE PUBLICA — regla vigente (14-ago-2026, la cambió Diego)
 
@@ -216,7 +223,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**122 guardias** en `build/checks/*.js` (7-sep-2026); poco más de la mitad usan navegador
+**123 guardias** en `build/checks/*.js` (8-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -228,7 +235,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 7-sep-2026: 122 verdes, 0 rojas.** El corredor
+**Estado al 8-sep-2026: 123 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -362,7 +369,16 @@ si tiene más de unos días, se confirma antes de usarla.
   del panel uno por uno: `fVA` seguía perdiendo los contadores si el select
   pasaba por la opción EN BLANCO —`_vaAnterior` quedaba falsy y el deshacer no
   entraba—; 8 cascadas clínicas más no se revierten y esperan decisión de
-  Diego, ver BITACORA v6.18) y **la v6.19** (esas ocho se deshacen: si el
+  Diego, ver BITACORA v6.18) y **la v6.20** (lo que reportó Álvaro: la auscultación
+  narraba UN ruido de los varios que se anotan —`EX_RUIDOS_JSON` se guardaba y
+  nunca se leía—, en los dos motores; de paso «sin ruidos agregados» sin
+  murmullo ya no sale con coma suelta. Además `{aet}`, `{reingreso}` y `{upot}`
+  pasan a ser comodines —tres bloques huérfanos más, como los diez de la
+  v6.11— y entran **25 comodines de dato** para poder REESCRIBIR un bloque con
+  palabras propias, que es lo que pidió Diego: «quiero cambiar sedoanalgesia
+  por sedado». Taller con los 95 comodines y las recetas:
+  `https://claude.ai/code/artifact/2ca6d76b-8246-46f6-9638-c99cf0f8dd5a`.
+  Guardia `auscultacion_ruidos`) y **la v6.19** (esas ocho se deshacen: si el
   control vuelve al valor con que se abrió el panel, lo que su cascada
   escribió vuelve también —tabla `_CASCADAS` + oyente en el formulario—;
   medido 0 de 99, y guardia nueva `panel_no_pisa_datos` que lo vigila). 🔜 **Pendiente que dejó anotado Diego**: la carilla

@@ -19,6 +19,95 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.20-auscultacion-y-comodines (8-sep-2026) — la auscultación no pierde ruidos; y los bloques se pueden reescribir
+
+Diego trajo dos cosas del turno: **«Álvaro me dijo que hay campos del texto
+narrativo que no se están replicando, como la auscultación»** y, después de ver
+el taller, **«no puedo personalizarlo, aparece el bloque completo — quiero
+cambiar por ejemplo sedoanalgesia por sedado»**.
+
+### 1. La auscultación narraba UN ruido de los que se anotaban
+
+El formulario tiene un bloque «+ ruido» que deja anotar varios ruidos agregados
+y los guarda en `EX_RUIDOS_JSON`. **El texto nunca los leyó**: `genTexto()` y su
+espejo `generarTextoEvolucion()` miraban solo `EX_RUIDOS`/`EX_RUIDOS_LOC`, o sea
+el del select. Quien anotaba crépitos bibasales *y* sibilancias difusas leía uno
+solo en su propia evolución — y eso viajaba a la ficha del hospital.
+
+- Fuente única nueva en el cliente: **`_auscRuidos()`** (junto a
+  `ruidosExtraJSON`), que junta el del select con los del bloque, descarta los
+  «Sin ruidos agregados» y devuelve `{con, sin, txt}` ya redactado con «y» antes
+  del último. La usan `genTexto()` y el comodín `{ruidos}`.
+- El servidor hace lo mismo leyendo `EX_RUIDOS_JSON` (paridad palabra por
+  palabra: la guardia compara los dos motores).
+- 🪤 **De paso salió un segundo error, más viejo**: con «Sin ruidos agregados» y
+  SIN murmullo declarado, el servidor escribía `, sin ruidos agregados.` — con
+  la coma suelta y sin la palabra «Auscultación», porque `exStr` partía vacío.
+  Ahora los dos motores escriben `Auscultación: sin ruidos agregados.`
+- Guardia nueva **`auscultacion_ruidos.js`**. Se comprobó su poder de detección:
+  con el bug de vuelta (narrar solo `_auscCon[0]`) sale roja en dos bloques.
+
+### 2. Tres bloques más que ninguna plantilla podía nombrar
+
+Misma trampa que los diez de la v6.11, y no se habían visto: el motor escribe
+`aet` (adecuación del esfuerzo terapéutico), `reing` (reingreso a UCI) y `upot`
+(seguimiento por UPOT, test de apnea, medidas de protección de órganos), pero
+ninguno estaba en `PLANT_ALIAS` ni en las listas de permitidos. Escribirlos
+**rechazaba la plantilla entera**, así que la de Ingreso no podía nombrar el
+reingreso. Ahora son `{aet}`, `{reingreso}` y `{upot}`, con su nombre legible en
+`TXB_NOMBRE`.
+
+### 3. Un bloque no se puede editar — para eso están los datos sueltos
+
+Es la petición de Diego. Un comodín de **bloque** trae la frase que escribe el
+motor y no se puede tocar por dentro; para redactarla con palabras propias hay
+que reemplazarlo por una línea escrita a mano con comodines de **dato**. El
+problema era que de esos casi no había: `{sedacion}` no tenía con qué armarse
+(faltaban GCS por partes, S5Q y CAM-ICU) y la auscultación, los gases y las
+evaluaciones no tenían **ninguno**.
+
+Se agregaron **25 comodines de dato**: `gcs_o` `gcs_v` `gcs_m` `s5q` `camicu`
+`mp` `ruidos` `ph` `paco2` `pao2` `hco3` `eb` `lactato` `sato2` `mrc` `fss`
+`pimax` `dias_tot` `dias_tqt` `dva_n` `ipap` `epap` `flujo` `litros` `uma`.
+Con ellos `{sedacion}` se reemplaza por
+`Sedado en escalón {sedacion_escalon}, SAS {sas}. GCS {gcs} (O:{gcs_o}, V:{gcs_v}, M:{gcs_m}).`
+— las palabras las pone el colega, el dato lo sigue poniendo el formulario.
+
+- 🪤 **El S5Q se guarda como clave, no como texto** (`lt3`/`gte3`): el comodín
+  tiene que traducirlo igual que el motor o la plantilla escribiría «S5Q gte3»
+  en la ficha. Vale para cualquier dato futuro que salga de un select con
+  `value` distinto del rótulo — el CAM-ICU es el otro caso (`pos`/`neg`/`ne`).
+- Diez bloques quedaron con receta (día, sedación, hemodinamia, vía aérea,
+  soporte, parámetros, auscultación, secreciones, gases, evaluaciones). Los
+  demás son narrativa pura y **hoy no se pueden reescribir**: KTM,
+  posicionamiento, cultivos, inhaloterapia, IMT, EMS, educación y los eventos.
+  Fabricarles datos es trabajo por bloque, y se hace cuando Diego diga cuáles.
+- Total: **38 comodines de bloque + 57 de dato = 95**.
+
+### 4. Falsa alarma que conviene tener escrita: el 🫁
+
+Yo mismo marqué en el taller que los íconos de «VM sin destete» e «Intubación»
+usaban un emoji de 2020 y saldrían como cuadrado. **Estaba equivocado y no se
+cambió nada**: ese emoji está en unos 25 lugares visibles de la app desde hace
+meses —el título «🫁 Respiratorio» del formulario, el tablero de ventiladores,
+la línea de tiempo, la entrega, la campana— y Diego nunca reportó cuadrados. La
+regla de «nada posterior a 2019» sirve para elegir un ícono NUEVO; no es motivo
+para barrer uno que el terreno ya probó. Lo que falló fue no mirar dónde más se
+usaba antes de declararlo roto.
+
+### El taller de evoluciones tipo
+
+`https://claude.ai/code/artifact/2ca6d76b-8246-46f6-9638-c99cf0f8dd5a` — los 95
+comodines con qué escribe cada uno, los 17 casos con la plantilla que hay hoy,
+vista previa con la regla real de armado (`_plantRellenar`) sobre dos pacientes
+inventados, y la receta «escrito a mano» de los diez bloques que la tienen, con
+botón para meterla. Guarda solo lo que se escribe (capacidad `db`), así que lo
+que Diego arme ahí se lee después y se lleva a `svc_plantillas.gs`.
+
+Batería: **123 verdes, 0 rojas** (122 + `auscultacion_ruidos`).
+
+---
+
 ## v6.19-nada-se-pisa-sin-guardar (7-sep-2026) — las ocho cascadas se deshacen; 0 de 99
 
 Diego, decidiendo sobre el informe de las ocho cascadas: **«que restaure lo que

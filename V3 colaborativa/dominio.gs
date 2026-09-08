@@ -736,7 +736,14 @@ function generarTextoEvolucion(d) {
 
   // 7. Auscultación (las secreciones van en la línea de KTR, como el preview)
   const mp = v('EX_MP'), ruidos = v('EX_RUIDOS'), ruidosLoc = v('EX_RUIDOS_LOC');
-  const ruidosText = ruidos === 'Otro' && ruidosLoc ? ruidosLoc : ruidos;
+  /* 🪤 8-sep-2026 (Álvaro): los ruidos agregados ADICIONALES
+     (EX_RUIDOS_JSON) se guardaban y no se narraban nunca — el texto nombraba
+     solo el del select. Se listan todos; «sin ruidos agregados» solo si no
+     quedó ninguno. Misma redacción que genTexto() en index.html (paridad). */
+  const rsAusc = [{ tipo: ruidos || '', loc: ruidosLoc || '' }];
+  try { (JSON.parse(v('EX_RUIDOS_JSON') || '[]') || []).forEach(function (r) { rsAusc.push(r); }); } catch (e) {}
+  const rsCon = rsAusc.filter(function (r) { return r.tipo && !/^sin ruidos/i.test(r.tipo); });
+  const rsSin = rsAusc.some(function (r) { return /^sin ruidos/i.test(r.tipo || ''); });
   let exStr = '';
   if (mp) {
     const mpTxt = mp === 'Presente Bilateral' ? 'MP(+) bilateral'
@@ -744,11 +751,15 @@ function generarTextoEvolucion(d) {
                 : 'MP(+), ' + mp;
     exStr += `Auscultación: ${mpTxt}`;
   }
-  // Comparación SIN distinguir mayúsculas (Diego, ago-2026): el select guarda
-  // «Sin ruidos agregados» y la comparación exacta en minúscula nunca calzaba
-  // — salía el oxímoron «…con Sin ruidos agregados».
-  if (ruidosText && !/^sin ruidos/i.test(ruidosText)) exStr += `${mp ? ', con ' : 'Auscultación: '}${ruidosText}${ruidosLoc && ruidos !== 'Otro' ? ' ' + ruidosLoc : ''}`;
-  else if (ruidosText) exStr += `, sin ruidos agregados`;
+  if (rsCon.length) {
+    const lst = rsCon.map(function (r) {
+      return (r.tipo === 'Otro' && r.loc) ? String(r.loc) : (String(r.tipo) + (r.loc ? ' ' + r.loc : ''));
+    });
+    exStr += (mp ? ', con ' : 'Auscultación: ') +
+      (lst.length > 1 ? lst.slice(0, -1).join(', ') + ' y ' + lst[lst.length - 1] : lst[0]);
+  } else if (rsSin) {
+    exStr += mp ? ', sin ruidos agregados' : 'Auscultación: sin ruidos agregados';
+  }
   if (exStr) txt.push(exStr + '.');
 
   // 7b. KTR / manejo respiratorio (paridad con el preview del cliente)
