@@ -8,7 +8,8 @@ instale como aplicación, dejar que Apps Script solo entregue y guarde datos, y
 exigir identidad real de Google para escribir.
 **Fuera de alcance**: mover la base de datos (sigue en la misma planilla) ·
 cambiar una sola regla clínica · agregar columnas u hojas · guardar sin
-conexión · notificaciones al teléfono · reemplazar el Modo Coordinación.
+conexión · notificaciones al teléfono · mensajes por WhatsApp (es otro asunto y
+no depende de esta tanda: ver §10) · reemplazar el Modo Coordinación.
 
 > **De dónde sale**: Diego, 8-sep-2026: «la posibilidad de integrar PWA a
 > nuestro script… sería que la app fuera una PWA con llamada vía API a Google
@@ -311,11 +312,39 @@ CUANDO el sitio y el script no coinciden de versión
 
 ## 7 · Lo que hay que decidir antes de programar
 
-### Dos preguntas para informática del hospital
+### I1 · RESPONDIDA por Diego (8-sep-2026)
+
+> **«Sí puede abrir dominio externo, pero solo algunas páginas.»**
+
+O sea el hospital tiene una **lista blanca**: se abre lo que se pide, no todo.
+Eso es exactamente lo que hacía falta saber, y convierte el riesgo R1 de «no
+sabemos si se puede» en **«hay que pedir bien la lista»**. Una dirección que
+falte no da un error claro: la app abre y las llamadas mueren en silencio, que
+es la peor forma de fallar en un turno de noche.
+
+**La lista es corta, porque la app casi no usa nada de afuera.** Se revisó el
+index entero: la única dirección externa que aparece hoy es la del login de
+Google. No hay tipografías de internet, ni librerías, ni imágenes remotas — todo
+viaja dentro del archivo.
+
+| Dirección | Para qué | ¿Ya está permitida? |
+|---|---|---|
+| **el dominio del sitio** (se define en D1) | Servir la pantalla de la app | No — **es la que hay que pedir** |
+| `script.google.com` | Donde vive el servidor y adonde van las llamadas | Sí: es donde corre la app hoy |
+| `script.googleusercontent.com` | 🪤 Apps Script **no contesta directo**: responde con un desvío a esta dirección. Si está bloqueada, **todas las llamadas fallan aunque `script.google.com` esté permitida** | Casi seguro que sí (hoy la app corre dentro de ahí), pero **hay que confirmarlo**: es la trampa más probable de toda la tanda |
+| `accounts.google.com` | El login de Google (la librería `gsi/client` y la pantalla de entrar) | Es la única dirección externa que la app usa hoy — confirmar |
+
+**Lo que hay que pedirle a informática**, en una frase: *«habilitar el dominio X
+para la unidad de kinesiología UCI, y confirmar que `script.google.com`,
+`script.googleusercontent.com` y `accounts.google.com` están habilitados»*.
+
+Con la lista blanca en juego, **D1 deja de ser una preferencia técnica**:
+conviene elegir el dominio antes de pedir nada, y pedir uno solo.
+
+### La pregunta que queda para informática
 
 | | |
 |---|---|
-| **I1** | ¿El hospital permite abrir un dominio externo para esta app, y cuál? Hoy `script.google.com` está permitido; un dominio nuevo puede estar bloqueado por el proxy. **Sin esta respuesta, todo lo demás es teoría.** |
 | **I2** | ¿Existe un dominio de correo institucional para el equipo (`@hospital…`), o entran con cuentas personales de Gmail? De esto depende a quién se le abre la puerta. |
 
 ### Cuatro decisiones de Diego
@@ -333,7 +362,7 @@ CUANDO el sitio y el script no coinciden de versión
 
 | | Riesgo | Qué lo contiene |
 |---|---|---|
-| **R1** | **El hospital bloquea el dominio nuevo.** La app no abre y no hay nada que programar que lo arregle. | I1, antes de escribir una línea. |
+| **R1** | **Falta una dirección en la lista blanca del hospital.** Ya no es «¿se puede?» (Diego confirmó que sí) sino «¿se pidieron todas?». La más peligrosa es `script.googleusercontent.com`: si falta, la app abre bien y **todas las llamadas mueren en silencio**. | Pedir la lista completa de §7 **antes** de escribir una línea, y probarla en un PC del hospital antes de dársela a nadie. |
 | **R2** | **Una evolución guardada dos veces** por un reintento de red. | El número de petición (§5.3). Guardia obligatoria: mandar la misma escritura dos veces y comprobar que hay UNA fila. |
 | **R3** | **Datos de pacientes en el caché de un PC compartido.** | NO2 + lista blanca de archivos (§5.5). Guardia que revise que la lista no incluye respuestas del servidor. |
 | **R4** | **La puerta HTTP queda abierta al mundo.** El enlace del script viaja dentro de la pantalla. | `ORIGENES_PERMITIDOS` + identidad obligatoria + `API_HTTP_ACTIVA` apagada hasta que esté probado. **Por esto la PWA no se hace sin login real: son la misma tanda.** |
@@ -357,6 +386,47 @@ En este orden, y cada paso se puede detener sin romper nada:
 5. **Encender el login**, primero opcional (D3).
 6. **Apagar `AUTH_DEV_MODE`** cuando todos hayan entrado al menos una vez.
 7. **Apagar el `/exec`** un mes después (D4).
+
+---
+
+---
+
+## 10 · WhatsApp: la pregunta que hizo Diego al leer esto
+
+> «¿Se podría integrar mensaje a WhatsApp si se hace así?»
+
+**Sí se puede — pero no tiene nada que ver con esta tanda.** Los mensajes los
+mandaría el **servidor**, no la pantalla, y el servidor ya sabe llamar a
+servicios de afuera: lo hace hoy para importar los gases desde Drive
+(`UrlFetchApp`, `svc_gsa.gs`). O sea **se podría hacer hoy, sin PWA**. La PWA no
+lo habilita ni lo bloquea: son dos cosas independientes y no conviene mezclarlas.
+
+Lo que decide si se hace o no **no es técnico**:
+
+1. 🔴 **Dato clínico que sale del hospital.** Mandar por WhatsApp el nombre de un
+   paciente, su cama o su evolución es sacar dato clínico a los servidores de
+   Meta, fuera de la institución. La regla del proyecto (Ley 19.628) es que eso
+   **no se hace sin anonimización y aprobación institucional**. No es decisión
+   del proyecto: es de Diego y del hospital.
+2. **La vía oficial cuesta y hay que darla de alta.** WhatsApp Business API
+   (Meta) exige cuenta verificada, un número dedicado solo a eso, plantillas de
+   mensaje aprobadas por Meta, y se paga por conversación.
+3. **Las vías no oficiales no sirven acá.** Las librerías que se conectan como si
+   fueran el WhatsApp de una persona violan los términos y terminan con el
+   número bloqueado. En un hospital eso no se propone.
+
+**Lo que sí sería seguro y útil**, si Diego lo quiere: un aviso **sin ningún dato
+de paciente**. «Hay 3 alertas en la unidad» o «se publicó una versión nueva» — un
+empujón para que alguien abra la app, donde el dato sí está protegido. Eso
+respeta la regla de privacidad entera.
+
+> Ojo con el antecedente: Diego **rechazó el envío de correos** en su momento, y
+> por eso el sistema no manda ninguno (`COORD_RECUPERA_CORREO` nace apagado). Si
+> ahora quiere avisos por WhatsApp es un cambio de criterio legítimo — pero
+> conviene decirlo explícito, porque la regla escrita hoy dice lo contrario.
+
+**Esto no se programa con este PRD.** Si lo quiere, es un PRD propio de una
+página, y la primera línea es qué se manda exactamente.
 
 ---
 
