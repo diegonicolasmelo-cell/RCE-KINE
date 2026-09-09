@@ -164,10 +164,19 @@ const _esq = require('fs').readFileSync(require('path').join(__dirname, '..', '.
   // vigile igual de fuerte que en Synapse.
   const dosBotones = await p.evaluate(() => {
     CFG.LIS_URL = 'http://ejemplo-lis.local/inicio'; renderGrid();
-    return { total: document.querySelectorAll('.pname-img').length,
-             enLa5: document.querySelectorAll('[data-bed="5"] .pname-img').length };
+    const bs = [...document.querySelectorAll('.pname-img')];
+    return { total: bs.length,
+             svg: bs.filter(b => b.querySelector('svg')).length,
+             cobas: /cobas/i.test(document.querySelector('.lis-ico')?.textContent || '') };
   });
   eq('★ con las dos URL, la cama con RUT muestra los DOS botones', dosBotones.total, 2);
+  // 🪤 Los dos íconos son SVG dibujado a mano, NUNCA emoji: el Chrome del
+  // hospital (Windows 10) no trae los posteriores a 2019 y salen como cuadrado.
+  // Si alguien cambia uno por un emoji «para simplificar», esta guardia lo caza.
+  eq('★ los dos íconos son SVG, no emoji (el Chrome del hospital no los dibuja)',
+    dosBotones.svg, 2);
+  eq('★ el del laboratorio lleva la marca de cobas, que es la que el equipo reconoce',
+    dosBotones.cobas, 'true');
 
   const lis = await p.evaluate(() => {
     window.__sec = [];
