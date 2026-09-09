@@ -771,6 +771,41 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   destete prolongado = >7 días desde la 1ª PVE o ≥3 fracasadas (Boles/WIND)
   — su «>7 días» era el del destete. Detalle en BITACORA v5.93.
 
+- 🔴 🧍 **SBC EXIGE FSS-ICU — regla clínica de Diego (9-sep-2026, textual):
+  «PARA REGISTRAR SBC DEBE TENER NECESARIAMENTE FSSICU».** Anotada a pedido
+  suyo **para programarla después**: no se tocó código.
+  · **Qué es cada cosa, confirmado en el código**: SBC es el **nivel 3 de KTM**
+  (`KTM_NIV_DESC['3']` = «Sedente al borde de cama (SBC)», index ~12374), y el
+  **ítem 3 del FSS-ICU se llama igual** («Sedente borde cama», `fFssIt3`,
+  index ~4590). O sea la regla no une dos cosas distintas: dice que si el
+  colega declara que el paciente se sentó al borde de la cama, esa misma
+  actividad tiene que quedar puntuada en la escala.
+  · **Dónde vive el dato hoy**: el nivel es `fKTMniv` → `KTM_NIVEL_KTR`
+  (EVOLUCIONES) y `KTM_NIVEL` (CAMAS_ESTADO, que lo arrastra); el FSS son los
+  cinco `fFssIt1..5` → `sumFSS()` → `fFSS` → `EVAL_T_FSS` (entero).
+  · 🔴 **Inventario de consumidores** (la sección «los datos» del PRD; sin esto
+  se repite el error de los filtros): formulario (catálogo ~12369, `setKTMniv`
+  ~12380, `sumFSS` ~13941, lectura del nivel ~16141) · texto narrativo
+  (`dominio_texto.gs:514` narra el nivel, `:584` narra el FSS) · **hito motor de
+  la entrega** (`svc_entrega.gs:621-634`, donde el peldaño SBC sale del nivel
+  KTM) · hoja UCI (`_HJ_FSS_ACT` ~8817, fila `fss` ~8673) · egreso
+  (`svc_camas.gs:235-239`, que arrastra el FSS al alta) · indicadores
+  (`esquema.gs:878`, MOTOR/KTM_NIVEL).
+  · 🪤 **`fKTMniv` YA tiene una cascada encima**: con SAS 1 se limpia si no es
+  '1' (index ~13496). Cualquier validación nueva tiene que convivir con la
+  tabla `_CASCADAS` de la v6.19 (que deshace lo que una cascada escribió si el
+  control vuelve a su valor de origen), o se pisan entre las dos.
+  · ❓ **Las dos preguntas que hay que hacerle a Diego ANTES de programar** —no
+  se le preguntaron ahora porque pidió dejarlo anotado—: ① ¿el FSS tiene que ser
+  **del mismo turno**, o basta el **del episodio** aunque sea de días atrás? El
+  FSS-ICU no se mide todos los turnos, así que exigirlo por turno cambia mucho
+  el trabajo del colega. ② ¿**bloquea el guardado** o solo **avisa** (campana,
+  como la pimometría y las MRC/FSS pendientes)? Su «necesariamente» suena a
+  bloqueo, pero eso hay que confirmarlo antes de escribirlo.
+  · 🪤 Si se programa como bloqueo, el candado va **en el servidor además del
+  cliente** — como toda regla de este proyecto, el espejo del cliente solo
+  guía, no protege.
+
 - 🧠 **Brainstorm de terreno** — 9 puntos, en `BITACORA.md`. Resueltos el 1, 2,
   3, 4, 5 y 7. **Abierto: solo el 6** (MR850, acción de datos). El 9 quedó
   CERRADO el 5-sep («déjalo como Manuel») y **el 8 quedó RESUELTO en la
