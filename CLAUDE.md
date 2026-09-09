@@ -1011,7 +1011,7 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   pregunta para informática. **Mientras no se sepa, el diseño asume PDF.**
   · Falta todavía **un PDF de ejemplo real** (anonimizado o con paciente de
   prueba) para saber qué se puede sacar de él.
-- ✅ 🎊 **FIESTAS PATRIAS: PROGRAMADO en la v6.23** (9-sep-2026). Diego mandó dos
+- ✅ 🎊 **FIESTAS PATRIAS: PROGRAMADO en la v6.23, cuadros corregidos en la v6.24** (9-sep-2026). Diego mandó dos
   videos de Mauri de huaso; se convirtieron a **12 cuadros a 5/s** cada uno
   (terremoto → pantalla de carga, emboque → mascota de la esquina). Ventana
   **16-20 de septiembre**, movible desde `CONFIG.FIESTAS_PATRIAS`.
@@ -1025,8 +1025,19 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   esconde `.masc-persona`. Cualquier cosa que se le haga a Mauri hay que
   MIRARLA renderizada, o se publica algo que no ve nadie. Durante la ventana
   `.f18` destapa a Mauri por encima de esa preferencia.
+  · 🪤 **Quitar el cuadriculado NO quita el suelo: son dos cosas** (v6.24). Los
+  doce cuadros del emboque venían con el piso de ARENA del video, opaco. En la
+  pantalla de carga pasaba por sombra; en el botón de 62 px era un ladrillo
+  beige de borde duro sobre la tarjeta. Apareció al capturar el botón REAL para
+  un mockup, no leyendo el código. Los de la pantalla de carga estaban limpios:
+  se verificó cuadro por cuadro antes de recortar los 24 a ciegas.
+  · 🪤 **Y cómo se mide un suelo: por el ANCHO, no por «hay algo abajo»** — los
+  zapatos llegan al borde y está bien. Medido: con suelo la fila de abajo va al
+  100 %, sin él la esquina marca 0 % y los pies de la carga 26 %. Corte en 60 %.
+  La primera versión de esa guardia se puso roja por los zapatos: la guardia
+  tenía razón en gritar, la pregunta estaba mal escrita.
   · La fecha se le pasa a `esFiestasPatrias(d)` para poder probarla sin esperar
-  a septiembre. Guardia `fiestas_patrias.js`.
+  a septiembre. Guardia `fiestas_patrias.js` (bloque 6b para el suelo).
 - 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
   existe: es **Servi**, seleccionable entre Servi y el kinesiólogo (`mascToggle`,
   index ~1681), y hoy solo hace el tutorial y los globos.

@@ -142,6 +142,40 @@ const V2 = path.resolve(__dirname, '..', '..', 'v2');
   si('…con su propio intervalo', esq.corriendo);
   eq('★ y el cumpleaños también le gana acá', esq.conCumple, 'false');
 
+  console.log('\n6b · Los cuadros no traen el suelo pintado');
+  // 🪤 El video venía con el huaso parado sobre ARENA, y ese suelo es opaco.
+  // En la pantalla de carga no se nota; en el botón de 62 px, encima de una
+  // tarjeta, se veía un ladrillo beige de borde duro. Se recortó (v6.24).
+  // 🔴 NO se mide «hay algo opaco abajo»: los ZAPATOS llegan al borde y eso es
+  // correcto. Lo que delata al suelo es que CRUZA TODO EL ANCHO. Medido: con
+  // suelo la fila de abajo iba al 100 %; sin él, la esquina marca 0 % y los
+  // pies de la pantalla de carga llegan a 26 %. El corte va en 60 %.
+  const suelo = await p.evaluate(async () => {
+    const ancho = (b64) => new Promise(res => {
+      const im = new Image();
+      im.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = im.width; c.height = im.height;
+        const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+        let peor = 0;
+        for (let y = 1; y <= 3; y++) {
+          const d = x.getImageData(0, im.height - y, im.width, 1).data;
+          let op = 0;
+          for (let i = 3; i < d.length; i += 4) if (d[i] > 200) op++;
+          peor = Math.max(peor, Math.round(100 * op / im.width));
+        }
+        res(peor);
+      };
+      im.src = 'data:image/webp;base64,' + b64;
+    });
+    const r = { esquina: 0, carga: 0 };
+    for (const c of M18.esquina) r.esquina = Math.max(r.esquina, await ancho(c));
+    for (const c of M18.carga)   r.carga   = Math.max(r.carga,   await ancho(c));
+    return r;
+  });
+  si('★ la esquina flota: nada cruza el borde de abajo (' + suelo.esquina + ' %)', suelo.esquina < 60);
+  si('…y la pantalla de carga tampoco (' + suelo.carga + ' %)', suelo.carga < 60);
+
   console.log('\n7 · Con «reducir movimiento» no anima nada');
   const p2 = await b.newPage({ viewport: { width: 1400, height: 950 }, reducedMotion: 'reduce' });
   const e2 = []; p2.on('pageerror', e => e2.push(e.message));

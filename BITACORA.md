@@ -19,6 +19,67 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.24-mauri-sin-suelo (9-sep-2026) — el huaso estaba parado sobre un ladrillo beige
+
+Diego pidió **el mockup de la mascota de abajo**. Al capturar el botón real de
+la app —no un dibujo, el `#tutBtn` de `v2/index.html` en Chromium— apareció un
+defecto que la pantalla de carga escondía: **los doce cuadros del emboque traían
+el suelo de arena del video**, y ese suelo es OPACO.
+
+### Por qué no se había visto
+
+En la pantalla de carga el dibujo va grande y sobre fondo claro: la arena pasa
+por sombra. En el botón de la esquina son 62 px sobre una tarjeta —a veces sobre
+el azul de una portada— y se veía un **ladrillo beige de borde duro** flotando
+bajo los pies. Servi y las nueve poses de Mauri son transparentes; este cuadro
+era el único que no.
+
+Es el hermano de la trampa de la v6.23 («el fondo transparente venía PINTADO»):
+ahí el generador había pintado el cuadriculado, acá el video traía piso dibujado.
+**Quitar el cuadriculado no quita el suelo** — son dos cosas distintas y hubo que
+mirarlas por separado.
+
+### Cómo se recortó
+
+Relleno por inundación desde el borde de abajo sobre los tonos cálidos de la
+arena (R>G>B, claro), más los restos pálidos en la franja inferior, y **los
+bolsones encerrados entre las piernas** —que no tocan ningún borde y por eso la
+primera pasada los dejó como manchas blancas entre los zapatos—. Los zapatos y
+el poncho quedan intactos porque son oscuros o no cálidos.
+
+De regalo el archivo **bajó**: 8,1 KB → 6,1 KB por cuadro (los 12 del emboque
+pasaron de 97 a 74 KB), porque la arena era lo más pesado de comprimir.
+
+🪤 **La pantalla de carga NO tenía el problema**: sus doce cuadros ya venían
+limpios. Se verificó cuadro por cuadro antes de tocarlos, en vez de aplicar el
+recorte a ciegas a los 24.
+
+### La guardia, y la primera versión que estaba mal
+
+`fiestas_patrias.js` bloque **6b**. La primera redacción medía «¿hay algo opaco
+en la fila de abajo?» y se puso roja con la pantalla de carga —**por los
+ZAPATOS**, que llegan al borde y está bien que lleguen—. O sea la guardia tenía
+razón en gritar y yo tenía mal la pregunta.
+
+Lo que delata a un suelo no es que haya algo abajo: es que **cruza todo el
+ancho**. Medido, no supuesto: con suelo la fila de abajo iba al **100 %**; sin
+él la esquina marca **0 %** y los pies de la carga llegan a **26 %**. El corte
+quedó en **60 %**, con margen para los dos lados. Poder de detección
+comprobado: se volvieron a inyectar los cuadros viejos y la guardia se puso
+roja (exit 1); restaurados, verde.
+
+### Lo que se pega
+
+Solo **index** (cohete) y **servicios** (por el aviso de novedades, que ahora
+cuelga del sello 6.24). Sin cambio de esquema: **no hay que correr
+`crearORepararEstructura()`** por esta versión.
+
+🔴 Si la v6.23 no se pegó todavía —que es el caso—, **se pega esta en su lugar**:
+trae todo lo de la 6.23 con los cuadros corregidos. Dos archivos distintos no
+pueden llevar el mismo sello, por eso subió el número.
+
+---
+
 ## v6.23-mauri-dieciochero (9-sep-2026) — los dos videos de Diego, convertidos a cuadros
 
 Diego mandó **dos videos** de don Mauri de huaso: uno jugando al emboque y otro
