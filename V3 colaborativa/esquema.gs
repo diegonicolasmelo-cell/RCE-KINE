@@ -783,6 +783,10 @@ function _sembrar(ss) {
     // sesión: ésos caducan. Medido ese día: Synapse manda X-Frame-Options
     // 'sameorigin', así que NO se puede embeber — el botón abre otra pestaña.
     ['SYNAPSE_URL', ''],
+    // Laboratorio (LIS del hospital). Vacío = sin botón 🧪 en la tarjeta.
+    // 🔴 La dirección NO se escribe aquí: es una IP interna del hospital y este
+    // repo es público. La pega Diego en la hoja CONFIG, como la de Synapse.
+    ['LIS_URL', ''],
     // Interpretación clínica (cortes ajustables por el equipo sin tocar código)
     ['CPAX_ACTIVO', 'TRUE'],        // FALSE oculta la sección CPAx del panel
     ['CORTE_MRC_DAUCI', '48'],      // MRC-SS < corte = DAUCI

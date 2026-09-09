@@ -19,6 +19,61 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.21-atajo-laboratorio (9-sep-2026) — el botón del laboratorio, y dos guardias que se caían solas con el calendario
+
+### 1. El hallazgo que originó el botón
+
+Diego, desde su turno del 8-sep: **«me ahorré el clic del RUT con el botón de
+Synapse… solo seleccionaba el ícono del paciente que quería revisar, con la otra
+plataforma abierta, y así acceder de forma más expedita.»**
+
+O sea usó el botón de Synapse **para otra cosa**: le importaba el RUT copiado, no
+Synapse. El valor de ese botón nunca fue abrir el visor — fue **no teclear el
+RUT**. De ahí sale este: el mismo atajo, apuntando al destino que de verdad usa.
+
+- `🧪` en la tarjeta de la cama, al lado del de Synapse. Copia el RUT y abre el
+  laboratorio. La dirección vive en **`CONFIG.LIS_URL`**; vacía, no hay botón.
+- 🔴 **La dirección NO está en el repo**: es una IP interna del hospital y el
+  repo sigue siendo público. Nace vacía en `esquema.gs` y la pega Diego en la
+  planilla, igual que la de Synapse. **La guardia lo verifica de forma estática**
+  (que `LIS_URL` nazca vacía y que no haya ninguna IP privada escrita ahí).
+- El ícono es **SVG dibujado a mano**, no emoji, por la misma razón que la «A»
+  de Synapse: un emoji nuevo sale como cuadrado en el Chrome del hospital.
+
+🪤 **MEDIDO EN EL HOSPITAL, NO SUPUESTO (9-sep)**: el LIS solo se usaba en
+Firefox porque así quedó instalado en los escritorios; **nunca lo habían
+intentado en Chrome**. Diego lo probó y **carga — pero tuvo que instalar una
+extensión**. Consecuencia de diseño: en un PC sin esa extensión la pestaña puede
+no servir, así que **el copiado tiene que ocurrir pase lo que pase**. Por eso
+aquí el orden importa el doble, y es el mismo que se pagó caro con Synapse el
+4-sep: `window.open` consume la activación transitoria del clic y
+`execCommand('copy')` después de eso devuelve `false` **en silencio**. Se copia
+PRIMERO, siempre. El portapapeles de Windows es uno solo, así que copiar en
+Chrome y pegar en Firefox funciona igual.
+
+### 2. 🪤 Dos guardias se estaban poniendo rojas SOLAS al cambiar el día
+
+Al correr la batería aparecieron dos rojas que **no tenían nada que ver con el
+cambio**. Se comprobó con `git stash`: ya fallaban antes de tocar una línea.
+
+La causa es la misma en las dos: **el banco de pruebas anclaba fechas fijas y la
+app cuenta los días contra HOY.**
+
+- `pve_no_toca_los_dias` clavaba el tramo en `'2026-08-25'` y esperaba `'16/13'`.
+  Dos días después la app decía `'18/15'` — correctamente.
+- `plantillas_evolucion` clavaba las dos PVE en septiembre y `_weanClase` mide
+  «días desde la 1ª PVE» contra hoy: al pasar de 7 días el weaning dejó de ser
+  *difícil* y pasó a *prolongado*, sin que nadie tocara nada.
+
+**Las dos se arreglaron anclando con `hace(n)`** en vez de fechas escritas a
+mano. La regla queda escrita en las dos cabeceras: *una guardia que se cae sola
+por el calendario es peor que no tenerla, porque enseña a ignorar el rojo.*
+Vale para cualquier guardia futura que toque días, fechas o relojes.
+
+Batería: **123 verdes, 0 rojas**.
+
+---
+
 ## v6.20-auscultacion-y-comodines (8-sep-2026) — la auscultación no pierde ruidos; y los bloques se pueden reescribir
 
 Diego trajo dos cosas del turno: **«Álvaro me dijo que hay campos del texto

@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.20-auscultacion-y-comodines">
+<meta name="rce-version" content="6.21-atajo-laboratorio">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4719,7 +4719,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.20-auscultacion-y-comodines]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.21-atajo-laboratorio]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5149,7 +5149,7 @@ function renderGrid() {
                 tarjeta de Identificación se esconde fuera del ingreso. En la
                 vista retrospectiva no va — ahí no se edita nada. */''}
           <div class="pname" title="${c.NOMBRE||''}"><span>${c.NOMBRE||'-'}</span>${c._RETRO?'':
-            `<button type="button" class="pname-lap" title="Editar la ficha del paciente (nombre, RUT, diagnóstico, evaluaciones de ingreso)" onclick="event.stopPropagation();abrirPanel('${c.ID_CAMA}',false,true)">✏️</button>`}${_synBotonHTML(c)}</div>
+            `<button type="button" class="pname-lap" title="Editar la ficha del paciente (nombre, RUT, diagnóstico, evaluaciones de ingreso)" onclick="event.stopPropagation();abrirPanel('${c.ID_CAMA}',false,true)">✏️</button>`}${_synBotonHTML(c)}${_lisBotonHTML(c)}</div>
           <div style="font-size:.78rem;color:var(--muted);">${c.EDAD||'?'}a · ${c.SEXO||''}</div>
           ${/* El DIAGNÓSTICO reemplaza al COD_PACIENTE en la tarjeta (Diego,
                 ago-2026): el código es plomería interna para cruzar datos sin
@@ -15802,6 +15802,56 @@ function _synBotonHTML(c){
   if(!_synURL() || !c || !String(c.RUT||'').trim() || c._RETRO) return '';
   return '<button type="button" class="pname-img" title="Abrir Synapse y copiar el RUT para pegarlo en el buscador"'+
     ' onclick="event.stopPropagation();abrirSynapse(\''+String(c.ID_CAMA)+'\')">'+_RX_SVG+'</button>';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🧪 LABORATORIO (LIS del hospital) — mismo atajo que Synapse (9-sep-2026)
+
+   DE DÓNDE SALE: Diego usó el botón de Synapse SOLO para copiar el RUT, con el
+   laboratorio abierto en otra ventana — «me ahorré el clic del RUT… así acceder
+   de forma más expedita». O sea el valor nunca fue abrir Synapse: fue COPIAR EL
+   RUT. Esto le da su propio botón al destino que de verdad usa.
+
+   🪤 MEDIDO EN EL HOSPITAL, NO SUPUESTO (9-sep): el LIS solo se usaba en
+   Firefox porque así quedó en los escritorios. Diego lo probó en Chrome y
+   CARGA — pero tuvo que instalar una extensión. Consecuencia: en un PC sin esa
+   extensión la pestaña puede no servir. Por eso el orden importa el doble aquí:
+   **se copia PRIMERO**, así el RUT queda en el portapapeles pase lo que pase
+   con la pestaña y el colega lo pega en su Firefox. El portapapeles de Windows
+   es uno solo, así que copiar en Chrome y pegar en Firefox funciona.
+
+   🔴 La dirección vive en CONFIG.LIS_URL, NO en el código: es una IP interna
+   del hospital y este repo es público. Sin ella no hay botón.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function _lisURL(){ return String((window.CFG&&CFG.LIS_URL)||'').trim(); }
+// Tubo de ensayo dibujado a mano, por la misma razón que la «A» de Synapse:
+// un emoji nuevo sale como cuadrado en el Chrome del hospital.
+const _LIS_SVG='<svg class="lis-ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">'+
+  '<path d="M8 2.6h8" stroke="#151515" stroke-width="2" stroke-linecap="round" fill="none"/>'+
+  '<path d="M9.6 3.6v11.6a2.4 2.4 0 0 0 4.8 0V3.6" stroke="#151515" stroke-width="1.8" fill="none" stroke-linejoin="round"/>'+
+  '<path d="M9.6 10.8h4.8v4.4a2.4 2.4 0 0 1-4.8 0z" fill="#c4554d"/></svg>';
+
+/** El botón solo existe con URL configurada Y con RUT que copiar. */
+function _lisBotonHTML(c){
+  if(!_lisURL() || !c || !String(c.RUT||'').trim() || c._RETRO) return '';
+  return '<button type="button" class="pname-img" title="Abrir el laboratorio y copiar el RUT para pegarlo en el buscador"'+
+    ' onclick="event.stopPropagation();abrirLIS(\''+String(c.ID_CAMA)+'\')">'+_LIS_SVG+'</button>';
+}
+function abrirLIS(idCama){
+  const url=_lisURL(); if(!url){ toast('⚠️ Falta configurar LIS_URL en CONFIG'); return; }
+  const c=((typeof DB!=='undefined'&&DB)||[]).find(x=>String(x.ID_CAMA)===String(idCama))||{};
+  const rut=String(c.RUT||'').trim();
+  /* 🪤 EL ORDEN NO SE INVIERTE (lección del 4-sep con Synapse): Chrome le da al
+     clic una activación de un solo uso y window.open LA CONSUME, así que con la
+     pestaña abierta primero el copiado llegaba sin permiso y fallaba EN
+     SILENCIO. Copiar primero no gasta esa activación. */
+  const ok=rut?_copiarTexto(rut):false;
+  const w=window.open(url,'_blank','noopener');
+  if(!w) toast('⚠️ Chrome bloqueó la pestaña — permite las ventanas emergentes de este sitio');
+  else if(ok) toast('📋 RUT copiado — pégalo en el buscador del laboratorio');
+  else if(rut) uiConfirm({ icono:'🧪', titulo:'Copia el RUT a mano',
+    mensaje:'El navegador no dejó copiarlo solo. Es este:<br><b style="font-size:1.1rem;">'+
+      String(rut).replace(/[<>&]/g,'')+'</b>', confirmar:'Listo' });
 }
 
 /* Copiar + abrir. El copiado usa `execCommand` sobre un textarea temporal —la

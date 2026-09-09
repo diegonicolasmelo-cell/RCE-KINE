@@ -77,7 +77,8 @@ function notifListar(datos) {
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
 const NOVEDADES = {
-  '6.20-auscultacion-y-comodines': [
+  '6.21-atajo-laboratorio': [
+    '🧪 En la tarjeta del paciente hay un botón nuevo del laboratorio: copia el RUT y abre el LIS, para no tener que teclearlo.',
     '🧪 Los gases de la mañana se copian solos desde los PDF del laboratorio y salen en la hoja del día, sin pasarlos a mano.',
     '📥 El que no se pudo emparejar queda en «Sin emparejar», al lado del botón de importar: se le elige la cama y listo.',
     '🖨️ La hoja del día trae el gas de la mañana, con Hb, Hto y K⁺ en observaciones y el último cultivo con su resultado.',

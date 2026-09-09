@@ -20,6 +20,10 @@ const fails = [];
 const eq = (l, g, w) => { const ok = String(g) === String(w); console.log((ok ? '✅' : '❌') + ' ' + l + ': ' + JSON.stringify(g) + (ok ? '' : ' (esperado ' + JSON.stringify(w) + ')')); if (!ok) fails.push(l); };
 const si = (l, c) => eq(l, !!c, true);
 
+/* 🔴 PRIVACIDAD: la dirección del LIS es una IP interna del hospital y este
+   repo es público. Nace vacía en el esquema y la pega Diego en la planilla. */
+const _esq = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'v2', 'esquema.gs'), 'utf8');
+
 (async () => {
   /* ══ 1 · SERVIDOR · la nota deja hito, y se REEMPLAZA al re-guardar ══ */
   console.log('\n1 · La nota del turno deja su 📌 en la línea de tiempo');
@@ -145,6 +149,39 @@ const si = (l, c) => eq(l, !!c, true);
     return window.__sec.join('-');
   });
   eq('★ copia el RUT ANTES de abrir (window.open consume el permiso del clic)', orden, 'copy-open');
+
+  eq('★ LIS_URL nace VACÍA en el esquema (la dirección no vive en el repo)',
+    /\['LIS_URL',\s*''\]/.test(_esq), 'true');
+  eq('★ …y no hay ninguna IP interna escrita en el esquema',
+    /\b(?:10|172|192)\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/.test(_esq), 'false');
+
+  // ── 🧪 EL LABORATORIO (v6.21, 9-sep-2026) ─────────────────────────────
+  // Mismo atajo, otro destino. Salió de un hallazgo de terreno: Diego usaba el
+  // botón de Synapse SOLO para copiar el RUT, con el LIS abierto al lado. Y de
+  // una medición: el LIS solo se usaba en Firefox, pero en Chrome CARGA (con
+  // una extensión instalada). Como en un PC sin esa extensión la pestaña puede
+  // no servir, el copiado tiene que ocurrir SÍ o SÍ — de ahí que el orden se
+  // vigile igual de fuerte que en Synapse.
+  const dosBotones = await p.evaluate(() => {
+    CFG.LIS_URL = 'http://ejemplo-lis.local/inicio'; renderGrid();
+    return { total: document.querySelectorAll('.pname-img').length,
+             enLa5: document.querySelectorAll('[data-bed="5"] .pname-img').length };
+  });
+  eq('★ con las dos URL, la cama con RUT muestra los DOS botones', dosBotones.total, 2);
+
+  const lis = await p.evaluate(() => {
+    window.__sec = [];
+    abrirLIS('4');
+    return { sec: window.__sec.join('-'), url: window.__abiertas[window.__abiertas.length - 1] };
+  });
+  eq('★ abre el laboratorio en otra pestaña', lis.url, 'http://ejemplo-lis.local/inicio');
+  eq('★ …y copia el RUT ANTES de abrir, igual que Synapse', lis.sec, 'copy-open');
+
+  const sinLis = await p.evaluate(() => {
+    CFG.LIS_URL = ''; renderGrid();
+    return document.querySelectorAll('.pname-img').length;
+  });
+  eq('★ sin LIS_URL en CONFIG vuelve a quedar solo el de Synapse', sinLis, 1);
 
   // Sin URL configurada, el botón no existe
   const sinUrl = await p.evaluate(() => {

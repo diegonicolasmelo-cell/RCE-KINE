@@ -222,6 +222,8 @@ function _configUI() {
     CUFF_MAX: parseInt(leerConfig('CUFF_MAX', '30')) || 30,
     // Visor de imágenes: vacío = sin botón 🩻 (ver CONFIG.SYNAPSE_URL).
     SYNAPSE_URL: String(leerConfig('SYNAPSE_URL', '') || '').trim(),
+    // Laboratorio: vacío = sin botón 🧪 (ver CONFIG.LIS_URL).
+    LIS_URL: String(leerConfig('LIS_URL', '') || '').trim(),
     PTT_OK: parseFloat(leerConfig('PTT_OK', '10')) || 10,
     PTT_ALERTA: parseFloat(leerConfig('PTT_ALERTA', '12')) || 12,
     BANNERS: {
