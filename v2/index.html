@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.21-atajo-laboratorio">
+<meta name="rce-version" content="6.22-icono-cobas">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4719,7 +4719,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.21-atajo-laboratorio]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.22-icono-cobas]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -15824,17 +15824,22 @@ function _synBotonHTML(c){
    del hospital y este repo es público. Sin ella no hay botón.
    ═══════════════════════════════════════════════════════════════════════════ */
 function _lisURL(){ return String((window.CFG&&CFG.LIS_URL)||'').trim(); }
-// Tubo de ensayo dibujado a mano, por la misma razón que la «A» de Synapse:
-// un emoji nuevo sale como cuadrado en el Chrome del hospital.
+/* El ícono es el de COBAS, que es el que el equipo ya reconoce en el escritorio
+   (Diego mandó la captura, 9-sep-2026). Va dibujado a mano —como la «A» de
+   Synapse— y no como emoji ni como imagen: un emoji nuevo sale cuadrado en el
+   Chrome del hospital, y una imagen pegada engordaría el index sin necesidad.
+   🪤 A 17 px la palabra no se lee entera: lo que identifica al botón es el
+   marco verde redondeado. Si hiciera falta más grande, se sube el tamaño de
+   LOS DOS íconos a la vez (este y el de Synapse), nunca uno solo. */
 const _LIS_SVG='<svg class="lis-ico" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">'+
-  '<path d="M8 2.6h8" stroke="#151515" stroke-width="2" stroke-linecap="round" fill="none"/>'+
-  '<path d="M9.6 3.6v11.6a2.4 2.4 0 0 0 4.8 0V3.6" stroke="#151515" stroke-width="1.8" fill="none" stroke-linejoin="round"/>'+
-  '<path d="M9.6 10.8h4.8v4.4a2.4 2.4 0 0 1-4.8 0z" fill="#c4554d"/></svg>';
+  '<rect x="1.6" y="3.4" width="20.8" height="17.2" rx="5.2" fill="#ffffff" stroke="#3aab52" stroke-width="1.9"/>'+
+  '<text x="12" y="14.3" text-anchor="middle" font-family="Arial,Helvetica,sans-serif"'+
+  ' font-size="5.6" font-weight="700" fill="#3c3c3b" letter-spacing="-.15">cobas</text></svg>';
 
 /** El botón solo existe con URL configurada Y con RUT que copiar. */
 function _lisBotonHTML(c){
   if(!_lisURL() || !c || !String(c.RUT||'').trim() || c._RETRO) return '';
-  return '<button type="button" class="pname-img" title="Abrir el laboratorio y copiar el RUT para pegarlo en el buscador"'+
+  return '<button type="button" class="pname-img" title="Abrir cobas y copiar el RUT para pegarlo en el buscador"'+
     ' onclick="event.stopPropagation();abrirLIS(\''+String(c.ID_CAMA)+'\')">'+_LIS_SVG+'</button>';
 }
 function abrirLIS(idCama){
@@ -15848,7 +15853,7 @@ function abrirLIS(idCama){
   const ok=rut?_copiarTexto(rut):false;
   const w=window.open(url,'_blank','noopener');
   if(!w) toast('⚠️ Chrome bloqueó la pestaña — permite las ventanas emergentes de este sitio');
-  else if(ok) toast('📋 RUT copiado — pégalo en el buscador del laboratorio');
+  else if(ok) toast('📋 RUT copiado — pégalo en el buscador de cobas');
   else if(rut) uiConfirm({ icono:'🧪', titulo:'Copia el RUT a mano',
     mensaje:'El navegador no dejó copiarlo solo. Es este:<br><b style="font-size:1.1rem;">'+
       String(rut).replace(/[<>&]/g,'')+'</b>', confirmar:'Listo' });

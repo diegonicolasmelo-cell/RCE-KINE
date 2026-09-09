@@ -19,6 +19,31 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.22-icono-cobas (9-sep-2026) — el botón del laboratorio lleva la marca que el equipo reconoce
+
+Diego mandó la captura del ícono del escritorio: **el laboratorio es cobas**
+(Roche). El tubo de ensayo dibujado en la v6.21 era genérico; el logo verde es
+lo que el equipo ya identifica de un vistazo, así que el botón lo usa.
+
+- Dibujado a mano en SVG, como la «A» de Synapse — **no emoji** (el Chrome del
+  hospital no dibuja los posteriores a 2019) y **no imagen pegada** (engordaría
+  el index sin necesidad).
+- 🪤 **Costó dos pasadas de proporción**: a tamaño real la palabra se salía del
+  marco y el ® se montaba sobre la «s». Ampliado ×6 se vio al tiro. La regla que
+  queda: **un ícono con texto adentro se mira ampliado antes de darlo por
+  bueno** — a 17 px «se ve bien» cualquier cosa. El ® se eliminó: a ese tamaño
+  no aporta y era justo lo que chocaba.
+- Lo que identifica al botón a 17 px es **el marco verde redondeado**, no la
+  palabra. Si algún día hace falta más grande, se suben LOS DOS íconos a la vez
+  (este y el de Synapse), nunca uno solo.
+- Guardia: los dos botones tienen que ser SVG (si alguien los cambia por un
+  emoji «para simplificar», sale roja) y el del laboratorio tiene que decir
+  cobas.
+
+Batería: **123 verdes, 0 rojas**.
+
+---
+
 ## v6.21-atajo-laboratorio (9-sep-2026) — el botón del laboratorio, y dos guardias que se caían solas con el calendario
 
 ### 1. El hallazgo que originó el botón

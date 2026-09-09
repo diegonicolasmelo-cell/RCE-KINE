@@ -838,9 +838,12 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   Sin programar: esperando que Diego elija (botón aparte vs. lista de atajos en
   CONFIG, cada uno con nombre y URL; URL vacía = solo copia).
 
-- ✅ 🧪 **LIS del laboratorio: PROGRAMADO en la v6.21** (9-sep-2026). Botón `🧪`
-  en la tarjeta de la cama, al lado del de Synapse: copia el RUT y abre el
-  laboratorio. 🔴 **La dirección NO se escribe en este repo** (es una IP interna
+- ✅ 🧪 **LIS del laboratorio (cobas): PROGRAMADO en la v6.21, con su logo en la
+  v6.22** (9-sep-2026). Botón con la marca de **cobas** en la tarjeta de la
+  cama, al lado del de Synapse: copia el RUT y abre el laboratorio. El ícono va
+  dibujado a mano en SVG, como la «A» de Synapse. 🪤 **Un ícono con texto
+  adentro se mira AMPLIADO antes de darlo por bueno**: a 17 px «se ve bien»
+  cualquier cosa, y en la primera pasada la palabra se salía del marco. 🔴 **La dirección NO se escribe en este repo** (es una IP interna
   del hospital y el repo sigue siendo público): vive en **`CONFIG.LIS_URL`**, que
   nace vacía en `esquema.gs` — sin ella, no hay botón. La guardia lo verifica de
   forma estática, para que nadie la escriba «de paso».
