@@ -101,6 +101,14 @@ si('el dispatcher: GET_PLANTILLAS, PLANTILLA_GUARDAR y PLANTILLA_RETIRAR auditad
 
 /* ══ 3 · CLIENTE ════════════════════════════════════════════════════════ */
 const { chromium } = require('playwright-core');
+/* 🪤 9-sep-2026 — FECHAS RELATIVAS, NUNCA FIJAS. Esta guardia se puso roja sola
+   al cambiar el día: las dos PVE del banco estaban clavadas en septiembre y
+   `_weanClase` mide «días desde la 1ª PVE» contra HOY. Al pasar de 7 días el
+   weaning dejó de ser «difícil» y pasó a «prolongado», sin que nadie tocara una
+   línea. Se anclan con `hace(n)` para que el caso probado sea siempre el mismo. */
+const hace = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+const HACE3 = hace(3), HACE1 = hace(1);
+
 (async () => {
   console.log('\n3 · Pantalla: 📋 y ➕ en el cuadro, se aplica sola, des-rellenar, regla madre, editor');
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
@@ -118,10 +126,10 @@ const { chromium } = require('playwright-core');
   // aplicarFirmaTurno, que deja la firma en '' si el tablero no asignó la
   // cama. Por eso la firma se pone DESPUÉS de esperar esa respuesta.
   const abrir = async () => {
-    await p.evaluate(() => {
-      DB = [{ ID_CAMA: '1', OCUPADA: true, NOMBRE: 'PACIENTE PRUEBA', PATIENT_ID: 'p1', WEAN_PVE_JSON: JSON.stringify({ '2026-09-01-Dia': 'frustra', '2026-09-03-Dia': 'frustra' }) }];
+    await p.evaluate(([HACE3, HACE1]) => {
+      DB = [{ ID_CAMA: '1', OCUPADA: true, NOMBRE: 'PACIENTE PRUEBA', PATIENT_ID: 'p1', WEAN_PVE_JSON: JSON.stringify({ [HACE3 + '-Dia']: 'frustra', [HACE1 + '-Dia']: 'frustra' }) }];
       abrirPanel('1', false, false);
-    });
+    }, [HACE3, HACE1]);
     await p.waitForTimeout(200);
     await p.evaluate(() => {
       const va = document.getElementById('fVA'); va.value = 'TOT'; va.dispatchEvent(new Event('change'));

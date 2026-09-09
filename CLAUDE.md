@@ -259,6 +259,18 @@ build/checks/`.
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
 
+🪤 **FECHAS EN LOS BANCOS DE PRUEBA: SIEMPRE RELATIVAS, NUNCA FIJAS**
+(9-sep-2026). Dos guardias se pusieron rojas solas al cambiar el día:
+`pve_no_toca_los_dias` anclaba el tramo en un `'2026-08-25'` escrito a mano y
+esperaba «16/13» —dos días después la app decía «18/15», correctamente—, y
+`plantillas_evolucion` clavaba las PVE en septiembre, así que al pasar de 7 días
+el weaning dejó de ser *difícil* y pasó a *prolongado* sin que nadie tocara
+nada. Las dos se arreglaron con un `hace(n)` local. **Una guardia que se cae
+sola por el calendario es peor que no tenerla: enseña a ignorar el rojo.** Al
+escribir cualquier banco que toque días, fechas o relojes, anclar contra hoy.
+Y ante una roja inesperada: `git stash` y volver a correrla antes de «arreglar»
+código sano.
+
 ## Buscador del proyecto (skill `rce-kine-rag`)
 
 `v2/index.html` pasa de las 10.000 líneas y este archivo de las 1.500: abrir
@@ -826,26 +838,28 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   Sin programar: esperando que Diego elija (botón aparte vs. lista de atajos en
   CONFIG, cada uno con nombre y URL; URL vacía = solo copia).
 
-- 🧪 **LIS del laboratorio — atajo pendiente de una prueba (8-sep-2026).** Diego
-  pasó la dirección del LIS del hospital (CSP de InterSystems, misma familia que
-  TrakCare). 🔴 **La dirección NO se escribe en este repo** (es una IP interna del
-  hospital y el repo sigue siendo público): va en `CONFIG.LIS_URL`, como se hizo
-  con `SYNAPSE_URL`, que en `esquema.gs` nace vacía a propósito.
-  · 🪤 **Solo lo han usado en Firefox**, porque así quedó en los escritorios;
-  **nunca lo intentaron en Chrome**. Eso NO significa que no funcione: significa
-  que no se ha probado. Diego lo prueba mañana en el hospital.
-  · **Por qué importa**: una página web **no puede elegir en qué navegador se
-  abre un enlace**. Si la app corre en Chrome y el LIS solo anda en Firefox, el
-  botón puede copiar el RUT pero NO puede abrir la pestaña útil. `firefox://` no
-  es un esquema estándar y un manejador propio en cada PC es proyecto de
-  informática, no nuestro.
-  · **Lo que funciona igual, pase lo que pase**: el portapapeles de Windows es
-  uno solo, así que copiar en Chrome y pegar en Firefox funciona. Es el 90% del
-  ahorro — lo engorroso es teclear el RUT, no abrir la página.
-  · **Diseño propuesto (sin programar)**: el mismo botón con dos velocidades —
-  con `LIS_URL` vacía solo copia el RUT y avisa; con `LIS_URL` puesta además
-  abre la pestaña, como Synapse. Se enciende desde la planilla el día que se
-  confirme Chrome, sin pegar código.
+- ✅ 🧪 **LIS del laboratorio: PROGRAMADO en la v6.21** (9-sep-2026). Botón `🧪`
+  en la tarjeta de la cama, al lado del de Synapse: copia el RUT y abre el
+  laboratorio. 🔴 **La dirección NO se escribe en este repo** (es una IP interna
+  del hospital y el repo sigue siendo público): vive en **`CONFIG.LIS_URL`**, que
+  nace vacía en `esquema.gs` — sin ella, no hay botón. La guardia lo verifica de
+  forma estática, para que nadie la escriba «de paso».
+  · 🪤 **MEDIDO EN EL HOSPITAL (9-sep)**: solo lo usaban en Firefox porque así
+  quedó en los escritorios, y **nunca lo habían intentado en Chrome**. Diego lo
+  probó y **carga — pero tuvo que instalar una extensión**. O sea el botón
+  funciona en SU equipo; en un PC sin esa extensión la pestaña puede no servir.
+  **Falta preguntarle a informática si esa extensión se puede desplegar en los
+  PC de la unidad, y cuál es** (una extensión con permisos amplios también lee
+  las páginas que el colega abre, incluida esta app con datos de pacientes: es
+  decisión de ellos, no del proyecto).
+  · **Por eso el copiado va PRIMERO, siempre**: aunque la pestaña falle, el RUT
+  queda en el portapapeles y se pega en el Firefox de al lado. El portapapeles de
+  Windows es uno solo. Es la misma trampa del 4-sep con Synapse: `window.open`
+  consume la activación del clic y el copiado posterior falla en silencio.
+  · **Una página web no puede elegir en qué navegador se abre un enlace**:
+  `firefox://` no es estándar y un manejador propio en cada PC es proyecto de
+  informática. Si el LIS terminara siendo solo-Firefox, el botón igual sirve
+  para copiar.
   · 🔴 **Y un límite de arquitectura que conviene tener escrito**: el servidor
   **NUNCA va a poder leer del LIS**. Es una IP interna del hospital y nuestro
   servidor corre en los computadores de Google, fuera de esa red — solo el
