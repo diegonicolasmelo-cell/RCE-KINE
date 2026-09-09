@@ -223,7 +223,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**123 guardias** en `build/checks/*.js` (8-sep-2026); poco más de la mitad usan navegador
+**124 guardias** en `build/checks/*.js` (9-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -235,7 +235,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 8-sep-2026: 123 verdes, 0 rojas.** El corredor
+**Estado al 9-sep-2026: 124 verdes, 0 rojas.** El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -1011,6 +1011,22 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   pregunta para informática. **Mientras no se sepa, el diseño asume PDF.**
   · Falta todavía **un PDF de ejemplo real** (anonimizado o con paciente de
   prueba) para saber qué se puede sacar de él.
+- ✅ 🎊 **FIESTAS PATRIAS: PROGRAMADO en la v6.23** (9-sep-2026). Diego mandó dos
+  videos de Mauri de huaso; se convirtieron a **12 cuadros a 5/s** cada uno
+  (terremoto → pantalla de carga, emboque → mascota de la esquina). Ventana
+  **16-20 de septiembre**, movible desde `CONFIG.FIESTAS_PATRIAS`.
+  · 🪤 **Un video NO entra en el index**: 2,6 MB pasan a 6,4 MB en el archivo que
+  se pega. Cualquier animación futura va como CUADROS (~8 KB c/u), nunca como
+  video. El pipeline quedó descrito en BITACORA v6.23.
+  · 🪤 **«Fondo transparente» de un generador puede venir PINTADO** como
+  cuadriculado. Al recortarlo, distinguir los dos tonos alternados del blanco
+  liso de los ojos, o el personaje queda sin cara.
+  · 🪤 **Y la que casi se escapa: la mayoría del equipo tiene SERVI**, y el CSS
+  esconde `.masc-persona`. Cualquier cosa que se le haga a Mauri hay que
+  MIRARLA renderizada, o se publica algo que no ve nadie. Durante la ventana
+  `.f18` destapa a Mauri por encima de esa preferencia.
+  · La fecha se le pasa a `esFiestasPatrias(d)` para poder probarla sin esperar
+  a septiembre. Guardia `fiestas_patrias.js`.
 - 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
   existe: es **Servi**, seleccionable entre Servi y el kinesiólogo (`mascToggle`,
   index ~1681), y hoy solo hace el tutorial y los globos.

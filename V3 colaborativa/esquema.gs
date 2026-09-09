@@ -787,6 +787,9 @@ function _sembrar(ss) {
     // 🔴 La dirección NO se escribe aquí: es una IP interna del hospital y este
     // repo es público. La pega Diego en la hoja CONFIG, como la de Synapse.
     ['LIS_URL', ''],
+    // Fiestas Patrias: días de septiembre en que la mascota celebra («16-20»).
+    // Vacío o mal escrito = se usa el defecto que trae el index.
+    ['FIESTAS_PATRIAS', '16-20'],
     // Interpretación clínica (cortes ajustables por el equipo sin tocar código)
     ['CPAX_ACTIVO', 'TRUE'],        // FALSE oculta la sección CPAx del panel
     ['CORTE_MRC_DAUCI', '48'],      // MRC-SS < corte = DAUCI
