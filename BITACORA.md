@@ -19,6 +19,72 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.23-mauri-dieciochero (9-sep-2026) — los dos videos de Diego, convertidos a cuadros
+
+Diego mandó **dos videos** de don Mauri de huaso: uno jugando al emboque y otro
+con un terremoto en la mano. Su decisión: **12 cuadros a 5 por segundo**, el
+terremoto en la pantalla de carga y el emboque en la mascota de abajo a la
+derecha.
+
+### El video no entraba, y por cuánto
+
+| | |
+|---|---|
+| Cada video | **2,61 MB** · 8 s · 720×1280 · 24 fps · con audio |
+| Metido en el index | crece a texto (+33%) y el cohete lo vuelve a convertir (+33%) |
+| El archivo a pegar | pasaba de **1,78 MB a 6,4 MB** — 3,6 veces |
+
+Convertido a **12 cuadros** por video, recortado y a la altura en que de verdad
+se muestra: **177 KB los dos juntos** (104 KB la carga a 190 px, 73 KB la
+esquina a 150 px). Es la misma técnica de las nueve poses de `MAURI`.
+
+### 🪤 El «fondo transparente» venía PINTADO
+
+Diego le pidió al generador fondo transparente y el archivo llegó con el
+**cuadriculado dibujado dentro de la imagen**. Usado así, la pantalla de carga
+habría mostrado los cuadritos.
+
+Se recortó de verdad, y el detalle importa: **el cuadriculado son dos tonos
+alternados; el blanco de los ojos es un solo tono**. Borrar «todo lo claro y
+gris» dejaba a Mauri sin ojos. La regla que quedó: se borra la región solo si
+adentro conviven los dos tonos, más todo lo que toca el borde.
+
+### 🪤 La bandera 🇨🇱 no existe en Windows
+
+No es cosa de que el emoji sea nuevo: **Windows nunca incluyó las banderas de
+país** y Chrome dibuja las dos letras («CL»). Las banderitas que caen y la
+guirnalda van en **SVG dibujado a mano**, como el ícono de cobas.
+
+### 🪤 Y la que casi se escapa: MANDA SERVI
+
+Al mirar la primera captura salía **Servi**, no Mauri: la mayoría del equipo
+nunca cambió la mascota y `html[data-masc="servi"] .masc-persona{display:none}`
+escondía justo la imagen que se estaba animando. **La celebración no la habría
+visto casi nadie.** Ahora, durante la ventana, `.f18` destapa a Mauri por encima
+de esa preferencia — cinco días al año, y pasado el 20 vuelve solo la elección
+de cada uno. Sin esa captura esto se publica y no lo ve nadie.
+
+### Cómo decide
+
+- **`esFiestasPatrias(d)` recibe la fecha** para poder probarla: si dependiera
+  del calendario, la guardia se ejecutaría de verdad una vez al año. Es la
+  lección de esta misma mañana, aplicada de entrada.
+- Ventana por defecto **16 al 20 de septiembre**, movible desde
+  `CONFIG.FIESTAS_PATRIAS`. El defecto vive en el cliente porque **la pantalla
+  de carga se pinta antes de que llegue la configuración**; lo que diga CONFIG
+  queda anotado en el navegador y manda desde la carga siguiente (misma idea que
+  el cumpleaños). Un valor mal escrito cae al defecto, no apaga la fiesta.
+- **Gana el cumpleaños.** El 18 lo celebra todo el país y vuelve cada año; el
+  cumpleaños es de una persona. Se invierte cambiando una condición.
+- **A diferencia del cumpleaños, no hay que esperar al servidor**: el computador
+  ya sabe qué día es, así que la primera carga ya celebra.
+- Con «reducir movimiento» **no anima**: deja un cuadro quieto.
+
+Guardia nueva `fiestas_patrias.js` (7 bloques, con la fecha inventada).
+Batería: **124 verdes, 0 rojas**.
+
+---
+
 ## v6.22-icono-cobas (9-sep-2026) — el botón del laboratorio lleva la marca que el equipo reconoce
 
 Diego mandó la captura del ícono del escritorio: **el laboratorio es cobas**

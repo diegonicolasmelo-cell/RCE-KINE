@@ -6116,7 +6116,8 @@ function notifListar(datos) {
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
 const NOVEDADES = {
-  '6.22-icono-cobas': [
+  '6.23-mauri-dieciochero': [
+    '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',
     '🧪 En la tarjeta del paciente hay un botón nuevo con el logo de cobas: copia el RUT y abre el laboratorio, para no tener que teclearlo.',
     '🧪 Los gases de la mañana se copian solos desde los PDF del laboratorio y salen en la hoja del día, sin pasarlos a mano.',
     '📥 El que no se pudo emparejar queda en «Sin emparejar», al lado del botón de importar: se le elige la cama y listo.',
