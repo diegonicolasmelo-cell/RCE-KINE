@@ -613,6 +613,50 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   de ECF o de Barthel». 🪤 `#fPreUci` usa `display:contents`, así que **mover
   esos campos es cambio de presentación, no de datos**: siguen en el formulario
   y su valor viaja igual.
+  · 🗂️ **DIEGO LO AMPLIÓ EL 10-sep A LA SEPARACIÓN EPISODIO / TURNO (voz)**:
+  «hay datos que van al episodio y otros que son la evolución diaria… son dos
+  cosas completamente distintas». Barthel, ECF y Charlson se miden **una vez**
+  (pueden diferirse días). MRC, FSS-ICU, CPAx y Pimáx **se repiten** —«a los 7
+  días debería volver a medir MRC»— y propuso columnas «MRC 1, MRC 2, MRC 3»
+  ligadas al episodio, no al turno, **sin fecha fija** porque «hay veces que hay
+  cambio clínico y uno lo puede evaluar antes». La **AET** también «podría ir
+  al episodio, porque durante esa hospitalización se adecuó». Al turno le
+  quedan «conciencia, hemodinámica, parámetros ventilatorios». Su motivación,
+  textual: «se han perdido datos y eso me tiene bastante preocupado… ejemplo,
+  las PVE y las extubaciones… ojalá poder solucionarle el problema al usuario,
+  que sea mucho más intuitivo». Pidió **una tabla** de qué va a cada modal y
+  el feedback de ventajas. 🪤 Por voz: «cartel» = ECF, «Richardson» = Charlson,
+  «FC cinco / FS ESIQ» = FSS-ICU, «CPACS PIMP» = CPAx y PIM.
+  · 📄 **La tabla está publicada, familia por familia con las columnas reales**:
+  `https://claude.ai/code/artifact/271fd6dd-2be1-46fc-a6b8-5156ac997e00`.
+  Tesis: **no son dos casas sino cuatro** — episodio (una vez) · **serie
+  fechada** (N veces, cada una con fecha y firma) · **evento** (un hecho a una
+  hora) · turno (cómo está hoy). Cuenta gruesa: ~un tercio de las 396 columnas
+  no pertenece al turno; es justo lo que hoy se hereda en ámbar cada 12 h.
+  · 🔑 **La conexión con sus pérdidas**: PVE, extubación, TQT, prono y decanulación
+  son EVENTOS guardados como casillas de la fila del turno — por eso solo
+  existen si el turno los marca (la cama 13). Como evento del episodio (el
+  `TIMELINE` ya existe), la vía aérea solo cambia por evento y el REM y el reloj
+  leen de ahí. Y las escalas como serie fechada hacen que el dato que falta **se
+  vea faltando** (ícono pendiente), que es la única forma de que se mida.
+  · **Sobre «MRC 1/2/3»**: recomendado guardar la FECHA y derivar el ordinal
+  (1ª, 2ª, 3ª): sin tope, los 7 días son alerta y no candado
+  (`EVAL_DIAS_ALERTA` ya existe), y la hoja UCI, la tarjeta y el «de egreso»
+  del archivo salen de la misma lista. `ULT_MRC/ULT_MRC_FECHA/ULT_FSS/ULT_PIM`
+  ya son «la última de la serie»: la serie es la generalización, no un invento.
+  · 🔴 **ESTO ES LA RAMA `rediseno-formulario-bloques` v0.3** («ficha del
+  episodio separada» + «evaluaciones fechadas en vez de columnas del turno»),
+  pausada por Diego el 10-ago. La misma conclusión llegando por el terreno.
+  Camino recomendado: **no el big-bang de la rama, sino por tandas, una casa a
+  la vez**, cada una con su `crearORepararEstructura()` y su inventario de
+  consumidores — ① series + banner con íconos (cierra ECF/Barthel/MRC-7-días,
+  no toca ventilación) · ② eventos como fuente de verdad (cierra la cama 13; ES
+  la tanda D y necesita sus respuestas del 2-sep) · ③ estado del episodio
+  fuera del turno (cierra el ámbar) · ④ recién ahí reordenar el modal.
+  · ❓ **Tres preguntas abiertas para pasar de la tabla al PRD**: si la línea
+  fina de ventilación está bien (parámetros = turno; vía aérea y soporte =
+  episodio y solo los cambia un evento — es lo más invasivo); cultivos como
+  serie o como evento; y si se parte por la tanda ①.
   · ❓ **SU PROBLEMA 2, RESPONDIDO CON PRECISIÓN** («si uno quiere solo hacer ECF
   igual abre el modal completo y puede causar pérdida de información respecto a
   la evolución anterior»). Verificado: **la evolución anterior NO se puede
