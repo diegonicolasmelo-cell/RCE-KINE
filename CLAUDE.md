@@ -534,6 +534,53 @@ Está publicado y **es el mejor punto de entrada para retomar**:
 
 ### Esperando decisión de Diego
 
+- 🔴 ✂️ **EL PANEL DEBERÍA ANUNCIAR EL EVENTO PRIMERO — caso real de terreno
+  (Diego, 9-sep-2026).** «Un paciente que estaba para extubar se extubó, pero se
+  le cambió la vía aérea y no se le hizo PVE ni pasó por Extubación, lo que
+  ensuciaría mucho los resultados.» Pidió ideas; **no se programó nada**.
+  · 🪤 **LO QUE HAY QUE SABER ANTES DE DISEÑAR: la app YA DETECTA ese caso, y
+  lo deja pasar igual.** `_avisosTransicion()` (index ~6485) compara la vía
+  aérea de llegada con la de salida y levanta textual: «Venía con TOT y quedó
+  con —, pero no hay extubación registrada». El modal ⚠️ dice **«Nada se
+  bloquea: puedes guardar igual»** y trae el botón **«Guardar igual»**
+  (`transAvisoGuardar`, ~6511). O sea el problema **no es de detección: es que
+  la salida cuesta un clic y no pide ninguna razón.**
+  · 🔴 **Y el aviso vive SOLO en el cliente.** El servidor no revisa la
+  transición: `dominio_validacion.gs` valida la PVE y el tipo de extubación,
+  pero nadie compara la vía aérea de entrada con la de salida. Una fila así
+  entra a la base sin que el servidor se entere.
+  · **Por qué ensucia de verdad, medido en el código**: todos los consumidores
+  cuentan la extubación por **`EXT_OCURRIO`** (REM, estadística, entrega,
+  tiempo extubado) — con la casilla sin marcar, **para las cifras esa
+  extubación nunca ocurrió**. Y además **no se cierra el tramo de VM**:
+  `DIAS_VM_PREVIOS` solo se sella cuando `_extOcurrio()` es verdadero (index
+  ~6875), así que los relojes siguen corriendo sobre un paciente ya extubado.
+  Son dos contaminaciones distintas de un mismo olvido.
+  · 🔑 **CONEXIÓN QUE NO HAY QUE PERDER: esto ES la tanda D**, que quedó
+  detenida en el mockup (ver más abajo) porque **«la barra de plantillas absorbe
+  la fila de eventos»**. Pero las plantillas quedaron **APAGADAS para el equipo
+  en la v6.15** (`PLANTILLAS_ACTIVAS=FALSE`), o sea **lo que iba a tapar este
+  hueco está desactivado**: por eso el hueco sigue abierto. Su opción **D2
+  (tres celdas previo → evento → queda con)** es casi exactamente lo que Diego
+  está describiendo ahora, incluido el «queda con…» de su ejemplo.
+  · 📖 **Su ejemplo de texto, textual (9-sep)**: «paciente en proceso de
+  Weaning, cuadro agudo resuelto, sin sedación, GCS 11, HDN estable; hoy con
+  mínimo soporte ventilatorio y en condiciones de realizar PVE, por lo que se
+  realiza sin incidentes; posterior a eso se progresa a extubación programada
+  según protocolo; evoluciona favorablemente hasta el momento. Queda con… todo
+  deglución…».
+  · ❓ **Lo que hay que separar al diseñarlo, porque su mensaje mezcla las dos
+  cosas**: el **PANEL** anuncia el evento de entrada (primero «¿qué pasó con la
+  vía aérea?», después el detalle), pero el **TEXTO** de su ejemplo va en orden
+  CRONOLÓGICO y nombra la extubación al medio, no al principio. Confirmarle
+  cuál quiere en cada lado antes de programar: son dos cambios independientes y
+  el texto ya lo arma `genTexto` en ese orden.
+  · 🔜 **Pendiente de dato, no de diseño**: preguntarle **qué cama/paciente
+  fue**, porque esa evolución ya guardada sigue con `EXT_OCURRIO` en falso y
+  con el tramo de VM abierto. Hay que repararla **antes de la estadística de fin
+  de mes**, y de paso ver si hay más casos así (`auditoriaIntegridad()` no busca
+  esta huella hoy — sería huella nueva).
+
 - ✅ 🔔 **Buzón + campana: PROGRAMADOS en la v5.91** (4-sep; Diego aprobó el
   mockup y fijó el formato de alerta «HME vencido (fecha en que vence) ·
   cama 7 · rótulo 31-08» y la regla del registro: de SOLO AGREGAR, nada se
