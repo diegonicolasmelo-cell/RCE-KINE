@@ -581,6 +581,54 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   de mes**, y de paso ver si hay más casos así (`auditoriaIntegridad()` no busca
   esta huella hoy — sería huella nueva).
 
+- 🔴 📋 **LAS ESCALAS PRE-UCI NO SE APLICAN PORQUE NO SE VEN — PRD dictado por
+  Diego (10-sep-2026).** Su historia, textual: el kinesiólogo recibe un ingreso
+  y llena todo; **al día siguiente otro colega quiere aplicar una ECF «pero no
+  sabe dónde, por lo tanto no lo aplica y se pierde el dato»**, y así hasta que
+  el paciente egresa «y nunca se supo cuál era la escala clínica de fragilidad
+  que el paciente traía». Lo llamó **«requisito diferenciador respecto a la
+  planilla vieja»**. Pidió ideas; **no se programó nada**.
+  · **Las escalas son tres y ya existen**: **Barthel** (`fBarthel`), **ECF** =
+  escala clínica de fragilidad (`fEcf`) y **Charlson** (`fCharlson`), las tres
+  con su calculadora 🧮 (`abrirEscala`). 🪤 Al dictar por voz «ECF» sale
+  transcrito como **«cartel»** y «FCIQ»; es la misma escala.
+  · 🔴 **EL PLIEGUE LO PIDIÓ ÉL, y ahora cobra.** El bloque `#fPreUci` está
+  plegado desde ago-2026 por pedido suyo — el comentario del código lo dice:
+  «se llenan UNA vez al ingreso y después solo estorban arriba del formulario».
+  Se resume en `#fichaChip` («✏️ Editar ficha»). O sea **no es un olvido de
+  diseño: es un intercambio que se dio vuelta** — plegado dejó de estorbar y
+  pasó a costar el dato. Decirlo así cuando se retome, sin buscar culpable.
+  · 🔑 **EL HALLAZGO QUE DESTRABA TODO: las tres escalas YA SON DEL EPISODIO,
+  no del turno.** `BARTHEL`, `ECF` y `CHARLSON` son columnas de **CAMAS_ESTADO**
+  (esquema ~315 y ~323, con el comentario «persisten con el episodio, se cargan
+  al abrir»); en la evolución viajan como `PAC_BARTHEL`/`PAC_ECF`/`PAC_CHARLSON`.
+  **Consecuencia**: medir una ECF **no necesita el modal de evolución** — el dato
+  ya tiene su casa fuera del turno. Un botón en la tarjeta de la cama (donde ya
+  viven Synapse y cobas) puede escribirla directo al episodio. Eso responde solo
+  su problema 2.
+  · **Lo que pidió en pantalla**: al ingresar, un módulo individual (nombre, RUT)
+  y después el modal; arriba **una franja/banner a lo ancho** con los datos
+  personales (y quizá los días de VM); y las escalas pre-UCI **detrás de un
+  botón con ícono propio** que despliega al hacer clic — «un ícono diferenciador
+  de ECF o de Barthel». 🪤 `#fPreUci` usa `display:contents`, así que **mover
+  esos campos es cambio de presentación, no de datos**: siguen en el formulario
+  y su valor viaja igual.
+  · ❓ **SU PROBLEMA 2, RESPONDIDO CON PRECISIÓN** («si uno quiere solo hacer ECF
+  igual abre el modal completo y puede causar pérdida de información respecto a
+  la evolución anterior»). Verificado: **la evolución anterior NO se puede
+  pisar** — `fillFormReplica` solo PRE-LLENA el turno de hoy desde la previa, y
+  el guardado escribe en la fila del turno actual. Pero hay **dos riesgos reales
+  y son otros**:
+    ① **Turno nuevo**: abrir y guardar solo para anotar una escala **fabrica una
+    evolución completa que nadie evaluó** — todo lo heredado (sedación,
+    hemodinamia, ventilación) se guarda como si fuera de hoy. No se pierde el
+    ayer: se inventa el hoy, que para la estadística es peor.
+    ② **Reabrir una evolución YA GUARDADA**: los botones no heredables se
+    desmarcan y hay que re-marcarlos a mano. 🔴 **Eso choca con el punto 9, que
+    él mismo cerró el 5-sep con «déjalo como Manuel»** — y una escala es
+    justamente el motivo por el que alguien reabriría una evolución guardada.
+    **Al retomar esto hay que reabrir el punto 9 con él.**
+
 - ✅ 🔔 **Buzón + campana: PROGRAMADOS en la v5.91** (4-sep; Diego aprobó el
   mockup y fijó el formato de alerta «HME vencido (fecha en que vence) ·
   cama 7 · rótulo 31-08» y la regla del registro: de SOLO AGREGAR, nada se
