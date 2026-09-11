@@ -501,9 +501,19 @@ Lo que hay que tener presente:
 
 ### 🗺️ El plan de todo lo pendiente, en una página
 
-Al cerrar el 2-sep-2026 Diego pidió «un resumen con las cosas que hay que
-implementar y qué falta por cerrar, para posteriormente hacer la programación».
-Está publicado y **es el mejor punto de entrada para retomar**:
+🔌 **VIGENTE — «Cables sueltos» (11-sep-2026), el mejor punto de entrada para
+retomar**: `https://claude.ai/code/artifact/b9defc45-a2cd-42da-93cf-81730e977056`
+Diego lo pidió «para ir atando cables». **29 pendientes ordenados por quién los
+destraba**: 7 solo él · 4 para informática · 11 decisiones suyas · 3 acordados y
+listos para programar · 4 en el banco. Arriba, las tres de la semana: verificar
+el respaldo, publicar la v6.24 y mirar la cama 13.
+· 🪤 **Cable rescatado del plan viejo que NO estaba en esta memoria**: el 2-sep
+quedó anotado que **la planilla estaba compartida como «cualquiera con el
+enlace»** —y ahí viven los RUT—. No se sabe si Diego ya lo cambió; quedó en la
+página como «confirmar». No dejar que se pierda otra vez.
+
+⬛ **SUPERADO — el plan del 2-sep** queda como foto histórica de ese día (su
+tanda 1, 2 y 3 ya están hechas):
 `https://claude.ai/code/artifact/f12ae3e1-ea58-4e88-af4e-954d51017aa6`
 
 - ✅ **Tanda 1**: Synapse (v5.89) + cumpleaños (v5.86/v5.90/v5.98) hechos; los
