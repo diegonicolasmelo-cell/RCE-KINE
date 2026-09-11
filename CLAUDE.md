@@ -544,6 +544,58 @@ tanda 1, 2 y 3 ya están hechas):
 
 ### Esperando decisión de Diego
 
+- 🔴 ⏱️ **FECHA DE INGRESO MANUAL (fecha + hora) Y DÍAS DE VM POR HORAS — pedido
+  de Diego (11-sep-2026), MEDIDO y ESPERANDO 3 RESPUESTAS antes de programar.**
+  Textual: «la fecha de ingreso y días de VM últimamente no están coincidiendo
+  con el otro programa, y como algunos contadores se han reiniciado saca mal
+  los cálculos… los días de la hoja se contabilicen con la fecha de ingreso
+  registrada de forma manual, fecha y hora, y no que tome automático; la
+  sugerencia es la fecha ACTUAL, no la del turno… los días de VM se cuentan
+  respecto a las horas de VM: hora de ingreso si vienen ventilados, o fecha y
+  hora de intubación».
+  · **Lo que hace hoy, medido en el código**: el ingreso se hace desde la
+  evolución (`ES_INGRESO`) y **NO existe campo de fecha de ingreso: solo la hora**
+  (`fHoraIng` → `PAC_HORA_INGRESO`). `FECHA_INGRESO` = la fecha DEL TURNO
+  (`gDate`), corregida por `_tsEventoTurno` (turno Noche con hora <12 → día
+  siguiente; `svc_evoluciones.gs` ~262). Eso es exactamente el «toma automático»
+  que él describe. La hora real ya se guarda en `TS_INGRESO` y
+  `TS_INICIO_SOPORTE` (la de intubación/reintubación/TQT si la hay, si no la
+  del registro, ~674): **el dato para contar por horas YA EXISTE**, solo que no
+  decide el número.
+  · 🔴 **CHOCA CON SU PROPIA DECISIÓN DEL 4-ago (v5.35, BITACORA)**: los días se
+  cuentan por CALENDARIO como la lista oficial BUDA (`diasEntre`, ingreso = Día
+  0), y esa versión REVIRTIÓ los bloques de 24 h de la v5.19. La regla vive en
+  `diasEntre` (servidor), `diasCal` (index ~4861), `svc_camas.gs:20-21`, la
+  tarjeta (~5076) y `revisarRelojesCama`. Antes de tocarla hay que saber si
+  «el otro programa» (¿BUDA?) cuenta la VM por horas y la estadía por
+  calendario, o las dos por horas. Si se vuelve a horas SIN preguntar, se
+  repite el error de la v5.19 al revés.
+  · ✅ **Lo que NO necesitaba respuesta ya está hecho (v6.25, rama
+  `hoja-fecha-ingreso-y-carilla2` salida de develop, SIN fusionar)**: la hoja
+  impresa trae **INGRESO dd/mm/aa hh:mm** en el encabezado, al lado de DÍAS
+  (contrarreferencia: se recalcula a mano si el contador está mal), y la tabla
+  de la carilla 2 con **VISAGE y los scores de vía aérea ya no sale apilada**
+  (tenía un colgroup de 10 columnas con filas de 5 celdas ⇒ media página). Es
+  el pendiente «carilla 2 apilada» que dejó anotado el 9-sep. Guardia en
+  `hoja_registro_dia.js`.
+  · ❓ **Las tres preguntas**: ① ¿la ESTADÍA sigue por calendario (BUDA) y solo
+  la VM pasa a horas ÷ 24? ② ¿el número de VM que muestra «el otro programa» es
+  horas/24 redondeado hacia abajo, o días de calendario desde la intubación?
+  (un ejemplo real: intubado el 2 a las 14:30, ¿cuánto marca el 11?) ③ ¿qué
+  camas tuvieron «contadores reiniciados»? — `revisarRelojesCama(n)` dice qué
+  turno movió el reloj; la causa conocida (v6.14, el heredado destubaba) ya
+  está arreglada, y `FECHA_INICIO_SOPORTE` se reinicia a propósito cuando
+  cambia el TIPO de soporte (VM→VNI→VM).
+  · **Diseño propuesto para cuando responda**: campo «Fecha y hora de ingreso»
+  en el bloque de ingreso, **sugerido con AHORA** (no con la fecha del turno),
+  editable; `FECHA_INGRESO`/`TS_INGRESO` salen de ahí y no del turno; y el
+  reloj de VM = `TS_INICIO_SOPORTE` (hora de ingreso si llega ventilado, hora
+  de intubación si se intuba aquí) con `_horasEntreTS` ÷ 24. Consumidores a
+  alinear (inventario): `svc_camas.gs` (DIAS_VM en el censo), tarjeta
+  (`diasCal`), hoja impresa (`{{DIASVM}}`), entrega, REM/`DIAS_VM_TOTAL` del
+  archivo, `revisarRelojesCama`, guardias `dias_estadia`, `ingreso_noche`,
+  `pve_no_toca_los_dias`.
+
 - 🔴 ✂️ **EL PANEL DEBERÍA ANUNCIAR EL EVENTO PRIMERO — caso real de terreno
   (Diego, 9-sep-2026).** «Un paciente que estaba para extubar se extubó, pero se
   le cambió la vía aérea y no se le hizo PVE ni pasó por Extubación, lo que

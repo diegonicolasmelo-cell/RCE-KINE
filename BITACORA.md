@@ -19,6 +19,35 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.25-hoja-ingreso-carilla2 (11-sep-2026) — la hoja trae con qué recalcular a mano
+
+Diego, 11-sep: «la fecha de ingreso y los días de VM últimamente no coinciden
+con el otro programa… a la hoja debemos agregar al encabezado la fecha de
+ingreso, así si está erróneo podemos hacer un cálculo manual, como
+contrarreferencia. Otro cambio: la sección posterior, donde escalas como
+VISAGE aparecen apiladas fuera de formato». Rama
+`hoja-fecha-ingreso-y-carilla2` salida de `develop`, solo index. **Sin fusionar
+hasta que él vea las capturas.**
+
+- **Encabezado**: celda nueva **INGRESO** con `dd/mm/aa hh:mm` (de
+  `FECHA_INGRESO` + la hora de `TS_INGRESO`), entre RUT y DÍAS. Si el contador
+  de días saliera mal, el papel trae la fecha para recalcular.
+- **Carilla 2, última tabla** (evaluaciones adicionales de fuerza muscular ·
+  evaluaciones neurológicos/neuroquirúrgicos: VISAGE, scores de vía aérea):
+  tenía un `colgroup` de **10 columnas** y filas de **5 celdas**, así que
+  ocupaba media página con las celdas apiladas. Ahora son 5 columnas
+  (32/16/4/32/16 %), dos bloques a lo ancho, separador sin borde (`.rk-nb`).
+  Es el pendiente «carilla 2 apilada» que dejó anotado el 9-sep.
+- Guardia `hoja_registro_dia.js`: INGRESO en el encabezado; la tabla tiene 5
+  columnas, cada fila cubre las 5 (sumando colspan) y ocupa ≥ 90 % del ancho.
+  🪤 Dentro de `#rkPrint` oculto, `getBoundingClientRect` da 0: medir con
+  `offsetWidth` contra el padre, o leer el estilo.
+- **Lo de los relojes NO se programó**: quedó medido en CLAUDE.md («Esperando
+  decisión») con las tres preguntas — el pedido de contar la VM por horas
+  choca con su decisión del 4-ago de contar por calendario como BUDA (v5.35).
+
+---
+
 ## v6.24-mauri-sin-suelo (9-sep-2026) — el huaso estaba parado sobre un ladrillo beige
 
 Diego pidió **el mockup de la mascota de abajo**. Al capturar el botón real de

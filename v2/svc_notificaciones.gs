@@ -77,6 +77,12 @@ function notifListar(datos) {
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
 const NOVEDADES = {
+  '6.25-hoja-ingreso-carilla2': [
+    '🖨️ La hoja del día trae la fecha y la hora de ingreso en el encabezado, al lado de los días: si el contador saliera mal, se recalcula a mano.',
+    '🖨️ En la carilla neuromuscular, VISAGE y los scores de vía aérea ya no salen apilados: van a lo ancho, en dos bloques.',
+    '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',
+    '🧪 En la tarjeta del paciente hay un botón nuevo con el logo de cobas: copia el RUT y abre el laboratorio, para no tener que teclearlo.',
+  ],
   '6.24-mauri-sin-suelo': [
     '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',
     '🧪 En la tarjeta del paciente hay un botón nuevo con el logo de cobas: copia el RUT y abre el laboratorio, para no tener que teclearlo.',
