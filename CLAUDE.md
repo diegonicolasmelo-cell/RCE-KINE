@@ -542,6 +542,48 @@ tanda 1, 2 y 3 ya están hechas):
   depende de nosotros); **pendiente poner el repo en privado** (lo hace Diego
   en GitHub: Settings → General → Danger zone → Change visibility).
 
+### 🚧 RAMA PARALELA `separacion-episodio-turno` — decisiones de Diego del 11-sep-2026 (voz)
+
+Diego respondió los cables en bloque y dio la orden: **«PROGRAMA todo lo demás,
+ya que esto irá por rama paralela; lo que haré es iniciar otro Sheet con otro
+nombre… es importante que esté en paralelo la rama, para no afectar el trabajo
+de nadie más; luego los archivos los pego en Script. Al final dame el paquete
+de documentos para subir e implementar en el nuevo archivo.»** Y: «actúa en
+loop hasta terminar; si se acaba Fable sigue con el modelo siguiente».
+· 🔴 **Esto NO toca producción**: rama nueva salida de `develop`, y Diego crea
+UNA PLANILLA NUEVA con su propio proyecto de Apps Script donde pega los 9
+archivos completos. Sus mitigaciones responden a las contras del 11-sep
+(sin riesgo a la marcha blanca, sin «dos verdades» en producción, el equipo
+no reaprende hasta que él decida). **No se fusiona a develop/main sin su OK.**
+· **Decisiones cerradas por él (textual)**:
+  - 2.1 extensión de Chrome del LIS: «se puede instalar en cualquiera» → cerrado.
+  - 2.2 laboratorio CSV/TXT: «omite el laboratorio por ahora y déjalo pendiente».
+  - 2.3 enlace directo Synapse: «ok» → cerrado como está.
+  - 2.4 PWA + login real: «hay que hacerlo pero de forma que no afecte al uso
+    diario, quizás una rama paralela y progresar con el login y PWA». ⚠️ Sigue
+    bloqueado por informática (correo institucional) y decisiones suyas; NO
+    entra en esta tanda — ver la nota al final.
+  - 3 «arranca las escalas» → T1 en marcha.
+  - **SBC exige FSS-ICU**: «del episodio, al menos 1; eso quiere decir: lo
+    evalué, después lo traté» → basta UN FSS en el episodio (no por turno).
+    Bloqueo suave: cliente y servidor rechazan SBC sin FSS, y el mensaje
+    manda a medirlo ahí mismo (el FSS está en el mismo formulario).
+  - **Panel de extubación**: «mejor que anuncie a la entrada para evitar
+    problemas» → fila «¿Qué pasó hoy con la vía aérea?» arriba; el TEXTO
+    sigue cronológico como su ejemplo (no lo cambió).
+  - **Línea fina de ventilación y cultivos: «ambas»** → parámetros = turno;
+    vía aérea y soporte = episodio y solo los cambia un evento. Cultivos =
+    serie fechada (como se propuso) y además hito en la línea de tiempo.
+· 🔑 **ESTRATEGIA TÉCNICA: migración ADITIVA, no destructiva.** Las 396
+columnas de EVOLUCIONES no se tocan (testEsquema las asserta). Se agregan
+fuentes nuevas —hoja `EVALUACIONES` (serie fechada con firma), `DATOS_JSON`
+en `TIMELINE`, `ULT_*_FIRMA` en CAMAS_ESTADO— y el turno SIGUE escribiendo
+sus columnas cuando el dato se mide EN ese turno (eso es verdad). Lo que se
+corta es la HERENCIA de evaluaciones al turno siguiente (la foto retocada).
+Los 27 archivos que leen EXT_OCURRIO no se reescriben: la fila de eventos
+del panel ESCRIBE esas mismas casillas, y además el hito estructurado. Así
+la batería sigue verde y cada consumidor migra cuando toque.
+
 ### Esperando decisión de Diego
 
 - 🔴 ✂️ **EL PANEL DEBERÍA ANUNCIAR EL EVENTO PRIMERO — caso real de terreno
