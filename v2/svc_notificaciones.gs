@@ -81,6 +81,7 @@ const NOVEDADES = {
     '📅 Al ingresar un paciente ahora se escriben la FECHA y la HORA de ingreso (vienen sugeridas con el momento actual): de ahí salen los días.',
     '⏱️ Los días de VM se cuentan por bloques de 24 horas desde la hora de ingreso (si llegó ventilado) o desde la hora de intubación.',
     '🖨️ La hoja del día trae la fecha y la hora de ingreso en el encabezado: si un contador saliera mal, se recalcula a mano.',
+    '🖨️ En la carilla neuromuscular, VISAGE y los scores de vía aérea ya no salen apilados: van a lo ancho, en dos bloques.',
     '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',
   ],
   '6.24-mauri-sin-suelo': [
