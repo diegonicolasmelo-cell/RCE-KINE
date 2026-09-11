@@ -19,6 +19,87 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v7.00-episodio-y-turno (11-sep-2026) — la rama paralela: cuatro casas para el dato
+
+Diego respondió los «cables sueltos» en bloque y dio la orden: «PROGRAMA todo
+lo demás, ya que esto irá por rama paralela; lo que haré es iniciar otro Sheet
+con otro nombre… al final dame el paquete de documentos para subir e
+implementar en el nuevo archivo». Rama **`separacion-episodio-turno`**, salida
+de `develop`. **No se fusiona ni se pega en producción sin su OK.** El paquete
+completo (12 archivos para un proyecto de Apps Script nuevo) y el paso a paso
+están en `INSTALAR_PLANILLA_NUEVA.md`; el plan, en `PRD_EPISODIO_Y_TURNO.md`.
+
+### Qué trae
+
+- **Esquema, aditivo**: hoja nueva **EVALUACIONES** (ID_EVAL · PATIENT_ID ·
+  ID_CAMA · FECHA · TURNO · ESCALA · TOTAL · ITEMS_JSON · FIRMA · ORIGEN ·
+  ID_EVOLUCION · ANULADA · TIMESTAMP); `DATOS_JSON` al final de TIMELINE;
+  `ULT_MRC_FIRMA / ULT_FSS_FIRMA / ULT_PIM_FIRMA`, `AET_ACTIVA/NIVEL/FECHA` y
+  `UPOT_ACTIVO/MEDIDAS/FECHA` al final de CAMAS_ESTADO. **EVOLUCIONES sigue en
+  396 columnas** y `testEsquema` lo sigue asegurando: los 27 archivos que leen
+  `EXT_OCURRIO` no se tocaron.
+- **`svc_evaluaciones.gs`** (nuevo): `EPISODIO_ESCALA` (ECF, Barthel, Charlson
+  → CAMAS_ESTADO, se corrige encima, hito «📐 ECF 4 (corrige 5) (MCC)»),
+  `EVAL_REGISTRAR` (serie con firma desde la tarjeta), `GET_EVALUACIONES`
+  (ordinal DERIVADO: 1ª, 2ª…), y `_evalDesdeEvolucion`: lo que un turno mide
+  (MRC, FSS, CPAx, PIM, PEM, FEM, dinamo, eco, deglución) entra a la serie con
+  la firma DEL TURNO, sin duplicar al re-guardar.
+- **Cultivos «ambas»** (`_cultivoALaSerie`): la toma abre la entrada
+  («pendiente», hora, tipos, ATB, firma de quien tomó); el resultado que llega
+  en OTRO turno se escribe sobre esa entrada con `resultadoFecha/Firma`; el
+  hito «Cultivo de secreciones» lleva el detalle.
+- **SBC exige FSS** (`validarSBC`, cliente + servidor): KTM nivel 3 sin ningún
+  FSS-ICU del episodio no guarda; el mensaje manda a medirlo ahí mismo.
+- **Vía aérea solo por evento** (`validarTransicionVA` + fila «¿Qué pasó hoy
+  con la vía aérea?» sobre el bloque, línea fina que bloquea el select, y el
+  modal ⚠️ que ya no tiene «Guardar igual»: pide **motivo escrito**,
+  `TRANS_MOTIVO`, que viaja al hito `via_aerea` y NO a EVOLUCIONES).
+- **Hitos con detalle**: extubación, intubación, reintubación, TQT,
+  decanulación y cultivo escriben `DATOS_JSON` (hora, tipo, «queda con»…).
+- **Auditoría, huella F**: `auditoriaIntegridad()` recorre EVOLUCIONES +
+  EVOLUCIONES_ARCHIVO y lista cada turno cuya vía aérea cambió sin casilla de
+  evento — el caso de la cama 13.
+- **Cliente**: chips de escalas en la tarjeta (📋 pendiente / valor), medir
+  ECF/MRC/FSS/CPAx desde la tarjeta sin abrir la evolución («💾 Guardar en el
+  episodio»), badge `MRC 36 · 02-09 · MCC`, banner del episodio arriba del
+  formulario (nombre, día, VA, escalas, AET/UPOT), y AET/UPOT leídos de la
+  cama en vez de heredados. La entrega imprime `MRC-SS 36 (02-09, MCC)`.
+- Sello `7.00-episodio-y-turno`; `NOVEDADES` con el resumen para el equipo.
+
+### Lo que se midió y se corrigió por el camino
+
+- 🔴 **Corrección a lo que le dije a Diego el 11-sep**: afirmé que la fila
+  heredada «ya afirma MRC 33, evaluado hoy, firmado por mí». Al programar se
+  midió que `fillFormReplica` **no hereda las evaluaciones** (solo las recarga
+  si `EVAL_FECHA` es hoy). El hueco real era la FIRMA y la SERIE, no una foto
+  retocada. Va dicho en la entrega.
+- 🪤 **`function guardar()` es propiedad no configurable de `window`**: en una
+  guardia se puede pisar por asignación, pero `delete` no la devuelve. Guardar
+  la real aparte y restaurarla.
+- 🪤 **El simulador tiene el reloj fijo en julio** (`hoyISO()`); una guardia
+  con navegador arma sus fechas con el `hoy()` del navegador, o «hace 1 día»
+  son meses y el badge cambia de rama («hace 73d» en vez de la fecha).
+- 🪤 **`auditoriaIntegridad` evaluada fuera del simulador necesita `Logger` y
+  `ERR`** definidos antes, o el catch del final es el que revienta.
+- 🪤 El anuncio de la extubación vive en la fila pero su casilla en el bloque
+  PVE: `_evVAAnunciado` recuerda lo anunciado mientras se completa; se
+  reinicia al abrir el panel.
+- 🪤 La guardia del buzón lee **la primera clave de `NOVEDADES`** con una
+  regex: un comentario entre la llave y la clave la deja ciega.
+- Guardia nueva **`episodio_turno.js`** (esquema · servidor con simulador ·
+  navegador; fechas relativas). Batería: **125 verdes, 0 rojas**.
+- Ajustes de bancos: `ktm_no_se_pierde`, `guardado_viajes` (KTM 3 con FSS;
+  TIMELINE comparada al ancho base y sin hitos `evaluacion`), `coordinacion`
+  (tramo VNI con `TRANS_MOTIVO`), `reset` (EVALUACIONES se vacía).
+
+### Fuera de esta tanda, a propósito
+
+PWA + login real (espera a informática y cuatro decisiones de Diego),
+laboratorio en CSV/TXT («omite por ahora»), y el reordenamiento completo del
+modal (tanda ④ del camino por casas).
+
+---
+
 ## v6.24-mauri-sin-suelo (9-sep-2026) — el huaso estaba parado sobre un ladrillo beige
 
 Diego pidió **el mockup de la mascota de abajo**. Al capturar el botón real de

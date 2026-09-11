@@ -554,6 +554,11 @@ function guardarEvolucion(datos, ctx) {
         datosPorProc['TQT'] = { evento: 'tqt', hora: _vv('TQT_HORA'), tecnica: _vv('TQT_TECNICA'), tipo: _vv('VENT_TQT_TIPO'),
           calibre: _vv('VENT_TQT_CALIBRE'), detalle: _vv('TQT_DET'), firma: _vv('PLAN_FIRMA_KINE') };
       }
+      if (esVerdadero(evo.MUE_REALIZADAS)) {
+        let _tipos = []; try { _tipos = JSON.parse(String(evo.MUE_TIPOS_JSON || '[]')) || []; } catch (e) { _tipos = []; }
+        datosPorProc['CULTIVO DE SECRECIONES'] = { evento: 'cultivo', hora: _vv('MUE_HORA_TOMA'), tipos: _tipos,
+          conATB: esVerdadero(evo.MUE_CON_ATB), objetivo: _vv('RESP_CULT_OBJ'), resultado: _vv('EX_CULT_RESULTADO'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
       if (esVerdadero(evo.DECAN_OCURRIO)) {
         datosPorProc['DECANULACIÓN'] = { evento: 'decanulacion', hora: _vv('DECAN_HORA'), tipo: _vv('DECAN_TIPO'),
           quedaDisp: _vv('DECAN_QUEDA_DISP'), quedaFlujo: _vv('DECAN_QUEDA_FLUJO'), quedaSpo2: _vv('DECAN_QUEDA_SPO2'),

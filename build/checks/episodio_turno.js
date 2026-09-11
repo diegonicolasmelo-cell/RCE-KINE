@@ -131,6 +131,31 @@ const si = (l, g) => eq(l, !!g, 'true');
   r = api('GUARDAR_EVOLUCION', base(9, tk1, { VENT_VIA_AEREA: 'TOT', VENT_VIA_AEREA_FINAL: 'Natural', VENT_SOPORTE_FINAL: 'Oxigenoterapia', PVE_VAL: 'si', PVE_RESULTADO: 'superada', EXT_OCURRIO: true, EXT_HORA: '10:00', EXT_TIPO: 'programada', EXT_PE_VA: 'Natural', EXT_PE_SOP: 'Oxigenoterapia', PROC_JSON: JSON.stringify(['PVE', 'EXTUBACIÓN C/PROTOCOLO']), PROC_RESUMEN: 'PVE, EXTUBACIÓN C/PROTOCOLO', PROC_CANTIDAD: 2 }), null);
   eq('re-guardar no duplica el hito de la extubación', (DB.TIMELINE || []).filter(h => String(h.ID_CAMA) === '9' && /Extubaci/.test(String(h.TEXTO))).length, 1);
 
+  console.log('\n2g · Cultivos «ambas»: la toma abre la serie, el resultado se escribe encima, el hito lleva detalle');
+  ingresar(10);
+  r = api('GUARDAR_EVOLUCION', base(10, tk1, { MUE_REALIZADAS: true, MUE_TIPOS_JSON: JSON.stringify(['CCAET']), MUE_HORA_TOMA: '04:30', MUE_CON_ATB: true,
+    RESP_CULT_OBJ: 'PCR jirovecii', PROC_JSON: JSON.stringify(['CULTIVO DE SECRECIONES']), PROC_RESUMEN: 'CULTIVO DE SECRECIONES', PROC_CANTIDAD: 1 }), null);
+  si('el turno con la toma guarda', r.ok);
+  let cul = (DB.EVALUACIONES || []).filter(e => e.ESCALA === 'CULTIVO' && !e.ANULADA);
+  eq('★ la toma abre UNA entrada de la serie', cul.length, 1);
+  eq('…pendiente de resultado', String((cul[0] || {}).TOTAL), 'pendiente');
+  si('…con hora, tipo, ATB y la firma de quien la tomó', /"hora":"04:30"/.test(String((cul[0] || {}).ITEMS_JSON)) && /CCAET/.test(String((cul[0] || {}).ITEMS_JSON)) && /"conATB":true/.test(String((cul[0] || {}).ITEMS_JSON)) && String((cul[0] || {}).FIRMA) === 'ARM');
+  const hCu = (DB.TIMELINE || []).find(h => String(h.ID_CAMA) === '10' && /Cultivo/.test(String(h.TEXTO)));
+  si('★ el hito del cultivo lleva su detalle', !!hCu && /"evento":"cultivo"/.test(String(hCu.DATOS_JSON || '')) && /"hora":"04:30"/.test(String(hCu.DATOS_JSON || '')));
+  r = api('GUARDAR_EVOLUCION', base(10, tk1, { MUE_REALIZADAS: true, MUE_TIPOS_JSON: JSON.stringify(['CCAET']), MUE_HORA_TOMA: '04:30', MUE_CON_ATB: true,
+    RESP_CULT_OBJ: 'PCR jirovecii', PROC_JSON: JSON.stringify(['CULTIVO DE SECRECIONES']), PROC_RESUMEN: 'CULTIVO DE SECRECIONES', PROC_CANTIDAD: 1 }), null);
+  eq('re-guardar el mismo turno no duplica la toma', (DB.EVALUACIONES || []).filter(e => e.ESCALA === 'CULTIVO' && !e.ANULADA).length, 1);
+  r = api('GUARDAR_EVOLUCION', base(10, tk2, { EX_CULT_RESULTADO: 'Klebsiella pneumoniae', PLAN_FIRMA_KINE: 'MCC' }), null);
+  si('el turno siguiente trae el resultado', r.ok);
+  cul = (DB.EVALUACIONES || []).filter(e => e.ESCALA === 'CULTIVO' && !e.ANULADA);
+  eq('★ el resultado se escribe SOBRE la toma (mismo cultivo, no otro)', cul.length, 1);
+  eq('…y la entrada ahora dice el resultado', String((cul[0] || {}).TOTAL), 'Klebsiella pneumoniae');
+  si('…con la firma de quien lo anotó, aparte de quien lo tomó', /"resultadoFirma":"MCC"/.test(String((cul[0] || {}).ITEMS_JSON)) && String((cul[0] || {}).FIRMA) === 'ARM');
+  r = api('GUARDAR_EVOLUCION', base(10, hoy() + '-Noche', { EX_CULT_RESULTADO: 'Klebsiella pneumoniae', PLAN_FIRMA_KINE: 'DMV' }), null);
+  eq('el resultado heredado turno tras turno no abre entradas nuevas', (DB.EVALUACIONES || []).filter(e => e.ESCALA === 'CULTIVO' && !e.ANULADA).length, 1);
+  r = api('GET_EVALUACIONES', { idCama: '10' }, null);
+  eq('GET_EVALUACIONES la trae como 1ª de su serie', (r.data.serie || []).filter(e => e.escala === 'CULTIVO').map(e => e.n + ':' + e.total).join(','), '1:Klebsiella pneumoniae');
+
   console.log('\n2f · La auditoría encuentra la huella F (vía aérea cambiada sin evento)');
   try {
     global.ERR = global.ERR || { VALIDACION: 'V', INTERNO: 'I', NO_ENCONTRADO: 'NE' };

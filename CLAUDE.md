@@ -223,7 +223,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**124 guardias** en `build/checks/*.js` (9-sep-2026); poco más de la mitad usan navegador
+**125 guardias** en `build/checks/*.js` (11-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -235,7 +235,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 9-sep-2026: 124 verdes, 0 rojas.** El corredor
+**Estado al 11-sep-2026: 125 verdes, 0 rojas** (en la rama `separacion-episodio-turno`; `develop` sigue en 124). El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -322,6 +322,13 @@ falta el detalle. Este índice existe para saber QUÉ está abierto; el porqué
 está allá.
 
 ### Dónde está el código
+
+- 🚧 **Rama paralela `separacion-episodio-turno` — v7.00 PROGRAMADA (11-sep),
+  esperando que Diego la instale en SU planilla nueva.** Paquete de 12
+  archivos + paso a paso en `INSTALAR_PLANILLA_NUEVA.md`; detalle en
+  BITACORA v7.00; plan en `PRD_EPISODIO_Y_TURNO.md`. **NO se fusiona a
+  develop/main ni se pega en producción sin su OK.** Si él reporta algo de
+  esa planilla, el código es el de esa rama, no el de `develop`.
 
 🔴 **NUNCA suponer qué está publicado: preguntárselo a Diego o mirar el editor.**
 El 14-ago yo di por publicada la v5.48 (lo decía la bitácora) y en realidad
@@ -583,6 +590,17 @@ corta es la HERENCIA de evaluaciones al turno siguiente (la foto retocada).
 Los 27 archivos que leen EXT_OCURRIO no se reescriben: la fila de eventos
 del panel ESCRIBE esas mismas casillas, y además el hito estructurado. Así
 la batería sigue verde y cada consumidor migra cuando toque.
+· ✅ **HECHO (11-sep-2026, sello `7.00-episodio-y-turno`)**: T1-T7 completas,
+guardia `episodio_turno.js`, 125 verdes. Paquete y paso a paso en
+`INSTALAR_PLANILLA_NUEVA.md`. Lo que trae, en BITACORA v7.00.
+· 🔴 **Corrección que hay que decirle a Diego (ya va en la entrega)**: la fila
+heredada NO afirmaba «MRC 33 evaluado hoy» — `fillFormReplica` no hereda las
+evaluaciones (solo las recarga si `EVAL_FECHA` es hoy). Lo que faltaba de
+verdad era la firma y la serie. No repetir la afirmación de la «foto retocada».
+· 🪤 Para probar guardias con navegador: `function guardar()` no se puede
+`delete` de `window` (guardar la real aparte); el simulador tiene el reloj en
+julio (las fechas del navegador se arman con SU `hoy()`); y el catálogo
+`NOVEDADES` no admite comentarios entre la llave y la primera clave.
 
 ### Esperando decisión de Diego
 

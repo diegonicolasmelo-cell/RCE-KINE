@@ -51,6 +51,11 @@ escribiendo `EXT_OCURRIO` para que el REM no cambie.
   sin evento» en vivos y egresados.
 - **O8** AET, procuramiento y fechas de dispositivos se leen del episodio, no
   se heredan.
+- **O9** Los cultivos van «ambas» (Diego, 11-sep): la TOMA del turno abre una
+  entrada de la serie (hora, tipo, ATB, firma de quien la tomó, resultado
+  «pendiente») y el RESULTADO que llega días después se escribe SOBRE esa
+  misma entrada, con fecha y firma de quien lo anotó; el hito «Cultivo de
+  secreciones» de la línea de tiempo lleva el mismo detalle.
 - **N1** No se toca ninguna de las 396 columnas de EVOLUCIONES (el `testEsquema`
   las asserta y 27 archivos las leen).
 - **N2** No se reescriben los consumidores de `EXT_OCURRIO`: la fila de eventos
@@ -103,6 +108,13 @@ CUANDO el colega mide un MRC (desde la tarjeta o dentro del turno)
 CUANDO guarda KTM nivel 3 (SBC) y el episodio no tiene ningún FSS
   → cliente: no guarda, marca el FSS y explica
   → servidor: rechaza con el mismo mensaje
+
+CUANDO el turno marca una toma de cultivo
+  → EVALUACIONES += {ESCALA:'CULTIVO', TOTAL:'pendiente', ITEMS:{hora,tipos,conATB,objetivo}, FIRMA}
+  → el hito «Cultivo de secreciones» lleva ese detalle
+CUANDO un turno posterior trae el resultado (sin toma nueva)
+  → la última entrada «pendiente» pasa a TOTAL = resultado (+ resultadoFecha, resultadoFirma)
+  → el mismo resultado heredado turno tras turno NO abre entradas
 
 CUANDO la vía aérea de salida ≠ la de entrada y no hay evento declarado
   → cliente: pide motivo escrito (no hay «Guardar igual» sin motivo)

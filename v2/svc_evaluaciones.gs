@@ -36,7 +36,7 @@ const EVAL_SERIE = {
   FEM:       { col: 'EVAL_T_FEM' },
   ECO:       { col: 'EVAL_T_GROSOR' },
   DEGLUCION: { col: 'EVAL_DEGLUCION' },
-  CULTIVO:   {},
+  CULTIVO:   {},   // sin espejo en la cama: el «último cultivo» lo sigue leyendo la entrega desde las evoluciones
 };
 // Dato único del episodio: se corrige encima.
 const EPISODIO_ESCALAS = { ECF: 'ECF', BARTHEL: 'BARTHEL', CHARLSON: 'CHARLSON' };
@@ -271,5 +271,63 @@ function _evalDesdeEvolucion(evo, idCama, idEvolucion, ctx) {
                                       fecha: fecha, turno: turno, origen: 'turno', idEvolucion: idEvolucion }, ctx);
     if (r && !r.error) hechas.push(p[0]);
   });
+  try { if (_cultivoALaSerie(evo, idCama, idEvolucion, firma, fecha, turno, ctx)) hechas.push('CULTIVO'); }
+  catch (e) { console.warn('cultivo a la serie:', e.message); }
   return hechas;
+}
+
+/**
+ * 🧫 CULTIVO — «ambas» (Diego, 11-sep-2026): serie fechada Y evento.
+ * La TOMA del turno (MUE_REALIZADAS) abre una entrada de la serie con la
+ * hora, los tipos, si iba con antibiótico y la firma de quien la tomó, y el
+ * resultado en «pendiente». El RESULTADO llega días después en OTRO turno
+ * (EX_CULT_RESULTADO, que se hereda): se escribe SOBRE esa entrada, con la
+ * fecha y la firma de quien lo anotó — no abre una medición nueva, porque es
+ * el mismo cultivo. El evento es el hito 'CULTIVO DE SECRECIONES' que ya
+ * deja el procedimiento; aquí solo se le agrega el detalle (DATOS_JSON).
+ * Devuelve true si tocó la serie.
+ */
+function _cultivoALaSerie(evo, idCama, idEvolucion, firma, fecha, turno, ctx) {
+  const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', String(idCama));
+  const pid = String((cama && cama.PATIENT_ID) || evo.PATIENT_ID || '');
+  if (!pid) return false;
+  const parse = function (s) { try { const a = JSON.parse(String(s || '[]')); return Array.isArray(a) ? a.filter(Boolean) : []; } catch (e) { return []; } };
+  const res = String(evo.EX_CULT_RESULTADO || '').trim() || parse(evo.MUE_RESULTADOS_JSON).join(', ');
+  const serie = evalDelEpisodio(pid).filter(function (e) { return e.ESCALA === 'CULTIVO'; });
+  const items = function (base) {
+    let o = {}; try { o = JSON.parse(String(base || '{}')) || {}; } catch (e) { o = {}; }
+    return o;
+  };
+  if (esVerdadero(evo.MUE_REALIZADAS)) {
+    const det = { tipos: parse(evo.MUE_TIPOS_JSON), hora: String(evo.MUE_HORA_TOMA || ''),
+                  conATB: esVerdadero(evo.MUE_CON_ATB), objetivo: String(evo.RESP_CULT_OBJ || '') };
+    const mia = serie.filter(function (e) { return String(e.ID_EVOLUCION) === String(idEvolucion); })[0];
+    const total = res || 'pendiente';
+    if (!mia) {
+      const r = _evalRegistrarInterno({ idCama: idCama, escala: 'CULTIVO', total: total, items: det, firma: firma,
+                                        fecha: fecha, turno: turno, origen: 'turno', idEvolucion: idEvolucion }, ctx);
+      return !(r && r.error);
+    }
+    // Re-guardado del mismo turno: se corrige encima, no se duplica.
+    if (String(mia.TOTAL) !== total || String(mia.ITEMS_JSON || '') !== JSON.stringify(det)) {
+      repoActualizar('EVALUACIONES', 'ID_EVAL', String(mia.ID_EVAL), { TOTAL: total, ITEMS_JSON: JSON.stringify(det) });
+      return true;
+    }
+    return false;
+  }
+  if (!res) return false;
+  // Sin toma este turno pero con resultado: es el resultado de la última toma.
+  const pend = serie.filter(function (e) { return String(e.TOTAL) === 'pendiente'; }).pop();
+  if (pend) {
+    const it = items(pend.ITEMS_JSON); it.resultadoFecha = fecha; it.resultadoFirma = firma;
+    repoActualizar('EVALUACIONES', 'ID_EVAL', String(pend.ID_EVAL), { TOTAL: res, ITEMS_JSON: JSON.stringify(it) });
+    return true;
+  }
+  // Resultado heredado sin toma registrada (paciente anterior a la serie): una
+  // sola entrada, y solo si el último cultivo de la serie no dice ya lo mismo.
+  const ult = serie[serie.length - 1];
+  if (ult && String(ult.TOTAL) === res) return false;
+  const r = _evalRegistrarInterno({ idCama: idCama, escala: 'CULTIVO', total: res, items: { sinToma: true }, firma: firma,
+                                    fecha: fecha, turno: turno, origen: 'turno', idEvolucion: idEvolucion }, ctx);
+  return !(r && r.error);
 }
