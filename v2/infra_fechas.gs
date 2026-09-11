@@ -68,6 +68,54 @@ function _tsDesdeHora(hora) {
   return d.toISOString().slice(0, 10) + ' ' + h;
 }
 
+/**
+ * ⏱️ DÍAS DE VM POR BLOQUES DE 24 HORAS (Diego, 11-sep-2026: «los días de VM
+ * se cuentan respecto a las HORAS de VM: hora de ingreso si vienen ventilados,
+ * o fecha y hora de intubación»). La ESTADÍA sigue por calendario, como la
+ * lista oficial (BUDA): él lo confirmó ese día («1 sí»).
+ * Interruptor CONFIG.VM_POR_HORAS (TRUE): en FALSE vuelve a calendario sin
+ * pegar nada, y las guardias prueban las dos reglas.
+ */
+function vmPorHoras() {
+  return String(leerConfig('VM_POR_HORAS', 'TRUE') || 'TRUE').trim().toUpperCase() !== 'FALSE';
+}
+
+/** Bloques COMPLETOS de 24 h entre dos momentos 'yyyy-MM-dd HH:mm'. null si no se puede. */
+function diasBloques(tsDesde, tsHasta) {
+  const h = _horasEntreTS(tsDesde, tsHasta);
+  return h === '' ? null : Math.floor(h / 24);
+}
+
+/**
+ * Momento de referencia de un TURNO para contar bloques: la hora en que PARTE
+ * el turno (CONFIG TURNO_DIA_INICIO / TURNO_NOCHE_INICIO), o sea cuando se abre
+ * la hoja nueva. Así el número de la hoja del turno es estable (no cambia si se
+ * re-guarda a otra hora) y coincide con «se actualiza al cambio de turno».
+ */
+function _tsInicioTurno(fechaISO, turno) {
+  const f = String(fechaISO || '').slice(0, 10);
+  if (!f) return '';
+  const dia = parseInt(leerConfig('TURNO_DIA_INICIO', '9'), 10) || 9;
+  const noche = parseInt(leerConfig('TURNO_NOCHE_INICIO', '21'), 10) || 21;
+  const h = String(turno) === 'Noche' ? noche : dia;
+  return f + ' ' + (h < 10 ? '0' + h : String(h)) + ':00';
+}
+
+/**
+ * Días de VM de un tramo: bloques de 24 h desde el momento de inicio
+ * (TS_INICIO_SOPORTE) hasta el momento de referencia; si falta la hora —
+ * episodios anteriores a la v5.19— o el interruptor está en FALSE, calendario
+ * (diasEntre), que es lo que había. Nunca negativo.
+ */
+function diasVMReloj(tsInicio, fechaInicio, tsRef, fechaRef) {
+  if (vmPorHoras() && tsInicio && tsRef) {
+    const b = diasBloques(tsInicio, tsRef);
+    if (b !== null) return Math.max(0, b);
+    if (_msDeTS(tsInicio) !== null && _msDeTS(tsRef) !== null) return 0;   // ref anterior al inicio: aún 0
+  }
+  return diasEntre(fechaInicio, fechaRef);
+}
+
 /** Parte fecha / hora de un momento 'yyyy-MM-dd HH:mm'. */
 function _tsFecha(ts) { return String(ts || '').slice(0, 10); }
 function _tsHora(ts)  { return _horaValida(String(ts || '').slice(11, 16)); }

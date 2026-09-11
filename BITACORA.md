@@ -19,6 +19,78 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.26-ingreso-manual-vm-horas (11-sep-2026) — la fecha de ingreso se escribe, y la VM se cuenta por horas
+
+Diego, 11-sep: «la fecha de ingreso y los días de VM últimamente no coinciden
+con el otro programa… necesito que los días se contabilicen con la fecha de
+ingreso registrada de forma manual, fecha y hora; la sugerencia es la fecha
+actual, no la del turno… los días de VM se cuentan respecto a las horas de VM:
+hora de ingreso si vienen ventilados, o fecha y hora de intubación». A la
+pregunta «¿la estadía sigue por calendario y solo la VM pasa a horas ÷ 24?»
+respondió **«1 sí»**, y después «luego programa la hoja». Rama
+`ingreso-manual-y-vm-por-horas` salida de `develop`. **Sin fusionar hasta que
+la pruebe.**
+
+### Lo que hace
+
+- **Fecha y hora de ingreso escritas.** El bloque de ingreso tiene un campo
+  nuevo «Fecha ingreso» junto a «Hora ingreso». Al abrir un INGRESO se sugieren
+  **hoy y la hora actual** (no la fecha del turno) y se corrigen a mano si el
+  paciente llegó antes. Viajan como `PAC_FECHA_INGRESO` (transitorio, como
+  `PAC_RUT`: no es columna de EVOLUCIONES, las 396 siguen) y el servidor escribe
+  `FECHA_INGRESO` y `TS_INGRESO` con ese momento. En una evolución posterior la
+  fecha se muestra bloqueada: corregirla es de 🔐 COORDINACIÓN.
+- **Llegó ventilado ⇒ el reloj de la VM (y de la vía aérea) es ese mismo
+  momento**, no la fecha del turno ni la hora del registro. Intubado en la
+  unidad ⇒ la hora de intubación, como ya era.
+- **Días de VM por bloques completos de 24 h** (`diasVMReloj`, espejo
+  `diasVMCli`): censo/tarjeta contra AHORA; el contador del turno contra la hora
+  en que PARTE el turno (CONFIG `TURNO_DIA_INICIO`/`TURNO_NOCHE_INICIO`), para
+  que el número de la hoja del turno sea estable y coincida con «se actualiza al
+  cambio de turno». Los tramos cerrados siguen viniendo del congelado
+  (reintubación no reinicia). **La estadía sigue por calendario** (BUDA).
+- **Interruptor `CONFIG.VM_POR_HORAS`** (nace TRUE): en FALSE vuelve todo a
+  calendario sin pegar nada. Sin hora guardada (episodios anteriores a la v5.19),
+  calendario.
+- `tablaRelojes()` en mantenimiento (y como archivo suelto `relojes.gs` para
+  pegar hoy en producción): por cama, ingreso con hora, estadía por calendario y
+  por 24 h, inicio de VM con hora, VM por calendario y por 24 h. Sin nombres ni
+  RUT. Es la tabla que Diego pidió para cotejar con el otro programa.
+- `revisarRelojesCama` / `_relojesDeLaUnidad` muestran la VM con la regla
+  vigente y, entre paréntesis, la de calendario.
+
+### Consecuencias que hay que decirle
+
+- **VM + VNI ya no suman exacto la estadía** (la garantía de la v5.35 con la
+  historia de DELTA): la VM va por horas y la VNI y la estadía por calendario.
+  Un paciente intubado ayer a las 14:00 marca **0** días de VM en el turno de
+  hoy (19 h) y 1 recién mañana. El día de la transición ya no «pertenece» a
+  ningún soporte: se cuentan horas.
+- El REM y el archivo (`DIAS_VM_TOTAL`) leen el contador sellado de la última
+  evolución, así que **la estadística de VM también baja hasta un día por
+  episodio**. Los episodios ya archivados no cambian.
+- Nada de esto se recalcula hacia atrás: las camas que hoy están en VM
+  cambian de número al pegar (contra la hora que ya tenían guardada), y las que
+  no tienen hora siguen por calendario.
+
+### Guardias
+
+- Nueva **`vm_por_horas.js`**: servidor (ingreso escrito, llegó ventilado,
+  intubado en la unidad, censo, sin hora, interruptor apagado) y navegador
+  (sugerencia hoy + ahora, bloqueo en evolución, tarjeta «VM 14d» y no 15,
+  formulario 14 y estadía 15).
+- `dias_estadia` y `dias_soporte` documentan la regla por CALENDARIO: corren
+  con `VM_POR_HORAS=FALSE` (nota al inicio). `vm_no_es_vni` mira el texto nuevo.
+- 🪤 `SHIFT` sale del reloj real: una guardia con navegador que cuente contra
+  la hora de inicio del turno fija `SHIFT='Dia'`, o de noche cambia sola.
+- 🪤 El simulador ya trae las camas sembradas: un banco que «agrega» la cama 9
+  deja dos y el censo devuelve la vacía. Se actualiza con `repoActualizar`.
+- 🪤 `guardado_viajes` compara contra un árbol base: el reloj de ingreso solo
+  manda cuando el formulario trajo `PAC_FECHA_INGRESO` (`_ingresoEscrito`), así
+  un cliente viejo o un banco sin el campo se comporta igual que antes.
+
+---
+
 ## v6.24-mauri-sin-suelo (9-sep-2026) — el huaso estaba parado sobre un ladrillo beige
 
 Diego pidió **el mockup de la mascota de abajo**. Al capturar el botón real de

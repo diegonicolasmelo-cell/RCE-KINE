@@ -18,7 +18,9 @@ function obtenerTodasLasCamas() {
         // El tablero debe mostrar el MISMO número que el papel que el equipo
         // lee en la reunión — verificado contra la lista del 3-ago en 17 camas.
         c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
-        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
+        // VM: bloques de 24 h desde la hora de inicio (Diego, 11-sep-2026); la
+        // estadía sigue por calendario. diasVMReloj cae a calendario sin hora.
+        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasVMReloj(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _tsAhora(), hoy) : 0;
         c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
         try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }
       } else {
@@ -63,7 +65,7 @@ function obtenerCama(idCama) {
     if (esVerdadero(c.OCUPADA)) {
       c.OCUPADA = true;
       c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
-      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
+      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasVMReloj(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _tsAhora(), hoy) : 0;
       c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
     } else { c.OCUPADA = false; }
     try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }

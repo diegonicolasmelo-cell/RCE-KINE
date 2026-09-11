@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.24-mauri-sin-suelo">
+<meta name="rce-version" content="6.26-ingreso-manual-vm-horas">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -2858,8 +2858,16 @@ document.documentElement.setAttribute('data-piel', 'inst');
                    corresponde: los campos SIGUEN en el formulario y su valor
                    viaja igual al guardar — solo dejan de verse. -->
               <div id="fPreUci" class="pre-uci">
+              <!-- 📅 FECHA Y HORA DE INGRESO MANUALES (Diego, 11-sep-2026): al
+                   ingresar se sugieren con el momento ACTUAL (no la fecha del
+                   turno) y se corrigen a mano si el paciente llegó antes. De
+                   aquí salen la estadía (calendario) y, si llegó ventilado, el
+                   reloj de la VM (bloques de 24 h). En turnos siguientes la
+                   fecha se muestra y no se edita: eso es de 🔐 COORDINACIÓN. -->
+              <div class="col wa" style="margin-right:6px;"><label>Fecha ingreso</label>
+                <input type="date" id="fFechaIng" class="tc" style="width:138px;" title="Día en que ingresó a la unidad. Se sugiere hoy; corrígela si llegó antes."></div>
               <div class="col wa" style="margin-right:18px;"><label>Hora ingreso</label>
-                <input type="time" id="fHoraIng" class="tc" style="width:96px;" title="Desde esta hora se cuentan los días (bloques de 24 h). Vacío = se cuenta por días calendario."></div>
+                <input type="time" id="fHoraIng" class="tc" style="width:96px;" title="Hora en que ingresó. Con ella se cuentan los días de VM en bloques de 24 h si llegó ventilado."></div>
               <div class="col wa" style="margin-right:34px;"><label>Barthel</label>
                 <div style="display:flex;align-items:center;gap:5px;">
                   <select id="fBarthel" onchange="updBarthelLbl('fBarthel','lblBarthel')" style="width:72px;">
@@ -4742,7 +4750,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.24-mauri-sin-suelo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.26-ingreso-manual-vm-horas]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -4827,6 +4835,25 @@ const dias = (a,b) => {
    dato válido y no se perdió, simplemente ya no decide el número que se ve.
    Si algún día se quiere mostrar el tiempo transcurrido real, está ahí. */
 function diasCal(ts, fechaCal, hastaISO){
+  return dias(fechaCal, hastaISO);
+}
+/* ⏱️ DÍAS DE VM POR BLOQUES DE 24 h (Diego, 11-sep-2026): la VM se cuenta desde
+   la HORA de inicio del soporte (TS_INICIO_SOPORTE: ingreso si llegó ventilado,
+   intubación si no) hasta el momento de referencia; la estadía sigue por
+   calendario. Espejo de diasVMReloj del servidor; CONFIG.VM_POR_HORAS=FALSE
+   vuelve a calendario. Sin hora guardada, calendario. */
+function _vmPorHorasCli(){ return !(window.CFG && CFG.VM_POR_HORAS===false); }
+function _tsInicioTurnoCli(fecha, turno){
+  const f=_isoDia(fecha||hoy()); if(!f) return '';
+  const h=(turno||SHIFT)==='Noche' ? ((window.CFG&&parseInt(CFG.TURNO_NOCHE_INICIO))||21) : ((window.CFG&&parseInt(CFG.TURNO_DIA_INICIO))||9);
+  return f+' '+String(h).padStart(2,'0')+':00';
+}
+function diasVMCli(ts, fechaCal, hastaISO, tsRef){
+  if(_vmPorHorasCli() && ts && tsRef){
+    const h=_horasTS(ts, tsRef);
+    if(h!=='') return Math.floor(h/24);
+    if(_msTS(ts)!==null && _msTS(tsRef)!==null) return 0;
+  }
   return dias(fechaCal, hastaISO);
 }
 
@@ -5072,7 +5099,9 @@ function renderGrid() {
       // mirando (si no, un episodio de julio mostraría los días de hoy).
       const _refD = c._RETRO ? fecha : hoy();
       const d   = diasCal(c.TS_INGRESO, c.FECHA_INGRESO, _refD);
-      const dvm = (c.SOPORTE==='VM'||c.SOPORTE==='VNI') ? diasCal(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _refD) : 0;
+      const dvm = c.SOPORTE==='VM' ? (c._RETRO ? diasCal(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _refD)
+                                             : diasVMCli(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _refD, _refD+' '+_horaAhoraCli()))
+                : (c.SOPORTE==='VNI' ? diasCal(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _refD) : 0);
       const evo = EVO_SET.has(String(c.ID_CAMA));
       const dot = evo ? 'd-done' : 'd-busy';
       if(evo) el.classList.add('evo'); // carpeta con hoja blanca asomando
@@ -5379,6 +5408,12 @@ function abrirPanel(id, esIng, verFicha) {
   if(typeof setKTMstate==='function') setKTMstate('r');
   // v2: al ingreso, Terapia Física parte "No realizada: Motivo ingreso" (override manual permitido).
   if(esIng){ setKTMstate('n'); const _mr=$('fKTMnoRaz'); if(_mr) _mr.value='Motivo ingreso'; }
+  // Fecha y hora de ingreso: al INGRESAR se sugiere el momento actual (Diego,
+  // 11-sep-2026: «la sugerencia es la fecha actual, no la del turno») y queda
+  // editable; en una evolución posterior se muestra lo guardado, bloqueado.
+  { const fi=$('fFechaIng'), hi=$('fHoraIng');
+    if(fi){ fi.disabled=!esIng; fi.value=esIng?hoy():''; }
+    if(hi&&esIng) hi.value=_horaAhoraCli(); }
   hAisl(); hAET();
   // HDN: arritmia / meta PAM parten cerrados; humidificación activa re-habilita HME
   hide('gArritmiaTipo'); hide('gPAM');
@@ -5736,6 +5771,7 @@ function fillCama(c, fecha) {
   s('fCharlson',c.CHARLSON); s('fIngTipo',c.INGRESO_TIPO); s('fApache',c.APACHE2);
   $('fDias').value = diasCal(c.TS_INGRESO, c.FECHA_INGRESO, fecha);
   if($('fHoraIng')) $('fHoraIng').value = (String(c.TS_INGRESO||'').slice(11,16)) || '';
+  if($('fFechaIng') && v('cIng')!=='true') $('fFechaIng').value = _isoDia(c.FECHA_INGRESO) || '';
   _fechaInicioVA=_isoDia(c.FECHA_INICIO_VA)||'';
   // Diagnóstico junto al nombre en la cabecera del panel: al colega le sirve
   // ver POR QUÉ está el paciente, no su código interno (Diego, ago-2026).
@@ -5758,7 +5794,9 @@ function fillCama(c, fecha) {
   } else {
     _diasTOTBase=0; _diasTQTBase=0;
   }
-  _diasVMEpisodio=_esInvDb?(parseInt(dias(c.FECHA_INICIO_SOPORTE||c.FECHA_INICIO_VA,fecha))||0):0;
+  _diasVMEpisodio=_esInvDb?(c.SOPORTE==='VM'&&c.TS_INICIO_SOPORTE
+      ? (parseInt(diasVMCli(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE||c.FECHA_INICIO_VA, fecha, _tsInicioTurnoCli(fecha,SHIFT)))||0)
+      : (parseInt(dias(c.FECHA_INICIO_SOPORTE||c.FECHA_INICIO_VA,fecha))||0)):0;
   _diasVNIEpisodio=_esVNIDb?(parseInt(dias(c.FECHA_INICIO_SOPORTE,fecha))||0):0;
   _vaAnterior=_vaDb;
   _vmHistFlag = (c.SOPORTE==='VM') || parseFloat(c.DIAS_VM)>0;
@@ -5980,7 +6018,12 @@ function fillForm(s) {
   // Restaurar contadores VM
   _diasVMPrevios=parseInt(_ex.DIAS_VM_PREVIOS)||0;
   _nReintub=parseInt(_ex.N_REINTUB)||0;
-  if(_ex.FECHA_INICIO_VM){ _diasVMEpisodio=parseInt(dias(_isoDia(_ex.FECHA_INICIO_VM),_fR))||0; }
+  if(_ex.FECHA_INICIO_VM){
+    const _cm=_camaPanel()||{};
+    _diasVMEpisodio=(_cm.SOPORTE==='VM'&&_cm.TS_INICIO_SOPORTE&&_isoDia(_cm.FECHA_INICIO_SOPORTE)===_isoDia(_ex.FECHA_INICIO_VM))
+      ? (parseInt(diasVMCli(_cm.TS_INICIO_SOPORTE,_isoDia(_ex.FECHA_INICIO_VM),_fR,_tsInicioTurnoCli(_fR,SHIFT)))||0)
+      : (parseInt(dias(_isoDia(_ex.FECHA_INICIO_VM),_fR))||0);
+  }
   // Restaurar contadores VNI
   _diasVNIPrevios=parseInt(_ex.DIAS_VNI_PREVIOS)||0;
   _fechaInicioVNI=_isoDia(_ex.FECHA_INICIO_VNI)||'';
@@ -6857,6 +6900,7 @@ function guardar() {
     PAC_ECF:v('fEcf'), PAC_DIAGNOSTICO:v('fDx'), PAC_DIAG_REM:v('fRem'),
     PAC_CHARLSON:v('fCharlson'), PAC_INGRESO_TIPO:v('fIngTipo'),
     PAC_HORA_INGRESO:v('fHoraIng'),   // hora del ingreso: base de los bloques de 24 h
+    PAC_FECHA_INGRESO:v('fFechaIng'), // transitorio como PAC_RUT: fecha de ingreso escrita a mano (11-sep-2026)
     PAC_APACHE2:v('fApache'),   // transitorio como PAC_RUT: persiste en la cama, no en EVOLUCIONES
     BARTHEL_JSON:(function(){ const a=[]; let any=false; for(let i=0;i<10;i++){ const x=v('bar'+i); a.push(x); if(x!=='') any=true; } return any?JSON.stringify(a):''; })(),
     CHARLSON_JSON:(function(){ const a=[]; for(let i=0;i<CHARLSON_ITEMS.length;i++){ if($('ch'+i)?.checked) a.push(i); } const ed=$('chEdad')?.checked; return (a.length||ed)?JSON.stringify({it:a,edad:!!ed}):''; })(),

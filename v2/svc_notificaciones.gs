@@ -77,6 +77,12 @@ function notifListar(datos) {
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
 const NOVEDADES = {
+  '6.26-ingreso-manual-vm-horas': [
+    '📅 Al ingresar un paciente ahora se escriben la FECHA y la HORA de ingreso (vienen sugeridas con el momento actual): de ahí salen los días.',
+    '⏱️ Los días de VM se cuentan por bloques de 24 horas desde la hora de ingreso (si llegó ventilado) o desde la hora de intubación.',
+    '🖨️ La hoja del día trae la fecha y la hora de ingreso en el encabezado: si un contador saliera mal, se recalcula a mano.',
+    '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',
+  ],
   '6.24-mauri-sin-suelo': [
     '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',
     '🧪 En la tarjeta del paciente hay un botón nuevo con el logo de cobas: copia el RUT y abre el laboratorio, para no tener que teclearlo.',
