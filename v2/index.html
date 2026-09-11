@@ -16677,6 +16677,13 @@ function _rkLabFilas(c, fechaISO){
     ['{{L_CULT}}', _rkCultivoTxt(c)],
   ];
 }
+/** «dd/mm/aa hh:mm» del ingreso, para TODAS las hojas impresas (Diego, 11-sep:
+ *  «que la hoja igual incluya la hora de ingreso»). Sin hora guardada, solo la fecha. */
+function _ingresoTxt(c){
+  const fi=String((c&&c.FECHA_INGRESO)||'').slice(0,10); if(!/^\d{4}-\d{2}-\d{2}$/.test(fi)) return '';
+  const h=String((c&&c.TS_INGRESO)||'').slice(11,16);
+  return fi.slice(8,10)+'/'+fi.slice(5,7)+'/'+fi.slice(2,4)+(/^\d{2}:\d{2}$/.test(h)?' '+h:'');
+}
 function rkHojaHTML(c, fechaISO, soloCarilla1, nReintub){
   nReintub=parseInt(nReintub)||0;
   const f=(fechaISO||'').split('-').reverse().join('/');
@@ -16709,8 +16716,7 @@ function rkHojaHTML(c, fechaISO, soloCarilla1, nReintub){
     ['{{RUT}}',_t(c.RUT)],
     // Fecha y hora de INGRESO en el encabezado (Diego, 11-sep-2026): si el
     // contador de días saliera mal, el papel trae con qué recalcularlo a mano.
-    ['{{FINGRESO}}',(()=>{ const fi=String(c.FECHA_INGRESO||'').slice(0,10); if(!/^\d{4}-\d{2}-\d{2}$/.test(fi)) return '&nbsp;';
-      const h=String(c.TS_INGRESO||'').slice(11,16); return fi.slice(8,10)+'/'+fi.slice(5,7)+'/'+fi.slice(2,4)+(/^\d{2}:\d{2}$/.test(h)?' '+h:''); })()],
+    ['{{FINGRESO}}', _ingresoTxt(c)||'&nbsp;'],
     ['{{DIAS}}',dias||'&nbsp;'],['{{FECHA}}',f],
     ['{{DX}}',_escSt(String(c.DIAGNOSTICO||'')) ||'&nbsp;'],['{{ESCALAS}}',escalas],
     ['{{TALLA}}', talla>0?String(Math.round(talla)):'&nbsp;'],
@@ -17031,6 +17037,7 @@ function listaDelDiaHTML(camas, fechaISO, horaTxt){
         <td class="ld-c" style="width:42px;text-align:center;"><b>EDAD</b><br><span class="ld-big">${c.EDAD||''}</span></td>
         <td class="ld-c"><b>NOMBRE DE PACIENTE</b><br><span class="ld-big">${String(c.NOMBRE||'').toUpperCase()}</span></td>
         <td class="ld-c" style="width:112px;text-align:center;"><b>RUT</b><br><span class="ld-big">${c.RUT||'&nbsp;'}</span></td>
+        <td class="ld-c" style="width:104px;text-align:center;"><b>INGRESO</b><br><span class="ld-big" style="font-size:9pt;white-space:nowrap;">${_ingresoTxt(c)||'&nbsp;'}</span></td>
         <td class="ld-c" style="width:40px;text-align:center;"><b>DÍAS</b><br><span class="ld-big">${dias||'&nbsp;'}</span></td>
         <td class="ld-c" style="width:80px;text-align:center;background:#f2f2f2;"><b>FECHA</b><br><span class="ld-big">${f}</span></td>
       </tr></table>
@@ -17385,7 +17392,7 @@ function imprimirHojaRHB(){
   const cabecera=`
     <div class="rhb-titulo">REGISTRO Y SEGUIMIENTO EN REHABILITACIÓN</div>
     <div class="rhb-head">
-      <div><b>Nombre:</b> ${c.NOMBRE||''}<br><b>Rut:</b> ______________________<br><b>Diagnóstico:</b> ${c.DIAGNOSTICO||''}<br><b>Edad:</b> ${c.EDAD||''}</div>
+      <div><b>Nombre:</b> ${c.NOMBRE||''}<br><b>Rut:</b> ______________________<br><b>Diagnóstico:</b> ${c.DIAGNOSTICO||''}<br><b>Edad:</b> ${c.EDAD||''}<br><b>Ingreso:</b> ${_ingresoTxt(c)||'____/____/____ ____:____'}</div>
       <div><b>Escala Clínica de Fragilidad:</b> ${c.ECF||''}<br><b>Índice de Barthel:</b> ${c.BARTHEL||''}<br><b>Índice de Charlson:</b> ${c.CHARLSON||''}<br><b>Motivo de ingreso:</b> Electivo ${/electivo/i.test(motivo)?'<b>X</b>':'__'} &nbsp;Urgencia ${/urgencia/i.test(motivo)?'<b>X</b>':'__'}</div>
     </div>`;
 

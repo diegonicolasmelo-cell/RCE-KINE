@@ -59,6 +59,12 @@ la pruebe.**
 - `revisarRelojesCama` / `_relojesDeLaUnidad` muestran la VM con la regla
   vigente y, entre paréntesis, la de calendario.
 
+- **La hora de ingreso sale en TODAS las hojas impresas** (Diego: «que la hoja
+  igual incluya la hora de ingreso»): la diaria por paciente (INGRESO dd/mm/aa
+  hh:mm en el encabezado, v6.25), la **lista del día** (celda INGRESO antes de
+  DÍAS) y la **hoja de rehabilitación** (línea «Ingreso:» en la cabecera).
+  Helper único `_ingresoTxt(c)`; sin hora guardada, solo la fecha.
+
 ### Consecuencias que hay que decirle
 
 - **VM + VNI ya no suman exacto la estadía** (la garantía de la v5.35 con la

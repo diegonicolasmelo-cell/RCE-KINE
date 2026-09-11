@@ -401,6 +401,22 @@ const eq = (l, g, w) => { const ok = String(g) === String(w); console.log((ok ? 
   eq('…en una sola línea', R12.unaLinea, true);
   eq('★ y el nombre de 50 caracteres también', R12.cabeGigante, true);
   eq('★ encabezado · INGRESO con fecha y hora (04/08/26 09:00)', R12.ingresoCab, true);
+  // Diego, 11-sep: «que la hoja igual incluya la hora de ingreso» — también la
+  // lista del día (todos en una hoja) y la hoja de rehabilitación.
+  const RIng = await p.evaluate(() => {
+    // Banco propio: los ensayos anteriores dejaron el DB con otras camas.
+    const c = { ID_CAMA: '1', OCUPADA: true, PATIENT_ID: 'p1', NOMBRE: 'PRUEBA INGRESO', EDAD: 60, SEXO: 'M', DIAGNOSTICO: 'NAC',
+                FECHA_INGRESO: '2026-08-04', TS_INGRESO: '2026-08-04 09:00', VIA_AEREA: 'TOT', SOPORTE: 'VM' };
+    const lista = listaDelDiaHTML([c], '2026-08-11', '10:00');
+    let rhb = ''; const DB0 = DB.slice();
+    try { DB.length = 0; DB.push(c); TLC = '1'; TL_EVOS = [{ TURNO_KEY: '2026-08-10-Dia' }]; const old = document.getElementById('rkPrint').innerHTML;
+      window._imprimirVertical = () => {}; imprimirHojaRHB(); rhb = document.getElementById('rhbPrint').innerHTML; document.getElementById('rkPrint').innerHTML = old; } catch (e) { rhb = 'ERR ' + e.message; }
+    DB.length = 0; DB0.forEach(x => DB.push(x));
+    return { lista: /INGRESO<\/b><br><span[^>]*>04\/08\/26 09:00<\/span>/.test(lista), rhb: /Ingreso:<\/b> 04\/08\/26 09:00/.test(rhb), rhbErr: /^ERR/.test(rhb) ? rhb : '' };
+  });
+  eq('★ lista del día · INGRESO con fecha y hora', RIng.lista, true);
+  eq('★ hoja de rehabilitación · Ingreso con fecha y hora', RIng.rhb, true);
+  if (RIng.rhbErr) console.log('   ' + RIng.rhbErr);
   eq('★ carilla 2 · la tabla VISAGE / scores tiene 5 columnas declaradas', R12.c2Ancha.cols, 5);
   eq('…todas sus filas tienen 5 celdas (nada apilado)', R12.c2Ancha.filas5, true);
   si('…y ocupa el ancho de la página (≥ 90 %)', R12.c2Ancha.ancho >= 90);
