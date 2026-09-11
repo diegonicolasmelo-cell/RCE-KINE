@@ -6483,12 +6483,13 @@ function notifListar(datos) {
  *     hospital no dibuja los nuevos).
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
+// 🗂️ La entrada 7.00 es de la rama paralela episodio/turno — SOLO para la
+// planilla de prueba de Diego; en producción ese sello no arranca nunca.
 const NOVEDADES = {
-  // 🗂️ Rama paralela episodio/turno — SOLO para la planilla de prueba de Diego.
   '7.00-episodio-y-turno': [
     '📋 Las escalas ECF, Barthel y Charlson se miden desde la tarjeta de la cama, sin abrir la evolución; se ven pendientes mientras falten.',
     '✍️ Cada MRC, FSS y Pimáx queda con fecha y con las iniciales de quien lo midió. El dato lo usa cualquiera; la firma dice de dónde salió.',
-    '🫁 Arriba del bloque de vía aérea hay una fila nueva: «¿Qué pasó hoy con la vía aérea?». Se declara el evento primero y él fija el tubo.',
+    '📝 Arriba del bloque de vía aérea hay una fila nueva: «¿Qué pasó hoy con la vía aérea?». Se declara el evento primero y él fija el tubo.',
     '🔒 La vía aérea ya no se cambia a mano sin evento. Si de verdad no hubo evento, se escribe por qué y queda en la línea de tiempo.',
     '🧍 Para registrar sedente al borde de cama (KTM nivel 3) el paciente tiene que tener al menos un FSS-ICU en el episodio.',
   ],

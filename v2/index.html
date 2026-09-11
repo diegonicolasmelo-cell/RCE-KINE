@@ -6478,7 +6478,7 @@ function _snapIniEstado(){
     _transIntubEsteTurno };
   // 🗂️ Rama episodio/turno: el banner del episodio, la fila de eventos y la
   // línea fina se pintan con el estado de llegada recién fotografiado.
-  try{ _episodioAlFormulario(); renderBannerEpisodio(); _pintarFilaEventoVA(); _lineaFinaVA(); }catch(e){ console.warn('episodio/turno:', e); }
+  try{ _evVAAnunciado='nada'; _episodioAlFormulario(); renderBannerEpisodio(); _pintarFilaEventoVA(); _lineaFinaVA(); }catch(e){ console.warn('episodio/turno:', e); }
 }
 /** ¿Hay algún evento de vía aérea DECLARADO en este turno? */
 function _hayEventoVA(){
@@ -16177,11 +16177,16 @@ function _eventoVADeclarado(){
   if($('cIntubO')?.checked) return 'intub';
   return 'nada';
 }
+/** Lo ANUNCIADO en la fila (Diego, 9-sep: «que anuncie de entrada»). La
+ *  extubación se anuncia aquí pero su casilla vive en el bloque PVE, así que
+ *  mientras el colega la completa la fila recuerda qué anunció. */
+let _evVAAnunciado='nada';
 function _pintarFilaEventoVA(){
   const fila=$('evVAfila'); if(!fila) return;
   const ingreso=v('cIng')==='true';
   fila.classList.toggle('hidden', ingreso || !_iniVA);   // al ingresar no hay «venía con»
-  const act=_eventoVADeclarado();
+  let act=_eventoVADeclarado();
+  if(act==='nada' && _evVAAnunciado!=='nada') act=_evVAAnunciado;
   fila.querySelectorAll('.ev-va').forEach(b=>{ const on=b.dataset.ev===act; b.style.background=on?'#1d4ed8':''; b.style.color=on?'#fff':''; b.style.borderColor=on?'#1d4ed8':''; });
   const h=$('evVAhint'); if(h) h.textContent = act==='nada'
     ? `Venía con ${_iniVA||'—'}. Si hoy no pasó nada con la vía aérea, no toques nada.`
@@ -16189,6 +16194,7 @@ function _pintarFilaEventoVA(){
 }
 /** El evento se declara aquí; él abre su bloque y fija la vía aérea. */
 function setEventoVA(tipo){
+  _evVAAnunciado=tipo||'nada';
   const scrollA=id=>{ const e=$(id); if(e){ e.scrollIntoView({behavior:'smooth',block:'center'}); e.style.outline='2px solid #1d4ed8'; setTimeout(()=>{e.style.outline='';},2500); } };
   const fijarVA=va=>{ const s=$('fVA'); if(!s) return; s.disabled=false; s.value=va; cascadeVA(); };
   if(tipo==='nada'){
@@ -16225,7 +16231,7 @@ function setEventoVA(tipo){
  *  Sin evento declarado y fuera del ingreso, el select queda bloqueado. */
 function _lineaFinaVA(){
   const s=$('fVA'); if(!s) return;
-  const libre = v('cIng')==='true' || !_iniVA || _hayEventoVA();
+  const libre = v('cIng')==='true' || !_iniVA || _hayEventoVA() || _evVAAnunciado!=='nada';
   s.disabled=!libre;
   s.title=libre?'':'La vía aérea la cambia un evento: decláralo arriba en «¿Qué pasó hoy con la vía aérea?»';
   s.style.opacity=libre?'':'.75';
