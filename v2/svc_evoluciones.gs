@@ -75,6 +75,24 @@ function guardarEvolucion(datos, ctx) {
       const filaCama = repoBuscarFila('CAMAS_ESTADO', 'ID_CAMA', idCama);
       const cama = filaCama === -1 ? {} : repoLeerFila('CAMAS_ESTADO', filaCama);
 
+      // 🗂️ Dos reglas del episodio que necesitan la CAMA para decidir, y por
+      // eso no caben en validarPayloadEvolucion (que es puro). Se evalúan
+      // sobre el payload TAL COMO LLEGÓ, antes de la fusión.
+      {
+        // 🪤 Los bancos de prueba antiguos cargan una lista FIJA de archivos y
+        // estos dos viven en dominio_validacion / svc_evaluaciones: se preguntan
+        // por typeof, como hace notifRegistrar, para que un banco que no los
+        // trae siga guardando como siempre.
+        const _pidV = String(cama.PATIENT_ID || '');
+        let _tieneFSS = (cama.ULT_FSS !== '' && cama.ULT_FSS != null);
+        if (!_tieneFSS && _pidV && typeof evalDelEpisodio === 'function') {
+          try { _tieneFSS = evalDelEpisodio(_pidV).some(function (e) { return e.ESCALA === 'FSS'; }); } catch (e) {}
+        }
+        const _errsEp = (typeof validarSBC === 'function' ? validarSBC(datos, _tieneFSS) : [])
+          .concat(typeof validarTransicionVA === 'function' ? validarTransicionVA(datos, cama) : []);
+        if (_errsEp.length) return err('Validación: ' + _errsEp.join('; '), ERR.VALIDACION);
+      }
+
       // Foto del trío de KTM TAL COMO LLEGÓ, antes de que la fusión de abajo
       // le copie encima lo de la fila previa. Sin esta foto es imposible
       // distinguir «el turno no opinó» de «el turno heredó».
@@ -509,6 +527,52 @@ function guardarEvolucion(datos, ctx) {
         }
       }
 
+      /* 🗂️ EVENTOS DE VÍA AÉREA COMO FUENTE DE VERDAD (rama episodio/turno,
+         11-sep-2026). El hito de cada evento nace del procedimiento, como
+         siempre, pero ahora lleva su DETALLE estructurado (hora, tipo, «queda
+         con», motivo) en DATOS_JSON: es lo que la casilla EXT_OCURRIO de la
+         fila del turno no podía contar. La fila del turno SIGUE escribiendo sus
+         columnas (REM, estadística y entrega no cambian de fuente). */
+      const _vv = function (k) { return evo[k] == null ? '' : String(evo[k]); };
+      const datosPorProc = {};
+      if (esVerdadero(evo.EXT_OCURRIO)) {
+        const _dx = { evento: 'extubacion', hora: _vv('EXT_HORA'), ts: _vv('EXT_TS'), tipo: _vv('EXT_TIPO'),
+          motivo: _vv('EXT_MOTIVO'), pve: _vv('PVE_VAL'), pveResultado: _vv('PVE_RESULTADO'),
+          quedaVA: _vv('EXT_PE_VA'), quedaSop: _vv('EXT_PE_SOP'), quedaModo: _vv('EXT_PE_MODO'),
+          firma: _vv('PLAN_FIRMA_KINE') };
+        ['EXTUBACIÓN C/PROTOCOLO', 'EXTUBACIÓN S/PROTOCOLO', 'AUTOEXTUBACIÓN', 'EXTUBACIÓN ACCIDENTAL'].forEach(function (k) { datosPorProc[k] = _dx; });
+      }
+      if (esVerdadero(evo.INTUB_OCURRIO)) {
+        datosPorProc['INTUBACIÓN'] = { evento: 'intubacion', hora: _vv('INTUB_HORA'), totN: _vv('INTUB_TOT_N'), totCm: _vv('INTUB_TOT_CM'),
+          sopPrevio: _vv('INTUB_SOP_PREVIO'), detalle: _vv('INTUB_DET'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
+      if (esVerdadero(evo.EXT_REINTUB)) {
+        datosPorProc['REINTUBACIÓN'] = { evento: 'reintubacion', hora: _vv('REINTUB_HORA'), razon: _vv('EXT_REINTUB_RAZ'), n: _vv('N_REINTUB'),
+          totN: _vv('REINTUB_TOT_N'), totCm: _vv('REINTUB_TOT_CM'), modo: _vv('REINTUB_MODO'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
+      if (esVerdadero(evo.TQT_OCURRIO)) {
+        datosPorProc['TQT'] = { evento: 'tqt', hora: _vv('TQT_HORA'), tecnica: _vv('TQT_TECNICA'), tipo: _vv('VENT_TQT_TIPO'),
+          calibre: _vv('VENT_TQT_CALIBRE'), detalle: _vv('TQT_DET'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
+      if (esVerdadero(evo.DECAN_OCURRIO)) {
+        datosPorProc['DECANULACIÓN'] = { evento: 'decanulacion', hora: _vv('DECAN_HORA'), tipo: _vv('DECAN_TIPO'),
+          quedaDisp: _vv('DECAN_QUEDA_DISP'), quedaFlujo: _vv('DECAN_QUEDA_FLUJO'), quedaSpo2: _vv('DECAN_QUEDA_SPO2'),
+          detalle: _vv('DECAN_DET'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
+      // La salida con RAZÓN ESCRITA: la vía aérea cambió sin evento y el colega
+      // explicó por qué. No es una columna de EVOLUCIONES: vive en el hito.
+      const _transMotivo = String(datos.TRANS_MOTIVO || '').trim();
+      if (_transMotivo && cama && cama.VIA_AEREA) {
+        const _vaSale = String(evo.VENT_VIA_AEREA_FINAL || evo.VENT_VIA_AEREA || '');
+        if (_vaSale && _vaSale !== String(cama.VIA_AEREA)) {
+          hitosExtra.push({ tipo: 'via_aerea',
+            texto: '⚠️ Vía aérea ' + cama.VIA_AEREA + ' → ' + _vaSale + ' sin evento declarado: «' +
+                   (_transMotivo.length > 160 ? _transMotivo.slice(0, 159) + '…' : _transMotivo) + '»',
+            autor: evo.PLAN_FIRMA_KINE, autorEmail: ctx.email || '',
+            datos: { evento: 'transicion_sin_evento', de: String(cama.VIA_AEREA), a: _vaSale, motivo: _transMotivo, firma: _vv('PLAN_FIRMA_KINE') } });
+        }
+      }
+
       /* 📌 ANOTACIONES DEL TURNO (v5.97, Diego 5-sep-2026): hechos SIN
          estadística que sí se narran — el «Otro» del ➕ pero desde el
          formulario. Cada una deja su hito tipo 'nota' (tipo auto: el
@@ -533,12 +597,18 @@ function guardarEvolucion(datos, ctx) {
       // narra maniobras, no cuenta eventos.
       const procsStats = procs.filter(function (p) { return !/^SUPINACI/i.test(String(p)); });
       _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, turno, procsStats, ctx.email);
-      const timelineJson = _timelineDelGuardado(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email, patientId, hitosExtra);
+      const timelineJson = _timelineDelGuardado(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email, patientId, hitosExtra, datosPorProc);
 
       // Sincronizar el snapshot de la cama: la ÚNICA escritura a CAMAS_ESTADO
       // del guardado (lleva también las fechas de ingreso corregidas arriba y
       // el cache de la línea de tiempo recién armado).
       _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, patientId, filaCama, timelineJson);
+
+      // 🗂️ Lo que este turno MIDIÓ pasa a la serie fechada del episodio con la
+      // firma del turno (rama episodio/turno). No hereda nada: un valor
+      // presente en el payload es una medición de HOY.
+      try { if (typeof _evalDesdeEvolucion === 'function') _evalDesdeEvolucion(evo, idCama, idEvolucion, ctx); }
+      catch (e) { console.warn('_evalDesdeEvolucion:', e.message); }
 
       // Reintubación desde el bloque EXT_* (le viaja el lector perezoso del
       // episodio: si el EXT_TS hay que buscarlo hacia atrás, no re-baja la hoja)
@@ -703,14 +773,28 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     ULT_COOP: val(evo.SED_COOPERACION, cama.ULT_COOP),
     ULT_MRC: val(evo.EVAL_T_MRC, cama.ULT_MRC),
     ULT_MRC_FECHA: val(evo.EVAL_T_MRC, '') !== '' ? fecha : (cama.ULT_MRC_FECHA || ''),
+    // 🗂️ La firma viaja con la medición (Diego, 11-sep): quién MIDIÓ, que
+    // desde ahora es distinto de quién evoluciona citándolo.
+    ULT_MRC_FIRMA: val(evo.EVAL_T_MRC, '') !== '' ? String(evo.PLAN_FIRMA_KINE || '') : (cama.ULT_MRC_FIRMA || ''),
     ULT_FSS: val(evo.EVAL_T_FSS, cama.ULT_FSS),
     ULT_FSS_FECHA: val(evo.EVAL_T_FSS, '') !== '' ? fecha : (cama.ULT_FSS_FECHA || ''),
+    ULT_FSS_FIRMA: val(evo.EVAL_T_FSS, '') !== '' ? String(evo.PLAN_FIRMA_KINE || '') : (cama.ULT_FSS_FIRMA || ''),
+    // Estado del EPISODIO (rama episodio/turno): AET y procuramiento se leen
+    // de la cama y no se heredan turno a turno. Quedan activos hasta que un
+    // turno los apague explícitamente (viene false, no vacío).
+    AET_ACTIVA: evo.AET_ACTIVA === '' || evo.AET_ACTIVA == null ? esVerdadero(cama.AET_ACTIVA) : esVerdadero(evo.AET_ACTIVA),
+    AET_NIVEL: val(evo.AET_NIVEL, cama.AET_NIVEL),
+    AET_FECHA: (esVerdadero(evo.AET_ACTIVA) && !esVerdadero(cama.AET_ACTIVA)) ? fecha : (esVerdadero(evo.AET_ACTIVA) || evo.AET_ACTIVA === '' || evo.AET_ACTIVA == null ? (cama.AET_FECHA || '') : ''),
+    UPOT_ACTIVO: evo.UPOT_ACTIVO === '' || evo.UPOT_ACTIVO == null ? esVerdadero(cama.UPOT_ACTIVO) : esVerdadero(evo.UPOT_ACTIVO),
+    UPOT_MEDIDAS: val(evo.UPOT_MEDIDAS, cama.UPOT_MEDIDAS),
+    UPOT_FECHA: (esVerdadero(evo.UPOT_ACTIVO) && !esVerdadero(cama.UPOT_ACTIVO)) ? fecha : (esVerdadero(evo.UPOT_ACTIVO) || evo.UPOT_ACTIVO === '' || evo.UPOT_ACTIVO == null ? (cama.UPOT_FECHA || '') : ''),
     ULT_DINAMO: val(evo.EVAL_T_DINAMO, cama.ULT_DINAMO),
     // Pimometría (v5.93): la presión de soporte y la Pimáx del episodio, para
     // que la campana decida mirando solo la cama.
     ULT_PS: val(evo.VENT_PS, cama.ULT_PS),
     ULT_PIM: val(evo.EVAL_T_PIM, cama.ULT_PIM),
     ULT_PIM_FECHA: val(evo.EVAL_T_PIM, '') !== '' ? fecha : (cama.ULT_PIM_FECHA || ''),
+    ULT_PIM_FIRMA: val(evo.EVAL_T_PIM, '') !== '' ? String(evo.PLAN_FIRMA_KINE || '') : (cama.ULT_PIM_FIRMA || ''),
     // Dispositivos del circuito: cada uno sigue a lo que le da sentido, no
     // todos al soporte VM (Diego, 14-ago-2026). Al salir de VM el circuito se
     // descarta, PERO el Trach Care pertenece a la VÍA AÉREA y sobrevive si el

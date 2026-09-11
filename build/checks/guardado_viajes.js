@@ -253,6 +253,21 @@ for (const esc of Object.keys(TECHOS)) {
         (fa[0] || []).length || r.length, (fb[0] || []).length || r.length)));
       si(esc + ' · KINESIOLOGOS igual en las columnas que ya existían',
         JSON.stringify(corte(fa)) === JSON.stringify(corte(fb)));
+    } else if (hoja === 'EVALUACIONES') {
+      // 🗂️ Hoja NUEVA de la rama episodio/turno (11-sep-2026): el base no la
+      // tiene. Lo que escribe se demuestra en su propia guardia.
+      continue;
+    } else if (hoja === 'TIMELINE') {
+      // 🗂️ TIMELINE ganó DATOS_JSON **al final** (rama episodio/turno) y los
+      // hitos de evento ahora nacen con su detalle. Mismo criterio que
+      // KINESIOLOGOS con CUMPLE: se comparan las columnas que YA existían,
+      // recortando ambas al ancho del base; y los hitos tipo 'evaluacion'
+      // (nuevos) se descuentan. Si un hito de siempre cambiara, sigue rojo.
+      const ancho = Math.min((fa[0] || []).length || 99, (fb[0] || []).length || 99);
+      const iTipo = 5;   // ID_HITO · ID_CAMA · PATIENT_ID · FECHA · TURNO · TIPO …
+      const corteTL = f => f.filter(r => String(r[iTipo]) !== 'evaluacion').map(r => r.slice(0, ancho));
+      si(esc + ' · TIMELINE igual en las columnas que ya existían',
+        JSON.stringify(normalizada(hoja, corteTL(fa))) === JSON.stringify(normalizada(hoja, corteTL(fb))));
     } else {
       si(esc + ' · ' + hoja + ' igual (narrativa y KTM aparte)',
         JSON.stringify(normalizada(hoja, sinColumnasNuevas(hoja, sinKtmCant(hoja, sinTextos(hoja, fa, IDX_TEXTO_BASE), IDX_KTM_BASE)))) ===
@@ -340,7 +355,8 @@ console.log('\n— KTM_CANT: el servidor rellena y acota (antes solo lo hacía e
     diagnostico: 'NAC', fechaIngreso: '2026-08-01', viaAerea: 'TOT', soporte: 'VM',
     modo: 'ACVC', firmaKine: 'DMV' }, null);
 
-  apiK('GUARDAR_EVOLUCION', baseK('2026-08-01-Dia', { KTM_REALIZADA: true, KTM_NIVEL_KTR: '3' }), null);
+  // 🗂️ SBC (nivel 3) exige al menos un FSS-ICU en el episodio (Diego, 11-sep-2026).
+  apiK('GUARDAR_EVOLUCION', baseK('2026-08-01-Dia', { KTM_REALIZADA: true, KTM_NIVEL_KTR: '3', EVAL_T_FSS: 18 }), null);
   si('KTM realizada sin cantidad declarada → el servidor pone 1',
     String(filaK('2026-08-01-Dia').KTM_CANT) === '1', String(filaK('2026-08-01-Dia').KTM_CANT));
 

@@ -22,6 +22,10 @@ function _agregarHitoInternoSinSync(hito) {
     AUTOR:       hito.autor || '',
     AUTOR_EMAIL: hito.autorEmail || '',
     TIMESTAMP:   ahoraTS(),
+    // 🗂️ Detalle estructurado del evento (rama episodio/turno): hora, tipo,
+    // «queda con», motivo. Vacío en los hitos de siempre; lleno en los que
+    // escribe el guardado del turno para cada evento de vía aérea.
+    DATOS_JSON:  hito.datos ? (typeof hito.datos === 'string' ? hito.datos : JSON.stringify(hito.datos)) : '',
   });
 }
 
@@ -204,7 +208,10 @@ function _procLabelGenerico(proc) {
  *
  * @return {string} TIMELINE_JSON (últimos 30 hitos de la cama)
  */
-function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, patientId, hitosExtra) {
+// `datosPorProc` (rama episodio/turno): detalle estructurado por procedimiento
+// de vía aérea —hora, tipo, «queda con»— que viaja a DATOS_JSON del hito que
+// ese procedimiento genera. Opcional: sin él, los hitos nacen como siempre.
+function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, patientId, hitosExtra, datosPorProc) {
   const id = String(idCama);
   // UNA lectura: sirve para decidir qué borrar Y para armar el cache después.
   const todos = repoLeerTodosConFila('TIMELINE');
@@ -286,6 +293,8 @@ function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, pa
       FECHA: hito.fecha || fecha, TURNO: hito.turno || turno, TIPO: hito.tipo || 'general',
       TEXTO: hito.texto || '', AUTOR: hito.autor || autor || '',
       AUTOR_EMAIL: hito.autorEmail || autorEmail || '', TIMESTAMP: ahoraTS(),
+      // 🗂️ Detalle estructurado del evento (rama episodio/turno).
+      DATOS_JSON: hito.datos ? (typeof hito.datos === 'string' ? hito.datos : JSON.stringify(hito.datos)) : '',
     });
   };
   let ingresoPuesto = hayIngreso;
@@ -302,7 +311,8 @@ function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, pa
     const map = PROC_TO_HITO[_procClaveHito(proc)] ||
                 { tipo: 'procedimiento', label: _procLabelGenerico(proc), generico: true };
     if (!map.label) return;   // procedimiento vacío: nada que anotar
-    agregarUnico({ tipo: map.tipo, texto: map.label });
+    const _d = datosPorProc && datosPorProc[_procClaveHito(proc)];
+    agregarUnico({ tipo: map.tipo, texto: map.label, datos: _d || null });
   });
   repoInsertarVarios('TIMELINE', nuevos);
 

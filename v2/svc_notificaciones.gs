@@ -77,6 +77,14 @@ function notifListar(datos) {
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
 const NOVEDADES = {
+  // 🗂️ Rama paralela episodio/turno — SOLO para la planilla de prueba de Diego.
+  '7.00-episodio-y-turno': [
+    '📋 Las escalas ECF, Barthel y Charlson se miden desde la tarjeta de la cama, sin abrir la evolución; se ven pendientes mientras falten.',
+    '✍️ Cada MRC, FSS y Pimáx queda con fecha y con las iniciales de quien lo midió. El dato lo usa cualquiera; la firma dice de dónde salió.',
+    '🫁 Arriba del bloque de vía aérea hay una fila nueva: «¿Qué pasó hoy con la vía aérea?». Se declara el evento primero y él fija el tubo.',
+    '🔒 La vía aérea ya no se cambia a mano sin evento. Si de verdad no hubo evento, se escribe por qué y queda en la línea de tiempo.',
+    '🧍 Para registrar sedente al borde de cama (KTM nivel 3) el paciente tiene que tener al menos un FSS-ICU en el episodio.',
+  ],
   '6.24-mauri-sin-suelo': [
     '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',
     '🧪 En la tarjeta del paciente hay un botón nuevo con el logo de cobas: copia el RUT y abre el laboratorio, para no tener que teclearlo.',

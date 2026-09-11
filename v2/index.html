@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.24-mauri-sin-suelo">
+<meta name="rce-version" content="7.00-episodio-y-turno">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -2574,10 +2574,16 @@ document.documentElement.setAttribute('data-piel', 'inst');
   </div>
   <div style="padding:16px 22px;overflow-y:auto;">
     <div id="transAvisoLista" style="display:flex;flex-direction:column;gap:8px;font-size:.85rem;color:#334155;"></div>
-    <div style="font-size:.75rem;color:#94a3b8;margin-top:10px;">Nada se bloquea: puedes guardar igual. Los eventos se registran siempre a mano; los campos en ámbar son valores heredados del turno anterior que aún no revisas.</div>
+    <div id="transAvisoNota" style="font-size:.75rem;color:#94a3b8;margin-top:10px;">Los eventos se registran siempre a mano; los campos en ámbar son valores heredados del turno anterior que aún no revisas.</div>
+    <!-- 🗂️ La salida sin evento ya no es un clic: cuesta una razón escrita, que
+         viaja al hito del episodio (rama episodio/turno, 11-sep). -->
+    <div id="transMotivoBox" class="hidden" style="margin-top:10px;">
+      <label style="font-size:.74rem;font-weight:700;color:#b45309;">Si de verdad no hubo evento, escribe por qué cambió la vía aérea</label>
+      <textarea id="transMotivo" rows="2" style="width:100%;font-size:.85rem;padding:7px 9px;border:1px solid #fdba74;border-radius:7px;" placeholder="Ej.: llegó ya extubado desde pabellón; el evento lo registró el turno anterior…"></textarea>
+    </div>
     <div style="display:flex;gap:9px;padding-top:14px;margin-top:12px;border-top:1px solid #e2e8f0;">
       <button type="button" class="btn btn-p" style="flex:1;" onclick="transAvisoCerrar()">✍️ Volver a revisar</button>
-      <button type="button" class="btn btn-r" style="width:auto;padding:0 14px;" onclick="transAvisoGuardar()">Guardar igual</button>
+      <button type="button" class="btn btn-r" style="width:auto;padding:0 14px;" onclick="transAvisoGuardar()">Guardar con motivo</button>
     </div>
   </div>
 </div>
@@ -2744,6 +2750,12 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <nav id="spRiel" aria-label="Secciones de la evolución"></nav>
     <form id="kf" onsubmit="return false;" autocomplete="off">
       <input type="hidden" id="cBed">
+      <!-- 🗂️ BANNER DEL EPISODIO (rama episodio/turno, Diego 10-sep: «arriba, en
+           una franja extendida a lo largo de la pantalla, los datos personales,
+           los días de VM… y las escalas pre-UCI detrás de un ícono»). Se pinta
+           desde la CAMA, no desde el turno: lo que vive en el episodio no se
+           hereda, se lee. -->
+      <div id="epBanner" class="hidden"></div>
       <input type="hidden" id="cIng" value="false">
       <!-- Etapa 1(a): aviso de turnos previos sin evolución (regla: todo turno se evoluciona) -->
       <div id="spGapAviso" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;border-radius:9px;padding:8px 12px;font-size:.78rem;font-weight:600;margin-bottom:10px;"></div>
@@ -2929,6 +2941,23 @@ document.documentElement.setAttribute('data-piel', 'inst');
                 </div>
                 <input type="hidden" id="fAislMicroVal">
               </div>
+            </div>
+            <!-- 🗂️ ¿QUÉ PASÓ HOY CON LA VÍA AÉREA? (rama episodio/turno, Diego
+                 11-sep: «el panel mejor que anuncie a la entrada para evitar
+                 problemas»). El evento se declara PRIMERO; él abre su bloque y
+                 fija la vía aérea. El select de abajo deja de ser libre (línea
+                 fina): sin evento declarado, no se cambia a mano. -->
+            <div id="evVAfila" class="hidden" style="margin-top:8px;padding:8px 10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:9px;">
+              <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#1d4ed8;margin-bottom:6px;">¿Qué pasó hoy con la vía aérea?</div>
+              <div id="evVAbtns" style="display:flex;gap:5px;flex-wrap:wrap;">
+                <button type="button" class="hbtn ev-va" data-ev="nada"   onclick="setEventoVA('nada')">Nada</button>
+                <button type="button" class="hbtn ev-va" data-ev="intub"  onclick="setEventoVA('intub')">🫁 Intubación</button>
+                <button type="button" class="hbtn ev-va" data-ev="ext"    onclick="setEventoVA('ext')">✂️ Extubación</button>
+                <button type="button" class="hbtn ev-va" data-ev="reintub" onclick="setEventoVA('reintub')">↩️ Reintubación</button>
+                <button type="button" class="hbtn ev-va" data-ev="tqt"    onclick="setEventoVA('tqt')">🔪 TQT</button>
+                <button type="button" class="hbtn ev-va" data-ev="decan"  onclick="setEventoVA('decan')">🔓 Decanulación</button>
+              </div>
+              <div id="evVAhint" style="font-size:.74rem;color:#475569;margin-top:6px;"></div>
             </div>
             <!-- Vía Aérea + contadores -->
             <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;margin-top:8px;">
@@ -4568,6 +4597,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
   </div>
   <div style="padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;">
     <button type="button" id="mMrcEdit" class="btn btn-r hidden" style="width:auto;padding:0 16px;" onclick="_setEvalReadonly('mrc',false)">✏️ Editar</button>
+    <button type="button" id="mMrcTarjeta" class="btn btn-p hidden" style="width:auto;padding:0 16px;" onclick="_evalAplicarTarjeta('mrc')">💾 Guardar en el episodio</button>
     <button type="button" class="btn btn-r" style="width:auto;padding:0 16px;" onclick="cerrarEvalModal('mrc')">Cerrar</button>
   </div>
 </div>
@@ -4603,6 +4633,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
   </div>
   <div style="padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;">
     <button type="button" id="mFssEdit" class="btn btn-r hidden" style="width:auto;padding:0 16px;" onclick="_setEvalReadonly('fss',false)">✏️ Editar</button>
+    <button type="button" id="mFssTarjeta" class="btn btn-p hidden" style="width:auto;padding:0 16px;" onclick="_evalAplicarTarjeta('fss')">💾 Guardar en el episodio</button>
     <button type="button" class="btn btn-r" style="width:auto;padding:0 16px;" onclick="cerrarEvalModal('fss')">Cerrar</button>
   </div>
 </div>
@@ -4639,6 +4670,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
   </div>
   <div style="padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;">
     <button type="button" id="mCpaxEdit" class="btn btn-r hidden" style="width:auto;padding:0 16px;" onclick="_setEvalReadonly('cpax',false)">✏️ Editar</button>
+    <button type="button" id="mCpaxTarjeta" class="btn btn-p hidden" style="width:auto;padding:0 16px;" onclick="_evalAplicarTarjeta('cpax')">💾 Guardar en el episodio</button>
     <button type="button" class="btn btn-r" style="width:auto;padding:0 16px;" onclick="cerrarEvalModal('cpax')">Cerrar</button>
   </div>
 </div>
@@ -4742,7 +4774,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.24-mauri-sin-suelo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 7.00-episodio-y-turno]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5124,21 +5156,27 @@ function renderGrid() {
         // patrón que los dispositivos por vencer; corte configurable en CONFIG)
         const cutEval=(window.CFG&&parseInt(CFG.EVAL_DIAS_ALERTA))||5;
         const _edadEv = s => s ? dias(String(s).slice(0,10), fecha) : null;
-        const _evalBadge=(lbl,valr,fch)=>{
+        // 🗂️ Rama episodio/turno: el badge SE TOCA y mide desde la tarjeta, sin
+        // abrir la evolución; y muestra la FIRMA de quien midió junto a la fecha
+        // (Diego, 11-sep: «al lado de la fecha podrían salir sus iniciales»).
+        const _evalBadge=(lbl,valr,fch,fir)=>{
+          const _k=lbl==='MRC'?'mrc':'fss';
+          const _oc=` onclick="event.stopPropagation();medirDesdeTarjeta('${_k}','${c.ID_CAMA}')" style="cursor:pointer;"`;
+          const _fs=fir?` · ${String(fir).replace(/[<>&"]/g,'')}`:'';
           // El tooltip dice el MOTIVO (Diego, 5-sep-2026): cooperador sin
           // medición = evaluable desde ya.
-          if(!_t(valr)) return `<span class="abadge a-pend" title="${lbl} pendiente: paciente cooperador sin medición registrada en el episodio — evaluable desde ya">📋 ${lbl} pend.</span>`;
+          if(!_t(valr)) return `<span class="abadge a-pend"${_oc} title="${lbl} pendiente: paciente cooperador sin medición registrada en el episodio — evaluable desde ya. Toca para medir">📋 ${lbl} pend.</span>`;
           const ed=_edadEv(fch);
           if(ed!=null&&ed>cutEval)
-            return `<span class="abadge" style="background:#d9770618;color:#b45309;border:1px solid #d9770655;" title="Última ${lbl} hace ${ed} días (alerta configurable: >${cutEval} d sin re-evaluar en paciente cooperador)">📋 ${lbl} ${valr} · hace ${ed}d</span>`;
-          return `<span class="abadge a-eval">${lbl} ${valr}${fch?` · ${_f(fch)}`:''}</span>`;
+            return `<span class="abadge"${_oc.replace('style="','style="background:#d9770618;color:#b45309;border:1px solid #d9770655;')} title="Última ${lbl} hace ${ed} días (alerta configurable: >${cutEval} d sin re-evaluar en paciente cooperador). Toca para medir de nuevo">📋 ${lbl} ${valr} · hace ${ed}d${_fs}</span>`;
+          return `<span class="abadge a-eval"${_oc} title="${lbl} ${valr}${fch?' medido el '+_f(fch):''}${fir?' por '+fir:''}. Toca para medir de nuevo">${lbl} ${valr}${fch?` · ${_f(fch)}`:''}${_fs}</span>`;
         };
-        al += _evalBadge('MRC', c.ULT_MRC, c.ULT_MRC_FECHA);
+        al += _evalBadge('MRC', c.ULT_MRC, c.ULT_MRC_FECHA, c.ULT_MRC_FIRMA);
         // ICU-AW: MRC-SS <48 en cooperador. Se resuelve sola con MRC ≥48.
         if(_t(c.ULT_MRC)&&parseInt(c.ULT_MRC)<48){
           al+=`<span class="abadge" style="background:#9333ea18;color:#9333ea;border:1px solid #9333ea55;" title="Debilidad adquirida en UCI: MRC-SS ${c.ULT_MRC} (<48) en paciente cooperador${c.ULT_MRC_FECHA?`, medido el ${_f(c.ULT_MRC_FECHA)}`:''}. Se resuelve con una medición ≥48.">🧬 ICU-AW</span>`;
         }
-        al += _evalBadge('FSS', c.ULT_FSS, c.ULT_FSS_FECHA);
+        al += _evalBadge('FSS', c.ULT_FSS, c.ULT_FSS_FECHA, c.ULT_FSS_FIRMA);
       } else {
         // 📋 Sin MRC/FSS y paciente NO cooperador: el badge dice el motivo
         // (Diego, 5-sep-2026: «es sedación/cooperación… decide tú dónde») —
@@ -5172,7 +5210,7 @@ function renderGrid() {
                 tarjeta de Identificación se esconde fuera del ingreso. En la
                 vista retrospectiva no va — ahí no se edita nada. */''}
           <div class="pname" title="${c.NOMBRE||''}"><span>${c.NOMBRE||'-'}</span>${c._RETRO?'':
-            `<button type="button" class="pname-lap" title="Editar la ficha del paciente (nombre, RUT, diagnóstico, evaluaciones de ingreso)" onclick="event.stopPropagation();abrirPanel('${c.ID_CAMA}',false,true)">✏️</button>`}${_synBotonHTML(c)}${_lisBotonHTML(c)}</div>
+            `<button type="button" class="pname-lap" title="Editar la ficha del paciente (nombre, RUT, diagnóstico, evaluaciones de ingreso)" onclick="event.stopPropagation();abrirPanel('${c.ID_CAMA}',false,true)">✏️</button>`}${_synBotonHTML(c)}${_lisBotonHTML(c)}</div>${_escalasEpisodioHTML(c)}
           <div style="font-size:.78rem;color:var(--muted);">${c.EDAD||'?'}a · ${c.SEXO||''}</div>
           ${/* El DIAGNÓSTICO reemplaza al COD_PACIENTE en la tarjeta (Diego,
                 ago-2026): el código es plomería interna para cruzar datos sin
@@ -5365,7 +5403,7 @@ function abrirPanel(id, esIng, verFicha) {
   $('spShift').textContent=`${_emoji} ${fecha}`;
   hide('rarea'); hide('repBanner'); const _riClr=$('spRepInfo');if(_riClr){_riClr.textContent='';_riClr.style.display='none';}
   const _gClr=$('spGapAviso'); if(_gClr){_gClr.style.display='none';_gClr.innerHTML='';}
-  _transAvisoOk=false; _iniVA=''; _iniSop='';
+  _transAvisoOk=false; _transMotivo=''; _iniVA=''; _iniSop='';
   _fichaAbierta=!!verFicha;   // lo aplica fichaAplicar() cuando el form esté lleno
   _formDirty=false;           // panel recién abierto: sin cambios que perder
   _limpiarHeredados();
@@ -6438,6 +6476,9 @@ function _snapIniEstado(){
   _iniDias={ _diasVABase, _diasTOTBase, _diasTQTBase, _fechaInicioVA, _fechaInicioTQT,
     _diasVMEpisodio, _diasVMPrevios, _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
     _transIntubEsteTurno };
+  // 🗂️ Rama episodio/turno: el banner del episodio, la fila de eventos y la
+  // línea fina se pintan con el estado de llegada recién fotografiado.
+  try{ _episodioAlFormulario(); renderBannerEpisodio(); _pintarFilaEventoVA(); _lineaFinaVA(); }catch(e){ console.warn('episodio/turno:', e); }
 }
 /** ¿Hay algún evento de vía aérea DECLARADO en este turno? */
 function _hayEventoVA(){
@@ -6505,10 +6546,27 @@ function _avisosTransicion(){
 function _mostrarTransAviso(avisos){
   const l=$('transAvisoLista');
   if(l) l.innerHTML=avisos.map(a=>`<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:8px 10px;">${a}</div>`).join('');
+  // 🗂️ El cuadro del motivo solo aparece cuando hay un cambio de vía aérea sin evento.
+  const hayTrans=_avisosTransicion().length>0;
+  $('transMotivoBox')?.classList.toggle('hidden', !hayTrans);
+  const bt=$('transAviso')?.querySelector('.btn-r'); if(bt) bt.textContent=hayTrans?'Guardar con motivo':'Guardar igual';
   $('transAviso')?.classList.add('on');
 }
 function transAvisoCerrar(){ $('transAviso')?.classList.remove('on'); }
-function transAvisoGuardar(){ _transAvisoOk=true; transAvisoCerrar(); guardar(); }
+let _transMotivo='';
+function transAvisoGuardar(){
+  // 🗂️ Con un cambio de vía aérea sin evento, el motivo es obligatorio (≥5
+  // letras). Si solo hay heredados sin revisar, se guarda como antes.
+  const hayTrans=_avisosTransicion().length>0;
+  const m=String(v('transMotivo')||'').trim();
+  if(hayTrans && m.length<5){
+    toast('⚠️ Escribe por qué cambió la vía aérea sin evento, o vuelve y declara el evento');
+    const t=$('transMotivo'); if(t){ t.focus(); t.style.outline='2px solid var(--danger)'; setTimeout(()=>{t.style.outline='';},2500); }
+    return;
+  }
+  _transMotivo=hayTrans?m:'';
+  _transAvisoOk=true; transAvisoCerrar(); guardar();
+}
 
 // H4: espejo cliente de los rangos de dominio_validacion.gs (servidor sigue
 // validando igual — esto solo ahorra el round-trip al dedazo evidente)
@@ -6844,6 +6902,13 @@ function guardar() {
   }
   // ★ Etapa 1(b) + 2: avisos NO bloqueantes antes de guardar — cambio de
   //   estado sin evento y mediciones heredadas sin confirmar ★
+  // ★ 🗂️ SBC exige FSS-ICU del episodio, al menos uno (Diego, 9 y 11-sep:
+  //   «lo evalué, después lo traté»). El mismo mensaje que da el servidor. ★
+  if(_ktmEstado()==='r' && v('fKTMniv')==='3' && v('fFSS')==='' && !_episodioTieneFSS()){
+    toast('⚠️ SBC (KTM nivel 3) exige al menos un FSS-ICU en el episodio: mídelo en Evaluaciones y vuelve a guardar', 6000);
+    const _r=$('rowFss'); if(_r){ $('cEgr')&&($('cEgr').checked=true); if(typeof hEgr==='function') hEgr(); _r.scrollIntoView({behavior:'smooth',block:'center'}); _r.style.outline='2px solid var(--danger)'; setTimeout(()=>{_r.style.outline='';},3000); }
+    return;
+  }
   if(!_transAvisoOk){
     const _avs=_avisosTransicion();
     const _nHer=_herPendientes();
@@ -6852,6 +6917,7 @@ function guardar() {
   }
   const datos={
     ID_CAMA:id, TURNO_KEY:tkey, ES_INGRESO:v('cIng')==='true',
+    TRANS_MOTIVO:_transMotivo||'',   // 🗂️ razón escrita si la vía aérea cambió sin evento (va al hito, no a EVOLUCIONES)
     PAC_NOMBRE:v('fNombre'), PAC_EDAD:v('fEdad'), PAC_RUT:v('fRut'),
     PAC_SEXO:v('fSexo'), PAC_TALLA:v('fTalla'), PAC_BARTHEL:v('fBarthel'),
     PAC_ECF:v('fEcf'), PAC_DIAGNOSTICO:v('fDx'), PAC_DIAG_REM:v('fRem'),
@@ -15861,6 +15927,8 @@ function sumBarthel(){
 function aplicarBarthel(){
   const tot=sumBarthel();
   if(tot===null){ toast('⚠️ Faltan ítems del Barthel por responder'); return; }
+  // 🗂️ Desde la tarjeta: al episodio, sin abrir la evolución.
+  if(_escalaOnApply){ const cb=_escalaOnApply; _escalaOnApply=null; const a=[]; for(let i=0;i<10;i++) a.push(v('bar'+i)); cerrarEscala('mBarthel'); cb(String(tot), a); return; }
   const t=$(_escalaTarget||'fBarthel'); if(t){ t.value=String(tot); t.dispatchEvent(new Event('change')); }
   cerrarEscala('mBarthel');
 }
@@ -15893,6 +15961,7 @@ function sumCharlson(){
   return tot;
 }
 function aplicarCharlson(){
+  if(_escalaOnApply){ const cb=_escalaOnApply; _escalaOnApply=null; const a=[]; CHARLSON_ITEMS.forEach((x,i)=>{ if($('ch'+i)?.checked) a.push(i); }); const tot=sumCharlson(); cerrarEscala('mCharlson'); cb(String(tot), {it:a,edad:!!$('chEdad')?.checked}); return; }
   const t=$(_escalaTarget||'fCharlson'); if(t){ t.value=String(sumCharlson()); t.dispatchEvent(new Event('change')); }
   cerrarEscala('mCharlson');
 }
@@ -15906,6 +15975,7 @@ function _renderEcf(){
   b.dataset.ready='1';
 }
 function _pickEcf(n){
+  if(_escalaOnApply){ const cb=_escalaOnApply; _escalaOnApply=null; cerrarEscala('mEcf'); cb(String(n), null); return; }
   const t=$(_escalaTarget||'fEcf'); if(t){ t.value=String(n); t.dispatchEvent(new Event('change')); }
   cerrarEscala('mEcf');
 }
@@ -15981,6 +16051,218 @@ const _LIS_SVG='<svg class="lis-ico" viewBox="0 0 24 24" width="17" height="17" 
   ' font-size="5.6" font-weight="700" fill="#3c3c3b" letter-spacing="-.15">cobas</text></svg>';
 
 /** El botón solo existe con URL configurada Y con RUT que copiar. */
+// ═══════════════════════════════════════════════════════════════════════════
+//  🗂️ EPISODIO Y TURNO (rama paralela, 11-sep-2026, decisiones de Diego)
+//
+//  Cuatro casas para el dato: episodio (una vez) · serie fechada (N veces,
+//  con fecha y firma) · evento (un hecho a una hora) · turno (cómo está hoy).
+//  Lo que vive en el episodio NO se hereda: se lee de la cama y se mide desde
+//  la tarjeta, sin abrir la evolución. La firma es PROCEDENCIA, no propiedad.
+// ═══════════════════════════════════════════════════════════════════════════
+let _escalaOnApply=null;   // callback de las calculadoras ECF/Barthel/Charlson en modo tarjeta
+let _evalOnApply=null;     // {kind, idCama} cuando MRC/FSS/CPAx se miden desde la tarjeta
+const _EP_ESCALAS=[
+  {k:'ECF',      lbl:'ECF',      col:'ECF',      kind:'ecf',      tip:'Escala clínica de fragilidad (pre-UCI)'},
+  {k:'BARTHEL',  lbl:'Barthel',  col:'BARTHEL',  kind:'barthel',  tip:'Índice de Barthel (pre-UCI)'},
+  {k:'CHARLSON', lbl:'Charlson', col:'CHARLSON', kind:'charlson', tip:'Índice de Charlson (comorbilidad)'},
+];
+function _fdd(iso){ const s=String(iso||''); return /^\d{4}-\d{2}-\d{2}/.test(s)?s.slice(8,10)+'-'+s.slice(5,7):s; }
+function _epRetro(c){ return !c || c._RETRO || !c.PATIENT_ID || !(c.OCUPADA===true||c.OCUPADA==='TRUE'); }
+
+/** Los tres chips de las escalas pre-UCI, en la tarjeta y en el banner.
+ *  Pendiente = se ve, y al tocarlo se mide. Hecho = valor con su firma. */
+function _escalasEpisodioHTML(c, enBanner){
+  if(_epRetro(c)) return '';
+  const chips=_EP_ESCALAS.map(e=>{
+    const val=String(c[e.col]==null?'':c[e.col]).trim();
+    const pend=val==='';
+    const cls='abadge '+(pend?'a-pend':'a-eval');
+    const tit=(pend?e.tip+' — pendiente en este episodio. Toca para medir':e.tip+': '+val+'. Toca para corregir');
+    return `<span class="${cls}" style="cursor:pointer;" title="${tit}" onclick="event.stopPropagation();escalaDesdeTarjeta('${c.ID_CAMA}','${e.kind}')">${pend?'📋 ':''}${e.lbl}${pend?' pend.':' '+val}</span>`;
+  }).join('');
+  return enBanner?chips:`<div class="ep-escalas" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;">${chips}</div>`;
+}
+
+/** ECF / Barthel / Charlson desde la tarjeta → EPISODIO_ESCALA, sin abrir el modal. */
+function escalaDesdeTarjeta(idCama, kind){
+  const c=((typeof DB!=='undefined'&&DB)||[]).find(x=>String(x.ID_CAMA)===String(idCama))||{};
+  if(_epRetro(c)){ toast('⚠️ La cama no tiene paciente ingresado'); return; }
+  const esc=_EP_ESCALAS.find(e=>e.kind===kind); if(!esc) return;
+  _escalaOnApply=(valor,items)=>{
+    _pedirFirma().then(firma=>{
+      if(firma===null) return;
+      api('EPISODIO_ESCALA',{idCama:String(idCama), escala:esc.k, valor:valor, items:items||'', firma:firma})
+        .then(r=>{ toast(`✅ ${esc.lbl} ${valor} guardado en el episodio${firma?' ('+firma+')':''}`); if(typeof recargarSilencioso==='function') recargarSilencioso(); })
+        .catch(e=>toast('❌ '+(e.message||e)));
+    });
+  };
+  // La calculadora de siempre; el valor no va al formulario sino al callback.
+  if(kind==='barthel'){ for(let i=0;i<10;i++){ const s=$('bar'+i); if(s) s.value=''; } }
+  if(kind==='charlson'){ CHARLSON_ITEMS.forEach((x,i)=>{ const b=$('ch'+i); if(b) b.checked=false; }); const ce=$('chEdad'); if(ce) ce.checked=false; }
+  abrirEscala(kind,'');
+}
+
+/** MRC / FSS / CPAx desde la tarjeta → EVAL_REGISTRAR (serie fechada con firma). */
+function medirDesdeTarjeta(kind, idCama){
+  const c=((typeof DB!=='undefined'&&DB)||[]).find(x=>String(x.ID_CAMA)===String(idCama))||{};
+  if(_epRetro(c)){ toast('⚠️ La cama no tiene paciente ingresado'); return; }
+  const cfg=EVAL_MODALS[kind]; if(!cfg) return;
+  // Si el panel de esa misma cama está abierto, se mide adentro como siempre.
+  if(v('cBed')===String(idCama) && $('sp')?.classList.contains('on')){ abrirEvalModal(kind); return; }
+  _evalOnApply={kind:kind, idCama:String(idCama)};
+  _evalLimpiarCampos(kind);
+  abrirEvalModal(kind);
+  _setEvalReadonly(kind,false);
+  const lbl=$(cfg.modal+'RoLbl'); if(lbl){ lbl.textContent='📌 Desde la tarjeta · cama '+idCama+' · se guarda en el episodio'; lbl.classList.remove('hidden'); }
+  ['mMrcTarjeta','mFssTarjeta','mCpaxTarjeta'].forEach(id=>$(id)?.classList.add('hidden'));
+  $({mrc:'mMrcTarjeta',fss:'mFssTarjeta',cpax:'mCpaxTarjeta'}[kind])?.classList.remove('hidden');
+}
+function _evalLimpiarCampos(kind){
+  if(kind==='mrc'){ for(let i=1;i<=6;i++){ ['fMrcD'+i,'fMrcI'+i].forEach(id=>{ const e=$(id); if(e) e.value=''; }); } const t=$('fMRC'); if(t) t.value=''; }
+  if(kind==='fss'){ for(let i=1;i<=5;i++){ const e=$('fFssIt'+i); if(e) e.value=''; } const t=$('fFSS'); if(t) t.value=''; }
+  if(kind==='cpax'){ for(let i=1;i<=10;i++){ const e=$('fCpax'+i); if(e) e.value=''; } const t=$('fCpaxTotal'); if(t) t.value=''; }
+}
+function _evalItemsDe(kind){
+  if(kind==='mrc'){ const D=[],I=[]; for(let i=1;i<=6;i++){ D.push(v('fMrcD'+i)); I.push(v('fMrcI'+i)); } return {D:D,I:I}; }
+  if(kind==='fss'){ const a=[]; for(let i=1;i<=5;i++) a.push(v('fFssIt'+i)); return a; }
+  if(kind==='cpax'){ const a=[]; for(let i=1;i<=10;i++) a.push(v('fCpax'+i)); return a; }
+  return null;
+}
+function _evalAplicarTarjeta(kind){
+  const st=_evalOnApply; if(!st||st.kind!==kind){ cerrarEvalModal(kind); return; }
+  if(kind==='mrc') sumMRC(); if(kind==='fss') sumFSS(); if(kind==='cpax') sumCPAX();
+  const total=kind==='mrc'?v('fMRC'):kind==='fss'?v('fFSS'):v('fCpaxTotal');
+  if(total===''){ toast('⚠️ Completa todos los ítems antes de guardar'); return; }
+  const escala={mrc:'MRC',fss:'FSS',cpax:'CPAX'}[kind];
+  _pedirFirma().then(firma=>{
+    if(firma===null) return;
+    api('EVAL_REGISTRAR',{idCama:st.idCama, escala:escala, total:total, items:_evalItemsDe(kind), firma:firma, origen:'tarjeta'})
+      .then(r=>{ _evalOnApply=null; cerrarEvalModal(kind); _evalLimpiarCampos(kind);
+        toast(`✅ ${escala==='CPAX'?'CPAx':escala} ${total} guardado en el episodio${firma?' ('+firma+')':''}`);
+        if(typeof recargarSilencioso==='function') recargarSilencioso(); })
+      .catch(e=>toast('❌ '+(e.message||e)));
+  });
+}
+/** Quién mide. Sin login, es la firma DECLARADA (la del formulario si está
+ *  abierto, si no la última usada en este navegador, si no se pregunta). */
+function _pedirFirma(){
+  const enForm=v('fFirma');
+  if(enForm) return Promise.resolve(enForm);
+  let ult=''; try{ ult=localStorage.getItem('rce_firma_tarjeta')||''; }catch(e){}
+  return new Promise(res=>{
+    const opts=[]; try{ const tmp=document.createElement('select'); fillFirmaSelect(tmp); tmp.querySelectorAll('option').forEach(o=>{ if(o.value) opts.push(o.value); }); }catch(e){}
+    const sel='<select id="epFirmaSel" style="width:100%;height:36px;margin-top:6px;"><option value="">— firma —</option>'+
+      opts.map(o=>`<option value="${o}"${o===ult?' selected':''}>${o}</option>`).join('')+'</select>';
+    uiConfirm({ icono:'✍️', titulo:'¿Quién midió?', mensaje:'La firma viaja con la medición: dice de dónde salió el dato.', detalle:sel, confirmar:'Guardar' })
+      .then(ok=>{ if(!ok){ res(null); return; } const f=String(v('epFirmaSel')||'').trim(); if(!f){ toast('⚠️ Elige tu firma'); res(null); return; }
+        try{ localStorage.setItem('rce_firma_tarjeta',f); }catch(e){} res(f); });
+  });
+}
+/** ¿El episodio de la cama del panel ya tiene algún FSS-ICU? (SBC lo exige.) */
+function _episodioTieneFSS(){
+  const c=_camaPanel();
+  if(c.ULT_FSS!==''&&c.ULT_FSS!=null) return true;
+  try{ if(Array.isArray(_serieEpisodio)&&_serieEpisodio.some(e=>e.escala==='FSS')) return true; }catch(e){}
+  return false;
+}
+let _serieEpisodio=null;
+
+// ── La fila de eventos y la línea fina ────────────────────────────────────
+/** Qué evento tiene declarado el formulario ahora mismo (para pintar el activo). */
+function _eventoVADeclarado(){
+  if($('cTqtO')?.checked) return 'tqt';
+  if($('cDecanOcurrio')?.checked) return 'decan';
+  try{ if(_extReintub()) return 'reintub'; }catch(e){}
+  try{ if(_extOcurrio()) return 'ext'; }catch(e){}
+  if($('cIntubO')?.checked) return 'intub';
+  return 'nada';
+}
+function _pintarFilaEventoVA(){
+  const fila=$('evVAfila'); if(!fila) return;
+  const ingreso=v('cIng')==='true';
+  fila.classList.toggle('hidden', ingreso || !_iniVA);   // al ingresar no hay «venía con»
+  const act=_eventoVADeclarado();
+  fila.querySelectorAll('.ev-va').forEach(b=>{ const on=b.dataset.ev===act; b.style.background=on?'#1d4ed8':''; b.style.color=on?'#fff':''; b.style.borderColor=on?'#1d4ed8':''; });
+  const h=$('evVAhint'); if(h) h.textContent = act==='nada'
+    ? `Venía con ${_iniVA||'—'}. Si hoy no pasó nada con la vía aérea, no toques nada.`
+    : `Venía con ${_iniVA||'—'} y hoy queda con ${v('fVA')||'—'}. Completa el detalle en su bloque.`;
+}
+/** El evento se declara aquí; él abre su bloque y fija la vía aérea. */
+function setEventoVA(tipo){
+  const scrollA=id=>{ const e=$(id); if(e){ e.scrollIntoView({behavior:'smooth',block:'center'}); e.style.outline='2px solid #1d4ed8'; setTimeout(()=>{e.style.outline='';},2500); } };
+  const fijarVA=va=>{ const s=$('fVA'); if(!s) return; s.disabled=false; s.value=va; cascadeVA(); };
+  if(tipo==='nada'){
+    [['cIntubO',hIntub],['cTqtO',hTqtO],['cDecanOcurrio',hDecan]].forEach(([id,fn])=>{ const e=$(id); if(e&&e.checked){ e.checked=false; try{ fn(); }catch(x){} } });
+    ['cReintub','cReintubNo','cReintubT'].forEach(id=>{ const e=$(id); if(e&&e.checked){ e.checked=false; try{ ({cReintub:hReintubCheck,cReintubNo:hReintubCheckNo,cReintubT:hReintubCheckT})[id](); }catch(x){} } });
+    const ce=$('cExtSinPve'); if(ce&&ce.checked){ ce.checked=false; try{ hExtSinPve(); }catch(x){} }
+    fijarVA(_iniVA);
+  } else if(tipo==='intub'){
+    const e=$('cIntubO'); if(e&&!e.checked){ e.checked=true; hIntub(); }
+    fijarVA('TOT'); scrollA('dIntubDet');
+  } else if(tipo==='ext'){
+    // La extubación vive en el bloque PVE (con PVE, o «sin PVE» con su tipo).
+    // Aquí se anuncia y se fija la vía aérea; el detalle se completa allá y
+    // el guardado no pasa sin EXT_OCURRIO (cliente y servidor).
+    fijarVA('Natural');
+    scrollA('dPVE'); scrollA('fPVEval');
+    toast('✂️ Extubación anunciada: ahora declara cómo fue — PVE superada, o extubación sin PVE con su tipo', 6000);
+  } else if(tipo==='reintub'){
+    fijarVA('TOT');
+    const c=$('cReintubT')&&!$('cReintubT').closest('.hidden')?'cReintubT':($('cReintubNo')&&!$('cReintubNo').closest('.hidden')?'cReintubNo':'cReintub');
+    const e=$(c); if(e&&!e.checked){ e.checked=true; try{ ({cReintub:hReintubCheck,cReintubNo:hReintubCheckNo,cReintubT:hReintubCheckT})[c](); }catch(x){} }
+    scrollA('dReintubSec');
+  } else if(tipo==='tqt'){
+    const e=$('cTqtO'); if(e&&!e.checked){ e.checked=true; hTqtO(); }
+    fijarVA('TQT'); scrollA('dTqtDet');
+  } else if(tipo==='decan'){
+    const e=$('cDecanOcurrio'); if(e&&!e.checked){ e.checked=true; hDecan(); }
+    fijarVA('Natural'); scrollA('dDecanDet');
+  }
+  _pintarFilaEventoVA(); _lineaFinaVA();
+  if(typeof _renderAutoProcs==='function') _renderAutoProcs();
+}
+/** Línea fina (Diego, 11-sep: «ambas»): la vía aérea solo la cambia un evento.
+ *  Sin evento declarado y fuera del ingreso, el select queda bloqueado. */
+function _lineaFinaVA(){
+  const s=$('fVA'); if(!s) return;
+  const libre = v('cIng')==='true' || !_iniVA || _hayEventoVA();
+  s.disabled=!libre;
+  s.title=libre?'':'La vía aérea la cambia un evento: decláralo arriba en «¿Qué pasó hoy con la vía aérea?»';
+  s.style.opacity=libre?'':'.75';
+}
+try{ document.getElementById('kf')?.addEventListener('change', ()=>{ try{ _lineaFinaVA(); _pintarFilaEventoVA(); }catch(e){} }); }catch(e){}
+
+// ── El banner del episodio y el estado que no se hereda ──────────────────
+function _episodioAlFormulario(){
+  // AET y procuramiento viven en la cama: lo que diga la cama manda sobre lo
+  // que la réplica del turno anterior haya traído. Solo si el turno de hoy
+  // no tiene nada guardado todavía (si ya guardó, se respeta lo suyo).
+  const c=_camaPanel(); if(!c||!c.PATIENT_ID) return;
+  if(c.AET_ACTIVA===true||c.AET_ACTIVA==='TRUE'){ const e=$('cAET'); if(e&&!e.checked){ e.checked=true; const n=$('fAETnivel'); if(n&&c.AET_NIVEL) n.value=c.AET_NIVEL; try{ hAET(); }catch(x){} } }
+  if(c.UPOT_ACTIVO===true||c.UPOT_ACTIVO==='TRUE'){ const e=$('cUPOT'); if(e&&!e.checked){ e.checked=true; show('dUpotDet'); const m=$('cUPOTmed'); if(m&&(c.UPOT_MEDIDAS===true||c.UPOT_MEDIDAS==='TRUE')) m.checked=true; } }
+}
+function renderBannerEpisodio(){
+  const b=$('epBanner'); if(!b) return;
+  const c=_camaPanel();
+  if(!c||!c.PATIENT_ID||v('cIng')==='true'){ b.classList.add('hidden'); b.innerHTML=''; return; }
+  const hoyD=v('gDate')||hoy();
+  const dias=(a,b2)=>{ if(!a) return ''; const x=new Date(String(a).slice(0,10)+'T00:00:00'), y=new Date(String(b2).slice(0,10)+'T00:00:00'); const d=Math.round((y-x)/86400000); return isNaN(d)?'':d; };
+  const est=dias(c.FECHA_INGRESO,hoyD);
+  const va=String(c.VIA_AEREA||'—'), sop=String(c.SOPORTE||'—');
+  const vm=(sop==='VM'&&c.FECHA_INICIO_SOPORTE)?dias(c.FECHA_INICIO_SOPORTE,hoyD):'';
+  const esc=_escalasEpisodioHTML(c,true);
+  const aet=(c.AET_ACTIVA===true||c.AET_ACTIVA==='TRUE')?`<span class="abadge" style="background:#7c3aed18;color:#6d28d9;border:1px solid #7c3aed55;" title="Adecuación del esfuerzo terapéutico${c.AET_NIVEL?' · nivel '+c.AET_NIVEL:''}${c.AET_FECHA?' · desde '+_fdd(c.AET_FECHA):''}">⚖️ AET${c.AET_NIVEL?' '+c.AET_NIVEL:''}</span>`:'';
+  const upot=(c.UPOT_ACTIVO===true||c.UPOT_ACTIVO==='TRUE')?`<span class="abadge" style="background:#0f766e18;color:#0f766e;border:1px solid #0f766e55;" title="En seguimiento por UPOT${c.UPOT_FECHA?' desde '+_fdd(c.UPOT_FECHA):''}">🫀 UPOT</span>`:'';
+  const nom=String(c.NOMBRE||'').replace(/[<>&]/g,'');
+  b.innerHTML=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;margin:0 0 10px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;">
+      <div style="font-weight:800;font-size:.95rem;">${nom||'Paciente'}</div>
+      <div style="font-size:.78rem;color:#475569;">${c.EDAD?c.EDAD+' a':''}${c.SEXO?' · '+c.SEXO:''}${est!==''?' · Día '+est:''}</div>
+      <div style="font-size:.78rem;color:#475569;">VA <b>${va}</b> · ${sop}${vm!==''?' <b>'+vm+' d</b>':''}</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-left:auto;">${esc}${aet}${upot}</div>
+    </div>`;
+  b.classList.remove('hidden');
+}
+
 function _lisBotonHTML(c){
   if(!_lisURL() || !c || !String(c.RUT||'').trim() || c._RETRO) return '';
   return '<button type="button" class="pname-img" title="Abrir cobas y copiar el RUT para pegarlo en el buscador"'+

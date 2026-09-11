@@ -158,6 +158,7 @@ const _RESET_VACIAR = [
   // de «solo agregar» aplica al código de la app, no a esta rutina explícita.
   'NOTIFICACIONES',
   'GSA_IMPORTADAS',   // gases importados de la marcha que se resetea
+  'EVALUACIONES',     // 🗂️ la serie fechada del episodio: dato clínico, se va con el reseteo
 ];
 // Hojas que NO se tocan (configuración de la unidad).
 const _RESET_CONSERVAR = ['CONFIG', 'CATALOGOS', 'CAT_MATRICES', 'KINESIOLOGOS', 'INDICADORES_HISTORICO', 'PLANTILLAS_EVOLUCION'];
@@ -937,7 +938,8 @@ var AUDIT_ACCIONES = ['AGREGAR_FASE', 'AGREGAR_HITO', 'AJUSTAR_STOCK', 'ANEXAR_E
 function auditoriaIntegridad() {
   try {
     const out = { A_clavesRepetidas: [], B_camasConAjenas: [], C_primerGuardadoSobreFila: [],
-      C_filasAparteDesdeV599: 0, D_turnosConDosEpisodios: 0, E_episodiosSinEvoluciones: [] };
+      C_filasAparteDesdeV599: 0, D_turnosConDosEpisodios: 0, E_episodiosSinEvoluciones: [],
+      F_viaAereaSinEvento: [] };
     const lineas = [];
 
     // A + B + D — hoja viva y archivo, solo las columnas que hacen falta.
@@ -1005,6 +1007,44 @@ function auditoriaIntegridad() {
         ingreso: String(a.FECHA_INGRESO || '').slice(0, 10), egreso: String(a.FECHA_EGRESO || '').slice(0, 10) });
     });
 
+    // F — 🗂️ VÍA AÉREA CAMBIADA SIN EVENTO (rama episodio/turno, 11-sep-2026;
+    // la cama 13 de Diego). Un turno cuya vía aérea de salida es distinta de
+    // la que traía y que no declaró intubación, extubación, reintubación, TQT
+    // ni decanulación. Para las cifras esa extubación nunca ocurrió y el reloj
+    // de VM siguió corriendo. Vivos Y archivados, porque el daño ya puede
+    // estar en ARCHIVO_PACIENTES (EXTUBACION_OK falso, DIAS_VM_TOTAL inflado).
+    try {
+      const colsF = ['ID_EVOLUCION', 'ID_CAMA', 'PATIENT_ID', 'TURNO_KEY', 'ES_INGRESO',
+        'VENT_VIA_AEREA', 'VENT_VIA_AEREA_FINAL', 'EXT_OCURRIO', 'INTUB_OCURRIO', 'EXT_REINTUB', 'TQT_OCURRIO', 'DECAN_OCURRIO'];
+      const filasF = repoLeerColumnasConFila('EVOLUCIONES', colsF).map(function (f) { return f.obj; })
+        .concat(repoLeerColumnasConFila('EVOLUCIONES_ARCHIVO', colsF).map(function (f) { return f.obj; }));
+      const porEp = {};
+      filasF.forEach(function (e) {
+        const k = String(e.PATIENT_ID || ('cama:' + e.ID_CAMA));
+        (porEp[k] = porEp[k] || []).push(e);
+      });
+      const inv = function (x) { return x === 'TOT' || x === 'TQT'; };
+      Object.keys(porEp).forEach(function (k) {
+        const evs = porEp[k].sort(function (a, b) { return String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)); });
+        for (let i = 1; i < evs.length; i++) {
+          const prev = evs[i - 1], cur = evs[i];
+          if (esVerdadero(cur.ES_INGRESO)) continue;
+          const de = String(prev.VENT_VIA_AEREA_FINAL || prev.VENT_VIA_AEREA || '').trim();
+          const a = String(cur.VENT_VIA_AEREA_FINAL || cur.VENT_VIA_AEREA || '').trim();
+          if (!de || !a || de === a) continue;
+          const evento = esVerdadero(cur.EXT_OCURRIO) || esVerdadero(cur.INTUB_OCURRIO) || esVerdadero(cur.EXT_REINTUB) ||
+                         esVerdadero(cur.TQT_OCURRIO) || esVerdadero(cur.DECAN_OCURRIO);
+          if (evento) continue;
+          let que = 'cambio sin evento';
+          if (inv(de) && !inv(a)) que = de === 'TQT' ? 'decanulación sin declarar' : 'extubación sin declarar (invisible para el REM; reloj de VM abierto)';
+          else if (!inv(de) && inv(a)) que = 'intubación/reintubación sin declarar';
+          else if (de === 'TOT' && a === 'TQT') que = 'TQT sin declarar';
+          out.F_viaAereaSinEvento.push({ cama: String(cur.ID_CAMA), turno: String(cur.TURNO_KEY), de: de, a: a,
+            pid: String(cur.PATIENT_ID || '').slice(0, 8), que: que });
+        }
+      });
+    } catch (e) { lineas.push('  (huella F no se pudo calcular: ' + e.message + ')'); }
+
     // Informe legible (sin nombres ni RUT: solo camas, turnos y 8 letras del pid).
     lineas.unshift('AUDITORÍA DE INTEGRIDAD — solo lectura, nada se modificó');
     lineas.push('A · Claves repetidas en la hoja viva: ' + out.A_clavesRepetidas.length +
@@ -1019,6 +1059,9 @@ function auditoriaIntegridad() {
     lineas.push('D · Cama+turno con dos episodios (egreso e ingreso el mismo turno, informativo): ' + out.D_turnosConDosEpisodios);
     lineas.push('E · Episodios archivados sin ninguna evolución: ' + out.E_episodiosSinEvoluciones.length +
       (out.E_episodiosSinEvoluciones.length ? '\n' + out.E_episodiosSinEvoluciones.map(function (x) { return '   · cama ' + x.cama + ' · ' + x.ingreso + ' → ' + x.egreso + ' · pid ' + x.pid; }).join('\n') : ''));
+    lineas.push('F · Vía aérea cambiada SIN evento declarado (vivos + archivo): ' + out.F_viaAereaSinEvento.length +
+      (out.F_viaAereaSinEvento.length ? '\n' + out.F_viaAereaSinEvento.map(function (x) { return '   · cama ' + x.cama + ' · ' + x.turno + ' · ' + x.de + ' → ' + x.a + ' · ' + x.que + ' · pid ' + x.pid; }).join('\n') +
+        '\n   → abrir esa evolución, declarar el evento en «¿Qué pasó hoy con la vía aérea?» y volver a guardar.' : ''));
     const msg = lineas.join('\n');
     Logger.log(msg);
     out.mensaje = msg;
