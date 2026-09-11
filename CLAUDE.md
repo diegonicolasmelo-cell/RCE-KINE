@@ -657,6 +657,50 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   fina de ventilación está bien (parámetros = turno; vía aérea y soporte =
   episodio y solo los cambia un evento — es lo más invasivo); cultivos como
   serie o como evento; y si se parte por la tanda ①.
+  · ✅ **ACORDADO EL 11-sep — LA FIRMA VIAJA CON LA MEDICIÓN («dale»)**. Diego:
+  «ocupamos el valor del colega pero debemos saber quién firmó… al lado de la
+  fecha podrían salir sus iniciales, pero el dato lo ocupa cualquiera para sus
+  fines». **Medido: hoy falta.** El episodio arrastra `ULT_MRC`+`ULT_MRC_FECHA`,
+  `ULT_FSS`+`ULT_FSS_FECHA`, `ULT_PIM`+`ULT_PIM_FECHA` — **ninguna columna de
+  quién**; la entrega imprime `MRC-SS 36 (02-09)` (`svc_entrega.gs:295`). La
+  firma existe pero se queda en la fila de la evolución (`PLAN_FIRMA_KINE`):
+  recuperable buceando, invisible donde se usa el dato. Queda
+  `MRC-ss 36 · 02-09 · MCC`. **Sumado a la tanda de las escalas.**
+  · 🔑 **REGLA QUE FIJÓ DIEGO: la firma es PROCEDENCIA, NO PROPIEDAD.** No
+  restringe quién puede usar el valor —cualquiera lo cita para sus fines, que
+  es lo correcto clínicamente—, solo dice de dónde salió. Y separa **dos firmas
+  que hoy se colapsan en una**: quién MIDIÓ (MCC, 02-09) y quién EVOLUCIONA hoy
+  citándolo. 🪤 Sin login, esas iniciales son la firma DECLARADA en el
+  formulario, no una identidad verificada (lo resolvería el PRD de la PWA).
+  · ✅ **Y EL PUNTO 4 (el registro firmado) SE CAYÓ — se da vuelta, 11-sep.**
+  Diego lo rebatió con clínica («el paciente tenía un MRC de 33 de hace varios
+  turnos; ese número es el que tengo y el que me sirve») y el código le da la
+  razón: `EVAL_FECHA: v('gDate')||hoy()` (index ~7011) graba **la fecha del
+  TURNO, no la de la evaluación**, así que hoy la fila heredada ya afirma «MRC
+  33, evaluado hoy, firmado por mí» cuando se midió hace cinco turnos y otra
+  persona. **La foto firmada YA está retocada y la serie es la que la arregla**:
+  el valor queda una vez con su fecha y firma reales y la evolución lo CITA.
+  Lo único que queda de la objeción lo cubre la regla madre (una corrección no
+  reescribe el texto de una evolución vieja).
+  · 🔴 **CORRECCIÓN CLÍNICA DE DIEGO QUE CAMBIA EL MODELO (11-sep): la ECF, el
+  Barthel y el Charlson NO son serie.** «La escala clínica de fragilidad no va a
+  cambiar durante la estadía, es la que es, porque es previa a la UCI; si hay
+  alguna corrección se corrige el mismo dato, no sería un dato nuevo.» O sea son
+  **dato único corregible del episodio** (estado pre-UCI), y solo MRC, FSS,
+  CPAx, Pimáx y mecánica respiratoria llevan historial fechado. Yo las tenía
+  como serie en la tabla: **estaba mal** — habría dejado tres ECF del mismo
+  paciente sin saber cuál vale. El criterio de si algo lleva historial es
+  clínico, no técnico.
+  · ✅ **Y SU PREGUNTA CLAVE RESPONDIDA: el vínculo es el EPISODIO, y ya existe.**
+  La hoja `TIMELINE` ya tiene `ID_HITO · ID_CAMA · **PATIENT_ID** · FECHA ·
+  TURNO · TIPO · TEXTO · AUTOR · AUTOR_EMAIL · TIMESTAMP`, y
+  `_reetiquetarEpisodioACama` ya la re-estampa en los traslados: la amarra está
+  probada. **Lo que falta no es el vínculo sino el DETALLE** — hoy el hito
+  guarda TEXTO libre; para ser fuente de verdad necesita los datos
+  estructurados al lado (hora, tipo, con qué queda, motivo). Es una columna
+  nueva en esa hoja, no una hoja nueva. 🪤 `PATIENT_ID` amarra dentro de UN
+  episodio: un re-ingreso estrena pid, así que unir a la PERSONA entre
+  episodios es el RUT — el pendiente que él mismo dejó en la auditoría.
   · ❓ **SU PROBLEMA 2, RESPONDIDO CON PRECISIÓN** («si uno quiere solo hacer ECF
   igual abre el modal completo y puede causar pérdida de información respecto a
   la evolución anterior»). Verificado: **la evolución anterior NO se puede
