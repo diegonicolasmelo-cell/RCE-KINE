@@ -21,6 +21,14 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ## v7.00-episodio-y-turno (11-sep-2026) — la rama paralela: cuatro casas para el dato
 
+> ✅ **12-sep-2026 · Diego la instaló en su planilla nueva, la revisó y la
+> aprobó**: «revisé y está bueno, me gustó; igual podría pulirse pero por ahora
+> bien». Falta que diga qué pulir. **No pidió fusionar**: la rama sigue aparte.
+> 🪤 Al instalarla, la app arrancó con «No se pudo verificar la conexión con el
+> servidor» estando el servidor sano: era la IMPLEMENTACIÓN sirviendo una
+> versión anterior al pegado, no el código. De ahí salió
+> `herramientas/diagnostico.gs`.
+
 Diego respondió los «cables sueltos» en bloque y dio la orden: «PROGRAMA todo
 lo demás, ya que esto irá por rama paralela; lo que haré es iniciar otro Sheet
 con otro nombre… al final dame el paquete de documentos para subir e

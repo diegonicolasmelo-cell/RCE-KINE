@@ -590,6 +590,22 @@ corta es la HERENCIA de evaluaciones al turno siguiente (la foto retocada).
 Los 27 archivos que leen EXT_OCURRIO no se reescriben: la fila de eventos
 del panel ESCRIBE esas mismas casillas, y además el hito estructurado. Así
 la batería sigue verde y cada consumidor migra cuando toque.
+· ✅✅ **PROBADA POR DIEGO EN SU PLANILLA NUEVA Y APROBADA (12-sep-2026,
+textual): «revisé y está bueno, me gustó; igual podría pulirse pero por
+ahora bien».** O sea la v7.00 pasó la prueba de terreno. **NO dijo que se
+fusione**: sigue sin fusionar a develop/main hasta que él lo pida.
+🔜 **Pendiente suyo**: decir QUÉ pulir — no dio detalle y no se le sacó
+lista para no interrumpirlo. Preguntárselo cuando retome.
+· 🪤 **Al instalarla tropezó con el DESPLIEGUE, no con el código** (11-sep):
+la app mostraba «No se pudo verificar la conexión con el servidor» con el
+servidor sano. Ese mensaje es el overlay de `mostrarLogin()` con
+`LOGIN_UI_ACTIVO=false`, y sale cuando GET_BOOT **y** WHOAMI fallan — o sea
+cuando `/exec` sirve una versión desplegada anterior al pegado. Herramienta
+nueva `herramientas/diagnostico.gs` (autocontenida, se pega como archivo
+suelto y funciona aunque falten archivos): revisa planilla vinculada,
+archivos del editor, hojas, CONFIG, un WHOAMI real y la publicación, e
+imprime **la URL que Apps Script sirve de verdad** para compararla con la
+que se tiene abierta. Se resolvió sin tocar código.
 · ✅ **HECHO (11-sep-2026, sello `7.00-episodio-y-turno`)**: T1-T7 completas,
 guardia `episodio_turno.js`, 125 verdes. Paquete y paso a paso en
 `INSTALAR_PLANILLA_NUEVA.md`. Lo que trae, en BITACORA v7.00.
