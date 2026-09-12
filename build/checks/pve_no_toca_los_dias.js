@@ -61,6 +61,18 @@ const CAMA = { ID_CAMA: '17', OCUPADA: true, NOMBRE: 'PACIENTE 17', PATIENT_ID: 
     }, previa);
     await p.goto('file://' + path.join(__dirname, '..', '..', 'v2', 'index.html'));
     await p.waitForTimeout(600);
+    // 🪤 ANCLA DE FECHA Y TURNO (12-sep-2026): la app cuenta los días contra
+    // `gDate` (la fecha del TURNO), no contra hoy(). Corriendo de MADRUGADA el
+    // turno lógico es «Noche del día anterior» y gDate queda un día atrás: el
+    // banco, armado con hoy(), daba un día de más y esta guardia se ponía roja
+    // SOLA a partir de cierta hora. Anclar el turno Día y la fecha de hoy.
+    await p.evaluate(() => { try { SHIFT = 'Dia'; } catch (e) {}
+      const g = document.getElementById('gDate'); if (g) g.value = hoy();
+      // Esta guardia fija que la PVE NO MUEVE los contadores, no CÓMO se
+      // cuentan: se mide con la regla de CALENDARIO (v5.35), que sigue viva
+      // con el interruptor apagado. La cuenta por bloques de 24 h de la v6.26
+      // tiene su propia guardia (vm_por_horas.js).
+      window.CFG = Object.assign(window.CFG || {}, { VM_POR_HORAS: false }); });
     await p.evaluate((c) => { DB = [c]; abrirPanel('17', false, false); }, CAMA);
     await p.waitForTimeout(350);
     return p;

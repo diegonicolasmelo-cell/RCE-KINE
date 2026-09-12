@@ -29,7 +29,10 @@ global.repoInsertar = (h, o) => { (DB[h] = DB[h] || []).push(o); return o; };
 global.repoEliminarDonde = () => {}; global.repoActualizarDonde = () => {};
 global.repoUpsert = (h, c, id, o) => { const r = global.repoBuscarPorId(h, c, id); if (r) { Object.assign(r, o); return 'actualizar'; } global.repoInsertar(h, o); return 'crear'; };
 global.esVerdadero = v => v === true || v === 'TRUE' || v === 'true';
-global.leerConfig = (k, d) => d; global.conLock = fn => fn();
+// ⏱️ v6.26 (Diego, 11-sep-2026): en producción la VM se cuenta por bloques de
+// 24 h (CONFIG.VM_POR_HORAS=TRUE; guardia vm_por_horas.js). Esta guardia fija
+// la regla por CALENDARIO, que sigue viva con el interruptor en FALSE.
+global.leerConfig = (k, d) => (k === 'VM_POR_HORAS' ? 'FALSE' : d); global.conLock = fn => fn();
 let _n = 0; global.uid = p => p + '_' + (++_n);
 let AHORA = { fecha: '2026-08-04', hora: '10:00' };
 global.hoyISO = () => AHORA.fecha;

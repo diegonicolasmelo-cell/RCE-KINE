@@ -223,7 +223,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**125 guardias** en `build/checks/*.js` (11-sep-2026); poco más de la mitad usan navegador
+**126 guardias** en `build/checks/*.js` (12-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -235,7 +235,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 11-sep-2026: 125 verdes, 0 rojas** (en la rama `separacion-episodio-turno`; `develop` sigue en 124). El corredor
+**Estado al 12-sep-2026: 126 verdes, 0 rojas** (rama `v7-episodio-turno-con-relojes`, que fusiona la v7.00 y la v6.26; `develop` sigue en 124). El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -270,6 +270,17 @@ sola por el calendario es peor que no tenerla: enseña a ignorar el rojo.** Al
 escribir cualquier banco que toque días, fechas o relojes, anclar contra hoy.
 Y ante una roja inesperada: `git stash` y volver a correrla antes de «arreglar»
 código sano.
+
+🪤 **Y NO SOLO EL CALENDARIO: TAMBIÉN LA HORA** (12-sep-2026). Tres guardias con
+navegador se pusieron rojas de madrugada con el código sano. Causa: la app
+cuenta los días contra **`gDate`, la fecha del TURNO**, no contra `hoy()`, y
+antes de las 9 el turno lógico es «Noche del día anterior» ⇒ `gDate` queda un
+día atrás mientras el banco de prueba se arma con `hoy()`. Un día de desfase,
+que a las 18:00 no aparece. **Toda guardia con navegador que mida días ancla las
+dos cosas** justo después de cargar el index:
+`SHIFT='Dia'` y `document.getElementById('gDate').value = hoy()`.
+La pista que lo delata: el número sale **exactamente uno menos** de lo
+esperado, y en varias guardias a la vez.
 
 ## Buscador del proyecto (skill `rce-kine-rag`)
 
@@ -619,6 +630,39 @@ julio (las fechas del navegador se arman con SU `hoy()`); y el catálogo
 `NOVEDADES` no admite comentarios entre la llave y la primera clave.
 
 ### Esperando decisión de Diego
+
+- ✅ ⏱️ **FECHA DE INGRESO ESCRITA (fecha + hora, sugerida = AHORA) Y DÍAS DE VM
+  POR BLOQUES DE 24 h — PROGRAMADO en la v6.26 (11-sep-2026), rama
+  `ingreso-manual-y-vm-por-horas` salida de `develop` (incluye la v6.25 de la
+  hoja), SIN fusionar hasta que Diego la pruebe.** Pedido textual: «la fecha de
+  ingreso y días de VM no están coincidiendo con el otro programa… que se
+  contabilicen con la fecha de ingreso registrada de forma manual, fecha y hora…
+  la sugerencia es la fecha ACTUAL, no la del turno… los días de VM se cuentan
+  respecto a las horas de VM: hora de ingreso si vienen ventilados, o fecha y
+  hora de intubación». Respondió **«1 sí»** (la ESTADÍA sigue por calendario
+  como BUDA; solo la VM pasa a horas ÷ 24) y «luego programa la hoja».
+  · **Regla vigente**: `diasVMReloj` (servidor) / `diasVMCli` (index) = bloques
+  completos de 24 h desde `TS_INICIO_SOPORTE` (ingreso si llegó ventilado,
+  intubación si no) hasta AHORA en la tarjeta y hasta la hora en que PARTE el
+  turno en la hoja del turno (`_tsInicioTurno`, CONFIG). Sin hora guardada ⇒
+  calendario. **Interruptor `CONFIG.VM_POR_HORAS`** (TRUE; FALSE = calendario
+  sin pegar nada). El campo «Fecha ingreso» viaja como `PAC_FECHA_INGRESO`,
+  transitorio como `PAC_RUT` (EVOLUCIONES sigue en 396); el reloj de ingreso
+  solo manda cuando ese campo vino (`_ingresoEscrito`).
+  · 🔴 **Consecuencias que se le dijeron**: VM + VNI ya no suman exacto la
+  estadía (la garantía de la v5.35 queda solo con el interruptor en FALSE, y
+  así la prueban `dias_estadia` y `dias_soporte`); un intubado ayer a las 14:00
+  marca 0 hoy; el REM/`DIAS_VM_TOTAL` baja hasta un día por episodio. Los
+  archivados no cambian.
+  · **Dato pendiente**: la tabla de relojes de producción. `tablaRelojes()`
+  (mantenimiento, y `relojes.gs` suelto para pegar hoy) imprime por cama las dos
+  fechas y los dos conteos, sin nombres ni RUT; Diego la copia y se coteja con
+  el otro programa. La pregunta ② (cómo cuenta la VM «el otro programa») sigue
+  sin respuesta explícita: si la tabla no cuadra, es lo primero que mirar.
+  · 🪤 Guardia `vm_por_horas.js`. Trampas: `SHIFT` sale del reloj real (fijar
+  `'Dia'` en bancos con navegador); el simulador trae camas sembradas
+  (`repoActualizar`, no `push`); `guardado_viajes` compara contra un árbol
+  base, por eso el reloj de ingreso está gateado al campo nuevo.
 
 - 🔴 ✂️ **EL PANEL DEBERÍA ANUNCIAR EL EVENTO PRIMERO — caso real de terreno
   (Diego, 9-sep-2026).** «Un paciente que estaba para extubar se extubó, pero se

@@ -19,6 +19,146 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v6.26-ingreso-manual-vm-horas (11-sep-2026) — la fecha de ingreso se escribe, y la VM se cuenta por horas
+
+Diego, 11-sep: «la fecha de ingreso y los días de VM últimamente no coinciden
+con el otro programa… necesito que los días se contabilicen con la fecha de
+ingreso registrada de forma manual, fecha y hora; la sugerencia es la fecha
+actual, no la del turno… los días de VM se cuentan respecto a las horas de VM:
+hora de ingreso si vienen ventilados, o fecha y hora de intubación». A la
+pregunta «¿la estadía sigue por calendario y solo la VM pasa a horas ÷ 24?»
+respondió **«1 sí»**, y después «luego programa la hoja». Rama
+`ingreso-manual-y-vm-por-horas` salida de `develop`. **Sin fusionar hasta que
+la pruebe.**
+
+### Lo que hace
+
+- **Fecha y hora de ingreso escritas.** El bloque de ingreso tiene un campo
+  nuevo «Fecha ingreso» junto a «Hora ingreso». Al abrir un INGRESO se sugieren
+  **hoy y la hora actual** (no la fecha del turno) y se corrigen a mano si el
+  paciente llegó antes. Viajan como `PAC_FECHA_INGRESO` (transitorio, como
+  `PAC_RUT`: no es columna de EVOLUCIONES, las 396 siguen) y el servidor escribe
+  `FECHA_INGRESO` y `TS_INGRESO` con ese momento. En una evolución posterior la
+  fecha se muestra bloqueada: corregirla es de 🔐 COORDINACIÓN.
+- **Llegó ventilado ⇒ el reloj de la VM (y de la vía aérea) es ese mismo
+  momento**, no la fecha del turno ni la hora del registro. Intubado en la
+  unidad ⇒ la hora de intubación, como ya era.
+- **Días de VM por bloques completos de 24 h** (`diasVMReloj`, espejo
+  `diasVMCli`): censo/tarjeta contra AHORA; el contador del turno contra la hora
+  en que PARTE el turno (CONFIG `TURNO_DIA_INICIO`/`TURNO_NOCHE_INICIO`), para
+  que el número de la hoja del turno sea estable y coincida con «se actualiza al
+  cambio de turno». Los tramos cerrados siguen viniendo del congelado
+  (reintubación no reinicia). **La estadía sigue por calendario** (BUDA).
+- **Interruptor `CONFIG.VM_POR_HORAS`** (nace TRUE): en FALSE vuelve todo a
+  calendario sin pegar nada. Sin hora guardada (episodios anteriores a la v5.19),
+  calendario.
+- `tablaRelojes()` en mantenimiento (y como archivo suelto `relojes.gs` para
+  pegar hoy en producción): por cama, ingreso con hora, estadía por calendario y
+  por 24 h, inicio de VM con hora, VM por calendario y por 24 h. Sin nombres ni
+  RUT. Es la tabla que Diego pidió para cotejar con el otro programa.
+- `revisarRelojesCama` / `_relojesDeLaUnidad` muestran la VM con la regla
+  vigente y, entre paréntesis, la de calendario.
+
+- **La hora de ingreso sale en TODAS las hojas impresas** (Diego: «que la hoja
+  igual incluya la hora de ingreso»): la diaria por paciente (INGRESO dd/mm/aa
+  hh:mm en el encabezado, v6.25), la **lista del día** (celda INGRESO antes de
+  DÍAS) y la **hoja de rehabilitación** (línea «Ingreso:» en la cabecera).
+  Helper único `_ingresoTxt(c)`; sin hora guardada, solo la fecha.
+
+### Consecuencias que hay que decirle
+
+- **VM + VNI ya no suman exacto la estadía** (la garantía de la v5.35 con la
+  historia de DELTA): la VM va por horas y la VNI y la estadía por calendario.
+  Un paciente intubado ayer a las 14:00 marca **0** días de VM en el turno de
+  hoy (19 h) y 1 recién mañana. El día de la transición ya no «pertenece» a
+  ningún soporte: se cuentan horas.
+- El REM y el archivo (`DIAS_VM_TOTAL`) leen el contador sellado de la última
+  evolución, así que **la estadística de VM también baja hasta un día por
+  episodio**. Los episodios ya archivados no cambian.
+- Nada de esto se recalcula hacia atrás: las camas que hoy están en VM
+  cambian de número al pegar (contra la hora que ya tenían guardada), y las que
+  no tienen hora siguen por calendario.
+
+### Guardias
+
+- Nueva **`vm_por_horas.js`**: servidor (ingreso escrito, llegó ventilado,
+  intubado en la unidad, censo, sin hora, interruptor apagado) y navegador
+  (sugerencia hoy + ahora, bloqueo en evolución, tarjeta «VM 14d» y no 15,
+  formulario 14 y estadía 15).
+- `dias_estadia` y `dias_soporte` documentan la regla por CALENDARIO: corren
+  con `VM_POR_HORAS=FALSE` (nota al inicio). `vm_no_es_vni` mira el texto nuevo.
+- 🪤 `SHIFT` sale del reloj real: una guardia con navegador que cuente contra
+  la hora de inicio del turno fija `SHIFT='Dia'`, o de noche cambia sola.
+- 🪤 El simulador ya trae las camas sembradas: un banco que «agrega» la cama 9
+  deja dos y el censo devuelve la vacía. Se actualiza con `repoActualizar`.
+- 🪤 `guardado_viajes` compara contra un árbol base: el reloj de ingreso solo
+  manda cuando el formulario trajo `PAC_FECHA_INGRESO` (`_ingresoEscrito`), así
+  un cliente viejo o un banco sin el campo se comporta igual que antes.
+## v6.25-hoja-ingreso-carilla2 (11-sep-2026) — la hoja trae con qué recalcular a mano
+
+Diego, 11-sep: «la fecha de ingreso y los días de VM últimamente no coinciden
+con el otro programa… a la hoja debemos agregar al encabezado la fecha de
+ingreso, así si está erróneo podemos hacer un cálculo manual, como
+contrarreferencia. Otro cambio: la sección posterior, donde escalas como
+VISAGE aparecen apiladas fuera de formato». Rama
+`hoja-fecha-ingreso-y-carilla2` salida de `develop`, solo index. **Sin fusionar
+hasta que él vea las capturas.**
+
+- **Encabezado**: celda nueva **INGRESO** con `dd/mm/aa hh:mm` (de
+  `FECHA_INGRESO` + la hora de `TS_INGRESO`), entre RUT y DÍAS. Si el contador
+  de días saliera mal, el papel trae la fecha para recalcular.
+- **Carilla 2, última tabla** (evaluaciones adicionales de fuerza muscular ·
+  evaluaciones neurológicos/neuroquirúrgicos: VISAGE, scores de vía aérea):
+  tenía un `colgroup` de **10 columnas** y filas de **5 celdas**, así que
+  ocupaba media página con las celdas apiladas. Ahora son 5 columnas
+  (32/16/4/32/16 %), dos bloques a lo ancho, separador sin borde (`.rk-nb`).
+  Es el pendiente «carilla 2 apilada» que dejó anotado el 9-sep.
+- Guardia `hoja_registro_dia.js`: INGRESO en el encabezado; la tabla tiene 5
+  columnas, cada fila cubre las 5 (sumando colspan) y ocupa ≥ 90 % del ancho.
+  🪤 Dentro de `#rkPrint` oculto, `getBoundingClientRect` da 0: medir con
+  `offsetWidth` contra el padre, o leer el estilo.
+- **Lo de los relojes NO se programó**: quedó medido en CLAUDE.md («Esperando
+  decisión») con las tres preguntas — el pedido de contar la VM por horas
+  choca con su decisión del 4-ago de contar por calendario como BUDA (v5.35).
+## v7.01-episodio-turno-y-relojes (12-sep-2026) — las dos tandas en una sola entrega
+
+Diego, tras aprobar la v7.00 en su planilla de prueba: «ahora sí quiero
+probarlo en la oficial… ¿copio y pego los script y luego hago otra
+implementación?». Se le respondió que **implementación nueva NO** (su propia
+regla del 14-ago: se edita la existente o la unidad queda partida en dos) y que
+en la oficial se puede probar SIN publicar, usando `/dev`, que sirve lo último
+guardado y **solo al dueño del proyecto**. Eligió: «fusiona y luego publico en
+dev».
+
+- **Rama `v7-episodio-turno-con-relojes`**, salida de `separacion-episodio-turno`
+  con `ingreso-manual-y-vm-por-horas` fusionada dentro. Las dos habían salido de
+  `develop` y tocaban los MISMOS seis archivos de `v2/`, y ninguna incluía a la
+  otra: pegar una sola habría borrado la otra en silencio.
+- **Sello `7.01-episodio-turno-y-relojes`.** `NOVEDADES` queda con UNA entrada
+  que resume la tanda completa (el servidor solo conoce el sello que arranca).
+- Conflictos reales: solo el sello (index, empaquetador) y el catálogo de
+  novedades. `api.gs`, `esquema.gs`, `mantenimiento.gs` y `svc_evoluciones.gs`
+  se fusionaron solos — las dos tandas tocaban partes distintas de cada uno.
+- **Batería: 126 verdes** (las 124 de develop + `episodio_turno` + `vm_por_horas`).
+
+### 🪤 La trampa de la madrugada (vale para cualquier guardia futura)
+
+Tras la fusión salieron TRES rojas —`episodio_turno`, `vm_por_horas` y
+`pve_no_toca_los_dias`— todas con el número **exactamente uno menos**. No era
+la fusión: eran las **02:00 en el contenedor**. La app cuenta contra `gDate`
+(la fecha del TURNO) y antes de las 9 el turno lógico es «Noche del día
+anterior», así que `gDate` iba un día atrás mientras los bancos se armaban con
+`hoy()`. Las mismas guardias estaban verdes a las 18:00 del día anterior.
+**Arreglo**: anclar `SHIFT='Dia'` y `gDate=hoy()` al cargar el index. Es la
+hermana de la trampa de las fechas fijas del 9-sep, pero por hora del día.
+
+Y una decisión de alcance: **`pve_no_toca_los_dias` mide con el interruptor
+`VM_POR_HORAS` apagado**, como `dias_estadia` y `dias_soporte`. Lo que esa
+guardia fija es que la PVE no mueve los contadores, no cómo se cuentan; la
+cuenta por bloques de 24 h tiene la suya.
+
+---
+
 ## v7.00-episodio-y-turno (11-sep-2026) — la rama paralela: cuatro casas para el dato
 
 > ✅ **12-sep-2026 · Diego la instaló en su planilla nueva, la revisó y la

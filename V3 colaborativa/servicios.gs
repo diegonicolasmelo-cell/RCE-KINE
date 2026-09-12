@@ -333,7 +333,9 @@ function obtenerTodasLasCamas() {
         // El tablero debe mostrar el MISMO número que el papel que el equipo
         // lee en la reunión — verificado contra la lista del 3-ago en 17 camas.
         c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
-        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
+        // VM: bloques de 24 h desde la hora de inicio (Diego, 11-sep-2026); la
+        // estadía sigue por calendario. diasVMReloj cae a calendario sin hora.
+        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasVMReloj(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _tsAhora(), hoy) : 0;
         c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
         try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }
       } else {
@@ -378,7 +380,7 @@ function obtenerCama(idCama) {
     if (esVerdadero(c.OCUPADA)) {
       c.OCUPADA = true;
       c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
-      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
+      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasVMReloj(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _tsAhora(), hoy) : 0;
       c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
     } else { c.OCUPADA = false; }
     try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }
@@ -4397,7 +4399,18 @@ function guardarEvolucion(datos, ctx) {
       // llegan con el sync único del final (que ya las incluye). Los cálculos
       // de aquí abajo leen cama.FECHA_INGRESO / cama.TS_INGRESO ya corregidos.
       const _hFormIng = _horaValida(datos.PAC_HORA_INGRESO);
-      const _tsIng = _hFormIng ? _tsEventoTurno(fecha, turno, _hFormIng) : '';
+      // 📅 FECHA DE INGRESO MANUAL (Diego, 11-sep-2026): el formulario manda
+      // PAC_FECHA_INGRESO (transitorio, como PAC_RUT: no es columna de
+      // EVOLUCIONES) sugerida con la fecha ACTUAL y editable. Con ella el
+      // momento de ingreso es fecha + hora escritas, y no la fecha del turno.
+      const _fFormIng = /^\d{4}-\d{2}-\d{2}$/.test(String(datos.PAC_FECHA_INGRESO || '')) ? String(datos.PAC_FECHA_INGRESO) : '';
+      const _tsIng = _fFormIng ? (_fFormIng + ' ' + (_hFormIng || _horaAhora()))
+                               : (_hFormIng ? _tsEventoTurno(fecha, turno, _hFormIng) : '');
+      if (esVerdadero(datos.ES_INGRESO) && _fFormIng && !coordCampoCorregido(cama, 'FECHA_INGRESO')) {
+        // El ingreso escribe el momento tal cual lo declaró el colega.
+        cama.FECHA_INGRESO = _fFormIng;
+        cama.TS_INGRESO = _tsIng;
+      }
       if (!cama.FECHA_INGRESO) {
         // Episodio sin fecha de ingreso (paciente cargado sin ingreso formal):
         // se ancla al primer turno evolucionado para que los días no queden '?'.
@@ -4472,7 +4485,12 @@ function guardarEvolucion(datos, ctx) {
                    String(x.TURNO_KEY || '') < String(turnoKey);
           })
           .sort(function (a, b) { return String(b.TURNO_KEY).localeCompare(String(a.TURNO_KEY)); });
-        const _contadorTramos = function (campo, enS, terminoSinS, fInicioTramo) {
+        // ⏱️ VM por bloques de 24 h (Diego, 11-sep-2026): el tramo ABIERTO de
+        // la VM se mide desde el momento de inicio del soporte (hora de ingreso
+        // si llegó ventilado, hora de intubación si no) hasta la hora en que
+        // parte este turno. Los tramos cerrados siguen viniendo del congelado.
+        const _tsRefTurno = _tsInicioTurno(fecha, turno);
+        const _contadorTramos = function (campo, enS, terminoSinS, fInicioTramo, tsInicioTramo) {
           if (!enS) {   // sin el soporte: hereda el congelado (0 si nunca lo tuvo)
             return _epiPrev.length ? (parseInt(_epiPrev[0][campo], 10) || 0) : 0;
           }
@@ -4489,6 +4507,9 @@ function guardarEvolucion(datos, ctx) {
             const f0 = String(_epiPrev[_epiPrev.length - 1].FECHA || '').slice(0, 10);
             if (f0 && (!ini || f0 < ini)) ini = f0;
           }
+          if (campo === 'DIAS_VM' && vmPorHoras() && tsInicioTramo && ini === fInicioTramo) {
+            return base + diasVMReloj(tsInicioTramo, ini, _tsRefTurno, fecha);
+          }
           return base + Math.max(0, diasEntre(ini, fecha) || 0);
         };
         // Inicio del tramo abierto: el reloj de la cama si la cama YA está en
@@ -4496,10 +4517,15 @@ function guardarEvolucion(datos, ctx) {
         // el soporte anterior), el tramo parte hoy — Día 0.
         const _finalSop = function (x) { return String(x.VENT_SOPORTE_FINAL || x.VENT_SOPORTE || ''); };
         const _finalVa  = function (x) { return String(x.VENT_VIA_AEREA_FINAL || x.VENT_VIA_AEREA || ''); };
+        // Llegó VENTILADO al ingreso (sin intubación en este turno): el tramo
+        // parte en el momento de ingreso escrito, que ya está en `cama` (11-sep).
+        const _ingVent = esVerdadero(datos.ES_INGRESO) && _ingresoEscrito(datos) && String(datos.VENT_SOPORTE) === 'VM' &&
+          !_horaValida(datos.INTUB_HORA) && !_horaValida(datos.REINTUB_HORA) && !!cama.FECHA_INGRESO;
         datos.DIAS_VM = _contadorTramos('DIAS_VM',
           String(datos.VENT_SOPORTE) === 'VM' || String(_sopT) === 'VM',
           function (x) { return _finalSop(x) !== 'VM'; },
-          String(cama.SOPORTE) === 'VM' ? cama.FECHA_INICIO_SOPORTE : fecha);
+          String(cama.SOPORTE) === 'VM' ? cama.FECHA_INICIO_SOPORTE : (_ingVent ? cama.FECHA_INGRESO : fecha),
+          String(cama.SOPORTE) === 'VM' ? (cama.TS_INICIO_SOPORTE || '') : (_ingVent ? (cama.TS_INGRESO || '') : ''));
         // VNI manda el SOPORTE registrado, nunca la interfaz: la mascarilla
         // sola (Full Face/Oronasal en oxigenoterapia o CNAF) no es VNI.
         datos.DIAS_VNI = _contadorTramos('DIAS_VNI',
@@ -4809,6 +4835,11 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     // (intubación/reintubación/TQT); si no hay, la del registro.
     fechaSoporte = fecha;
     horaSoporte = _tsDesdeHora(_horaValida(evo.INTUB_HORA) || _horaValida(evo.REINTUB_HORA) || _horaValida(evo.TQT_HORA)) || _tsAhora();
+    // Llegó ventilado: el reloj de la VM es el momento de INGRESO (fecha y
+    // hora escritas), no la fecha del turno ni la hora del registro.
+    if (esIngreso && cama.TS_INGRESO && _ingresoEscrito(evo) && !_horaValida(evo.INTUB_HORA) && !_horaValida(evo.REINTUB_HORA) && !_horaValida(evo.TQT_HORA)) {
+      fechaSoporte = _tsFecha(cama.TS_INGRESO) || fechaSoporte; horaSoporte = cama.TS_INGRESO;
+    }
   } else { fechaSoporte = cama.FECHA_INICIO_SOPORTE; horaSoporte = cama.TS_INICIO_SOPORTE || ''; }
 
   // Fecha de inicio de vía aérea: se reinicia si cambia el TIPO de vía aérea
@@ -4872,6 +4903,10 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     const diasPrev = parseInt(evo.VA_EXTERNO_DIAS) || 0;
     fechaVA = (esVerdadero(evo.VA_EXTERNO) && diasPrev > 0) ? _restarDias(fecha, diasPrev) : fecha;
     horaVA = _tsDesdeHora(_horaValida(evo.INTUB_HORA) || _horaValida(evo.REINTUB_HORA) || _horaValida(evo.TQT_HORA)) || _tsAhora();
+    if (esIngreso && cama.TS_INGRESO && _ingresoEscrito(evo) && !esVerdadero(evo.VA_EXTERNO) &&
+        !_horaValida(evo.INTUB_HORA) && !_horaValida(evo.REINTUB_HORA) && !_horaValida(evo.TQT_HORA)) {
+      fechaVA = _tsFecha(cama.TS_INGRESO) || fechaVA; horaVA = cama.TS_INGRESO;
+    }
   } else {
     fechaVA = cama.FECHA_INICIO_VA; horaVA = cama.TS_INICIO_VA || '';
   }
@@ -5638,6 +5673,13 @@ function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos, _evos) {
     const h = ini ? _horasEntreTS(ini, ts) : '';
     datos.PRONO_HORAS = (h === '' ? '' : h);
   }
+}
+
+/** ¿El formulario trajo la fecha de ingreso ESCRITA (campo de la v6.26)? Solo
+ *  entonces el momento de ingreso manda sobre los relojes del soporte y de la
+ *  vía aérea; un cliente viejo (o un banco de prueba sin el campo) sigue igual. */
+function _ingresoEscrito(d) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String((d && d.PAC_FECHA_INGRESO) || ''));
 }
 
 /**
@@ -6546,15 +6588,19 @@ function notifListar(datos) {
  *     hospital no dibuja los nuevos).
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
-// 🗂️ La entrada 7.00 es de la rama paralela episodio/turno — SOLO para la
-// planilla de prueba de Diego; en producción ese sello no arranca nunca.
+// 🗂️ La entrada 7.01 es de la rama paralela episodio/turno + relojes: resume
+// LA TANDA COMPLETA que el equipo ve al pasar a ese sello (el servidor solo
+// conoce el sello que arranca, no las versiones intermedias).
 const NOVEDADES = {
-  '7.00-episodio-y-turno': [
+  '7.01-episodio-turno-y-relojes': [
     '📋 Las escalas ECF, Barthel y Charlson se miden desde la tarjeta de la cama, sin abrir la evolución; se ven pendientes mientras falten.',
     '✍️ Cada MRC, FSS y Pimáx queda con fecha y con las iniciales de quien lo midió. El dato lo usa cualquiera; la firma dice de dónde salió.',
     '📝 Arriba del bloque de vía aérea hay una fila nueva: «¿Qué pasó hoy con la vía aérea?». Se declara el evento primero y él fija el tubo.',
     '🔒 La vía aérea ya no se cambia a mano sin evento. Si de verdad no hubo evento, se escribe por qué y queda en la línea de tiempo.',
     '🧍 Para registrar sedente al borde de cama (KTM nivel 3) el paciente tiene que tener al menos un FSS-ICU en el episodio.',
+    '📅 Al ingresar un paciente ahora se escriben la FECHA y la HORA de ingreso (vienen sugeridas con el momento actual): de ahí salen los días.',
+    '⏱️ Los días de VM se cuentan por bloques de 24 horas desde la hora de ingreso (si llegó ventilado) o desde la hora de intubación.',
+    '🖨️ Las hojas impresas traen la fecha y la hora de ingreso, y en la carilla neuromuscular VISAGE ya no sale apilado.',
   ],
   '6.24-mauri-sin-suelo': [
     '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',

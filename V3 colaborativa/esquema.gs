@@ -842,6 +842,9 @@ function _sembrar(ss) {
     ['PLANTILLAS_ACTIVAS', 'FALSE'],
     ['PIMO_PS_MAX', '14'],
     ['PIMO_VM_DIAS', '21'],
+    // ⏱️ Días de VM por bloques de 24 h desde la hora de inicio del soporte
+    // (Diego, 11-sep-2026). FALSE = días de calendario como la estadía.
+    ['VM_POR_HORAS', 'TRUE'],
     ['PVE_TURNOS_ALERTA', '2'],     // turnos seguidos candidato a PVE sin PVE antes de alertar
     ['FREC_HME_DIAS', '2'],         // días entre cambios de filtro HME
     ['FREC_HEPA_DIAS', '3'],        // días entre cambios de filtro HEPA

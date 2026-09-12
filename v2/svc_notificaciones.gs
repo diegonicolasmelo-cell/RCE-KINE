@@ -76,15 +76,19 @@ function notifListar(datos) {
  *     hospital no dibuja los nuevos).
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
-// 🗂️ La entrada 7.00 es de la rama paralela episodio/turno — SOLO para la
-// planilla de prueba de Diego; en producción ese sello no arranca nunca.
+// 🗂️ La entrada 7.01 es de la rama paralela episodio/turno + relojes: resume
+// LA TANDA COMPLETA que el equipo ve al pasar a ese sello (el servidor solo
+// conoce el sello que arranca, no las versiones intermedias).
 const NOVEDADES = {
-  '7.00-episodio-y-turno': [
+  '7.01-episodio-turno-y-relojes': [
     '📋 Las escalas ECF, Barthel y Charlson se miden desde la tarjeta de la cama, sin abrir la evolución; se ven pendientes mientras falten.',
     '✍️ Cada MRC, FSS y Pimáx queda con fecha y con las iniciales de quien lo midió. El dato lo usa cualquiera; la firma dice de dónde salió.',
     '📝 Arriba del bloque de vía aérea hay una fila nueva: «¿Qué pasó hoy con la vía aérea?». Se declara el evento primero y él fija el tubo.',
     '🔒 La vía aérea ya no se cambia a mano sin evento. Si de verdad no hubo evento, se escribe por qué y queda en la línea de tiempo.',
     '🧍 Para registrar sedente al borde de cama (KTM nivel 3) el paciente tiene que tener al menos un FSS-ICU en el episodio.',
+    '📅 Al ingresar un paciente ahora se escriben la FECHA y la HORA de ingreso (vienen sugeridas con el momento actual): de ahí salen los días.',
+    '⏱️ Los días de VM se cuentan por bloques de 24 horas desde la hora de ingreso (si llegó ventilado) o desde la hora de intubación.',
+    '🖨️ Las hojas impresas traen la fecha y la hora de ingreso, y en la carilla neuromuscular VISAGE ya no sale apilado.',
   ],
   '6.24-mauri-sin-suelo': [
     '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',

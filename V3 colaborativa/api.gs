@@ -222,6 +222,7 @@ function _configUI() {
     // Encender es poner TRUE en CONFIG, no pegar nada.
     PLANTILLAS_ACTIVAS: leerConfig('PLANTILLAS_ACTIVAS', 'FALSE') === 'TRUE',
     EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
+    VM_POR_HORAS: vmPorHoras(),
     CUFF_MIN: parseInt(leerConfig('CUFF_MIN', '20')) || 20,
     CUFF_MAX: parseInt(leerConfig('CUFF_MAX', '30')) || 30,
     // Visor de imágenes: vacío = sin botón 🩻 (ver CONFIG.SYNAPSE_URL).

@@ -192,6 +192,13 @@ const si = (l, g) => eq(l, !!g, 'true');
   });
   await p.goto('file://' + path.join(V2, 'index.html'));
   await p.waitForTimeout(800);
+  // 🪤 ANCLA DE FECHA Y TURNO (12-sep-2026): la app cuenta los días contra
+  // `gDate` (la fecha del TURNO), no contra hoy(). Corriendo de MADRUGADA el
+  // turno lógico es «Noche del día anterior» y gDate queda un día atrás: el
+  // banco, armado con hoy(), daba un día de más y esta guardia se ponía roja
+  // SOLA a partir de cierta hora. Anclar el turno Día y la fecha de hoy.
+  await p.evaluate(() => { try { SHIFT = 'Dia'; } catch (e) {}
+    const g = document.getElementById('gDate'); if (g) g.value = hoy(); });
   // 🪤 Las fechas del navegador se arman con SU reloj (hoy()), no con el del
   // simulador (fijo en julio): si no, «hace 1 día» son meses y el badge cambia.
   await p.evaluate(() => {
