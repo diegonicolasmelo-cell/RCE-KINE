@@ -111,6 +111,43 @@ function diagnosticoArranque() {
     }
   }
 
+  // ── 6 · ¿La app está PUBLICADA, y en qué dirección? ──────────────────
+  // El servidor puede estar sano y la app fallar igual: /exec sirve la
+  // VERSIÓN DESPLEGADA, no lo último guardado. Si la implementación quedó
+  // anclada a una versión anterior al pegado, el navegador recibe código
+  // viejo. Y si hay más de una implementación, la dirección que se abre
+  // puede no ser la que se actualizó.
+  try {
+    var svc = ScriptApp.getService();
+    if (!svc.isEnabled()) {
+      L.push('❌ 6 · La aplicación web NO está publicada.');
+      L.push('     👉 Implementar → Nueva implementación → Aplicación web.');
+      problemas.push('publicar la aplicación web');
+    } else {
+      L.push('✅ 6 · Aplicación web publicada. La dirección BUENA es:');
+      L.push('     ' + svc.getUrl());
+      L.push('     👉 Compara ESA dirección con la que tienes abierta en el navegador.');
+      L.push('        Si no son iguales, estás entrando a otra implementación.');
+      L.push('        Si son iguales: Implementar → Administrar implementaciones → ✏️ →');
+      L.push('        Nueva versión (el /exec sirve la versión desplegada, no lo guardado).');
+    }
+  } catch (e) {
+    L.push('⚠️ 6 · No se pudo consultar la publicación: ' + e.message);
+  }
+
+  // ── 7 · ¿Cómo se ejecuta la app publicada? ───────────────────────────
+  // Si quedó como «Usuario que accede a la aplicación web», cada persona
+  // tiene que autorizar los permisos por su cuenta; mientras no lo haga, la
+  // pantalla carga pero NINGUNA llamada al servidor responde — que es
+  // exactamente el síntoma de «No se pudo verificar la conexión».
+  L.push('');
+  L.push('📋 7 · Revisa a ojo, en Implementar → Administrar implementaciones:');
+  L.push('     · «Ejecutar como» debe decir TU cuenta (no «Usuario que accede»).');
+  L.push('     · «Quién tiene acceso» debe decir «Cualquier usuario».');
+  L.push('     · La versión debe ser POSTERIOR al último pegado.');
+  L.push('     Y en el menú Ejecuciones: al abrir la app debe aparecer una');
+  L.push('     ejecución nueva. Si no aparece ninguna, la llamada no está llegando.');
+
   L.push('');
   L.push(problemas.length
     ? '👉 QUÉ HACER: ' + problemas.join(' · ')
