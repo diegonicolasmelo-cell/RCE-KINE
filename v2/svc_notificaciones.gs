@@ -80,7 +80,7 @@ function notifListar(datos) {
 // LA TANDA COMPLETA que el equipo ve al pasar a ese sello (el servidor solo
 // conoce el sello que arranca, no las versiones intermedias).
 const NOVEDADES = {
-  '7.01-episodio-turno-y-relojes': [
+  '7.02-con-resiembra-plantillas': [
     '📋 Las escalas ECF, Barthel y Charlson se miden desde la tarjeta de la cama, sin abrir la evolución; se ven pendientes mientras falten.',
     '✍️ Cada MRC, FSS y Pimáx queda con fecha y con las iniciales de quien lo midió. El dato lo usa cualquiera; la firma dice de dónde salió.',
     '📝 Arriba del bloque de vía aérea hay una fila nueva: «¿Qué pasó hoy con la vía aérea?». Se declara el evento primero y él fija el tubo.',
@@ -89,6 +89,7 @@ const NOVEDADES = {
     '📅 Al ingresar un paciente ahora se escriben la FECHA y la HORA de ingreso (vienen sugeridas con el momento actual): de ahí salen los días.',
     '⏱️ Los días de VM se cuentan por bloques de 24 horas desde la hora de ingreso (si llegó ventilado) o desde la hora de intubación.',
     '🖨️ Las hojas impresas traen la fecha y la hora de ingreso, y en la carilla neuromuscular VISAGE ya no sale apilado.',
+    '📋 Coordinación puede re-sembrar las plantillas de la unidad: el orden nuevo llega a la planilla que ya las tenía cargadas.',
   ],
   '6.24-mauri-sin-suelo': [
     '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',

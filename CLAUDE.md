@@ -223,7 +223,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**126 guardias** en `build/checks/*.js` (12-sep-2026); poco más de la mitad usan navegador
+**127 guardias** en `build/checks/*.js` (12-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -235,7 +235,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 12-sep-2026: 126 verdes, 0 rojas** (rama `v7-episodio-turno-con-relojes`, que fusiona la v7.00 y la v6.26; `develop` sigue en 124). El corredor
+**Estado al 12-sep-2026: 127 verdes, 0 rojas** (rama `v7-episodio-turno-con-relojes`: v7.00 + v6.26 + la resiembra de plantillas de Manuel; `develop` sigue en 124). El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -628,6 +628,20 @@ verdad era la firma y la serie. No repetir la afirmación de la «foto retocada�
 `delete` de `window` (guardar la real aparte); el simulador tiene el reloj en
 julio (las fechas del navegador se arman con SU `hoy()`); y el catálogo
 `NOVEDADES` no admite comentarios entre la llave y la primera clave.
+
+### 🧩 QUÉ TRABAJO DE MANUEL ESTÁ DENTRO (medido el 12-sep-2026, lo preguntó Diego)
+
+Diego pidió que la fusión «incluya también el último trabajo de Manuel». Se
+midió rama por rama **por contenido** (`git log --cherry-pick --right-only`),
+no por nombre:
+
+| Rama de Manuel | Estado |
+|---|---|
+| `feature/resiembra-plantillas` (7-sep) | ✅ **FUSIONADA el 12-sep** en `v7-episodio-turno-con-relojes`. Es su último trabajo: `_plantResembrar` + `plantillasResembrarSimular/AplicarAhora` en `svc_plantillas.gs`, y la guardia `resiembra_plantillas.js`. |
+| `entrega-blanco-negro-linea-tiempo` (2-sep) | ✅ **Ya estaba**: su contenido se traspasó en la v6.06 (la negrita vive en `svc_entrega.gs:206+`). Los commits figuran «sin equivalente» porque el traspaso se reescribió, no se cherry-pickeó — **no hay nada que fusionar**. |
+| `manuel/velocidad-arranque` (6-ago) | ✅ **Ya estaba**: el memo de CONFIG es `_CFG_MEMO`/`_memoReset` (esquema ~629) con su guardia `memo_config.js`. |
+| `manuel/tablero-lee-solo-sus-columnas`, `manuel/velocidad-y-entrega-turno`, `fix/vni-en-el-601171`, `fix/orden-texto-evolucion` | ✅ Sin nada pendiente. |
+| 🔴 `fix/la-vni-viaja-al-rem-hospital` (25-ago) | ❌ **NO fusionada, a propósito.** Manda el REM del mes a un destino EXTERNO («REM Hospital») y trae una maqueta con pacientes ficticios. Destino externo **no aprobado por Diego**: sacar datos clínicos fuera exige su decisión explícita (Ley 19.628). **No se fusiona por «incluir lo de Manuel»: hay que preguntárselo nombrando qué hace.** |
 
 ### Esperando decisión de Diego
 
@@ -1510,8 +1524,30 @@ pestaña 🔐 COORDINACIÓN — sin abrir el editor.
 `repararEvolucionesAjenasSIMULACRO/CONFIRMAR` · `corregirTiempoExtubadoSIMULACRO/CONFIRMAR`
 · `corregirPronosRepetidos` · `resellarDiasSoporte*` · `corregirIngresos*` ·
 `archivarAnioHistorico*` · `resetearBaseDeDatos*` · `cargarInventarioInicial` ·
-`medirArranque` · `medirGuardado` · `verificarTablero` / `medirTablero`.
-El detalle de cada una, en `BITACORA.md`.
+`medirArranque` · `medirGuardado` · `verificarTablero` / `medirTablero` ·
+`plantillasResembrarSimular` / `plantillasResembrarAplicarAhora` /
+`plantillasRestaurarDesde`. El detalle de cada una, en `BITACORA.md`.
+
+🪤 **Cambiar `PLANTILLAS_UNIDAD_SEMILLA` NO cambia lo que lee el turno**
+(7-sep-2026). `plantillasSembrarUnidad()` escribe **solo si
+`PLANTILLAS_EVOLUCION` está vacía**, y en la unidad está sembrada desde v6.02:
+el orden nuevo del texto se quedó en el repositorio sin llegar a nadie. Para eso
+está la **re-siembra** de `svc_plantillas.gs`. Lo que hay que saber al tocarla:
+
+- No reemplaza «todas»: solo las plantillas de la unidad cuyo cuerpo **sigue
+  siendo uno de los que este repositorio publicó** (`PLANTILLAS_UNIDAD_PUBLICADAS`).
+  Lo que coordinación editó a mano se salta y se informa — perderlo en silencio
+  es la misma clase de error que esconder una pronación real.
+- 🔴 **Al cambiar la semilla hay que MOVER el cuerpo saliente a
+  `PLANTILLAS_UNIDAD_PUBLICADAS`.** Si no, la re-siembra siguiente creerá que
+  coordinación lo escribió y no tocará ni una. La guardia
+  `checks/resiembra_plantillas.js` lo comprueba.
+- Respalda la hoja entera en `PLANTILLAS_BAK_<yyyyMMdd_HHmmss>` (oculta, fuera
+  de ESQUEMA: `testEsquema` y `cuadrarEncabezados` no la ven) **antes** de la
+  primera escritura, y no escribe nada si el respaldo falla.
+- Idempotente por el cuerpo, no por una marca: la segunda corrida no escribe.
+- Nunca toca las plantillas **personales** (`DUENO` ≠ `UNIDAD`) ni las retiradas
+  (`ACTIVO=false`).
 
 ### Privacidad — no se negocia
 

@@ -120,6 +120,36 @@ hasta que él vea las capturas.**
 - **Lo de los relojes NO se programó**: quedó medido en CLAUDE.md («Esperando
   decisión») con las tres preguntas — el pedido de contar la VM por horas
   choca con su decisión del 4-ago de contar por calendario como BUDA (v5.35).
+## v7.02-con-resiembra-plantillas (12-sep-2026) — y el último trabajo de Manuel adentro
+
+Diego, al recibir la v7.01: «en la fusión también incluiste el trabajo de
+Manuel… inclúyelo también para que quede integrada». Se midió rama por rama
+**por contenido**, no por nombre — el detalle está en la tabla de CLAUDE.md.
+
+- ✅ **Fusionada `feature/resiembra-plantillas`** (7-sep, Manuel): su último
+  trabajo. `_plantResembrar` + `plantillasResembrarSimular()` /
+  `plantillasResembrarAplicarAhora()` en `svc_plantillas.gs`, para que el orden
+  nuevo de las 17 plantillas llegue a una planilla que YA las tenía sembradas.
+  Guardia `resiembra_plantillas.js`. **Sin conflictos**: la v7.01 no había
+  tocado `svc_plantillas.gs`.
+- ✅ **Lo demás de Manuel ya estaba dentro** y se verificó uno por uno: la
+  entrega en blanco y negro (traspasada en la v6.06) y el memo de CONFIG de la
+  Ola 1 (`_CFG_MEMO`). Aparecían como «commits sin equivalente» solo porque en
+  su momento se reescribieron en vez de cherry-pickearse.
+- 🔴 **`fix/la-vni-viaja-al-rem-hospital` sigue FUERA, a propósito**: manda el
+  REM del mes a un destino externo y trae una maqueta con pacientes ficticios.
+  No se fusiona bajo el paraguas de «incluir lo de Manuel» — es una decisión de
+  privacidad que Diego tiene que tomar sabiendo qué hace.
+- Sello **`7.02-con-resiembra-plantillas`**, `NOVEDADES` con la línea de la
+  resiembra. **Batería: 127 verdes.**
+
+🪤 **Cómo se mide si una rama ya está dentro**: `git log --cherry-pick
+--right-only A...B` compara por PARCHE, no por identificador. Sin eso, una rama
+cuyo contenido se traspasó a mano parece pendiente para siempre y se fusiona dos
+veces.
+
+---
+
 ## v7.01-episodio-turno-y-relojes (12-sep-2026) — las dos tandas en una sola entrega
 
 Diego, tras aprobar la v7.00 en su planilla de prueba: «ahora sí quiero
