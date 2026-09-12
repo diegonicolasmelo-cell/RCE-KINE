@@ -1,10 +1,11 @@
 # Probar la v7.01 en la planilla OFICIAL sin que el equipo la vea
 
-**Para**: Diego. **Fecha**: 12-sep-2026. **Sello**: `7.01-episodio-turno-y-relojes`.
+**Para**: Diego. **Fecha**: 12-sep-2026. **Sello**: `7.02-con-resiembra-plantillas`.
 
 Esta es la tanda completa: lo de episodio y turno que ya probaste en tu planilla
-nueva, **más** la fecha y hora de ingreso escritas, los días de VM por horas y
-las hojas impresas con la hora.
+nueva, **más** la fecha y hora de ingreso escritas, los días de VM por horas,
+las hojas impresas con la hora **y el último trabajo de Manuel** (la re-siembra
+de las plantillas de la unidad).
 
 🔴 **La regla de oro de esta prueba: NO toques la implementación.** Mientras no
 crees una versión nueva, el equipo sigue entrando a `/exec` con la versión de
@@ -28,7 +29,7 @@ contenido de cada archivo:
 | `webapp.gs` | `webapp` |
 | `mantenimiento.gs` | `mantenimiento` |
 | `spike.gs` | `spike` |
-| `index_v701_cohete.html` | `index` |
+| `index_v702_cohete.html` | `index` |
 
 Van los diez porque no sabemos con certeza qué versión está pegada hoy en la
 oficial. Pegar de más no rompe nada; pegar de menos sí, y en silencio (pasó el
@@ -39,7 +40,7 @@ oficial. Pegar de más no rompe nada; pegar de menos sí, y en silencio (pasó e
 🪤 **Verifica dos cosas antes de seguir**:
 - `Ctrl+F` en `servicios` → busca `Diagnóstico`. Si no aparece con acento, el
   portapapeles lo corrompió: vuelve a pegar ese archivo.
-- `Ctrl+F` en `index` → busca `7.01-episodio-turno-y-relojes`.
+- `Ctrl+F` en `index` → busca `7.02-con-resiembra-plantillas`.
 
 ---
 
@@ -87,6 +88,26 @@ probar un ingreso inventado, no lo hagas aquí.
    `mantenimiento`). Imprime cama por cama las dos fechas y los dos conteos, sin
    nombres ni RUT. **Esa es la tabla que te pedí** para comparar con el otro
    programa.
+
+---
+
+## 4b · Cómo volver atrás si no te convence
+
+**Esta es la parte tranquilizadora: no hay que copiar código de ninguna rama.**
+
+- **Si solo probaste en `/dev`**: no hay nada que deshacer. El equipo nunca dejó
+  de usar la versión de siempre. Cierras la pestaña y listo.
+- **Si ya publicaste y quieres volver**: Implementar → Administrar
+  implementaciones → ✏️ → en **Versión** eliges del desplegable una versión
+  ANTERIOR → Implementar. Apps Script guarda todas las versiones que se han
+  creado: volver son treinta segundos y la dirección del equipo no cambia.
+- **Las hojas y columnas nuevas se quedan, y está bien.** Se agregaron al final
+  y la versión anterior simplemente no las mira. No hay que borrar nada.
+- 🪤 **Lo único que sí queda**: lo que se haya guardado con la versión nueva
+  sigue guardado (es dato real). Y los **disparadores automáticos** —el respaldo
+  diario, los gases de las 06:30— corren el código GUARDADO, no el publicado,
+  así que desde que pegues usan el nuevo aunque no publiques. Es compatible,
+  pero conviene saberlo.
 
 ---
 
