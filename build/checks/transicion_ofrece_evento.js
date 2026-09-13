@@ -11,7 +11,8 @@
 //     real) y el aviso se apaga solo;
 //   · los tres eventos que NO se autocompletan siguen sin autocompletarse —
 //     porque marcarlos por cuenta propia escondería un dato verdadero;
-//   · rechazar la oferta NO impide guardar (el aviso nunca fue un candado);
+//   · rechazar la oferta NO impide guardar (el aviso nunca fue un candado),
+//     aunque desde la v7 cuesta un motivo escrito cuando cambió la vía aérea;
 //   · ni nombre ni RUT salen en el aviso.
 //
 // Uso: node build/checks/transicion_ofrece_evento.js (requiere playwright-core)
@@ -155,16 +156,32 @@ const RUT_SEMILLA = '11.111.111-1';
     await new Promise(r => setTimeout(r, 120));
     const traGuardarBloqueado = window.__guardados.length;
     const abierto = $('transAviso').classList.contains('on');
-    transAvisoGuardar();                          // se rechaza la oferta y se guarda igual
+    // 🪤 Fusión 7.03: este escenario (TOT → Natural sin extubación) es un CAMBIO
+    // DE VÍA AÉREA sin evento, y la v7 «episodio y turno» exige ahí un motivo
+    // escrito (≥5 letras). El aviso sigue sin ser un candado —se puede guardar
+    // sin declarar el evento—, pero ahora cuesta una razón, y esa razón viaja al
+    // hito del episodio. Se mide en ese orden: sin motivo no pasa, con motivo sí.
+    const boxMotivo = !$('transMotivoBox').classList.contains('hidden');
+    $('transMotivo').value = '';
+    transAvisoGuardar();
+    await new Promise(r => setTimeout(r, 200));
+    const sinMotivoNoGuarda = window.__guardados.length === 0 && _transAvisoOk === false;
+    $('transMotivo').value = 'llegó ya extubado desde pabellón';
+    transAvisoGuardar();                          // se rechaza la oferta y se guarda con motivo
     await new Promise(r => setTimeout(r, 400));
-    return { traGuardarBloqueado, abierto, traRechazo: window.__guardados.length,
+    return { traGuardarBloqueado, abierto, boxMotivo, sinMotivoNoGuarda,
+             traRechazo: window.__guardados.length,
              gateAbierto: _transAvisoOk === true,
+             motivoViaja: _transMotivo === 'llegó ya extubado desde pabellón',
              cerrado: !$('transAviso').classList.contains('on') };
   });
   eq('el aviso interrumpe el primer guardado', guardaIgual.traGuardarBloqueado, 0);
   eq('…y se ve', guardaIgual.abierto, true);
+  eq('…y pide el motivo del cambio de vía aérea (v7)', guardaIgual.boxMotivo, true);
+  eq('…sin motivo escrito NO deja guardar', guardaIgual.sinMotivoNoGuarda, true);
   eq('rechazar la oferta abre el paso al guardado', guardaIgual.gateAbierto, true);
-  eq('rechazar la oferta guarda igual', guardaIgual.traRechazo >= 1, true);
+  eq('rechazar la oferta guarda igual (con el motivo escrito)', guardaIgual.traRechazo >= 1, true);
+  eq('…y el motivo viaja al hito', guardaIgual.motivoViaja, true);
   eq('…y cierra el aviso', guardaIgual.cerrado, true);
 
   /* ── 5 · La regla vive en UN solo sitio: guardar() y el repintado usan la misma

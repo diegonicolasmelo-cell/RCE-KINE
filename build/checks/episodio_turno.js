@@ -258,7 +258,12 @@ const si = (l, g) => eq(l, !!g, 'true');
   // pisar por asignación pero `delete` no la devuelve. Se guarda la real aparte.
   await p.evaluate(() => { window.__guardarReal = guardar; window.guardar = () => { window.__guardo = true; }; window.__guardo = false; _transAvisoOk = false; _transMotivo = ''; });
   const avisos = await p.evaluate(() => _avisosTransicion());
-  si('la app detecta TOT → Natural sin extubación (como antes)', avisos.some(a => /no hay extubación registrada/.test(a)));
+  // 🪤 Fusión 7.03: desde el guardado obligatorio `_avisosTransicion()` devuelve
+  // {ev,t}, no texto pelado (el {ev} es lo que deja ofrecer «Anotar ahora»). La
+  // propiedad medida es la misma —que la app DETECTE el cambio sin evento—, así
+  // que se lee el texto del aviso venga como objeto o como string.
+  const _txtAviso = a => String(a && a.t != null ? a.t : a);
+  si('la app detecta TOT → Natural sin extubación (como antes)', avisos.some(a => /no hay extubación registrada/.test(_txtAviso(a))));
   await p.evaluate(() => _mostrarTransAviso(_avisosTransicion()));
   si('★ aparece el cuadro del motivo', await p.evaluate(() => !document.getElementById('transMotivoBox').classList.contains('hidden')));
   await p.evaluate(() => { document.getElementById('transMotivo').value = ''; transAvisoGuardar(); });
