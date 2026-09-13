@@ -219,7 +219,11 @@ eq('sigue en VM → la fecha corregida se hereda',
 // Cambia el soporte → tramo nuevo de verdad: la marca cae y la fecha se reinicia.
 SIM.fecha = '2026-08-13';
 api('GUARDAR_EVOLUCION', { ID_CAMA: '3', TURNO_KEY: '2026-08-13-Dia', PLAN_FIRMA_KINE: 'DMV',
-  PAC_NOMBRE: 'Paciente Arrastre', VENT_VIA_AEREA: 'Full Face', VENT_SOPORTE: 'VNI' }, null);
+  // 🗂️ Rama episodio/turno: la vía aérea ya no cambia sin evento. Este banco
+  // no declara la extubación a propósito (mide la marca de arrastre, no el
+  // evento), así que usa la salida legítima: la razón escrita.
+  PAC_NOMBRE: 'Paciente Arrastre', VENT_VIA_AEREA: 'Full Face', VENT_SOPORTE: 'VNI',
+  TRANS_MOTIVO: 'banco de prueba: tramo VNI sin evento declarado' }, null);
 const camaVNI = DB.CAMAS_ESTADO.find(c => String(c.ID_CAMA) === '3');
 eq('pasó a VNI → arranca tramo nuevo, no se queda en la corregida',
   String(camaVNI.FECHA_INICIO_SOPORTE).slice(0, 10), '2026-08-13');

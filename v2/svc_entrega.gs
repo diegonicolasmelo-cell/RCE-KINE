@@ -292,8 +292,11 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
 
   // ── Últimas evaluaciones con fecha (arrastre en cama + CPAx del episodio) ──
   const evals = [];
-  if (val(c.ULT_MRC) !== '') evals.push('MRC-SS ' + c.ULT_MRC + (c.ULT_MRC_FECHA ? ' (' + dd(c.ULT_MRC_FECHA) + ')' : ''));
-  if (val(c.ULT_FSS) !== '') evals.push('FSS ' + c.ULT_FSS + (c.ULT_FSS_FECHA ? ' (' + dd(c.ULT_FSS_FECHA) + ')' : ''));
+  // 🗂️ La firma viaja con la medición (Diego, 11-sep: «al lado de la fecha
+  // podrían salir sus iniciales»). Quién MIDIÓ, no quién entrega.
+  const _fir = function (f) { return val(f) !== '' ? ', ' + f : ''; };
+  if (val(c.ULT_MRC) !== '') evals.push('MRC-SS ' + c.ULT_MRC + (c.ULT_MRC_FECHA ? ' (' + dd(c.ULT_MRC_FECHA) + _fir(c.ULT_MRC_FIRMA) + ')' : ''));
+  if (val(c.ULT_FSS) !== '') evals.push('FSS ' + c.ULT_FSS + (c.ULT_FSS_FECHA ? ' (' + dd(c.ULT_FSS_FECHA) + _fir(c.ULT_FSS_FIRMA) + ')' : ''));
   if (val(c.ULT_DINAMO) !== '') evals.push('Dinamo ' + c.ULT_DINAMO + ' kg');
   let cpax = '', cpaxF = '';
   episodio.forEach(ev => { if (val(ev.CPAX_TOTAL) !== '') { cpax = ev.CPAX_TOTAL; cpaxF = dd(ev.FECHA); } });

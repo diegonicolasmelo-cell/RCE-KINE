@@ -457,6 +457,267 @@ la marca podría volver a ser `(de alta hh:mm)`. Es una columna nueva al final d
 **Batería completa: 121 guardias, 121 verdes, 0 rojas** (exit code 0). Espejo
 `V3 colaborativa/index.html` regenerado.
 
+---
+
+## v6.26-ingreso-manual-vm-horas (11-sep-2026) — la fecha de ingreso se escribe, y la VM se cuenta por horas
+
+Diego, 11-sep: «la fecha de ingreso y los días de VM últimamente no coinciden
+con el otro programa… necesito que los días se contabilicen con la fecha de
+ingreso registrada de forma manual, fecha y hora; la sugerencia es la fecha
+actual, no la del turno… los días de VM se cuentan respecto a las horas de VM:
+hora de ingreso si vienen ventilados, o fecha y hora de intubación». A la
+pregunta «¿la estadía sigue por calendario y solo la VM pasa a horas ÷ 24?»
+respondió **«1 sí»**, y después «luego programa la hoja». Rama
+`ingreso-manual-y-vm-por-horas` salida de `develop`. **Sin fusionar hasta que
+la pruebe.**
+
+### Lo que hace
+
+- **Fecha y hora de ingreso escritas.** El bloque de ingreso tiene un campo
+  nuevo «Fecha ingreso» junto a «Hora ingreso». Al abrir un INGRESO se sugieren
+  **hoy y la hora actual** (no la fecha del turno) y se corrigen a mano si el
+  paciente llegó antes. Viajan como `PAC_FECHA_INGRESO` (transitorio, como
+  `PAC_RUT`: no es columna de EVOLUCIONES, las 396 siguen) y el servidor escribe
+  `FECHA_INGRESO` y `TS_INGRESO` con ese momento. En una evolución posterior la
+  fecha se muestra bloqueada: corregirla es de 🔐 COORDINACIÓN.
+- **Llegó ventilado ⇒ el reloj de la VM (y de la vía aérea) es ese mismo
+  momento**, no la fecha del turno ni la hora del registro. Intubado en la
+  unidad ⇒ la hora de intubación, como ya era.
+- **Días de VM por bloques completos de 24 h** (`diasVMReloj`, espejo
+  `diasVMCli`): censo/tarjeta contra AHORA; el contador del turno contra la hora
+  en que PARTE el turno (CONFIG `TURNO_DIA_INICIO`/`TURNO_NOCHE_INICIO`), para
+  que el número de la hoja del turno sea estable y coincida con «se actualiza al
+  cambio de turno». Los tramos cerrados siguen viniendo del congelado
+  (reintubación no reinicia). **La estadía sigue por calendario** (BUDA).
+- **Interruptor `CONFIG.VM_POR_HORAS`** (nace TRUE): en FALSE vuelve todo a
+  calendario sin pegar nada. Sin hora guardada (episodios anteriores a la v5.19),
+  calendario.
+- `tablaRelojes()` en mantenimiento (y como archivo suelto `relojes.gs` para
+  pegar hoy en producción): por cama, ingreso con hora, estadía por calendario y
+  por 24 h, inicio de VM con hora, VM por calendario y por 24 h. Sin nombres ni
+  RUT. Es la tabla que Diego pidió para cotejar con el otro programa.
+- `revisarRelojesCama` / `_relojesDeLaUnidad` muestran la VM con la regla
+  vigente y, entre paréntesis, la de calendario.
+
+- **La hora de ingreso sale en TODAS las hojas impresas** (Diego: «que la hoja
+  igual incluya la hora de ingreso»): la diaria por paciente (INGRESO dd/mm/aa
+  hh:mm en el encabezado, v6.25), la **lista del día** (celda INGRESO antes de
+  DÍAS) y la **hoja de rehabilitación** (línea «Ingreso:» en la cabecera).
+  Helper único `_ingresoTxt(c)`; sin hora guardada, solo la fecha.
+
+### Consecuencias que hay que decirle
+
+- **VM + VNI ya no suman exacto la estadía** (la garantía de la v5.35 con la
+  historia de DELTA): la VM va por horas y la VNI y la estadía por calendario.
+  Un paciente intubado ayer a las 14:00 marca **0** días de VM en el turno de
+  hoy (19 h) y 1 recién mañana. El día de la transición ya no «pertenece» a
+  ningún soporte: se cuentan horas.
+- El REM y el archivo (`DIAS_VM_TOTAL`) leen el contador sellado de la última
+  evolución, así que **la estadística de VM también baja hasta un día por
+  episodio**. Los episodios ya archivados no cambian.
+- Nada de esto se recalcula hacia atrás: las camas que hoy están en VM
+  cambian de número al pegar (contra la hora que ya tenían guardada), y las que
+  no tienen hora siguen por calendario.
+
+### Guardias
+
+- Nueva **`vm_por_horas.js`**: servidor (ingreso escrito, llegó ventilado,
+  intubado en la unidad, censo, sin hora, interruptor apagado) y navegador
+  (sugerencia hoy + ahora, bloqueo en evolución, tarjeta «VM 14d» y no 15,
+  formulario 14 y estadía 15).
+- `dias_estadia` y `dias_soporte` documentan la regla por CALENDARIO: corren
+  con `VM_POR_HORAS=FALSE` (nota al inicio). `vm_no_es_vni` mira el texto nuevo.
+- 🪤 `SHIFT` sale del reloj real: una guardia con navegador que cuente contra
+  la hora de inicio del turno fija `SHIFT='Dia'`, o de noche cambia sola.
+- 🪤 El simulador ya trae las camas sembradas: un banco que «agrega» la cama 9
+  deja dos y el censo devuelve la vacía. Se actualiza con `repoActualizar`.
+- 🪤 `guardado_viajes` compara contra un árbol base: el reloj de ingreso solo
+  manda cuando el formulario trajo `PAC_FECHA_INGRESO` (`_ingresoEscrito`), así
+  un cliente viejo o un banco sin el campo se comporta igual que antes.
+## v6.25-hoja-ingreso-carilla2 (11-sep-2026) — la hoja trae con qué recalcular a mano
+
+Diego, 11-sep: «la fecha de ingreso y los días de VM últimamente no coinciden
+con el otro programa… a la hoja debemos agregar al encabezado la fecha de
+ingreso, así si está erróneo podemos hacer un cálculo manual, como
+contrarreferencia. Otro cambio: la sección posterior, donde escalas como
+VISAGE aparecen apiladas fuera de formato». Rama
+`hoja-fecha-ingreso-y-carilla2` salida de `develop`, solo index. **Sin fusionar
+hasta que él vea las capturas.**
+
+- **Encabezado**: celda nueva **INGRESO** con `dd/mm/aa hh:mm` (de
+  `FECHA_INGRESO` + la hora de `TS_INGRESO`), entre RUT y DÍAS. Si el contador
+  de días saliera mal, el papel trae la fecha para recalcular.
+- **Carilla 2, última tabla** (evaluaciones adicionales de fuerza muscular ·
+  evaluaciones neurológicos/neuroquirúrgicos: VISAGE, scores de vía aérea):
+  tenía un `colgroup` de **10 columnas** y filas de **5 celdas**, así que
+  ocupaba media página con las celdas apiladas. Ahora son 5 columnas
+  (32/16/4/32/16 %), dos bloques a lo ancho, separador sin borde (`.rk-nb`).
+  Es el pendiente «carilla 2 apilada» que dejó anotado el 9-sep.
+- Guardia `hoja_registro_dia.js`: INGRESO en el encabezado; la tabla tiene 5
+  columnas, cada fila cubre las 5 (sumando colspan) y ocupa ≥ 90 % del ancho.
+  🪤 Dentro de `#rkPrint` oculto, `getBoundingClientRect` da 0: medir con
+  `offsetWidth` contra el padre, o leer el estilo.
+- **Lo de los relojes NO se programó**: quedó medido en CLAUDE.md («Esperando
+  decisión») con las tres preguntas — el pedido de contar la VM por horas
+  choca con su decisión del 4-ago de contar por calendario como BUDA (v5.35).
+## v7.02-con-resiembra-plantillas (12-sep-2026) — y el último trabajo de Manuel adentro
+
+Diego, al recibir la v7.01: «en la fusión también incluiste el trabajo de
+Manuel… inclúyelo también para que quede integrada». Se midió rama por rama
+**por contenido**, no por nombre — el detalle está en la tabla de CLAUDE.md.
+
+- ✅ **Fusionada `feature/resiembra-plantillas`** (7-sep, Manuel): su último
+  trabajo. `_plantResembrar` + `plantillasResembrarSimular()` /
+  `plantillasResembrarAplicarAhora()` en `svc_plantillas.gs`, para que el orden
+  nuevo de las 17 plantillas llegue a una planilla que YA las tenía sembradas.
+  Guardia `resiembra_plantillas.js`. **Sin conflictos**: la v7.01 no había
+  tocado `svc_plantillas.gs`.
+- ✅ **Lo demás de Manuel ya estaba dentro** y se verificó uno por uno: la
+  entrega en blanco y negro (traspasada en la v6.06) y el memo de CONFIG de la
+  Ola 1 (`_CFG_MEMO`). Aparecían como «commits sin equivalente» solo porque en
+  su momento se reescribieron en vez de cherry-pickearse.
+- 🔴 **`fix/la-vni-viaja-al-rem-hospital` sigue FUERA, a propósito**: manda el
+  REM del mes a un destino externo y trae una maqueta con pacientes ficticios.
+  No se fusiona bajo el paraguas de «incluir lo de Manuel» — es una decisión de
+  privacidad que Diego tiene que tomar sabiendo qué hace.
+- Sello **`7.02-con-resiembra-plantillas`**, `NOVEDADES` con la línea de la
+  resiembra. **Batería: 127 verdes.**
+
+🪤 **Cómo se mide si una rama ya está dentro**: `git log --cherry-pick
+--right-only A...B` compara por PARCHE, no por identificador. Sin eso, una rama
+cuyo contenido se traspasó a mano parece pendiente para siempre y se fusiona dos
+veces.
+
+---
+
+## v7.01-episodio-turno-y-relojes (12-sep-2026) — las dos tandas en una sola entrega
+
+Diego, tras aprobar la v7.00 en su planilla de prueba: «ahora sí quiero
+probarlo en la oficial… ¿copio y pego los script y luego hago otra
+implementación?». Se le respondió que **implementación nueva NO** (su propia
+regla del 14-ago: se edita la existente o la unidad queda partida en dos) y que
+en la oficial se puede probar SIN publicar, usando `/dev`, que sirve lo último
+guardado y **solo al dueño del proyecto**. Eligió: «fusiona y luego publico en
+dev».
+
+- **Rama `v7-episodio-turno-con-relojes`**, salida de `separacion-episodio-turno`
+  con `ingreso-manual-y-vm-por-horas` fusionada dentro. Las dos habían salido de
+  `develop` y tocaban los MISMOS seis archivos de `v2/`, y ninguna incluía a la
+  otra: pegar una sola habría borrado la otra en silencio.
+- **Sello `7.01-episodio-turno-y-relojes`.** `NOVEDADES` queda con UNA entrada
+  que resume la tanda completa (el servidor solo conoce el sello que arranca).
+- Conflictos reales: solo el sello (index, empaquetador) y el catálogo de
+  novedades. `api.gs`, `esquema.gs`, `mantenimiento.gs` y `svc_evoluciones.gs`
+  se fusionaron solos — las dos tandas tocaban partes distintas de cada uno.
+- **Batería: 126 verdes** (las 124 de develop + `episodio_turno` + `vm_por_horas`).
+
+### 🪤 La trampa de la madrugada (vale para cualquier guardia futura)
+
+Tras la fusión salieron TRES rojas —`episodio_turno`, `vm_por_horas` y
+`pve_no_toca_los_dias`— todas con el número **exactamente uno menos**. No era
+la fusión: eran las **02:00 en el contenedor**. La app cuenta contra `gDate`
+(la fecha del TURNO) y antes de las 9 el turno lógico es «Noche del día
+anterior», así que `gDate` iba un día atrás mientras los bancos se armaban con
+`hoy()`. Las mismas guardias estaban verdes a las 18:00 del día anterior.
+**Arreglo**: anclar `SHIFT='Dia'` y `gDate=hoy()` al cargar el index. Es la
+hermana de la trampa de las fechas fijas del 9-sep, pero por hora del día.
+
+Y una decisión de alcance: **`pve_no_toca_los_dias` mide con el interruptor
+`VM_POR_HORAS` apagado**, como `dias_estadia` y `dias_soporte`. Lo que esa
+guardia fija es que la PVE no mueve los contadores, no cómo se cuentan; la
+cuenta por bloques de 24 h tiene la suya.
+
+---
+
+## v7.00-episodio-y-turno (11-sep-2026) — la rama paralela: cuatro casas para el dato
+
+> ✅ **12-sep-2026 · Diego la instaló en su planilla nueva, la revisó y la
+> aprobó**: «revisé y está bueno, me gustó; igual podría pulirse pero por ahora
+> bien». Falta que diga qué pulir. **No pidió fusionar**: la rama sigue aparte.
+> 🪤 Al instalarla, la app arrancó con «No se pudo verificar la conexión con el
+> servidor» estando el servidor sano: era la IMPLEMENTACIÓN sirviendo una
+> versión anterior al pegado, no el código. De ahí salió
+> `herramientas/diagnostico.gs`.
+
+Diego respondió los «cables sueltos» en bloque y dio la orden: «PROGRAMA todo
+lo demás, ya que esto irá por rama paralela; lo que haré es iniciar otro Sheet
+con otro nombre… al final dame el paquete de documentos para subir e
+implementar en el nuevo archivo». Rama **`separacion-episodio-turno`**, salida
+de `develop`. **No se fusiona ni se pega en producción sin su OK.** El paquete
+completo (12 archivos para un proyecto de Apps Script nuevo) y el paso a paso
+están en `INSTALAR_PLANILLA_NUEVA.md`; el plan, en `PRD_EPISODIO_Y_TURNO.md`.
+
+### Qué trae
+
+- **Esquema, aditivo**: hoja nueva **EVALUACIONES** (ID_EVAL · PATIENT_ID ·
+  ID_CAMA · FECHA · TURNO · ESCALA · TOTAL · ITEMS_JSON · FIRMA · ORIGEN ·
+  ID_EVOLUCION · ANULADA · TIMESTAMP); `DATOS_JSON` al final de TIMELINE;
+  `ULT_MRC_FIRMA / ULT_FSS_FIRMA / ULT_PIM_FIRMA`, `AET_ACTIVA/NIVEL/FECHA` y
+  `UPOT_ACTIVO/MEDIDAS/FECHA` al final de CAMAS_ESTADO. **EVOLUCIONES sigue en
+  396 columnas** y `testEsquema` lo sigue asegurando: los 27 archivos que leen
+  `EXT_OCURRIO` no se tocaron.
+- **`svc_evaluaciones.gs`** (nuevo): `EPISODIO_ESCALA` (ECF, Barthel, Charlson
+  → CAMAS_ESTADO, se corrige encima, hito «📐 ECF 4 (corrige 5) (MCC)»),
+  `EVAL_REGISTRAR` (serie con firma desde la tarjeta), `GET_EVALUACIONES`
+  (ordinal DERIVADO: 1ª, 2ª…), y `_evalDesdeEvolucion`: lo que un turno mide
+  (MRC, FSS, CPAx, PIM, PEM, FEM, dinamo, eco, deglución) entra a la serie con
+  la firma DEL TURNO, sin duplicar al re-guardar.
+- **Cultivos «ambas»** (`_cultivoALaSerie`): la toma abre la entrada
+  («pendiente», hora, tipos, ATB, firma de quien tomó); el resultado que llega
+  en OTRO turno se escribe sobre esa entrada con `resultadoFecha/Firma`; el
+  hito «Cultivo de secreciones» lleva el detalle.
+- **SBC exige FSS** (`validarSBC`, cliente + servidor): KTM nivel 3 sin ningún
+  FSS-ICU del episodio no guarda; el mensaje manda a medirlo ahí mismo.
+- **Vía aérea solo por evento** (`validarTransicionVA` + fila «¿Qué pasó hoy
+  con la vía aérea?» sobre el bloque, línea fina que bloquea el select, y el
+  modal ⚠️ que ya no tiene «Guardar igual»: pide **motivo escrito**,
+  `TRANS_MOTIVO`, que viaja al hito `via_aerea` y NO a EVOLUCIONES).
+- **Hitos con detalle**: extubación, intubación, reintubación, TQT,
+  decanulación y cultivo escriben `DATOS_JSON` (hora, tipo, «queda con»…).
+- **Auditoría, huella F**: `auditoriaIntegridad()` recorre EVOLUCIONES +
+  EVOLUCIONES_ARCHIVO y lista cada turno cuya vía aérea cambió sin casilla de
+  evento — el caso de la cama 13.
+- **Cliente**: chips de escalas en la tarjeta (📋 pendiente / valor), medir
+  ECF/MRC/FSS/CPAx desde la tarjeta sin abrir la evolución («💾 Guardar en el
+  episodio»), badge `MRC 36 · 02-09 · MCC`, banner del episodio arriba del
+  formulario (nombre, día, VA, escalas, AET/UPOT), y AET/UPOT leídos de la
+  cama en vez de heredados. La entrega imprime `MRC-SS 36 (02-09, MCC)`.
+- Sello `7.00-episodio-y-turno`; `NOVEDADES` con el resumen para el equipo.
+
+### Lo que se midió y se corrigió por el camino
+
+- 🔴 **Corrección a lo que le dije a Diego el 11-sep**: afirmé que la fila
+  heredada «ya afirma MRC 33, evaluado hoy, firmado por mí». Al programar se
+  midió que `fillFormReplica` **no hereda las evaluaciones** (solo las recarga
+  si `EVAL_FECHA` es hoy). El hueco real era la FIRMA y la SERIE, no una foto
+  retocada. Va dicho en la entrega.
+- 🪤 **`function guardar()` es propiedad no configurable de `window`**: en una
+  guardia se puede pisar por asignación, pero `delete` no la devuelve. Guardar
+  la real aparte y restaurarla.
+- 🪤 **El simulador tiene el reloj fijo en julio** (`hoyISO()`); una guardia
+  con navegador arma sus fechas con el `hoy()` del navegador, o «hace 1 día»
+  son meses y el badge cambia de rama («hace 73d» en vez de la fecha).
+- 🪤 **`auditoriaIntegridad` evaluada fuera del simulador necesita `Logger` y
+  `ERR`** definidos antes, o el catch del final es el que revienta.
+- 🪤 El anuncio de la extubación vive en la fila pero su casilla en el bloque
+  PVE: `_evVAAnunciado` recuerda lo anunciado mientras se completa; se
+  reinicia al abrir el panel.
+- 🪤 La guardia del buzón lee **la primera clave de `NOVEDADES`** con una
+  regex: un comentario entre la llave y la clave la deja ciega.
+- Guardia nueva **`episodio_turno.js`** (esquema · servidor con simulador ·
+  navegador; fechas relativas). Batería: **125 verdes, 0 rojas**.
+- Ajustes de bancos: `ktm_no_se_pierde`, `guardado_viajes` (KTM 3 con FSS;
+  TIMELINE comparada al ancho base y sin hitos `evaluacion`), `coordinacion`
+  (tramo VNI con `TRANS_MOTIVO`), `reset` (EVALUACIONES se vacía).
+
+### Fuera de esta tanda, a propósito
+
+PWA + login real (espera a informática y cuatro decisiones de Diego),
+laboratorio en CSV/TXT («omite por ahora»), y el reordenamiento completo del
+modal (tanda ④ del camino por casas).
+
+---
+
 ## v6.24-mauri-sin-suelo (9-sep-2026) — el huaso estaba parado sobre un ladrillo beige
 
 Diego pidió **el mockup de la mascota de abajo**. Al capturar el botón real de
