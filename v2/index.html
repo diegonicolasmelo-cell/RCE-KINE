@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="5.86-entrega-bn-negrita">
+<meta name="rce-version" content="5.87-guardado-obligatorio">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -4172,6 +4172,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <div id="gFalta"></div>
       <div class="act-bar">
         <span id="gSinGuardar" class="hidden" style="align-self:center;font-size:.72rem;font-weight:800;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;border-radius:20px;padding:3px 10px;margin-right:6px;white-space:nowrap;">⚠️ Sin guardar</span>
+        <span id="gEstadoGuardado" class="hidden" data-estado="" style="align-self:center;font-size:.72rem;font-weight:800;border-radius:20px;padding:3px 10px;margin-right:6px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;"></span>
         <button type="button" id="btnGuardar" class="btn btn-p" data-nodirty onclick="guardar()">💾 Guardar Evolución</button>
 <!-- 👁️ Preview salió de la barra (Diego, 30-ago-2026: «solamente existirá
              botón de guardar»). El texto está siempre a la vista, arriba. -->
@@ -4458,7 +4459,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.86-entrega-bn-negrita]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 5.87-guardado-obligatorio]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5191,6 +5192,10 @@ function abrirPanel(id, esIng, verFicha) {
     // otra para asegurar que el reset gana sobre cualquier ajuste de focus.
     requestAnimationFrame(() => requestAnimationFrame(() => { pc.scrollTop = 0; }));
   }
+  // O7 · si esta cama quedó con borrador en ESTE turno, vuelve tal como se dejó
+  // (lo escrito manda sobre el formulario recién cargado). Lo último del abrir.
+  _estadoGuardado(null);
+  _borradorRestaurar(id);
 }
 
 function actualizarTituloPanel(nombre) {
@@ -5320,16 +5325,25 @@ function restaurarDesdeMin(i) {
 }
 
 function cerrarPanel(force) {
-  // H1: cerrar con cambios sin guardar requiere confirmación (la × accidental
-  // en plena UCI no puede costar 10 minutos de registro). Minimizar no pasa
-  // por aquí, así que los borradores intencionales no molestan.
+  // H1 + PRD guardado obligatorio (O2): cerrar con cambios sin guardar abre el
+  // MODAL PROPIO de tres acciones (jamás confirm() nativo). NINGUNA de las tres
+  // pierde lo escrito, así que tampoco hay segunda confirmación: ya no existe
+  // «Cerrar y descartar».
+  //   ✔ Guardar y cerrar (acción por defecto) · Seguir editando ·
+  //   Cerrar y conservar borrador (localStorage, CAMA_<id>_<turnoKey>)
   if(_formDirty && force!==true){
     uiConfirm({
-      icono:'⚠️', titulo:'Cambios sin guardar',
+      icono:'💾', titulo:'Cambios sin guardar',
       mensaje:'Hay cambios <b>sin guardar</b> en esta evolución.',
-      detalle:'Si solo quieres pausar al paciente, usa − Minimizar: el borrador se conserva.',
-      confirmar:'Cerrar y descartar', tono:'rojo',
-    }).then(ok=>{ if(ok){ _formDirty=false; cerrarPanel(true); } });
+      detalle:'Guardar ahora <b>no cierra nada</b>: una evolución guardada a medias se puede reabrir y seguir en el mismo turno. Si cierras conservando el borrador, lo escrito te espera al reabrir esta cama en este turno.',
+      confirmar:'Guardar y cerrar', cancelar:'Seguir editando',
+      alterno:'Cerrar y conservar borrador',
+    }).then(r=>{
+      if(r===true){ _cerrarTrasGuardar=true; guardar(); return; }
+      if(r==='alt'){ _borradorGuardar(); _formDirty=false; cerrarPanel(true); return; }
+      // «Seguir editando»: el panel queda exactamente como estaba.
+      const _pc=document.querySelector('#sp .pcontent'); if(_pc) _pc.focus&&_pc.focus();
+    });
     return;
   }
   _formDirty=false;
@@ -5340,6 +5354,7 @@ function cerrarPanel(force) {
   if(btn){ btn.disabled=false; btn.textContent='💾 Guardar Evolución'; }
   hide('btnCerrarPost');
   hide('rarea');
+  _estadoGuardado(null); _reintentoGuardado=null; _cerrarTrasGuardar=false;
   actualizarTituloPanel('');
   const camaId = $('cBed')?.value || '';
   const idx = _minStack.findIndex(m => m.camaId === camaId);
@@ -5376,6 +5391,149 @@ function _tickSinGuardar(){
   }
 }
 setInterval(_tickSinGuardar, 2000);
+
+/* ══ PRD «que no quede ninguna evolución sin guardar» · TANDA 1 ══════════════
+   Tres piezas que comparten la MISMA franja del botón 💾 (la barra donde ya
+   vive «⚠️ Sin guardar», que NO se toca — NO1 del PRD):
+     · O3  confirmación PERSISTENTE con hora  → «✓ Guardado hh:mm»
+     · O3b fallo de guardado VISIBLE          → «❌ NO se guardó · Reintentar»
+     · O7  borrador local por cama y turno    → «Borrador sin guardar recuperado hh:mm»
+   #gSinGuardar sigue siendo suyo y con su texto de siempre: esto es un span
+   HERMANO (#gEstadoGuardado), así el aviso de cambios sin guardar y el estado
+   del último guardado pueden convivir sin pisarse. */
+
+// Guardado que quedó pendiente de reintentar a mano (lo arma guardar()).
+let _reintentoGuardado = null;
+// «Guardar y cerrar» del modal de cierre: el panel se cierra SOLO si el
+// guardado termina bien.
+let _cerrarTrasGuardar = false;
+
+function _hhmm(d){ d=d||new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+const _EST_TONOS = {
+  ok:       { fondo:'#dcfce7', borde:'#86efac', color:'#166534' },
+  error:    { fondo:'#fee2e2', borde:'#fca5a5', color:'#991b1b' },
+  borrador: { fondo:'#fef3c7', borde:'#fcd34d', color:'#92400e' },
+};
+
+function _estadoGuardado(modo, html){
+  const e = $('gEstadoGuardado');
+  if(!e) return;
+  if(!modo){ e.classList.add('hidden'); e.dataset.estado=''; e.innerHTML=''; return; }
+  const t = _EST_TONOS[modo] || _EST_TONOS.ok;
+  e.style.background=t.fondo; e.style.border='1px solid '+t.borde; e.style.color=t.color;
+  e.dataset.estado=modo; e.innerHTML=html; e.classList.remove('hidden');
+}
+
+// O3 · queda a la vista mientras el panel esté abierto, sin tapar ningún campo.
+function _marcaGuardadoOK(d){ _reintentoGuardado=null; _estadoGuardado('ok','✓ Guardado '+_hhmm(d)); }
+
+// O3b · estado de ERROR persistente: se queda hasta que un guardado termine bien.
+function _marcaGuardadoError(){
+  _estadoGuardado('error','❌ NO se guardó <button type="button" data-nodirty onclick="reintentarGuardado()" style="font:inherit;border:1px solid #991b1b;background:#fff;color:#991b1b;border-radius:14px;padding:1px 9px;cursor:pointer;">Reintentar</button>');
+}
+
+// Remanda EXACTAMENTE los mismos datos del intento que falló (re-guardar el
+// mismo turno actualiza, no duplica). No se suma al reintento automático de
+// 3 s: éste solo existe cuando aquél ya se agotó.
+function reintentarGuardado(){
+  if(typeof _reintentoGuardado!=='function') return;
+  const f=_reintentoGuardado; _reintentoGuardado=null;
+  _estadoGuardado('error','⏳ Reintentando…');
+  f();
+}
+
+/* ── O7 · BORRADOR LOCAL por cama y turno ─────────────────────────────────
+   Llave `CAMA_<idCama>_<turnoKey>`, la misma forma que idEvolucion, en
+   localStorage (tiene que sobrevivir a que se apague el equipo).
+   🔴 NUNCA guarda nombre, RUT, edad ni diagnóstico libre: el PC de la unidad
+   es compartido (Ley 19.628). Cama, turno y valores clínicos alcanzan.
+   Un borrador NO es una evolución: no escribe en EVOLUCIONES ni saca la cama
+   de ninguna lista de pendientes. */
+const _BORR_SIN_IDENTIDAD = ['fNombre','fRut','fEdad','fDx'];
+const _BORR_RE = /^CAMA_[^_]+_\d{4}-\d{2}-\d{2}-[A-Za-z]+$/;   // SHIFT es 'Dia'/'Noche', no una inicial
+
+function _turnoKeyVigente(){ return (v('gDate')||hoy())+'-'+SHIFT; }
+function _borradorLlave(idCama, tkey){ return 'CAMA_'+idCama+'_'+(tkey||_turnoKeyVigente()); }
+
+function _borradorEstado(){
+  const campos={};
+  document.querySelectorAll('#sp input,#sp select,#sp textarea').forEach(e=>{
+    if(!e.id || _BORR_SIN_IDENTIDAD.indexOf(e.id)!==-1) return;
+    campos[e.id] = (e.type==='checkbox'||e.type==='radio') ? !!e.checked : e.value;
+  });
+  return {
+    v:1, hora:_hhmm(), ts:Date.now(), firma:(campos.fFirma||''),
+    campos,
+    procs:[...(PROCS||[])],
+    fases:[...FASES_SEL], pend:[...PEND_SEL], aisl:[..._aislTags],
+    ti:JSON.parse(JSON.stringify(_tiState)),
+    cultF:{..._cultFechas}, cultT:[..._cultTurno],
+    secrQty:_secrQty, pronoTs:_pronoTs, supinoTs:_supinoTs,
+    textoManual:!!_textoManual, rtxtGen:_rtxtGen||'',
+  };
+}
+
+function _borradorGuardar(){
+  try{
+    const id=$('cBed')?.value||''; if(!id) return false;
+    localStorage.setItem(_borradorLlave(id), JSON.stringify(_borradorEstado()));
+    return true;
+  }catch(e){ console.warn('borrador no guardado', e && e.name); return false; }
+}
+
+function _borradorDescartar(idCama){
+  try{ localStorage.removeItem(_borradorLlave(idCama||$('cBed')?.value||'')); }catch(e){}
+}
+
+function _borradorHay(idCama){
+  try{ return !!localStorage.getItem(_borradorLlave(idCama)); }catch(e){ return false; }
+}
+
+// Los borradores de un turno que ya no es el vigente se limpian y NO se
+// ofrecen nunca (§5: «cuándo muere»).
+function _borradoresPurgar(){
+  try{
+    const vig=_turnoKeyVigente(), fuera=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && _BORR_RE.test(k) && k.slice(k.indexOf('_', 5)+1)!==vig) fuera.push(k);
+    }
+    fuera.forEach(k=>localStorage.removeItem(k));
+    return fuera.length;
+  }catch(e){ return 0; }
+}
+
+function _borradorRestaurar(idCama){
+  let d=null;
+  try{ const raw=localStorage.getItem(_borradorLlave(idCama)); if(!raw) return false; d=JSON.parse(raw); }
+  catch(e){ return false; }
+  if(!d || !d.campos) return false;
+  Object.keys(d.campos).forEach(id=>{
+    if(_BORR_SIN_IDENTIDAD.indexOf(id)!==-1) return;
+    const e=document.getElementById(id); if(!e) return;
+    if(e.type==='checkbox'||e.type==='radio') e.checked=!!d.campos[id]; else e.value=d.campos[id];
+  });
+  PROCS=[...(d.procs||[])]; renderChips();
+  FASES_SEL=new Set(d.fases||[]); renderFases();
+  PEND_SEL=new Set(d.pend||[]); renderPend();
+  _aislTags=[...(d.aisl||[])]; renderAislTags();
+  if(d.ti){ Object.keys(_tiState).forEach(k=>delete _tiState[k]); Object.assign(_tiState,d.ti);
+    tiRender('fSecrTags','fSecrVal','sky'); tiRender('fCultTags','fCultVal','violet'); }
+  if(d.cultF) _cultFechas={...d.cultF};
+  if(d.cultT) _cultTurno=new Set(d.cultT);
+  if(d.secrQty!==undefined) _secrQty=d.secrQty;
+  if(d.pronoTs!==undefined) _pronoTs=d.pronoTs;
+  if(d.supinoTs!==undefined) _supinoTs=d.supinoTs;
+  _rtxtGen=d.rtxtGen||_rtxtGen;
+  if(typeof _setTextoManual==='function') _setTextoManual(!!d.textoManual);
+  _formDirty=true;                         // sigue siendo trabajo sin guardar
+  _tickSinGuardar();
+  const firma=(d.firma||'').trim();
+  _estadoGuardado('borrador','📝 Borrador sin guardar recuperado '+(d.hora||'')+(firma?' · '+firma:''));
+  toast('📝 Se recuperó el borrador de esta cama en este turno — recuerda guardar.', 5200);
+  return true;
+}
 
 function cerrarTodo(e) {
   if(e.target===$('ovl')) {
@@ -6765,28 +6923,50 @@ function guardar() {
     // texto queda disponible arriba de la barra por si hay que copiarlo, y
     // ✖ Cerrar aparece en la misma barra pegada abajo, a mano.
     _formDirty=false;   // guardado: ya no hay cambios que perder
+    // O3 · confirmación PERSISTENTE con hora en la franja del botón 💾 (el
+    // toast de arriba sigue saliendo igual: se SUMA, no reemplaza).
+    _marcaGuardadoOK();
+    // O7 · ya está en el servidor: el borrador local de esta cama y turno muere.
+    _borradorDescartar($('cBed')?.value||'');
     // Mostrar botón cerrar y actualizar grid en background (sin overlay)
     show('btnCerrarPost');
     recargarSilencioso();
+    // «Guardar y cerrar» del modal de cierre: solo cierra si terminó bien.
+    if(_cerrarTrasGuardar){ _cerrarTrasGuardar=false; cerrarPanel(true); }
   };
   const _falloFinal=m=>{
     btn.disabled=false; btn.textContent='💾 Guardar Evolución';
     toast('❌ No se pudo guardar: '+(m||'sin conexión')+' — tu evolución sigue en pantalla, revisa la red y aprieta 💾 de nuevo');
+    // O3b · el toast se apaga a los 3,2 s; esto NO. La franja del botón 💾
+    // queda en error hasta que un guardado termine bien, con su Reintentar
+    // que remanda los MISMOS datos. _formDirty sigue en true y el formulario
+    // no se toca. Y se deja borrador local por si el equipo se apaga ahora.
+    _cerrarTrasGuardar=false;
+    _reintentoGuardado=_enviar;
+    _marcaGuardadoError();
+    _borradorGuardar();
   };
   // Reintento automático (v5.25): si la red parpadea justo al guardar, se
   // reintenta UNA vez a los 3 s antes de molestar. Es inocuo aunque el primer
   // intento sí hubiera llegado: re-guardar el mismo turno actualiza, no duplica.
-  api('GUARDAR_EVOLUCION', datos).then(_exito).catch(e1=>{
-    const m1=(e1&&e1.message)||String(e1);
-    if(/Sesión no válida|Inicia sesión/i.test(m1)){ loading(false); mostrarLogin(); _falloFinal(m1); return; }
-    btn.textContent='⏳ Reintentando…';
-    toast('⚠️ Sin respuesta del servidor — reintentando en 3 s…');
-    setTimeout(()=>{
-      api('GUARDAR_EVOLUCION', datos)
-        .then(r=>{ toast('✅ Guardado al segundo intento'); _exito(r); })
-        .catch(e2=>_falloFinal((e2&&e2.message)||String(e2)));
-    }, 3000);
-  });
+  // _enviar = un viaje completo (intento + su reintento automático). Es lo que
+  // vuelve a correr el botón «Reintentar» de la franja: los MISMOS datos, sin
+  // sumarse al reintento de 3 s (éste solo existe cuando aquél ya se agotó).
+  const _enviar=()=>{
+    btn.disabled=true; btn.textContent='⏳ Guardando...';
+    api('GUARDAR_EVOLUCION', datos).then(_exito).catch(e1=>{
+      const m1=(e1&&e1.message)||String(e1);
+      if(/Sesión no válida|Inicia sesión/i.test(m1)){ loading(false); mostrarLogin(); _falloFinal(m1); return; }
+      btn.textContent='⏳ Reintentando…';
+      toast('⚠️ Sin respuesta del servidor — reintentando en 3 s…');
+      setTimeout(()=>{
+        api('GUARDAR_EVOLUCION', datos)
+          .then(r=>{ toast('✅ Guardado al segundo intento'); _exito(r); })
+          .catch(e2=>_falloFinal((e2&&e2.message)||String(e2)));
+      }, 3000);
+    });
+  };
+  _enviar();
 }
 
 //  EGRESO
@@ -6911,6 +7091,9 @@ function uiConfirm(o){
   $('ucMsg').innerHTML=o.mensaje||'';
   const det=$('ucDet'); det.innerHTML=o.detalle||''; det.style.display=o.detalle?'':'none';
   $('ucOk').textContent=o.confirmar||'Confirmar';
+  // Rótulo del botón que resuelve `false`. Por defecto «Cancelar»; el modal de
+  // cierre del panel lo usa para decir «Seguir editando» (PRD guardado obligatorio).
+  const _can=$('ucCancel'); if(_can) _can.textContent=o.cancelar||'Cancelar';
   // Tercera salida opcional: resuelve la promesa con 'alt' (distinto de
   // true/false, así quien no la use no cambia en nada).
   const _alt=$('ucAlt');
@@ -15978,6 +16161,9 @@ function _bootLegacy(){
 }
 function bootApp(){
   hSesRender();
+  // O7 · los borradores locales de turnos que ya pasaron se limpian al
+  // arrancar y NO se ofrecen nunca (PRD guardado obligatorio, §5).
+  _borradoresPurgar();
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); })
     .catch(()=>{ FASES=[]; toast('⚠️ No se pudo cargar el catálogo de fases — reintenta con 🔄 Actualizar'); });
   api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; aplicarBanners(); }).catch(()=>{ window.CFG={}; });
