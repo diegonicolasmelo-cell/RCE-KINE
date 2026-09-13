@@ -3870,3 +3870,138 @@ Tres nuevas, **vistas fallar primero** contra el código sin el cambio (0 verdes
 
 **Batería completa: 118 verdes, 0 rojas.** Pendiente: la tanda 4 (ofrecer
 registrar el evento olvidado, la que toca TIMELINE y días de VM).
+
+---
+
+## v5.87-guardado-obligatorio · tanda 4 del PRD · anotar el evento olvidado (13-sep-2026)
+
+O5 del `PRD_GUARDADO_OBLIGATORIO.md`. `_avisosTransicion()` ya detectaba que el
+estado de vía aérea o de soporte cambió sin que nadie anotara el evento, y ahí
+moría: informaba y no ofrecía nada. Lo que entra es la **acción**, no la
+detección — ninguna inferencia clínica nueva (regla dura 1 del PRD §5).
+
+**Sello NO sube: sigue en 5.87-guardado-obligatorio.**
+**No cambia el esquema: `crearORepararEstructura()` NO hace falta por esta tanda.**
+(Sí la sigue necesitando la tanda 3, que sembró cuatro claves de CONFIG.)
+
+### 🔴 El hallazgo que decidió todo el diseño: esto NO escribe en TIMELINE
+
+El PRD dice «el hito entra en TIMELINE con la hora real». Escribirlo directo
+**no funciona**, y la razón está en `svc_timeline.gs`:
+
+```js
+const _TIPOS_HITO_AUTO = ['via_aerea', 'procedimiento', 'kine', 'general'];
+```
+
+`_timelineDelGuardado()` **borra y regenera** todos los hitos de esos tipos para
+cama+fecha+turno en CADA guardado. Un hito escrito a mano con
+`agregarHito({tipo:'via_aerea'})` lo borraría el guardado que viene justo detrás
+— y nadie se enteraría, porque el aviso ya se habría apagado. Encima, los
+indicadores que importan aquí (REINTUBACIONES, fracaso de extubación, días de
+VM) **no se calculan desde TIMELINE** sino desde las columnas de EVOLUCIONES
+(`EXT_*`, `INTUB_*`, `TQT_*`, `DECAN_*`).
+
+Por eso la oferta rellena **los mismos campos del formulario** que llenaría el
+kinesiólogo a mano: casilla del evento + hora real. El hito llega a TIMELINE por
+el camino canónico (`_autoProcs` → PROCEDIMIENTOS → `PROC_TO_HITO`) con la hora
+que escribió la persona, y ninguna fórmula de indicador cambia. **Cero rutas de
+escritura nuevas al servidor.** Es un desvío de la letra del PRD y cumple su
+intención: se anota lo que faltaba, con la hora verdadera.
+
+### Qué se ofrece anotar, qué solo lleva al bloque, y por qué
+
+| Transición | Qué hace el botón | Razón |
+|---|---|---|
+| TOT → TQT sin traqueostomía | **Anota** con hora real | `_autoProcs` empuja `'TQT'` sin depender de `fVA`; no toca `EXT_*`, `N_REINTUB` ni `DIAS_VM_PREVIOS` |
+| VM → no VM (en TQT) sin desvinculación | **Anota** con hora real | `_autoProcs` pide `fVA==='TQT'`, que es justo la condición del aviso; no entra en la cadena de `VENT_SOPORTE_FINAL` |
+| TOT → sin vía aérea sin extubación | Lleva al bloque | Exige elegir la rama de PVE **y** el tipo (c/protocolo, s/protocolo, accidental, autoextubación). Eso lo decide el clínico; elegirlo por él es la inferencia que la regla 1 prohíbe. Además mueve el denominador de fracaso de extubación (`svc_indicadores.gs:242`) y el `_tiempoExtubado` |
+| sin vía aérea → TOT sin intubación | Lleva al bloque | El aviso dice «no hay intubación **ni reintubación**»: **no las distingue**. Marcar `cIntubO` por cuenta propia escondería una reintubación real → REINTUBACIONES subcontada. Es exactamente «¿qué dato VERDADERO deja de verse?» |
+| TQT → sin vía aérea sin decanulación | Lleva al bloque | 🪤 ver abajo |
+
+### 🪤 Trampa nueva: la decanulación se apagaría sin dejar hito
+
+`_autoProcs` (v2/index.html ~6192) tiene esta guarda:
+
+```js
+if(v('fVA')==='TQT' && $('cDecanOcurrio')?.checked) auto.push('DECANULACIÓN');
+```
+
+Pero el aviso de decanulación salta justo cuando `_iniVA==='TQT'` y **`fVA` ya
+NO es TQT**. O sea: marcar `cDecanOcurrio` **apaga el aviso** (que solo mira la
+casilla) y **no deja ni procedimiento ni hito**. `DECAN_OCURRIO` se guardaría en
+`true` sin su procedimiento — incoherente. Arreglar ese gate cambia lo que se
+cuenta para todos los turnos y no se puede verificar con esta batería, así que
+queda **anotado como pendiente**, no improvisado dentro de esta tanda.
+
+### 🪤 Trampa nueva: marcar la TQT podía escribir «VM» donde no lo había
+
+Al marcar `cTqtO`, `VENT_SOPORTE_FINAL` (v2/index.html ~6918) pasa a
+`v('poTqtSop')||'VM'`. Con el bloque recién abierto, `poTqtSop` está vacío → se
+guardaría **VM** aunque el paciente quedara traqueostomizado en oxigenoterapia.
+Una falsedad, y justo en el dato de días de VM. Por eso la oferta **espeja**
+`poTqtSop`/`poTqtModo` desde `fSop`/`fModo`: no inventa nada, copia el estado
+final que el kine ya registró arriba en el mismo formulario.
+
+### La hora: dos candados, ninguno negociable
+
+`_transHoraValida(hhmm, ahora)`:
+- **no puede ser futura** — un evento que todavía no ocurrió;
+- **tiene que caer dentro del turno que se está guardando** (regla 2 del PRD).
+  Ventana del turno día `[TURNO_DIA_INICIO, TURNO_NOCHE_INICIO)`; la del turno
+  noche cruza la medianoche, y su madrugada pertenece al día siguiente a la
+  fecha del turno.
+
+Una hora rechazada **no deja rastro**: no marca la casilla, no escribe la hora,
+muestra el motivo y el aviso sigue en pie. `ahora` se puede inyectar porque el
+escenario depende del calendario y las guardias fijan el reloj.
+
+### Lo demás
+
+- `_avisosPreGuardado()` es ahora la **única** fábrica de la lista de avisos
+  previos al guardado: la usan `guardar()` y el repintado que hace
+  `transOfRegistrar` al anotar un evento. Sin eso, anotar la traqueostomía
+  habría borrado de la lista el aviso de valores heredados, que no tiene nada
+  que ver — la trampa de «la misma regla en más de un sitio».
+- Rechazar la oferta **guarda igual**: el aviso nunca fue un candado y sigue sin
+  serlo (regla 3 del PRD).
+- Privacidad: el aviso solo nombra estados clínicos (TOT, TQT, VM). Ni nombre ni
+  RUT, y la guardia lo prueba sembrando un paciente sintético con RUT
+  11.111.111-1.
+
+### Desvío de alcance respecto del encargo
+
+El encargo pedía además detección **al abrir un paciente**. No es posible con
+este mecanismo y no es un olvido: `_iniVA`/`_iniSop` guardan el estado con que
+se ABRIÓ el panel, así que al abrir no hay discordancia por definición — la
+transición solo existe cuando el kine ya cambió el estado. La detección vive
+donde el PRD §6 la pone: en el camino de guardado.
+
+### Guardias nuevas (vistas fallar primero contra el código sin el cambio)
+
+- `build/checks/transicion_ofrece_evento.js` — las cinco transiciones de la
+  tabla del PRD §5 se detectan **y todas traen acción**; anotar deja el evento
+  como lo dejaría el kine y apaga su aviso; los tres que no se autocompletan
+  siguen sin autocompletarse; rechazar guarda igual; sin nombre ni RUT.
+  Contra el código sin el cambio: 5 fallos.
+- `build/checks/transicion_hora_retroactiva.js` — con el **reloj fijado**: se
+  acepta lo pasado y dentro del turno, se rechaza lo futuro y lo de otro turno
+  (turno día y turno noche con su cruce de medianoche), y una hora rechazada no
+  deja rastro en el formulario. Contra el código sin el cambio: excepción (la
+  función no existía).
+
+**Batería completa: 120 guardias, 120 verdes, 0 rojas.** Espejo
+`V3 colaborativa/index.html` regenerado con `build/empaquetar_cohete.js`.
+
+### Pendientes que deja esta tanda
+
+1. **El gate de `DECANULACIÓN` en `_autoProcs`** (arriba). Mientras siga así,
+   una decanulación marcada con la vía aérea ya en Natural guarda
+   `DECAN_OCURRIO=true` sin procedimiento ni hito.
+2. **Extubación e intubación con oferta completa.** Necesitan que la oferta
+   incluya el tipo (y, en la intubación, distinguir intubación de reintubación)
+   y una verificación de punta a punta de REINTUBACIONES y fracaso de
+   extubación, que esta batería no cubre.
+3. 🪤 **`EXT_TS` se arma con `new Date()`** (v2/index.html ~6877): toma el día de
+   HOY y solo le cambia hora y minutos. Al guardar un turno con fecha pasada, el
+   sello de la extubación queda con la fecha equivocada. Es previo a esta tanda y
+   fuera de su alcance, pero está a la vista y toca `_tiempoExtubado`.
