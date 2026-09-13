@@ -64,6 +64,9 @@ console.log('\n1 · Reabrir el turno para corregir otra cosa no borra la KTM');
 
 const TK = '2026-08-01-Dia';
 r = api('GUARDAR_EVOLUCION', base('2', TK, 'Dia', {
+  // 🗂️ SBC (nivel 3) exige al menos un FSS-ICU en el episodio (Diego, 11-sep-2026:
+  // «lo evalué, después lo traté»): sin él el servidor rechaza, a propósito.
+  EVAL_T_FSS: 21,
   KTM_REALIZADA: true, KTM_NIVEL_KTR: '3', KTM_CANT: 2, KTM_ASISTENCIA: 'Mínima',
 }), null);
 eq('se guarda el turno con KTM nivel 3 y 2 sesiones', r.ok, true);

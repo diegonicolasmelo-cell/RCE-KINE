@@ -300,6 +300,71 @@ function _rango(errs, val, etiqueta, min, max, entero) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  🗂️ Rama episodio/turno (11-sep-2026) — dos reglas que viven en el
+//  SERVIDOR además del cliente. Puras: reciben lo que necesitan y no leen la
+//  planilla, para poder probarlas en Node como el resto de este archivo.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * validarSBC — «PARA REGISTRAR SBC DEBE TENER NECESARIAMENTE FSS-ICU» (Diego,
+ * 9-sep), afinado el 11-sep: «del episodio, al menos 1; eso quiere decir: lo
+ * evalué, después lo traté». SBC es el nivel 3 de KTM (sedente al borde de la
+ * cama) y el ítem 3 del FSS-ICU es esa misma actividad: si el paciente se
+ * sentó al borde de la cama, la escala tiene que existir.
+ * @param d        payload del turno
+ * @param tieneFSS true si el episodio YA tiene al menos un FSS (serie o ULT_FSS)
+ */
+function validarSBC(d, tieneFSS) {
+  const errs = [];
+  if (!d) return errs;
+  const vv = function (x) { return x === true || String(x) === 'true'; };
+  if (!vv(d.KTM_REALIZADA)) return errs;
+  if (String(d.KTM_NIVEL_KTR || '') !== '3') return errs;
+  const fssHoy = d.EVAL_T_FSS !== '' && d.EVAL_T_FSS != null;
+  if (fssHoy || tieneFSS) return errs;
+  errs.push('SBC (KTM nivel 3) exige al menos un FSS-ICU en el episodio: mídelo en Evaluaciones y vuelve a guardar.');
+  return errs;
+}
+
+/**
+ * validarTransicionVA — la vía aérea NO cambia sin un evento declarado
+ * (línea fina: parámetros = turno; vía aérea y soporte = episodio). Es el
+ * espejo en el servidor de `_avisosTransicion()` del cliente, que hasta aquí
+ * avisaba y dejaba pasar con «Guardar igual» — así se perdió la extubación de
+ * la cama 13. La salida sigue existiendo, pero cuesta una razón escrita
+ * (TRANS_MOTIVO), que viaja al hito y no a EVOLUCIONES.
+ * @param d      payload del turno
+ * @param cama   fila de CAMAS_ESTADO tal como estaba ANTES de este guardado
+ */
+function validarTransicionVA(d, cama) {
+  const errs = [];
+  if (!d || !cama) return errs;
+  const vv = function (x) { return x === true || String(x) === 'true'; };
+  if (vv(d.ES_INGRESO)) return errs;                    // al ingresar no hay transición
+  const ini = String(cama.VIA_AEREA || '').trim();
+  if (!ini || !cama.PATIENT_ID) return errs;            // cama sin episodio: no hay «venía con»
+  const va = String(d.VENT_VIA_AEREA_FINAL || d.VENT_VIA_AEREA || '').trim();
+  if (!va || va === ini) return errs;
+  // Con CUALQUIER evento de vía aérea declarado, el cambio tiene explicación:
+  // la regla es «no cambia sin evento», no «el evento tiene que ser exactamente
+  // este». Si el colega declaró decanulación donde correspondía extubación, el
+  // cliente lo avisa; el servidor no rechaza un turno que sí declaró.
+  if (vv(d.EXT_OCURRIO) || vv(d.INTUB_OCURRIO) || vv(d.EXT_REINTUB) || vv(d.TQT_OCURRIO) || vv(d.DECAN_OCURRIO)) return errs;
+  const inv = function (x) { return x === 'TOT' || x === 'TQT'; };
+  const motivo = String(d.TRANS_MOTIVO || '').trim();
+  const falta = function (msg) { if (motivo.length >= 5) return; errs.push(msg); };
+  if (ini === 'TOT' && va === 'TQT' && !vv(d.TQT_OCURRIO))
+    falta('Venía con TOT y queda con TQT, pero no hay traqueostomía registrada. Decláralo en «¿Qué pasó hoy con la vía aérea?» o escribe por qué.');
+  if (ini === 'TOT' && !inv(va) && !vv(d.EXT_OCURRIO))
+    falta('Venía con TOT y queda con ' + va + ', pero no hay extubación registrada. Decláralo en «¿Qué pasó hoy con la vía aérea?» o escribe por qué.');
+  if (ini === 'TQT' && !inv(va) && !vv(d.DECAN_OCURRIO))
+    falta('Venía con TQT y queda con ' + va + ', pero no hay decanulación registrada. Decláralo en «¿Qué pasó hoy con la vía aérea?» o escribe por qué.');
+  if (!inv(ini) && inv(va) && !vv(d.INTUB_OCURRIO) && !vv(d.EXT_REINTUB) && !vv(d.TQT_OCURRIO))
+    falta('Venía con ' + ini + ' y queda con ' + va + ', pero no hay intubación ni reintubación registrada. Decláralo en «¿Qué pasó hoy con la vía aérea?» o escribe por qué.');
+  return errs;
+}
+
 
 // ════════════════════════════════════════════════════════════════════
 // ── dominio_texto.gs ──
@@ -736,7 +801,14 @@ function generarTextoEvolucion(d) {
 
   // 7. Auscultación (las secreciones van en la línea de KTR, como el preview)
   const mp = v('EX_MP'), ruidos = v('EX_RUIDOS'), ruidosLoc = v('EX_RUIDOS_LOC');
-  const ruidosText = ruidos === 'Otro' && ruidosLoc ? ruidosLoc : ruidos;
+  /* 🪤 8-sep-2026 (Álvaro): los ruidos agregados ADICIONALES
+     (EX_RUIDOS_JSON) se guardaban y no se narraban nunca — el texto nombraba
+     solo el del select. Se listan todos; «sin ruidos agregados» solo si no
+     quedó ninguno. Misma redacción que genTexto() en index.html (paridad). */
+  const rsAusc = [{ tipo: ruidos || '', loc: ruidosLoc || '' }];
+  try { (JSON.parse(v('EX_RUIDOS_JSON') || '[]') || []).forEach(function (r) { rsAusc.push(r); }); } catch (e) {}
+  const rsCon = rsAusc.filter(function (r) { return r.tipo && !/^sin ruidos/i.test(r.tipo); });
+  const rsSin = rsAusc.some(function (r) { return /^sin ruidos/i.test(r.tipo || ''); });
   let exStr = '';
   if (mp) {
     const mpTxt = mp === 'Presente Bilateral' ? 'MP(+) bilateral'
@@ -744,11 +816,15 @@ function generarTextoEvolucion(d) {
                 : 'MP(+), ' + mp;
     exStr += `Auscultación: ${mpTxt}`;
   }
-  // Comparación SIN distinguir mayúsculas (Diego, ago-2026): el select guarda
-  // «Sin ruidos agregados» y la comparación exacta en minúscula nunca calzaba
-  // — salía el oxímoron «…con Sin ruidos agregados».
-  if (ruidosText && !/^sin ruidos/i.test(ruidosText)) exStr += `${mp ? ', con ' : 'Auscultación: '}${ruidosText}${ruidosLoc && ruidos !== 'Otro' ? ' ' + ruidosLoc : ''}`;
-  else if (ruidosText) exStr += `, sin ruidos agregados`;
+  if (rsCon.length) {
+    const lst = rsCon.map(function (r) {
+      return (r.tipo === 'Otro' && r.loc) ? String(r.loc) : (String(r.tipo) + (r.loc ? ' ' + r.loc : ''));
+    });
+    exStr += (mp ? ', con ' : 'Auscultación: ') +
+      (lst.length > 1 ? lst.slice(0, -1).join(', ') + ' y ' + lst[lst.length - 1] : lst[0]);
+  } else if (rsSin) {
+    exStr += mp ? ', sin ruidos agregados' : 'Auscultación: sin ruidos agregados';
+  }
   if (exStr) txt.push(exStr + '.');
 
   // 7b. KTR / manejo respiratorio (paridad con el preview del cliente)

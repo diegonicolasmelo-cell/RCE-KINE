@@ -19,6 +19,1080 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v7.03-guardado-obligatorio (13-sep-2026) — la v7.02 y el guardado obligatorio, en la misma rama
+
+Manuel: «fusionar y subir todo, para no borrar o romper nada». Había dos ramas
+vivas que **no se incluían entre sí**, las dos tocando `v2/index.html`:
+
+| Rama | Sello | Qué traía |
+|---|---|---|
+| `origin/develop` (11e35be) | 6.27-guardado-obligatorio | Las cinco tandas del PRD de guardado obligatorio: modal de cierre de tres acciones, confirmación con hora, fallo de guardado visible, borrador local por cama+turno, **cero minimizar**, aviso modal de fin de turno y la oferta de anotar el evento de vía aérea olvidado. |
+| `origin/v7-episodio-turno-con-relojes` (90d4e61) | 7.02-con-resiembra-plantillas | Episodio y turno separados (hoja `EVALUACIONES` como serie fechada con firma, `DATOS_JSON` en TIMELINE, AET/UPOT como estado del episodio), los relojes (VM por bloques de 24 h, fecha y hora de ingreso escritas y en las hojas impresas) y la re-siembra de las plantillas de la unidad. Es lo que está **en el editor sin publicar**. |
+
+Pegar una sola en el editor habría borrado la otra en silencio — la misma
+trampa que llevó a la fusión `1ea41e6` (v7.01) hace dos días.
+
+**Conflictos: solo cuatro archivos.** `api.gs`, `esquema.gs`,
+`svc_evoluciones.gs`, `mantenimiento.gs` y los demás se fusionaron solos.
+
+1. **El sello, en los cuatro sitios** → `7.03-guardado-obligatorio` (meta del
+   `<head>`, watchdog del boot, `build/empaquetar_cohete.js` y el espejo, que
+   lo recibe al regenerarse).
+2. **`_mostrarTransAviso()`** — el conflicto de verdad. `develop` había
+   reescrito el cuerpo para pintar los avisos como `{ev,t}` con botón «📝
+   Anotar ahora» / «Ir al bloque»; la v7 había añadido el cuadro del motivo
+   obligatorio y cambiaba la etiqueta del botón. Se conservan **las dos**: el
+   cuerpo nuevo más el `toggle` del `#transMotivoBox`, y una etiqueta que une
+   las tres reglas — «Guardar con motivo» si la vía aérea cambió sin evento,
+   «Guardar igual» si solo quedan heredados sin revisar, «✅ Guardar» sin
+   avisos. 🪤 La v7 buscaba el botón con `querySelector('.btn-r')` y `develop`
+   ya le había puesto `id`: se usa el `id`.
+3. **BITACORA.md** — los dos bloques de entradas, ninguno pisado.
+4. **`V3 colaborativa/index.html`** es generado: regenerado con
+   `node build/empaquetar_cohete.js`. 🪤 `V3 colaborativa/servicios.gs`
+   **también** es generado y venía atrasado desde la rama v7 (`paridad_v3`
+   estaba roja allí): regenerado con `node build/fusionar_servicios.js`.
+
+**Lo que se comprobó y NO hubo que adaptar** (la pregunta era si la v7 había
+movido el concepto de turno bajo los pies del guardado obligatorio):
+
+- `turnoKey` sigue siendo `` `fecha-SHIFT` `` en los seis sitios donde se arma,
+  e `idEvolucion` sigue siendo `CAMA_<id>_<turnoKey>`. La llave del borrador
+  local (`_borradorLlave`) y el «cama ocupada sin evolución» del aviso siguen
+  coherentes: la separación episodio/turno movió DATOS al episodio, no el
+  índice del turno.
+- El candado del aviso sigue en `sessionStorage` por slot de turno, y las horas
+  salen de `SALIDA_TURNO_*`, nunca de `_horasTurno()`.
+- La v7 **no** reintrodujo el minimizar (única aparición en `v2/`: el
+  comentario que explica que ya no existe).
+- `TOTAL_COLS.EVOLUCIONES` sigue en 396: las nueve columnas nuevas de la v7
+  (`ULT_*_FIRMA`, `AET_*`, `UPOT_*`) entran en `CAMAS_ESTADO`.
+
+**Dos guardias adaptadas** — ninguna medía mal, medían la forma vieja de la
+misma propiedad:
+
+- `episodio_turno.js` corría el regex sobre el aviso, que ahora es objeto
+  `{ev,t}`: daba `[object Object]` y `false`. Lee el texto venga como objeto o
+  como string.
+- `transicion_ofrece_evento.js` tenía como escenario justo un cambio de vía
+  aérea sin evento (TOT → Natural), donde la v7 exige motivo escrito. El aviso
+  sigue sin ser un candado, pero cuesta una razón: la guardia ahora mide las
+  dos mitades —sin motivo no guarda; con motivo guarda **y el motivo viaja al
+  hito**— en vez de dar por hecho que «Guardar igual» es un clic.
+
+**Batería, las tres corridas del mismo día (13-sep-2026, turno Día):**
+
+| Rama | Guardias | Verdes | Rojas |
+|---|---|---|---|
+| `origin/develop` 6.27 | 136 | 134 | `panel_no_pisa_datos`, `pve_no_toca_los_dias` |
+| `origin/v7…` 7.02 | 127 | 123 | las dos de arriba + `paridad_v3` + `vm_por_horas` |
+| **la fusión 7.03** | **139** | **136** | `panel_no_pisa_datos`, `pve_no_toca_los_dias`, `vm_por_horas` |
+
+Ninguna roja nueva, y `paridad_v3` pasó de roja a verde. Las 139 son la unión
+exacta de los dos lados (`git ls-tree` de `build/checks`: no se perdió ningún
+archivo de guardia). Las tres rojas son heredadas y ya conocidas:
+`panel_no_pisa_datos` tiene la ruta cableada a `/home/user/RCE-KINE`,
+`pve_no_toca_los_dias` mide con `VM_POR_HORAS` apagado y `vm_por_horas` espera
+15 días de estadía donde el formulario muestra 14. **Las tres vienen así de sus
+ramas de origen; no las arregló ni las rompió esta fusión.**
+
+---
+
+## v6.27-guardado-obligatorio (13-sep-2026) — las cinco tandas, portadas a develop 6.24
+
+Las cinco tandas del PRD de guardado obligatorio se habían escrito sobre la
+**5.86**, la versión que estaba publicada cuando arrancó el trabajo. Mientras
+tanto `develop` avanzó **137 commits hasta la 6.24** (unas 5.000 líneas de
+diferencia solo en `v2/`). Fusionar esa rama tal cual habría revertido parte de
+lo que Diego integró en el medio, así que se porta: rama nueva
+`feature/guardado-obligatorio-v2` desde `origin/develop`, un `cherry-pick` por
+tanda, en orden.
+
+### Los tres conflictos reales (y cómo se resolvieron)
+
+1. **El sello de versión** (tanda 1, dos sitios de `v2/index.html`): se queda el
+   de develop y se sube al final del porte, una sola vez. Un sello por tanda es
+   ruido que después nadie sabe leer.
+2. **La maquinaria del minimizar** (tanda 2): develop 6.19
+   («nada-se-pisa-sin-guardar») había **ampliado el snapshot de `_snapPanel`**
+   con estado nuevo del panel, justo el bloque que la tanda 2 borra entero. Se
+   borró igual: era todo maquinaria del minimizar, y el grep de cierre
+   (`_minStack`, `minTray`, `.mbtn`, `_restaurarMin`) da **cero**.
+3. **Las cuatro claves de CONFIG** (tanda 3, `v2/esquema.gs`): develop había
+   sumado `SYNAPSE_URL`, `LIS_URL` y `FIESTAS_PATRIAS` en el mismo punto de la
+   lista semilla. Son añadidos independientes: **se conservan las dos listas**,
+   no se pisó ninguna.
+
+El espejo `V3 colaborativa/index.html` conflictuó en las cinco tandas y en las
+cinco se resolvió igual —quedarse con el de develop— porque es **generado**:
+se rehace al cierre con `node build/empaquetar_cohete.js`. `api.gs` y
+`esquema.gs` de V3 son copia literal de los de `v2` y se resincronizan a mano.
+
+### Lo que se comprobó además del `cherry-pick`
+
+La tanda 4 cambió la forma de `_avisosTransicion()` (de strings a `{ev, t}`).
+Un consumidor nuevo en develop con la forma vieja habría roto el aviso **sin
+que la batería lo dijera**: se buscaron todos: los dos únicos sitios que la
+consumen pasan por `_avisosPreGuardado()`. Nada más la toca.
+
+El PRD viene en su propio commit, ya con las correcciones que le hizo la tanda
+3b («de alta en el día» en los cuatro sitios y la tabla de desvíos al final de
+§9).
+
+### Batería: 134 verdes · 2 rojas de 136 (132 s)
+
+Las **12 guardias nuevas de las tandas están las 12 verdes**. Las dos rojas
+**son de develop y no las trajo el porte** — se reprodujeron corriéndolas contra
+`origin/develop` limpio (2c882e2), sin una sola línea de las tandas encima:
+
+- `panel_no_pisa_datos.js` — línea 38: `path.join('/home/user/RCE-KINE/v2',
+  'index.html')`. Una **ruta absoluta de otra máquina** cableada en la guardia:
+  en el Mac de Manuel es `ERR_FILE_NOT_FOUND` y no puede pasar nunca.
+- `pve_no_toca_los_dias.js` — dos aserciones clínicas caídas («el campo muestra
+  total/episodio, no solo el tramo vigente»). Falla idéntico en develop limpio.
+
+Ninguna de las dos se tocó: arreglarlas es decidir qué debe mostrar el campo de
+días, y eso es una tanda con su propia verificación, no un apaño de porte.
+
+**Nada de esto se publicó.** Producción sigue sirviendo la 6.22.
+
+## v5.87-guardado-obligatorio · tandas 1 y 2 del PRD (13-sep-2026)
+
+Implementación de `PRD_GUARDADO_OBLIGATORIO.md` (aprobado por Manuel el 13-sep),
+tandas 1 y 2 de 4. Rama `feature/guardado-obligatorio`, un commit por tanda.
+**Sin cambio de esquema** (todo es cliente: `crearORepararEstructura()` NO hace
+falta). Sello a **5.87-guardado-obligatorio** en los cuatro sitios de siempre
+(meta, watchdog, `empaquetar_cohete.js` y el espejo de V3 colaborativa).
+
+- **Tanda 1 · la salida de reemplazo.** Cerrar con cambios sin guardar abre un
+  **modal propio de tres acciones** —«Guardar y cerrar» (por defecto, con el
+  foco), «Seguir editando», «Cerrar y conservar borrador»— y **ninguna pierde lo
+  escrito**. Se cayó «Cerrar y descartar» y con ella la doble confirmación: ya no
+  hay pérdida que confirmar (decisión 4 de Manuel). Se aprovechó que `uiConfirm`
+  ya tenía tercer botón (`alterno` → `'alt'`); lo único que se le agregó es la
+  opción `cancelar` para rotular su botón de cancelar («Seguir editando»).
+- **Tanda 1 · la franja del botón 💾 ahora dice qué pasó.** `✓ Guardado hh:mm`
+  al guardar bien y `❌ NO se guardó · Reintentar` al fallar, las dos
+  **persistentes** (el toast de 3,2 s se SUMA, no se reemplaza). `Reintentar`
+  remanda los MISMOS datos en **un** viaje: `guardar()` se reorganizó en un
+  `_enviar()` (intento + su reintento automático de 3 s) que el botón vuelve a
+  correr, así que el manual no se suma al automático ni duplica el viaje.
+  🪤 **Decisión de implementación:** la franja nueva es un span HERMANO
+  (`#gEstadoGuardado`) en la misma barra, NO el `#gSinGuardar` existente. El PRD
+  decía «reusar esa franja», pero `sin_guardar.js` mide el texto de `#gSinGuardar`
+  y NO1 exige que esa franja y el aviso de los 10 min queden intactos: con dos
+  elementos hermanos, «⚠️ Sin guardar» y el estado del último guardado conviven
+  sin pisarse y la guardia de Diego siguió verde sin tocarla.
+- **Tanda 1 · borrador local (O7).** Llave `CAMA_<idCama>_<turnoKey>` en
+  `localStorage`. Se escribe al cerrar conservando **y también al fallar el
+  guardado** (si el equipo se apaga justo después, lo escrito vuelve); se
+  restaura solo al reabrir esa cama en ese turno con la franja `Borrador sin
+  guardar recuperado hh:mm` + la firma que lo dejó, deja `_formDirty` en `true`,
+  muere al guardar bien, y los de turnos pasados se purgan en `bootApp()`.
+  🔒 **No guarda nombre, RUT, edad ni diagnóstico libre** (lista
+  `_BORR_SIN_IDENTIDAD`): el PC de la unidad es compartido y `localStorage` es
+  del navegador, no de la persona (Ley 19.628). Un borrador **no es una
+  evolución**: no escribe en EVOLUCIONES ni saca la cama de ninguna lista.
+  🪤 A propósito **no** se reusó el snapshot del minimizar: guardaba el
+  `innerHTML` entero del panel (con el nombre del paciente dentro) y las ~20
+  variables de estado clínico. El borrador serializa campos **por id** y solo lo
+  que la persona escribió; lo clínico heredado se vuelve a leer fresco al abrir.
+  🪤 `SHIFT` vale `'Dia'`/`'Noche'`, no una inicial: la primera versión del
+  patrón de purga (`-[A-Z]+$`) no reconocía sus propias llaves. Lo cazó la
+  guardia al imprimir la llave real `CAMA_6_2026-09-13-Dia`.
+- **Tanda 2 · el minimizar ya no existe** (O1), los 16 puntos del inventario del
+  PRD: CSS `#minTray`/`.min-pill`/`.mbtn`, el `<div id="minTray">`, el botón `−`,
+  la rehidratación dentro de `abrirPanel`, `_minStack`, `_renderMinTray`,
+  `_snapPanel`, `_restaurarMin` (40 líneas), `minimizarPanel`,
+  `restaurarDesdeMin`, la limpieza del stack en `cerrarPanel`, el `beforeunload`
+  (queda solo `_formDirty && #sp.on`) y los cuatro comentarios que lo
+  describían. `grep -i minimiz` en `v2/index.html` devuelve una sola línea: el
+  comentario que explica por qué el `beforeunload` mira una sola condición.
+  🪤 **Un punto 17 que el inventario no traía**: el tutorial (`#btnGuardar`)
+  le enseñaba al equipo «si te interrumpen, «− Minimizar» conserva el borrador».
+  Es **texto en pantalla**, no un comentario, y habría quedado enseñando un
+  botón inexistente. Reescrito para nombrar «Cerrar y conservar borrador».
+- **Guardias nuevas (§7):** `cierre_tres_acciones.js`, `confirma_guardado.js`,
+  `fallo_guardado_visible.js`, `borrador_local.js` (tanda 1) y
+  `sin_minimizar.js`, `beforeunload_sin_stack.js` (tanda 2). Las de fallo y
+  confirmación corren el **guardado de verdad** con `api` simulada —incluido el
+  reintento automático de 3 s— en vez de mirar el DOM; `borrador_local.js`
+  siembra un paciente sintético con nombre y RUT y falla si aparecen en el
+  borrador. Batería: **115 verdes, 0 rojas** (109 previas + 6). Ninguna guardia
+  existente hubo que ajustar: `sin_guardar.js`, `panel_ux.js`, `movil_panel.js`,
+  `guardado_viajes.js`, `regresion_ui.js` y `tutorial.js` —las que el PRD
+  anticipaba rojas— pasaron sin cambios.
+- **Pendiente: tandas 3 y 4.** El pop-up modal de fin de turno con sus cuatro
+  claves de CONFIG (`SALIDA_TURNO_DIA`, `SALIDA_TURNO_NOCHE`,
+  `AVISO_FIN_TURNO_MIN`, `AVISO_FIN_TURNO_REPETIR`) y la recuperación vía
+  `_avisoGapTurnos()`; y ofrecer registrar el evento de vía aérea olvidado sobre
+  `_avisosTransicion()`. Nada de las tandas 1-2 los condiciona.
+
+---
+
+## v5.87-guardado-obligatorio · tanda 3 del PRD · aviso de fin de turno (13-sep-2026)
+
+Tercera de las cuatro tandas de `PRD_GUARDADO_OBLIGATORIO.md` (O4 y O6), misma
+rama `feature/guardado-obligatorio`, **el sello NO sube**: sigue en
+`5.87-guardado-obligatorio`, porque las tres tandas van a publicarse juntas.
+
+**Sí hay cambio de esquema**, y es lo primero que hay que decir: entran cuatro
+filas nuevas a la hoja **CONFIG**. En producción no existen hasta que alguien
+corra **`crearORepararEstructura()`**; mientras tanto el front usa exactamente
+los mismos valores como respaldo, así que el aviso funciona igual desde el
+minuto uno. Las filas a agregar (clave · valor):
+
+| Clave | Valor |
+|---|---|
+| `SALIDA_TURNO_DIA` | `20:00` |
+| `SALIDA_TURNO_NOCHE` | `08:00` |
+| `AVISO_FIN_TURNO_MIN` | `30` |
+| `AVISO_FIN_TURNO_REPETIR` | `FALSE` |
+
+`AVISO_FIN_TURNO_MIN = 0` **apaga el aviso** sin tocar código ni publicar una
+versión: es el interruptor de emergencia que pidió el PRD.
+
+### 🪤 La hora de salida del equipo NO es el cambio de turno de la app
+
+Es la trampa central de esta tanda y por eso queda escrita aquí además de en el
+PRD. `TURNO_DIA_INICIO` (9) y `TURNO_NOCHE_INICIO` (21) **indexan el registro**:
+`turnoKey`, `idEvolucion`, censo, auditoría, `_horasTurno()`. El equipo, en
+cambio, se va a las **20:00** y a las **08:00**. Calcular el aviso desde
+`_horasTurno()` lo habría sacado a las **20:45 y 08:45**, con la unidad ya
+vacía. Por eso el bloque `_aft*` **no menciona** `_horasTurno()` ni
+`TURNO_*_INICIO` en ninguna línea, y la guardia lo mide como propiedad: mover
+`TURNO_*_INICIO` no puede correr el aviso ni un minuto, mover `SALIDA_*` sí.
+`_turnoLogico()` se usa solo para saber **qué** turno está activo, que es otra
+pregunta. Consecuencia que hay que tener clara: entre las 20:00 y las 20:59 lo
+que se guarde **sigue contando para el turno día**; el aviso solo mira el reloj.
+
+### Qué se agregó
+
+- `v2/esquema.gs` — las cuatro filas semilla, junto a las ventanas de turno y
+  con el comentario que las separa de ellas.
+- `v2/api.gs` `_configUI()` — las expone al cliente. `AVISO_FIN_TURNO_MIN` se
+  lee con un `isNaN`, **no** con `|| 30`: ese `||` habría convertido el
+  apagado (`0`) en treinta minutos, que es lo contrario de lo pedido.
+- `v2/index.html` — modal propio `#aftOvl` (velo, centrado, `role=alertdialog`),
+  CSS `.aft-*` con la lista en scroll propio para que **nunca** recorte camas, y
+  el bloque `_aftCfg / _aftMinutosParaSalida / _aftPendientesDe / _aftAltas /
+  _aftLista / _aftPintar / _aftMostrar / _aftCerrar / _aftAbrir / _aftTick /
+  _aftIniciar`. Un tick por minuto desde `window.onload`.
+- **Bloqueante de verdad**: el handler global de Escape tiene una salida
+  temprana para `#aftOvl` y el velo no lleva `click`. Sale con «Ya lo vi» o
+  abriendo una cama — y cierra **aunque queden camas pendientes**: un diálogo
+  del que no se puede escapar, en una UCI, tapa la pantalla justo cuando alguien
+  necesita mirar un dato.
+- **Candado** `avisoFinTurno:<turnoKey>` en `sessionStorage` (no `localStorage`):
+  un reinicio a mitad de turno **debe** poder volver a avisar, porque
+  probablemente se llevó un borrador.
+- **Datos frescos**: pinta al instante con `DB`/`EVOS_DIA` y corrige con **una**
+  llamada `GET_BOOT` del momento. Si el servidor no responde, el aviso sale
+  igual y **lo dice** («lista según el último refresco»). Nada se cachea.
+
+### Dos desvíos respecto del PRD, y por qué
+
+1. **«(de alta hh:mm)» quedó en «de alta en el día».** `ARCHIVO_PACIENTES`
+   guarda `FECHA_EGRESO` pero **no la hora** del egreso: no existe el dato, y
+   escribir una hora inventada en un papel que se lleva a la ronda es
+   exactamente lo que este proyecto no hace. El pie del modal dice que el
+   registro no guarda la hora y que el clínico revise si corresponde evolucionar
+   —que es lo que el PRD pide de todos modos, «que decida al ojo»—. Guardar la
+   hora de egreso es un cambio de columna (y de `testEsquema()`): queda
+   propuesto, no hecho.
+2. **Las altas piden una segunda llamada.** El PRD decidió «una llamada fresca».
+   Una cama dada de alta ya no está en el censo, así que sus datos no vienen en
+   `GET_BOOT`: se agrega un `GET_ARCHIVADOS` **best-effort** del día —si falla,
+   el aviso sale igual con el resto—. De esa ficha solo viajan **cama y código**:
+   el `nombre` que trae la respuesta se descarta en el cliente.
+
+`_avisoGapTurnos()` **no se tocó**: ya está llamada al abrir una cama
+(`index.html` 5137 y 5145) y es la recuperación del PRD para el caso «nadie
+tenía la app abierta a esa hora».
+
+### 🔒 Privacidad (Ley 19.628)
+
+El modal muestra `Cama N` y el **código interno del episodio** (`P-00x`). Nunca
+nombre, RUT ni diagnóstico — tampoco en consola, y la marca del candado lleva
+solo el `turnoKey`. La guardia lo prueba con pacientes **sintéticos** de nombre
+y RUT conocidos, sembrados en las **dos** fuentes de la lista (censo y fichas
+archivadas).
+
+### Guardias
+
+Tres nuevas, **vistas fallar primero** contra el código sin el cambio (0 verdes
+· 3 rojas con `v2/` en stash) y verdes después:
+
+- `aviso_fin_turno.js` — el reloj va **fijo** (14-sep-2026 a la hora que toque,
+  `_aftTick(ahora)` acepta la fecha inyectada). Mide la propiedad, no la lista:
+  sale a 19:30 y 07:30, **no** a 20:45 ni 08:45, se mueve con `SALIDA_*` y con
+  `AVISO_FIN_TURNO_MIN`, se apaga con `0`, no se mueve con `TURNO_*_INICIO`, y
+  las tres horas no están escritas a mano en la lógica (solo como respaldo con
+  nombre `AFT_*_DEF`).
+- `aviso_fin_turno_modal.js` — modal sobre velo, una fila y un «Abrir» por cama,
+  lista con scroll propio, **no** se cierra con Escape ni con clic fuera, no se
+  desvanece a los 4 s, y «Ya lo vi» cierra con seis camas pendientes.
+- `aviso_fin_turno_privacidad.js` — ni nombre, ni RUT (con y sin puntos), ni
+  diagnóstico, ni en el modal ni en la consola ni en la traza.
+
+**Batería completa: 118 verdes, 0 rojas.** Pendiente: la tanda 4 (ofrecer
+registrar el evento olvidado, la que toca TIMELINE y días de VM).
+
+---
+
+## v5.87-guardado-obligatorio · tanda 4 del PRD · anotar el evento olvidado (13-sep-2026)
+
+O5 del `PRD_GUARDADO_OBLIGATORIO.md`. `_avisosTransicion()` ya detectaba que el
+estado de vía aérea o de soporte cambió sin que nadie anotara el evento, y ahí
+moría: informaba y no ofrecía nada. Lo que entra es la **acción**, no la
+detección — ninguna inferencia clínica nueva (regla dura 1 del PRD §5).
+
+**Sello NO sube: sigue en 5.87-guardado-obligatorio.**
+**No cambia el esquema: `crearORepararEstructura()` NO hace falta por esta tanda.**
+(Sí la sigue necesitando la tanda 3, que sembró cuatro claves de CONFIG.)
+
+### 🔴 El hallazgo que decidió todo el diseño: esto NO escribe en TIMELINE
+
+El PRD dice «el hito entra en TIMELINE con la hora real». Escribirlo directo
+**no funciona**, y la razón está en `svc_timeline.gs`:
+
+```js
+const _TIPOS_HITO_AUTO = ['via_aerea', 'procedimiento', 'kine', 'general'];
+```
+
+`_timelineDelGuardado()` **borra y regenera** todos los hitos de esos tipos para
+cama+fecha+turno en CADA guardado. Un hito escrito a mano con
+`agregarHito({tipo:'via_aerea'})` lo borraría el guardado que viene justo detrás
+— y nadie se enteraría, porque el aviso ya se habría apagado. Encima, los
+indicadores que importan aquí (REINTUBACIONES, fracaso de extubación, días de
+VM) **no se calculan desde TIMELINE** sino desde las columnas de EVOLUCIONES
+(`EXT_*`, `INTUB_*`, `TQT_*`, `DECAN_*`).
+
+Por eso la oferta rellena **los mismos campos del formulario** que llenaría el
+kinesiólogo a mano: casilla del evento + hora real. El hito llega a TIMELINE por
+el camino canónico (`_autoProcs` → PROCEDIMIENTOS → `PROC_TO_HITO`) con la hora
+que escribió la persona, y ninguna fórmula de indicador cambia. **Cero rutas de
+escritura nuevas al servidor.** Es un desvío de la letra del PRD y cumple su
+intención: se anota lo que faltaba, con la hora verdadera.
+
+### Qué se ofrece anotar, qué solo lleva al bloque, y por qué
+
+| Transición | Qué hace el botón | Razón |
+|---|---|---|
+| TOT → TQT sin traqueostomía | **Anota** con hora real | `_autoProcs` empuja `'TQT'` sin depender de `fVA`; no toca `EXT_*`, `N_REINTUB` ni `DIAS_VM_PREVIOS` |
+| VM → no VM (en TQT) sin desvinculación | **Anota** con hora real | `_autoProcs` pide `fVA==='TQT'`, que es justo la condición del aviso; no entra en la cadena de `VENT_SOPORTE_FINAL` |
+| TOT → sin vía aérea sin extubación | Lleva al bloque | Exige elegir la rama de PVE **y** el tipo (c/protocolo, s/protocolo, accidental, autoextubación). Eso lo decide el clínico; elegirlo por él es la inferencia que la regla 1 prohíbe. Además mueve el denominador de fracaso de extubación (`svc_indicadores.gs:242`) y el `_tiempoExtubado` |
+| sin vía aérea → TOT sin intubación | Lleva al bloque | El aviso dice «no hay intubación **ni reintubación**»: **no las distingue**. Marcar `cIntubO` por cuenta propia escondería una reintubación real → REINTUBACIONES subcontada. Es exactamente «¿qué dato VERDADERO deja de verse?» |
+| TQT → sin vía aérea sin decanulación | Lleva al bloque | 🪤 ver abajo |
+
+### 🪤 Trampa nueva: la decanulación se apagaría sin dejar hito
+
+`_autoProcs` (v2/index.html ~6192) tiene esta guarda:
+
+```js
+if(v('fVA')==='TQT' && $('cDecanOcurrio')?.checked) auto.push('DECANULACIÓN');
+```
+
+Pero el aviso de decanulación salta justo cuando `_iniVA==='TQT'` y **`fVA` ya
+NO es TQT**. O sea: marcar `cDecanOcurrio` **apaga el aviso** (que solo mira la
+casilla) y **no deja ni procedimiento ni hito**. `DECAN_OCURRIO` se guardaría en
+`true` sin su procedimiento — incoherente. Arreglar ese gate cambia lo que se
+cuenta para todos los turnos y no se puede verificar con esta batería, así que
+queda **anotado como pendiente**, no improvisado dentro de esta tanda.
+
+### 🪤 Trampa nueva: marcar la TQT podía escribir «VM» donde no lo había
+
+Al marcar `cTqtO`, `VENT_SOPORTE_FINAL` (v2/index.html ~6918) pasa a
+`v('poTqtSop')||'VM'`. Con el bloque recién abierto, `poTqtSop` está vacío → se
+guardaría **VM** aunque el paciente quedara traqueostomizado en oxigenoterapia.
+Una falsedad, y justo en el dato de días de VM. Por eso la oferta **espeja**
+`poTqtSop`/`poTqtModo` desde `fSop`/`fModo`: no inventa nada, copia el estado
+final que el kine ya registró arriba en el mismo formulario.
+
+### La hora: dos candados, ninguno negociable
+
+`_transHoraValida(hhmm, ahora)`:
+- **no puede ser futura** — un evento que todavía no ocurrió;
+- **tiene que caer dentro del turno que se está guardando** (regla 2 del PRD).
+  Ventana del turno día `[TURNO_DIA_INICIO, TURNO_NOCHE_INICIO)`; la del turno
+  noche cruza la medianoche, y su madrugada pertenece al día siguiente a la
+  fecha del turno.
+
+Una hora rechazada **no deja rastro**: no marca la casilla, no escribe la hora,
+muestra el motivo y el aviso sigue en pie. `ahora` se puede inyectar porque el
+escenario depende del calendario y las guardias fijan el reloj.
+
+### Lo demás
+
+- `_avisosPreGuardado()` es ahora la **única** fábrica de la lista de avisos
+  previos al guardado: la usan `guardar()` y el repintado que hace
+  `transOfRegistrar` al anotar un evento. Sin eso, anotar la traqueostomía
+  habría borrado de la lista el aviso de valores heredados, que no tiene nada
+  que ver — la trampa de «la misma regla en más de un sitio».
+- Rechazar la oferta **guarda igual**: el aviso nunca fue un candado y sigue sin
+  serlo (regla 3 del PRD).
+- Privacidad: el aviso solo nombra estados clínicos (TOT, TQT, VM). Ni nombre ni
+  RUT, y la guardia lo prueba sembrando un paciente sintético con RUT
+  11.111.111-1.
+
+### Desvío de alcance respecto del encargo
+
+El encargo pedía además detección **al abrir un paciente**. No es posible con
+este mecanismo y no es un olvido: `_iniVA`/`_iniSop` guardan el estado con que
+se ABRIÓ el panel, así que al abrir no hay discordancia por definición — la
+transición solo existe cuando el kine ya cambió el estado. La detección vive
+donde el PRD §6 la pone: en el camino de guardado.
+
+### Guardias nuevas (vistas fallar primero contra el código sin el cambio)
+
+- `build/checks/transicion_ofrece_evento.js` — las cinco transiciones de la
+  tabla del PRD §5 se detectan **y todas traen acción**; anotar deja el evento
+  como lo dejaría el kine y apaga su aviso; los tres que no se autocompletan
+  siguen sin autocompletarse; rechazar guarda igual; sin nombre ni RUT.
+  Contra el código sin el cambio: 5 fallos.
+- `build/checks/transicion_hora_retroactiva.js` — con el **reloj fijado**: se
+  acepta lo pasado y dentro del turno, se rechaza lo futuro y lo de otro turno
+  (turno día y turno noche con su cruce de medianoche), y una hora rechazada no
+  deja rastro en el formulario. Contra el código sin el cambio: excepción (la
+  función no existía).
+
+**Batería completa: 120 guardias, 120 verdes, 0 rojas.** Espejo
+`V3 colaborativa/index.html` regenerado con `build/empaquetar_cohete.js`.
+
+### Pendientes que deja esta tanda
+
+1. **El gate de `DECANULACIÓN` en `_autoProcs`** (arriba). Mientras siga así,
+   una decanulación marcada con la vía aérea ya en Natural guarda
+   `DECAN_OCURRIO=true` sin procedimiento ni hito.
+2. **Extubación e intubación con oferta completa.** Necesitan que la oferta
+   incluya el tipo (y, en la intubación, distinguir intubación de reintubación)
+   y una verificación de punta a punta de REINTUBACIONES y fracaso de
+   extubación, que esta batería no cubre.
+3. 🪤 **`EXT_TS` se arma con `new Date()`** (v2/index.html ~6877): toma el día de
+   HOY y solo le cambia hora y minutos. Al guardar un turno con fecha pasada, el
+   sello de la extubación queda con la fecha equivocada. Es previo a esta tanda y
+   fuera de su alcance, pero está a la vista y toca `_tiempoExtubado`.
+
+---
+
+## v5.87-guardado-obligatorio · tanda 3b · el fallo de las altas se dice (13-sep-2026)
+
+Dos correcciones que salieron de la revisión independiente de la tanda 3. **Sello NO sube.
+No cambia el esquema: `crearORepararEstructura()` NO hace falta por esta tanda** (la tanda 3
+sí la sigue necesitando, por sus cuatro claves de CONFIG).
+
+### 🔴 Un aviso que dice «no queda nadie» sin haber podido mirar
+
+`_aftAltas()` pedía las altas del día con `GET_ARCHIVADOS` y terminaba en:
+
+```js
+}).catch(()=>cb([]));
+```
+
+Si esa llamada no respondía, el modal salía **limpio**: sin altas, sin una palabra, y —lo
+grave— **se cerraba solo** cuando no quedaba ninguna otra cama pendiente, porque la lista
+venía vacía. Alguien que lee eso a las 19:30 se va para la casa creyendo que el turno está
+cerrado. Y lo que justamente no se pudo mirar son las camas que **egresaron hoy sin
+evolucionar**: las que ya no están en el censo y que nadie va a ver por casualidad.
+
+Es el mismo género de error que la reversión del 6-ago: verde en pantalla, dato verdadero
+escondido. La pregunta simétrica —«¿qué dato VERDADERO deja de verse?»— lo caza en un
+segundo, y la guardia de la tanda 3 no la hacía.
+
+Ahora el callback lleva un segundo parámetro que dice que la verificación falló,
+`_aftLista` lo propaga, y el modal:
+
+- muestra al pie `⚠️ No se pudieron verificar las altas del día: puede faltar alguna cama
+  que egresó sin evolucionar.` (constante `_AFT_PIE_ALTAS_FALLO`: un solo texto, un solo
+  sitio, que es lo que la guardia exige);
+- **se abre igual aunque la lista quede vacía**, porque «no queda nadie» sería mentira.
+
+Sin datos de paciente, como todo lo demás del aviso.
+
+Guardia nueva: `build/checks/aviso_fin_turno_altas_fallo.js`, con el reloj FIJADO. Simula
+`GET_ARCHIVADOS` caído y exige la línea, con camas pendientes y sin ellas; comprueba que
+con el servidor sano **no** se inventa la advertencia, y que el camino de error tampoco
+filtra nombre ni RUT. Contra el código sin el arreglo: 4 fallos.
+
+### El PRD decía «(de alta hh:mm)» y el registro no guarda la hora
+
+`ARCHIVO_PACIENTES` tiene `FECHA_EGRESO` y nada más. La tanda 3 ya había puesto «de alta en
+el día» en el código, pero el PRD seguía pidiendo la hora en cuatro sitios (§5 línea ~241,
+§6 pseudo-código, checklist de la tanda 3 y la decisión 6 de §9). Los cuatro corregidos, y
+al final de §9 entra una tabla de **desvíos de implementación** con este y con el de
+TIMELINE de la tanda 4.
+
+> Nota de método: el PRD se cierra diciendo que los hallazgos van a la bitácora y no a él.
+> Se hizo la excepción a propósito y está escrita ahí: cuando la implementación demuestra
+> que algo **no se puede cumplir como está escrito**, dejarlo intacto convierte al PRD en
+> una especificación que contradice al producto, y en seis meses alguien le va a creer al
+> papel. Se corrige el hecho; el porqué se queda aquí.
+
+**Pendiente propuesto: guardar la hora de egreso.** Hoy no existe en ninguna hoja. Con ella
+la marca podría volver a ser `(de alta hh:mm)`. Es una columna nueva al final de
+`ARCHIVO_PACIENTES`, subir el total de `testEsquema()` y correr
+`crearORepararEstructura()` — su propia tanda, y toca a quien da el alta, no al aviso.
+
+**Batería completa: 121 guardias, 121 verdes, 0 rojas** (exit code 0). Espejo
+`V3 colaborativa/index.html` regenerado.
+
+---
+
+## v6.26-ingreso-manual-vm-horas (11-sep-2026) — la fecha de ingreso se escribe, y la VM se cuenta por horas
+
+Diego, 11-sep: «la fecha de ingreso y los días de VM últimamente no coinciden
+con el otro programa… necesito que los días se contabilicen con la fecha de
+ingreso registrada de forma manual, fecha y hora; la sugerencia es la fecha
+actual, no la del turno… los días de VM se cuentan respecto a las horas de VM:
+hora de ingreso si vienen ventilados, o fecha y hora de intubación». A la
+pregunta «¿la estadía sigue por calendario y solo la VM pasa a horas ÷ 24?»
+respondió **«1 sí»**, y después «luego programa la hoja». Rama
+`ingreso-manual-y-vm-por-horas` salida de `develop`. **Sin fusionar hasta que
+la pruebe.**
+
+### Lo que hace
+
+- **Fecha y hora de ingreso escritas.** El bloque de ingreso tiene un campo
+  nuevo «Fecha ingreso» junto a «Hora ingreso». Al abrir un INGRESO se sugieren
+  **hoy y la hora actual** (no la fecha del turno) y se corrigen a mano si el
+  paciente llegó antes. Viajan como `PAC_FECHA_INGRESO` (transitorio, como
+  `PAC_RUT`: no es columna de EVOLUCIONES, las 396 siguen) y el servidor escribe
+  `FECHA_INGRESO` y `TS_INGRESO` con ese momento. En una evolución posterior la
+  fecha se muestra bloqueada: corregirla es de 🔐 COORDINACIÓN.
+- **Llegó ventilado ⇒ el reloj de la VM (y de la vía aérea) es ese mismo
+  momento**, no la fecha del turno ni la hora del registro. Intubado en la
+  unidad ⇒ la hora de intubación, como ya era.
+- **Días de VM por bloques completos de 24 h** (`diasVMReloj`, espejo
+  `diasVMCli`): censo/tarjeta contra AHORA; el contador del turno contra la hora
+  en que PARTE el turno (CONFIG `TURNO_DIA_INICIO`/`TURNO_NOCHE_INICIO`), para
+  que el número de la hoja del turno sea estable y coincida con «se actualiza al
+  cambio de turno». Los tramos cerrados siguen viniendo del congelado
+  (reintubación no reinicia). **La estadía sigue por calendario** (BUDA).
+- **Interruptor `CONFIG.VM_POR_HORAS`** (nace TRUE): en FALSE vuelve todo a
+  calendario sin pegar nada. Sin hora guardada (episodios anteriores a la v5.19),
+  calendario.
+- `tablaRelojes()` en mantenimiento (y como archivo suelto `relojes.gs` para
+  pegar hoy en producción): por cama, ingreso con hora, estadía por calendario y
+  por 24 h, inicio de VM con hora, VM por calendario y por 24 h. Sin nombres ni
+  RUT. Es la tabla que Diego pidió para cotejar con el otro programa.
+- `revisarRelojesCama` / `_relojesDeLaUnidad` muestran la VM con la regla
+  vigente y, entre paréntesis, la de calendario.
+
+- **La hora de ingreso sale en TODAS las hojas impresas** (Diego: «que la hoja
+  igual incluya la hora de ingreso»): la diaria por paciente (INGRESO dd/mm/aa
+  hh:mm en el encabezado, v6.25), la **lista del día** (celda INGRESO antes de
+  DÍAS) y la **hoja de rehabilitación** (línea «Ingreso:» en la cabecera).
+  Helper único `_ingresoTxt(c)`; sin hora guardada, solo la fecha.
+
+### Consecuencias que hay que decirle
+
+- **VM + VNI ya no suman exacto la estadía** (la garantía de la v5.35 con la
+  historia de DELTA): la VM va por horas y la VNI y la estadía por calendario.
+  Un paciente intubado ayer a las 14:00 marca **0** días de VM en el turno de
+  hoy (19 h) y 1 recién mañana. El día de la transición ya no «pertenece» a
+  ningún soporte: se cuentan horas.
+- El REM y el archivo (`DIAS_VM_TOTAL`) leen el contador sellado de la última
+  evolución, así que **la estadística de VM también baja hasta un día por
+  episodio**. Los episodios ya archivados no cambian.
+- Nada de esto se recalcula hacia atrás: las camas que hoy están en VM
+  cambian de número al pegar (contra la hora que ya tenían guardada), y las que
+  no tienen hora siguen por calendario.
+
+### Guardias
+
+- Nueva **`vm_por_horas.js`**: servidor (ingreso escrito, llegó ventilado,
+  intubado en la unidad, censo, sin hora, interruptor apagado) y navegador
+  (sugerencia hoy + ahora, bloqueo en evolución, tarjeta «VM 14d» y no 15,
+  formulario 14 y estadía 15).
+- `dias_estadia` y `dias_soporte` documentan la regla por CALENDARIO: corren
+  con `VM_POR_HORAS=FALSE` (nota al inicio). `vm_no_es_vni` mira el texto nuevo.
+- 🪤 `SHIFT` sale del reloj real: una guardia con navegador que cuente contra
+  la hora de inicio del turno fija `SHIFT='Dia'`, o de noche cambia sola.
+- 🪤 El simulador ya trae las camas sembradas: un banco que «agrega» la cama 9
+  deja dos y el censo devuelve la vacía. Se actualiza con `repoActualizar`.
+- 🪤 `guardado_viajes` compara contra un árbol base: el reloj de ingreso solo
+  manda cuando el formulario trajo `PAC_FECHA_INGRESO` (`_ingresoEscrito`), así
+  un cliente viejo o un banco sin el campo se comporta igual que antes.
+## v6.25-hoja-ingreso-carilla2 (11-sep-2026) — la hoja trae con qué recalcular a mano
+
+Diego, 11-sep: «la fecha de ingreso y los días de VM últimamente no coinciden
+con el otro programa… a la hoja debemos agregar al encabezado la fecha de
+ingreso, así si está erróneo podemos hacer un cálculo manual, como
+contrarreferencia. Otro cambio: la sección posterior, donde escalas como
+VISAGE aparecen apiladas fuera de formato». Rama
+`hoja-fecha-ingreso-y-carilla2` salida de `develop`, solo index. **Sin fusionar
+hasta que él vea las capturas.**
+
+- **Encabezado**: celda nueva **INGRESO** con `dd/mm/aa hh:mm` (de
+  `FECHA_INGRESO` + la hora de `TS_INGRESO`), entre RUT y DÍAS. Si el contador
+  de días saliera mal, el papel trae la fecha para recalcular.
+- **Carilla 2, última tabla** (evaluaciones adicionales de fuerza muscular ·
+  evaluaciones neurológicos/neuroquirúrgicos: VISAGE, scores de vía aérea):
+  tenía un `colgroup` de **10 columnas** y filas de **5 celdas**, así que
+  ocupaba media página con las celdas apiladas. Ahora son 5 columnas
+  (32/16/4/32/16 %), dos bloques a lo ancho, separador sin borde (`.rk-nb`).
+  Es el pendiente «carilla 2 apilada» que dejó anotado el 9-sep.
+- Guardia `hoja_registro_dia.js`: INGRESO en el encabezado; la tabla tiene 5
+  columnas, cada fila cubre las 5 (sumando colspan) y ocupa ≥ 90 % del ancho.
+  🪤 Dentro de `#rkPrint` oculto, `getBoundingClientRect` da 0: medir con
+  `offsetWidth` contra el padre, o leer el estilo.
+- **Lo de los relojes NO se programó**: quedó medido en CLAUDE.md («Esperando
+  decisión») con las tres preguntas — el pedido de contar la VM por horas
+  choca con su decisión del 4-ago de contar por calendario como BUDA (v5.35).
+## v7.02-con-resiembra-plantillas (12-sep-2026) — y el último trabajo de Manuel adentro
+
+Diego, al recibir la v7.01: «en la fusión también incluiste el trabajo de
+Manuel… inclúyelo también para que quede integrada». Se midió rama por rama
+**por contenido**, no por nombre — el detalle está en la tabla de CLAUDE.md.
+
+- ✅ **Fusionada `feature/resiembra-plantillas`** (7-sep, Manuel): su último
+  trabajo. `_plantResembrar` + `plantillasResembrarSimular()` /
+  `plantillasResembrarAplicarAhora()` en `svc_plantillas.gs`, para que el orden
+  nuevo de las 17 plantillas llegue a una planilla que YA las tenía sembradas.
+  Guardia `resiembra_plantillas.js`. **Sin conflictos**: la v7.01 no había
+  tocado `svc_plantillas.gs`.
+- ✅ **Lo demás de Manuel ya estaba dentro** y se verificó uno por uno: la
+  entrega en blanco y negro (traspasada en la v6.06) y el memo de CONFIG de la
+  Ola 1 (`_CFG_MEMO`). Aparecían como «commits sin equivalente» solo porque en
+  su momento se reescribieron en vez de cherry-pickearse.
+- 🔴 **`fix/la-vni-viaja-al-rem-hospital` sigue FUERA, a propósito**: manda el
+  REM del mes a un destino externo y trae una maqueta con pacientes ficticios.
+  No se fusiona bajo el paraguas de «incluir lo de Manuel» — es una decisión de
+  privacidad que Diego tiene que tomar sabiendo qué hace.
+- Sello **`7.02-con-resiembra-plantillas`**, `NOVEDADES` con la línea de la
+  resiembra. **Batería: 127 verdes.**
+
+🪤 **Cómo se mide si una rama ya está dentro**: `git log --cherry-pick
+--right-only A...B` compara por PARCHE, no por identificador. Sin eso, una rama
+cuyo contenido se traspasó a mano parece pendiente para siempre y se fusiona dos
+veces.
+
+---
+
+## v7.01-episodio-turno-y-relojes (12-sep-2026) — las dos tandas en una sola entrega
+
+Diego, tras aprobar la v7.00 en su planilla de prueba: «ahora sí quiero
+probarlo en la oficial… ¿copio y pego los script y luego hago otra
+implementación?». Se le respondió que **implementación nueva NO** (su propia
+regla del 14-ago: se edita la existente o la unidad queda partida en dos) y que
+en la oficial se puede probar SIN publicar, usando `/dev`, que sirve lo último
+guardado y **solo al dueño del proyecto**. Eligió: «fusiona y luego publico en
+dev».
+
+- **Rama `v7-episodio-turno-con-relojes`**, salida de `separacion-episodio-turno`
+  con `ingreso-manual-y-vm-por-horas` fusionada dentro. Las dos habían salido de
+  `develop` y tocaban los MISMOS seis archivos de `v2/`, y ninguna incluía a la
+  otra: pegar una sola habría borrado la otra en silencio.
+- **Sello `7.01-episodio-turno-y-relojes`.** `NOVEDADES` queda con UNA entrada
+  que resume la tanda completa (el servidor solo conoce el sello que arranca).
+- Conflictos reales: solo el sello (index, empaquetador) y el catálogo de
+  novedades. `api.gs`, `esquema.gs`, `mantenimiento.gs` y `svc_evoluciones.gs`
+  se fusionaron solos — las dos tandas tocaban partes distintas de cada uno.
+- **Batería: 126 verdes** (las 124 de develop + `episodio_turno` + `vm_por_horas`).
+
+### 🪤 La trampa de la madrugada (vale para cualquier guardia futura)
+
+Tras la fusión salieron TRES rojas —`episodio_turno`, `vm_por_horas` y
+`pve_no_toca_los_dias`— todas con el número **exactamente uno menos**. No era
+la fusión: eran las **02:00 en el contenedor**. La app cuenta contra `gDate`
+(la fecha del TURNO) y antes de las 9 el turno lógico es «Noche del día
+anterior», así que `gDate` iba un día atrás mientras los bancos se armaban con
+`hoy()`. Las mismas guardias estaban verdes a las 18:00 del día anterior.
+**Arreglo**: anclar `SHIFT='Dia'` y `gDate=hoy()` al cargar el index. Es la
+hermana de la trampa de las fechas fijas del 9-sep, pero por hora del día.
+
+Y una decisión de alcance: **`pve_no_toca_los_dias` mide con el interruptor
+`VM_POR_HORAS` apagado**, como `dias_estadia` y `dias_soporte`. Lo que esa
+guardia fija es que la PVE no mueve los contadores, no cómo se cuentan; la
+cuenta por bloques de 24 h tiene la suya.
+
+---
+
+## v7.00-episodio-y-turno (11-sep-2026) — la rama paralela: cuatro casas para el dato
+
+> ✅ **12-sep-2026 · Diego la instaló en su planilla nueva, la revisó y la
+> aprobó**: «revisé y está bueno, me gustó; igual podría pulirse pero por ahora
+> bien». Falta que diga qué pulir. **No pidió fusionar**: la rama sigue aparte.
+> 🪤 Al instalarla, la app arrancó con «No se pudo verificar la conexión con el
+> servidor» estando el servidor sano: era la IMPLEMENTACIÓN sirviendo una
+> versión anterior al pegado, no el código. De ahí salió
+> `herramientas/diagnostico.gs`.
+
+Diego respondió los «cables sueltos» en bloque y dio la orden: «PROGRAMA todo
+lo demás, ya que esto irá por rama paralela; lo que haré es iniciar otro Sheet
+con otro nombre… al final dame el paquete de documentos para subir e
+implementar en el nuevo archivo». Rama **`separacion-episodio-turno`**, salida
+de `develop`. **No se fusiona ni se pega en producción sin su OK.** El paquete
+completo (12 archivos para un proyecto de Apps Script nuevo) y el paso a paso
+están en `INSTALAR_PLANILLA_NUEVA.md`; el plan, en `PRD_EPISODIO_Y_TURNO.md`.
+
+### Qué trae
+
+- **Esquema, aditivo**: hoja nueva **EVALUACIONES** (ID_EVAL · PATIENT_ID ·
+  ID_CAMA · FECHA · TURNO · ESCALA · TOTAL · ITEMS_JSON · FIRMA · ORIGEN ·
+  ID_EVOLUCION · ANULADA · TIMESTAMP); `DATOS_JSON` al final de TIMELINE;
+  `ULT_MRC_FIRMA / ULT_FSS_FIRMA / ULT_PIM_FIRMA`, `AET_ACTIVA/NIVEL/FECHA` y
+  `UPOT_ACTIVO/MEDIDAS/FECHA` al final de CAMAS_ESTADO. **EVOLUCIONES sigue en
+  396 columnas** y `testEsquema` lo sigue asegurando: los 27 archivos que leen
+  `EXT_OCURRIO` no se tocaron.
+- **`svc_evaluaciones.gs`** (nuevo): `EPISODIO_ESCALA` (ECF, Barthel, Charlson
+  → CAMAS_ESTADO, se corrige encima, hito «📐 ECF 4 (corrige 5) (MCC)»),
+  `EVAL_REGISTRAR` (serie con firma desde la tarjeta), `GET_EVALUACIONES`
+  (ordinal DERIVADO: 1ª, 2ª…), y `_evalDesdeEvolucion`: lo que un turno mide
+  (MRC, FSS, CPAx, PIM, PEM, FEM, dinamo, eco, deglución) entra a la serie con
+  la firma DEL TURNO, sin duplicar al re-guardar.
+- **Cultivos «ambas»** (`_cultivoALaSerie`): la toma abre la entrada
+  («pendiente», hora, tipos, ATB, firma de quien tomó); el resultado que llega
+  en OTRO turno se escribe sobre esa entrada con `resultadoFecha/Firma`; el
+  hito «Cultivo de secreciones» lleva el detalle.
+- **SBC exige FSS** (`validarSBC`, cliente + servidor): KTM nivel 3 sin ningún
+  FSS-ICU del episodio no guarda; el mensaje manda a medirlo ahí mismo.
+- **Vía aérea solo por evento** (`validarTransicionVA` + fila «¿Qué pasó hoy
+  con la vía aérea?» sobre el bloque, línea fina que bloquea el select, y el
+  modal ⚠️ que ya no tiene «Guardar igual»: pide **motivo escrito**,
+  `TRANS_MOTIVO`, que viaja al hito `via_aerea` y NO a EVOLUCIONES).
+- **Hitos con detalle**: extubación, intubación, reintubación, TQT,
+  decanulación y cultivo escriben `DATOS_JSON` (hora, tipo, «queda con»…).
+- **Auditoría, huella F**: `auditoriaIntegridad()` recorre EVOLUCIONES +
+  EVOLUCIONES_ARCHIVO y lista cada turno cuya vía aérea cambió sin casilla de
+  evento — el caso de la cama 13.
+- **Cliente**: chips de escalas en la tarjeta (📋 pendiente / valor), medir
+  ECF/MRC/FSS/CPAx desde la tarjeta sin abrir la evolución («💾 Guardar en el
+  episodio»), badge `MRC 36 · 02-09 · MCC`, banner del episodio arriba del
+  formulario (nombre, día, VA, escalas, AET/UPOT), y AET/UPOT leídos de la
+  cama en vez de heredados. La entrega imprime `MRC-SS 36 (02-09, MCC)`.
+- Sello `7.00-episodio-y-turno`; `NOVEDADES` con el resumen para el equipo.
+
+### Lo que se midió y se corrigió por el camino
+
+- 🔴 **Corrección a lo que le dije a Diego el 11-sep**: afirmé que la fila
+  heredada «ya afirma MRC 33, evaluado hoy, firmado por mí». Al programar se
+  midió que `fillFormReplica` **no hereda las evaluaciones** (solo las recarga
+  si `EVAL_FECHA` es hoy). El hueco real era la FIRMA y la SERIE, no una foto
+  retocada. Va dicho en la entrega.
+- 🪤 **`function guardar()` es propiedad no configurable de `window`**: en una
+  guardia se puede pisar por asignación, pero `delete` no la devuelve. Guardar
+  la real aparte y restaurarla.
+- 🪤 **El simulador tiene el reloj fijo en julio** (`hoyISO()`); una guardia
+  con navegador arma sus fechas con el `hoy()` del navegador, o «hace 1 día»
+  son meses y el badge cambia de rama («hace 73d» en vez de la fecha).
+- 🪤 **`auditoriaIntegridad` evaluada fuera del simulador necesita `Logger` y
+  `ERR`** definidos antes, o el catch del final es el que revienta.
+- 🪤 El anuncio de la extubación vive en la fila pero su casilla en el bloque
+  PVE: `_evVAAnunciado` recuerda lo anunciado mientras se completa; se
+  reinicia al abrir el panel.
+- 🪤 La guardia del buzón lee **la primera clave de `NOVEDADES`** con una
+  regex: un comentario entre la llave y la clave la deja ciega.
+- Guardia nueva **`episodio_turno.js`** (esquema · servidor con simulador ·
+  navegador; fechas relativas). Batería: **125 verdes, 0 rojas**.
+- Ajustes de bancos: `ktm_no_se_pierde`, `guardado_viajes` (KTM 3 con FSS;
+  TIMELINE comparada al ancho base y sin hitos `evaluacion`), `coordinacion`
+  (tramo VNI con `TRANS_MOTIVO`), `reset` (EVALUACIONES se vacía).
+
+### Fuera de esta tanda, a propósito
+
+PWA + login real (espera a informática y cuatro decisiones de Diego),
+laboratorio en CSV/TXT («omite por ahora»), y el reordenamiento completo del
+modal (tanda ④ del camino por casas).
+
+---
+
+## v6.24-mauri-sin-suelo (9-sep-2026) — el huaso estaba parado sobre un ladrillo beige
+
+Diego pidió **el mockup de la mascota de abajo**. Al capturar el botón real de
+la app —no un dibujo, el `#tutBtn` de `v2/index.html` en Chromium— apareció un
+defecto que la pantalla de carga escondía: **los doce cuadros del emboque traían
+el suelo de arena del video**, y ese suelo es OPACO.
+
+### Por qué no se había visto
+
+En la pantalla de carga el dibujo va grande y sobre fondo claro: la arena pasa
+por sombra. En el botón de la esquina son 62 px sobre una tarjeta —a veces sobre
+el azul de una portada— y se veía un **ladrillo beige de borde duro** flotando
+bajo los pies. Servi y las nueve poses de Mauri son transparentes; este cuadro
+era el único que no.
+
+Es el hermano de la trampa de la v6.23 («el fondo transparente venía PINTADO»):
+ahí el generador había pintado el cuadriculado, acá el video traía piso dibujado.
+**Quitar el cuadriculado no quita el suelo** — son dos cosas distintas y hubo que
+mirarlas por separado.
+
+### Cómo se recortó
+
+Relleno por inundación desde el borde de abajo sobre los tonos cálidos de la
+arena (R>G>B, claro), más los restos pálidos en la franja inferior, y **los
+bolsones encerrados entre las piernas** —que no tocan ningún borde y por eso la
+primera pasada los dejó como manchas blancas entre los zapatos—. Los zapatos y
+el poncho quedan intactos porque son oscuros o no cálidos.
+
+De regalo el archivo **bajó**: 8,1 KB → 6,1 KB por cuadro (los 12 del emboque
+pasaron de 97 a 74 KB), porque la arena era lo más pesado de comprimir.
+
+🪤 **La pantalla de carga NO tenía el problema**: sus doce cuadros ya venían
+limpios. Se verificó cuadro por cuadro antes de tocarlos, en vez de aplicar el
+recorte a ciegas a los 24.
+
+### La guardia, y la primera versión que estaba mal
+
+`fiestas_patrias.js` bloque **6b**. La primera redacción medía «¿hay algo opaco
+en la fila de abajo?» y se puso roja con la pantalla de carga —**por los
+ZAPATOS**, que llegan al borde y está bien que lleguen—. O sea la guardia tenía
+razón en gritar y yo tenía mal la pregunta.
+
+Lo que delata a un suelo no es que haya algo abajo: es que **cruza todo el
+ancho**. Medido, no supuesto: con suelo la fila de abajo iba al **100 %**; sin
+él la esquina marca **0 %** y los pies de la carga llegan a **26 %**. El corte
+quedó en **60 %**, con margen para los dos lados. Poder de detección
+comprobado: se volvieron a inyectar los cuadros viejos y la guardia se puso
+roja (exit 1); restaurados, verde.
+
+### Lo que se pega
+
+Solo **index** (cohete) y **servicios** (por el aviso de novedades, que ahora
+cuelga del sello 6.24). Sin cambio de esquema: **no hay que correr
+`crearORepararEstructura()`** por esta versión.
+
+🔴 Si la v6.23 no se pegó todavía —que es el caso—, **se pega esta en su lugar**:
+trae todo lo de la 6.23 con los cuadros corregidos. Dos archivos distintos no
+pueden llevar el mismo sello, por eso subió el número.
+
+---
+
+## v6.23-mauri-dieciochero (9-sep-2026) — los dos videos de Diego, convertidos a cuadros
+
+Diego mandó **dos videos** de don Mauri de huaso: uno jugando al emboque y otro
+con un terremoto en la mano. Su decisión: **12 cuadros a 5 por segundo**, el
+terremoto en la pantalla de carga y el emboque en la mascota de abajo a la
+derecha.
+
+### El video no entraba, y por cuánto
+
+| | |
+|---|---|
+| Cada video | **2,61 MB** · 8 s · 720×1280 · 24 fps · con audio |
+| Metido en el index | crece a texto (+33%) y el cohete lo vuelve a convertir (+33%) |
+| El archivo a pegar | pasaba de **1,78 MB a 6,4 MB** — 3,6 veces |
+
+Convertido a **12 cuadros** por video, recortado y a la altura en que de verdad
+se muestra: **177 KB los dos juntos** (104 KB la carga a 190 px, 73 KB la
+esquina a 150 px). Es la misma técnica de las nueve poses de `MAURI`.
+
+### 🪤 El «fondo transparente» venía PINTADO
+
+Diego le pidió al generador fondo transparente y el archivo llegó con el
+**cuadriculado dibujado dentro de la imagen**. Usado así, la pantalla de carga
+habría mostrado los cuadritos.
+
+Se recortó de verdad, y el detalle importa: **el cuadriculado son dos tonos
+alternados; el blanco de los ojos es un solo tono**. Borrar «todo lo claro y
+gris» dejaba a Mauri sin ojos. La regla que quedó: se borra la región solo si
+adentro conviven los dos tonos, más todo lo que toca el borde.
+
+### 🪤 La bandera 🇨🇱 no existe en Windows
+
+No es cosa de que el emoji sea nuevo: **Windows nunca incluyó las banderas de
+país** y Chrome dibuja las dos letras («CL»). Las banderitas que caen y la
+guirnalda van en **SVG dibujado a mano**, como el ícono de cobas.
+
+### 🪤 Y la que casi se escapa: MANDA SERVI
+
+Al mirar la primera captura salía **Servi**, no Mauri: la mayoría del equipo
+nunca cambió la mascota y `html[data-masc="servi"] .masc-persona{display:none}`
+escondía justo la imagen que se estaba animando. **La celebración no la habría
+visto casi nadie.** Ahora, durante la ventana, `.f18` destapa a Mauri por encima
+de esa preferencia — cinco días al año, y pasado el 20 vuelve solo la elección
+de cada uno. Sin esa captura esto se publica y no lo ve nadie.
+
+### Cómo decide
+
+- **`esFiestasPatrias(d)` recibe la fecha** para poder probarla: si dependiera
+  del calendario, la guardia se ejecutaría de verdad una vez al año. Es la
+  lección de esta misma mañana, aplicada de entrada.
+- Ventana por defecto **16 al 20 de septiembre**, movible desde
+  `CONFIG.FIESTAS_PATRIAS`. El defecto vive en el cliente porque **la pantalla
+  de carga se pinta antes de que llegue la configuración**; lo que diga CONFIG
+  queda anotado en el navegador y manda desde la carga siguiente (misma idea que
+  el cumpleaños). Un valor mal escrito cae al defecto, no apaga la fiesta.
+- **Gana el cumpleaños.** El 18 lo celebra todo el país y vuelve cada año; el
+  cumpleaños es de una persona. Se invierte cambiando una condición.
+- **A diferencia del cumpleaños, no hay que esperar al servidor**: el computador
+  ya sabe qué día es, así que la primera carga ya celebra.
+- Con «reducir movimiento» **no anima**: deja un cuadro quieto.
+
+Guardia nueva `fiestas_patrias.js` (7 bloques, con la fecha inventada).
+Batería: **124 verdes, 0 rojas**.
+
+---
+
+## v6.22-icono-cobas (9-sep-2026) — el botón del laboratorio lleva la marca que el equipo reconoce
+
+Diego mandó la captura del ícono del escritorio: **el laboratorio es cobas**
+(Roche). El tubo de ensayo dibujado en la v6.21 era genérico; el logo verde es
+lo que el equipo ya identifica de un vistazo, así que el botón lo usa.
+
+- Dibujado a mano en SVG, como la «A» de Synapse — **no emoji** (el Chrome del
+  hospital no dibuja los posteriores a 2019) y **no imagen pegada** (engordaría
+  el index sin necesidad).
+- 🪤 **Costó dos pasadas de proporción**: a tamaño real la palabra se salía del
+  marco y el ® se montaba sobre la «s». Ampliado ×6 se vio al tiro. La regla que
+  queda: **un ícono con texto adentro se mira ampliado antes de darlo por
+  bueno** — a 17 px «se ve bien» cualquier cosa. El ® se eliminó: a ese tamaño
+  no aporta y era justo lo que chocaba.
+- Lo que identifica al botón a 17 px es **el marco verde redondeado**, no la
+  palabra. Si algún día hace falta más grande, se suben LOS DOS íconos a la vez
+  (este y el de Synapse), nunca uno solo.
+- Guardia: los dos botones tienen que ser SVG (si alguien los cambia por un
+  emoji «para simplificar», sale roja) y el del laboratorio tiene que decir
+  cobas.
+
+Batería: **123 verdes, 0 rojas**.
+
+---
+
+## v6.21-atajo-laboratorio (9-sep-2026) — el botón del laboratorio, y dos guardias que se caían solas con el calendario
+
+### 1. El hallazgo que originó el botón
+
+Diego, desde su turno del 8-sep: **«me ahorré el clic del RUT con el botón de
+Synapse… solo seleccionaba el ícono del paciente que quería revisar, con la otra
+plataforma abierta, y así acceder de forma más expedita.»**
+
+O sea usó el botón de Synapse **para otra cosa**: le importaba el RUT copiado, no
+Synapse. El valor de ese botón nunca fue abrir el visor — fue **no teclear el
+RUT**. De ahí sale este: el mismo atajo, apuntando al destino que de verdad usa.
+
+- `🧪` en la tarjeta de la cama, al lado del de Synapse. Copia el RUT y abre el
+  laboratorio. La dirección vive en **`CONFIG.LIS_URL`**; vacía, no hay botón.
+- 🔴 **La dirección NO está en el repo**: es una IP interna del hospital y el
+  repo sigue siendo público. Nace vacía en `esquema.gs` y la pega Diego en la
+  planilla, igual que la de Synapse. **La guardia lo verifica de forma estática**
+  (que `LIS_URL` nazca vacía y que no haya ninguna IP privada escrita ahí).
+- El ícono es **SVG dibujado a mano**, no emoji, por la misma razón que la «A»
+  de Synapse: un emoji nuevo sale como cuadrado en el Chrome del hospital.
+
+🪤 **MEDIDO EN EL HOSPITAL, NO SUPUESTO (9-sep)**: el LIS solo se usaba en
+Firefox porque así quedó instalado en los escritorios; **nunca lo habían
+intentado en Chrome**. Diego lo probó y **carga — pero tuvo que instalar una
+extensión**. Consecuencia de diseño: en un PC sin esa extensión la pestaña puede
+no servir, así que **el copiado tiene que ocurrir pase lo que pase**. Por eso
+aquí el orden importa el doble, y es el mismo que se pagó caro con Synapse el
+4-sep: `window.open` consume la activación transitoria del clic y
+`execCommand('copy')` después de eso devuelve `false` **en silencio**. Se copia
+PRIMERO, siempre. El portapapeles de Windows es uno solo, así que copiar en
+Chrome y pegar en Firefox funciona igual.
+
+### 2. 🪤 Dos guardias se estaban poniendo rojas SOLAS al cambiar el día
+
+Al correr la batería aparecieron dos rojas que **no tenían nada que ver con el
+cambio**. Se comprobó con `git stash`: ya fallaban antes de tocar una línea.
+
+La causa es la misma en las dos: **el banco de pruebas anclaba fechas fijas y la
+app cuenta los días contra HOY.**
+
+- `pve_no_toca_los_dias` clavaba el tramo en `'2026-08-25'` y esperaba `'16/13'`.
+  Dos días después la app decía `'18/15'` — correctamente.
+- `plantillas_evolucion` clavaba las dos PVE en septiembre y `_weanClase` mide
+  «días desde la 1ª PVE» contra hoy: al pasar de 7 días el weaning dejó de ser
+  *difícil* y pasó a *prolongado*, sin que nadie tocara nada.
+
+**Las dos se arreglaron anclando con `hace(n)`** en vez de fechas escritas a
+mano. La regla queda escrita en las dos cabeceras: *una guardia que se cae sola
+por el calendario es peor que no tenerla, porque enseña a ignorar el rojo.*
+Vale para cualquier guardia futura que toque días, fechas o relojes.
+
+Batería: **123 verdes, 0 rojas**.
+
+---
+
+## v6.20-auscultacion-y-comodines (8-sep-2026) — la auscultación no pierde ruidos; y los bloques se pueden reescribir
+
+Diego trajo dos cosas del turno: **«Álvaro me dijo que hay campos del texto
+narrativo que no se están replicando, como la auscultación»** y, después de ver
+el taller, **«no puedo personalizarlo, aparece el bloque completo — quiero
+cambiar por ejemplo sedoanalgesia por sedado»**.
+
+### 1. La auscultación narraba UN ruido de los que se anotaban
+
+El formulario tiene un bloque «+ ruido» que deja anotar varios ruidos agregados
+y los guarda en `EX_RUIDOS_JSON`. **El texto nunca los leyó**: `genTexto()` y su
+espejo `generarTextoEvolucion()` miraban solo `EX_RUIDOS`/`EX_RUIDOS_LOC`, o sea
+el del select. Quien anotaba crépitos bibasales *y* sibilancias difusas leía uno
+solo en su propia evolución — y eso viajaba a la ficha del hospital.
+
+- Fuente única nueva en el cliente: **`_auscRuidos()`** (junto a
+  `ruidosExtraJSON`), que junta el del select con los del bloque, descarta los
+  «Sin ruidos agregados» y devuelve `{con, sin, txt}` ya redactado con «y» antes
+  del último. La usan `genTexto()` y el comodín `{ruidos}`.
+- El servidor hace lo mismo leyendo `EX_RUIDOS_JSON` (paridad palabra por
+  palabra: la guardia compara los dos motores).
+- 🪤 **De paso salió un segundo error, más viejo**: con «Sin ruidos agregados» y
+  SIN murmullo declarado, el servidor escribía `, sin ruidos agregados.` — con
+  la coma suelta y sin la palabra «Auscultación», porque `exStr` partía vacío.
+  Ahora los dos motores escriben `Auscultación: sin ruidos agregados.`
+- Guardia nueva **`auscultacion_ruidos.js`**. Se comprobó su poder de detección:
+  con el bug de vuelta (narrar solo `_auscCon[0]`) sale roja en dos bloques.
+
+### 2. Tres bloques más que ninguna plantilla podía nombrar
+
+Misma trampa que los diez de la v6.11, y no se habían visto: el motor escribe
+`aet` (adecuación del esfuerzo terapéutico), `reing` (reingreso a UCI) y `upot`
+(seguimiento por UPOT, test de apnea, medidas de protección de órganos), pero
+ninguno estaba en `PLANT_ALIAS` ni en las listas de permitidos. Escribirlos
+**rechazaba la plantilla entera**, así que la de Ingreso no podía nombrar el
+reingreso. Ahora son `{aet}`, `{reingreso}` y `{upot}`, con su nombre legible en
+`TXB_NOMBRE`.
+
+### 3. Un bloque no se puede editar — para eso están los datos sueltos
+
+Es la petición de Diego. Un comodín de **bloque** trae la frase que escribe el
+motor y no se puede tocar por dentro; para redactarla con palabras propias hay
+que reemplazarlo por una línea escrita a mano con comodines de **dato**. El
+problema era que de esos casi no había: `{sedacion}` no tenía con qué armarse
+(faltaban GCS por partes, S5Q y CAM-ICU) y la auscultación, los gases y las
+evaluaciones no tenían **ninguno**.
+
+Se agregaron **25 comodines de dato**: `gcs_o` `gcs_v` `gcs_m` `s5q` `camicu`
+`mp` `ruidos` `ph` `paco2` `pao2` `hco3` `eb` `lactato` `sato2` `mrc` `fss`
+`pimax` `dias_tot` `dias_tqt` `dva_n` `ipap` `epap` `flujo` `litros` `uma`.
+Con ellos `{sedacion}` se reemplaza por
+`Sedado en escalón {sedacion_escalon}, SAS {sas}. GCS {gcs} (O:{gcs_o}, V:{gcs_v}, M:{gcs_m}).`
+— las palabras las pone el colega, el dato lo sigue poniendo el formulario.
+
+- 🪤 **El S5Q se guarda como clave, no como texto** (`lt3`/`gte3`): el comodín
+  tiene que traducirlo igual que el motor o la plantilla escribiría «S5Q gte3»
+  en la ficha. Vale para cualquier dato futuro que salga de un select con
+  `value` distinto del rótulo — el CAM-ICU es el otro caso (`pos`/`neg`/`ne`).
+- Diez bloques quedaron con receta (día, sedación, hemodinamia, vía aérea,
+  soporte, parámetros, auscultación, secreciones, gases, evaluaciones). Los
+  demás son narrativa pura y **hoy no se pueden reescribir**: KTM,
+  posicionamiento, cultivos, inhaloterapia, IMT, EMS, educación y los eventos.
+  Fabricarles datos es trabajo por bloque, y se hace cuando Diego diga cuáles.
+- Total: **38 comodines de bloque + 57 de dato = 95**.
+
+### 4. Falsa alarma que conviene tener escrita: el 🫁
+
+Yo mismo marqué en el taller que los íconos de «VM sin destete» e «Intubación»
+usaban un emoji de 2020 y saldrían como cuadrado. **Estaba equivocado y no se
+cambió nada**: ese emoji está en unos 25 lugares visibles de la app desde hace
+meses —el título «🫁 Respiratorio» del formulario, el tablero de ventiladores,
+la línea de tiempo, la entrega, la campana— y Diego nunca reportó cuadrados. La
+regla de «nada posterior a 2019» sirve para elegir un ícono NUEVO; no es motivo
+para barrer uno que el terreno ya probó. Lo que falló fue no mirar dónde más se
+usaba antes de declararlo roto.
+
+### El taller de evoluciones tipo
+
+`https://claude.ai/code/artifact/2ca6d76b-8246-46f6-9638-c99cf0f8dd5a` — los 95
+comodines con qué escribe cada uno, los 17 casos con la plantilla que hay hoy,
+vista previa con la regla real de armado (`_plantRellenar`) sobre dos pacientes
+inventados, y la receta «escrito a mano» de los diez bloques que la tienen, con
+botón para meterla. Guarda solo lo que se escribe (capacidad `db`), así que lo
+que Diego arme ahí se lee después y se lleva a `svc_plantillas.gs`.
+
+Batería: **123 verdes, 0 rojas** (122 + `auscultacion_ruidos`).
+
+---
+
 ## v6.19-nada-se-pisa-sin-guardar (7-sep-2026) — las ocho cascadas se deshacen; 0 de 99
 
 Diego, decidiendo sobre el informe de las ocho cascadas: **«que restaure lo que
@@ -4808,3 +5882,4 @@ tandas A y B que él aprobó tras el mockup.
   tiempo.
 - Batería: **109 verdes, 0 rojas**. Espejo «V3 colaborativa» regenerado (la
   guardia `paridad_v3` de Manuel lo pidió, y funcionó). Sin cambio de esquema.
+

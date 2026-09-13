@@ -81,6 +81,10 @@ function api(accion, datos, token) {
       case 'GSA_ASIGNAR':        return _auditar(ctx, accion, () => gsaAsignar(datos, ctx), datos);
       case 'GSA_DESCARTAR':      return _auditar(ctx, accion, () => gsaDescartar(datos, ctx), datos);
       case 'WHOAMI':           return ok({ email: ctx.email, firma: ctx.firma, dev: !!auth.dev });
+      // 🗂️ Rama episodio/turno (11-sep-2026)
+      case 'GET_EVALUACIONES': return obtenerEvaluaciones(datos);
+      case 'EVAL_REGISTRAR':   return _auditar(ctx, accion, () => evalRegistrar(datos, ctx), datos);
+      case 'EPISODIO_ESCALA':  return _auditar(ctx, accion, () => episodioEscala(datos, ctx), datos);
 
       // ── Escrituras (auditadas) ──
       case 'GUARDAR_SUGERENCIA':
@@ -211,6 +215,14 @@ function _configUI() {
     NUM_CAMAS: parseInt(leerConfig('NUM_CAMAS', '18')) || 18,
     TURNO_DIA_INICIO: parseInt(leerConfig('TURNO_DIA_INICIO', '9')) || 9,
     TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
+    /* Aviso de fin de turno (O4). La HORA DE SALIDA del equipo no es el cambio
+       de turno de la app: viaja aparte y el front nunca la deriva de las dos
+       de arriba. AVISO_FIN_TURNO_MIN admite 0 = apagado, así que NO se puede
+       usar `|| 30` (convertiría el apagado en 30 minutos). */
+    SALIDA_TURNO_DIA: leerConfig('SALIDA_TURNO_DIA', '20:00'),
+    SALIDA_TURNO_NOCHE: leerConfig('SALIDA_TURNO_NOCHE', '08:00'),
+    AVISO_FIN_TURNO_MIN: (function (n) { return isNaN(n) ? 30 : n; })(parseInt(leerConfig('AVISO_FIN_TURNO_MIN', '30'), 10)),
+    AVISO_FIN_TURNO_REPETIR: leerConfig('AVISO_FIN_TURNO_REPETIR', 'FALSE') === 'TRUE',
     EDITOR_TEXTO_DEMO: leerConfig('EDITOR_TEXTO_DEMO', 'FALSE') === 'TRUE',
     // 📋 Plantillas de evolución para el EQUIPO (7-sep-2026, Diego: «desactiva
     // la plantilla y vuelve al sistema anterior tal cual»). Apagado = el texto
@@ -218,10 +230,14 @@ function _configUI() {
     // Encender es poner TRUE en CONFIG, no pegar nada.
     PLANTILLAS_ACTIVAS: leerConfig('PLANTILLAS_ACTIVAS', 'FALSE') === 'TRUE',
     EVAL_DIAS_ALERTA: parseInt(leerConfig('EVAL_DIAS_ALERTA', '5')) || 5,
+    VM_POR_HORAS: vmPorHoras(),
     CUFF_MIN: parseInt(leerConfig('CUFF_MIN', '20')) || 20,
     CUFF_MAX: parseInt(leerConfig('CUFF_MAX', '30')) || 30,
     // Visor de imágenes: vacío = sin botón 🩻 (ver CONFIG.SYNAPSE_URL).
     SYNAPSE_URL: String(leerConfig('SYNAPSE_URL', '') || '').trim(),
+    // Laboratorio: vacío = sin botón 🧪 (ver CONFIG.LIS_URL).
+    LIS_URL: String(leerConfig('LIS_URL', '') || '').trim(),
+    FIESTAS_PATRIAS: String(leerConfig('FIESTAS_PATRIAS', '16-20') || '').trim(),
     PTT_OK: parseFloat(leerConfig('PTT_OK', '10')) || 10,
     PTT_ALERTA: parseFloat(leerConfig('PTT_ALERTA', '12')) || 12,
     BANNERS: {

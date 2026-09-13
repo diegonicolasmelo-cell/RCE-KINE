@@ -36,7 +36,14 @@ navegador del hospital o de su casa.
 - 🪤 **Emojis en la interfaz: nada posterior a 2019.** El Chrome del hospital
   corre en Windows 10 y su fuente no trae los emojis nuevos: 🩻 (2021) salió
   como un cuadrado (6-sep-2026). Para íconos nuevos, SVG propio o un emoji
-  viejo (🖼️, 📋; 🫁 NO: es de 2020).
+  viejo (🖼️, 📋).
+  · 🔴 **La regla es para ELEGIR un ícono nuevo, no para barrer los que ya
+  están.** El 8-sep di por roto el 🫁 (2020) solo por la fecha; está en unos 25
+  lugares visibles desde hace meses —«🫁 Respiratorio» del formulario, tablero
+  de ventiladores, línea de tiempo, entrega, campana— y Diego nunca reportó
+  cuadrados. **No se cambió nada.** Antes de declarar roto un emoji que ya vive
+  en producción: `grep -rn` para ver dónde más está, y preguntarle a Diego si
+  lo ve. El terreno manda sobre la tabla de versiones.
 
 ### 🔴 CÓMO SE PUBLICA — regla vigente (14-ago-2026, la cambió Diego)
 
@@ -216,7 +223,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**122 guardias** en `build/checks/*.js` (7-sep-2026); poco más de la mitad usan navegador
+**127 guardias** en `build/checks/*.js` (12-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -228,7 +235,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 7-sep-2026: 122 verdes, 0 rojas.** El corredor
+**Estado al 12-sep-2026: 127 verdes, 0 rojas** (rama `v7-episodio-turno-con-relojes`: v7.00 + v6.26 + la resiembra de plantillas de Manuel; `develop` sigue en 124). El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -251,6 +258,29 @@ build/checks/`.
 
 Correr antes de entregar o commitear. Un bug que costó más de un
 intercambio merece guardia nueva.
+
+🪤 **FECHAS EN LOS BANCOS DE PRUEBA: SIEMPRE RELATIVAS, NUNCA FIJAS**
+(9-sep-2026). Dos guardias se pusieron rojas solas al cambiar el día:
+`pve_no_toca_los_dias` anclaba el tramo en un `'2026-08-25'` escrito a mano y
+esperaba «16/13» —dos días después la app decía «18/15», correctamente—, y
+`plantillas_evolucion` clavaba las PVE en septiembre, así que al pasar de 7 días
+el weaning dejó de ser *difícil* y pasó a *prolongado* sin que nadie tocara
+nada. Las dos se arreglaron con un `hace(n)` local. **Una guardia que se cae
+sola por el calendario es peor que no tenerla: enseña a ignorar el rojo.** Al
+escribir cualquier banco que toque días, fechas o relojes, anclar contra hoy.
+Y ante una roja inesperada: `git stash` y volver a correrla antes de «arreglar»
+código sano.
+
+🪤 **Y NO SOLO EL CALENDARIO: TAMBIÉN LA HORA** (12-sep-2026). Tres guardias con
+navegador se pusieron rojas de madrugada con el código sano. Causa: la app
+cuenta los días contra **`gDate`, la fecha del TURNO**, no contra `hoy()`, y
+antes de las 9 el turno lógico es «Noche del día anterior» ⇒ `gDate` queda un
+día atrás mientras el banco de prueba se arma con `hoy()`. Un día de desfase,
+que a las 18:00 no aparece. **Toda guardia con navegador que mida días ancla las
+dos cosas** justo después de cargar el index:
+`SHIFT='Dia'` y `document.getElementById('gDate').value = hoy()`.
+La pista que lo delata: el número sale **exactamente uno menos** de lo
+esperado, y en varias guardias a la vez.
 
 ## Buscador del proyecto (skill `rce-kine-rag`)
 
@@ -303,6 +333,13 @@ falta el detalle. Este índice existe para saber QUÉ está abierto; el porqué
 está allá.
 
 ### Dónde está el código
+
+- 🚧 **Rama paralela `separacion-episodio-turno` — v7.00 PROGRAMADA (11-sep),
+  esperando que Diego la instale en SU planilla nueva.** Paquete de 12
+  archivos + paso a paso en `INSTALAR_PLANILLA_NUEVA.md`; detalle en
+  BITACORA v7.00; plan en `PRD_EPISODIO_Y_TURNO.md`. **NO se fusiona a
+  develop/main ni se pega en producción sin su OK.** Si él reporta algo de
+  esa planilla, el código es el de esa rama, no el de `develop`.
 
 🔴 **NUNCA suponer qué está publicado: preguntárselo a Diego o mirar el editor.**
 El 14-ago yo di por publicada la v5.48 (lo decía la bitácora) y en realidad
@@ -362,7 +399,16 @@ si tiene más de unos días, se confirma antes de usarla.
   del panel uno por uno: `fVA` seguía perdiendo los contadores si el select
   pasaba por la opción EN BLANCO —`_vaAnterior` quedaba falsy y el deshacer no
   entraba—; 8 cascadas clínicas más no se revierten y esperan decisión de
-  Diego, ver BITACORA v6.18) y **la v6.19** (esas ocho se deshacen: si el
+  Diego, ver BITACORA v6.18) y **la v6.20** (lo que reportó Álvaro: la auscultación
+  narraba UN ruido de los varios que se anotan —`EX_RUIDOS_JSON` se guardaba y
+  nunca se leía—, en los dos motores; de paso «sin ruidos agregados» sin
+  murmullo ya no sale con coma suelta. Además `{aet}`, `{reingreso}` y `{upot}`
+  pasan a ser comodines —tres bloques huérfanos más, como los diez de la
+  v6.11— y entran **25 comodines de dato** para poder REESCRIBIR un bloque con
+  palabras propias, que es lo que pidió Diego: «quiero cambiar sedoanalgesia
+  por sedado». Taller con los 95 comodines y las recetas:
+  `https://claude.ai/code/artifact/2ca6d76b-8246-46f6-9638-c99cf0f8dd5a`.
+  Guardia `auscultacion_ruidos`) y **la v6.19** (esas ocho se deshacen: si el
   control vuelve al valor con que se abrió el panel, lo que su cascada
   escribió vuelve también —tabla `_CASCADAS` + oyente en el formulario—;
   medido 0 de 99, y guardia nueva `panel_no_pisa_datos` que lo vigila). 🔜 **Pendiente que dejó anotado Diego**: la carilla
@@ -473,9 +519,19 @@ Lo que hay que tener presente:
 
 ### 🗺️ El plan de todo lo pendiente, en una página
 
-Al cerrar el 2-sep-2026 Diego pidió «un resumen con las cosas que hay que
-implementar y qué falta por cerrar, para posteriormente hacer la programación».
-Está publicado y **es el mejor punto de entrada para retomar**:
+🔌 **VIGENTE — «Cables sueltos» (11-sep-2026), el mejor punto de entrada para
+retomar**: `https://claude.ai/code/artifact/b9defc45-a2cd-42da-93cf-81730e977056`
+Diego lo pidió «para ir atando cables». **29 pendientes ordenados por quién los
+destraba**: 7 solo él · 4 para informática · 11 decisiones suyas · 3 acordados y
+listos para programar · 4 en el banco. Arriba, las tres de la semana: verificar
+el respaldo, publicar la v6.24 y mirar la cama 13.
+· 🪤 **Cable rescatado del plan viejo que NO estaba en esta memoria**: el 2-sep
+quedó anotado que **la planilla estaba compartida como «cualquiera con el
+enlace»** —y ahí viven los RUT—. No se sabe si Diego ya lo cambió; quedó en la
+página como «confirmar». No dejar que se pierda otra vez.
+
+⬛ **SUPERADO — el plan del 2-sep** queda como foto histórica de ese día (su
+tanda 1, 2 y 3 ya están hechas):
 `https://claude.ai/code/artifact/f12ae3e1-ea58-4e88-af4e-954d51017aa6`
 
 - ✅ **Tanda 1**: Synapse (v5.89) + cumpleaños (v5.86/v5.90/v5.98) hechos; los
@@ -504,7 +560,306 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   depende de nosotros); **pendiente poner el repo en privado** (lo hace Diego
   en GitHub: Settings → General → Danger zone → Change visibility).
 
+### 🚧 RAMA PARALELA `separacion-episodio-turno` — decisiones de Diego del 11-sep-2026 (voz)
+
+Diego respondió los cables en bloque y dio la orden: **«PROGRAMA todo lo demás,
+ya que esto irá por rama paralela; lo que haré es iniciar otro Sheet con otro
+nombre… es importante que esté en paralelo la rama, para no afectar el trabajo
+de nadie más; luego los archivos los pego en Script. Al final dame el paquete
+de documentos para subir e implementar en el nuevo archivo.»** Y: «actúa en
+loop hasta terminar; si se acaba Fable sigue con el modelo siguiente».
+· 🔴 **Esto NO toca producción**: rama nueva salida de `develop`, y Diego crea
+UNA PLANILLA NUEVA con su propio proyecto de Apps Script donde pega los 9
+archivos completos. Sus mitigaciones responden a las contras del 11-sep
+(sin riesgo a la marcha blanca, sin «dos verdades» en producción, el equipo
+no reaprende hasta que él decida). **No se fusiona a develop/main sin su OK.**
+· **Decisiones cerradas por él (textual)**:
+  - 2.1 extensión de Chrome del LIS: «se puede instalar en cualquiera» → cerrado.
+  - 2.2 laboratorio CSV/TXT: «omite el laboratorio por ahora y déjalo pendiente».
+  - 2.3 enlace directo Synapse: «ok» → cerrado como está.
+  - 2.4 PWA + login real: «hay que hacerlo pero de forma que no afecte al uso
+    diario, quizás una rama paralela y progresar con el login y PWA». ⚠️ Sigue
+    bloqueado por informática (correo institucional) y decisiones suyas; NO
+    entra en esta tanda — ver la nota al final.
+  - 3 «arranca las escalas» → T1 en marcha.
+  - **SBC exige FSS-ICU**: «del episodio, al menos 1; eso quiere decir: lo
+    evalué, después lo traté» → basta UN FSS en el episodio (no por turno).
+    Bloqueo suave: cliente y servidor rechazan SBC sin FSS, y el mensaje
+    manda a medirlo ahí mismo (el FSS está en el mismo formulario).
+  - **Panel de extubación**: «mejor que anuncie a la entrada para evitar
+    problemas» → fila «¿Qué pasó hoy con la vía aérea?» arriba; el TEXTO
+    sigue cronológico como su ejemplo (no lo cambió).
+  - **Línea fina de ventilación y cultivos: «ambas»** → parámetros = turno;
+    vía aérea y soporte = episodio y solo los cambia un evento. Cultivos =
+    serie fechada (como se propuso) y además hito en la línea de tiempo.
+· 🔑 **ESTRATEGIA TÉCNICA: migración ADITIVA, no destructiva.** Las 396
+columnas de EVOLUCIONES no se tocan (testEsquema las asserta). Se agregan
+fuentes nuevas —hoja `EVALUACIONES` (serie fechada con firma), `DATOS_JSON`
+en `TIMELINE`, `ULT_*_FIRMA` en CAMAS_ESTADO— y el turno SIGUE escribiendo
+sus columnas cuando el dato se mide EN ese turno (eso es verdad). Lo que se
+corta es la HERENCIA de evaluaciones al turno siguiente (la foto retocada).
+Los 27 archivos que leen EXT_OCURRIO no se reescriben: la fila de eventos
+del panel ESCRIBE esas mismas casillas, y además el hito estructurado. Así
+la batería sigue verde y cada consumidor migra cuando toque.
+· ✅✅ **PROBADA POR DIEGO EN SU PLANILLA NUEVA Y APROBADA (12-sep-2026,
+textual): «revisé y está bueno, me gustó; igual podría pulirse pero por
+ahora bien».** O sea la v7.00 pasó la prueba de terreno. **NO dijo que se
+fusione**: sigue sin fusionar a develop/main hasta que él lo pida.
+🔜 **Pendiente suyo**: decir QUÉ pulir — no dio detalle y no se le sacó
+lista para no interrumpirlo. Preguntárselo cuando retome.
+· 🪤 **Al instalarla tropezó con el DESPLIEGUE, no con el código** (11-sep):
+la app mostraba «No se pudo verificar la conexión con el servidor» con el
+servidor sano. Ese mensaje es el overlay de `mostrarLogin()` con
+`LOGIN_UI_ACTIVO=false`, y sale cuando GET_BOOT **y** WHOAMI fallan — o sea
+cuando `/exec` sirve una versión desplegada anterior al pegado. Herramienta
+nueva `herramientas/diagnostico.gs` (autocontenida, se pega como archivo
+suelto y funciona aunque falten archivos): revisa planilla vinculada,
+archivos del editor, hojas, CONFIG, un WHOAMI real y la publicación, e
+imprime **la URL que Apps Script sirve de verdad** para compararla con la
+que se tiene abierta. Se resolvió sin tocar código.
+· ✅ **HECHO (11-sep-2026, sello `7.00-episodio-y-turno`)**: T1-T7 completas,
+guardia `episodio_turno.js`, 125 verdes. Paquete y paso a paso en
+`INSTALAR_PLANILLA_NUEVA.md`. Lo que trae, en BITACORA v7.00.
+· 🔴 **Corrección que hay que decirle a Diego (ya va en la entrega)**: la fila
+heredada NO afirmaba «MRC 33 evaluado hoy» — `fillFormReplica` no hereda las
+evaluaciones (solo las recarga si `EVAL_FECHA` es hoy). Lo que faltaba de
+verdad era la firma y la serie. No repetir la afirmación de la «foto retocada».
+· 🪤 Para probar guardias con navegador: `function guardar()` no se puede
+`delete` de `window` (guardar la real aparte); el simulador tiene el reloj en
+julio (las fechas del navegador se arman con SU `hoy()`); y el catálogo
+`NOVEDADES` no admite comentarios entre la llave y la primera clave.
+
+### 🧩 QUÉ TRABAJO DE MANUEL ESTÁ DENTRO (medido el 12-sep-2026, lo preguntó Diego)
+
+Diego pidió que la fusión «incluya también el último trabajo de Manuel». Se
+midió rama por rama **por contenido** (`git log --cherry-pick --right-only`),
+no por nombre:
+
+| Rama de Manuel | Estado |
+|---|---|
+| `feature/resiembra-plantillas` (7-sep) | ✅ **FUSIONADA el 12-sep** en `v7-episodio-turno-con-relojes`. Es su último trabajo: `_plantResembrar` + `plantillasResembrarSimular/AplicarAhora` en `svc_plantillas.gs`, y la guardia `resiembra_plantillas.js`. |
+| `entrega-blanco-negro-linea-tiempo` (2-sep) | ✅ **Ya estaba**: su contenido se traspasó en la v6.06 (la negrita vive en `svc_entrega.gs:206+`). Los commits figuran «sin equivalente» porque el traspaso se reescribió, no se cherry-pickeó — **no hay nada que fusionar**. |
+| `manuel/velocidad-arranque` (6-ago) | ✅ **Ya estaba**: el memo de CONFIG es `_CFG_MEMO`/`_memoReset` (esquema ~629) con su guardia `memo_config.js`. |
+| `manuel/tablero-lee-solo-sus-columnas`, `manuel/velocidad-y-entrega-turno`, `fix/vni-en-el-601171`, `fix/orden-texto-evolucion` | ✅ Sin nada pendiente. |
+| 🔴 `fix/la-vni-viaja-al-rem-hospital` (25-ago) | ❌ **NO fusionada, a propósito.** Manda el REM del mes a un destino EXTERNO («REM Hospital») y trae una maqueta con pacientes ficticios. Destino externo **no aprobado por Diego**: sacar datos clínicos fuera exige su decisión explícita (Ley 19.628). **No se fusiona por «incluir lo de Manuel»: hay que preguntárselo nombrando qué hace.** |
+
 ### Esperando decisión de Diego
+
+- ✅ ⏱️ **FECHA DE INGRESO ESCRITA (fecha + hora, sugerida = AHORA) Y DÍAS DE VM
+  POR BLOQUES DE 24 h — PROGRAMADO en la v6.26 (11-sep-2026), rama
+  `ingreso-manual-y-vm-por-horas` salida de `develop` (incluye la v6.25 de la
+  hoja), SIN fusionar hasta que Diego la pruebe.** Pedido textual: «la fecha de
+  ingreso y días de VM no están coincidiendo con el otro programa… que se
+  contabilicen con la fecha de ingreso registrada de forma manual, fecha y hora…
+  la sugerencia es la fecha ACTUAL, no la del turno… los días de VM se cuentan
+  respecto a las horas de VM: hora de ingreso si vienen ventilados, o fecha y
+  hora de intubación». Respondió **«1 sí»** (la ESTADÍA sigue por calendario
+  como BUDA; solo la VM pasa a horas ÷ 24) y «luego programa la hoja».
+  · **Regla vigente**: `diasVMReloj` (servidor) / `diasVMCli` (index) = bloques
+  completos de 24 h desde `TS_INICIO_SOPORTE` (ingreso si llegó ventilado,
+  intubación si no) hasta AHORA en la tarjeta y hasta la hora en que PARTE el
+  turno en la hoja del turno (`_tsInicioTurno`, CONFIG). Sin hora guardada ⇒
+  calendario. **Interruptor `CONFIG.VM_POR_HORAS`** (TRUE; FALSE = calendario
+  sin pegar nada). El campo «Fecha ingreso» viaja como `PAC_FECHA_INGRESO`,
+  transitorio como `PAC_RUT` (EVOLUCIONES sigue en 396); el reloj de ingreso
+  solo manda cuando ese campo vino (`_ingresoEscrito`).
+  · 🔴 **Consecuencias que se le dijeron**: VM + VNI ya no suman exacto la
+  estadía (la garantía de la v5.35 queda solo con el interruptor en FALSE, y
+  así la prueban `dias_estadia` y `dias_soporte`); un intubado ayer a las 14:00
+  marca 0 hoy; el REM/`DIAS_VM_TOTAL` baja hasta un día por episodio. Los
+  archivados no cambian.
+  · **Dato pendiente**: la tabla de relojes de producción. `tablaRelojes()`
+  (mantenimiento, y `relojes.gs` suelto para pegar hoy) imprime por cama las dos
+  fechas y los dos conteos, sin nombres ni RUT; Diego la copia y se coteja con
+  el otro programa. La pregunta ② (cómo cuenta la VM «el otro programa») sigue
+  sin respuesta explícita: si la tabla no cuadra, es lo primero que mirar.
+  · 🪤 Guardia `vm_por_horas.js`. Trampas: `SHIFT` sale del reloj real (fijar
+  `'Dia'` en bancos con navegador); el simulador trae camas sembradas
+  (`repoActualizar`, no `push`); `guardado_viajes` compara contra un árbol
+  base, por eso el reloj de ingreso está gateado al campo nuevo.
+
+- 🔴 ✂️ **EL PANEL DEBERÍA ANUNCIAR EL EVENTO PRIMERO — caso real de terreno
+  (Diego, 9-sep-2026).** «Un paciente que estaba para extubar se extubó, pero se
+  le cambió la vía aérea y no se le hizo PVE ni pasó por Extubación, lo que
+  ensuciaría mucho los resultados.» Pidió ideas; **no se programó nada**.
+  · 🪤 **LO QUE HAY QUE SABER ANTES DE DISEÑAR: la app YA DETECTA ese caso, y
+  lo deja pasar igual.** `_avisosTransicion()` (index ~6485) compara la vía
+  aérea de llegada con la de salida y levanta textual: «Venía con TOT y quedó
+  con —, pero no hay extubación registrada». El modal ⚠️ dice **«Nada se
+  bloquea: puedes guardar igual»** y trae el botón **«Guardar igual»**
+  (`transAvisoGuardar`, ~6511). O sea el problema **no es de detección: es que
+  la salida cuesta un clic y no pide ninguna razón.**
+  · 🔴 **Y el aviso vive SOLO en el cliente.** El servidor no revisa la
+  transición: `dominio_validacion.gs` valida la PVE y el tipo de extubación,
+  pero nadie compara la vía aérea de entrada con la de salida. Una fila así
+  entra a la base sin que el servidor se entere.
+  · **Por qué ensucia de verdad, medido en el código**: todos los consumidores
+  cuentan la extubación por **`EXT_OCURRIO`** (REM, estadística, entrega,
+  tiempo extubado) — con la casilla sin marcar, **para las cifras esa
+  extubación nunca ocurrió**. Y además **no se cierra el tramo de VM**:
+  `DIAS_VM_PREVIOS` solo se sella cuando `_extOcurrio()` es verdadero (index
+  ~6875), así que los relojes siguen corriendo sobre un paciente ya extubado.
+  Son dos contaminaciones distintas de un mismo olvido.
+  · 🔑 **CONEXIÓN QUE NO HAY QUE PERDER: esto ES la tanda D**, que quedó
+  detenida en el mockup (ver más abajo) porque **«la barra de plantillas absorbe
+  la fila de eventos»**. Pero las plantillas quedaron **APAGADAS para el equipo
+  en la v6.15** (`PLANTILLAS_ACTIVAS=FALSE`), o sea **lo que iba a tapar este
+  hueco está desactivado**: por eso el hueco sigue abierto. Su opción **D2
+  (tres celdas previo → evento → queda con)** es casi exactamente lo que Diego
+  está describiendo ahora, incluido el «queda con…» de su ejemplo.
+  · 📖 **Su ejemplo de texto, textual (9-sep)**: «paciente en proceso de
+  Weaning, cuadro agudo resuelto, sin sedación, GCS 11, HDN estable; hoy con
+  mínimo soporte ventilatorio y en condiciones de realizar PVE, por lo que se
+  realiza sin incidentes; posterior a eso se progresa a extubación programada
+  según protocolo; evoluciona favorablemente hasta el momento. Queda con… todo
+  deglución…».
+  · ❓ **Lo que hay que separar al diseñarlo, porque su mensaje mezcla las dos
+  cosas**: el **PANEL** anuncia el evento de entrada (primero «¿qué pasó con la
+  vía aérea?», después el detalle), pero el **TEXTO** de su ejemplo va en orden
+  CRONOLÓGICO y nombra la extubación al medio, no al principio. Confirmarle
+  cuál quiere en cada lado antes de programar: son dos cambios independientes y
+  el texto ya lo arma `genTexto` en ese orden.
+  · 🔜 **Pendiente de dato, no de diseño**: preguntarle **qué cama/paciente
+  fue**, porque esa evolución ya guardada sigue con `EXT_OCURRIO` en falso y
+  con el tramo de VM abierto. Hay que repararla **antes de la estadística de fin
+  de mes**, y de paso ver si hay más casos así (`auditoriaIntegridad()` no busca
+  esta huella hoy — sería huella nueva).
+
+- 🔴 📋 **LAS ESCALAS PRE-UCI NO SE APLICAN PORQUE NO SE VEN — PRD dictado por
+  Diego (10-sep-2026).** Su historia, textual: el kinesiólogo recibe un ingreso
+  y llena todo; **al día siguiente otro colega quiere aplicar una ECF «pero no
+  sabe dónde, por lo tanto no lo aplica y se pierde el dato»**, y así hasta que
+  el paciente egresa «y nunca se supo cuál era la escala clínica de fragilidad
+  que el paciente traía». Lo llamó **«requisito diferenciador respecto a la
+  planilla vieja»**. Pidió ideas; **no se programó nada**.
+  · **Las escalas son tres y ya existen**: **Barthel** (`fBarthel`), **ECF** =
+  escala clínica de fragilidad (`fEcf`) y **Charlson** (`fCharlson`), las tres
+  con su calculadora 🧮 (`abrirEscala`). 🪤 Al dictar por voz «ECF» sale
+  transcrito como **«cartel»** y «FCIQ»; es la misma escala.
+  · 🔴 **EL PLIEGUE LO PIDIÓ ÉL, y ahora cobra.** El bloque `#fPreUci` está
+  plegado desde ago-2026 por pedido suyo — el comentario del código lo dice:
+  «se llenan UNA vez al ingreso y después solo estorban arriba del formulario».
+  Se resume en `#fichaChip` («✏️ Editar ficha»). O sea **no es un olvido de
+  diseño: es un intercambio que se dio vuelta** — plegado dejó de estorbar y
+  pasó a costar el dato. Decirlo así cuando se retome, sin buscar culpable.
+  · 🔑 **EL HALLAZGO QUE DESTRABA TODO: las tres escalas YA SON DEL EPISODIO,
+  no del turno.** `BARTHEL`, `ECF` y `CHARLSON` son columnas de **CAMAS_ESTADO**
+  (esquema ~315 y ~323, con el comentario «persisten con el episodio, se cargan
+  al abrir»); en la evolución viajan como `PAC_BARTHEL`/`PAC_ECF`/`PAC_CHARLSON`.
+  **Consecuencia**: medir una ECF **no necesita el modal de evolución** — el dato
+  ya tiene su casa fuera del turno. Un botón en la tarjeta de la cama (donde ya
+  viven Synapse y cobas) puede escribirla directo al episodio. Eso responde solo
+  su problema 2.
+  · **Lo que pidió en pantalla**: al ingresar, un módulo individual (nombre, RUT)
+  y después el modal; arriba **una franja/banner a lo ancho** con los datos
+  personales (y quizá los días de VM); y las escalas pre-UCI **detrás de un
+  botón con ícono propio** que despliega al hacer clic — «un ícono diferenciador
+  de ECF o de Barthel». 🪤 `#fPreUci` usa `display:contents`, así que **mover
+  esos campos es cambio de presentación, no de datos**: siguen en el formulario
+  y su valor viaja igual.
+  · 🗂️ **DIEGO LO AMPLIÓ EL 10-sep A LA SEPARACIÓN EPISODIO / TURNO (voz)**:
+  «hay datos que van al episodio y otros que son la evolución diaria… son dos
+  cosas completamente distintas». Barthel, ECF y Charlson se miden **una vez**
+  (pueden diferirse días). MRC, FSS-ICU, CPAx y Pimáx **se repiten** —«a los 7
+  días debería volver a medir MRC»— y propuso columnas «MRC 1, MRC 2, MRC 3»
+  ligadas al episodio, no al turno, **sin fecha fija** porque «hay veces que hay
+  cambio clínico y uno lo puede evaluar antes». La **AET** también «podría ir
+  al episodio, porque durante esa hospitalización se adecuó». Al turno le
+  quedan «conciencia, hemodinámica, parámetros ventilatorios». Su motivación,
+  textual: «se han perdido datos y eso me tiene bastante preocupado… ejemplo,
+  las PVE y las extubaciones… ojalá poder solucionarle el problema al usuario,
+  que sea mucho más intuitivo». Pidió **una tabla** de qué va a cada modal y
+  el feedback de ventajas. 🪤 Por voz: «cartel» = ECF, «Richardson» = Charlson,
+  «FC cinco / FS ESIQ» = FSS-ICU, «CPACS PIMP» = CPAx y PIM.
+  · 📄 **La tabla está publicada, familia por familia con las columnas reales**:
+  `https://claude.ai/code/artifact/271fd6dd-2be1-46fc-a6b8-5156ac997e00`.
+  Tesis: **no son dos casas sino cuatro** — episodio (una vez) · **serie
+  fechada** (N veces, cada una con fecha y firma) · **evento** (un hecho a una
+  hora) · turno (cómo está hoy). Cuenta gruesa: ~un tercio de las 396 columnas
+  no pertenece al turno; es justo lo que hoy se hereda en ámbar cada 12 h.
+  · 🔑 **La conexión con sus pérdidas**: PVE, extubación, TQT, prono y decanulación
+  son EVENTOS guardados como casillas de la fila del turno — por eso solo
+  existen si el turno los marca (la cama 13). Como evento del episodio (el
+  `TIMELINE` ya existe), la vía aérea solo cambia por evento y el REM y el reloj
+  leen de ahí. Y las escalas como serie fechada hacen que el dato que falta **se
+  vea faltando** (ícono pendiente), que es la única forma de que se mida.
+  · **Sobre «MRC 1/2/3»**: recomendado guardar la FECHA y derivar el ordinal
+  (1ª, 2ª, 3ª): sin tope, los 7 días son alerta y no candado
+  (`EVAL_DIAS_ALERTA` ya existe), y la hoja UCI, la tarjeta y el «de egreso»
+  del archivo salen de la misma lista. `ULT_MRC/ULT_MRC_FECHA/ULT_FSS/ULT_PIM`
+  ya son «la última de la serie»: la serie es la generalización, no un invento.
+  · 🔴 **ESTO ES LA RAMA `rediseno-formulario-bloques` v0.3** («ficha del
+  episodio separada» + «evaluaciones fechadas en vez de columnas del turno»),
+  pausada por Diego el 10-ago. La misma conclusión llegando por el terreno.
+  Camino recomendado: **no el big-bang de la rama, sino por tandas, una casa a
+  la vez**, cada una con su `crearORepararEstructura()` y su inventario de
+  consumidores — ① series + banner con íconos (cierra ECF/Barthel/MRC-7-días,
+  no toca ventilación) · ② eventos como fuente de verdad (cierra la cama 13; ES
+  la tanda D y necesita sus respuestas del 2-sep) · ③ estado del episodio
+  fuera del turno (cierra el ámbar) · ④ recién ahí reordenar el modal.
+  · ❓ **Tres preguntas abiertas para pasar de la tabla al PRD**: si la línea
+  fina de ventilación está bien (parámetros = turno; vía aérea y soporte =
+  episodio y solo los cambia un evento — es lo más invasivo); cultivos como
+  serie o como evento; y si se parte por la tanda ①.
+  · ✅ **ACORDADO EL 11-sep — LA FIRMA VIAJA CON LA MEDICIÓN («dale»)**. Diego:
+  «ocupamos el valor del colega pero debemos saber quién firmó… al lado de la
+  fecha podrían salir sus iniciales, pero el dato lo ocupa cualquiera para sus
+  fines». **Medido: hoy falta.** El episodio arrastra `ULT_MRC`+`ULT_MRC_FECHA`,
+  `ULT_FSS`+`ULT_FSS_FECHA`, `ULT_PIM`+`ULT_PIM_FECHA` — **ninguna columna de
+  quién**; la entrega imprime `MRC-SS 36 (02-09)` (`svc_entrega.gs:295`). La
+  firma existe pero se queda en la fila de la evolución (`PLAN_FIRMA_KINE`):
+  recuperable buceando, invisible donde se usa el dato. Queda
+  `MRC-ss 36 · 02-09 · MCC`. **Sumado a la tanda de las escalas.**
+  · 🔑 **REGLA QUE FIJÓ DIEGO: la firma es PROCEDENCIA, NO PROPIEDAD.** No
+  restringe quién puede usar el valor —cualquiera lo cita para sus fines, que
+  es lo correcto clínicamente—, solo dice de dónde salió. Y separa **dos firmas
+  que hoy se colapsan en una**: quién MIDIÓ (MCC, 02-09) y quién EVOLUCIONA hoy
+  citándolo. 🪤 Sin login, esas iniciales son la firma DECLARADA en el
+  formulario, no una identidad verificada (lo resolvería el PRD de la PWA).
+  · ✅ **Y EL PUNTO 4 (el registro firmado) SE CAYÓ — se da vuelta, 11-sep.**
+  Diego lo rebatió con clínica («el paciente tenía un MRC de 33 de hace varios
+  turnos; ese número es el que tengo y el que me sirve») y el código le da la
+  razón: `EVAL_FECHA: v('gDate')||hoy()` (index ~7011) graba **la fecha del
+  TURNO, no la de la evaluación**, así que hoy la fila heredada ya afirma «MRC
+  33, evaluado hoy, firmado por mí» cuando se midió hace cinco turnos y otra
+  persona. **La foto firmada YA está retocada y la serie es la que la arregla**:
+  el valor queda una vez con su fecha y firma reales y la evolución lo CITA.
+  Lo único que queda de la objeción lo cubre la regla madre (una corrección no
+  reescribe el texto de una evolución vieja).
+  · 🔴 **CORRECCIÓN CLÍNICA DE DIEGO QUE CAMBIA EL MODELO (11-sep): la ECF, el
+  Barthel y el Charlson NO son serie.** «La escala clínica de fragilidad no va a
+  cambiar durante la estadía, es la que es, porque es previa a la UCI; si hay
+  alguna corrección se corrige el mismo dato, no sería un dato nuevo.» O sea son
+  **dato único corregible del episodio** (estado pre-UCI), y solo MRC, FSS,
+  CPAx, Pimáx y mecánica respiratoria llevan historial fechado. Yo las tenía
+  como serie en la tabla: **estaba mal** — habría dejado tres ECF del mismo
+  paciente sin saber cuál vale. El criterio de si algo lleva historial es
+  clínico, no técnico.
+  · ✅ **Y SU PREGUNTA CLAVE RESPONDIDA: el vínculo es el EPISODIO, y ya existe.**
+  La hoja `TIMELINE` ya tiene `ID_HITO · ID_CAMA · **PATIENT_ID** · FECHA ·
+  TURNO · TIPO · TEXTO · AUTOR · AUTOR_EMAIL · TIMESTAMP`, y
+  `_reetiquetarEpisodioACama` ya la re-estampa en los traslados: la amarra está
+  probada. **Lo que falta no es el vínculo sino el DETALLE** — hoy el hito
+  guarda TEXTO libre; para ser fuente de verdad necesita los datos
+  estructurados al lado (hora, tipo, con qué queda, motivo). Es una columna
+  nueva en esa hoja, no una hoja nueva. 🪤 `PATIENT_ID` amarra dentro de UN
+  episodio: un re-ingreso estrena pid, así que unir a la PERSONA entre
+  episodios es el RUT — el pendiente que él mismo dejó en la auditoría.
+  · ❓ **SU PROBLEMA 2, RESPONDIDO CON PRECISIÓN** («si uno quiere solo hacer ECF
+  igual abre el modal completo y puede causar pérdida de información respecto a
+  la evolución anterior»). Verificado: **la evolución anterior NO se puede
+  pisar** — `fillFormReplica` solo PRE-LLENA el turno de hoy desde la previa, y
+  el guardado escribe en la fila del turno actual. Pero hay **dos riesgos reales
+  y son otros**:
+    ① **Turno nuevo**: abrir y guardar solo para anotar una escala **fabrica una
+    evolución completa que nadie evaluó** — todo lo heredado (sedación,
+    hemodinamia, ventilación) se guarda como si fuera de hoy. No se pierde el
+    ayer: se inventa el hoy, que para la estadística es peor.
+    ② **Reabrir una evolución YA GUARDADA**: los botones no heredables se
+    desmarcan y hay que re-marcarlos a mano. 🔴 **Eso choca con el punto 9, que
+    él mismo cerró el 5-sep con «déjalo como Manuel»** — y una escala es
+    justamente el motivo por el que alguien reabriría una evolución guardada.
+    **Al retomar esto hay que reabrir el punto 9 con él.**
 
 - ✅ 🔔 **Buzón + campana: PROGRAMADOS en la v5.91** (4-sep; Diego aprobó el
   mockup y fijó el formato de alerta «HME vencido (fecha en que vence) ·
@@ -706,6 +1061,21 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   camas desde la v5.18).
 - **`PRD_PUBLICAR_SIN_PC.md`** — cuatro decisiones, la primera es dónde vive la
   credencial de Google (alcanza al Drive, o sea a la planilla con los RUT).
+- 📲 **`PRD_PWA_Y_LOGIN_REAL.md`** (8-sep-2026, lo pidió Diego) — servir la
+  pantalla desde un sitio propio para que se instale como app, dejar Apps Script
+  solo entregando datos, y exigir identidad real de Google para escribir. **NO
+  programado**: espera dos respuestas de informática (¿el hospital permite un
+  dominio externo? ¿hay correo institucional?) y cuatro decisiones de Diego.
+  Publicado: `https://claude.ai/code/artifact/6fadea55-7e67-43d9-ae49-3cdd7455e1b6`.
+  🔑 Lo que hay que tener claro antes de retomarlo: **la base de datos NO se
+  mueve** —sigue en la planilla y Apps Script sigue siendo el único que la
+  abre—; lo único que cambia es quién sirve la pantalla. El transporte del
+  cliente vive en UN solo sitio (`api(accion,datos)`, index ~4736: cuatro
+  menciones de `google.script.run` en 13.000 líneas), así que el costo real son
+  **las 73 guardias con navegador** que simulan ese puente. Y el riesgo nuevo es
+  el reintento: una llamada por internet puede escribir dos veces, así que toda
+  escritura necesita número de petición. **PWA sin login real no se hace: son la
+  misma tanda.**
 - **MRC**: la leyenda usa la graduación estándar. Si el protocolo de la unidad
   tiene otra redacción, se cambia en un solo lugar.
 
@@ -727,6 +1097,41 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   Literatura revisada a pedido de Diego: VM prolongada = ≥21 días (NAMDRC);
   destete prolongado = >7 días desde la 1ª PVE o ≥3 fracasadas (Boles/WIND)
   — su «>7 días» era el del destete. Detalle en BITACORA v5.93.
+
+- 🔴 🧍 **SBC EXIGE FSS-ICU — regla clínica de Diego (9-sep-2026, textual):
+  «PARA REGISTRAR SBC DEBE TENER NECESARIAMENTE FSSICU».** Anotada a pedido
+  suyo **para programarla después**: no se tocó código.
+  · **Qué es cada cosa, confirmado en el código**: SBC es el **nivel 3 de KTM**
+  (`KTM_NIV_DESC['3']` = «Sedente al borde de cama (SBC)», index ~12374), y el
+  **ítem 3 del FSS-ICU se llama igual** («Sedente borde cama», `fFssIt3`,
+  index ~4590). O sea la regla no une dos cosas distintas: dice que si el
+  colega declara que el paciente se sentó al borde de la cama, esa misma
+  actividad tiene que quedar puntuada en la escala.
+  · **Dónde vive el dato hoy**: el nivel es `fKTMniv` → `KTM_NIVEL_KTR`
+  (EVOLUCIONES) y `KTM_NIVEL` (CAMAS_ESTADO, que lo arrastra); el FSS son los
+  cinco `fFssIt1..5` → `sumFSS()` → `fFSS` → `EVAL_T_FSS` (entero).
+  · 🔴 **Inventario de consumidores** (la sección «los datos» del PRD; sin esto
+  se repite el error de los filtros): formulario (catálogo ~12369, `setKTMniv`
+  ~12380, `sumFSS` ~13941, lectura del nivel ~16141) · texto narrativo
+  (`dominio_texto.gs:514` narra el nivel, `:584` narra el FSS) · **hito motor de
+  la entrega** (`svc_entrega.gs:621-634`, donde el peldaño SBC sale del nivel
+  KTM) · hoja UCI (`_HJ_FSS_ACT` ~8817, fila `fss` ~8673) · egreso
+  (`svc_camas.gs:235-239`, que arrastra el FSS al alta) · indicadores
+  (`esquema.gs:878`, MOTOR/KTM_NIVEL).
+  · 🪤 **`fKTMniv` YA tiene una cascada encima**: con SAS 1 se limpia si no es
+  '1' (index ~13496). Cualquier validación nueva tiene que convivir con la
+  tabla `_CASCADAS` de la v6.19 (que deshace lo que una cascada escribió si el
+  control vuelve a su valor de origen), o se pisan entre las dos.
+  · ❓ **Las dos preguntas que hay que hacerle a Diego ANTES de programar** —no
+  se le preguntaron ahora porque pidió dejarlo anotado—: ① ¿el FSS tiene que ser
+  **del mismo turno**, o basta el **del episodio** aunque sea de días atrás? El
+  FSS-ICU no se mide todos los turnos, así que exigirlo por turno cambia mucho
+  el trabajo del colega. ② ¿**bloquea el guardado** o solo **avisa** (campana,
+  como la pimometría y las MRC/FSS pendientes)? Su «necesariamente» suena a
+  bloqueo, pero eso hay que confirmarlo antes de escribirlo.
+  · 🪤 Si se programa como bloqueo, el candado va **en el servidor además del
+  cliente** — como toda regla de este proyecto, el espejo del cliente solo
+  guía, no protege.
 
 - 🧠 **Brainstorm de terreno** — 9 puntos, en `BITACORA.md`. Resueltos el 1, 2,
   3, 4, 5 y 7. **Abierto: solo el 6** (MR850, acción de datos). El 9 quedó
@@ -784,6 +1189,49 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   O sea el enlace con token TAMBIÉN sirve como enlace fijo; para
   `CONFIG.SYNAPSE_URL` da lo mismo cuál se pegue, la URL base sigue siendo
   la más limpia.
+  · ✅ **HALLAZGO DE TERRENO (8-sep-2026, Diego lo usó en su turno): el botón de
+  Synapse YA SIRVE COMO COPIADOR DE RUT PARA CUALQUIER OTRO SISTEMA.** «Me
+  ahorré el clic del RUT con el botón de Synapse… solo seleccionaba el ícono del
+  paciente que quería revisar, con la otra plataforma abierta, y así acceder de
+  forma más expedita.» O sea el valor no estaba en abrir Synapse: estaba en
+  **copiar el RUT**, y eso vale para el LIS, para BUDA o para lo que sea.
+  · 🔜 **Fricción que quedó a la vista**: hoy, para copiar el RUT hay que abrir
+  una pestaña de Synapse **aunque no se quiera**. Falta un atajo que SOLO copie.
+  Sin programar: esperando que Diego elija (botón aparte vs. lista de atajos en
+  CONFIG, cada uno con nombre y URL; URL vacía = solo copia).
+
+- ✅ 🧪 **LIS del laboratorio (cobas): PROGRAMADO en la v6.21, con su logo en la
+  v6.22** (9-sep-2026). Botón con la marca de **cobas** en la tarjeta de la
+  cama, al lado del de Synapse: copia el RUT y abre el laboratorio. El ícono va
+  dibujado a mano en SVG, como la «A» de Synapse. 🪤 **Un ícono con texto
+  adentro se mira AMPLIADO antes de darlo por bueno**: a 17 px «se ve bien»
+  cualquier cosa, y en la primera pasada la palabra se salía del marco. 🔴 **La dirección NO se escribe en este repo** (es una IP interna
+  del hospital y el repo sigue siendo público): vive en **`CONFIG.LIS_URL`**, que
+  nace vacía en `esquema.gs` — sin ella, no hay botón. La guardia lo verifica de
+  forma estática, para que nadie la escriba «de paso».
+  · 🪤 **MEDIDO EN EL HOSPITAL (9-sep)**: solo lo usaban en Firefox porque así
+  quedó en los escritorios, y **nunca lo habían intentado en Chrome**. Diego lo
+  probó y **carga — pero tuvo que instalar una extensión**. O sea el botón
+  funciona en SU equipo; en un PC sin esa extensión la pestaña puede no servir.
+  **Falta preguntarle a informática si esa extensión se puede desplegar en los
+  PC de la unidad, y cuál es** (una extensión con permisos amplios también lee
+  las páginas que el colega abre, incluida esta app con datos de pacientes: es
+  decisión de ellos, no del proyecto).
+  · **Por eso el copiado va PRIMERO, siempre**: aunque la pestaña falle, el RUT
+  queda en el portapapeles y se pega en el Firefox de al lado. El portapapeles de
+  Windows es uno solo. Es la misma trampa del 4-sep con Synapse: `window.open`
+  consume la activación del clic y el copiado posterior falla en silencio.
+  · **Una página web no puede elegir en qué navegador se abre un enlace**:
+  `firefox://` no es estándar y un manejador propio en cada PC es proyecto de
+  informática. Si el LIS terminara siendo solo-Firefox, el botón igual sirve
+  para copiar.
+  · 🔴 **Y un límite de arquitectura que conviene tener escrito**: el servidor
+  **NUNCA va a poder leer del LIS**. Es una IP interna del hospital y nuestro
+  servidor corre en los computadores de Google, fuera de esa red — solo el
+  NAVEGADOR de un PC del hospital llega ahí. Por eso los gases se importan desde
+  una carpeta de Drive y no del LIS, **y eso no cambia con la PWA**: la PWA mueve
+  la pantalla, no el servidor.
+
   · **Truco sin código que da el «verlos juntos»**: abrir Synapse en una segunda
   ventana de Chrome y usar ⊞ Win + ← / ⊞ Win + → para dejarlos lado a lado.
   · 🔑 **CÓMO FUNCIONA HOY, contado por Diego (2-sep)**: Synapse **ya está
@@ -925,6 +1373,33 @@ Está publicado y **es el mejor punto de entrada para retomar**:
   pregunta para informática. **Mientras no se sepa, el diseño asume PDF.**
   · Falta todavía **un PDF de ejemplo real** (anonimizado o con paciente de
   prueba) para saber qué se puede sacar de él.
+- ✅ 🎊 **FIESTAS PATRIAS: PROGRAMADO en la v6.23, cuadros corregidos en la v6.24** (9-sep-2026). Diego mandó dos
+  videos de Mauri de huaso; se convirtieron a **12 cuadros a 5/s** cada uno
+  (terremoto → pantalla de carga, emboque → mascota de la esquina). Ventana
+  **16-20 de septiembre**, movible desde `CONFIG.FIESTAS_PATRIAS`.
+  · 🪤 **Un video NO entra en el index**: 2,6 MB pasan a 6,4 MB en el archivo que
+  se pega. Cualquier animación futura va como CUADROS (~8 KB c/u), nunca como
+  video. El pipeline quedó descrito en BITACORA v6.23.
+  · 🪤 **«Fondo transparente» de un generador puede venir PINTADO** como
+  cuadriculado. Al recortarlo, distinguir los dos tonos alternados del blanco
+  liso de los ojos, o el personaje queda sin cara.
+  · 🪤 **Y la que casi se escapa: la mayoría del equipo tiene SERVI**, y el CSS
+  esconde `.masc-persona`. Cualquier cosa que se le haga a Mauri hay que
+  MIRARLA renderizada, o se publica algo que no ve nadie. Durante la ventana
+  `.f18` destapa a Mauri por encima de esa preferencia.
+  · 🪤 **Quitar el cuadriculado NO quita el suelo: son dos cosas** (v6.24). Los
+  doce cuadros del emboque venían con el piso de ARENA del video, opaco. En la
+  pantalla de carga pasaba por sombra; en el botón de 62 px era un ladrillo
+  beige de borde duro sobre la tarjeta. Apareció al capturar el botón REAL para
+  un mockup, no leyendo el código. Los de la pantalla de carga estaban limpios:
+  se verificó cuadro por cuadro antes de recortar los 24 a ciegas.
+  · 🪤 **Y cómo se mide un suelo: por el ANCHO, no por «hay algo abajo»** — los
+  zapatos llegan al borde y está bien. Medido: con suelo la fila de abajo va al
+  100 %, sin él la esquina marca 0 % y los pies de la carga 26 %. Corte en 60 %.
+  La primera versión de esa guardia se puso roja por los zapatos: la guardia
+  tenía razón en gritar, la pregunta estaba mal escrita.
+  · La fecha se le pasa a `esFiestasPatrias(d)` para poder probarla sin esperar
+  a septiembre. Guardia `fiestas_patrias.js` (bloque 6b para el suelo).
 - 🎂 **Cumpleaños de los funcionarios en la mascota virtual.** La mascota ya
   existe: es **Servi**, seleccionable entre Servi y el kinesiólogo (`mascToggle`,
   index ~1681), y hoy solo hace el tutorial y los globos.
@@ -1049,8 +1524,30 @@ pestaña 🔐 COORDINACIÓN — sin abrir el editor.
 `repararEvolucionesAjenasSIMULACRO/CONFIRMAR` · `corregirTiempoExtubadoSIMULACRO/CONFIRMAR`
 · `corregirPronosRepetidos` · `resellarDiasSoporte*` · `corregirIngresos*` ·
 `archivarAnioHistorico*` · `resetearBaseDeDatos*` · `cargarInventarioInicial` ·
-`medirArranque` · `medirGuardado` · `verificarTablero` / `medirTablero`.
-El detalle de cada una, en `BITACORA.md`.
+`medirArranque` · `medirGuardado` · `verificarTablero` / `medirTablero` ·
+`plantillasResembrarSimular` / `plantillasResembrarAplicarAhora` /
+`plantillasRestaurarDesde`. El detalle de cada una, en `BITACORA.md`.
+
+🪤 **Cambiar `PLANTILLAS_UNIDAD_SEMILLA` NO cambia lo que lee el turno**
+(7-sep-2026). `plantillasSembrarUnidad()` escribe **solo si
+`PLANTILLAS_EVOLUCION` está vacía**, y en la unidad está sembrada desde v6.02:
+el orden nuevo del texto se quedó en el repositorio sin llegar a nadie. Para eso
+está la **re-siembra** de `svc_plantillas.gs`. Lo que hay que saber al tocarla:
+
+- No reemplaza «todas»: solo las plantillas de la unidad cuyo cuerpo **sigue
+  siendo uno de los que este repositorio publicó** (`PLANTILLAS_UNIDAD_PUBLICADAS`).
+  Lo que coordinación editó a mano se salta y se informa — perderlo en silencio
+  es la misma clase de error que esconder una pronación real.
+- 🔴 **Al cambiar la semilla hay que MOVER el cuerpo saliente a
+  `PLANTILLAS_UNIDAD_PUBLICADAS`.** Si no, la re-siembra siguiente creerá que
+  coordinación lo escribió y no tocará ni una. La guardia
+  `checks/resiembra_plantillas.js` lo comprueba.
+- Respalda la hoja entera en `PLANTILLAS_BAK_<yyyyMMdd_HHmmss>` (oculta, fuera
+  de ESQUEMA: `testEsquema` y `cuadrarEncabezados` no la ven) **antes** de la
+  primera escritura, y no escribe nada si el respaldo falla.
+- Idempotente por el cuerpo, no por una marca: la segunda corrida no escribe.
+- Nunca toca las plantillas **personales** (`DUENO` ≠ `UNIDAD`) ni las retiradas
+  (`ACTIVO=false`).
 
 ### Privacidad — no se negocia
 

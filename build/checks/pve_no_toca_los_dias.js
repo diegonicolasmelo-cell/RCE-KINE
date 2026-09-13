@@ -36,11 +36,18 @@ const si = (l, c) => eq(l, !!c, true);
 
 /* ══ 1 y 2 · EL FORMULARIO ═══════════════════════════════════════════════ */
 const { chromium } = require('playwright-core');
+/* 🪤 9-sep-2026 — FECHAS RELATIVAS, NUNCA FIJAS. Esta guardia se puso roja sola
+   al cambiar el día: el banco anclaba el tramo en un '2026-08-25' escrito a
+   mano y la app cuenta los días contra HOY, así que la cifra esperada crecía
+   una por jornada («16/13» pasó a «18/15» en dos días). Una guardia que se cae
+   sola por el calendario es peor que no tenerla: enseña a ignorar el rojo.
+   Todo ancla de fecha se escribe con `hace(n)`. */
+const hace = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 const CAMA = { ID_CAMA: '17', OCUPADA: true, NOMBRE: 'PACIENTE 17', PATIENT_ID: 'p17',
   VIA_AEREA: 'TOT', SOPORTE: 'VM', MODO: 'ACVC', TOT_NUMERO: '7.5', TOT_CM_LABIO: '22',
-  FECHA_INICIO_VA: '2026-08-25', FECHA_INICIO_SOPORTE: '2026-08-25',
-  TS_INICIO_VA: '2026-08-25 10:00:00', TS_INICIO_SOPORTE: '2026-08-25 10:00:00',
-  DIAS_VA: 13, DIAS_VM: 13, FECHA_INGRESO: '2026-08-25' };
+  FECHA_INICIO_VA: hace(13), FECHA_INICIO_SOPORTE: hace(13),
+  TS_INICIO_VA: hace(13) + ' 10:00:00', TS_INICIO_SOPORTE: hace(13) + ' 10:00:00',
+  DIAS_VA: 13, DIAS_VM: 13, FECHA_INGRESO: hace(13) };
 
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
@@ -54,6 +61,18 @@ const CAMA = { ID_CAMA: '17', OCUPADA: true, NOMBRE: 'PACIENTE 17', PATIENT_ID: 
     }, previa);
     await p.goto('file://' + path.join(__dirname, '..', '..', 'v2', 'index.html'));
     await p.waitForTimeout(600);
+    // 🪤 ANCLA DE FECHA Y TURNO (12-sep-2026): la app cuenta los días contra
+    // `gDate` (la fecha del TURNO), no contra hoy(). Corriendo de MADRUGADA el
+    // turno lógico es «Noche del día anterior» y gDate queda un día atrás: el
+    // banco, armado con hoy(), daba un día de más y esta guardia se ponía roja
+    // SOLA a partir de cierta hora. Anclar el turno Día y la fecha de hoy.
+    await p.evaluate(() => { try { SHIFT = 'Dia'; } catch (e) {}
+      const g = document.getElementById('gDate'); if (g) g.value = hoy();
+      // Esta guardia fija que la PVE NO MUEVE los contadores, no CÓMO se
+      // cuentan: se mide con la regla de CALENDARIO (v5.35), que sigue viva
+      // con el interruptor apagado. La cuenta por bloques de 24 h de la v6.26
+      // tiene su propia guardia (vm_por_horas.js).
+      window.CFG = Object.assign(window.CFG || {}, { VM_POR_HORAS: false }); });
     await p.evaluate((c) => { DB = [c]; abrirPanel('17', false, false); }, CAMA);
     await p.waitForTimeout(350);
     return p;
@@ -170,10 +189,10 @@ const CAMA = { ID_CAMA: '17', OCUPADA: true, NOMBRE: 'PACIENTE 17', PATIENT_ID: 
   const { api, DB } = require('../sim/sim_srv.js');
   const bed = () => DB.CAMAS_ESTADO.find(c => String(c.ID_CAMA) === '6') || {};
   let r = api('INGRESAR_PACIENTE', { idCama: '6', nombre: 'Paciente 17', edad: 60, sexo: 'M',
-    diagnostico: 'NAC grave', fechaIngreso: '2026-08-25', viaAerea: 'TOT', soporte: 'VM',
+    diagnostico: 'NAC grave', fechaIngreso: hace(13), viaAerea: 'TOT', soporte: 'VM',
     modo: 'ACVC', firmaKine: 'DMV' }, null);
   si('ingresa el paciente', r.ok);
-  const ANCLA_VA = '2026-08-25', ANCLA_SOP = '2026-08-25';
+  const ANCLA_VA = hace(13), ANCLA_SOP = hace(13);
   const reponer = () => { const c = bed(); c.FECHA_INICIO_VA = ANCLA_VA; c.FECHA_INICIO_SOPORTE = ANCLA_SOP;
     c.TS_INICIO_VA = ANCLA_VA + ' 10:00:00'; c.TS_INICIO_SOPORTE = ANCLA_SOP + ' 10:00:00';
     c.VIA_AEREA = 'TOT'; c.SOPORTE = 'VM'; };
