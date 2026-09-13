@@ -19,6 +19,85 @@ proyecto** (`rag_buscar.py`), que lo tiene indizado junto al código.
 
 ---
 
+## v7.03-guardado-obligatorio (13-sep-2026) — la v7.02 y el guardado obligatorio, en la misma rama
+
+Manuel: «fusionar y subir todo, para no borrar o romper nada». Había dos ramas
+vivas que **no se incluían entre sí**, las dos tocando `v2/index.html`:
+
+| Rama | Sello | Qué traía |
+|---|---|---|
+| `origin/develop` (11e35be) | 6.27-guardado-obligatorio | Las cinco tandas del PRD de guardado obligatorio: modal de cierre de tres acciones, confirmación con hora, fallo de guardado visible, borrador local por cama+turno, **cero minimizar**, aviso modal de fin de turno y la oferta de anotar el evento de vía aérea olvidado. |
+| `origin/v7-episodio-turno-con-relojes` (90d4e61) | 7.02-con-resiembra-plantillas | Episodio y turno separados (hoja `EVALUACIONES` como serie fechada con firma, `DATOS_JSON` en TIMELINE, AET/UPOT como estado del episodio), los relojes (VM por bloques de 24 h, fecha y hora de ingreso escritas y en las hojas impresas) y la re-siembra de las plantillas de la unidad. Es lo que está **en el editor sin publicar**. |
+
+Pegar una sola en el editor habría borrado la otra en silencio — la misma
+trampa que llevó a la fusión `1ea41e6` (v7.01) hace dos días.
+
+**Conflictos: solo cuatro archivos.** `api.gs`, `esquema.gs`,
+`svc_evoluciones.gs`, `mantenimiento.gs` y los demás se fusionaron solos.
+
+1. **El sello, en los cuatro sitios** → `7.03-guardado-obligatorio` (meta del
+   `<head>`, watchdog del boot, `build/empaquetar_cohete.js` y el espejo, que
+   lo recibe al regenerarse).
+2. **`_mostrarTransAviso()`** — el conflicto de verdad. `develop` había
+   reescrito el cuerpo para pintar los avisos como `{ev,t}` con botón «📝
+   Anotar ahora» / «Ir al bloque»; la v7 había añadido el cuadro del motivo
+   obligatorio y cambiaba la etiqueta del botón. Se conservan **las dos**: el
+   cuerpo nuevo más el `toggle` del `#transMotivoBox`, y una etiqueta que une
+   las tres reglas — «Guardar con motivo» si la vía aérea cambió sin evento,
+   «Guardar igual» si solo quedan heredados sin revisar, «✅ Guardar» sin
+   avisos. 🪤 La v7 buscaba el botón con `querySelector('.btn-r')` y `develop`
+   ya le había puesto `id`: se usa el `id`.
+3. **BITACORA.md** — los dos bloques de entradas, ninguno pisado.
+4. **`V3 colaborativa/index.html`** es generado: regenerado con
+   `node build/empaquetar_cohete.js`. 🪤 `V3 colaborativa/servicios.gs`
+   **también** es generado y venía atrasado desde la rama v7 (`paridad_v3`
+   estaba roja allí): regenerado con `node build/fusionar_servicios.js`.
+
+**Lo que se comprobó y NO hubo que adaptar** (la pregunta era si la v7 había
+movido el concepto de turno bajo los pies del guardado obligatorio):
+
+- `turnoKey` sigue siendo `` `fecha-SHIFT` `` en los seis sitios donde se arma,
+  e `idEvolucion` sigue siendo `CAMA_<id>_<turnoKey>`. La llave del borrador
+  local (`_borradorLlave`) y el «cama ocupada sin evolución» del aviso siguen
+  coherentes: la separación episodio/turno movió DATOS al episodio, no el
+  índice del turno.
+- El candado del aviso sigue en `sessionStorage` por slot de turno, y las horas
+  salen de `SALIDA_TURNO_*`, nunca de `_horasTurno()`.
+- La v7 **no** reintrodujo el minimizar (única aparición en `v2/`: el
+  comentario que explica que ya no existe).
+- `TOTAL_COLS.EVOLUCIONES` sigue en 396: las nueve columnas nuevas de la v7
+  (`ULT_*_FIRMA`, `AET_*`, `UPOT_*`) entran en `CAMAS_ESTADO`.
+
+**Dos guardias adaptadas** — ninguna medía mal, medían la forma vieja de la
+misma propiedad:
+
+- `episodio_turno.js` corría el regex sobre el aviso, que ahora es objeto
+  `{ev,t}`: daba `[object Object]` y `false`. Lee el texto venga como objeto o
+  como string.
+- `transicion_ofrece_evento.js` tenía como escenario justo un cambio de vía
+  aérea sin evento (TOT → Natural), donde la v7 exige motivo escrito. El aviso
+  sigue sin ser un candado, pero cuesta una razón: la guardia ahora mide las
+  dos mitades —sin motivo no guarda; con motivo guarda **y el motivo viaja al
+  hito**— en vez de dar por hecho que «Guardar igual» es un clic.
+
+**Batería, las tres corridas del mismo día (13-sep-2026, turno Día):**
+
+| Rama | Guardias | Verdes | Rojas |
+|---|---|---|---|
+| `origin/develop` 6.27 | 136 | 134 | `panel_no_pisa_datos`, `pve_no_toca_los_dias` |
+| `origin/v7…` 7.02 | 127 | 123 | las dos de arriba + `paridad_v3` + `vm_por_horas` |
+| **la fusión 7.03** | **139** | **136** | `panel_no_pisa_datos`, `pve_no_toca_los_dias`, `vm_por_horas` |
+
+Ninguna roja nueva, y `paridad_v3` pasó de roja a verde. Las 139 son la unión
+exacta de los dos lados (`git ls-tree` de `build/checks`: no se perdió ningún
+archivo de guardia). Las tres rojas son heredadas y ya conocidas:
+`panel_no_pisa_datos` tiene la ruta cableada a `/home/user/RCE-KINE`,
+`pve_no_toca_los_dias` mide con `VM_POR_HORAS` apagado y `vm_por_horas` espera
+15 días de estadía donde el formulario muestra 14. **Las tres vienen así de sus
+ramas de origen; no las arregló ni las rompió esta fusión.**
+
+---
+
 ## v6.27-guardado-obligatorio (13-sep-2026) — las cinco tandas, portadas a develop 6.24
 
 Las cinco tandas del PRD de guardado obligatorio se habían escrito sobre la

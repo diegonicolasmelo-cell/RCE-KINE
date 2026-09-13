@@ -1,6 +1,14 @@
-# Probar la v7.01 en la planilla OFICIAL sin que el equipo la vea
+# Probar la v7.03 en la planilla OFICIAL sin que el equipo la vea
 
-**Para**: Diego. **Fecha**: 12-sep-2026. **Sello**: `7.02-con-resiembra-plantillas`.
+**Para**: Diego. **Fecha**: 13-sep-2026. **Sello**: `7.03-guardado-obligatorio`.
+
+> 🔀 **Qué cambió respecto del 7.02**: se fusionó dentro el **guardado
+> obligatorio de la evolución** que venía en `develop` (6.27) — modal de cierre
+> de tres acciones, confirmación con hora, fallo de guardado visible, borrador
+> local por cama y turno, se eliminó el minimizar, y el aviso de fin de turno
+> con la oferta de anotar el evento de vía aérea que se olvidó. Nada de la
+> v7.02 se perdió. Con la vía aérea cambiada sin evento el botón sigue pidiendo
+> el motivo escrito; sin evento y sin motivo, no guarda.
 
 Esta es la tanda completa: lo de episodio y turno que ya probaste en tu planilla
 nueva, **más** la fecha y hora de ingreso escritas, los días de VM por horas,
@@ -40,7 +48,7 @@ oficial. Pegar de más no rompe nada; pegar de menos sí, y en silencio (pasó e
 🪤 **Verifica dos cosas antes de seguir**:
 - `Ctrl+F` en `servicios` → busca `Diagnóstico`. Si no aparece con acento, el
   portapapeles lo corrompió: vuelve a pegar ese archivo.
-- `Ctrl+F` en `index` → busca `7.02-con-resiembra-plantillas`.
+- `Ctrl+F` en `index` → busca `7.03-guardado-obligatorio`.
 
 ---
 
