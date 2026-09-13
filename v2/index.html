@@ -5807,25 +5807,40 @@ function _aftPendientesDe(camas, evos, tk){
    Van marcadas, y el pie del modal dice que el sistema no guarda la hora de
    egreso — el clínico decide al ojo si corresponde evolucionar.
    Best-effort: si la llamada falla, el aviso sale igual con el resto. */
+/* La línea que ve el kinesiólogo cuando las altas del día no se pudieron
+   verificar. Vive en una constante porque la escribe el modal y la exige la
+   guardia: un solo texto, un solo sitio. Sin datos de paciente. */
+const _AFT_PIE_ALTAS_FALLO='⚠️ No se pudieron verificar las altas del día: puede faltar alguna cama que egresó sin evolucionar. ';
+
+/**
+ * Camas que egresaron en el día y no alcanzaron a evolucionarse.
+ *
+ * 🔴 EL FALLO SE DICE, NO SE TRAGA (13-sep-2026, verificador de la tanda 3).
+ * Antes esto terminaba en `.catch(()=>cb([]))`: si `GET_ARCHIVADOS` no
+ * respondía, el modal salía «limpio», sin altas y sin una palabra. Un aviso que
+ * dice «no queda nadie» cuando en realidad no pudo mirar es peor que no avisar:
+ * el que lo lee a las 19:30 se va tranquilo. Ahora el segundo parámetro del
+ * callback dice que la verificación falló, y el modal lo muestra.
+ */
 function _aftAltas(fecha, tk, evos, cb){
   api('GET_ARCHIVADOS',{desde:fecha, hasta:fecha, limite:40}).then(rows=>{
     const con=new Set((evos||[]).filter(e=>String(e.TURNO_KEY)===String(tk)).map(e=>String(e.ID_CAMA)));
     cb((rows||[]).filter(r=>String(r.fEgreso||'').slice(0,10)===fecha&&!con.has(String(r.cama)))
       // 🔒 de la ficha archivada solo viajan cama y código: `nombre` se descarta aquí
       .map(r=>({cama:String(r.cama||''), cod:String(r.cod||''), alta:true, borr:false}))
-      .filter(r=>r.cama));
-  }).catch(()=>cb([]));
+      .filter(r=>r.cama), false);
+  }).catch(()=>cb([], true));
 }
 
 /** Una llamada fresca al servidor (GET_BOOT: camas + evoluciones del día). */
 function _aftLista(fecha, tk, cb){
   api('GET_BOOT',{fecha:fecha, key:tk}).then(b=>{
     const base=_aftPendientesDe((b&&b.camas)||[], (b&&b.evos)||[], tk);
-    _aftAltas(fecha, tk, (b&&b.evos)||[], altas=>{
+    _aftAltas(fecha, tk, (b&&b.evos)||[], (altas, falloAltas)=>{
       const vistas=new Set(base.map(x=>x.cama));
-      cb(base.concat(altas.filter(a=>!vistas.has(a.cama))), false);
+      cb(base.concat(altas.filter(a=>!vistas.has(a.cama))), false, falloAltas);
     });
-  }).catch(()=>cb(null, true));      // sin servidor: se queda lo pintado del cache
+  }).catch(()=>cb(null, true, false));      // sin servidor: se queda lo pintado del cache
 }
 
 function _aftFila(f){
@@ -5892,17 +5907,21 @@ function _aftTick(ahora){
     const cache=_aftPendientesDe(DB||[], EVOS_DIA||[], tk);
     const sucio=_aftPanelSucio();
     if(cache.length||sucio) _aftMostrar(cache, sucio, 'Actualizando la lista con el servidor…');
-    _aftLista(t.fecha, tk, (lista, fallo)=>{
+    _aftLista(t.fecha, tk, (lista, fallo, falloAltas)=>{
       if(fallo){
         if(!(cache.length||sucio)) return;
         _aftPintar(cache, sucio, '⚠️ No se pudo refrescar: lista según el último refresco.');
         return;
       }
       const sucio2=_aftPanelSucio();
-      if(!lista.length&&!sucio2){ _aftCerrar(); return; }   // nada que decir
-      const pie=lista.some(x=>x.alta)
+      // 🔴 Con las altas sin verificar el modal se abre AUNQUE la lista esté
+      // vacía: «no queda nadie» sería mentira, porque justo lo que no se pudo
+      // mirar son las camas que egresaron hoy sin evolucionar.
+      if(!lista.length&&!sucio2&&!falloAltas){ _aftCerrar(); return; }
+      const pie=(falloAltas?_AFT_PIE_ALTAS_FALLO:'')
+        + (lista.some(x=>x.alta)
         ? 'Las camas «de alta en el día» egresaron en esta fecha; el registro no guarda la hora del egreso, así que revisa si corresponde evolucionar el turno.'
-        : '';
+        : '');
       if($('aftOvl')?.classList.contains('on')) _aftPintar(lista, sucio2, pie);
       else _aftMostrar(lista, sucio2, pie);
     });
