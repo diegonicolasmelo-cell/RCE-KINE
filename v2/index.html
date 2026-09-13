@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="7.03-guardado-obligatorio">
+<meta name="rce-version" content="7.04-aviso-de-error-al-centro">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -1445,6 +1445,36 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
   height:30px;padding:0 13px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;}
 .aft-abrir:hover,.aft-abrir:focus{background:#f1f5f9;}
 
+/* ── AVISO DE ERROR AL CENTRO (Manuel, 13-sep-2026) ───────────────────────
+   Pedido textual desde el turno: «que el aviso de error de carga o de guardado
+   de la evolucion aparezca en la pantalla al centro, en un cuadrado […] un
+   rectangulo grande visible que diga claramente "No se guardo", con opcion de
+   "Reintentar"». La pildora #gEstadoGuardado NO se toca: sigue siendo el
+   estado PERSISTENTE (PRD guardado obligatorio, O3b) y la mide
+   build/checks/sin_guardar.js. Esto es el aviso BLOQUEANTE que aparece
+   ENCIMA; al cerrar el cuadro la pildora queda de rastro.
+   Proporcion: min(560px,92vw) de ancho por >=244 px de alto  =>  ~1:2,3,
+   que es el «3 x 7» que pidio Manuel. Rojo #991b1b: el mismo que ya usaba
+   la pildora de error, no se inventa paleta. */
+.av-err-card{width:min(560px,92vw);min-height:244px;text-align:center;
+  border:3px solid #991b1b;border-top:10px solid #991b1b;
+  box-shadow:0 28px 80px rgba(0,0,0,.45);
+  display:flex;flex-direction:column;justify-content:center;padding:22px 28px;}
+.av-err-ico{font-size:2.1rem;line-height:1;margin-bottom:4px;}
+.av-err-tit{font-size:1.9rem;font-weight:900;color:#991b1b;letter-spacing:-.02em;line-height:1.1;}
+.av-err-msg{font-size:.86rem;color:#475569;line-height:1.5;margin-top:8px;
+  max-height:5.2em;overflow-y:auto;overflow-wrap:anywhere;}
+.av-err-btns{display:flex;gap:10px;margin-top:18px;justify-content:center;}
+.av-err-reint{flex:1.4;height:46px;border:none;background:#991b1b;color:#fff;border-radius:10px;
+  font-size:1rem;font-weight:800;cursor:pointer;font-family:inherit;transition:background .15s;}
+.av-err-reint:hover,.av-err-reint:focus{background:#7f1d1d;}
+.av-err-sec{flex:1;height:46px;border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:10px;
+  font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+.av-err-sec:hover,.av-err-sec:focus{background:#f1f5f9;}
+/* Encima de cualquier modal de la app (400). Debajo del login (#loginOvl,
+   9999), que es una toma de pantalla completa con su propio Reintentar. */
+#avErrOvl{z-index:800;}
+
 /* ── v2: barra dev, fase clínica, chip COD ── */
 .devbar{background:#fef3c7;color:#92400e;font-size:.75rem;text-align:center;padding:4px;border-bottom:1px solid #fde68a;}
 .fase-chip{font-size:.73rem;padding:4px 11px;border-radius:6px;border:1px solid transparent;background:var(--n-gray-bg);color:var(--n-gray);cursor:pointer;font-family:inherit;font-weight:600;}
@@ -2747,6 +2777,29 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <div class="uc-det" id="aftPie" style="display:none;"></div>
     <div class="uc-btns">
       <button type="button" class="uc-ok" id="aftOk" onclick="_aftCerrar()">Ya lo vi</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- AVISO DE ERROR AL CENTRO (Manuel, 13-sep-2026) ───────────────────
+     UN SOLO cuadro para los dos casos, para no duplicar markup:
+       · GUARDADO → «No se guardó». BLOQUEANTE a propósito: ni Escape ni un
+         clic fuera lo cierran, porque cerrarlo de un manotazo es justo lo que
+         hace perder la evolución. Sale por «Reintentar» o «Seguir editando».
+       · CARGA    → «No se pudo cargar». Éste sí se cierra: no hay nada escrito
+         que perder.
+     🔒 Ley 19.628: aquí solo entra el mensaje técnico del servidor.
+     Jamás nombre ni RUT. -->
+<div id="avErrOvl" class="uc-ovl">
+  <div class="uc-card av-err-card" id="avErrCard" role="alertdialog" aria-modal="true"
+       aria-labelledby="avErrTit" aria-describedby="avErrMsg">
+    <div class="av-err-ico" aria-hidden="true">❌</div>
+    <div class="av-err-tit" id="avErrTit">No se guardó</div>
+    <div class="av-err-msg" id="avErrMsg"></div>
+    <div class="av-err-btns">
+      <button type="button" class="av-err-reint" id="avErrReint" data-nodirty onclick="avErrReintentar()">Reintentar</button>
+      <button type="button" class="av-err-sec" id="avErrSec" data-nodirty onclick="avErrCerrar()">Seguir editando</button>
     </div>
   </div>
 </div>
@@ -4807,7 +4860,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 7.03-guardado-obligatorio]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 7.04-aviso-de-error-al-centro]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5700,14 +5753,65 @@ function _estadoGuardado(modo, html){
 function _marcaGuardadoOK(d){ _reintentoGuardado=null; _estadoGuardado('ok','✓ Guardado '+_hhmm(d)); }
 
 // O3b · estado de ERROR persistente: se queda hasta que un guardado termine bien.
-function _marcaGuardadoError(){
+// 🔴 La píldora NO se toca ni se reemplaza — es el estado PERSISTENTE del PRD y
+// la mide build/checks/sin_guardar.js. El cuadro al centro se SUMA encima.
+function _marcaGuardadoError(detalle){
   _estadoGuardado('error','❌ NO se guardó <button type="button" data-nodirty onclick="reintentarGuardado()" style="font:inherit;border:1px solid #991b1b;background:#fff;color:#991b1b;border-radius:14px;padding:1px 9px;cursor:pointer;">Reintentar</button>');
+  avisoErrorGuardado(detalle);
 }
+
+/* ══ AVISO DE ERROR AL CENTRO (Manuel, 13-sep-2026) ════════════════════
+   «que el aviso de error de carga o de guardado aparezca en la pantalla al
+   centro, en un cuadrado […] un rectángulo grande visible que diga claramente
+   "No se guardó", con opción de "Reintentar"». Un solo componente, dos modos:
+     · 'guardado' → BLOQUEANTE (ni Escape ni clic fuera).
+     · 'carga'    → se cierra con Escape o clic fuera.
+   El markup vive UNA sola vez en #avErrOvl. */
+let _avErrModo = null;      // 'guardado' | 'carga' | null
+let _avErrAccion = null;    // lo que corre el botón «Reintentar»
+
+function _avErrAbrir(modo, titulo, detalle, accion, textoSec){
+  const o=$('avErrOvl'); if(!o) return;
+  _avErrModo=modo; _avErrAccion=(typeof accion==='function')?accion:null;
+  $('avErrTit').textContent=titulo;
+  // textContent, no innerHTML: el detalle viene del servidor y no se interpreta.
+  const m=$('avErrMsg'); m.textContent=detalle||''; m.style.display=detalle?'':'none';
+  $('avErrSec').textContent=textoSec||'Cerrar';
+  o.classList.add('on');
+  setTimeout(()=>{ try{ $('avErrReint').focus(); }catch(_){} }, 60);
+}
+
+function avErrCerrar(){ $('avErrOvl')?.classList.remove('on'); _avErrModo=null; }
+
+function avErrReintentar(){
+  const f=_avErrAccion; _avErrAccion=null;
+  avErrCerrar();
+  if(typeof f==='function') f();
+}
+
+// GUARDADO · «Reintentar» remanda los MISMOS datos (reintentarGuardado, que
+// re-guarda el mismo turno: actualiza, no duplica). «Seguir editando» solo
+// cierra el cuadro: la evolución sigue entera en pantalla y la píldora roja
+// queda de rastro hasta que un guardado termine bien.
+function avisoErrorGuardado(detalle){
+  _avErrAbrir('guardado', 'No se guardó', detalle||'', reintentarGuardado, 'Seguir editando');
+}
+
+// CARGA · mismo cuadro, otro título y su propia acción de reintento.
+function avisoErrorCarga(detalle, accion){
+  _avErrAbrir('carga', 'No se pudo cargar', detalle||'', accion, 'Cerrar');
+}
+
+// Clic fuera: cierra SOLO el de carga. El de guardado se queda (ese es el punto).
+document.getElementById('avErrOvl')?.addEventListener('click', e=>{
+  if(e.target && e.target.id==='avErrOvl' && _avErrModo==='carga') avErrCerrar();
+});
 
 // Remanda EXACTAMENTE los mismos datos del intento que falló (re-guardar el
 // mismo turno actualiza, no duplica). No se suma al reintento automático de
 // 3 s: éste solo existe cuando aquél ya se agotó.
 function reintentarGuardado(){
+  avErrCerrar();   // venga del cuadro al centro o de la píldora, el cuadro se va
   if(typeof _reintentoGuardado!=='function') return;
   const f=_reintentoGuardado; _reintentoGuardado=null;
   _estadoGuardado('error','⏳ Reintentando…');
@@ -6041,6 +6145,9 @@ document.addEventListener('keydown', e=>{
   if($('ucOvl')?.classList.contains('on')) return;              // lo maneja uiConfirm
   // El aviso de fin de turno es bloqueante a propósito: Escape no lo cierra.
   if($('aftOvl')?.classList.contains('on')) return;
+  // Igual el cuadro rojo de «No se guardó»: cerrarlo de un manotazo con Escape
+  // es justo lo que hace perder la evolución. El de CARGA sí se cierra.
+  if($('avErrOvl')?.classList.contains('on')){ if(_avErrModo==='carga') avErrCerrar(); return; }
   if($('transAviso')?.classList.contains('on')){ transAvisoCerrar(); return; }
   // el historial a pantalla completa cierra SOLO con la X (pedido de Diego)
   if($('tlp')?.classList.contains('on')) return;
@@ -7751,7 +7858,7 @@ function guardar() {
     // no se toca. Y se deja borrador local por si el equipo se apaga ahora.
     _cerrarTrasGuardar=false;
     _reintentoGuardado=_enviar;
-    _marcaGuardadoError();
+    _marcaGuardadoError(m||'sin conexión');
     _borradorGuardar();
   };
   // Reintento automático (v5.25): si la red parpadea justo al guardar, se
@@ -14916,7 +15023,9 @@ function arcCargar(){
   $('arcBody').innerHTML='<div class="pivot-empty">Cargando archivados…</div>';
   if(ARC_HIST===null) gs('GET_HISTORICOS',{},h=>{ ARC_HIST=h||{}; },()=>{ ARC_HIST={}; });
   gs('GET_ARCHIVADOS',{},r=>{ ARC_ALL=r||[]; arcFiltrar(); },
-    msg=>{ $('arcBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'desconocido')+' <button class="dpset" onclick="arcCargar()">Reintentar</button></div>'; });
+    msg=>{ $('arcBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'desconocido')+' <button class="dpset" onclick="arcCargar()">Reintentar</button></div>';
+           // El texto del cuerpo NO se saca: queda de rastro cuando se cierre el cuadro.
+           avisoErrorCarga('Archivados — '+(msg||'desconocido'), arcCargar); });
 }
 
 function arcFiltrar(){
@@ -15444,7 +15553,8 @@ function vmCargar(){
   gs('GET_VENTILADORES',{},r=>{ VM_ALL=r||[];
     if(window._TUT_EQ) _tutDemoVM();   // la recarga del censo no borra el equipo de práctica
     vmRender(); stkCargar(); },
-    msg=>{ $('vmBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'')+' <button class="dpset" onclick="vmCargar()">Reintentar</button></div>'; });
+    msg=>{ $('vmBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'')+' <button class="dpset" onclick="vmCargar()">Reintentar</button></div>';
+           avisoErrorCarga('Ventiladores — '+(msg||'desconocido'), vmCargar); });
 }
 
 /* ── STOCK SIN NUMERAR (ago-2026): Aerogen y capnógrafos. No tienen número,
