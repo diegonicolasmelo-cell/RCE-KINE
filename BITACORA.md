@@ -4005,3 +4005,66 @@ donde el PRD §6 la pone: en el camino de guardado.
    HOY y solo le cambia hora y minutos. Al guardar un turno con fecha pasada, el
    sello de la extubación queda con la fecha equivocada. Es previo a esta tanda y
    fuera de su alcance, pero está a la vista y toca `_tiempoExtubado`.
+
+---
+
+## v5.87-guardado-obligatorio · tanda 3b · el fallo de las altas se dice (13-sep-2026)
+
+Dos correcciones que salieron de la revisión independiente de la tanda 3. **Sello NO sube.
+No cambia el esquema: `crearORepararEstructura()` NO hace falta por esta tanda** (la tanda 3
+sí la sigue necesitando, por sus cuatro claves de CONFIG).
+
+### 🔴 Un aviso que dice «no queda nadie» sin haber podido mirar
+
+`_aftAltas()` pedía las altas del día con `GET_ARCHIVADOS` y terminaba en:
+
+```js
+}).catch(()=>cb([]));
+```
+
+Si esa llamada no respondía, el modal salía **limpio**: sin altas, sin una palabra, y —lo
+grave— **se cerraba solo** cuando no quedaba ninguna otra cama pendiente, porque la lista
+venía vacía. Alguien que lee eso a las 19:30 se va para la casa creyendo que el turno está
+cerrado. Y lo que justamente no se pudo mirar son las camas que **egresaron hoy sin
+evolucionar**: las que ya no están en el censo y que nadie va a ver por casualidad.
+
+Es el mismo género de error que la reversión del 6-ago: verde en pantalla, dato verdadero
+escondido. La pregunta simétrica —«¿qué dato VERDADERO deja de verse?»— lo caza en un
+segundo, y la guardia de la tanda 3 no la hacía.
+
+Ahora el callback lleva un segundo parámetro que dice que la verificación falló,
+`_aftLista` lo propaga, y el modal:
+
+- muestra al pie `⚠️ No se pudieron verificar las altas del día: puede faltar alguna cama
+  que egresó sin evolucionar.` (constante `_AFT_PIE_ALTAS_FALLO`: un solo texto, un solo
+  sitio, que es lo que la guardia exige);
+- **se abre igual aunque la lista quede vacía**, porque «no queda nadie» sería mentira.
+
+Sin datos de paciente, como todo lo demás del aviso.
+
+Guardia nueva: `build/checks/aviso_fin_turno_altas_fallo.js`, con el reloj FIJADO. Simula
+`GET_ARCHIVADOS` caído y exige la línea, con camas pendientes y sin ellas; comprueba que
+con el servidor sano **no** se inventa la advertencia, y que el camino de error tampoco
+filtra nombre ni RUT. Contra el código sin el arreglo: 4 fallos.
+
+### El PRD decía «(de alta hh:mm)» y el registro no guarda la hora
+
+`ARCHIVO_PACIENTES` tiene `FECHA_EGRESO` y nada más. La tanda 3 ya había puesto «de alta en
+el día» en el código, pero el PRD seguía pidiendo la hora en cuatro sitios (§5 línea ~241,
+§6 pseudo-código, checklist de la tanda 3 y la decisión 6 de §9). Los cuatro corregidos, y
+al final de §9 entra una tabla de **desvíos de implementación** con este y con el de
+TIMELINE de la tanda 4.
+
+> Nota de método: el PRD se cierra diciendo que los hallazgos van a la bitácora y no a él.
+> Se hizo la excepción a propósito y está escrita ahí: cuando la implementación demuestra
+> que algo **no se puede cumplir como está escrito**, dejarlo intacto convierte al PRD en
+> una especificación que contradice al producto, y en seis meses alguien le va a creer al
+> papel. Se corrige el hecho; el porqué se queda aquí.
+
+**Pendiente propuesto: guardar la hora de egreso.** Hoy no existe en ninguna hoja. Con ella
+la marca podría volver a ser `(de alta hh:mm)`. Es una columna nueva al final de
+`ARCHIVO_PACIENTES`, subir el total de `testEsquema()` y correr
+`crearORepararEstructura()` — su propia tanda, y toca a quien da el alta, no al aviso.
+
+**Batería completa: 121 guardias, 121 verdes, 0 rojas** (exit code 0). Espejo
+`V3 colaborativa/index.html` regenerado.

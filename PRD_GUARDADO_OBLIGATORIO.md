@@ -238,8 +238,14 @@ cache y lo dice: «lista según el último refresco».
 
 **Camas con alta en el mismo turno: se incluyen, marcadas** (decisión 6 de §9). Si el
 paciente estuvo en la cama durante el turno, la atención debería estar registrada; la fila
-aparece como `Cama N (de alta hh:mm)` para que se vea de inmediato por qué está ahí y el
+aparece como `Cama N (de alta en el día)` para que se vea de inmediato por qué está ahí y el
 clínico decida al ojo si corresponde evolucionar.
+
+> 🪤 **Decía «(de alta hh:mm)» y no se puede.** `ARCHIVO_PACIENTES` guarda `FECHA_EGRESO`,
+> no la hora. Inventar una hora en una fila que el kinesiólogo lee a las 19:30 es
+> exactamente lo que este PRD existe para evitar, así que la marca dice **«de alta en el
+> día»** y el modal agrega al pie que el registro no guarda la hora del egreso. Corregido
+> el 13-sep-2026 tras implementar la tanda 3; ver la nota de §9.
 
 **Una cama con borrador local NO deja de estar pendiente** (NO2): el borrador vive en el
 navegador y el servidor no sabe de él. Si la cama tiene borrador, la fila lo dice —
@@ -500,7 +506,8 @@ CADA MINUTO, mientras la app está abierta
             ¿hay algo? → MOSTRAR EL POP-UP MODAL, centrado y sobre velo:
                  · primero, si existe, el panel abierto con cambios sin guardar
                  · después, una fila por cama pendiente: «Cama N» + [Abrir],
-                   marcando «(de alta hh:mm)» si el paciente egresó en el turno
+                   marcando «(de alta en el día)» si el paciente egresó en la fecha
+                   (el registro no guarda la hora del egreso)
                    y «· borrador sin guardar» si esa cama tiene borrador local
                  · la lista se ve entera (scroll propio si no cabe)
                  · al pie: [Ya lo vi] — única salida, no cierra con Escape ni
@@ -646,7 +653,8 @@ Cada tanda = una rama `feature/...` desde `develop` → merge `--no-ff` a `devel
 - Confirmar que a las 20:45 —vieja hora del cálculo por `_horasTurno()`— **no** pasa nada.
 - Es un **modal sobre velo**, centrado: no se desvanece solo, no se cierra con Escape ni con un clic fuera.
 - Lista solo camas ocupadas sin evolución de ese turno, con `Cama N`, sin nombres ni RUT.
-- Una cama cuyo paciente egresó en el turno aparece marcada `(de alta hh:mm)`.
+- Una cama cuyo paciente egresó en la fecha aparece marcada `(de alta en el día)` — no `hh:mm`:
+  `ARCHIVO_PACIENTES` no guarda la hora del egreso (ver la nota de §9).
 - Una cama con borrador local aparece marcada `· borrador sin guardar`.
 - `Abrir` lleva al panel de esa cama; `Ya lo vi` cierra el pop-up aunque queden camas pendientes.
 - Recargar la página a las 20:50: el pop-up **no** vuelve a salir.
@@ -679,7 +687,7 @@ Cada una está ya incorporada en las secciones que corresponden.
 | **3** | ¿El fin de turno a avisar es el de la app o la hora real de salida? | **La hora real de salida**, que **no** coincide con el cambio de turno de la app. Ver la decisión 8 | O4 · §5 disparadores y la trampa del cambio de turno |
 | **4** | ¿Se mantiene «Cerrar sin guardar»? | **No.** Hoy cerrar sin guardar **pierde las KTR y todo lo evolucionado**, y eso no es aceptable. La tercera acción pasa a ser **«Cerrar y conservar borrador»**, con borrador local por cama y turno. Sin doble confirmación: ya no hay pérdida que confirmar | **O7** · §3 ⚠️ · §5 borrador local y sus dos trampas · §6 |
 | **5** | ¿Qué pasa si nadie tiene la app abierta a esa hora? | **Avisar al inicio del turno siguiente**, reusando `_avisoGapTurnos()` | NO5 · §6 tercer bloque · tanda 3 |
-| **6** | ¿El aviso incluye camas con alta en el mismo turno? | **Sí, marcadas `(de alta hh:mm)`** | §5 «Cómo se sabe que una cama no está evolucionada» · tanda 3 |
+| **6** | ¿El aviso incluye camas con alta en el mismo turno? | **Sí, marcadas `(de alta en el día)`** — se pidieron con hora, pero el registro no la guarda (ver la nota de desvíos al final de §9) | §5 «Cómo se sabe que una cama no está evolucionada» · tanda 3 |
 | **7** | *(añadida por Manuel)* ¿Qué forma tiene el aviso de fin de turno? | **Pop-up modal dentro de la app**, *«claramente en la pantalla»*, que diga qué paciente(s) no están evolucionados. Bloqueante hasta `Ya lo vi`, con la lista visible. **No un toast** | O4 · §5 «El aviso de fin de turno es un POP-UP MODAL» · guardia `aviso_fin_turno_modal.js` |
 | **8** | ¿A qué hora exacta sale el aviso? | *«El aviso tiene que salir entre las 19:45 o 19:30, que es más o menos el horario en el que los últimos están escribiendo. Nuestro horario de salida es a las 20:00 (turno día) y a las 08:00 (turno noche).»* → dos claves nuevas de CONFIG, `SALIDA_TURNO_DIA` = **20:00** y `SALIDA_TURNO_NOCHE` = **08:00**, y `AVISO_FIN_TURNO_MIN` sube a **30** → aviso a las **19:30** y **07:30** | O4 · §5 tabla de CONFIG y la trampa · §6 · guardia `aviso_fin_turno.js` · tanda 3 |
 
@@ -705,3 +713,24 @@ cálculo anterior el aviso habría salido a las 20:45 y a las 08:45, con la unid
 Con eso, el PRD queda **cerrado y listo para implementar** por tandas (§8). Lo que aparezca
 de aquí en adelante son hallazgos de implementación, y van a `BITACORA.md`, no a este
 documento: el PRD solo se toca para una revisión formal de alcance.
+
+### Desvíos de implementación anotados en el PRD (13-sep-2026)
+
+Este documento se cierra con la regla de que «lo que aparezca de aquí en adelante son
+hallazgos de implementación, y van a `BITACORA.md`, no a este documento». Se hace **una
+excepción**, y solo para esto: cuando la implementación demuestra que algo escrito aquí
+**no se puede cumplir como está escrito**, dejarlo intacto convierte al PRD en una
+especificación que contradice al producto — y el que lo lea en seis meses va a creerle al
+papel. El porqué sigue viviendo en la bitácora; aquí queda solo la corrección del hecho.
+
+| Qué decía | Qué dice el código | Por qué |
+|---|---|---|
+| La fila del aviso de fin de turno marca `(de alta hh:mm)` (§5, §6, tanda 3, decisión 6) | `(de alta en el día)`, y el modal agrega al pie que el registro no guarda la hora del egreso | `ARCHIVO_PACIENTES` guarda `FECHA_EGRESO`, sin hora. La alternativa era inventarla, que es justo lo que este PRD prohíbe |
+| El evento olvidado «entra en TIMELINE con la hora real» (§5, O5) | Se rellenan los campos del formulario y el hito llega a TIMELINE por el camino canónico, con la hora real | `_timelineDelGuardado()` borra y regenera los hitos `via_aerea` en cada guardado: un hito escrito a mano lo borraría el guardado siguiente. Detalle en `BITACORA.md` |
+
+**Mejora futura, no incluida en este PRD: guardar la hora de egreso.** Hoy no existe en
+ninguna hoja. Con ella, la marca podría volver a ser `(de alta hh:mm)` y el kinesiólogo
+sabría de un vistazo si el paciente alcanzó a estar en el turno. Requiere una columna nueva
+en `ARCHIVO_PACIENTES` (al final de la lista), subir el total de `testEsquema()` y correr
+`crearORepararEstructura()` — o sea, es su propia tanda, y toca a quien da el alta, no al
+aviso.
