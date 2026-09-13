@@ -790,6 +790,16 @@ function _sembrar(ss) {
     // Fiestas Patrias: días de septiembre en que la mascota celebra («16-20»).
     // Vacío o mal escrito = se usa el defecto que trae el index.
     ['FIESTAS_PATRIAS', '16-20'],
+    // Aviso de fin de turno (PRD guardado obligatorio, O4). 🔴 NO confundir con
+    // TURNO_*_INICIO: esas dos son el cambio de turno de la APP (indexan
+    // turnoKey, idEvolucion, censo y auditoría). Éstas son la HORA REAL EN QUE
+    // SE VA EL EQUIPO, y sirven SOLO para saber cuándo avisar. Calcular el
+    // aviso con las de arriba lo sacaría a las 20:45 y 08:45, con la unidad ya
+    // vacía. AVISO_FIN_TURNO_MIN en 0 apaga el aviso sin publicar versión.
+    ['SALIDA_TURNO_DIA', '20:00'],
+    ['SALIDA_TURNO_NOCHE', '08:00'],
+    ['AVISO_FIN_TURNO_MIN', '30'],
+    ['AVISO_FIN_TURNO_REPETIR', 'FALSE'],
     // Interpretación clínica (cortes ajustables por el equipo sin tocar código)
     ['CPAX_ACTIVO', 'TRUE'],        // FALSE oculta la sección CPAx del panel
     ['CORTE_MRC_DAUCI', '48'],      // MRC-SS < corte = DAUCI

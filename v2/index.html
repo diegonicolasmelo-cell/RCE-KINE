@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="6.24-mauri-sin-suelo">
+<meta name="rce-version" content="6.27-guardado-obligatorio">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -926,8 +926,6 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .phdr-btns{display:flex;align-items:center;gap:2px;flex-shrink:0;}
 .xbtn{background:transparent;border:none;color:#94a3b8;font-size:1.45rem;cursor:pointer;line-height:1;padding:0 4px;}
 .xbtn:hover{color:#fff;}
-.mbtn{background:transparent;border:none;color:#94a3b8;font-size:1.45rem;cursor:pointer;line-height:1;padding:0 4px;}
-.mbtn:hover{color:#fff;}
 .aisl-tag{display:inline-flex;align-items:center;gap:4px;background:#fecdd3;color:#9f1239;border:1px solid #fda4af;border-radius:20px;padding:2px 8px;font-size:.73rem;font-weight:700;white-space:nowrap;}
 .aisl-tag button{background:none;border:none;color:#9f1239;cursor:pointer;font-size:.8rem;line-height:1;padding:0 1px;opacity:.7;}
 .aisl-tag button:hover{opacity:1;}
@@ -951,10 +949,6 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .cult-badge .cb-x{background:none;border:none;cursor:pointer;color:#9333ea;font-size:.75rem;padding:0;line-height:1;opacity:.7;}
 .cult-badge .cb-x:hover{opacity:1;}
 .cult-badge.hist{background:#faf5ff;border-color:#e9d5ff;color:#7c3aed;}
-#minTray{position:fixed;bottom:20px;left:20px;z-index:200;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none;}
-.min-pill{background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1px solid #1e5a8f;transition:background .2s;display:flex;align-items:center;gap:8px;pointer-events:all;}
-.min-pill:hover{background:#1e5a8f;}
-.min-pill::before{content:'📋';font-size:.9rem;}
 .pcontent{flex-grow:1;overflow-y:auto;padding:14px 16px 0;background:var(--bg);}
 /* En pantallas grandes el contenido del panel se compacta al centro,
    dejando aire a los costados (el scroll sigue al borde de la ventana). */
@@ -1435,6 +1429,20 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
 .uc-ok:hover,.uc-ok:focus{background:var(--primary);box-shadow:0 4px 14px rgba(29,111,196,.35);}
 .uc-card.uc-rojo .uc-ok{background:var(--danger);}
 .uc-card.uc-rojo .uc-ok:hover,.uc-card.uc-rojo .uc-ok:focus{background:#b91c1c;box-shadow:0 4px 14px rgba(220,38,38,.35);}
+/* Aviso de fin de turno (O4): la lista NUNCA recorta camas — scroll propio. */
+.aft-card{width:min(540px,94vw);text-align:left;}
+.aft-card .uc-ico{margin-left:auto;margin-right:auto;}
+.aft-card .uc-tit,.aft-card .uc-msg{text-align:center;}
+.aft-lista{margin-top:12px;max-height:46vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.aft-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid #e2e8f0;border-radius:9px;
+  padding:7px 10px;background:#f8fafc;}
+.aft-row b{font-size:.88rem;color:#0f172a;}
+.aft-row-sucio{background:#fffbeb;border-color:#fde68a;}
+.aft-tag{font-size:.72rem;color:#b45309;font-weight:700;}
+.aft-cod{font-size:.7rem;color:#64748b;font-family:monospace;}
+.aft-abrir{margin-left:auto;border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:8px;
+  height:30px;padding:0 13px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.aft-abrir:hover,.aft-abrir:focus{background:#f1f5f9;}
 
 /* ── v2: barra dev, fase clínica, chip COD ── */
 .devbar{background:#fef3c7;color:#92400e;font-size:.75rem;text-align:center;padding:4px;border-bottom:1px solid #fde68a;}
@@ -2577,7 +2585,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <div style="font-size:.75rem;color:#94a3b8;margin-top:10px;">Nada se bloquea: puedes guardar igual. Los eventos se registran siempre a mano; los campos en ámbar son valores heredados del turno anterior que aún no revisas.</div>
     <div style="display:flex;gap:9px;padding-top:14px;margin-top:12px;border-top:1px solid #e2e8f0;">
       <button type="button" class="btn btn-p" style="flex:1;" onclick="transAvisoCerrar()">✍️ Volver a revisar</button>
-      <button type="button" class="btn btn-r" style="width:auto;padding:0 14px;" onclick="transAvisoGuardar()">Guardar igual</button>
+      <button type="button" id="transAvisoGuardarBtn" class="btn btn-r" style="width:auto;padding:0 14px;" onclick="transAvisoGuardar()">Guardar igual</button>
     </div>
   </div>
 </div>
@@ -2691,8 +2699,6 @@ document.documentElement.setAttribute('data-piel', 'inst');
 <div class="ovl" id="ovl" onclick="cerrarTodo(event)"></div>
 <!-- Plantilla de impresión del seguimiento (diseño conservado; solo visible al imprimir) -->
 <div id="tlPrint"></div>
-<!-- PASTILLA MINIMIZADO -->
-<div id="minTray"></div>
 <!-- HOJA RHB imprimible (formato oficial) — solo visible al imprimir -->
 <div id="rhbPrint"></div>
 <div id="apkPrint"></div>
@@ -2720,6 +2726,24 @@ document.documentElement.setAttribute('data-piel', 'inst');
   </div>
 </div>
 
+<!-- AVISO DE FIN DE TURNO (PRD guardado obligatorio, O4/O6) ─────────────────
+     Modal PROPIO y bloqueante: no se cierra con Escape ni con un clic fuera.
+     Única salida: «Ya lo vi» o abrir una cama de la lista. No exige resolver.
+     🔒 Ley 19.628: aquí solo entran «Cama N» y el código interno del episodio.
+     Jamás nombre ni RUT. -->
+<div id="aftOvl" class="uc-ovl">
+  <div class="uc-card aft-card" id="aftCard" role="alertdialog" aria-modal="true" aria-labelledby="aftTit">
+    <div class="uc-ico">⏰</div>
+    <div class="uc-tit" id="aftTit">Está terminando el turno</div>
+    <div class="uc-msg" id="aftMsg"></div>
+    <div class="aft-lista" id="aftLista"></div>
+    <div class="uc-det" id="aftPie" style="display:none;"></div>
+    <div class="uc-btns">
+      <button type="button" class="uc-ok" id="aftOk" onclick="_aftCerrar()">Ya lo vi</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- SIDE PANEL EVOLUCIÓN --><!-- SIDE PANEL EVOLUCIÓN -->
 <div class="spanel" id="sp">
@@ -2730,7 +2754,6 @@ document.documentElement.setAttribute('data-piel', 'inst');
     </div>
     <span id="spRepInfo" style="flex:1;text-align:right;font-size:.7rem;color:#94a3b8;padding:0 10px;display:none;"></span>
     <div class="phdr-btns">
-      <button class="mbtn" onclick="minimizarPanel()" title="Minimizar">−</button>
       <button class="xbtn" onclick="cerrarPanel()">×</button>
     </div>
   </div>
@@ -4456,6 +4479,7 @@ document.documentElement.setAttribute('data-piel', 'inst');
       <div id="gFalta"></div>
       <div class="act-bar">
         <span id="gSinGuardar" class="hidden" style="align-self:center;font-size:.72rem;font-weight:800;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;border-radius:20px;padding:3px 10px;margin-right:6px;white-space:nowrap;">⚠️ Sin guardar</span>
+        <span id="gEstadoGuardado" class="hidden" data-estado="" style="align-self:center;font-size:.72rem;font-weight:800;border-radius:20px;padding:3px 10px;margin-right:6px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;"></span>
         <button type="button" id="btnGuardar" class="btn btn-p" data-nodirty onclick="guardar()">💾 Guardar Evolución</button>
 <!-- 👁️ Preview salió de la barra (Diego, 30-ago-2026: «solamente existirá
              botón de guardar»). El texto está siempre a la vista, arriba. -->
@@ -4742,7 +4766,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.24-mauri-sin-suelo]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 6.27-guardado-obligatorio]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -5339,16 +5363,6 @@ document.addEventListener('wheel', ()=>{
  *                  corregir un nombre o un RUT despues del ingreso.
  */
 function abrirPanel(id, esIng, verFicha) {
-  // Si esta cama quedó minimizada con un borrador, se restaura tal cual
-  // (aunque se entre por el botón de la cama y no por la bandeja): lo
-  // escrito manda por sobre el reset + recarga.
-  const _dIdx=_minStack.findIndex(m=>String(m.camaId)===String(id));
-  if(_dIdx!==-1 && _minStack[_dIdx].snap){
-    const _m=_minStack.splice(_dIdx,1)[0];
-    _renderMinTray();
-    _restaurarMin(_m);
-    return;
-  }
   const fecha=v('gDate')||hoy();
   const tkey=`${fecha}-${SHIFT}`;
   $('cBed').value=id; $('cIng').value=String(esIng); window._camaEvo=id;
@@ -5497,6 +5511,10 @@ function abrirPanel(id, esIng, verFicha) {
     // otra para asegurar que el reset gana sobre cualquier ajuste de focus.
     requestAnimationFrame(() => requestAnimationFrame(() => { pc.scrollTop = 0; }));
   }
+  // O7 · si esta cama quedó con borrador en ESTE turno, vuelve tal como se dejó
+  // (lo escrito manda sobre el formulario recién cargado). Lo último del abrir.
+  _estadoGuardado(null);
+  _borradorRestaurar(id);
 }
 
 function actualizarTituloPanel(nombre) {
@@ -5505,140 +5523,26 @@ function actualizarTituloPanel(nombre) {
   const tipo = el.dataset.tipo || 'Evolución';
   el.textContent = nombre && nombre.trim() ? `${nombre.trim()} — ${tipo}` : tipo;
 }
-// ── Minimizar múltiples pacientes ──────────────────────────────────────────
-// Al minimizar se toma un SNAPSHOT COMPLETO del panel (HTML + valores de los
-// campos + estado JS interno) y al restaurar se aplica tal cual: nada de lo
-// escrito se pierde, sin re-cargar desde el servidor ni resetear el form.
-const _minStack = [];
-
-function _renderMinTray() {
-  const tray = $('minTray');
-  if (!tray) return;
-  tray.innerHTML = _minStack.map((m, i) =>
-    `<div class="min-pill" onclick="restaurarDesdeMin(${i})">${m.label}</div>`
-  ).join('');
-}
-
-// Los valores de inputs son propiedades (no viajan en innerHTML): se capturan
-// aparte, por posición en el DOM — el orden es estable porque el HTML
-// restaurado es idéntico. Los modales de escalas (MRC/FSS/CPAx/Barthel/
-// Charlson) viven fuera de #sp y abrirPanel() los limpia, así que también
-// se capturan.
-const _SEL_PANEL_CAMPOS = '#sp input,#sp select,#sp textarea';
-const _SEL_MODAL_CAMPOS = '#mMrc input,#mMrc select,#mFss input,#mFss select,#mCpax input,#mCpax select,#mBarthel input,#mBarthel select,#mCharlson input,#mCharlson select';
-
-function _snapPanel() {
-  const cap = sel => [...document.querySelectorAll(sel)].map(e => ({ v: e.value, c: e.checked }));
-  const pc = document.querySelector('#sp .pcontent');
-  return {
-    html: $('sp').innerHTML,
-    campos: cap(_SEL_PANEL_CAMPOS),
-    modales: cap(_SEL_MODAL_CAMPOS),
-    scroll: pc ? pc.scrollTop : 0,
-    vars: {
-      PROCS: [...(PROCS || [])], FASES: [...FASES_SEL], PEND: [...PEND_SEL], AISL: [..._aislTags],
-      TI: JSON.parse(JSON.stringify(_tiState)), CULTF: { ..._cultFechas }, CULTT: [..._cultTurno],
-      _secrQty, _pronoTs, _supinoTs,
-      _diasVABase, _diasTOTBase, _diasTQTBase, _fechaInicioVA, _fechaInicioTQT,
-      _diasVMEpisodio, _diasVMPrevios, _nReintub,
-      _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
-      _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
-      _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
-      _iniVA, _iniSop, _iniDias: _iniDias?{..._iniDias}:null,
-      _iniCampos: _iniCampos?{..._iniCampos}:null, _iniKTM,
-      _transAvisoOk, _secrHeredado,
-      _rtxtGen, _textoManual, _formDirty, _faseHeredada,
-    },
-  };
-}
-
-function _restaurarMin(m) {
-  const sp = $('sp');
-  // 1) Estructura + visibilidad + textos del encabezado, tal como quedaron
-  sp.innerHTML = m.snap.html;
-  // 2) Valores de campos (posicional: mismo HTML → mismo orden)
-  const app = (sel, arr) => [...document.querySelectorAll(sel)].forEach((e, i) => {
-    const st = arr[i]; if (!st) return;
-    if (e.type === 'checkbox' || e.type === 'radio') e.checked = st.c; else e.value = st.v;
-  });
-  app(_SEL_PANEL_CAMPOS, m.snap.campos);
-  app(_SEL_MODAL_CAMPOS, m.snap.modales);
-  // 3) Estado JS interno del panel
-  const V = m.snap.vars;
-  PROCS = [...V.PROCS]; FASES_SEL = new Set(V.FASES); PEND_SEL = new Set(V.PEND || []); _aislTags = [...V.AISL];
-  Object.keys(_tiState).forEach(k => delete _tiState[k]); Object.assign(_tiState, V.TI);
-  _cultFechas = { ...V.CULTF }; _cultTurno = new Set(V.CULTT);
-  _secrQty = V._secrQty; _pronoTs = V._pronoTs; _supinoTs = V._supinoTs;
-  _diasVABase = V._diasVABase; _diasTOTBase = V._diasTOTBase; _diasTQTBase = V._diasTQTBase;
-  _fechaInicioVA = V._fechaInicioVA; _fechaInicioTQT = V._fechaInicioTQT;
-  _diasVMEpisodio = V._diasVMEpisodio; _diasVMPrevios = V._diasVMPrevios; _nReintub = V._nReintub;
-  _diasVNIEpisodio = V._diasVNIEpisodio; _diasVNIPrevios = V._diasVNIPrevios; _fechaInicioVNI = V._fechaInicioVNI;
-  _vaAnterior = V._vaAnterior; _vmHistFlag = V._vmHistFlag; _evoEventoGuardado = V._evoEventoGuardado;
-  _transIntubEsteTurno = V._transIntubEsteTurno; _vaAntesIntub = V._vaAntesIntub;
-  _dispSnapshot = V._dispSnapshot; _totSnapshot = V._totSnapshot; _tqtSnapshot = V._tqtSnapshot;
-  _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _iniDias = V._iniDias || null;
-  _iniCampos = V._iniCampos || null; _iniKTM = (V._iniKTM == null ? null : V._iniKTM); _transAvisoOk = !!V._transAvisoOk;
-  _secrHeredado = !!V._secrHeredado;
-  _rtxtGen = V._rtxtGen || ''; _setTextoManual(!!V._textoManual);
-  _formDirty = !!V._formDirty; _faseHeredada = !!V._faseHeredada;
-  // 4) innerHTML mató los listeners delegados del form → re-atar
-  _bindPanelListeners();
-  // 5) Si la vista global cambió mientras estaba minimizado (p. ej. cruzó las
-  //    09:00 y avanzó de turno), el borrador manda: se vuelve a SU fecha+turno
-  //    para que se guarde en el turno correcto.
-  if (v('gDate') !== m.fecha || SHIFT !== m.turno) {
-    $('gDate').value = m.fecha; SHIFT = m.turno; $('sTgl').dataset.s = SHIFT;
-    const t = _turnoLogico();
-    if (t.fecha === m.fecha && t.turno === m.turno) $('gDate').classList.add('turno-hoy');
-    else $('gDate').classList.remove('turno-hoy');
-    refrescarVista();
-  }
-  // 6) Mostrar el panel donde quedó
-  $('ovl').classList.add('on'); sp.classList.add('on');
-  document.body.style.overflow = 'hidden';
-  const pc = document.querySelector('#sp .pcontent');
-  if (pc) { pc.scrollTop = m.snap.scroll || 0; requestAnimationFrame(() => { pc.scrollTop = m.snap.scroll || 0; }); }
-  toast('📂 Borrador restaurado — recuerda guardar');
-}
-
-function minimizarPanel() {
-  const sp = $('sp');
-  if (!sp.classList.contains('on')) return;
-  const camaId = $('cBed')?.value || '';
-  const esIng = $('cIng')?.value === 'true';
-  const cama = ($('spBed').textContent || '').replace('CAMA ', '').trim();
-  const nombre = ($('fNombre')?.value || '').trim();
-  const pila = nombre.split(' ')[0];
-  const label = `${cama}${pila ? '. ' + pila : ''}`;
-  const entry = { camaId, label, esIng, fecha: v('gDate') || hoy(), turno: SHIFT, snap: _snapPanel() };
-  const idx = _minStack.findIndex(m => m.camaId === camaId);
-  if (idx !== -1) _minStack[idx] = entry; else _minStack.push(entry);
-  sp.classList.remove('on');
-  $('ovl').classList.remove('on');
-  document.body.style.overflow = '';
-  _renderMinTray();
-}
-
-function restaurarDesdeMin(i) {
-  const m = _minStack[i];
-  if (!m) return;
-  _minStack.splice(i, 1);
-  _renderMinTray();
-  if (m.snap) _restaurarMin(m);
-  else abrirPanel(m.camaId, m.esIng);
-}
-
 function cerrarPanel(force) {
-  // H1: cerrar con cambios sin guardar requiere confirmación (la × accidental
-  // en plena UCI no puede costar 10 minutos de registro). Minimizar no pasa
-  // por aquí, así que los borradores intencionales no molestan.
+  // H1 + PRD guardado obligatorio (O2): cerrar con cambios sin guardar abre el
+  // MODAL PROPIO de tres acciones (jamás confirm() nativo). NINGUNA de las tres
+  // pierde lo escrito, así que tampoco hay segunda confirmación: ya no existe
+  // «Cerrar y descartar».
+  //   ✔ Guardar y cerrar (acción por defecto) · Seguir editando ·
+  //   Cerrar y conservar borrador (localStorage, CAMA_<id>_<turnoKey>)
   if(_formDirty && force!==true){
     uiConfirm({
-      icono:'⚠️', titulo:'Cambios sin guardar',
+      icono:'💾', titulo:'Cambios sin guardar',
       mensaje:'Hay cambios <b>sin guardar</b> en esta evolución.',
-      detalle:'Si solo quieres pausar al paciente, usa − Minimizar: el borrador se conserva.',
-      confirmar:'Cerrar y descartar', tono:'rojo',
-    }).then(ok=>{ if(ok){ _formDirty=false; cerrarPanel(true); } });
+      detalle:'Guardar ahora <b>no cierra nada</b>: una evolución guardada a medias se puede reabrir y seguir en el mismo turno. Si cierras conservando el borrador, lo escrito te espera al reabrir esta cama en este turno.',
+      confirmar:'Guardar y cerrar', cancelar:'Seguir editando',
+      alterno:'Cerrar y conservar borrador',
+    }).then(r=>{
+      if(r===true){ _cerrarTrasGuardar=true; guardar(); return; }
+      if(r==='alt'){ _borradorGuardar(); _formDirty=false; cerrarPanel(true); return; }
+      // «Seguir editando»: el panel queda exactamente como estaba.
+      const _pc=document.querySelector('#sp .pcontent'); if(_pc) _pc.focus&&_pc.focus();
+    });
     return;
   }
   _formDirty=false;
@@ -5649,15 +5553,14 @@ function cerrarPanel(force) {
   if(btn){ btn.disabled=false; btn.textContent='💾 Guardar Evolución'; }
   hide('btnCerrarPost');
   hide('rarea');
+  _estadoGuardado(null); _reintentoGuardado=null; _cerrarTrasGuardar=false;
   actualizarTituloPanel('');
-  const camaId = $('cBed')?.value || '';
-  const idx = _minStack.findIndex(m => m.camaId === camaId);
-  if (idx !== -1) { _minStack.splice(idx, 1); _renderMinTray(); }
 }
-// H2: cerrar la pestaña con trabajo sin guardar (panel abierto con cambios o
-// borradores minimizados) dispara el diálogo nativo del navegador.
+// H2: cerrar la pestaña con el panel abierto y cambios sin guardar dispara el
+// diálogo nativo del navegador. Desde que el minimizar no existe (PRD guardado
+// obligatorio, O1), ésa es la ÚNICA condición: no hay pila de borradores en RAM.
 window.addEventListener('beforeunload', e=>{
-  if((_formDirty && document.querySelector('#sp.on')) || _minStack.length){
+  if(_formDirty && document.querySelector('#sp.on')){
     e.preventDefault(); e.returnValue='';
   }
 });
@@ -5685,6 +5588,352 @@ function _tickSinGuardar(){
   }
 }
 setInterval(_tickSinGuardar, 2000);
+
+/* ══ PRD «que no quede ninguna evolución sin guardar» · TANDA 1 ══════════════
+   Tres piezas que comparten la MISMA franja del botón 💾 (la barra donde ya
+   vive «⚠️ Sin guardar», que NO se toca — NO1 del PRD):
+     · O3  confirmación PERSISTENTE con hora  → «✓ Guardado hh:mm»
+     · O3b fallo de guardado VISIBLE          → «❌ NO se guardó · Reintentar»
+     · O7  borrador local por cama y turno    → «Borrador sin guardar recuperado hh:mm»
+   #gSinGuardar sigue siendo suyo y con su texto de siempre: esto es un span
+   HERMANO (#gEstadoGuardado), así el aviso de cambios sin guardar y el estado
+   del último guardado pueden convivir sin pisarse. */
+
+// Guardado que quedó pendiente de reintentar a mano (lo arma guardar()).
+let _reintentoGuardado = null;
+// «Guardar y cerrar» del modal de cierre: el panel se cierra SOLO si el
+// guardado termina bien.
+let _cerrarTrasGuardar = false;
+
+function _hhmm(d){ d=d||new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+const _EST_TONOS = {
+  ok:       { fondo:'#dcfce7', borde:'#86efac', color:'#166534' },
+  error:    { fondo:'#fee2e2', borde:'#fca5a5', color:'#991b1b' },
+  borrador: { fondo:'#fef3c7', borde:'#fcd34d', color:'#92400e' },
+};
+
+function _estadoGuardado(modo, html){
+  const e = $('gEstadoGuardado');
+  if(!e) return;
+  if(!modo){ e.classList.add('hidden'); e.dataset.estado=''; e.innerHTML=''; return; }
+  const t = _EST_TONOS[modo] || _EST_TONOS.ok;
+  e.style.background=t.fondo; e.style.border='1px solid '+t.borde; e.style.color=t.color;
+  e.dataset.estado=modo; e.innerHTML=html; e.classList.remove('hidden');
+}
+
+// O3 · queda a la vista mientras el panel esté abierto, sin tapar ningún campo.
+function _marcaGuardadoOK(d){ _reintentoGuardado=null; _estadoGuardado('ok','✓ Guardado '+_hhmm(d)); }
+
+// O3b · estado de ERROR persistente: se queda hasta que un guardado termine bien.
+function _marcaGuardadoError(){
+  _estadoGuardado('error','❌ NO se guardó <button type="button" data-nodirty onclick="reintentarGuardado()" style="font:inherit;border:1px solid #991b1b;background:#fff;color:#991b1b;border-radius:14px;padding:1px 9px;cursor:pointer;">Reintentar</button>');
+}
+
+// Remanda EXACTAMENTE los mismos datos del intento que falló (re-guardar el
+// mismo turno actualiza, no duplica). No se suma al reintento automático de
+// 3 s: éste solo existe cuando aquél ya se agotó.
+function reintentarGuardado(){
+  if(typeof _reintentoGuardado!=='function') return;
+  const f=_reintentoGuardado; _reintentoGuardado=null;
+  _estadoGuardado('error','⏳ Reintentando…');
+  f();
+}
+
+/* ── O7 · BORRADOR LOCAL por cama y turno ─────────────────────────────────
+   Llave `CAMA_<idCama>_<turnoKey>`, la misma forma que idEvolucion, en
+   localStorage (tiene que sobrevivir a que se apague el equipo).
+   🔴 NUNCA guarda nombre, RUT, edad ni diagnóstico libre: el PC de la unidad
+   es compartido (Ley 19.628). Cama, turno y valores clínicos alcanzan.
+   Un borrador NO es una evolución: no escribe en EVOLUCIONES ni saca la cama
+   de ninguna lista de pendientes. */
+const _BORR_SIN_IDENTIDAD = ['fNombre','fRut','fEdad','fDx'];
+const _BORR_RE = /^CAMA_[^_]+_\d{4}-\d{2}-\d{2}-[A-Za-z]+$/;   // SHIFT es 'Dia'/'Noche', no una inicial
+
+function _turnoKeyVigente(){ return (v('gDate')||hoy())+'-'+SHIFT; }
+function _borradorLlave(idCama, tkey){ return 'CAMA_'+idCama+'_'+(tkey||_turnoKeyVigente()); }
+
+function _borradorEstado(){
+  const campos={};
+  document.querySelectorAll('#sp input,#sp select,#sp textarea').forEach(e=>{
+    if(!e.id || _BORR_SIN_IDENTIDAD.indexOf(e.id)!==-1) return;
+    campos[e.id] = (e.type==='checkbox'||e.type==='radio') ? !!e.checked : e.value;
+  });
+  return {
+    v:1, hora:_hhmm(), ts:Date.now(), firma:(campos.fFirma||''),
+    campos,
+    procs:[...(PROCS||[])],
+    fases:[...FASES_SEL], pend:[...PEND_SEL], aisl:[..._aislTags],
+    ti:JSON.parse(JSON.stringify(_tiState)),
+    cultF:{..._cultFechas}, cultT:[..._cultTurno],
+    secrQty:_secrQty, pronoTs:_pronoTs, supinoTs:_supinoTs,
+    textoManual:!!_textoManual, rtxtGen:_rtxtGen||'',
+  };
+}
+
+function _borradorGuardar(){
+  try{
+    const id=$('cBed')?.value||''; if(!id) return false;
+    localStorage.setItem(_borradorLlave(id), JSON.stringify(_borradorEstado()));
+    return true;
+  }catch(e){ console.warn('borrador no guardado', e && e.name); return false; }
+}
+
+function _borradorDescartar(idCama){
+  try{ localStorage.removeItem(_borradorLlave(idCama||$('cBed')?.value||'')); }catch(e){}
+}
+
+function _borradorHay(idCama){
+  try{ return !!localStorage.getItem(_borradorLlave(idCama)); }catch(e){ return false; }
+}
+
+// Los borradores de un turno que ya no es el vigente se limpian y NO se
+// ofrecen nunca (§5: «cuándo muere»).
+function _borradoresPurgar(){
+  try{
+    const vig=_turnoKeyVigente(), fuera=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && _BORR_RE.test(k) && k.slice(k.indexOf('_', 5)+1)!==vig) fuera.push(k);
+    }
+    fuera.forEach(k=>localStorage.removeItem(k));
+    return fuera.length;
+  }catch(e){ return 0; }
+}
+
+function _borradorRestaurar(idCama){
+  let d=null;
+  try{ const raw=localStorage.getItem(_borradorLlave(idCama)); if(!raw) return false; d=JSON.parse(raw); }
+  catch(e){ return false; }
+  if(!d || !d.campos) return false;
+  Object.keys(d.campos).forEach(id=>{
+    if(_BORR_SIN_IDENTIDAD.indexOf(id)!==-1) return;
+    const e=document.getElementById(id); if(!e) return;
+    if(e.type==='checkbox'||e.type==='radio') e.checked=!!d.campos[id]; else e.value=d.campos[id];
+  });
+  PROCS=[...(d.procs||[])]; renderChips();
+  FASES_SEL=new Set(d.fases||[]); renderFases();
+  PEND_SEL=new Set(d.pend||[]); renderPend();
+  _aislTags=[...(d.aisl||[])]; renderAislTags();
+  if(d.ti){ Object.keys(_tiState).forEach(k=>delete _tiState[k]); Object.assign(_tiState,d.ti);
+    tiRender('fSecrTags','fSecrVal','sky'); tiRender('fCultTags','fCultVal','violet'); }
+  if(d.cultF) _cultFechas={...d.cultF};
+  if(d.cultT) _cultTurno=new Set(d.cultT);
+  if(d.secrQty!==undefined) _secrQty=d.secrQty;
+  if(d.pronoTs!==undefined) _pronoTs=d.pronoTs;
+  if(d.supinoTs!==undefined) _supinoTs=d.supinoTs;
+  _rtxtGen=d.rtxtGen||_rtxtGen;
+  if(typeof _setTextoManual==='function') _setTextoManual(!!d.textoManual);
+  _formDirty=true;                         // sigue siendo trabajo sin guardar
+  _tickSinGuardar();
+  const firma=(d.firma||'').trim();
+  _estadoGuardado('borrador','📝 Borrador sin guardar recuperado '+(d.hora||'')+(firma?' · '+firma:''));
+  toast('📝 Se recuperó el borrador de esta cama en este turno — recuerda guardar.', 5200);
+  return true;
+}
+
+/* ── O4 · AVISO DE FIN DE TURNO (PRD guardado obligatorio) ─────────────────
+   AVISO_FIN_TURNO_MIN minutos antes de la HORA REAL DE SALIDA del equipo, un
+   modal propio y BLOQUEANTE nombra las camas del turno que siguen sin
+   evolución. No se cierra con Escape ni con un clic fuera: sale con «Ya lo vi»
+   o abriendo una cama de la lista. Nunca exige resolver: se puede cerrar con
+   camas pendientes (un diálogo del que no se puede escapar, en una UCI, tapa
+   la pantalla justo cuando alguien necesita mirar un dato).
+
+   🔴 La hora del aviso sale de CFG.SALIDA_TURNO_DIA / CFG.SALIDA_TURNO_NOCHE.
+   JAMÁS de _horasTurno() ni de TURNO_DIA_INICIO/TURNO_NOCHE_INICIO: ésas son el
+   cambio de turno de la APP (09:00 / 21:00) y el equipo se va a las 20:00 y a
+   las 08:00. Calcularlo con ellas sacaría el aviso a las 20:45 y a las 08:45,
+   con la unidad ya vacía. _turnoLogico() se usa solo para saber QUÉ turno está
+   activo, que es otra pregunta.
+
+   🔒 Ley 19.628: el modal muestra «Cama N» y el código interno del episodio.
+   Nunca nombre ni RUT, tampoco en consola ni en la traza. */
+const AFT_SALIDA_DIA_DEF='20:00', AFT_SALIDA_NOCHE_DEF='08:00', AFT_MIN_DEF=30;
+
+/* Los defaults se repiten aquí a propósito: producción no tiene las cuatro
+   filas nuevas de CONFIG hasta que alguien corra crearORepararEstructura(), y
+   hasta entonces el aviso tiene que funcionar igual. Se usan SOLO como
+   respaldo de la clave de CONFIG, nunca en lugar de ella. */
+function _aftCfg(){
+  const c=window.CFG||{};
+  let min=parseInt(c.AVISO_FIN_TURNO_MIN,10);
+  if(isNaN(min)) min=AFT_MIN_DEF;                     // 0 = apagado, y 0 NO es «vacío»
+  return {
+    min: min,
+    repetir: c.AVISO_FIN_TURNO_REPETIR===true||String(c.AVISO_FIN_TURNO_REPETIR).toUpperCase()==='TRUE',
+    salida: { Dia:String(c.SALIDA_TURNO_DIA||AFT_SALIDA_DIA_DEF),
+              Noche:String(c.SALIDA_TURNO_NOCHE||AFT_SALIDA_NOCHE_DEF) },
+  };
+}
+
+/** Minutos que faltan para la hora de salida de ese turno. Negativo = ya pasó. */
+function _aftMinutosParaSalida(now, turno, cfg){
+  const m=/^\s*(\d{1,2}):(\d{2})\s*$/.exec(String((cfg.salida||{})[turno]||''));
+  if(!m) return null;
+  const hh=+m[1], mm=+m[2];
+  if(hh>23||mm>59) return null;
+  let d=(hh*60+mm)-(now.getHours()*60+now.getMinutes());
+  // La salida de la noche (08:00) se mira desde las 23:00 del día anterior: sin
+  // esto el turno noche daría «faltan −900 minutos» y no avisaría nunca.
+  if(d<-120) d+=1440;
+  return d;
+}
+
+function _aftAvisado(slot){ try{ return sessionStorage.getItem('avisoFinTurno:'+slot)==='1'; }catch(e){ return false; } }
+function _aftMarcar(slot){ try{ sessionStorage.setItem('avisoFinTurno:'+slot,'1'); }catch(e){} }
+
+const _aftEsc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/** El panel abierto con cambios sin guardar, si lo hay. */
+function _aftPanelSucio(){
+  if(!(typeof _formDirty!=='undefined'&&_formDirty)) return null;
+  if(!document.querySelector('#sp.on')) return null;
+  const id=$('cBed')?.value||'';
+  return id?{cama:String(id)}:null;
+}
+
+/** Camas ocupadas del censo sin evolución de ese turnoKey. Sin nombres. */
+function _aftPendientesDe(camas, evos, tk){
+  const con=new Set((evos||[]).filter(e=>String(e.TURNO_KEY)===String(tk)).map(e=>String(e.ID_CAMA)));
+  return (camas||[])
+    .filter(c=>(c.OCUPADA===true||c.OCUPADA==='TRUE')&&!con.has(String(c.ID_CAMA)))
+    .map(c=>({cama:String(c.ID_CAMA), cod:String(c.COD_PACIENTE||''), alta:false, borr:_borradorHay(String(c.ID_CAMA))}))
+    .sort((a,b)=>(parseInt(a.cama)||0)-(parseInt(b.cama)||0));
+}
+
+/* Camas cuyo paciente EGRESÓ en la fecha del turno: si estuvo en la cama
+   durante el turno, la atención debería estar registrada (decisión 6 de §9).
+   Van marcadas, y el pie del modal dice que el sistema no guarda la hora de
+   egreso — el clínico decide al ojo si corresponde evolucionar.
+   Best-effort: si la llamada falla, el aviso sale igual con el resto. */
+/* La línea que ve el kinesiólogo cuando las altas del día no se pudieron
+   verificar. Vive en una constante porque la escribe el modal y la exige la
+   guardia: un solo texto, un solo sitio. Sin datos de paciente. */
+const _AFT_PIE_ALTAS_FALLO='⚠️ No se pudieron verificar las altas del día: puede faltar alguna cama que egresó sin evolucionar. ';
+
+/**
+ * Camas que egresaron en el día y no alcanzaron a evolucionarse.
+ *
+ * 🔴 EL FALLO SE DICE, NO SE TRAGA (13-sep-2026, verificador de la tanda 3).
+ * Antes esto terminaba en `.catch(()=>cb([]))`: si `GET_ARCHIVADOS` no
+ * respondía, el modal salía «limpio», sin altas y sin una palabra. Un aviso que
+ * dice «no queda nadie» cuando en realidad no pudo mirar es peor que no avisar:
+ * el que lo lee a las 19:30 se va tranquilo. Ahora el segundo parámetro del
+ * callback dice que la verificación falló, y el modal lo muestra.
+ */
+function _aftAltas(fecha, tk, evos, cb){
+  api('GET_ARCHIVADOS',{desde:fecha, hasta:fecha, limite:40}).then(rows=>{
+    const con=new Set((evos||[]).filter(e=>String(e.TURNO_KEY)===String(tk)).map(e=>String(e.ID_CAMA)));
+    cb((rows||[]).filter(r=>String(r.fEgreso||'').slice(0,10)===fecha&&!con.has(String(r.cama)))
+      // 🔒 de la ficha archivada solo viajan cama y código: `nombre` se descarta aquí
+      .map(r=>({cama:String(r.cama||''), cod:String(r.cod||''), alta:true, borr:false}))
+      .filter(r=>r.cama), false);
+  }).catch(()=>cb([], true));
+}
+
+/** Una llamada fresca al servidor (GET_BOOT: camas + evoluciones del día). */
+function _aftLista(fecha, tk, cb){
+  api('GET_BOOT',{fecha:fecha, key:tk}).then(b=>{
+    const base=_aftPendientesDe((b&&b.camas)||[], (b&&b.evos)||[], tk);
+    _aftAltas(fecha, tk, (b&&b.evos)||[], (altas, falloAltas)=>{
+      const vistas=new Set(base.map(x=>x.cama));
+      cb(base.concat(altas.filter(a=>!vistas.has(a.cama))), false, falloAltas);
+    });
+  }).catch(()=>cb(null, true, false));      // sin servidor: se queda lo pintado del cache
+}
+
+function _aftFila(f){
+  const tags=[];
+  if(f.alta) tags.push('<span class="aft-tag">· de alta en el día</span>');
+  if(f.borr) tags.push('<span class="aft-tag">· borrador sin guardar</span>');
+  return '<div class="aft-row"><b>Cama '+_aftEsc(f.cama)+'</b>'
+    +(f.cod?'<span class="aft-cod">'+_aftEsc(f.cod)+'</span>':'')
+    +tags.join('')
+    +'<button type="button" class="aft-abrir" onclick="_aftAbrir(\''+_aftEsc(f.cama)+'\')">Abrir</button></div>';
+}
+
+function _aftPintar(lista, sucio, pie){
+  const cont=$('aftLista'); if(!cont) return;
+  let h='';
+  if(sucio) h+='<div class="aft-row aft-row-sucio"><b>Cama '+_aftEsc(sucio.cama)+' · abierta en esta pantalla</b>'
+    +'<span class="aft-tag">· cambios sin guardar</span>'
+    +'<button type="button" class="aft-abrir" onclick="_aftCerrar()">Volver al formulario</button></div>';
+  h+=(lista||[]).map(_aftFila).join('');
+  cont.innerHTML=h||'<div class="aft-row"><b>Sin camas pendientes</b></div>';
+  const n=(lista||[]).length;
+  $('aftMsg').innerHTML=n
+    ? 'Queda <b>'+n+'</b> '+(n===1?'cama sin evolución':'camas sin evolución')+' en este turno.'
+    : 'No quedan camas sin evolución en este turno.';
+  const p=$('aftPie'); if(p){ p.innerHTML=pie||''; p.style.display=pie?'':'none'; }
+}
+
+function _aftMostrar(lista, sucio, pie){
+  _aftPintar(lista, sucio, pie);
+  $('aftOvl')?.classList.add('on');
+  setTimeout(()=>$('aftOk')?.focus(),60);
+}
+
+function _aftCerrar(){ $('aftOvl')?.classList.remove('on'); }
+
+function _aftAbrir(id){
+  _aftCerrar();
+  if(typeof _formDirty!=='undefined'&&_formDirty&&document.querySelector('#sp.on')){
+    toast('💾 Termina primero la evolución que tienes abierta (guardar o cerrar).', 5200);
+    return;
+  }
+  if(typeof abrirPanel==='function') abrirPanel(id);
+}
+
+/* Corre cada minuto. `ahora` es inyectable a propósito: las guardias fijan el
+   reloj en vez de esperar a que sean las 19:30. */
+function _aftTick(ahora){
+  try{
+    if($('aftOvl')?.classList.contains('on')) return;
+    const cfg=_aftCfg();
+    if(!(cfg.min>0)) return;                          // 0 o vacío = apagado
+    const now=ahora||new Date();
+    const t=_turnoLogico(now);                        // qué turno está activo
+    const tk=t.fecha+'-'+t.turno;
+    const d=_aftMinutosParaSalida(now, t.turno, cfg);
+    if(d===null||d<0||d>cfg.min) return;
+    // Una vez por turno y por dispositivo. Con AVISO_FIN_TURNO_REPETIR, una
+    // segunda vez al llegar la hora de salida si siguen quedando camas.
+    const slot=(cfg.repetir&&d<=0)?(tk+':fin'):tk;
+    if(_aftAvisado(slot)) return;
+    _aftMarcar(slot);
+    // Se pinta primero con lo que el front ya tiene y se corrige con la lista
+    // fresca: el cache sirve para no esperar, nunca para decidir.
+    const cache=_aftPendientesDe(DB||[], EVOS_DIA||[], tk);
+    const sucio=_aftPanelSucio();
+    if(cache.length||sucio) _aftMostrar(cache, sucio, 'Actualizando la lista con el servidor…');
+    _aftLista(t.fecha, tk, (lista, fallo, falloAltas)=>{
+      if(fallo){
+        if(!(cache.length||sucio)) return;
+        _aftPintar(cache, sucio, '⚠️ No se pudo refrescar: lista según el último refresco.');
+        return;
+      }
+      const sucio2=_aftPanelSucio();
+      // 🔴 Con las altas sin verificar el modal se abre AUNQUE la lista esté
+      // vacía: «no queda nadie» sería mentira, porque justo lo que no se pudo
+      // mirar son las camas que egresaron hoy sin evolucionar.
+      if(!lista.length&&!sucio2&&!falloAltas){ _aftCerrar(); return; }
+      const pie=(falloAltas?_AFT_PIE_ALTAS_FALLO:'')
+        + (lista.some(x=>x.alta)
+        ? 'Las camas «de alta en el día» egresaron en esta fecha; el registro no guarda la hora del egreso, así que revisa si corresponde evolucionar el turno.'
+        : '');
+      if($('aftOvl')?.classList.contains('on')) _aftPintar(lista, sucio2, pie);
+      else _aftMostrar(lista, sucio2, pie);
+    });
+  }catch(e){ console.warn('aviso fin de turno', e&&e.name); }
+}
+
+let _aftTimer=null;
+function _aftIniciar(){
+  if(_aftTimer) return;
+  _aftTimer=setInterval(()=>_aftTick(), 60000);
+  _aftTick();
+}
 
 function cerrarTodo(e) {
   if(e.target===$('ovl')) {
@@ -5716,6 +5965,8 @@ function cerrarTodo(e) {
 document.addEventListener('keydown', e=>{
   if(e.key!=='Escape') return;
   if($('ucOvl')?.classList.contains('on')) return;              // lo maneja uiConfirm
+  // El aviso de fin de turno es bloqueante a propósito: Escape no lo cierra.
+  if($('aftOvl')?.classList.contains('on')) return;
   if($('transAviso')?.classList.contains('on')){ transAvisoCerrar(); return; }
   // el historial a pantalla completa cierra SOLO con la X (pedido de Diego)
   if($('tlp')?.classList.contains('on')) return;
@@ -6491,20 +6742,179 @@ function _avisosTransicion(){
   const procsAll=[...(PROCS||[]),..._autoProcs()].map(p=>String(p).toUpperCase());
   const hayDesvinc=procsAll.some(p=>p.indexOf('DESVINCULACI')!==-1);
   if(_iniVA==='TOT'&&va==='TQT'&&!$('cTqtO')?.checked)
-    out.push(`Venía con <b>TOT</b> y quedó con <b>TQT</b>, pero no hay traqueostomía registrada (bloque 🔪 Traqueostomía).`);
+    out.push({ev:'tqt', t:`Venía con <b>TOT</b> y quedó con <b>TQT</b>, pero no hay traqueostomía registrada (bloque 🔪 Traqueostomía).`});
   if(_iniVA==='TOT'&&!inv(va)&&!_extOcurrio())
-    out.push(`Venía con <b>TOT</b> y quedó con <b>${va||'—'}</b>, pero no hay extubación registrada (bloque PVE / Extubación).`);
+    out.push({ev:'ext', t:`Venía con <b>TOT</b> y quedó con <b>${va||'—'}</b>, pero no hay extubación registrada (bloque PVE / Extubación).`});
   if(_iniVA==='TQT'&&!inv(va)&&!$('cDecanOcurrio')?.checked)
-    out.push(`Venía con <b>TQT</b> y quedó con <b>${va||'—'}</b>, pero no hay decanulación registrada.`);
+    out.push({ev:'decan', t:`Venía con <b>TQT</b> y quedó con <b>${va||'—'}</b>, pero no hay decanulación registrada.`});
   if(!inv(_iniVA)&&inv(va)&&!intubEvt)
-    out.push(`Venía con vía aérea <b>${_iniVA}</b> y quedó con <b>${va}</b>, pero no hay intubación ni reintubación registrada.`);
+    out.push({ev:'intub', t:`Venía con vía aérea <b>${_iniVA}</b> y quedó con <b>${va}</b>, pero no hay intubación ni reintubación registrada.`});
   if(_iniSop==='VM'&&sop!=='VM'&&_iniVA==='TQT'&&va==='TQT'&&!hayDesvinc&&!$('cDecanOcurrio')?.checked)
-    out.push(`Venía en <b>VM</b> y quedó en <b>${sop||'—'}</b>, sin desvinculación registrada (agrégala en Procedimientos).`);
+    out.push({ev:'desvinc', t:`Venía en <b>VM</b> y quedó en <b>${sop||'—'}</b>, sin desvinculación registrada (agrégala en Procedimientos).`});
   return out;
+}
+
+/**
+ * TODA la lista de avisos previos al guardado, en UN solo sitio.
+ *
+ * La usan el guardado (para decidir si abre el modal) y el repintado que hace
+ * `transOfRegistrar` al anotar un evento. Si viviera en dos lados, anotar la
+ * traqueostomía haría desaparecer de la lista el aviso de valores heredados,
+ * que no tiene nada que ver — la trampa de «la misma regla en más de un sitio»
+ * que este proyecto ya pagó con el cambio de filtros.
+ */
+function _avisosPreGuardado(){
+  const avs=_avisosTransicion();
+  const nHer=_herPendientes();
+  if(nHer) avs.push({ev:'', t:`Quedan <b>${nHer} valores heredados del turno anterior sin revisar</b> (en ámbar). Corrígelos si cambiaron, tócalos para confirmarlos, o usa «✓ Sin cambios» en cada módulo.`});
+  return avs;
+}
+
+// ── PRD «guardado obligatorio» O5 · Anotar el evento que se olvidó ──────────
+//
+// 🔴 POR QUÉ ESTO NO ESCRIBE EN TIMELINE DIRECTO.
+// `svc_timeline.gs` tiene `_TIPOS_HITO_AUTO = ['via_aerea','procedimiento',
+// 'kine','general']` y `_timelineDelGuardado()` BORRA y regenera todos los
+// hitos de esos tipos de la cama+fecha+turno en CADA guardado. Un hito escrito
+// a mano con `agregarHito({tipo:'via_aerea'})` lo borraría el guardado que
+// viene justo detrás. Y los indicadores que importan —REINTUBACIONES, fracaso
+// de extubación, días de VM— no se calculan desde TIMELINE sino desde las
+// columnas de EVOLUCIONES (EXT_*, INTUB_*, TQT_*, DECAN_*).
+// Por eso la oferta rellena los MISMOS campos del formulario que llenaría el
+// clínico: el hito llega a TIMELINE por el camino canónico (_autoProcs →
+// PROCEDIMIENTOS → PROC_TO_HITO) con la hora real, y ninguna fórmula cambia.
+// Cero rutas de escritura nuevas.
+//
+// 🔴 POR QUÉ TRES DE LOS CINCO SOLO LLEVAN AL BLOQUE. Ver la tabla de razones
+// en cada entrada: en los tres casos marcar la casilla por cuenta propia
+// ESCONDERÍA un dato verdadero (una reintubación contada como intubación, una
+// extubación con tipo inventado, un aviso de decanulación apagado sin dejar
+// hito). Van documentados como pendientes en BITACORA.md, no improvisados.
+const _TRANS_EVENTOS={
+  tqt:{
+    label:'traqueostomía', modo:'anotar', chk:'cTqtO', hora:'fTqtHora',
+    // Al marcar `cTqtO`, VENT_SOPORTE_FINAL pasa a `v('poTqtSop')||'VM'`. Si el
+    // paciente quedó traqueostomizado PERO no en VM, sin este espejo se
+    // guardaría 'VM' — una falsedad, y justo en el dato de días de VM. No es
+    // inferencia: se copia el estado final que el kine YA registró arriba.
+    espejo(){
+      const s=$('poTqtSop'); if(s&&!s.value) s.value=v('fSop')||'VM';
+      const m=$('poTqtModo'); if(m&&!m.value&&v('fModo')) m.value=v('fModo');
+    },
+  },
+  desvinc:{ label:'desvinculación de VM', modo:'anotar', chk:'cDesvinc', hora:'fDesvincHora' },
+  ext:{ label:'extubación', modo:'ir', ancla:'fPVEval',
+    razon:'La extubación exige elegir la rama de PVE y el tipo (c/protocolo, s/protocolo, accidental, autoextubación). Eso lo decide el clínico, no el sistema.' },
+  intub:{ label:'intubación', modo:'ir', ancla:'cIntubO',
+    razon:'Intubación y reintubación se anotan en bloques distintos y este aviso no las distingue: marcarla sola escondería una reintubación real.' },
+  decan:{ label:'decanulación', modo:'ir', ancla:'cDecanOcurrio',
+    razon:'La decanulación solo entra como procedimiento si la vía aérea del turno sigue en TQT; aquí ya quedó sin TQT, así que la casilla sola apagaría el aviso sin dejar el hito.' },
+};
+
+/**
+ * ¿Sirve esta hora para el evento que se está anotando?
+ *
+ * Dos condiciones, y ninguna se afloja:
+ *  · cae DENTRO del turno que se está guardando (regla 2 del PRD §5). Un evento
+ *    de otro turno se anota en su turno, no aquí.
+ *  · no es futura. `ahora` se puede inyectar: las guardias FIJAN el reloj.
+ */
+function _transHoraValida(hhmm, ahora){
+  const s=String(hhmm||'').trim();
+  if(!/^\d{1,2}:\d{2}$/.test(s)) return {ok:false, motivo:'Escribe la hora real del evento (hh:mm).'};
+  const [hh,mm]=s.split(':').map(Number);
+  if(hh>23||mm>59) return {ok:false, motivo:'Esa hora no existe.'};
+  const H=_horasTurno();
+  const enVentanaDia = hh>=H.dia && hh<H.noche;
+  const esDia = SHIFT!=='Noche';
+  if(esDia!==enVentanaDia)
+    return {ok:false, motivo:`Esa hora no cae dentro del turno que estás guardando (${esDia?'Día':'Noche'}: de ${pad(esDia?H.dia:H.noche)}:00 a ${pad(esDia?H.noche:H.dia)}:00). Un evento de otro turno se anota en el turno que le corresponde.`};
+  const f=v('gDate')||hoy();
+  const [Y,M,D]=String(f).split('-').map(Number);
+  const d=new Date(Y,(M||1)-1,D||1,hh,mm,0,0);
+  if(!esDia && hh<H.dia) d.setDate(d.getDate()+1);   // la madrugada del turno noche es el día siguiente
+  const now=(ahora instanceof Date)?ahora:new Date();
+  if(d.getTime()>now.getTime())
+    return {ok:false, motivo:'Esa hora todavía no ocurre. El evento se anota con la hora REAL en que pasó, nunca con una futura.'};
+  return {ok:true, cuando:d};
+}
+
+/** Abre la fila de «hora real» de una oferta. */
+function transOfAbrir(ev){
+  const fila=$('trOfForm_'+ev); if(!fila) return;
+  fila.style.display='';
+  const b=$('trOfBtn_'+ev); if(b) b.style.display='none';
+  $('trOfHora_'+ev)?.focus();
+}
+
+/** Cierra el modal y lleva al bloque donde el evento se anota a mano. */
+function transOfIr(ev){
+  const cf=_TRANS_EVENTOS[ev]; if(!cf) return;
+  transAvisoCerrar();
+  const el=$(cf.ancla); if(!el) return;
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  el.style.outline='2px solid var(--danger)';
+  setTimeout(()=>{ el.style.outline=''; },2800);
+  try{ el.focus({preventScroll:true}); }catch(e){}
+}
+
+/**
+ * Anota el evento olvidado con la hora que escribió la persona.
+ * Devuelve true si quedó anotado. No guarda: solo deja el formulario como si
+ * el kine hubiera marcado la casilla y puesto la hora él mismo.
+ */
+function transOfRegistrar(ev, ahora){
+  const cf=_TRANS_EVENTOS[ev]; if(!cf||cf.modo!=='anotar') return false;
+  const inp=$('trOfHora_'+ev), err=$('trOfErr_'+ev);
+  const r=_transHoraValida(inp?inp.value:'', ahora);
+  if(!r.ok){ if(err){ err.textContent='⚠️ '+r.motivo; err.style.display=''; } return false; }
+  if(err){ err.textContent=''; err.style.display='none'; }
+  const c=$(cf.chk);
+  if(c && !c.checked){ c.checked=true; c.dispatchEvent(new Event('change',{bubbles:true})); }
+  const h=$(cf.hora);
+  if(h){ h.value=inp.value; h.dispatchEvent(new Event('change',{bubbles:true})); }
+  if(typeof cf.espejo==='function') cf.espejo();
+  _formDirty=true;
+  if(typeof _rtxtLive==='function') _rtxtLive();
+  toast('📝 '+cf.label.charAt(0).toUpperCase()+cf.label.slice(1)+' anotada a las '+inp.value+' — revisa el bloque antes de guardar');
+  _mostrarTransAviso(_avisosPreGuardado());   // el aviso resuelto desaparece solo
+  return true;
 }
 function _mostrarTransAviso(avisos){
   const l=$('transAvisoLista');
-  if(l) l.innerHTML=avisos.map(a=>`<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:8px 10px;">${a}</div>`).join('');
+  if(l){
+    if(!avisos.length){
+      l.innerHTML='<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:8px 10px;color:#166534;">✅ No queda ninguna discordancia por revisar.</div>';
+    } else {
+      l.innerHTML=avisos.map(a=>{
+        // Compatibilidad: un aviso puede venir como texto pelado (sin evento).
+        const it=(typeof a==='string')?{ev:'',t:a}:a;
+        const cf=_TRANS_EVENTOS[it.ev];
+        let acc='';
+        if(cf && cf.modo==='anotar'){
+          acc=`<div style="margin-top:7px;">`
+            + `<button type="button" id="trOfBtn_${it.ev}" class="btn btn-p" style="height:26px;padding:0 10px;font-size:.75rem;width:auto;" onclick="transOfAbrir('${it.ev}')">📝 Anotar ahora la ${_escSt(cf.label)}</button>`
+            + `<div id="trOfForm_${it.ev}" style="display:none;">`
+            +   `<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;">`
+            +     `<label style="font-size:.74rem;color:#7c2d12;font-weight:700;">Hora real</label>`
+            +     `<input type="time" id="trOfHora_${it.ev}" style="height:28px;font-size:.78rem;border:1px solid #fdba74;border-radius:5px;padding:0 6px;">`
+            +     `<button type="button" class="btn btn-p" style="height:28px;padding:0 12px;font-size:.75rem;width:auto;" onclick="transOfRegistrar('${it.ev}')">Registrar</button>`
+            +   `</div>`
+            +   `<div style="font-size:.7rem;color:#94a3b8;margin-top:4px;">La hora tiene que caer dentro de este turno y no puede ser futura.</div>`
+            +   `<div id="trOfErr_${it.ev}" style="display:none;font-size:.73rem;color:var(--danger);font-weight:700;margin-top:4px;"></div>`
+            + `</div></div>`;
+        } else if(cf && cf.modo==='ir'){
+          acc=`<div style="margin-top:7px;">`
+            + `<button type="button" class="btn btn-p" style="height:26px;padding:0 10px;font-size:.75rem;width:auto;" onclick="transOfIr('${it.ev}')">Ir al bloque de ${_escSt(cf.label)} →</button>`
+            + `<div style="font-size:.7rem;color:#94a3b8;margin-top:4px;">${_escSt(cf.razon||'')}</div>`
+            + `</div>`;
+        }
+        return `<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:8px 10px;">${it.t}${acc}</div>`;
+      }).join('');
+    }
+  }
+  const g=$('transAvisoGuardarBtn');
+  if(g) g.textContent = avisos.length ? 'Guardar igual' : '✅ Guardar';
   $('transAviso')?.classList.add('on');
 }
 function transAvisoCerrar(){ $('transAviso')?.classList.remove('on'); }
@@ -6528,7 +6938,7 @@ function _validarRangosCliente(){
 // Las mediciones puntuales que la réplica precarga quedan en ámbar (.heredado)
 // hasta que el kine las toque —aunque confirme el mismo valor— o confirme el
 // módulo completo con «✓ Sin cambios». El DOM es la fuente de verdad: la marca
-// sobrevive al minimizar (viaja en el HTML) y desaparece sola si renderParams()
+// viaja en el HTML y desaparece sola si renderParams()
 // reconstruye el campo (cambio de modo = el kine ya está editando ese módulo).
 // Los campos de ESTADO (vía aérea, soporte, modo, fase, dx) no se marcan:
 // son hechos que persisten entre turnos, no mediciones.
@@ -6679,7 +7089,7 @@ function _marcarHeredados(){
     const b=document.createElement('button');
     b.type='button'; b.className='her-chip'; b.textContent='✓ Sin cambios';
     b.title='Valores en ámbar heredados del turno anterior: corrígelos si cambiaron o confirma aquí que siguen vigentes';
-    b.setAttribute('onclick','confirmarHeredadosCard(this)'); // atributo inline: sobrevive al minimizar/restaurar
+    b.setAttribute('onclick','confirmarHeredadosCard(this)'); // atributo inline: sobrevive a los repintados por innerHTML
     hdr.appendChild(b);
   });
 }
@@ -6845,9 +7255,7 @@ function guardar() {
   // ★ Etapa 1(b) + 2: avisos NO bloqueantes antes de guardar — cambio de
   //   estado sin evento y mediciones heredadas sin confirmar ★
   if(!_transAvisoOk){
-    const _avs=_avisosTransicion();
-    const _nHer=_herPendientes();
-    if(_nHer) _avs.push(`Quedan <b>${_nHer} valores heredados del turno anterior sin revisar</b> (en ámbar). Corrígelos si cambiaron, tócalos para confirmarlos, o usa «✓ Sin cambios» en cada módulo.`);
+    const _avs=_avisosPreGuardado();
     if(_avs.length){ _mostrarTransAviso(_avs); return; }
   }
   const datos={
@@ -7209,28 +7617,50 @@ function guardar() {
     // texto queda disponible arriba de la barra por si hay que copiarlo, y
     // ✖ Cerrar aparece en la misma barra pegada abajo, a mano.
     _formDirty=false;   // guardado: ya no hay cambios que perder
+    // O3 · confirmación PERSISTENTE con hora en la franja del botón 💾 (el
+    // toast de arriba sigue saliendo igual: se SUMA, no reemplaza).
+    _marcaGuardadoOK();
+    // O7 · ya está en el servidor: el borrador local de esta cama y turno muere.
+    _borradorDescartar($('cBed')?.value||'');
     // Mostrar botón cerrar y actualizar grid en background (sin overlay)
     show('btnCerrarPost');
     recargarSilencioso();
+    // «Guardar y cerrar» del modal de cierre: solo cierra si terminó bien.
+    if(_cerrarTrasGuardar){ _cerrarTrasGuardar=false; cerrarPanel(true); }
   };
   const _falloFinal=m=>{
     btn.disabled=false; btn.textContent='💾 Guardar Evolución';
     toast('❌ No se pudo guardar: '+(m||'sin conexión')+' — tu evolución sigue en pantalla, revisa la red y aprieta 💾 de nuevo');
+    // O3b · el toast se apaga a los 3,2 s; esto NO. La franja del botón 💾
+    // queda en error hasta que un guardado termine bien, con su Reintentar
+    // que remanda los MISMOS datos. _formDirty sigue en true y el formulario
+    // no se toca. Y se deja borrador local por si el equipo se apaga ahora.
+    _cerrarTrasGuardar=false;
+    _reintentoGuardado=_enviar;
+    _marcaGuardadoError();
+    _borradorGuardar();
   };
   // Reintento automático (v5.25): si la red parpadea justo al guardar, se
   // reintenta UNA vez a los 3 s antes de molestar. Es inocuo aunque el primer
   // intento sí hubiera llegado: re-guardar el mismo turno actualiza, no duplica.
-  api('GUARDAR_EVOLUCION', datos).then(_exito).catch(e1=>{
-    const m1=(e1&&e1.message)||String(e1);
-    if(/Sesión no válida|Inicia sesión/i.test(m1)){ loading(false); mostrarLogin(); _falloFinal(m1); return; }
-    btn.textContent='⏳ Reintentando…';
-    toast('⚠️ Sin respuesta del servidor — reintentando en 3 s…');
-    setTimeout(()=>{
-      api('GUARDAR_EVOLUCION', datos)
-        .then(r=>{ toast('✅ Guardado al segundo intento'); _exito(r); })
-        .catch(e2=>_falloFinal((e2&&e2.message)||String(e2)));
-    }, 3000);
-  });
+  // _enviar = un viaje completo (intento + su reintento automático). Es lo que
+  // vuelve a correr el botón «Reintentar» de la franja: los MISMOS datos, sin
+  // sumarse al reintento de 3 s (éste solo existe cuando aquél ya se agotó).
+  const _enviar=()=>{
+    btn.disabled=true; btn.textContent='⏳ Guardando...';
+    api('GUARDAR_EVOLUCION', datos).then(_exito).catch(e1=>{
+      const m1=(e1&&e1.message)||String(e1);
+      if(/Sesión no válida|Inicia sesión/i.test(m1)){ loading(false); mostrarLogin(); _falloFinal(m1); return; }
+      btn.textContent='⏳ Reintentando…';
+      toast('⚠️ Sin respuesta del servidor — reintentando en 3 s…');
+      setTimeout(()=>{
+        api('GUARDAR_EVOLUCION', datos)
+          .then(r=>{ toast('✅ Guardado al segundo intento'); _exito(r); })
+          .catch(e2=>_falloFinal((e2&&e2.message)||String(e2)));
+      }, 3000);
+    });
+  };
+  _enviar();
 }
 
 //  EGRESO
@@ -7355,6 +7785,9 @@ function uiConfirm(o){
   $('ucMsg').innerHTML=o.mensaje||'';
   const det=$('ucDet'); det.innerHTML=o.detalle||''; det.style.display=o.detalle?'':'none';
   $('ucOk').textContent=o.confirmar||'Confirmar';
+  // Rótulo del botón que resuelve `false`. Por defecto «Cancelar»; el modal de
+  // cierre del panel lo usa para decir «Seguir editando» (PRD guardado obligatorio).
+  const _can=$('ucCancel'); if(_can) _can.textContent=o.cancelar||'Cancelar';
   // Tercera salida opcional: resuelve la promesa con 'alt' (distinto de
   // true/false, así quien no la use no cambia en nada).
   const _alt=$('ucAlt');
@@ -8003,7 +8436,7 @@ const TUT_RECORRIDOS={
   {sel:'#dIntubSec', selAlt:'#dVentBloque', t:'🫁 Cambios de vía aérea', d:'Intubación, traqueostomía, extubación y decanulación se anotan A MANO, cada una en su bloque. Regla de oro: lo de arriba queda como estaba (el estado previo es parte del registro) y en el evento anotas cómo QUEDÓ el paciente.'},
   {sel:'#dKTMr', selAlt:'#sp', t:'💪 Rehabilitación', d:'Kinesiterapia motora, entrenamiento muscular, sedestación… Si no se pudo hacer, se registra el motivo: eso alimenta las estadísticas de la unidad.'},
   {sel:'#rtxt', t:'📄 El texto se escribe solo', d:'Con lo que marcaste, la app redacta la evolución en lenguaje clínico. Puedes leerla, y si quieres ajustar algo, editarla a mano antes de guardar.'},
-  {sel:'#btnGuardar', t:'💾 Guardar', d:'Al guardar, la evolución queda en el historial del paciente, alimenta la entrega de turno y suma a las estadísticas. Si te interrumpen, «− Minimizar» conserva el borrador sin perder nada.', fin:true},
+  {sel:'#btnGuardar', t:'💾 Guardar', d:'Al guardar, la evolución queda en el historial del paciente, alimenta la entrega de turno y suma a las estadísticas. Si te interrumpen, cierra con «Cerrar y conservar borrador»: lo escrito te espera al reabrir esa cama en este turno.', fin:true},
  ]},
  equipos:{
   titulo:'Mover ventiladores y equipos',
@@ -9202,7 +9635,7 @@ function renderChips() {
   $('chips').innerHTML=PROCS.map((p,i)=>`
     <span class="chip">${p}<button type="button" onclick="quitarProc(${i})">×</button></span>`).join('');
 }
-// Listeners del panel: atados aparte porque restaurar un minimizado repone
+// Listeners del panel: atados aparte porque repintar el panel por innerHTML repone
 // #sp vía innerHTML (los elementos se recrean y pierden sus listeners).
 function _bindPanelListeners(){
   $('inProc')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addProc();} });
@@ -12455,7 +12888,7 @@ function setIMS(n){
   const p=$('imsPanel'); if(p) p.classList.add('hidden');
 }
 // Cerrar el panel IMS al hacer clic fuera (listener a nivel documento:
-// sobrevive a la restauración de minimizados vía innerHTML)
+// sobrevive a los repintados del panel vía innerHTML)
 document.addEventListener('click',e=>{
   const p=$('imsPanel');
   if(p&&!p.classList.contains('hidden')&&!e.target.closest('#imsPanel')&&!e.target.closest('#imsBtn')) p.classList.add('hidden');
@@ -17688,6 +18121,7 @@ function _bootPintarCache(fecha, turno){
 window.onload = function() {
   initControls();
   initClock();
+  _aftIniciar();            // aviso de fin de turno (O4): un tick por minuto
   // El candado sigue 🔓 tras un F5 si la sesión del servidor vive (bolsillo
   // de la pestaña). Corre en paralelo al GET_BOOT: no depende de las camas.
   _coordReanudar();
@@ -17734,6 +18168,9 @@ function _bootLegacy(){
 }
 function bootApp(){
   hSesRender();
+  // O7 · los borradores locales de turnos que ya pasaron se limpian al
+  // arrancar y NO se ofrecen nunca (PRD guardado obligatorio, §5).
+  _borradoresPurgar();
   api('GET_CATALOGO',{tipo:'FASE_CLINICA'}).then(f=>{ FASES=f||[]; renderFases(); })
     .catch(()=>{ FASES=[]; toast('⚠️ No se pudo cargar el catálogo de fases — reintenta con 🔄 Actualizar'); });
   api('GET_CONFIG_UI',{}).then(c=>{ window.CFG=c||{}; aplicarBanners(); }).catch(()=>{ window.CFG={}; });

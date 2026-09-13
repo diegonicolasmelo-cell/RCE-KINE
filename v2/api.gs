@@ -211,6 +211,14 @@ function _configUI() {
     NUM_CAMAS: parseInt(leerConfig('NUM_CAMAS', '18')) || 18,
     TURNO_DIA_INICIO: parseInt(leerConfig('TURNO_DIA_INICIO', '9')) || 9,
     TURNO_NOCHE_INICIO: parseInt(leerConfig('TURNO_NOCHE_INICIO', '21')) || 21,
+    /* Aviso de fin de turno (O4). La HORA DE SALIDA del equipo no es el cambio
+       de turno de la app: viaja aparte y el front nunca la deriva de las dos
+       de arriba. AVISO_FIN_TURNO_MIN admite 0 = apagado, así que NO se puede
+       usar `|| 30` (convertiría el apagado en 30 minutos). */
+    SALIDA_TURNO_DIA: leerConfig('SALIDA_TURNO_DIA', '20:00'),
+    SALIDA_TURNO_NOCHE: leerConfig('SALIDA_TURNO_NOCHE', '08:00'),
+    AVISO_FIN_TURNO_MIN: (function (n) { return isNaN(n) ? 30 : n; })(parseInt(leerConfig('AVISO_FIN_TURNO_MIN', '30'), 10)),
+    AVISO_FIN_TURNO_REPETIR: leerConfig('AVISO_FIN_TURNO_REPETIR', 'FALSE') === 'TRUE',
     EDITOR_TEXTO_DEMO: leerConfig('EDITOR_TEXTO_DEMO', 'FALSE') === 'TRUE',
     // 📋 Plantillas de evolución para el EQUIPO (7-sep-2026, Diego: «desactiva
     // la plantilla y vuelve al sistema anterior tal cual»). Apagado = el texto
