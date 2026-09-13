@@ -3760,3 +3760,113 @@ falta). Sello a **5.87-guardado-obligatorio** en los cuatro sitios de siempre
   `AVISO_FIN_TURNO_MIN`, `AVISO_FIN_TURNO_REPETIR`) y la recuperación vía
   `_avisoGapTurnos()`; y ofrecer registrar el evento de vía aérea olvidado sobre
   `_avisosTransicion()`. Nada de las tandas 1-2 los condiciona.
+
+---
+
+## v5.87-guardado-obligatorio · tanda 3 del PRD · aviso de fin de turno (13-sep-2026)
+
+Tercera de las cuatro tandas de `PRD_GUARDADO_OBLIGATORIO.md` (O4 y O6), misma
+rama `feature/guardado-obligatorio`, **el sello NO sube**: sigue en
+`5.87-guardado-obligatorio`, porque las tres tandas van a publicarse juntas.
+
+**Sí hay cambio de esquema**, y es lo primero que hay que decir: entran cuatro
+filas nuevas a la hoja **CONFIG**. En producción no existen hasta que alguien
+corra **`crearORepararEstructura()`**; mientras tanto el front usa exactamente
+los mismos valores como respaldo, así que el aviso funciona igual desde el
+minuto uno. Las filas a agregar (clave · valor):
+
+| Clave | Valor |
+|---|---|
+| `SALIDA_TURNO_DIA` | `20:00` |
+| `SALIDA_TURNO_NOCHE` | `08:00` |
+| `AVISO_FIN_TURNO_MIN` | `30` |
+| `AVISO_FIN_TURNO_REPETIR` | `FALSE` |
+
+`AVISO_FIN_TURNO_MIN = 0` **apaga el aviso** sin tocar código ni publicar una
+versión: es el interruptor de emergencia que pidió el PRD.
+
+### 🪤 La hora de salida del equipo NO es el cambio de turno de la app
+
+Es la trampa central de esta tanda y por eso queda escrita aquí además de en el
+PRD. `TURNO_DIA_INICIO` (9) y `TURNO_NOCHE_INICIO` (21) **indexan el registro**:
+`turnoKey`, `idEvolucion`, censo, auditoría, `_horasTurno()`. El equipo, en
+cambio, se va a las **20:00** y a las **08:00**. Calcular el aviso desde
+`_horasTurno()` lo habría sacado a las **20:45 y 08:45**, con la unidad ya
+vacía. Por eso el bloque `_aft*` **no menciona** `_horasTurno()` ni
+`TURNO_*_INICIO` en ninguna línea, y la guardia lo mide como propiedad: mover
+`TURNO_*_INICIO` no puede correr el aviso ni un minuto, mover `SALIDA_*` sí.
+`_turnoLogico()` se usa solo para saber **qué** turno está activo, que es otra
+pregunta. Consecuencia que hay que tener clara: entre las 20:00 y las 20:59 lo
+que se guarde **sigue contando para el turno día**; el aviso solo mira el reloj.
+
+### Qué se agregó
+
+- `v2/esquema.gs` — las cuatro filas semilla, junto a las ventanas de turno y
+  con el comentario que las separa de ellas.
+- `v2/api.gs` `_configUI()` — las expone al cliente. `AVISO_FIN_TURNO_MIN` se
+  lee con un `isNaN`, **no** con `|| 30`: ese `||` habría convertido el
+  apagado (`0`) en treinta minutos, que es lo contrario de lo pedido.
+- `v2/index.html` — modal propio `#aftOvl` (velo, centrado, `role=alertdialog`),
+  CSS `.aft-*` con la lista en scroll propio para que **nunca** recorte camas, y
+  el bloque `_aftCfg / _aftMinutosParaSalida / _aftPendientesDe / _aftAltas /
+  _aftLista / _aftPintar / _aftMostrar / _aftCerrar / _aftAbrir / _aftTick /
+  _aftIniciar`. Un tick por minuto desde `window.onload`.
+- **Bloqueante de verdad**: el handler global de Escape tiene una salida
+  temprana para `#aftOvl` y el velo no lleva `click`. Sale con «Ya lo vi» o
+  abriendo una cama — y cierra **aunque queden camas pendientes**: un diálogo
+  del que no se puede escapar, en una UCI, tapa la pantalla justo cuando alguien
+  necesita mirar un dato.
+- **Candado** `avisoFinTurno:<turnoKey>` en `sessionStorage` (no `localStorage`):
+  un reinicio a mitad de turno **debe** poder volver a avisar, porque
+  probablemente se llevó un borrador.
+- **Datos frescos**: pinta al instante con `DB`/`EVOS_DIA` y corrige con **una**
+  llamada `GET_BOOT` del momento. Si el servidor no responde, el aviso sale
+  igual y **lo dice** («lista según el último refresco»). Nada se cachea.
+
+### Dos desvíos respecto del PRD, y por qué
+
+1. **«(de alta hh:mm)» quedó en «de alta en el día».** `ARCHIVO_PACIENTES`
+   guarda `FECHA_EGRESO` pero **no la hora** del egreso: no existe el dato, y
+   escribir una hora inventada en un papel que se lleva a la ronda es
+   exactamente lo que este proyecto no hace. El pie del modal dice que el
+   registro no guarda la hora y que el clínico revise si corresponde evolucionar
+   —que es lo que el PRD pide de todos modos, «que decida al ojo»—. Guardar la
+   hora de egreso es un cambio de columna (y de `testEsquema()`): queda
+   propuesto, no hecho.
+2. **Las altas piden una segunda llamada.** El PRD decidió «una llamada fresca».
+   Una cama dada de alta ya no está en el censo, así que sus datos no vienen en
+   `GET_BOOT`: se agrega un `GET_ARCHIVADOS` **best-effort** del día —si falla,
+   el aviso sale igual con el resto—. De esa ficha solo viajan **cama y código**:
+   el `nombre` que trae la respuesta se descarta en el cliente.
+
+`_avisoGapTurnos()` **no se tocó**: ya está llamada al abrir una cama
+(`index.html` 5137 y 5145) y es la recuperación del PRD para el caso «nadie
+tenía la app abierta a esa hora».
+
+### 🔒 Privacidad (Ley 19.628)
+
+El modal muestra `Cama N` y el **código interno del episodio** (`P-00x`). Nunca
+nombre, RUT ni diagnóstico — tampoco en consola, y la marca del candado lleva
+solo el `turnoKey`. La guardia lo prueba con pacientes **sintéticos** de nombre
+y RUT conocidos, sembrados en las **dos** fuentes de la lista (censo y fichas
+archivadas).
+
+### Guardias
+
+Tres nuevas, **vistas fallar primero** contra el código sin el cambio (0 verdes
+· 3 rojas con `v2/` en stash) y verdes después:
+
+- `aviso_fin_turno.js` — el reloj va **fijo** (14-sep-2026 a la hora que toque,
+  `_aftTick(ahora)` acepta la fecha inyectada). Mide la propiedad, no la lista:
+  sale a 19:30 y 07:30, **no** a 20:45 ni 08:45, se mueve con `SALIDA_*` y con
+  `AVISO_FIN_TURNO_MIN`, se apaga con `0`, no se mueve con `TURNO_*_INICIO`, y
+  las tres horas no están escritas a mano en la lógica (solo como respaldo con
+  nombre `AFT_*_DEF`).
+- `aviso_fin_turno_modal.js` — modal sobre velo, una fila y un «Abrir» por cama,
+  lista con scroll propio, **no** se cierra con Escape ni con clic fuera, no se
+  desvanece a los 4 s, y «Ya lo vi» cierra con seis camas pendientes.
+- `aviso_fin_turno_privacidad.js` — ni nombre, ni RUT (con y sin puntos), ni
+  diagnóstico, ni en el modal ni en la consola ni en la traza.
+
+**Batería completa: 118 verdes, 0 rojas.** Pendiente: la tanda 4 (ofrecer
+registrar el evento olvidado, la que toca TIMELINE y días de VM).

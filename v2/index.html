@@ -1412,6 +1412,20 @@ table.hj{border-collapse:separate;border-spacing:0;font-size:.7rem;width:100%;}
 .uc-ok:hover,.uc-ok:focus{background:var(--primary);box-shadow:0 4px 14px rgba(29,111,196,.35);}
 .uc-card.uc-rojo .uc-ok{background:var(--danger);}
 .uc-card.uc-rojo .uc-ok:hover,.uc-card.uc-rojo .uc-ok:focus{background:#b91c1c;box-shadow:0 4px 14px rgba(220,38,38,.35);}
+/* Aviso de fin de turno (O4): la lista NUNCA recorta camas — scroll propio. */
+.aft-card{width:min(540px,94vw);text-align:left;}
+.aft-card .uc-ico{margin-left:auto;margin-right:auto;}
+.aft-card .uc-tit,.aft-card .uc-msg{text-align:center;}
+.aft-lista{margin-top:12px;max-height:46vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.aft-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid #e2e8f0;border-radius:9px;
+  padding:7px 10px;background:#f8fafc;}
+.aft-row b{font-size:.88rem;color:#0f172a;}
+.aft-row-sucio{background:#fffbeb;border-color:#fde68a;}
+.aft-tag{font-size:.72rem;color:#b45309;font-weight:700;}
+.aft-cod{font-size:.7rem;color:#64748b;font-family:monospace;}
+.aft-abrir{margin-left:auto;border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:8px;
+  height:30px;padding:0 13px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.aft-abrir:hover,.aft-abrir:focus{background:#f1f5f9;}
 
 /* ── v2: barra dev, fase clínica, chip COD ── */
 .devbar{background:#fef3c7;color:#92400e;font-size:.75rem;text-align:center;padding:4px;border-bottom:1px solid #fde68a;}
@@ -2471,6 +2485,24 @@ document.documentElement.setAttribute('data-piel', 'inst');
            guardaba. Se muestra solo si uiConfirm recibe `alterno`. -->
       <button type="button" class="uc-alt" id="ucAlt" style="display:none;" onclick="_ucFin('alt')"></button>
       <button type="button" class="uc-ok" id="ucOk" onclick="_ucFin(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- AVISO DE FIN DE TURNO (PRD guardado obligatorio, O4/O6) ─────────────────
+     Modal PROPIO y bloqueante: no se cierra con Escape ni con un clic fuera.
+     Única salida: «Ya lo vi» o abrir una cama de la lista. No exige resolver.
+     🔒 Ley 19.628: aquí solo entran «Cama N» y el código interno del episodio.
+     Jamás nombre ni RUT. -->
+<div id="aftOvl" class="uc-ovl">
+  <div class="uc-card aft-card" id="aftCard" role="alertdialog" aria-modal="true" aria-labelledby="aftTit">
+    <div class="uc-ico">⏰</div>
+    <div class="uc-tit" id="aftTit">Está terminando el turno</div>
+    <div class="uc-msg" id="aftMsg"></div>
+    <div class="aft-lista" id="aftLista"></div>
+    <div class="uc-det" id="aftPie" style="display:none;"></div>
+    <div class="uc-btns">
+      <button type="button" class="uc-ok" id="aftOk" onclick="_aftCerrar()">Ya lo vi</button>
     </div>
   </div>
 </div>
@@ -5394,6 +5426,190 @@ function _borradorRestaurar(idCama){
   return true;
 }
 
+/* ── O4 · AVISO DE FIN DE TURNO (PRD guardado obligatorio) ─────────────────
+   AVISO_FIN_TURNO_MIN minutos antes de la HORA REAL DE SALIDA del equipo, un
+   modal propio y BLOQUEANTE nombra las camas del turno que siguen sin
+   evolución. No se cierra con Escape ni con un clic fuera: sale con «Ya lo vi»
+   o abriendo una cama de la lista. Nunca exige resolver: se puede cerrar con
+   camas pendientes (un diálogo del que no se puede escapar, en una UCI, tapa
+   la pantalla justo cuando alguien necesita mirar un dato).
+
+   🔴 La hora del aviso sale de CFG.SALIDA_TURNO_DIA / CFG.SALIDA_TURNO_NOCHE.
+   JAMÁS de _horasTurno() ni de TURNO_DIA_INICIO/TURNO_NOCHE_INICIO: ésas son el
+   cambio de turno de la APP (09:00 / 21:00) y el equipo se va a las 20:00 y a
+   las 08:00. Calcularlo con ellas sacaría el aviso a las 20:45 y a las 08:45,
+   con la unidad ya vacía. _turnoLogico() se usa solo para saber QUÉ turno está
+   activo, que es otra pregunta.
+
+   🔒 Ley 19.628: el modal muestra «Cama N» y el código interno del episodio.
+   Nunca nombre ni RUT, tampoco en consola ni en la traza. */
+const AFT_SALIDA_DIA_DEF='20:00', AFT_SALIDA_NOCHE_DEF='08:00', AFT_MIN_DEF=30;
+
+/* Los defaults se repiten aquí a propósito: producción no tiene las cuatro
+   filas nuevas de CONFIG hasta que alguien corra crearORepararEstructura(), y
+   hasta entonces el aviso tiene que funcionar igual. Se usan SOLO como
+   respaldo de la clave de CONFIG, nunca en lugar de ella. */
+function _aftCfg(){
+  const c=window.CFG||{};
+  let min=parseInt(c.AVISO_FIN_TURNO_MIN,10);
+  if(isNaN(min)) min=AFT_MIN_DEF;                     // 0 = apagado, y 0 NO es «vacío»
+  return {
+    min: min,
+    repetir: c.AVISO_FIN_TURNO_REPETIR===true||String(c.AVISO_FIN_TURNO_REPETIR).toUpperCase()==='TRUE',
+    salida: { Dia:String(c.SALIDA_TURNO_DIA||AFT_SALIDA_DIA_DEF),
+              Noche:String(c.SALIDA_TURNO_NOCHE||AFT_SALIDA_NOCHE_DEF) },
+  };
+}
+
+/** Minutos que faltan para la hora de salida de ese turno. Negativo = ya pasó. */
+function _aftMinutosParaSalida(now, turno, cfg){
+  const m=/^\s*(\d{1,2}):(\d{2})\s*$/.exec(String((cfg.salida||{})[turno]||''));
+  if(!m) return null;
+  const hh=+m[1], mm=+m[2];
+  if(hh>23||mm>59) return null;
+  let d=(hh*60+mm)-(now.getHours()*60+now.getMinutes());
+  // La salida de la noche (08:00) se mira desde las 23:00 del día anterior: sin
+  // esto el turno noche daría «faltan −900 minutos» y no avisaría nunca.
+  if(d<-120) d+=1440;
+  return d;
+}
+
+function _aftAvisado(slot){ try{ return sessionStorage.getItem('avisoFinTurno:'+slot)==='1'; }catch(e){ return false; } }
+function _aftMarcar(slot){ try{ sessionStorage.setItem('avisoFinTurno:'+slot,'1'); }catch(e){} }
+
+const _aftEsc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/** El panel abierto con cambios sin guardar, si lo hay. */
+function _aftPanelSucio(){
+  if(!(typeof _formDirty!=='undefined'&&_formDirty)) return null;
+  if(!document.querySelector('#sp.on')) return null;
+  const id=$('cBed')?.value||'';
+  return id?{cama:String(id)}:null;
+}
+
+/** Camas ocupadas del censo sin evolución de ese turnoKey. Sin nombres. */
+function _aftPendientesDe(camas, evos, tk){
+  const con=new Set((evos||[]).filter(e=>String(e.TURNO_KEY)===String(tk)).map(e=>String(e.ID_CAMA)));
+  return (camas||[])
+    .filter(c=>(c.OCUPADA===true||c.OCUPADA==='TRUE')&&!con.has(String(c.ID_CAMA)))
+    .map(c=>({cama:String(c.ID_CAMA), cod:String(c.COD_PACIENTE||''), alta:false, borr:_borradorHay(String(c.ID_CAMA))}))
+    .sort((a,b)=>(parseInt(a.cama)||0)-(parseInt(b.cama)||0));
+}
+
+/* Camas cuyo paciente EGRESÓ en la fecha del turno: si estuvo en la cama
+   durante el turno, la atención debería estar registrada (decisión 6 de §9).
+   Van marcadas, y el pie del modal dice que el sistema no guarda la hora de
+   egreso — el clínico decide al ojo si corresponde evolucionar.
+   Best-effort: si la llamada falla, el aviso sale igual con el resto. */
+function _aftAltas(fecha, tk, evos, cb){
+  api('GET_ARCHIVADOS',{desde:fecha, hasta:fecha, limite:40}).then(rows=>{
+    const con=new Set((evos||[]).filter(e=>String(e.TURNO_KEY)===String(tk)).map(e=>String(e.ID_CAMA)));
+    cb((rows||[]).filter(r=>String(r.fEgreso||'').slice(0,10)===fecha&&!con.has(String(r.cama)))
+      // 🔒 de la ficha archivada solo viajan cama y código: `nombre` se descarta aquí
+      .map(r=>({cama:String(r.cama||''), cod:String(r.cod||''), alta:true, borr:false}))
+      .filter(r=>r.cama));
+  }).catch(()=>cb([]));
+}
+
+/** Una llamada fresca al servidor (GET_BOOT: camas + evoluciones del día). */
+function _aftLista(fecha, tk, cb){
+  api('GET_BOOT',{fecha:fecha, key:tk}).then(b=>{
+    const base=_aftPendientesDe((b&&b.camas)||[], (b&&b.evos)||[], tk);
+    _aftAltas(fecha, tk, (b&&b.evos)||[], altas=>{
+      const vistas=new Set(base.map(x=>x.cama));
+      cb(base.concat(altas.filter(a=>!vistas.has(a.cama))), false);
+    });
+  }).catch(()=>cb(null, true));      // sin servidor: se queda lo pintado del cache
+}
+
+function _aftFila(f){
+  const tags=[];
+  if(f.alta) tags.push('<span class="aft-tag">· de alta en el día</span>');
+  if(f.borr) tags.push('<span class="aft-tag">· borrador sin guardar</span>');
+  return '<div class="aft-row"><b>Cama '+_aftEsc(f.cama)+'</b>'
+    +(f.cod?'<span class="aft-cod">'+_aftEsc(f.cod)+'</span>':'')
+    +tags.join('')
+    +'<button type="button" class="aft-abrir" onclick="_aftAbrir(\''+_aftEsc(f.cama)+'\')">Abrir</button></div>';
+}
+
+function _aftPintar(lista, sucio, pie){
+  const cont=$('aftLista'); if(!cont) return;
+  let h='';
+  if(sucio) h+='<div class="aft-row aft-row-sucio"><b>Cama '+_aftEsc(sucio.cama)+' · abierta en esta pantalla</b>'
+    +'<span class="aft-tag">· cambios sin guardar</span>'
+    +'<button type="button" class="aft-abrir" onclick="_aftCerrar()">Volver al formulario</button></div>';
+  h+=(lista||[]).map(_aftFila).join('');
+  cont.innerHTML=h||'<div class="aft-row"><b>Sin camas pendientes</b></div>';
+  const n=(lista||[]).length;
+  $('aftMsg').innerHTML=n
+    ? 'Queda <b>'+n+'</b> '+(n===1?'cama sin evolución':'camas sin evolución')+' en este turno.'
+    : 'No quedan camas sin evolución en este turno.';
+  const p=$('aftPie'); if(p){ p.innerHTML=pie||''; p.style.display=pie?'':'none'; }
+}
+
+function _aftMostrar(lista, sucio, pie){
+  _aftPintar(lista, sucio, pie);
+  $('aftOvl')?.classList.add('on');
+  setTimeout(()=>$('aftOk')?.focus(),60);
+}
+
+function _aftCerrar(){ $('aftOvl')?.classList.remove('on'); }
+
+function _aftAbrir(id){
+  _aftCerrar();
+  if(typeof _formDirty!=='undefined'&&_formDirty&&document.querySelector('#sp.on')){
+    toast('💾 Termina primero la evolución que tienes abierta (guardar o cerrar).', 5200);
+    return;
+  }
+  if(typeof abrirPanel==='function') abrirPanel(id);
+}
+
+/* Corre cada minuto. `ahora` es inyectable a propósito: las guardias fijan el
+   reloj en vez de esperar a que sean las 19:30. */
+function _aftTick(ahora){
+  try{
+    if($('aftOvl')?.classList.contains('on')) return;
+    const cfg=_aftCfg();
+    if(!(cfg.min>0)) return;                          // 0 o vacío = apagado
+    const now=ahora||new Date();
+    const t=_turnoLogico(now);                        // qué turno está activo
+    const tk=t.fecha+'-'+t.turno;
+    const d=_aftMinutosParaSalida(now, t.turno, cfg);
+    if(d===null||d<0||d>cfg.min) return;
+    // Una vez por turno y por dispositivo. Con AVISO_FIN_TURNO_REPETIR, una
+    // segunda vez al llegar la hora de salida si siguen quedando camas.
+    const slot=(cfg.repetir&&d<=0)?(tk+':fin'):tk;
+    if(_aftAvisado(slot)) return;
+    _aftMarcar(slot);
+    // Se pinta primero con lo que el front ya tiene y se corrige con la lista
+    // fresca: el cache sirve para no esperar, nunca para decidir.
+    const cache=_aftPendientesDe(DB||[], EVOS_DIA||[], tk);
+    const sucio=_aftPanelSucio();
+    if(cache.length||sucio) _aftMostrar(cache, sucio, 'Actualizando la lista con el servidor…');
+    _aftLista(t.fecha, tk, (lista, fallo)=>{
+      if(fallo){
+        if(!(cache.length||sucio)) return;
+        _aftPintar(cache, sucio, '⚠️ No se pudo refrescar: lista según el último refresco.');
+        return;
+      }
+      const sucio2=_aftPanelSucio();
+      if(!lista.length&&!sucio2){ _aftCerrar(); return; }   // nada que decir
+      const pie=lista.some(x=>x.alta)
+        ? 'Las camas «de alta en el día» egresaron en esta fecha; el registro no guarda la hora del egreso, así que revisa si corresponde evolucionar el turno.'
+        : '';
+      if($('aftOvl')?.classList.contains('on')) _aftPintar(lista, sucio2, pie);
+      else _aftMostrar(lista, sucio2, pie);
+    });
+  }catch(e){ console.warn('aviso fin de turno', e&&e.name); }
+}
+
+let _aftTimer=null;
+function _aftIniciar(){
+  if(_aftTimer) return;
+  _aftTimer=setInterval(()=>_aftTick(), 60000);
+  _aftTick();
+}
+
 function cerrarTodo(e) {
   if(e.target===$('ovl')) {
     // H11: el egreso con datos digitados no se descarta por un clic afuera
@@ -5423,6 +5639,8 @@ function cerrarTodo(e) {
 document.addEventListener('keydown', e=>{
   if(e.key!=='Escape') return;
   if($('ucOvl')?.classList.contains('on')) return;              // lo maneja uiConfirm
+  // El aviso de fin de turno es bloqueante a propósito: Escape no lo cierra.
+  if($('aftOvl')?.classList.contains('on')) return;
   if($('transAviso')?.classList.contains('on')){ transAvisoCerrar(); return; }
   // el historial a pantalla completa cierra SOLO con la X (pedido de Diego)
   if($('tlp')?.classList.contains('on')) return;
@@ -15977,6 +16195,7 @@ function _bootPintarCache(fecha, turno){
 window.onload = function() {
   initControls();
   initClock();
+  _aftIniciar();            // aviso de fin de turno (O4): un tick por minuto
   // El candado sigue 🔓 tras un F5 si la sesión del servidor vive (bolsillo
   // de la pestaña). Corre en paralelo al GET_BOOT: no depende de las camas.
   _coordReanudar();
