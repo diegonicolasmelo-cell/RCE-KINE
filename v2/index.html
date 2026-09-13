@@ -909,8 +909,6 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .phdr-btns{display:flex;align-items:center;gap:2px;flex-shrink:0;}
 .xbtn{background:transparent;border:none;color:#94a3b8;font-size:1.45rem;cursor:pointer;line-height:1;padding:0 4px;}
 .xbtn:hover{color:#fff;}
-.mbtn{background:transparent;border:none;color:#94a3b8;font-size:1.45rem;cursor:pointer;line-height:1;padding:0 4px;}
-.mbtn:hover{color:#fff;}
 .aisl-tag{display:inline-flex;align-items:center;gap:4px;background:#fecdd3;color:#9f1239;border:1px solid #fda4af;border-radius:20px;padding:2px 8px;font-size:.73rem;font-weight:700;white-space:nowrap;}
 .aisl-tag button{background:none;border:none;color:#9f1239;cursor:pointer;font-size:.8rem;line-height:1;padding:0 1px;opacity:.7;}
 .aisl-tag button:hover{opacity:1;}
@@ -934,10 +932,6 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .cult-badge .cb-x{background:none;border:none;cursor:pointer;color:#9333ea;font-size:.75rem;padding:0;line-height:1;opacity:.7;}
 .cult-badge .cb-x:hover{opacity:1;}
 .cult-badge.hist{background:#faf5ff;border-color:#e9d5ff;color:#7c3aed;}
-#minTray{position:fixed;bottom:20px;left:20px;z-index:200;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none;}
-.min-pill{background:#0e3a5f;color:#fff;padding:9px 16px;border-radius:50px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1px solid #1e5a8f;transition:background .2s;display:flex;align-items:center;gap:8px;pointer-events:all;}
-.min-pill:hover{background:#1e5a8f;}
-.min-pill::before{content:'📋';font-size:.9rem;}
 .pcontent{flex-grow:1;overflow-y:auto;padding:14px 16px 0;background:var(--bg);}
 /* En pantallas grandes el contenido del panel se compacta al centro,
    dejando aire a los costados (el scroll sigue al borde de la ventana). */
@@ -2454,8 +2448,6 @@ document.documentElement.setAttribute('data-piel', 'inst');
 <div class="ovl" id="ovl" onclick="cerrarTodo(event)"></div>
 <!-- Plantilla de impresión del seguimiento (diseño conservado; solo visible al imprimir) -->
 <div id="tlPrint"></div>
-<!-- PASTILLA MINIMIZADO -->
-<div id="minTray"></div>
 <!-- HOJA RHB imprimible (formato oficial) — solo visible al imprimir -->
 <div id="rhbPrint"></div>
 <div id="apkPrint"></div>
@@ -2493,7 +2485,6 @@ document.documentElement.setAttribute('data-piel', 'inst');
     </div>
     <span id="spRepInfo" style="flex:1;text-align:right;font-size:.7rem;color:#94a3b8;padding:0 10px;display:none;"></span>
     <div class="phdr-btns">
-      <button class="mbtn" onclick="minimizarPanel()" title="Minimizar">−</button>
       <button class="xbtn" onclick="cerrarPanel()">×</button>
     </div>
   </div>
@@ -5039,16 +5030,6 @@ document.addEventListener('wheel', ()=>{
  *                  corregir un nombre o un RUT despues del ingreso.
  */
 function abrirPanel(id, esIng, verFicha) {
-  // Si esta cama quedó minimizada con un borrador, se restaura tal cual
-  // (aunque se entre por el botón de la cama y no por la bandeja): lo
-  // escrito manda por sobre el reset + recarga.
-  const _dIdx=_minStack.findIndex(m=>String(m.camaId)===String(id));
-  if(_dIdx!==-1 && _minStack[_dIdx].snap){
-    const _m=_minStack.splice(_dIdx,1)[0];
-    _renderMinTray();
-    _restaurarMin(_m);
-    return;
-  }
   const fecha=v('gDate')||hoy();
   const tkey=`${fecha}-${SHIFT}`;
   $('cBed').value=id; $('cIng').value=String(esIng); window._camaEvo=id;
@@ -5204,126 +5185,6 @@ function actualizarTituloPanel(nombre) {
   const tipo = el.dataset.tipo || 'Evolución';
   el.textContent = nombre && nombre.trim() ? `${nombre.trim()} — ${tipo}` : tipo;
 }
-// ── Minimizar múltiples pacientes ──────────────────────────────────────────
-// Al minimizar se toma un SNAPSHOT COMPLETO del panel (HTML + valores de los
-// campos + estado JS interno) y al restaurar se aplica tal cual: nada de lo
-// escrito se pierde, sin re-cargar desde el servidor ni resetear el form.
-const _minStack = [];
-
-function _renderMinTray() {
-  const tray = $('minTray');
-  if (!tray) return;
-  tray.innerHTML = _minStack.map((m, i) =>
-    `<div class="min-pill" onclick="restaurarDesdeMin(${i})">${m.label}</div>`
-  ).join('');
-}
-
-// Los valores de inputs son propiedades (no viajan en innerHTML): se capturan
-// aparte, por posición en el DOM — el orden es estable porque el HTML
-// restaurado es idéntico. Los modales de escalas (MRC/FSS/CPAx/Barthel/
-// Charlson) viven fuera de #sp y abrirPanel() los limpia, así que también
-// se capturan.
-const _SEL_PANEL_CAMPOS = '#sp input,#sp select,#sp textarea';
-const _SEL_MODAL_CAMPOS = '#mMrc input,#mMrc select,#mFss input,#mFss select,#mCpax input,#mCpax select,#mBarthel input,#mBarthel select,#mCharlson input,#mCharlson select';
-
-function _snapPanel() {
-  const cap = sel => [...document.querySelectorAll(sel)].map(e => ({ v: e.value, c: e.checked }));
-  const pc = document.querySelector('#sp .pcontent');
-  return {
-    html: $('sp').innerHTML,
-    campos: cap(_SEL_PANEL_CAMPOS),
-    modales: cap(_SEL_MODAL_CAMPOS),
-    scroll: pc ? pc.scrollTop : 0,
-    vars: {
-      PROCS: [...(PROCS || [])], FASES: [...FASES_SEL], PEND: [...PEND_SEL], AISL: [..._aislTags],
-      TI: JSON.parse(JSON.stringify(_tiState)), CULTF: { ..._cultFechas }, CULTT: [..._cultTurno],
-      _secrQty, _pronoTs, _supinoTs,
-      _diasVABase, _diasTOTBase, _diasTQTBase, _fechaInicioVA, _fechaInicioTQT,
-      _diasVMEpisodio, _diasVMPrevios, _nReintub,
-      _diasVNIEpisodio, _diasVNIPrevios, _fechaInicioVNI,
-      _vaAnterior, _vmHistFlag, _evoEventoGuardado, _transIntubEsteTurno,
-      _vaAntesIntub, _dispSnapshot, _totSnapshot, _tqtSnapshot,
-      _iniVA, _iniSop, _transAvisoOk, _secrHeredado,
-      _rtxtGen, _textoManual, _formDirty, _faseHeredada,
-    },
-  };
-}
-
-function _restaurarMin(m) {
-  const sp = $('sp');
-  // 1) Estructura + visibilidad + textos del encabezado, tal como quedaron
-  sp.innerHTML = m.snap.html;
-  // 2) Valores de campos (posicional: mismo HTML → mismo orden)
-  const app = (sel, arr) => [...document.querySelectorAll(sel)].forEach((e, i) => {
-    const st = arr[i]; if (!st) return;
-    if (e.type === 'checkbox' || e.type === 'radio') e.checked = st.c; else e.value = st.v;
-  });
-  app(_SEL_PANEL_CAMPOS, m.snap.campos);
-  app(_SEL_MODAL_CAMPOS, m.snap.modales);
-  // 3) Estado JS interno del panel
-  const V = m.snap.vars;
-  PROCS = [...V.PROCS]; FASES_SEL = new Set(V.FASES); PEND_SEL = new Set(V.PEND || []); _aislTags = [...V.AISL];
-  Object.keys(_tiState).forEach(k => delete _tiState[k]); Object.assign(_tiState, V.TI);
-  _cultFechas = { ...V.CULTF }; _cultTurno = new Set(V.CULTT);
-  _secrQty = V._secrQty; _pronoTs = V._pronoTs; _supinoTs = V._supinoTs;
-  _diasVABase = V._diasVABase; _diasTOTBase = V._diasTOTBase; _diasTQTBase = V._diasTQTBase;
-  _fechaInicioVA = V._fechaInicioVA; _fechaInicioTQT = V._fechaInicioTQT;
-  _diasVMEpisodio = V._diasVMEpisodio; _diasVMPrevios = V._diasVMPrevios; _nReintub = V._nReintub;
-  _diasVNIEpisodio = V._diasVNIEpisodio; _diasVNIPrevios = V._diasVNIPrevios; _fechaInicioVNI = V._fechaInicioVNI;
-  _vaAnterior = V._vaAnterior; _vmHistFlag = V._vmHistFlag; _evoEventoGuardado = V._evoEventoGuardado;
-  _transIntubEsteTurno = V._transIntubEsteTurno; _vaAntesIntub = V._vaAntesIntub;
-  _dispSnapshot = V._dispSnapshot; _totSnapshot = V._totSnapshot; _tqtSnapshot = V._tqtSnapshot;
-  _iniVA = V._iniVA || ''; _iniSop = V._iniSop || ''; _transAvisoOk = !!V._transAvisoOk;
-  _secrHeredado = !!V._secrHeredado;
-  _rtxtGen = V._rtxtGen || ''; _setTextoManual(!!V._textoManual);
-  _formDirty = !!V._formDirty; _faseHeredada = !!V._faseHeredada;
-  // 4) innerHTML mató los listeners delegados del form → re-atar
-  _bindPanelListeners();
-  // 5) Si la vista global cambió mientras estaba minimizado (p. ej. cruzó las
-  //    09:00 y avanzó de turno), el borrador manda: se vuelve a SU fecha+turno
-  //    para que se guarde en el turno correcto.
-  if (v('gDate') !== m.fecha || SHIFT !== m.turno) {
-    $('gDate').value = m.fecha; SHIFT = m.turno; $('sTgl').dataset.s = SHIFT;
-    const t = _turnoLogico();
-    if (t.fecha === m.fecha && t.turno === m.turno) $('gDate').classList.add('turno-hoy');
-    else $('gDate').classList.remove('turno-hoy');
-    refrescarVista();
-  }
-  // 6) Mostrar el panel donde quedó
-  $('ovl').classList.add('on'); sp.classList.add('on');
-  document.body.style.overflow = 'hidden';
-  const pc = document.querySelector('#sp .pcontent');
-  if (pc) { pc.scrollTop = m.snap.scroll || 0; requestAnimationFrame(() => { pc.scrollTop = m.snap.scroll || 0; }); }
-  toast('📂 Borrador restaurado — recuerda guardar');
-}
-
-function minimizarPanel() {
-  const sp = $('sp');
-  if (!sp.classList.contains('on')) return;
-  const camaId = $('cBed')?.value || '';
-  const esIng = $('cIng')?.value === 'true';
-  const cama = ($('spBed').textContent || '').replace('CAMA ', '').trim();
-  const nombre = ($('fNombre')?.value || '').trim();
-  const pila = nombre.split(' ')[0];
-  const label = `${cama}${pila ? '. ' + pila : ''}`;
-  const entry = { camaId, label, esIng, fecha: v('gDate') || hoy(), turno: SHIFT, snap: _snapPanel() };
-  const idx = _minStack.findIndex(m => m.camaId === camaId);
-  if (idx !== -1) _minStack[idx] = entry; else _minStack.push(entry);
-  sp.classList.remove('on');
-  $('ovl').classList.remove('on');
-  document.body.style.overflow = '';
-  _renderMinTray();
-}
-
-function restaurarDesdeMin(i) {
-  const m = _minStack[i];
-  if (!m) return;
-  _minStack.splice(i, 1);
-  _renderMinTray();
-  if (m.snap) _restaurarMin(m);
-  else abrirPanel(m.camaId, m.esIng);
-}
-
 function cerrarPanel(force) {
   // H1 + PRD guardado obligatorio (O2): cerrar con cambios sin guardar abre el
   // MODAL PROPIO de tres acciones (jamás confirm() nativo). NINGUNA de las tres
@@ -5356,14 +5217,12 @@ function cerrarPanel(force) {
   hide('rarea');
   _estadoGuardado(null); _reintentoGuardado=null; _cerrarTrasGuardar=false;
   actualizarTituloPanel('');
-  const camaId = $('cBed')?.value || '';
-  const idx = _minStack.findIndex(m => m.camaId === camaId);
-  if (idx !== -1) { _minStack.splice(idx, 1); _renderMinTray(); }
 }
-// H2: cerrar la pestaña con trabajo sin guardar (panel abierto con cambios o
-// borradores minimizados) dispara el diálogo nativo del navegador.
+// H2: cerrar la pestaña con el panel abierto y cambios sin guardar dispara el
+// diálogo nativo del navegador. Desde que el minimizar no existe (PRD guardado
+// obligatorio, O1), ésa es la ÚNICA condición: no hay pila de borradores en RAM.
 window.addEventListener('beforeunload', e=>{
-  if((_formDirty && document.querySelector('#sp.on')) || _minStack.length){
+  if(_formDirty && document.querySelector('#sp.on')){
     e.preventDefault(); e.returnValue='';
   }
 });
@@ -6270,7 +6129,7 @@ function _validarRangosCliente(){
 // Las mediciones puntuales que la réplica precarga quedan en ámbar (.heredado)
 // hasta que el kine las toque —aunque confirme el mismo valor— o confirme el
 // módulo completo con «✓ Sin cambios». El DOM es la fuente de verdad: la marca
-// sobrevive al minimizar (viaja en el HTML) y desaparece sola si renderParams()
+// viaja en el HTML y desaparece sola si renderParams()
 // reconstruye el campo (cambio de modo = el kine ya está editando ese módulo).
 // Los campos de ESTADO (vía aérea, soporte, modo, fase, dx) no se marcan:
 // son hechos que persisten entre turnos, no mediciones.
@@ -6421,7 +6280,7 @@ function _marcarHeredados(){
     const b=document.createElement('button');
     b.type='button'; b.className='her-chip'; b.textContent='✓ Sin cambios';
     b.title='Valores en ámbar heredados del turno anterior: corrígelos si cambiaron o confirma aquí que siguen vigentes';
-    b.setAttribute('onclick','confirmarHeredadosCard(this)'); // atributo inline: sobrevive al minimizar/restaurar
+    b.setAttribute('onclick','confirmarHeredadosCard(this)'); // atributo inline: sobrevive a los repintados por innerHTML
     hdr.appendChild(b);
   });
 }
@@ -7592,7 +7451,7 @@ const TUT_RECORRIDOS={
   {sel:'#dIntubSec', selAlt:'#dVentBloque', t:'🫁 Cambios de vía aérea', d:'Intubación, traqueostomía, extubación y decanulación se anotan A MANO, cada una en su bloque. Regla de oro: lo de arriba queda como estaba (el estado previo es parte del registro) y en el evento anotas cómo QUEDÓ el paciente.'},
   {sel:'#dKTMr', selAlt:'#sp', t:'💪 Rehabilitación', d:'Kinesiterapia motora, entrenamiento muscular, sedestación… Si no se pudo hacer, se registra el motivo: eso alimenta las estadísticas de la unidad.'},
   {sel:'#rtxt', t:'📄 El texto se escribe solo', d:'Con lo que marcaste, la app redacta la evolución en lenguaje clínico. Puedes leerla, y si quieres ajustar algo, editarla a mano antes de guardar.'},
-  {sel:'#btnGuardar', t:'💾 Guardar', d:'Al guardar, la evolución queda en el historial del paciente, alimenta la entrega de turno y suma a las estadísticas. Si te interrumpen, «− Minimizar» conserva el borrador sin perder nada.', fin:true},
+  {sel:'#btnGuardar', t:'💾 Guardar', d:'Al guardar, la evolución queda en el historial del paciente, alimenta la entrega de turno y suma a las estadísticas. Si te interrumpen, cierra con «Cerrar y conservar borrador»: lo escrito te espera al reabrir esa cama en este turno.', fin:true},
  ]},
  equipos:{
   titulo:'Mover ventiladores y equipos',
@@ -8638,7 +8497,7 @@ function renderChips() {
   $('chips').innerHTML=PROCS.map((p,i)=>`
     <span class="chip">${p}<button type="button" onclick="quitarProc(${i})">×</button></span>`).join('');
 }
-// Listeners del panel: atados aparte porque restaurar un minimizado repone
+// Listeners del panel: atados aparte porque repintar el panel por innerHTML repone
 // #sp vía innerHTML (los elementos se recrean y pierden sus listeners).
 function _bindPanelListeners(){
   $('inProc')?.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();addProc();} });
@@ -11761,7 +11620,7 @@ function setIMS(n){
   const p=$('imsPanel'); if(p) p.classList.add('hidden');
 }
 // Cerrar el panel IMS al hacer clic fuera (listener a nivel documento:
-// sobrevive a la restauración de minimizados vía innerHTML)
+// sobrevive a los repintados del panel vía innerHTML)
 document.addEventListener('click',e=>{
   const p=$('imsPanel');
   if(p&&!p.classList.contains('hidden')&&!e.target.closest('#imsPanel')&&!e.target.closest('#imsBtn')) p.classList.add('hidden');
