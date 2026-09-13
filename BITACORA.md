@@ -5104,3 +5104,75 @@ tandas A y B que él aprobó tras el mockup.
   tiempo.
 - Batería: **109 verdes, 0 rojas**. Espejo «V3 colaborativa» regenerado (la
   guardia `paridad_v3` de Manuel lo pidió, y funcionó). Sin cambio de esquema.
+
+## v5.87-guardado-obligatorio · tandas 1 y 2 del PRD (13-sep-2026)
+
+Implementación de `PRD_GUARDADO_OBLIGATORIO.md` (aprobado por Manuel el 13-sep),
+tandas 1 y 2 de 4. Rama `feature/guardado-obligatorio`, un commit por tanda.
+**Sin cambio de esquema** (todo es cliente: `crearORepararEstructura()` NO hace
+falta). Sello a **5.87-guardado-obligatorio** en los cuatro sitios de siempre
+(meta, watchdog, `empaquetar_cohete.js` y el espejo de V3 colaborativa).
+
+- **Tanda 1 · la salida de reemplazo.** Cerrar con cambios sin guardar abre un
+  **modal propio de tres acciones** —«Guardar y cerrar» (por defecto, con el
+  foco), «Seguir editando», «Cerrar y conservar borrador»— y **ninguna pierde lo
+  escrito**. Se cayó «Cerrar y descartar» y con ella la doble confirmación: ya no
+  hay pérdida que confirmar (decisión 4 de Manuel). Se aprovechó que `uiConfirm`
+  ya tenía tercer botón (`alterno` → `'alt'`); lo único que se le agregó es la
+  opción `cancelar` para rotular su botón de cancelar («Seguir editando»).
+- **Tanda 1 · la franja del botón 💾 ahora dice qué pasó.** `✓ Guardado hh:mm`
+  al guardar bien y `❌ NO se guardó · Reintentar` al fallar, las dos
+  **persistentes** (el toast de 3,2 s se SUMA, no se reemplaza). `Reintentar`
+  remanda los MISMOS datos en **un** viaje: `guardar()` se reorganizó en un
+  `_enviar()` (intento + su reintento automático de 3 s) que el botón vuelve a
+  correr, así que el manual no se suma al automático ni duplica el viaje.
+  🪤 **Decisión de implementación:** la franja nueva es un span HERMANO
+  (`#gEstadoGuardado`) en la misma barra, NO el `#gSinGuardar` existente. El PRD
+  decía «reusar esa franja», pero `sin_guardar.js` mide el texto de `#gSinGuardar`
+  y NO1 exige que esa franja y el aviso de los 10 min queden intactos: con dos
+  elementos hermanos, «⚠️ Sin guardar» y el estado del último guardado conviven
+  sin pisarse y la guardia de Diego siguió verde sin tocarla.
+- **Tanda 1 · borrador local (O7).** Llave `CAMA_<idCama>_<turnoKey>` en
+  `localStorage`. Se escribe al cerrar conservando **y también al fallar el
+  guardado** (si el equipo se apaga justo después, lo escrito vuelve); se
+  restaura solo al reabrir esa cama en ese turno con la franja `Borrador sin
+  guardar recuperado hh:mm` + la firma que lo dejó, deja `_formDirty` en `true`,
+  muere al guardar bien, y los de turnos pasados se purgan en `bootApp()`.
+  🔒 **No guarda nombre, RUT, edad ni diagnóstico libre** (lista
+  `_BORR_SIN_IDENTIDAD`): el PC de la unidad es compartido y `localStorage` es
+  del navegador, no de la persona (Ley 19.628). Un borrador **no es una
+  evolución**: no escribe en EVOLUCIONES ni saca la cama de ninguna lista.
+  🪤 A propósito **no** se reusó el snapshot del minimizar: guardaba el
+  `innerHTML` entero del panel (con el nombre del paciente dentro) y las ~20
+  variables de estado clínico. El borrador serializa campos **por id** y solo lo
+  que la persona escribió; lo clínico heredado se vuelve a leer fresco al abrir.
+  🪤 `SHIFT` vale `'Dia'`/`'Noche'`, no una inicial: la primera versión del
+  patrón de purga (`-[A-Z]+$`) no reconocía sus propias llaves. Lo cazó la
+  guardia al imprimir la llave real `CAMA_6_2026-09-13-Dia`.
+- **Tanda 2 · el minimizar ya no existe** (O1), los 16 puntos del inventario del
+  PRD: CSS `#minTray`/`.min-pill`/`.mbtn`, el `<div id="minTray">`, el botón `−`,
+  la rehidratación dentro de `abrirPanel`, `_minStack`, `_renderMinTray`,
+  `_snapPanel`, `_restaurarMin` (40 líneas), `minimizarPanel`,
+  `restaurarDesdeMin`, la limpieza del stack en `cerrarPanel`, el `beforeunload`
+  (queda solo `_formDirty && #sp.on`) y los cuatro comentarios que lo
+  describían. `grep -i minimiz` en `v2/index.html` devuelve una sola línea: el
+  comentario que explica por qué el `beforeunload` mira una sola condición.
+  🪤 **Un punto 17 que el inventario no traía**: el tutorial (`#btnGuardar`)
+  le enseñaba al equipo «si te interrumpen, «− Minimizar» conserva el borrador».
+  Es **texto en pantalla**, no un comentario, y habría quedado enseñando un
+  botón inexistente. Reescrito para nombrar «Cerrar y conservar borrador».
+- **Guardias nuevas (§7):** `cierre_tres_acciones.js`, `confirma_guardado.js`,
+  `fallo_guardado_visible.js`, `borrador_local.js` (tanda 1) y
+  `sin_minimizar.js`, `beforeunload_sin_stack.js` (tanda 2). Las de fallo y
+  confirmación corren el **guardado de verdad** con `api` simulada —incluido el
+  reintento automático de 3 s— en vez de mirar el DOM; `borrador_local.js`
+  siembra un paciente sintético con nombre y RUT y falla si aparecen en el
+  borrador. Batería: **115 verdes, 0 rojas** (109 previas + 6). Ninguna guardia
+  existente hubo que ajustar: `sin_guardar.js`, `panel_ux.js`, `movil_panel.js`,
+  `guardado_viajes.js`, `regresion_ui.js` y `tutorial.js` —las que el PRD
+  anticipaba rojas— pasaron sin cambios.
+- **Pendiente: tandas 3 y 4.** El pop-up modal de fin de turno con sus cuatro
+  claves de CONFIG (`SALIDA_TURNO_DIA`, `SALIDA_TURNO_NOCHE`,
+  `AVISO_FIN_TURNO_MIN`, `AVISO_FIN_TURNO_REPETIR`) y la recuperación vía
+  `_avisoGapTurnos()`; y ofrecer registrar el evento de vía aérea olvidado sobre
+  `_avisosTransicion()`. Nada de las tandas 1-2 los condiciona.
