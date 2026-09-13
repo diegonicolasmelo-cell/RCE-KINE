@@ -223,7 +223,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**124 guardias** en `build/checks/*.js` (9-sep-2026); poco más de la mitad usan navegador
+**127 guardias** en `build/checks/*.js` (12-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -235,7 +235,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 9-sep-2026: 124 verdes, 0 rojas.** El corredor
+**Estado al 12-sep-2026: 127 verdes, 0 rojas** (rama `v7-episodio-turno-con-relojes`: v7.00 + v6.26 + la resiembra de plantillas de Manuel; `develop` sigue en 124). El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -270,6 +270,17 @@ sola por el calendario es peor que no tenerla: enseña a ignorar el rojo.** Al
 escribir cualquier banco que toque días, fechas o relojes, anclar contra hoy.
 Y ante una roja inesperada: `git stash` y volver a correrla antes de «arreglar»
 código sano.
+
+🪤 **Y NO SOLO EL CALENDARIO: TAMBIÉN LA HORA** (12-sep-2026). Tres guardias con
+navegador se pusieron rojas de madrugada con el código sano. Causa: la app
+cuenta los días contra **`gDate`, la fecha del TURNO**, no contra `hoy()`, y
+antes de las 9 el turno lógico es «Noche del día anterior» ⇒ `gDate` queda un
+día atrás mientras el banco de prueba se arma con `hoy()`. Un día de desfase,
+que a las 18:00 no aparece. **Toda guardia con navegador que mida días ancla las
+dos cosas** justo después de cargar el index:
+`SHIFT='Dia'` y `document.getElementById('gDate').value = hoy()`.
+La pista que lo delata: el número sale **exactamente uno menos** de lo
+esperado, y en varias guardias a la vez.
 
 ## Buscador del proyecto (skill `rce-kine-rag`)
 
@@ -322,6 +333,13 @@ falta el detalle. Este índice existe para saber QUÉ está abierto; el porqué
 está allá.
 
 ### Dónde está el código
+
+- 🚧 **Rama paralela `separacion-episodio-turno` — v7.00 PROGRAMADA (11-sep),
+  esperando que Diego la instale en SU planilla nueva.** Paquete de 12
+  archivos + paso a paso en `INSTALAR_PLANILLA_NUEVA.md`; detalle en
+  BITACORA v7.00; plan en `PRD_EPISODIO_Y_TURNO.md`. **NO se fusiona a
+  develop/main ni se pega en producción sin su OK.** Si él reporta algo de
+  esa planilla, el código es el de esa rama, no el de `develop`.
 
 🔴 **NUNCA suponer qué está publicado: preguntárselo a Diego o mirar el editor.**
 El 14-ago yo di por publicada la v5.48 (lo decía la bitácora) y en realidad
@@ -542,7 +560,123 @@ tanda 1, 2 y 3 ya están hechas):
   depende de nosotros); **pendiente poner el repo en privado** (lo hace Diego
   en GitHub: Settings → General → Danger zone → Change visibility).
 
+### 🚧 RAMA PARALELA `separacion-episodio-turno` — decisiones de Diego del 11-sep-2026 (voz)
+
+Diego respondió los cables en bloque y dio la orden: **«PROGRAMA todo lo demás,
+ya que esto irá por rama paralela; lo que haré es iniciar otro Sheet con otro
+nombre… es importante que esté en paralelo la rama, para no afectar el trabajo
+de nadie más; luego los archivos los pego en Script. Al final dame el paquete
+de documentos para subir e implementar en el nuevo archivo.»** Y: «actúa en
+loop hasta terminar; si se acaba Fable sigue con el modelo siguiente».
+· 🔴 **Esto NO toca producción**: rama nueva salida de `develop`, y Diego crea
+UNA PLANILLA NUEVA con su propio proyecto de Apps Script donde pega los 9
+archivos completos. Sus mitigaciones responden a las contras del 11-sep
+(sin riesgo a la marcha blanca, sin «dos verdades» en producción, el equipo
+no reaprende hasta que él decida). **No se fusiona a develop/main sin su OK.**
+· **Decisiones cerradas por él (textual)**:
+  - 2.1 extensión de Chrome del LIS: «se puede instalar en cualquiera» → cerrado.
+  - 2.2 laboratorio CSV/TXT: «omite el laboratorio por ahora y déjalo pendiente».
+  - 2.3 enlace directo Synapse: «ok» → cerrado como está.
+  - 2.4 PWA + login real: «hay que hacerlo pero de forma que no afecte al uso
+    diario, quizás una rama paralela y progresar con el login y PWA». ⚠️ Sigue
+    bloqueado por informática (correo institucional) y decisiones suyas; NO
+    entra en esta tanda — ver la nota al final.
+  - 3 «arranca las escalas» → T1 en marcha.
+  - **SBC exige FSS-ICU**: «del episodio, al menos 1; eso quiere decir: lo
+    evalué, después lo traté» → basta UN FSS en el episodio (no por turno).
+    Bloqueo suave: cliente y servidor rechazan SBC sin FSS, y el mensaje
+    manda a medirlo ahí mismo (el FSS está en el mismo formulario).
+  - **Panel de extubación**: «mejor que anuncie a la entrada para evitar
+    problemas» → fila «¿Qué pasó hoy con la vía aérea?» arriba; el TEXTO
+    sigue cronológico como su ejemplo (no lo cambió).
+  - **Línea fina de ventilación y cultivos: «ambas»** → parámetros = turno;
+    vía aérea y soporte = episodio y solo los cambia un evento. Cultivos =
+    serie fechada (como se propuso) y además hito en la línea de tiempo.
+· 🔑 **ESTRATEGIA TÉCNICA: migración ADITIVA, no destructiva.** Las 396
+columnas de EVOLUCIONES no se tocan (testEsquema las asserta). Se agregan
+fuentes nuevas —hoja `EVALUACIONES` (serie fechada con firma), `DATOS_JSON`
+en `TIMELINE`, `ULT_*_FIRMA` en CAMAS_ESTADO— y el turno SIGUE escribiendo
+sus columnas cuando el dato se mide EN ese turno (eso es verdad). Lo que se
+corta es la HERENCIA de evaluaciones al turno siguiente (la foto retocada).
+Los 27 archivos que leen EXT_OCURRIO no se reescriben: la fila de eventos
+del panel ESCRIBE esas mismas casillas, y además el hito estructurado. Así
+la batería sigue verde y cada consumidor migra cuando toque.
+· ✅✅ **PROBADA POR DIEGO EN SU PLANILLA NUEVA Y APROBADA (12-sep-2026,
+textual): «revisé y está bueno, me gustó; igual podría pulirse pero por
+ahora bien».** O sea la v7.00 pasó la prueba de terreno. **NO dijo que se
+fusione**: sigue sin fusionar a develop/main hasta que él lo pida.
+🔜 **Pendiente suyo**: decir QUÉ pulir — no dio detalle y no se le sacó
+lista para no interrumpirlo. Preguntárselo cuando retome.
+· 🪤 **Al instalarla tropezó con el DESPLIEGUE, no con el código** (11-sep):
+la app mostraba «No se pudo verificar la conexión con el servidor» con el
+servidor sano. Ese mensaje es el overlay de `mostrarLogin()` con
+`LOGIN_UI_ACTIVO=false`, y sale cuando GET_BOOT **y** WHOAMI fallan — o sea
+cuando `/exec` sirve una versión desplegada anterior al pegado. Herramienta
+nueva `herramientas/diagnostico.gs` (autocontenida, se pega como archivo
+suelto y funciona aunque falten archivos): revisa planilla vinculada,
+archivos del editor, hojas, CONFIG, un WHOAMI real y la publicación, e
+imprime **la URL que Apps Script sirve de verdad** para compararla con la
+que se tiene abierta. Se resolvió sin tocar código.
+· ✅ **HECHO (11-sep-2026, sello `7.00-episodio-y-turno`)**: T1-T7 completas,
+guardia `episodio_turno.js`, 125 verdes. Paquete y paso a paso en
+`INSTALAR_PLANILLA_NUEVA.md`. Lo que trae, en BITACORA v7.00.
+· 🔴 **Corrección que hay que decirle a Diego (ya va en la entrega)**: la fila
+heredada NO afirmaba «MRC 33 evaluado hoy» — `fillFormReplica` no hereda las
+evaluaciones (solo las recarga si `EVAL_FECHA` es hoy). Lo que faltaba de
+verdad era la firma y la serie. No repetir la afirmación de la «foto retocada».
+· 🪤 Para probar guardias con navegador: `function guardar()` no se puede
+`delete` de `window` (guardar la real aparte); el simulador tiene el reloj en
+julio (las fechas del navegador se arman con SU `hoy()`); y el catálogo
+`NOVEDADES` no admite comentarios entre la llave y la primera clave.
+
+### 🧩 QUÉ TRABAJO DE MANUEL ESTÁ DENTRO (medido el 12-sep-2026, lo preguntó Diego)
+
+Diego pidió que la fusión «incluya también el último trabajo de Manuel». Se
+midió rama por rama **por contenido** (`git log --cherry-pick --right-only`),
+no por nombre:
+
+| Rama de Manuel | Estado |
+|---|---|
+| `feature/resiembra-plantillas` (7-sep) | ✅ **FUSIONADA el 12-sep** en `v7-episodio-turno-con-relojes`. Es su último trabajo: `_plantResembrar` + `plantillasResembrarSimular/AplicarAhora` en `svc_plantillas.gs`, y la guardia `resiembra_plantillas.js`. |
+| `entrega-blanco-negro-linea-tiempo` (2-sep) | ✅ **Ya estaba**: su contenido se traspasó en la v6.06 (la negrita vive en `svc_entrega.gs:206+`). Los commits figuran «sin equivalente» porque el traspaso se reescribió, no se cherry-pickeó — **no hay nada que fusionar**. |
+| `manuel/velocidad-arranque` (6-ago) | ✅ **Ya estaba**: el memo de CONFIG es `_CFG_MEMO`/`_memoReset` (esquema ~629) con su guardia `memo_config.js`. |
+| `manuel/tablero-lee-solo-sus-columnas`, `manuel/velocidad-y-entrega-turno`, `fix/vni-en-el-601171`, `fix/orden-texto-evolucion` | ✅ Sin nada pendiente. |
+| 🔴 `fix/la-vni-viaja-al-rem-hospital` (25-ago) | ❌ **NO fusionada, a propósito.** Manda el REM del mes a un destino EXTERNO («REM Hospital») y trae una maqueta con pacientes ficticios. Destino externo **no aprobado por Diego**: sacar datos clínicos fuera exige su decisión explícita (Ley 19.628). **No se fusiona por «incluir lo de Manuel»: hay que preguntárselo nombrando qué hace.** |
+
 ### Esperando decisión de Diego
+
+- ✅ ⏱️ **FECHA DE INGRESO ESCRITA (fecha + hora, sugerida = AHORA) Y DÍAS DE VM
+  POR BLOQUES DE 24 h — PROGRAMADO en la v6.26 (11-sep-2026), rama
+  `ingreso-manual-y-vm-por-horas` salida de `develop` (incluye la v6.25 de la
+  hoja), SIN fusionar hasta que Diego la pruebe.** Pedido textual: «la fecha de
+  ingreso y días de VM no están coincidiendo con el otro programa… que se
+  contabilicen con la fecha de ingreso registrada de forma manual, fecha y hora…
+  la sugerencia es la fecha ACTUAL, no la del turno… los días de VM se cuentan
+  respecto a las horas de VM: hora de ingreso si vienen ventilados, o fecha y
+  hora de intubación». Respondió **«1 sí»** (la ESTADÍA sigue por calendario
+  como BUDA; solo la VM pasa a horas ÷ 24) y «luego programa la hoja».
+  · **Regla vigente**: `diasVMReloj` (servidor) / `diasVMCli` (index) = bloques
+  completos de 24 h desde `TS_INICIO_SOPORTE` (ingreso si llegó ventilado,
+  intubación si no) hasta AHORA en la tarjeta y hasta la hora en que PARTE el
+  turno en la hoja del turno (`_tsInicioTurno`, CONFIG). Sin hora guardada ⇒
+  calendario. **Interruptor `CONFIG.VM_POR_HORAS`** (TRUE; FALSE = calendario
+  sin pegar nada). El campo «Fecha ingreso» viaja como `PAC_FECHA_INGRESO`,
+  transitorio como `PAC_RUT` (EVOLUCIONES sigue en 396); el reloj de ingreso
+  solo manda cuando ese campo vino (`_ingresoEscrito`).
+  · 🔴 **Consecuencias que se le dijeron**: VM + VNI ya no suman exacto la
+  estadía (la garantía de la v5.35 queda solo con el interruptor en FALSE, y
+  así la prueban `dias_estadia` y `dias_soporte`); un intubado ayer a las 14:00
+  marca 0 hoy; el REM/`DIAS_VM_TOTAL` baja hasta un día por episodio. Los
+  archivados no cambian.
+  · **Dato pendiente**: la tabla de relojes de producción. `tablaRelojes()`
+  (mantenimiento, y `relojes.gs` suelto para pegar hoy) imprime por cama las dos
+  fechas y los dos conteos, sin nombres ni RUT; Diego la copia y se coteja con
+  el otro programa. La pregunta ② (cómo cuenta la VM «el otro programa») sigue
+  sin respuesta explícita: si la tabla no cuadra, es lo primero que mirar.
+  · 🪤 Guardia `vm_por_horas.js`. Trampas: `SHIFT` sale del reloj real (fijar
+  `'Dia'` en bancos con navegador); el simulador trae camas sembradas
+  (`repoActualizar`, no `push`); `guardado_viajes` compara contra un árbol
+  base, por eso el reloj de ingreso está gateado al campo nuevo.
 
 - 🔴 ✂️ **EL PANEL DEBERÍA ANUNCIAR EL EVENTO PRIMERO — caso real de terreno
   (Diego, 9-sep-2026).** «Un paciente que estaba para extubar se extubó, pero se
@@ -1390,8 +1524,30 @@ pestaña 🔐 COORDINACIÓN — sin abrir el editor.
 `repararEvolucionesAjenasSIMULACRO/CONFIRMAR` · `corregirTiempoExtubadoSIMULACRO/CONFIRMAR`
 · `corregirPronosRepetidos` · `resellarDiasSoporte*` · `corregirIngresos*` ·
 `archivarAnioHistorico*` · `resetearBaseDeDatos*` · `cargarInventarioInicial` ·
-`medirArranque` · `medirGuardado` · `verificarTablero` / `medirTablero`.
-El detalle de cada una, en `BITACORA.md`.
+`medirArranque` · `medirGuardado` · `verificarTablero` / `medirTablero` ·
+`plantillasResembrarSimular` / `plantillasResembrarAplicarAhora` /
+`plantillasRestaurarDesde`. El detalle de cada una, en `BITACORA.md`.
+
+🪤 **Cambiar `PLANTILLAS_UNIDAD_SEMILLA` NO cambia lo que lee el turno**
+(7-sep-2026). `plantillasSembrarUnidad()` escribe **solo si
+`PLANTILLAS_EVOLUCION` está vacía**, y en la unidad está sembrada desde v6.02:
+el orden nuevo del texto se quedó en el repositorio sin llegar a nadie. Para eso
+está la **re-siembra** de `svc_plantillas.gs`. Lo que hay que saber al tocarla:
+
+- No reemplaza «todas»: solo las plantillas de la unidad cuyo cuerpo **sigue
+  siendo uno de los que este repositorio publicó** (`PLANTILLAS_UNIDAD_PUBLICADAS`).
+  Lo que coordinación editó a mano se salta y se informa — perderlo en silencio
+  es la misma clase de error que esconder una pronación real.
+- 🔴 **Al cambiar la semilla hay que MOVER el cuerpo saliente a
+  `PLANTILLAS_UNIDAD_PUBLICADAS`.** Si no, la re-siembra siguiente creerá que
+  coordinación lo escribió y no tocará ni una. La guardia
+  `checks/resiembra_plantillas.js` lo comprueba.
+- Respalda la hoja entera en `PLANTILLAS_BAK_<yyyyMMdd_HHmmss>` (oculta, fuera
+  de ESQUEMA: `testEsquema` y `cuadrarEncabezados` no la ven) **antes** de la
+  primera escritura, y no escribe nada si el respaldo falla.
+- Idempotente por el cuerpo, no por una marca: la segunda corrida no escribe.
+- Nunca toca las plantillas **personales** (`DUENO` ≠ `UNIDAD`) ni las retiradas
+  (`ACTIVO=false`).
 
 ### Privacidad — no se negocia
 

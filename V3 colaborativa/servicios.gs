@@ -1,5 +1,5 @@
 /**
- * servicios.gs — TODOS los servicios en un solo archivo (fusión de los 19 svc_*.gs).
+ * servicios.gs — TODOS los servicios en un solo archivo (fusión de los 20 svc_*.gs).
  * En Apps Script los archivos comparten un único espacio global, así que esta
  * fusión es puramente organizativa: mismo código, menos pegado.
  */
@@ -333,7 +333,9 @@ function obtenerTodasLasCamas() {
         // El tablero debe mostrar el MISMO número que el papel que el equipo
         // lee en la reunión — verificado contra la lista del 3-ago en 17 camas.
         c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
-        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
+        // VM: bloques de 24 h desde la hora de inicio (Diego, 11-sep-2026); la
+        // estadía sigue por calendario. diasVMReloj cae a calendario sin hora.
+        c.DIAS_VM = (c.SOPORTE === 'VM') ? diasVMReloj(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _tsAhora(), hoy) : 0;
         c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
         try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }
       } else {
@@ -378,7 +380,7 @@ function obtenerCama(idCama) {
     if (esVerdadero(c.OCUPADA)) {
       c.OCUPADA = true;
       c.DIA_ESTADIA = diasEntre(c.FECHA_INGRESO, hoy);
-      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : 0;
+      c.DIAS_VM = (c.SOPORTE === 'VM') ? diasVMReloj(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _tsAhora(), hoy) : 0;
       c.DIAS_VA = (c.VIA_AEREA && c.VIA_AEREA !== 'Natural') ? diasEntre(c.FECHA_INICIO_VA, hoy) : 0;
     } else { c.OCUPADA = false; }
     try { c.TIMELINE = c.TIMELINE_JSON ? JSON.parse(c.TIMELINE_JSON) : []; } catch (e) { c.TIMELINE = []; }
@@ -2158,8 +2160,11 @@ function _entFicha(id, c, e, episodio, cultivo, fecha, fechaEf, turno, ePrev) {
 
   // ── Últimas evaluaciones con fecha (arrastre en cama + CPAx del episodio) ──
   const evals = [];
-  if (val(c.ULT_MRC) !== '') evals.push('MRC-SS ' + c.ULT_MRC + (c.ULT_MRC_FECHA ? ' (' + dd(c.ULT_MRC_FECHA) + ')' : ''));
-  if (val(c.ULT_FSS) !== '') evals.push('FSS ' + c.ULT_FSS + (c.ULT_FSS_FECHA ? ' (' + dd(c.ULT_FSS_FECHA) + ')' : ''));
+  // 🗂️ La firma viaja con la medición (Diego, 11-sep: «al lado de la fecha
+  // podrían salir sus iniciales»). Quién MIDIÓ, no quién entrega.
+  const _fir = function (f) { return val(f) !== '' ? ', ' + f : ''; };
+  if (val(c.ULT_MRC) !== '') evals.push('MRC-SS ' + c.ULT_MRC + (c.ULT_MRC_FECHA ? ' (' + dd(c.ULT_MRC_FECHA) + _fir(c.ULT_MRC_FIRMA) + ')' : ''));
+  if (val(c.ULT_FSS) !== '') evals.push('FSS ' + c.ULT_FSS + (c.ULT_FSS_FECHA ? ' (' + dd(c.ULT_FSS_FECHA) + _fir(c.ULT_FSS_FIRMA) + ')' : ''));
   if (val(c.ULT_DINAMO) !== '') evals.push('Dinamo ' + c.ULT_DINAMO + ' kg');
   let cpax = '', cpaxF = '';
   episodio.forEach(ev => { if (val(ev.CPAX_TOTAL) !== '') { cpax = ev.CPAX_TOTAL; cpaxF = dd(ev.FECHA); } });
@@ -3188,6 +3193,345 @@ function obtenerMovimientosStock(idStock, limite) {
 
 
 // ════════════════════════════════════════════════════════════════════
+// ── svc_evaluaciones.gs ──
+// ════════════════════════════════════════════════════════════════════
+
+/**
+ * svc_evaluaciones.gs — La SERIE FECHADA del episodio y las escalas pre-UCI
+ * escritas directo al episodio (rama episodio/turno, 11-sep-2026).
+ *
+ * POR QUÉ EXISTE. Diego, 10-sep: «al día siguiente otro colega quiere aplicar
+ * una ECF pero no sabe dónde, por lo tanto no la aplica y se pierde el dato».
+ * Y el 11-sep: «ocupamos el valor del colega pero debemos saber quién firmó».
+ * Hasta aquí el episodio arrastraba ULT_MRC + ULT_MRC_FECHA y NINGUNA firma;
+ * la serie completa estaba desparramada en filas de turno.
+ *
+ * DOS COSAS DISTINTAS, a propósito (corrección clínica de Diego, 11-sep):
+ *  · ECF, Barthel y Charlson son DATO ÚNICO del episodio (estado pre-UCI).
+ *    «Es la que es; si hay corrección se corrige el mismo dato.» → van a
+ *    CAMAS_ESTADO tal cual, sin historial: `episodioEscala`.
+ *  · MRC, FSS, CPAx, Pimáx… se REPITEN. → hoja EVALUACIONES, una fila por
+ *    medición, con fecha y firma; corregir agrega y anula, nunca borra:
+ *    `evalRegistrar`.
+ *
+ * 🔑 La firma es PROCEDENCIA, no propiedad: cualquiera cita el valor para sus
+ * fines; la firma solo dice de dónde salió. Y separa dos firmas que antes se
+ * colapsaban: quién MIDIÓ y quién EVOLUCIONA hoy citándolo.
+ *
+ * 🪤 Sin login (AUTH_DEV_MODE) la firma es la DECLARADA en el formulario, no
+ * una identidad verificada. Vale lo que vale una firma en el papel de la
+ * unidad. Lo resolvería el login real del PRD de la PWA.
+ */
+
+// Escalas que llevan historial (serie) y su columna espejo en CAMAS_ESTADO.
+const EVAL_SERIE = {
+  MRC:       { ult: 'ULT_MRC',    fecha: 'ULT_MRC_FECHA', firma: 'ULT_MRC_FIRMA', col: 'EVAL_T_MRC',    max: 60 },
+  FSS:       { ult: 'ULT_FSS',    fecha: 'ULT_FSS_FECHA', firma: 'ULT_FSS_FIRMA', col: 'EVAL_T_FSS',    max: 35 },
+  PIM:       { ult: 'ULT_PIM',    fecha: 'ULT_PIM_FECHA', firma: 'ULT_PIM_FIRMA', col: 'EVAL_T_PIM' },
+  DINAMO:    { ult: 'ULT_DINAMO', col: 'EVAL_T_DINAMO' },
+  CPAX:      { col: 'CPAX_TOTAL', max: 50 },
+  PEM:       { col: 'EVAL_T_PEM' },
+  FEM:       { col: 'EVAL_T_FEM' },
+  ECO:       { col: 'EVAL_T_GROSOR' },
+  DEGLUCION: { col: 'EVAL_DEGLUCION' },
+  CULTIVO:   {},   // sin espejo en la cama: el «último cultivo» lo sigue leyendo la entrega desde las evoluciones
+};
+// Dato único del episodio: se corrige encima.
+const EPISODIO_ESCALAS = { ECF: 'ECF', BARTHEL: 'BARTHEL', CHARLSON: 'CHARLSON' };
+
+/** El turno de este momento, con los cortes de CONFIG (misma regla que la GSA). */
+function _turnoActualSrv() {
+  try { return turnoLogicoServidor(hoyISO(), _horaAhora()).turno || 'Dia'; } catch (e) { return 'Dia'; }
+}
+
+/** Normaliza el nombre de escala que manda el cliente. */
+function _evalEscala(x) {
+  const e = String(x || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+  if (e === 'FSSICU') return 'FSS';
+  if (e === 'MRCSS') return 'MRC';
+  return e;
+}
+
+/**
+ * evalRegistrar — una medición nueva en la serie del episodio.
+ * datos: { idCama, escala, total, items (obj|array|string), firma, fecha?, turno?,
+ *          origen? ('tarjeta' por defecto), idEvolucion?, anulaId? }
+ * Escribe EVALUACIONES y actualiza el espejo ULT_* de la cama (valor, fecha,
+ * firma). Devuelve la fila creada. NO toca EVOLUCIONES: si la medición vino de
+ * un turno, ese turno ya escribió su columna por su cuenta.
+ */
+function evalRegistrar(datos, ctx) {
+  ctx = ctx || {};
+  return conLock(() => {
+    try {
+      const r = _evalRegistrarInterno(datos, ctx);
+      if (r && r.error) return r;
+      SpreadsheetApp.flush();
+      return ok(r);
+    } catch (e) { return err('evalRegistrar: ' + e.message); }
+  });
+}
+
+/** Sin lock: para llamar desde guardarEvolucion, que ya lo tiene. */
+function _evalRegistrarInterno(datos, ctx) {
+  datos = datos || {};
+  const idCama = String(datos.idCama || datos.ID_CAMA || '').trim();
+  const escala = _evalEscala(datos.escala || datos.ESCALA);
+  if (!idCama) return err('Falta la cama.', ERR.VALIDACION);
+  if (!EVAL_SERIE[escala]) return err('Escala desconocida: ' + escala, ERR.VALIDACION);
+  const total = String(datos.total == null ? (datos.TOTAL == null ? '' : datos.TOTAL) : datos.total).trim();
+  if (total === '' && escala !== 'CULTIVO') return err('Falta el valor de ' + escala + '.', ERR.VALIDACION);
+  const def = EVAL_SERIE[escala];
+  if (def.max != null) {
+    const n = parseFloat(String(total).replace(',', '.'));
+    if (isNaN(n) || n < 0 || n > def.max) return err(escala + ' fuera de rango (0-' + def.max + '): ' + total, ERR.VALIDACION);
+  }
+  const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+  if (!cama) return err('No existe la cama ' + idCama + '.', ERR.VALIDACION);
+  const pid = String(datos.patientId || datos.PATIENT_ID || cama.PATIENT_ID || '');
+  if (!pid) return err('La cama ' + idCama + ' no tiene episodio: ingresa al paciente antes de medir.', ERR.VALIDACION);
+
+  // La firma: la que manda el cliente (el select del formulario), si no la
+  // del contexto. Corta, como PLAN_FIRMA_KINE: nunca un texto largo.
+  let firma = String(datos.firma || datos.FIRMA || ctx.firma || '').trim();
+  if (firma.length > 15 || /\n/.test(firma)) firma = '';
+
+  const fecha = String(datos.fecha || datos.FECHA || hoyISO());
+  const turno = String(datos.turno || datos.TURNO || _turnoActualSrv());
+  let items = datos.items != null ? datos.items : (datos.ITEMS_JSON != null ? datos.ITEMS_JSON : '');
+  if (items && typeof items !== 'string') { try { items = JSON.stringify(items); } catch (e) { items = ''; } }
+
+  const fila = {
+    ID_EVAL: uid('EVAL'), PATIENT_ID: pid, ID_CAMA: idCama,
+    FECHA: fecha, TURNO: turno, ESCALA: escala, TOTAL: total,
+    ITEMS_JSON: items || '', FIRMA: firma,
+    ORIGEN: String(datos.origen || datos.ORIGEN || 'tarjeta'),
+    ID_EVOLUCION: String(datos.idEvolucion || datos.ID_EVOLUCION || ''),
+    ANULADA: false, TIMESTAMP: ahoraTS(),
+  };
+  repoInsertar('EVALUACIONES', fila);
+
+  // Corregir = nueva fila + anular la vieja. Nunca se borra.
+  if (datos.anulaId) {
+    try { repoActualizar('EVALUACIONES', 'ID_EVAL', String(datos.anulaId), { ANULADA: true }); } catch (e) {}
+  }
+
+  // Espejo en la cama: solo si esta medición es la más reciente del episodio
+  // (una corrección retroactiva no debe pisar una medición posterior).
+  const ult = _evalUltima(pid, escala);
+  if (ult && ult.ID_EVAL === fila.ID_EVAL) _evalEspejoCama(idCama, escala, fila);
+
+  // Hito legible, para la línea de tiempo y la tarjeta.
+  try {
+    _agregarHitoInternoSinSync({
+      idCama: idCama, patientId: pid, fecha: fecha, turno: turno, tipo: 'evaluacion',
+      texto: '📐 ' + _evalNombre(escala) + ' ' + total + (firma ? ' (' + firma + ')' : ''),
+      autor: firma, autorEmail: ctx.email || '',
+      // Sin el ID_EVAL (un uid): el hito debe ser DETERMINISTA para que dos
+      // guardados iguales dejen la misma línea de tiempo (guardia guardado_viajes).
+      datos: { escala: escala, total: total, firma: firma, fecha: fecha },
+    });
+    _sincronizarTimelineCama(idCama);
+  } catch (e) { console.warn('evalRegistrar hito:', e.message); }
+
+  return { entidad: 'EVALUACIONES', accion: 'medicion', escala: escala, total: total, idEval: fila.ID_EVAL, firma: firma, fecha: fecha };
+}
+
+function _evalNombre(escala) {
+  return ({ MRC: 'MRC-ss', FSS: 'FSS-ICU', CPAX: 'CPAx', PIM: 'Pimáx', PEM: 'PEM', FEM: 'FEM',
+            DINAMO: 'Dinamometría', ECO: 'Ecografía', DEGLUCION: 'Deglución', CULTIVO: 'Cultivo' })[escala] || escala;
+}
+
+/** Copia valor/fecha/firma de la medición al espejo ULT_* de la cama. */
+function _evalEspejoCama(idCama, escala, fila) {
+  const def = EVAL_SERIE[escala] || {};
+  const campos = {};
+  if (def.ult)   campos[def.ult] = fila.TOTAL;
+  if (def.fecha) campos[def.fecha] = fila.FECHA;
+  if (def.firma) campos[def.firma] = fila.FIRMA || '';
+  if (Object.keys(campos).length) repoActualizar('CAMAS_ESTADO', 'ID_CAMA', String(idCama), campos);
+}
+
+/** La medición vigente (no anulada, más reciente) de una escala del episodio. */
+function _evalUltima(pid, escala) {
+  const todas = evalDelEpisodio(pid).filter(function (e) { return e.ESCALA === escala; });
+  return todas.length ? todas[todas.length - 1] : null;
+}
+
+/** Todas las mediciones vigentes del episodio, ordenadas por fecha y momento. */
+function evalDelEpisodio(pid) {
+  if (!pid) return [];
+  return repoLeerTodos('EVALUACIONES', 'PATIENT_ID', String(pid))
+    .filter(function (e) { return !esVerdadero(e.ANULADA); })
+    .sort(function (a, b) {
+      const c = String(a.FECHA).localeCompare(String(b.FECHA));
+      return c !== 0 ? c : String(a.TIMESTAMP).localeCompare(String(b.TIMESTAMP));
+    });
+}
+
+/** GET_EVALUACIONES — la serie de una cama (episodio vigente) o de un pid. */
+function obtenerEvaluaciones(datos) {
+  datos = datos || {};
+  let pid = String(datos.patientId || '');
+  if (!pid && datos.idCama) {
+    const c = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', String(datos.idCama));
+    pid = String((c && c.PATIENT_ID) || '');
+  }
+  const serie = evalDelEpisodio(pid).map(function (e, i, arr) {
+    // El ordinal se DERIVA (1ª, 2ª, 3ª): nunca se guarda. Así «MRC a los 7
+    // días» es una alerta y no un candado (Diego, 10-sep).
+    const n = arr.slice(0, i + 1).filter(function (x) { return x.ESCALA === e.ESCALA; }).length;
+    return { id: e.ID_EVAL, escala: e.ESCALA, total: e.TOTAL, fecha: e.FECHA, turno: e.TURNO,
+             firma: e.FIRMA, origen: e.ORIGEN, n: n, items: e.ITEMS_JSON || '' };
+  });
+  return ok({ patientId: pid, serie: serie });
+}
+
+/**
+ * episodioEscala — ECF, Barthel o Charlson escritos DIRECTO al episodio desde
+ * la tarjeta, sin abrir la evolución. Se corrige encima: no hay historial
+ * porque el dato describe el estado PREVIO a la UCI (Diego, 11-sep).
+ * datos: { idCama, escala:'ECF'|'BARTHEL'|'CHARLSON', valor, items?, firma? }
+ */
+function episodioEscala(datos, ctx) {
+  ctx = ctx || {};
+  datos = datos || {};
+  const idCama = String(datos.idCama || '').trim();
+  const escala = _evalEscala(datos.escala);
+  const col = EPISODIO_ESCALAS[escala];
+  if (!idCama) return err('Falta la cama.', ERR.VALIDACION);
+  if (!col) return err('Escala del episodio desconocida: ' + escala, ERR.VALIDACION);
+  const valor = String(datos.valor == null ? '' : datos.valor).trim();
+  if (valor === '') return err('Falta el valor de ' + escala + '.', ERR.VALIDACION);
+  const n = parseInt(valor, 10);
+  if (escala === 'BARTHEL' && (isNaN(n) || n < 0 || n > 100 || n % 5 !== 0)) return err('Barthel inválido: ' + valor, ERR.VALIDACION);
+  if (escala === 'ECF' && (isNaN(n) || n < 1 || n > 9)) return err('ECF fuera de 1-9: ' + valor, ERR.VALIDACION);
+  if (escala === 'CHARLSON' && (isNaN(n) || n < 0 || n > 37)) return err('Charlson fuera de 0-37: ' + valor, ERR.VALIDACION);
+
+  return conLock(() => {
+    try {
+      const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+      if (!cama) return err('No existe la cama ' + idCama + '.', ERR.VALIDACION);
+      if (!esVerdadero(cama.OCUPADA) || !cama.PATIENT_ID) return err('La cama ' + idCama + ' no tiene paciente ingresado.', ERR.VALIDACION);
+      let firma = String(datos.firma || ctx.firma || '').trim();
+      if (firma.length > 15 || /\n/.test(firma)) firma = '';
+      const antes = String(cama[col] == null ? '' : cama[col]);
+      const campos = {}; campos[col] = valor;
+      // Los ítems de la calculadora también viven en la cama cuando existen
+      // (BARTHEL_JSON/CHARLSON_JSON son de EVOLUCIONES; aquí se guardan en el
+      // hito para no abrir columnas nuevas por esto).
+      repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, campos);
+      let items = datos.items != null ? datos.items : '';
+      if (items && typeof items !== 'string') { try { items = JSON.stringify(items); } catch (e) { items = ''; } }
+      _agregarHitoInternoSinSync({
+        idCama: idCama, patientId: cama.PATIENT_ID, tipo: 'evaluacion',
+        texto: '📐 ' + ({ ECF: 'ECF', BARTHEL: 'Barthel', CHARLSON: 'Charlson' })[escala] + ' ' + valor +
+               (antes !== '' && antes !== valor ? ' (corrige ' + antes + ')' : '') + (firma ? ' (' + firma + ')' : ''),
+        autor: firma, autorEmail: ctx.email || '',
+        datos: { escala: escala, valor: valor, antes: antes, firma: firma, items: items || '' },
+      });
+      _sincronizarTimelineCama(idCama);
+      SpreadsheetApp.flush();
+      return ok({ entidad: 'CAMAS_ESTADO', accion: 'escala ' + escala, idCama: idCama, valor: valor, antes: antes, firma: firma });
+    } catch (e) { return err('episodioEscala: ' + e.message); }
+  });
+}
+
+/**
+ * Enganche desde guardarEvolucion (sin lock): lo que el turno MIDIÓ pasa a la
+ * serie con la firma del turno. Solo lo que viene con valor: el turno no
+ * hereda evaluaciones (se recargan solo si EVAL_FECHA es hoy), así que un
+ * valor presente es una medición de este turno.
+ */
+function _evalDesdeEvolucion(evo, idCama, idEvolucion, ctx) {
+  const firma = String(evo.PLAN_FIRMA_KINE || (ctx && ctx.firma) || '');
+  const fecha = String(evo.FECHA || hoyISO());
+  const turno = String(evo.TURNO || 'Dia');
+  const hechas = [];
+  const vale = function (x) { return x !== '' && x != null; };
+  const pares = [
+    ['MRC', evo.EVAL_T_MRC, { D: [evo.EVAL_MRC_D1, evo.EVAL_MRC_D2, evo.EVAL_MRC_D3, evo.EVAL_MRC_D4, evo.EVAL_MRC_D5, evo.EVAL_MRC_D6],
+                              I: [evo.EVAL_MRC_I1, evo.EVAL_MRC_I2, evo.EVAL_MRC_I3, evo.EVAL_MRC_I4, evo.EVAL_MRC_I5, evo.EVAL_MRC_I6] }],
+    ['FSS', evo.EVAL_T_FSS, [evo.EVAL_FSS_IT1, evo.EVAL_FSS_IT2, evo.EVAL_FSS_IT3, evo.EVAL_FSS_IT4, evo.EVAL_FSS_IT5]],
+    ['CPAX', evo.CPAX_TOTAL, [evo.CPAX_IT1, evo.CPAX_IT2, evo.CPAX_IT3, evo.CPAX_IT4, evo.CPAX_IT5, evo.CPAX_IT6, evo.CPAX_IT7, evo.CPAX_IT8, evo.CPAX_IT9, evo.CPAX_IT10]],
+    ['PIM', evo.EVAL_T_PIM, null], ['PEM', evo.EVAL_T_PEM, null], ['FEM', evo.EVAL_T_FEM, null],
+    ['DINAMO', evo.EVAL_T_DINAMO, null],
+    ['ECO', evo.EVAL_T_GROSOR, { cuadD: evo.EVAL_T_CUAD_D, cuadI: evo.EVAL_T_CUAD_I, heckmatt: evo.EVAL_T_HECKMATT, fedD: evo.EVAL_T_FED_D, fedI: evo.EVAL_T_FED_I, excD: evo.EVAL_T_EXC_D, excI: evo.EVAL_T_EXC_I, hallazgos: evo.EVAL_T_HALLAZGOS }],
+    ['DEGLUCION', evo.EVAL_DEGLUCION, null],
+  ];
+  pares.forEach(function (p) {
+    if (!vale(p[1])) return;
+    // ¿Ya está esta misma medición en la serie (re-guardado del mismo turno)?
+    const ya = repoLeerTodos('EVALUACIONES', 'ID_EVOLUCION', String(idEvolucion))
+      .some(function (e) { return e.ESCALA === p[0] && !esVerdadero(e.ANULADA) && String(e.TOTAL) === String(p[1]); });
+    if (ya) return;
+    const r = _evalRegistrarInterno({ idCama: idCama, escala: p[0], total: p[1], items: p[2], firma: firma,
+                                      fecha: fecha, turno: turno, origen: 'turno', idEvolucion: idEvolucion }, ctx);
+    if (r && !r.error) hechas.push(p[0]);
+  });
+  try { if (_cultivoALaSerie(evo, idCama, idEvolucion, firma, fecha, turno, ctx)) hechas.push('CULTIVO'); }
+  catch (e) { console.warn('cultivo a la serie:', e.message); }
+  return hechas;
+}
+
+/**
+ * 🧫 CULTIVO — «ambas» (Diego, 11-sep-2026): serie fechada Y evento.
+ * La TOMA del turno (MUE_REALIZADAS) abre una entrada de la serie con la
+ * hora, los tipos, si iba con antibiótico y la firma de quien la tomó, y el
+ * resultado en «pendiente». El RESULTADO llega días después en OTRO turno
+ * (EX_CULT_RESULTADO, que se hereda): se escribe SOBRE esa entrada, con la
+ * fecha y la firma de quien lo anotó — no abre una medición nueva, porque es
+ * el mismo cultivo. El evento es el hito 'CULTIVO DE SECRECIONES' que ya
+ * deja el procedimiento; aquí solo se le agrega el detalle (DATOS_JSON).
+ * Devuelve true si tocó la serie.
+ */
+function _cultivoALaSerie(evo, idCama, idEvolucion, firma, fecha, turno, ctx) {
+  const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', String(idCama));
+  const pid = String((cama && cama.PATIENT_ID) || evo.PATIENT_ID || '');
+  if (!pid) return false;
+  const parse = function (s) { try { const a = JSON.parse(String(s || '[]')); return Array.isArray(a) ? a.filter(Boolean) : []; } catch (e) { return []; } };
+  const res = String(evo.EX_CULT_RESULTADO || '').trim() || parse(evo.MUE_RESULTADOS_JSON).join(', ');
+  const serie = evalDelEpisodio(pid).filter(function (e) { return e.ESCALA === 'CULTIVO'; });
+  const items = function (base) {
+    let o = {}; try { o = JSON.parse(String(base || '{}')) || {}; } catch (e) { o = {}; }
+    return o;
+  };
+  if (esVerdadero(evo.MUE_REALIZADAS)) {
+    const det = { tipos: parse(evo.MUE_TIPOS_JSON), hora: String(evo.MUE_HORA_TOMA || ''),
+                  conATB: esVerdadero(evo.MUE_CON_ATB), objetivo: String(evo.RESP_CULT_OBJ || '') };
+    const mia = serie.filter(function (e) { return String(e.ID_EVOLUCION) === String(idEvolucion); })[0];
+    const total = res || 'pendiente';
+    if (!mia) {
+      const r = _evalRegistrarInterno({ idCama: idCama, escala: 'CULTIVO', total: total, items: det, firma: firma,
+                                        fecha: fecha, turno: turno, origen: 'turno', idEvolucion: idEvolucion }, ctx);
+      return !(r && r.error);
+    }
+    // Re-guardado del mismo turno: se corrige encima, no se duplica.
+    if (String(mia.TOTAL) !== total || String(mia.ITEMS_JSON || '') !== JSON.stringify(det)) {
+      repoActualizar('EVALUACIONES', 'ID_EVAL', String(mia.ID_EVAL), { TOTAL: total, ITEMS_JSON: JSON.stringify(det) });
+      return true;
+    }
+    return false;
+  }
+  if (!res) return false;
+  // Sin toma este turno pero con resultado: es el resultado de la última toma.
+  const pend = serie.filter(function (e) { return String(e.TOTAL) === 'pendiente'; }).pop();
+  if (pend) {
+    const it = items(pend.ITEMS_JSON); it.resultadoFecha = fecha; it.resultadoFirma = firma;
+    repoActualizar('EVALUACIONES', 'ID_EVAL', String(pend.ID_EVAL), { TOTAL: res, ITEMS_JSON: JSON.stringify(it) });
+    return true;
+  }
+  // Resultado heredado sin toma registrada (paciente anterior a la serie): una
+  // sola entrada, y solo si el último cultivo de la serie no dice ya lo mismo.
+  const ult = serie[serie.length - 1];
+  if (ult && String(ult.TOTAL) === res) return false;
+  const r = _evalRegistrarInterno({ idCama: idCama, escala: 'CULTIVO', total: res, items: { sinToma: true }, firma: firma,
+                                    fecha: fecha, turno: turno, origen: 'turno', idEvolucion: idEvolucion }, ctx);
+  return !(r && r.error);
+}
+
+
+// ════════════════════════════════════════════════════════════════════
 // ── svc_eventos.gs ──
 // ════════════════════════════════════════════════════════════════════
 
@@ -3870,6 +4214,24 @@ function guardarEvolucion(datos, ctx) {
       const filaCama = repoBuscarFila('CAMAS_ESTADO', 'ID_CAMA', idCama);
       const cama = filaCama === -1 ? {} : repoLeerFila('CAMAS_ESTADO', filaCama);
 
+      // 🗂️ Dos reglas del episodio que necesitan la CAMA para decidir, y por
+      // eso no caben en validarPayloadEvolucion (que es puro). Se evalúan
+      // sobre el payload TAL COMO LLEGÓ, antes de la fusión.
+      {
+        // 🪤 Los bancos de prueba antiguos cargan una lista FIJA de archivos y
+        // estos dos viven en dominio_validacion / svc_evaluaciones: se preguntan
+        // por typeof, como hace notifRegistrar, para que un banco que no los
+        // trae siga guardando como siempre.
+        const _pidV = String(cama.PATIENT_ID || '');
+        let _tieneFSS = (cama.ULT_FSS !== '' && cama.ULT_FSS != null);
+        if (!_tieneFSS && _pidV && typeof evalDelEpisodio === 'function') {
+          try { _tieneFSS = evalDelEpisodio(_pidV).some(function (e) { return e.ESCALA === 'FSS'; }); } catch (e) {}
+        }
+        const _errsEp = (typeof validarSBC === 'function' ? validarSBC(datos, _tieneFSS) : [])
+          .concat(typeof validarTransicionVA === 'function' ? validarTransicionVA(datos, cama) : []);
+        if (_errsEp.length) return err('Validación: ' + _errsEp.join('; '), ERR.VALIDACION);
+      }
+
       // Foto del trío de KTM TAL COMO LLEGÓ, antes de que la fusión de abajo
       // le copie encima lo de la fila previa. Sin esta foto es imposible
       // distinguir «el turno no opinó» de «el turno heredó».
@@ -4037,7 +4399,18 @@ function guardarEvolucion(datos, ctx) {
       // llegan con el sync único del final (que ya las incluye). Los cálculos
       // de aquí abajo leen cama.FECHA_INGRESO / cama.TS_INGRESO ya corregidos.
       const _hFormIng = _horaValida(datos.PAC_HORA_INGRESO);
-      const _tsIng = _hFormIng ? _tsEventoTurno(fecha, turno, _hFormIng) : '';
+      // 📅 FECHA DE INGRESO MANUAL (Diego, 11-sep-2026): el formulario manda
+      // PAC_FECHA_INGRESO (transitorio, como PAC_RUT: no es columna de
+      // EVOLUCIONES) sugerida con la fecha ACTUAL y editable. Con ella el
+      // momento de ingreso es fecha + hora escritas, y no la fecha del turno.
+      const _fFormIng = /^\d{4}-\d{2}-\d{2}$/.test(String(datos.PAC_FECHA_INGRESO || '')) ? String(datos.PAC_FECHA_INGRESO) : '';
+      const _tsIng = _fFormIng ? (_fFormIng + ' ' + (_hFormIng || _horaAhora()))
+                               : (_hFormIng ? _tsEventoTurno(fecha, turno, _hFormIng) : '');
+      if (esVerdadero(datos.ES_INGRESO) && _fFormIng && !coordCampoCorregido(cama, 'FECHA_INGRESO')) {
+        // El ingreso escribe el momento tal cual lo declaró el colega.
+        cama.FECHA_INGRESO = _fFormIng;
+        cama.TS_INGRESO = _tsIng;
+      }
       if (!cama.FECHA_INGRESO) {
         // Episodio sin fecha de ingreso (paciente cargado sin ingreso formal):
         // se ancla al primer turno evolucionado para que los días no queden '?'.
@@ -4112,7 +4485,12 @@ function guardarEvolucion(datos, ctx) {
                    String(x.TURNO_KEY || '') < String(turnoKey);
           })
           .sort(function (a, b) { return String(b.TURNO_KEY).localeCompare(String(a.TURNO_KEY)); });
-        const _contadorTramos = function (campo, enS, terminoSinS, fInicioTramo) {
+        // ⏱️ VM por bloques de 24 h (Diego, 11-sep-2026): el tramo ABIERTO de
+        // la VM se mide desde el momento de inicio del soporte (hora de ingreso
+        // si llegó ventilado, hora de intubación si no) hasta la hora en que
+        // parte este turno. Los tramos cerrados siguen viniendo del congelado.
+        const _tsRefTurno = _tsInicioTurno(fecha, turno);
+        const _contadorTramos = function (campo, enS, terminoSinS, fInicioTramo, tsInicioTramo) {
           if (!enS) {   // sin el soporte: hereda el congelado (0 si nunca lo tuvo)
             return _epiPrev.length ? (parseInt(_epiPrev[0][campo], 10) || 0) : 0;
           }
@@ -4129,6 +4507,9 @@ function guardarEvolucion(datos, ctx) {
             const f0 = String(_epiPrev[_epiPrev.length - 1].FECHA || '').slice(0, 10);
             if (f0 && (!ini || f0 < ini)) ini = f0;
           }
+          if (campo === 'DIAS_VM' && vmPorHoras() && tsInicioTramo && ini === fInicioTramo) {
+            return base + diasVMReloj(tsInicioTramo, ini, _tsRefTurno, fecha);
+          }
           return base + Math.max(0, diasEntre(ini, fecha) || 0);
         };
         // Inicio del tramo abierto: el reloj de la cama si la cama YA está en
@@ -4136,10 +4517,15 @@ function guardarEvolucion(datos, ctx) {
         // el soporte anterior), el tramo parte hoy — Día 0.
         const _finalSop = function (x) { return String(x.VENT_SOPORTE_FINAL || x.VENT_SOPORTE || ''); };
         const _finalVa  = function (x) { return String(x.VENT_VIA_AEREA_FINAL || x.VENT_VIA_AEREA || ''); };
+        // Llegó VENTILADO al ingreso (sin intubación en este turno): el tramo
+        // parte en el momento de ingreso escrito, que ya está en `cama` (11-sep).
+        const _ingVent = esVerdadero(datos.ES_INGRESO) && _ingresoEscrito(datos) && String(datos.VENT_SOPORTE) === 'VM' &&
+          !_horaValida(datos.INTUB_HORA) && !_horaValida(datos.REINTUB_HORA) && !!cama.FECHA_INGRESO;
         datos.DIAS_VM = _contadorTramos('DIAS_VM',
           String(datos.VENT_SOPORTE) === 'VM' || String(_sopT) === 'VM',
           function (x) { return _finalSop(x) !== 'VM'; },
-          String(cama.SOPORTE) === 'VM' ? cama.FECHA_INICIO_SOPORTE : fecha);
+          String(cama.SOPORTE) === 'VM' ? cama.FECHA_INICIO_SOPORTE : (_ingVent ? cama.FECHA_INGRESO : fecha),
+          String(cama.SOPORTE) === 'VM' ? (cama.TS_INICIO_SOPORTE || '') : (_ingVent ? (cama.TS_INGRESO || '') : ''));
         // VNI manda el SOPORTE registrado, nunca la interfaz: la mascarilla
         // sola (Full Face/Oronasal en oxigenoterapia o CNAF) no es VNI.
         datos.DIAS_VNI = _contadorTramos('DIAS_VNI',
@@ -4304,6 +4690,57 @@ function guardarEvolucion(datos, ctx) {
         }
       }
 
+      /* 🗂️ EVENTOS DE VÍA AÉREA COMO FUENTE DE VERDAD (rama episodio/turno,
+         11-sep-2026). El hito de cada evento nace del procedimiento, como
+         siempre, pero ahora lleva su DETALLE estructurado (hora, tipo, «queda
+         con», motivo) en DATOS_JSON: es lo que la casilla EXT_OCURRIO de la
+         fila del turno no podía contar. La fila del turno SIGUE escribiendo sus
+         columnas (REM, estadística y entrega no cambian de fuente). */
+      const _vv = function (k) { return evo[k] == null ? '' : String(evo[k]); };
+      const datosPorProc = {};
+      if (esVerdadero(evo.EXT_OCURRIO)) {
+        const _dx = { evento: 'extubacion', hora: _vv('EXT_HORA'), ts: _vv('EXT_TS'), tipo: _vv('EXT_TIPO'),
+          motivo: _vv('EXT_MOTIVO'), pve: _vv('PVE_VAL'), pveResultado: _vv('PVE_RESULTADO'),
+          quedaVA: _vv('EXT_PE_VA'), quedaSop: _vv('EXT_PE_SOP'), quedaModo: _vv('EXT_PE_MODO'),
+          firma: _vv('PLAN_FIRMA_KINE') };
+        ['EXTUBACIÓN C/PROTOCOLO', 'EXTUBACIÓN S/PROTOCOLO', 'AUTOEXTUBACIÓN', 'EXTUBACIÓN ACCIDENTAL'].forEach(function (k) { datosPorProc[k] = _dx; });
+      }
+      if (esVerdadero(evo.INTUB_OCURRIO)) {
+        datosPorProc['INTUBACIÓN'] = { evento: 'intubacion', hora: _vv('INTUB_HORA'), totN: _vv('INTUB_TOT_N'), totCm: _vv('INTUB_TOT_CM'),
+          sopPrevio: _vv('INTUB_SOP_PREVIO'), detalle: _vv('INTUB_DET'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
+      if (esVerdadero(evo.EXT_REINTUB)) {
+        datosPorProc['REINTUBACIÓN'] = { evento: 'reintubacion', hora: _vv('REINTUB_HORA'), razon: _vv('EXT_REINTUB_RAZ'), n: _vv('N_REINTUB'),
+          totN: _vv('REINTUB_TOT_N'), totCm: _vv('REINTUB_TOT_CM'), modo: _vv('REINTUB_MODO'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
+      if (esVerdadero(evo.TQT_OCURRIO)) {
+        datosPorProc['TQT'] = { evento: 'tqt', hora: _vv('TQT_HORA'), tecnica: _vv('TQT_TECNICA'), tipo: _vv('VENT_TQT_TIPO'),
+          calibre: _vv('VENT_TQT_CALIBRE'), detalle: _vv('TQT_DET'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
+      if (esVerdadero(evo.MUE_REALIZADAS)) {
+        let _tipos = []; try { _tipos = JSON.parse(String(evo.MUE_TIPOS_JSON || '[]')) || []; } catch (e) { _tipos = []; }
+        datosPorProc['CULTIVO DE SECRECIONES'] = { evento: 'cultivo', hora: _vv('MUE_HORA_TOMA'), tipos: _tipos,
+          conATB: esVerdadero(evo.MUE_CON_ATB), objetivo: _vv('RESP_CULT_OBJ'), resultado: _vv('EX_CULT_RESULTADO'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
+      if (esVerdadero(evo.DECAN_OCURRIO)) {
+        datosPorProc['DECANULACIÓN'] = { evento: 'decanulacion', hora: _vv('DECAN_HORA'), tipo: _vv('DECAN_TIPO'),
+          quedaDisp: _vv('DECAN_QUEDA_DISP'), quedaFlujo: _vv('DECAN_QUEDA_FLUJO'), quedaSpo2: _vv('DECAN_QUEDA_SPO2'),
+          detalle: _vv('DECAN_DET'), firma: _vv('PLAN_FIRMA_KINE') };
+      }
+      // La salida con RAZÓN ESCRITA: la vía aérea cambió sin evento y el colega
+      // explicó por qué. No es una columna de EVOLUCIONES: vive en el hito.
+      const _transMotivo = String(datos.TRANS_MOTIVO || '').trim();
+      if (_transMotivo && cama && cama.VIA_AEREA) {
+        const _vaSale = String(evo.VENT_VIA_AEREA_FINAL || evo.VENT_VIA_AEREA || '');
+        if (_vaSale && _vaSale !== String(cama.VIA_AEREA)) {
+          hitosExtra.push({ tipo: 'via_aerea',
+            texto: '⚠️ Vía aérea ' + cama.VIA_AEREA + ' → ' + _vaSale + ' sin evento declarado: «' +
+                   (_transMotivo.length > 160 ? _transMotivo.slice(0, 159) + '…' : _transMotivo) + '»',
+            autor: evo.PLAN_FIRMA_KINE, autorEmail: ctx.email || '',
+            datos: { evento: 'transicion_sin_evento', de: String(cama.VIA_AEREA), a: _vaSale, motivo: _transMotivo, firma: _vv('PLAN_FIRMA_KINE') } });
+        }
+      }
+
       /* 📌 ANOTACIONES DEL TURNO (v5.97, Diego 5-sep-2026): hechos SIN
          estadística que sí se narran — el «Otro» del ➕ pero desde el
          formulario. Cada una deja su hito tipo 'nota' (tipo auto: el
@@ -4328,12 +4765,18 @@ function guardarEvolucion(datos, ctx) {
       // narra maniobras, no cuenta eventos.
       const procsStats = procs.filter(function (p) { return !/^SUPINACI/i.test(String(p)); });
       _guardarProcedimientosInterno(idEvolucion, idCama, patientId, fecha, turno, procsStats, ctx.email);
-      const timelineJson = _timelineDelGuardado(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email, patientId, hitosExtra);
+      const timelineJson = _timelineDelGuardado(idCama, fecha, turno, procs, evo.PLAN_FIRMA_KINE, ctx.email, patientId, hitosExtra, datosPorProc);
 
       // Sincronizar el snapshot de la cama: la ÚNICA escritura a CAMAS_ESTADO
       // del guardado (lleva también las fechas de ingreso corregidas arriba y
       // el cache de la línea de tiempo recién armado).
       _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, patientId, filaCama, timelineJson);
+
+      // 🗂️ Lo que este turno MIDIÓ pasa a la serie fechada del episodio con la
+      // firma del turno (rama episodio/turno). No hereda nada: un valor
+      // presente en el payload es una medición de HOY.
+      try { if (typeof _evalDesdeEvolucion === 'function') _evalDesdeEvolucion(evo, idCama, idEvolucion, ctx); }
+      catch (e) { console.warn('_evalDesdeEvolucion:', e.message); }
 
       // Reintubación desde el bloque EXT_* (le viaja el lector perezoso del
       // episodio: si el EXT_TS hay que buscarlo hacia atrás, no re-baja la hoja)
@@ -4392,6 +4835,11 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     // (intubación/reintubación/TQT); si no hay, la del registro.
     fechaSoporte = fecha;
     horaSoporte = _tsDesdeHora(_horaValida(evo.INTUB_HORA) || _horaValida(evo.REINTUB_HORA) || _horaValida(evo.TQT_HORA)) || _tsAhora();
+    // Llegó ventilado: el reloj de la VM es el momento de INGRESO (fecha y
+    // hora escritas), no la fecha del turno ni la hora del registro.
+    if (esIngreso && cama.TS_INGRESO && _ingresoEscrito(evo) && !_horaValida(evo.INTUB_HORA) && !_horaValida(evo.REINTUB_HORA) && !_horaValida(evo.TQT_HORA)) {
+      fechaSoporte = _tsFecha(cama.TS_INGRESO) || fechaSoporte; horaSoporte = cama.TS_INGRESO;
+    }
   } else { fechaSoporte = cama.FECHA_INICIO_SOPORTE; horaSoporte = cama.TS_INICIO_SOPORTE || ''; }
 
   // Fecha de inicio de vía aérea: se reinicia si cambia el TIPO de vía aérea
@@ -4455,6 +4903,10 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     const diasPrev = parseInt(evo.VA_EXTERNO_DIAS) || 0;
     fechaVA = (esVerdadero(evo.VA_EXTERNO) && diasPrev > 0) ? _restarDias(fecha, diasPrev) : fecha;
     horaVA = _tsDesdeHora(_horaValida(evo.INTUB_HORA) || _horaValida(evo.REINTUB_HORA) || _horaValida(evo.TQT_HORA)) || _tsAhora();
+    if (esIngreso && cama.TS_INGRESO && _ingresoEscrito(evo) && !esVerdadero(evo.VA_EXTERNO) &&
+        !_horaValida(evo.INTUB_HORA) && !_horaValida(evo.REINTUB_HORA) && !_horaValida(evo.TQT_HORA)) {
+      fechaVA = _tsFecha(cama.TS_INGRESO) || fechaVA; horaVA = cama.TS_INGRESO;
+    }
   } else {
     fechaVA = cama.FECHA_INICIO_VA; horaVA = cama.TS_INICIO_VA || '';
   }
@@ -4498,14 +4950,28 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     ULT_COOP: val(evo.SED_COOPERACION, cama.ULT_COOP),
     ULT_MRC: val(evo.EVAL_T_MRC, cama.ULT_MRC),
     ULT_MRC_FECHA: val(evo.EVAL_T_MRC, '') !== '' ? fecha : (cama.ULT_MRC_FECHA || ''),
+    // 🗂️ La firma viaja con la medición (Diego, 11-sep): quién MIDIÓ, que
+    // desde ahora es distinto de quién evoluciona citándolo.
+    ULT_MRC_FIRMA: val(evo.EVAL_T_MRC, '') !== '' ? String(evo.PLAN_FIRMA_KINE || '') : (cama.ULT_MRC_FIRMA || ''),
     ULT_FSS: val(evo.EVAL_T_FSS, cama.ULT_FSS),
     ULT_FSS_FECHA: val(evo.EVAL_T_FSS, '') !== '' ? fecha : (cama.ULT_FSS_FECHA || ''),
+    ULT_FSS_FIRMA: val(evo.EVAL_T_FSS, '') !== '' ? String(evo.PLAN_FIRMA_KINE || '') : (cama.ULT_FSS_FIRMA || ''),
+    // Estado del EPISODIO (rama episodio/turno): AET y procuramiento se leen
+    // de la cama y no se heredan turno a turno. Quedan activos hasta que un
+    // turno los apague explícitamente (viene false, no vacío).
+    AET_ACTIVA: evo.AET_ACTIVA === '' || evo.AET_ACTIVA == null ? esVerdadero(cama.AET_ACTIVA) : esVerdadero(evo.AET_ACTIVA),
+    AET_NIVEL: val(evo.AET_NIVEL, cama.AET_NIVEL),
+    AET_FECHA: (esVerdadero(evo.AET_ACTIVA) && !esVerdadero(cama.AET_ACTIVA)) ? fecha : (esVerdadero(evo.AET_ACTIVA) || evo.AET_ACTIVA === '' || evo.AET_ACTIVA == null ? (cama.AET_FECHA || '') : ''),
+    UPOT_ACTIVO: evo.UPOT_ACTIVO === '' || evo.UPOT_ACTIVO == null ? esVerdadero(cama.UPOT_ACTIVO) : esVerdadero(evo.UPOT_ACTIVO),
+    UPOT_MEDIDAS: val(evo.UPOT_MEDIDAS, cama.UPOT_MEDIDAS),
+    UPOT_FECHA: (esVerdadero(evo.UPOT_ACTIVO) && !esVerdadero(cama.UPOT_ACTIVO)) ? fecha : (esVerdadero(evo.UPOT_ACTIVO) || evo.UPOT_ACTIVO === '' || evo.UPOT_ACTIVO == null ? (cama.UPOT_FECHA || '') : ''),
     ULT_DINAMO: val(evo.EVAL_T_DINAMO, cama.ULT_DINAMO),
     // Pimometría (v5.93): la presión de soporte y la Pimáx del episodio, para
     // que la campana decida mirando solo la cama.
     ULT_PS: val(evo.VENT_PS, cama.ULT_PS),
     ULT_PIM: val(evo.EVAL_T_PIM, cama.ULT_PIM),
     ULT_PIM_FECHA: val(evo.EVAL_T_PIM, '') !== '' ? fecha : (cama.ULT_PIM_FECHA || ''),
+    ULT_PIM_FIRMA: val(evo.EVAL_T_PIM, '') !== '' ? String(evo.PLAN_FIRMA_KINE || '') : (cama.ULT_PIM_FIRMA || ''),
     // Dispositivos del circuito: cada uno sigue a lo que le da sentido, no
     // todos al soporte VM (Diego, 14-ago-2026). Al salir de VM el circuito se
     // descarta, PERO el Trach Care pertenece a la VÍA AÉREA y sobrevive si el
@@ -5207,6 +5673,13 @@ function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos, _evos) {
     const h = ini ? _horasEntreTS(ini, ts) : '';
     datos.PRONO_HORAS = (h === '' ? '' : h);
   }
+}
+
+/** ¿El formulario trajo la fecha de ingreso ESCRITA (campo de la v6.26)? Solo
+ *  entonces el momento de ingreso manda sobre los relojes del soporte y de la
+ *  vía aérea; un cliente viejo (o un banco de prueba sin el campo) sigue igual. */
+function _ingresoEscrito(d) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String((d && d.PAC_FECHA_INGRESO) || ''));
 }
 
 /**
@@ -6115,7 +6588,21 @@ function notifListar(datos) {
  *     hospital no dibuja los nuevos).
  * Un sello sin entrada no es un error: sale el aviso escueto de siempre.
  */
+// 🗂️ La entrada 7.01 es de la rama paralela episodio/turno + relojes: resume
+// LA TANDA COMPLETA que el equipo ve al pasar a ese sello (el servidor solo
+// conoce el sello que arranca, no las versiones intermedias).
 const NOVEDADES = {
+  '7.02-con-resiembra-plantillas': [
+    '📋 Las escalas ECF, Barthel y Charlson se miden desde la tarjeta de la cama, sin abrir la evolución; se ven pendientes mientras falten.',
+    '✍️ Cada MRC, FSS y Pimáx queda con fecha y con las iniciales de quien lo midió. El dato lo usa cualquiera; la firma dice de dónde salió.',
+    '📝 Arriba del bloque de vía aérea hay una fila nueva: «¿Qué pasó hoy con la vía aérea?». Se declara el evento primero y él fija el tubo.',
+    '🔒 La vía aérea ya no se cambia a mano sin evento. Si de verdad no hubo evento, se escribe por qué y queda en la línea de tiempo.',
+    '🧍 Para registrar sedente al borde de cama (KTM nivel 3) el paciente tiene que tener al menos un FSS-ICU en el episodio.',
+    '📅 Al ingresar un paciente ahora se escriben la FECHA y la HORA de ingreso (vienen sugeridas con el momento actual): de ahí salen los días.',
+    '⏱️ Los días de VM se cuentan por bloques de 24 horas desde la hora de ingreso (si llegó ventilado) o desde la hora de intubación.',
+    '🖨️ Las hojas impresas traen la fecha y la hora de ingreso, y en la carilla neuromuscular VISAGE ya no sale apilado.',
+    '📋 Coordinación puede re-sembrar las plantillas de la unidad: el orden nuevo llega a la planilla que ya las tenía cargadas.',
+  ],
   '6.24-mauri-sin-suelo': [
     '🎊 Del 16 al 20 de septiembre don Mauri se pone de huaso: celebra en la pantalla de carga y juega al emboque abajo a la derecha.',
     '🧪 En la tarjeta del paciente hay un botón nuevo con el logo de cobas: copia el RUT y abre el laboratorio, para no tener que teclearlo.',
@@ -6390,8 +6877,12 @@ const PLANT_NOMBRE_MAX = 40, PLANT_CUERPO_MAX = 4000;
    Al tocar este catálogo, correr build/checks/orden_neuro_en_plantillas.js.
    ⚠️ CAMBIAR LA SEMILLA NO CAMBIA LO SEMBRADO: plantillasSembrarUnidad() solo
    escribe si PLANTILLAS_EVOLUCION está vacía. En una unidad que ya las tiene,
-   el orden nuevo lo publica COORDINACIÓN editando la plantilla en la app. */
-/** Las 13 de la unidad (Diego cerró el catálogo el 2-sep). Se siembran UNA vez. */
+   el orden nuevo lo lleva la RE-SIEMBRA del final de este archivo
+   (plantillasResembrarSimular → plantillasResembrarAplicarAhora), que respeta
+   lo que coordinación haya editado a mano. Y el cuerpo que sale de la semilla
+   hay que MOVERLO a PLANTILLAS_UNIDAD_PUBLICADAS, o la re-siembra siguiente
+   creerá que lo escribió coordinación y no tocará nada. */
+/** Las 17 de la unidad (Diego cerró el catálogo el 2-sep). Se siembran UNA vez. */
 const PLANTILLAS_UNIDAD_SEMILLA = [
   ['general', 'Evolución de la unidad', '{encabezado}\n{dia} {fase}\n{sedacion}\n{hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
   ['ingreso', 'Ingreso a la unidad', '{encabezado}\n{dia} {fase}\n{sedacion}\n{hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}'],
@@ -6520,6 +7011,293 @@ function plantillaDesactivar(datos) {
     } catch (e) { return err('plantillaDesactivar: ' + e.message, ERR.INTERNO, e); }
   });
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RE-SIEMBRA DE LAS PLANTILLAS DE LA UNIDAD (7-sep-2026)
+   ═══════════════════════════════════════════════════════════════════════════
+   EL PROBLEMA. plantillasSembrarUnidad() solo escribe si PLANTILLAS_EVOLUCION
+   está VACÍA. En la unidad ya está sembrada desde v6.02, así que cambiar
+   PLANTILLAS_UNIDAD_SEMILLA arriba NO cambia una sola letra de lo que lee el
+   turno. El orden nuevo (sedoanalgesia/GCS/hemodinamia arriba, reporte de
+   Manuel del 7-sep) necesita una rutina que ACTUALICE lo ya sembrado.
+
+   EL ALCANCE, Y POR QUÉ ES ESE. Una plantilla de la unidad la puede haber
+   editado coordinación desde la app, y ese trabajo NO puede perderse en
+   silencio (es la misma clase de error que esconder una pronación real). Así
+   que la rutina NO reemplaza «todas»: reemplaza solo las que están **intactas
+   desde que se sembraron**, y lo demuestra comparando el cuerpo actual contra
+   los cuerpos que ESTE repositorio publicó alguna vez
+   (PLANTILLAS_UNIDAD_PUBLICADAS, abajo). Si el cuerpo de la hoja no es
+   ninguno de ellos, alguien lo escribió a mano: se salta y se informa.
+
+   No se usa ACTUALIZADO_POR='sistema' como prueba de «intacta»: una edición
+   que cambie solo el NOMBRE ya lo pisa, y entonces la rutina saltaría una
+   plantilla cuyo cuerpo sí había que corregir. El cuerpo se compara con el
+   cuerpo — es el dato que se va a sobrescribir.
+
+   LO QUE NO TOCA, POR DISEÑO:
+     · Nada cuyo ID no sea 'plu_<caso>' de la semilla → las plantillas
+       PERSONALES (DUENO = firma del kine) quedan fuera por construcción, y
+       además se verifica DUENO === 'UNIDAD' antes de escribir. La distinción
+       existe en el modelo: columna DUENO de PLANTILLAS_EVOLUCION.
+     · Las retiradas (ACTIVO=false): reactivarlas sería revertir una decisión
+       de coordinación sin que nadie lo pida.
+     · NOMBRE, CASO, ORDEN, DUENO, ACTIVO. Solo se escribe CUERPO (más el
+       sello ACTUALIZADO/ACTUALIZADO_POR). Menos superficie, menos daño.
+
+   IDEMPOTENTE. Lo que decide es el cuerpo, no una marca ni una fecha: en la
+   segunda corrida las 17 ya tienen el cuerpo nuevo, caen en 'al_dia' y no se
+   escribe NADA (tampoco se crea respaldo, porque no hay nada que respaldar).
+
+   REVERSIBLE. Antes de la primera escritura copia la hoja entera a
+   PLANTILLAS_BAK_<yyyyMMdd_HHmmss> (oculta) y verifica que la copia sea
+   idéntica; si el respaldo falla, no escribe nada. plantillasRestaurarDesde()
+   vuelve atrás.
+
+   CÓMO SE CORRE (desde el editor de Apps Script, en este orden):
+     1) plantillasResembrarSimular()      → no escribe; dice qué haría.
+     2) plantillasResembrarAplicarAhora() → respalda y escribe.
+     3) plantillasRestaurarDesde('PLANTILLAS_BAK_...')  ← solo si hay que volver.
+   Guardia: build/checks/resiembra_plantillas.js                              */
+
+/** Prefijo de las hojas de respaldo. Fuera de ESQUEMA a propósito: son hojas
+ *  libres, crearORepararEstructura no las administra y testEsquema no las ve. */
+const PLANT_BAK_PREFIJO = 'PLANTILLAS_BAK_';
+
+/**
+ * Cuerpos que ESTE repositorio publicó alguna vez para cada caso, distintos
+ * del vigente. Una plantilla cuyo cuerpo está aquí nunca fue editada a mano.
+ * 🔴 AL CAMBIAR PLANTILLAS_UNIDAD_SEMILLA hay que mover el cuerpo saliente a
+ * esta tabla, o la re-siembra siguiente creerá que coordinación lo escribió y
+ * saltará las 17. La guardia resiembra_plantillas.js lo comprueba.
+ */
+const PLANTILLAS_UNIDAD_PUBLICADAS = {
+  "general": [
+    "{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{sedacion} {hemodinamia} {neurologico}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "ingreso": [
+    "{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{sedacion} {hemodinamia} {neurologico}\n{secreciones}\n{evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "vm_nc": [
+    "{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{sedacion} {hemodinamia} {neurologico}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "destete_dif": [
+    "{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{sedacion} {hemodinamia}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia}\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "pve_frustra": [
+    "{encabezado}\n{dia} {fase}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "pve_sup_sin_ext": [
+    "{encabezado}\n{dia} {fase}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia}\n{pve_n} PVE del episodio, {weaning_grado}.\n{pve}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "ext": [
+    "{encabezado}\n{dia} {fase}\n{pve}\n{extubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{pve}\n{extubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "post_ext": [
+    "{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "reintub": [
+    "{encabezado}\n{dia} {fase}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "intub": [
+    "{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{intubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{intubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "autoext": [
+    "{encabezado}\n{dia} {fase}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{extubacion}\n{reintubacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "tqt": [
+    "{encabezado}\n{dia} {fase}\n{tqt}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{tqt}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "destete_tqt": [
+    "{encabezado}\n{dia} {fase} {weaning_grado}.\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{weaning_grado}.\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{sedacion} {hemodinamia}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia}\n{weaning_grado}.\n{via_aerea} {soporte}\n{parametros}\n{pve}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "decan": [
+    "{encabezado}\n{dia} {fase}\n{decanulacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{decanulacion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{posicion}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "prono": [
+    "{encabezado}\n{dia} {fase}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{gases}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{gases}\n{secreciones}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "rehab": [
+    "{encabezado}\n{dia} {fase}\n{evaluaciones}\n{ktm}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{sedacion} {hemodinamia} {neurologico}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+    "{encabezado}\n{dia} {fase}\n{sedacion} {hemodinamia} {neurologico}\n{evaluaciones}\n{ktm}\n{posicion}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{gases}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+  "sin_nov": [
+    "{encabezado}\n{dia} {fase}\n{via_aerea} {soporte}\n{parametros}\n{secreciones}\n{ktm} {evaluaciones}\n{anotaciones}\n{nota}\nPlan: {plan}",
+  ],
+
+};
+
+/** Comparación de cuerpos: Sheets no toca el texto, pero un \r de copiar y
+ *  pegar no puede hacer que una plantilla intacta parezca editada. */
+function _plantNorm(t) {
+  return String(t == null ? '' : t).replace(/\r/g, '').trim();
+}
+
+/**
+ * Copia PLANTILLAS_EVOLUCION a una hoja nueva y comprueba que la copia sea
+ * idéntica. Devuelve el nombre. Lanza si algo no cuadra: quien llama NO debe
+ * escribir si esto falla.
+ */
+function _plantRespaldar() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const orig = ss.getSheetByName('PLANTILLAS_EVOLUCION');
+  if (!orig) throw new Error('No existe la hoja PLANTILLAS_EVOLUCION (corre crearORepararEstructura).');
+  const nombre = PLANT_BAK_PREFIJO + Utilities.formatDate(new Date(), _tz(), 'yyyyMMdd_HHmmss');
+  if (ss.getSheetByName(nombre)) throw new Error('Ya existe la hoja ' + nombre + ': espera un segundo y repite.');
+  const copia = orig.copyTo(ss).setName(nombre);
+  const a = orig.getDataRange().getValues(), b = copia.getDataRange().getValues();
+  if (JSON.stringify(a) !== JSON.stringify(b)) {
+    ss.deleteSheet(copia);
+    throw new Error('El respaldo no salió idéntico al original: no se escribió nada.');
+  }
+  copia.hideSheet();
+  return nombre;
+}
+
+/**
+ * Vuelve atrás: repone por ID lo que guarda una hoja de respaldo.
+ * No borra las plantillas creadas después del respaldo (repone, no reemplaza
+ * la hoja), y es idempotente: lo que ya coincide no se vuelve a escribir.
+ * ⚠️ ACTUALIZADO puede volver sin la hora si Sheets guardó la celda como
+ * fecha; es un campo informativo y no cambia qué plantilla se aplica.
+ */
+function plantillasRestaurarDesde(nombreHoja) {
+  return conLock(function () {
+    try {
+      const nombre = String(nombreHoja || '').trim();
+      if (nombre.indexOf(PLANT_BAK_PREFIJO) !== 0) {
+        return err('Eso no es un respaldo de plantillas: ' + (nombre || '(vacío)') + '. Debe empezar con ' + PLANT_BAK_PREFIJO, ERR.VALIDACION);
+      }
+      const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nombre);
+      if (!h) return err('No existe la hoja de respaldo ' + nombre + '.', ERR.NO_ENCONTRADO);
+      const fi = FILA_DATOS.PLANTILLAS_EVOLUCION, total = TOTAL_COLS.PLANTILLAS_EVOLUCION, ult = h.getLastRow();
+      if (ult < fi) return err('El respaldo ' + nombre + ' no tiene filas.', ERR.VALIDACION);
+      const filas = h.getRange(fi, 1, ult - fi + 1, total).getValues();
+      const repuestas = [], iguales = [];
+      for (let i = 0; i < filas.length; i++) {
+        const o = esquemaFilaAObjeto('PLANTILLAS_EVOLUCION', filas[i]);
+        const id = String(o.ID || '').trim();
+        if (!id) continue;
+        const viva = repoBuscarPorId('PLANTILLAS_EVOLUCION', 'ID', id);
+        if (viva && _plantNorm(viva.CUERPO) === _plantNorm(o.CUERPO) &&
+            String(viva.NOMBRE || '') === String(o.NOMBRE || '') &&
+            esVerdadero(viva.ACTIVO) === esVerdadero(o.ACTIVO)) { iguales.push(id); continue; }
+        repoUpsert('PLANTILLAS_EVOLUCION', 'ID', id, o);
+        repuestas.push(id);
+      }
+      console.log('↩️ Restauradas desde ' + nombre + ': ' + repuestas.length +
+        ' repuestas, ' + iguales.length + ' ya estaban iguales.');
+      return ok({ respaldo: nombre, repuestas: repuestas, iguales: iguales.length,
+        accion: 'plantillas_restauradas', entidad: 'PLANTILLAS_EVOLUCION' });
+    } catch (e) { return err('plantillasRestaurarDesde: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/**
+ * El plan de re-siembra. `aplicar=false` no escribe una sola celda.
+ * Devuelve ok({...}) con el detalle de qué se tocó, qué se saltó y por qué.
+ */
+function _plantResembrar(aplicar) {
+  return conLock(function () {
+    try {
+      const vivas = repoLeerTodos('PLANTILLAS_EVOLUCION');
+      if (!vivas.length) {
+        return err('La hoja está vacía: esto no es una re-siembra, es una siembra. Corre plantillasSembrarUnidad().', ERR.VALIDACION);
+      }
+      const porId = {};
+      for (let i = 0; i < vivas.length; i++) porId[String(vivas[i].ID || '').trim()] = vivas[i];
+
+      const plan = [];
+      PLANTILLAS_UNIDAD_SEMILLA.forEach(function (t) {
+        const caso = t[0], nombre = t[1], cuerpo = t[2], id = 'plu_' + caso;
+        const p = porId[id];
+        if (!p) { plan.push({ id: id, caso: caso, accion: 'sembrar', motivo: 'no está en la hoja', cuerpo: cuerpo, nombre: nombre }); return; }
+        if (String(p.DUENO || '').trim().toUpperCase() !== 'UNIDAD') {
+          plan.push({ id: id, caso: caso, accion: 'saltar', motivo: 'esa fila ya no es de la unidad (DUENO distinto de UNIDAD)' }); return;
+        }
+        if (!esVerdadero(p.ACTIVO)) {
+          plan.push({ id: id, caso: caso, accion: 'saltar', motivo: 'retirada por coordinación (ACTIVO=false); reactivarla no me toca' }); return;
+        }
+        const act = _plantNorm(p.CUERPO);
+        if (act === _plantNorm(cuerpo)) { plan.push({ id: id, caso: caso, accion: 'al_dia', motivo: 'ya tiene el orden nuevo' }); return; }
+        const previos = (PLANTILLAS_UNIDAD_PUBLICADAS[caso] || []).map(_plantNorm);
+        if (previos.indexOf(act) === -1) {
+          plan.push({ id: id, caso: caso, accion: 'saltar',
+            motivo: 'editada a mano: su cuerpo no es ninguno de los ' + previos.length + ' que publicó el repositorio (última edición: ' + (p.ACTUALIZADO || 'sin fecha') + ')' });
+          return;
+        }
+        plan.push({ id: id, caso: caso, accion: 'actualizar', motivo: 'intacta desde que se sembró', cuerpo: cuerpo });
+      });
+
+      // Filas plu_* que la semilla ya no contempla: se informan, no se tocan.
+      Object.keys(porId).forEach(function (id) {
+        if (id.indexOf('plu_') !== 0) return;
+        for (let i = 0; i < PLANTILLAS_UNIDAD_SEMILLA.length; i++) {
+          if ('plu_' + PLANTILLAS_UNIDAD_SEMILLA[i][0] === id) return;
+        }
+        plan.push({ id: id, caso: String(porId[id].CASO || ''), accion: 'saltar', motivo: 'no le corresponde ninguna semilla de hoy' });
+      });
+
+      const aEscribir = plan.filter(function (x) { return x.accion === 'actualizar' || x.accion === 'sembrar'; });
+      let respaldo = '';
+      if (aplicar && aEscribir.length) {
+        respaldo = _plantRespaldar();      // si esto lanza, no se escribe nada
+        const sello = ahoraTS();
+        let extra = 0;
+        aEscribir.forEach(function (x) {
+          if (x.accion === 'sembrar') {
+            repoInsertar('PLANTILLAS_EVOLUCION', {
+              ID: x.id, DUENO: 'UNIDAD', CASO: x.caso, NOMBRE: x.nombre, CUERPO: x.cuerpo,
+              ACTIVO: true, ORDEN: vivas.length + 1 + (extra++), ACTUALIZADO: sello, ACTUALIZADO_POR: 'resiembra' });
+          } else {
+            repoActualizar('PLANTILLAS_EVOLUCION', 'ID', x.id,
+              { CUERPO: x.cuerpo, ACTUALIZADO: sello, ACTUALIZADO_POR: 'resiembra' });
+          }
+        });
+      }
+
+      const lista = function (a) { return plan.filter(function (x) { return x.accion === a; }); };
+      const inf = {
+        aplicado: !!aplicar, respaldo: respaldo,
+        actualizadas: lista('actualizar').map(function (x) { return x.caso; }),
+        sembradas: lista('sembrar').map(function (x) { return x.caso; }),
+        alDia: lista('al_dia').map(function (x) { return x.caso; }),
+        saltadas: lista('saltar').map(function (x) { return { id: x.id, motivo: x.motivo }; }),
+      };
+      console.log((aplicar ? '📋 RE-SIEMBRA APLICADA' : '📋 SIMULACRO (no se escribió nada)') +
+        (respaldo ? ' · respaldo: ' + respaldo : '') +
+        '\n   ' + (aplicar ? 'actualizadas' : 'se actualizarían') + ': ' + (inf.actualizadas.join(', ') || 'ninguna') +
+        '\n   ' + (aplicar ? 'sembradas' : 'se sembrarían') + ': ' + (inf.sembradas.join(', ') || 'ninguna') +
+        '\n   ya al día: ' + (inf.alDia.join(', ') || 'ninguna') +
+        '\n   saltadas: ' + (inf.saltadas.length || 'ninguna'));
+      inf.saltadas.forEach(function (s) { console.log('   ⏭️ ' + s.id + ' — ' + s.motivo); });
+      return ok(inf);
+    } catch (e) { return err('_plantResembrar: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/** Dice qué haría la re-siembra. NO escribe nada. Correr SIEMPRE esta primero. */
+function plantillasResembrarSimular() { return _plantResembrar(false); }
+
+/** ⚠️ ESCRIBE. Respalda y actualiza las plantillas de la unidad que estén intactas. */
+function plantillasResembrarAplicarAhora() { return _plantResembrar(true); }
 
 
 // ════════════════════════════════════════════════════════════════════
@@ -7590,6 +8368,10 @@ function _agregarHitoInternoSinSync(hito) {
     AUTOR:       hito.autor || '',
     AUTOR_EMAIL: hito.autorEmail || '',
     TIMESTAMP:   ahoraTS(),
+    // 🗂️ Detalle estructurado del evento (rama episodio/turno): hora, tipo,
+    // «queda con», motivo. Vacío en los hitos de siempre; lleno en los que
+    // escribe el guardado del turno para cada evento de vía aérea.
+    DATOS_JSON:  hito.datos ? (typeof hito.datos === 'string' ? hito.datos : JSON.stringify(hito.datos)) : '',
   });
 }
 
@@ -7772,7 +8554,10 @@ function _procLabelGenerico(proc) {
  *
  * @return {string} TIMELINE_JSON (últimos 30 hitos de la cama)
  */
-function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, patientId, hitosExtra) {
+// `datosPorProc` (rama episodio/turno): detalle estructurado por procedimiento
+// de vía aérea —hora, tipo, «queda con»— que viaja a DATOS_JSON del hito que
+// ese procedimiento genera. Opcional: sin él, los hitos nacen como siempre.
+function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, patientId, hitosExtra, datosPorProc) {
   const id = String(idCama);
   // UNA lectura: sirve para decidir qué borrar Y para armar el cache después.
   const todos = repoLeerTodosConFila('TIMELINE');
@@ -7854,6 +8639,8 @@ function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, pa
       FECHA: hito.fecha || fecha, TURNO: hito.turno || turno, TIPO: hito.tipo || 'general',
       TEXTO: hito.texto || '', AUTOR: hito.autor || autor || '',
       AUTOR_EMAIL: hito.autorEmail || autorEmail || '', TIMESTAMP: ahoraTS(),
+      // 🗂️ Detalle estructurado del evento (rama episodio/turno).
+      DATOS_JSON: hito.datos ? (typeof hito.datos === 'string' ? hito.datos : JSON.stringify(hito.datos)) : '',
     });
   };
   let ingresoPuesto = hayIngreso;
@@ -7870,7 +8657,8 @@ function _timelineDelGuardado(idCama, fecha, turno, procs, autor, autorEmail, pa
     const map = PROC_TO_HITO[_procClaveHito(proc)] ||
                 { tipo: 'procedimiento', label: _procLabelGenerico(proc), generico: true };
     if (!map.label) return;   // procedimiento vacío: nada que anotar
-    agregarUnico({ tipo: map.tipo, texto: map.label });
+    const _d = datosPorProc && datosPorProc[_procClaveHito(proc)];
+    agregarUnico({ tipo: map.tipo, texto: map.label, datos: _d || null });
   });
   repoInsertarVarios('TIMELINE', nuevos);
 

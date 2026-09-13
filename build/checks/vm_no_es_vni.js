@@ -50,7 +50,7 @@ eq('  Natural no ofrece VM ni VNI',
 /* ══ 2 · LOS CONTADORES SON DOS, SEPARADOS ══════════════════════════════ */
 console.log('\n2 · Días de VM y días de VNI se cuentan por separado');
 const evo = lee('svc_evoluciones.gs');
-const bloqueVM = (evo.match(/datos\.DIAS_VM = _contadorTramos\([\s\S]{0,260}?\);/) || [''])[0];
+const bloqueVM = (evo.match(/datos\.DIAS_VM = _contadorTramos\([\s\S]{0,600}?\);/) || [''])[0];
 const bloqueVNI = (evo.match(/datos\.DIAS_VNI = _contadorTramos\([\s\S]{0,260}?\);/) || [''])[0];
 eq('el contador de días de VM existe', bloqueVM !== '', true);
 eq('el de VNI también, aparte', bloqueVNI !== '', true);
@@ -70,7 +70,7 @@ const CONSUMIDORES = [
   ['REM · turnos en VM', 'svc_rem.gs',
    /if \(e\.VENT_SOPORTE === 'VM'\) turnosVM\+\+;/],
   ['tarjeta de cama · días de VM en vivo', 'svc_camas.gs',
-   /c\.DIAS_VM = \(c\.SOPORTE === 'VM'\) \? diasEntre/],
+   /c\.DIAS_VM = \(c\.SOPORTE === 'VM'\) \? diasVMReloj\(c\.TS_INICIO_SOPORTE, c\.FECHA_INICIO_SOPORTE/],
   ['reparación · resellar DIAS_VM', 'mantenimiento_manuel.gs',
    /DIAS_VM: {2}e => String\(e\.VENT_SOPORTE\) === 'VM' {2}\|\| finSop\(e\) === 'VM',/],
   ['reparación · resellar DIAS_VNI aparte', 'mantenimiento_manuel.gs',
@@ -94,7 +94,8 @@ eq('  …y esa bandera solo estampa el reloj del soporte',
 eq('  …y NUNCA un contador de días',
   /DIAS_VM[^\n]*tieneVM|tieneVM[^\n]*DIAS_VM/.test(camas), false);
 eq('★ y el tramo de VM solo arranca del reloj si la cama YA está en VM',
-  /String\(cama\.SOPORTE\) === 'VM' \? cama\.FECHA_INICIO_SOPORTE : fecha/.test(evo), true);
+  // v6.26: o desde el momento de INGRESO escrito si llegó ventilado (_ingVent); si no, hoy.
+  /String\(cama\.SOPORTE\) === 'VM' \? cama\.FECHA_INICIO_SOPORTE : \(_ingVent \? cama\.FECHA_INGRESO : fecha\)/.test(evo), true);
 
 /* ══ 5 · LA INTERFAZ NO DECIDE ══════════════════════════════════════════ */
 console.log('\n5 · Manda el soporte registrado, no la mascarilla');

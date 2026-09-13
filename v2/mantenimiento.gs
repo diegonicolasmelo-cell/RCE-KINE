@@ -158,6 +158,7 @@ const _RESET_VACIAR = [
   // de «solo agregar» aplica al código de la app, no a esta rutina explícita.
   'NOTIFICACIONES',
   'GSA_IMPORTADAS',   // gases importados de la marcha que se resetea
+  'EVALUACIONES',     // 🗂️ la serie fechada del episodio: dato clínico, se va con el reseteo
 ];
 // Hojas que NO se tocan (configuración de la unidad).
 const _RESET_CONSERVAR = ['CONFIG', 'CATALOGOS', 'CAT_MATRICES', 'KINESIOLOGOS', 'INDICADORES_HISTORICO', 'PLANTILLAS_EVOLUCION'];
@@ -776,7 +777,9 @@ function revisarRelojesCama(idCama) {
     '   ⏱️ ANCLAS (de aquí salen los días; se corrigen en 🔐 COORDINACIÓN)',
     '     ingreso a la unidad : ' + (c.FECHA_INGRESO || '—') + '   → ' + diasEntre(c.FECHA_INGRESO, hoy) + ' días',
     '     inicio de vía aérea : ' + (c.FECHA_INICIO_VA || '—') + '   → ' + (c.FECHA_INICIO_VA ? diasEntre(c.FECHA_INICIO_VA, hoy) : '—') + ' días',
-    '     inicio de ventilación: ' + (c.FECHA_INICIO_SOPORTE || '—') + '   → ' + (c.FECHA_INICIO_SOPORTE ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : '—') + ' días'];
+    '     inicio de ventilación: ' + (c.TS_INICIO_SOPORTE || c.FECHA_INICIO_SOPORTE || '—') + '   → ' +
+      (c.FECHA_INICIO_SOPORTE ? diasVMReloj(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _tsAhora(), hoy) : '—') + ' días' +
+      (vmPorHoras() ? ' (bloques de 24 h; por calendario: ' + (c.FECHA_INICIO_SOPORTE ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : '—') + ')' : '')];
   const corr = String(c.CORRECCIONES_JSON || '').trim();
   L.push('     correcciones de coordinación: ' + (corr && corr !== '[]' ? corr : 'ninguna'));
   if (c.FECHA_INGRESO && c.FECHA_INICIO_VA && String(c.FECHA_INICIO_VA) > String(c.FECHA_INGRESO)) {
@@ -817,6 +820,41 @@ function revisarRelojesCama(idCama) {
  * justifique (intubación, TQT, reintubación). Es exactamente la huella que
  * dejó el error de la cama 17: el reloj saltó solo.
  */
+/**
+ * tablaRelojes — LAS DOS FECHAS DE CADA CAMA, para cotejar con el otro
+ * programa (Diego, 11-sep-2026: «si calculas fecha de ingreso y actual para
+ * cada paciente, ¿podrías darme las 2 fechas?»). Solo lectura. Por cama:
+ * ingreso (fecha y hora), el momento de hoy, la estadía contada por
+ * CALENDARIO (como BUDA) y por bloques de 24 h, y lo mismo para la VM desde
+ * su reloj (hora de ingreso si llegó ventilado, hora de intubación si no).
+ * 🔒 Sin nombres ni RUT: la salida se puede copiar tal cual.
+ * Ejecutar desde el editor y leer el registro.
+ */
+function tablaRelojes() {
+  const hoy = hoyISO(), ahora = _tsAhora();
+  const camas = repoLeerTodos('CAMAS_ESTADO')
+    .filter(function (c) { return esVerdadero(c.OCUPADA); })
+    .sort(function (a, b) { return (parseInt(a.ID_CAMA, 10) || 0) - (parseInt(b.ID_CAMA, 10) || 0); });
+  const pad = function (x, n) { x = String(x == null ? '' : x); while (x.length < n) x += ' '; return x; };
+  const bloques = function (ts) { const h = _horasEntreTS(ts, ahora); return h === '' ? '—' : Math.floor(h / 24); };
+  const L = ['📅 TABLA DE RELOJES · hoy ' + ahora + '   (' + camas.length + ' camas ocupadas; sin nombres ni RUT)', '',
+    pad('cama', 5) + pad('VA', 10) + pad('soporte', 16) + pad('INGRESO (fecha hora)', 22) + pad('estadía cal.', 14) + pad('estadía 24h', 13) +
+    pad('INICIO VM (fecha hora)', 24) + pad('VM cal.', 9) + 'VM 24h'];
+  camas.forEach(function (c) {
+    const ing = String(c.TS_INGRESO || c.FECHA_INGRESO || '—');
+    const esVM = String(c.SOPORTE) === 'VM';
+    const vmIni = esVM ? String(c.TS_INICIO_SOPORTE || c.FECHA_INICIO_SOPORTE || '—') : '—';
+    L.push(pad(c.ID_CAMA, 5) + pad(c.VIA_AEREA || '—', 10) + pad(c.SOPORTE || '—', 16) + pad(ing, 22) +
+      pad(c.FECHA_INGRESO ? diasEntre(c.FECHA_INGRESO, hoy) : '—', 14) + pad(c.TS_INGRESO ? bloques(c.TS_INGRESO) : '—', 13) +
+      pad(vmIni, 24) + pad(esVM && c.FECHA_INICIO_SOPORTE ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : '—', 9) +
+      (esVM && c.TS_INICIO_SOPORTE ? bloques(c.TS_INICIO_SOPORTE) : '—'));
+  });
+  L.push('', 'cal. = días de calendario (ingreso = día 0, como BUDA) · 24h = bloques completos de 24 horas desde la hora registrada.');
+  const txt = L.join('\n');
+  Logger.log(txt);
+  return txt;
+}
+
 function _relojesDeLaUnidad() {
   const hoy = hoyISO();
   const camas = repoLeerTodos('CAMAS_ESTADO')
@@ -839,7 +877,7 @@ function _relojesDeLaUnidad() {
     const id = String(c.ID_CAMA);
     const dIng = c.FECHA_INGRESO ? diasEntre(c.FECHA_INGRESO, hoy) : '—';
     const dVA = c.FECHA_INICIO_VA ? diasEntre(c.FECHA_INICIO_VA, hoy) : '—';
-    const dVM = (String(c.SOPORTE) === 'VM' && c.FECHA_INICIO_SOPORTE) ? diasEntre(c.FECHA_INICIO_SOPORTE, hoy) : '—';
+    const dVM = (String(c.SOPORTE) === 'VM' && c.FECHA_INICIO_SOPORTE) ? diasVMReloj(c.TS_INICIO_SOPORTE, c.FECHA_INICIO_SOPORTE, _tsAhora(), hoy) : '—';
     const tieneVA = c.VIA_AEREA && String(c.VIA_AEREA) !== 'Natural';
     const saltoVA = tieneVA && c.FECHA_INGRESO && c.FECHA_INICIO_VA &&
       String(c.FECHA_INICIO_VA) > String(c.FECHA_INGRESO) &&
@@ -937,7 +975,8 @@ var AUDIT_ACCIONES = ['AGREGAR_FASE', 'AGREGAR_HITO', 'AJUSTAR_STOCK', 'ANEXAR_E
 function auditoriaIntegridad() {
   try {
     const out = { A_clavesRepetidas: [], B_camasConAjenas: [], C_primerGuardadoSobreFila: [],
-      C_filasAparteDesdeV599: 0, D_turnosConDosEpisodios: 0, E_episodiosSinEvoluciones: [] };
+      C_filasAparteDesdeV599: 0, D_turnosConDosEpisodios: 0, E_episodiosSinEvoluciones: [],
+      F_viaAereaSinEvento: [] };
     const lineas = [];
 
     // A + B + D — hoja viva y archivo, solo las columnas que hacen falta.
@@ -1005,6 +1044,44 @@ function auditoriaIntegridad() {
         ingreso: String(a.FECHA_INGRESO || '').slice(0, 10), egreso: String(a.FECHA_EGRESO || '').slice(0, 10) });
     });
 
+    // F — 🗂️ VÍA AÉREA CAMBIADA SIN EVENTO (rama episodio/turno, 11-sep-2026;
+    // la cama 13 de Diego). Un turno cuya vía aérea de salida es distinta de
+    // la que traía y que no declaró intubación, extubación, reintubación, TQT
+    // ni decanulación. Para las cifras esa extubación nunca ocurrió y el reloj
+    // de VM siguió corriendo. Vivos Y archivados, porque el daño ya puede
+    // estar en ARCHIVO_PACIENTES (EXTUBACION_OK falso, DIAS_VM_TOTAL inflado).
+    try {
+      const colsF = ['ID_EVOLUCION', 'ID_CAMA', 'PATIENT_ID', 'TURNO_KEY', 'ES_INGRESO',
+        'VENT_VIA_AEREA', 'VENT_VIA_AEREA_FINAL', 'EXT_OCURRIO', 'INTUB_OCURRIO', 'EXT_REINTUB', 'TQT_OCURRIO', 'DECAN_OCURRIO'];
+      const filasF = repoLeerColumnasConFila('EVOLUCIONES', colsF).map(function (f) { return f.obj; })
+        .concat(repoLeerColumnasConFila('EVOLUCIONES_ARCHIVO', colsF).map(function (f) { return f.obj; }));
+      const porEp = {};
+      filasF.forEach(function (e) {
+        const k = String(e.PATIENT_ID || ('cama:' + e.ID_CAMA));
+        (porEp[k] = porEp[k] || []).push(e);
+      });
+      const inv = function (x) { return x === 'TOT' || x === 'TQT'; };
+      Object.keys(porEp).forEach(function (k) {
+        const evs = porEp[k].sort(function (a, b) { return String(a.TURNO_KEY).localeCompare(String(b.TURNO_KEY)); });
+        for (let i = 1; i < evs.length; i++) {
+          const prev = evs[i - 1], cur = evs[i];
+          if (esVerdadero(cur.ES_INGRESO)) continue;
+          const de = String(prev.VENT_VIA_AEREA_FINAL || prev.VENT_VIA_AEREA || '').trim();
+          const a = String(cur.VENT_VIA_AEREA_FINAL || cur.VENT_VIA_AEREA || '').trim();
+          if (!de || !a || de === a) continue;
+          const evento = esVerdadero(cur.EXT_OCURRIO) || esVerdadero(cur.INTUB_OCURRIO) || esVerdadero(cur.EXT_REINTUB) ||
+                         esVerdadero(cur.TQT_OCURRIO) || esVerdadero(cur.DECAN_OCURRIO);
+          if (evento) continue;
+          let que = 'cambio sin evento';
+          if (inv(de) && !inv(a)) que = de === 'TQT' ? 'decanulación sin declarar' : 'extubación sin declarar (invisible para el REM; reloj de VM abierto)';
+          else if (!inv(de) && inv(a)) que = 'intubación/reintubación sin declarar';
+          else if (de === 'TOT' && a === 'TQT') que = 'TQT sin declarar';
+          out.F_viaAereaSinEvento.push({ cama: String(cur.ID_CAMA), turno: String(cur.TURNO_KEY), de: de, a: a,
+            pid: String(cur.PATIENT_ID || '').slice(0, 8), que: que });
+        }
+      });
+    } catch (e) { lineas.push('  (huella F no se pudo calcular: ' + e.message + ')'); }
+
     // Informe legible (sin nombres ni RUT: solo camas, turnos y 8 letras del pid).
     lineas.unshift('AUDITORÍA DE INTEGRIDAD — solo lectura, nada se modificó');
     lineas.push('A · Claves repetidas en la hoja viva: ' + out.A_clavesRepetidas.length +
@@ -1019,6 +1096,9 @@ function auditoriaIntegridad() {
     lineas.push('D · Cama+turno con dos episodios (egreso e ingreso el mismo turno, informativo): ' + out.D_turnosConDosEpisodios);
     lineas.push('E · Episodios archivados sin ninguna evolución: ' + out.E_episodiosSinEvoluciones.length +
       (out.E_episodiosSinEvoluciones.length ? '\n' + out.E_episodiosSinEvoluciones.map(function (x) { return '   · cama ' + x.cama + ' · ' + x.ingreso + ' → ' + x.egreso + ' · pid ' + x.pid; }).join('\n') : ''));
+    lineas.push('F · Vía aérea cambiada SIN evento declarado (vivos + archivo): ' + out.F_viaAereaSinEvento.length +
+      (out.F_viaAereaSinEvento.length ? '\n' + out.F_viaAereaSinEvento.map(function (x) { return '   · cama ' + x.cama + ' · ' + x.turno + ' · ' + x.de + ' → ' + x.a + ' · ' + x.que + ' · pid ' + x.pid; }).join('\n') +
+        '\n   → abrir esa evolución, declarar el evento en «¿Qué pasó hoy con la vía aérea?» y volver a guardar.' : ''));
     const msg = lineas.join('\n');
     Logger.log(msg);
     out.mensaje = msg;

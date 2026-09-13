@@ -63,7 +63,8 @@ const SEMBRAR = () => {
   const p = await b.newPage({ viewport: { width: 900, height: 1300 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   const fails = [];
-  const eq = (l, g, w) => { const ok = String(g) === String(w); console.log((ok ? '✅' : '❌') + ' ' + l + ': ' + JSON.stringify(g)); if (!ok) fails.push(l); };
+  const si = (l, g) => eq(l, !!g, true);
+const eq = (l, g, w) => { const ok = String(g) === String(w); console.log((ok ? '✅' : '❌') + ' ' + l + ': ' + JSON.stringify(g)); if (!ok) fails.push(l); };
 
   await p.addInitScript(PUENTE);
   await p.goto(idx);
@@ -370,6 +371,18 @@ const SEMBRAR = () => {
       cambioHEPA: /HEPA:\s*\*08-08\s*\(Cambiar HOY — atrasado\)/.test(tF),
       nCambios: (pg1.innerHTML.match(/rk-cambio/g) || []).length,
       cabe, unaLinea, cabeGigante,
+      // v6.25 (Diego, 11-sep-2026): fecha y hora de INGRESO en el encabezado,
+      // para recalcular los días a mano si el contador saliera mal.
+      ingresoCab: /INGRESO<\/b><br><span[^>]*>04\/08\/26 09:00<\/span>/.test(pg1.innerHTML),
+      // …y la última tabla de la carilla 2 (VISAGE, scores de vía aérea) va a
+      // lo ANCHO, en dos bloques de dos columnas: antes tenía un colgroup de
+      // diez columnas con filas de cinco celdas y salía apilada en media página.
+      c2Ancha: (()=>{ const pg2=document.querySelectorAll('.rk-page')[1]; const tabs=pg2.querySelectorAll('table.rk-t'); const t=tabs[tabs.length-1];
+        const cols=t.querySelectorAll('colgroup col').length;
+        // Cada fila debe cubrir las 5 columnas (sumando colspan): así ninguna queda corta y apilada.
+        const celdas=Array.from(t.querySelectorAll('tr')).map(tr=>Array.from(tr.children).reduce((a,td)=>a+(parseInt(td.getAttribute('colspan'))||1),0));
+        const ancho=(t.offsetWidth&&t.parentElement.offsetWidth)?Math.round(t.offsetWidth/t.parentElement.offsetWidth*100):(/width:100%/.test(getComputedStyle(t).width)||t.style.width==='100%'?100:parseInt(getComputedStyle(t).width)||0);
+        return { cols, ancho, filas5: celdas.every(n=>n===5), visage: /VISAGE/.test(t.textContent), scores: /Scores cuidados de v/.test(t.textContent) }; })(),
       // Las etiquetas de la carilla 2, con valor, tope y fecha.
       mrcUlt: /MRC-ss[\s\S]{0,80}?44\/60 \(10-08\)/.test(t2.replace(/\s+/g,' ')),
       fssUlt: /FSS-ICU[\s\S]{0,80}?22\/35 \(09-08\)/.test(t2.replace(/\s+/g,' ')),
@@ -387,6 +400,27 @@ const SEMBRAR = () => {
   eq('★ el nombre cabe en su celda', R12.cabe, true);
   eq('…en una sola línea', R12.unaLinea, true);
   eq('★ y el nombre de 50 caracteres también', R12.cabeGigante, true);
+  eq('★ encabezado · INGRESO con fecha y hora (04/08/26 09:00)', R12.ingresoCab, true);
+  // Diego, 11-sep: «que la hoja igual incluya la hora de ingreso» — también la
+  // lista del día (todos en una hoja) y la hoja de rehabilitación.
+  const RIng = await p.evaluate(() => {
+    // Banco propio: los ensayos anteriores dejaron el DB con otras camas.
+    const c = { ID_CAMA: '1', OCUPADA: true, PATIENT_ID: 'p1', NOMBRE: 'PRUEBA INGRESO', EDAD: 60, SEXO: 'M', DIAGNOSTICO: 'NAC',
+                FECHA_INGRESO: '2026-08-04', TS_INGRESO: '2026-08-04 09:00', VIA_AEREA: 'TOT', SOPORTE: 'VM' };
+    const lista = listaDelDiaHTML([c], '2026-08-11', '10:00');
+    let rhb = ''; const DB0 = DB.slice();
+    try { DB.length = 0; DB.push(c); TLC = '1'; TL_EVOS = [{ TURNO_KEY: '2026-08-10-Dia' }]; const old = document.getElementById('rkPrint').innerHTML;
+      window._imprimirVertical = () => {}; imprimirHojaRHB(); rhb = document.getElementById('rhbPrint').innerHTML; document.getElementById('rkPrint').innerHTML = old; } catch (e) { rhb = 'ERR ' + e.message; }
+    DB.length = 0; DB0.forEach(x => DB.push(x));
+    return { lista: /INGRESO<\/b><br><span[^>]*>04\/08\/26 09:00<\/span>/.test(lista), rhb: /Ingreso:<\/b> 04\/08\/26 09:00/.test(rhb), rhbErr: /^ERR/.test(rhb) ? rhb : '' };
+  });
+  eq('★ lista del día · INGRESO con fecha y hora', RIng.lista, true);
+  eq('★ hoja de rehabilitación · Ingreso con fecha y hora', RIng.rhb, true);
+  if (RIng.rhbErr) console.log('   ' + RIng.rhbErr);
+  eq('★ carilla 2 · la tabla VISAGE / scores tiene 5 columnas declaradas', R12.c2Ancha.cols, 5);
+  eq('…todas sus filas tienen 5 celdas (nada apilado)', R12.c2Ancha.filas5, true);
+  si('…y ocupa el ancho de la página (≥ 90 %)', R12.c2Ancha.ancho >= 90);
+  si('…con VISAGE y los scores de vía aérea', R12.c2Ancha.visage && R12.c2Ancha.scores);
   eq('★ carilla 2 · MRC con valor y fecha: 44/60 (10-08)', R12.mrcUlt, true);
   eq('★ carilla 2 · FSS-ICU con valor y fecha: 22/35 (09-08)', R12.fssUlt, true);
   eq('sin medición no se inventa: «—»', R12.sinDato, true);

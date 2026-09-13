@@ -370,6 +370,15 @@ const ESQUEMA = {
     // la Pimáx ya se midió en el episodio. Arrastre desde el guardado, como
     // los ULT_* de arriba.  — SIEMPRE AL FINAL
     ['ULT_PS','decimal'],['ULT_PIM','decimal'],['ULT_PIM_FECHA','texto'],
+    // 🗂️ Rama episodio/turno (11-sep-2026, Diego): «ocupamos el valor del
+    // colega pero debemos saber quién firmó». La firma es PROCEDENCIA, no
+    // propiedad: dice de dónde salió el dato, no quién puede usarlo. — AL FINAL
+    ['ULT_MRC_FIRMA','texto'],['ULT_FSS_FIRMA','texto'],['ULT_PIM_FIRMA','texto'],
+    // Estado del EPISODIO que hasta aquí solo vivía en la fila del turno y se
+    // heredaba en ámbar cada 12 h (Diego: «durante esa hospitalización se
+    // adecuó», no es del turno). Se leen de aquí; no se heredan. — AL FINAL
+    ['AET_ACTIVA','bool'],['AET_NIVEL','texto'],['AET_FECHA','texto'],
+    ['UPOT_ACTIVO','bool'],['UPOT_MEDIDAS','texto'],['UPOT_FECHA','texto'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -381,6 +390,11 @@ const ESQUEMA = {
   TIMELINE: { headerRows: 1, cols: [
     ['ID_HITO','texto'],['ID_CAMA','texto'],['PATIENT_ID','uuid'],['FECHA','fecha'],['TURNO','texto'],
     ['TIPO','texto'],['TEXTO','texto'],['AUTOR','texto'],['AUTOR_EMAIL','email'],['TIMESTAMP','ts'],
+    // 🗂️ Rama episodio/turno (sep-2026): el DETALLE estructurado del evento
+    // (hora, tipo, con qué queda, motivo). Hasta aquí el hito era solo TEXTO
+    // libre; para que el evento sea fuente de verdad —y no una casilla de la
+    // fila del turno que se olvida— necesita sus datos al lado.  — AL FINAL
+    ['DATOS_JSON','json'],
   ]},
   // (ENTREGAS_TURNO se define más abajo, junto a AUDIT_LOG. Aquí hubo una
   // segunda copia que la de abajo pisaba en silencio — eliminada ago-2026.)
@@ -542,6 +556,26 @@ const ESQUEMA = {
   PLANTILLAS_EVOLUCION: { headerRows: 1, cols: [
     ['ID','texto'],['DUENO','texto'],['CASO','texto'],['NOMBRE','texto'],['CUERPO','texto'],
     ['ACTIVO','bool'],['ORDEN','entero'],['ACTUALIZADO','ts'],['ACTUALIZADO_POR','texto'],
+  ]},
+  // 🗂️ EVALUACIONES — la SERIE FECHADA del episodio (rama episodio/turno,
+  // 11-sep-2026). Una fila por medición: MRC, FSS-ICU, CPAx, Pimáx/PEM/FEM,
+  // dinamometría, ecografía, deglución, cultivos. Con FECHA y FIRMA reales,
+  // para que la evolución de hoy pueda CITAR «MRC 33 del 02-09 (MCC)» en vez
+  // de apropiárselo. De SOLO AGREGAR: corregir es una fila nueva y ANULADA en
+  // la vieja — la serie nunca borra. ECF, Barthel y Charlson NO van aquí
+  // (Diego: «es la que es, previa a la UCI; si hay corrección se corrige el
+  // mismo dato»): viven en CAMAS_ESTADO como dato único.
+  EVALUACIONES: { headerRows: 1, cols: [
+    ['ID_EVAL','texto'],['PATIENT_ID','uuid'],['ID_CAMA','texto'],
+    ['FECHA','fecha'],['TURNO','texto'],
+    ['ESCALA','texto'],        // MRC · FSS · CPAX · PIM · PEM · FEM · DINAMO · ECO · DEGLUCION · CULTIVO
+    ['TOTAL','texto'],         // el número (o el resultado, en cultivos); texto para no perder decimales con coma
+    ['ITEMS_JSON','json'],     // los ítems de la escala tal cual se anotaron
+    ['FIRMA','texto'],         // quién MIDIÓ (procedencia, no propiedad)
+    ['ORIGEN','texto'],        // turno · tarjeta · correccion
+    ['ID_EVOLUCION','texto'],  // la fila del turno, si se midió dentro de uno
+    ['ANULADA','bool'],
+    ['TIMESTAMP','ts'],
   ]},
 };
 
@@ -818,6 +852,9 @@ function _sembrar(ss) {
     ['PLANTILLAS_ACTIVAS', 'FALSE'],
     ['PIMO_PS_MAX', '14'],
     ['PIMO_VM_DIAS', '21'],
+    // ⏱️ Días de VM por bloques de 24 h desde la hora de inicio del soporte
+    // (Diego, 11-sep-2026). FALSE = días de calendario como la estadía.
+    ['VM_POR_HORAS', 'TRUE'],
     ['PVE_TURNOS_ALERTA', '2'],     // turnos seguidos candidato a PVE sin PVE antes de alertar
     ['FREC_HME_DIAS', '2'],         // días entre cambios de filtro HME
     ['FREC_HEPA_DIAS', '3'],        // días entre cambios de filtro HEPA
@@ -907,7 +944,8 @@ function _sembrar(ss) {
     hK.getRange(2, 1, seed.length, 5).setValues(seed);
   }
 
-  // PLANTILLAS_EVOLUCION — las 13 de la unidad (tanda 3): solo si está vacía.
+  // PLANTILLAS_EVOLUCION — las 17 de la unidad (tanda 3): solo si está vacía.
+  // Ya sembrada, el orden nuevo lo lleva la re-siembra de svc_plantillas.gs.
   if (typeof plantillasSembrarUnidad === 'function') {
     const nP = plantillasSembrarUnidad();
     if (nP) console.log('📋 Plantillas de la unidad sembradas: ' + nP);
