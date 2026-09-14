@@ -82,7 +82,7 @@ elige **`crearORepararEstructura`** y ▶ **Ejecutar**.
   proyecto es tuyo y la pantalla sale porque no está verificado por Google.
 - 🪤 **Confirma en el registro de ejecución que corrió ESA función** (el
   selector a veces ejecuta la anterior).
-- Crea las **26 hojas** con sus encabezados, siembra CONFIG, KINESIOLOGOS
+- Crea las **27 hojas** con sus encabezados, siembra CONFIG, KINESIOLOGOS
   (las 15 firmas), FASES, PLANTILLAS_EVOLUCION y las camas vacías. EVOLUCIONES
   queda con 396 columnas (igual que producción) y aparece la hoja nueva
   **EVALUACIONES**.

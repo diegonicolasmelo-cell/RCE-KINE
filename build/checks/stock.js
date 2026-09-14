@@ -147,6 +147,9 @@ const { chromium } = require('playwright-core');
   await p.waitForTimeout(600);
 
   const UI = await p.evaluate(async () => {
+    // Esta parte mide las tarjetas del TABLERO; desde sep-2026 la pestaña
+    // abre en la lista por cama, así que se elige el tablero primero.
+    EQ.vista = 'tablero';
     setTab('V'); vmCargar();
     await new Promise(r => setTimeout(r, 260));
     const t = $('stkBody').textContent;

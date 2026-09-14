@@ -101,8 +101,12 @@ console.log('\n4 · Esquema y tarjeta de cama');
 const esq = fs.readFileSync(path.join(v2, 'esquema.gs'), 'utf8');
 const idx = fs.readFileSync(path.join(v2, 'index.html'), 'utf8');
 ok_('CATEGORIA existe en VENTILADORES', /\['CATEGORIA','texto'\]/.test(esq));
+// La regla es «lo nuevo va AL FINAL» (la reparación reescribe encabezados):
+// CATEGORIA fue al final en ago-2026, y EN_USO (lista por cama, sep-2026)
+// después de ella. Lo que se fija es el ORDEN de llegada, no que CATEGORIA
+// sea la última para siempre.
 ok_('…y va AL FINAL de la lista (la reparación reescribe encabezados)',
-  /\['FECHA_MANT_PROX','texto'\][\s\S]{0,900}\['CATEGORIA','texto'\],\s*\]\}/.test(esq));
+  /\['FECHA_MANT_PROX','texto'\][\s\S]{0,900}\['CATEGORIA','texto'\],[\s\S]{0,900}\['EN_USO','bool'\],\s*\]\}/.test(esq));
 ok_('la tarjeta de cama pinta los equipos del paciente', /class="eqtag/.test(idx));
 ok_('…con estilo propio por categoría',
   /\.eqtag\.eq-vni\{/.test(idx) && /\.eqtag\.eq-cnaf\{/.test(idx) && /\.eqtag\.eq-apoyo\{/.test(idx));

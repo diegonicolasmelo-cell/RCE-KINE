@@ -159,6 +159,7 @@ const _RESET_VACIAR = [
   'NOTIFICACIONES',
   'GSA_IMPORTADAS',   // gases importados de la marcha que se resetea
   'EVALUACIONES',     // 🗂️ la serie fechada del episodio: dato clínico, se va con el reseteo
+  'CHECK_EQUIPOS',    // 🔧 los checks por cama y turno de la marcha que se resetea (solo agregar, igual que el buzón)
 ];
 // Hojas que NO se tocan (configuración de la unidad).
 const _RESET_CONSERVAR = ['CONFIG', 'CATALOGOS', 'CAT_MATRICES', 'KINESIOLOGOS', 'INDICADORES_HISTORICO', 'PLANTILLAS_EVOLUCION'];

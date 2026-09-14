@@ -5883,3 +5883,91 @@ tandas A y B que él aprobó tras el mockup.
 - Batería: **109 verdes, 0 rojas**. Espejo «V3 colaborativa» regenerado (la
   guardia `paridad_v3` de Manuel lo pidió, y funcionó). Sin cambio de esquema.
 
+
+## v7.05-ventiladores-por-cama (14-sep-2026) — la hoja de entrega de turno, en el teléfono
+
+Rama `ventiladores-por-cama`, salida de `develop` **en 7.04** (Manuel fusionó el
+13-sep la v7.02 de episodio/turno con el guardado obligatorio 6.27 → 7.03, y el
+cuadro de error al centro → 7.04; esta rama parte de ahí). **Sin fusionar hasta
+que Diego la pruebe.**
+
+**El pedido.** Feedback de los colegas, transmitido por Diego: «el drag and
+drop es buena idea, sin embargo el revisar en el móvil los ventiladores se hace
+engorroso y no es tan amigable». Trajo la hoja de papel «Entrega de turno
+Kinesiología» (cama · VM en uso · dispositivo · Trashcare · HEPA · HME ·
+observaciones · check; abajo capnógrafos, estadística, novedades, firmas y la
+bodega por marca con columnas TL/TN) y pidió que la app la reemplazara. Se le
+mandaron tres propuestas con mockup
+(`https://claude.ai/code/artifact/6d8579bf-4a4e-456c-b16b-768c1b0a9d43`) y
+decidió: **A + modo ronda · las dos puertas escriben · check por cama que se
+reinicia cada turno · bodega desglosada por nombre**, y «considera que puede
+tener VM sin uso o que no exista VM en esa sala».
+
+**Lo medido antes de proponer.** Bajo 560 px el tablero ponía las 18 camas en
+fichas de a dos por fila: la forma no bajaba al teléfono. Las fechas de filtro
+ya vivían por cama (`DISP_TC/HEPA/HME_FECHA`) y el vencimiento ya se calculaba
+(`estadoDispositivos`); movimientos, préstamo, salida a equipos médicos
+(`EQUIPOS` ya era destino válido) y fallas con foto **ya estaban programados**:
+el trabajo era de acceso, no de motor.
+
+**Qué trae.**
+- **Esquema (27 hojas):** hoja nueva `CHECK_EQUIPOS` de solo agregar (marcar =
+  fila `ok`, desmarcar = fila `anulado`; el estado vigente es la última fila del
+  `TURNO_KEY`), `VENTILADORES.EN_USO` y `CAMAS_ESTADO.DISP_EDIT_JSON` (quién y
+  cuándo escribió cada filtro). EVOLUCIONES sigue en 396. ⇒
+  `crearORepararEstructura()`. El reset vacía también `CHECK_EQUIPOS`.
+- **Servidor** (`svc_equipos.gs`): `obtenerGrillaEquipos` en un viaje (N camas
+  con equipo, uso, filtros con vencimiento por la MISMA regla de la hoja diaria,
+  check del turno de AHORA según el reloj del servidor, bodega por categoría con
+  nombre + stock por cantidad, pasillo/equipos médicos/préstamo, flota para el
+  selector), `equipoEnUso` (solo en cama), `equipoFiltroFecha` (mismo dato de la
+  cama + sello), `equipoCheck`, `obtenerHistorialEquipo` (movimientos + fallas en
+  una línea). `moverVentilador` acepta `enUso` y apaga el uso al salir de la cama.
+- **Cliente:** vistas Lista (por defecto) · Ronda · Tablero; fila por cama en
+  dos renglones (interruptor · equipo · check / filtros con rótulo); ámbar =
+  vencido (el destacador naranjo del papel; en B/N negrita y ↑); selector de
+  ventilador por marca (verde libre · gris en otra cama · punteado fuera de la
+  unidad · «el de ahora» · sacar a bodega); ficha del equipo con Mover · Falla ·
+  Cambiar · Editar y el historial unificado; firma con que se revisa, recordada
+  en el navegador; contador «revisadas n/18».
+- 🔴 **«Las dos puertas escriben; manda la ÚLTIMA EDICIÓN»** — y no «la fecha
+  mayor», como propuse primero: si la lista corrige a una fecha MÁS ANTIGUA
+  (la etiqueta real lo era), «la mayor manda» conservaría la equivocada. El
+  formulario manda `DISP_ORIG_JSON` (transitorio, como `PAC_RUT`) con lo que
+  cargó al abrirse; `_dispAplicarUltimaEdicion` corrige EN EL PAYLOAD lo que
+  otro editó después y el colega no tocó, para que fila y cama digan lo mismo;
+  `_dispSelloEdicion` firma solo lo que el turno cambió de verdad. Un cliente
+  viejo sin el JSON se comporta como siempre.
+
+**Guardias nuevas (143 en total, 143 verdes):** `equipos_grilla.js` (servidor
+real en el simulador: tres estados, cruces, vencimiento, bodega, check que se
+reinicia sin borrar, madrugada, uso, sello, historial), `filtros_ultima_edicion.js`
+(la regla pura y de punta a punta: la evolución no pisa lo que la lista
+corrigió, y sí escribe lo que el colega tocó) y `equipos_lista_ui.js` (a
+360 px: sin desborde, estados, ámbar, check con firma, bodega, selector, ficha,
+ronda, tablero).
+
+**Trampas pagadas.**
+- 🪤 `conLock` **no es reentrante** (`tryLock` dentro de otro `tryLock` devuelve
+  «Sistema ocupado»): por eso `enUso` viaja dentro de `moverVentilador` y no en
+  una segunda escritura.
+- 🪤 Al **re-guardar el mismo turno** el servidor hereda TODAS las claves de la
+  fila anterior; en el simulador la fila conserva claves que no son columna, así
+  que un `DISP_ORIG_JSON` viejo se colaba. El original se lee ANTES de esa
+  herencia (`_dispOrigPayload`).
+- 🪤 El simulador hace que `Utilities.formatDate` **lance** y `_restarDias` lo
+  atrapa devolviendo la misma fecha: `turnoLogicoServidor` queda mudo a las
+  02:30. La guardia repone una resta real (como `gsa_importada.js`).
+- 🪤 Una guardia que **fija su propio sello** (`/^7\.04-/`) se pone roja con la
+  versión siguiente: `aviso_error_al_centro.js` pasó a exigir «línea 7.x».
+- 🪤 El **tutorial** enseña el tablero (`[data-vm="TUT_DEMO"]`): `_tutDemoVM`
+  cambia la vista a Tablero para esa sesión sin tocar la preferencia guardada.
+- 🪤 `_dispIso` no depende de `_statISO` (svc_stats): los arneses que cargan
+  `svc_evoluciones.gs` solo se caían con «_statISO is not defined».
+- `stock.js` y `equipos_categoria.js` se ajustaron: la primera elige el tablero
+  antes de medir sus tarjetas; la segunda fijaba «CATEGORIA es la última
+  columna» y ahora fija el ORDEN de llegada (EN_USO después).
+
+**Entrega:** index (cohete) + servicios + api + esquema + mantenimiento, y
+`crearORepararEstructura()`. Espejo «V3 colaborativa» regenerado; `paridad_v3`
+verde. Al publicarla, avisar al equipo: la pestaña cambia de rutina.

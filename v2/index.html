@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>RCE KINE UCIA v2</title>
-<meta name="rce-version" content="7.04-aviso-de-error-al-centro">
+<meta name="rce-version" content="7.05-ventiladores-por-cama">
 <style>
 /* ─── VARIABLES ──────────────────────── */
 :root{
@@ -748,6 +748,94 @@ table.rhb2 .rl{width:128px;text-align:left;}
 .hsr-tag.egr{background:#e2e8f0;color:#475569;border:1px solid #cbd5e1;}
 .hsr-sub{font-size:.7rem;color:#64748b;}
 .hsr-empty{padding:12px;color:#94a3b8;font-size:.8rem;text-align:center;}
+/* ── Lista de ventiladores por cama (sep-2026): la hoja de entrega de turno
+   en la app. Pensada para el teléfono: cada cama en dos renglones (arriba
+   interruptor · equipo · check, abajo los filtros con rótulo) para que nada
+   salga cortado. El ámbar de «vencido» es el destacador naranjo del papel; en
+   impresión B/N va además en negrita con ↑. ── */
+.eq-barra{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 10px;font-size:.78rem;color:#475569;}
+.eq-barra label{font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;}
+.eq-barra select{height:32px;font-size:.8rem;max-width:230px;}
+.eq-rev{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;font-size:.9rem;color:var(--pdark);background:#f1f5f9;border-radius:12px;padding:2px 10px;}
+.eq-rev.ok{background:#dcfce7;color:#15803d;}
+.eq-barra-h{color:#94a3b8;}
+.eq-lista{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.eq-enc{display:grid;grid-template-columns:26px 1fr 30px;gap:8px;padding:6px 10px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b;}
+.eq-enc span:last-child{text-align:center;}
+.eq-fila{display:grid;grid-template-columns:26px 1fr 30px;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #eef2f6;font-size:.8rem;}
+.eq-fila:last-child{border-bottom:none;}
+.eq-fila.vacia{background:#fcfdfe;}
+.eq-fila.vacia .eq-n{color:#94a3b8;}
+.eq-fila.rev{background:#f7fdf9;}
+.eq-n{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;font-size:.86rem;color:#0f172a;text-align:center;}
+.eq-fila .eq-vm{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;}
+.eq-sw{width:36px;height:20px;border-radius:12px;background:#d6dce2;position:relative;flex:none;border:none;padding:0;cursor:pointer;transition:background .15s;}
+.eq-sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.28);transition:left .15s;}
+.eq-sw[aria-checked="true"]{background:#15803d;}
+.eq-sw[aria-checked="true"]::after{left:18px;}
+.eq-sw:disabled{opacity:.35;cursor:not-allowed;}
+.eq-sw:focus-visible,.eq-eq:focus-visible,.eq-chk:focus-visible,.eq-f:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;}
+.eq-eq{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;font-weight:600;border:1px solid var(--border);border-radius:7px;padding:3px 9px;background:#fff;cursor:pointer;color:#0f172a;text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.eq-eq.sin{color:#475569;background:#f8fafc;}
+.eq-eq.elegir{color:#64748b;border-style:dashed;font-family:inherit;font-weight:600;}
+.eq-otro{font-size:.68rem;color:#0369a1;background:#e0f2fe;border-radius:10px;padding:1px 7px;white-space:nowrap;}
+.eq-chkbox{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.eq-chk{width:28px;height:28px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:.9rem;line-height:1;color:#94a3b8;padding:0;}
+.eq-chk[aria-pressed="true"]{background:#dcfce7;border-color:#15803d;color:#15803d;font-weight:900;}
+.eq-chkt{font-size:.58rem;color:#15803d;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap;}
+.eq-filtros{grid-column:2/4;display:flex;gap:6px;margin-top:2px;}
+.eq-f{flex:1;display:flex;flex-direction:column;align-items:center;line-height:1.2;padding:4px 2px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.76rem;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer;color:#0f172a;}
+.eq-f em{font-style:normal;font-size:.56rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#64748b;}
+.eq-f.noche{background:#eff6ff;border-color:#bfdbfe;}
+.eq-f.noche em{color:#1d4ed8;}
+.eq-f.venc{background:#fef3c7;border-color:#fcd34d;color:#b45309;font-weight:700;}
+.eq-f.venc em{color:#b45309;}
+.eq-f.fija{border-style:dashed;color:#64748b;}
+.eq-filtros.grande .eq-f{padding:9px 2px;font-size:.9rem;}
+.eq-al{grid-column:2/4;font-size:.7rem;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;}
+.eq-obs{grid-column:2/4;font-size:.7rem;color:#64748b;font-style:italic;}
+.eq-bodega{margin-top:12px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 12px;}
+.eq-bt{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:8px;}
+.eq-brow{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;padding:4px 0;border-top:1px dashed #eef2f6;font-size:.78rem;}
+.eq-brow b{min-width:110px;color:#334155;}
+.eq-bchip{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.76rem;border:1px solid var(--border);border-radius:6px;padding:1px 7px;background:#fff;cursor:pointer;}
+.eq-bchip.stock{cursor:default;font-family:inherit;}
+.eq-bchip.stock small{color:#94a3b8;}
+.eq-bchip.falla{border-color:#fca5a5;color:#b91c1c;}
+.eq-bchip.mant{border-color:#fdba74;color:#c2410c;}
+.eq-brow i{color:#94a3b8;}
+.eq-marca{margin-bottom:12px;}
+.eq-marca h4{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:0 0 6px;font-weight:800;}
+.eq-ebtns{display:flex;flex-wrap:wrap;gap:6px;}
+.eq-ebtn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;border:1px solid var(--border);border-radius:8px;padding:7px 11px;background:#fff;cursor:pointer;color:#0f172a;}
+.eq-ebtn.libre{border-color:#15803d;color:#15803d;background:#f0fdf4;}
+.eq-ebtn.ocupado{color:#64748b;background:#f8fafc;}
+.eq-ebtn.fuera{color:#94a3b8;border-style:dashed;}
+.eq-ebtn.aqui{color:#15803d;border-color:#bbf7d0;background:#f0fdf4;cursor:default;opacity:.8;}
+.eq-ebtn.quitar{color:#b91c1c;border-color:#fecaca;background:#fff;font-family:inherit;width:100%;}
+.eq-ebtn:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px;}
+.eq-leyenda{font-size:.74rem;color:#64748b;margin-bottom:10px;}
+.eq-sub{font-weight:400;font-size:.72rem;color:#64748b;margin-left:6px;}
+.eq-par{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dotted #e2e8f0;font-size:.8rem;}
+.eq-par span{color:#64748b;}
+.eq-par b{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600;text-align:right;}
+.eq-par b.rojo{color:#b91c1c;} .eq-par b.ambar{color:#c2410c;} .eq-par b.verde{color:#15803d;}
+.eq-rt{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:6px;}
+.eq-hist{font-size:.76rem;line-height:1.45;}
+.eq-h{border-left:2px solid var(--border);margin-left:4px;padding:0 0 9px 11px;}
+.eq-h.falla{border-left-color:#f59e0b;}
+.eq-h span{color:#94a3b8;}
+.eq-ronda{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 14px;max-width:420px;margin:0 auto;text-align:center;}
+.eq-rn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:2.6rem;font-weight:800;line-height:1;}
+.eq-rp{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:2px 0 14px;}
+.eq-rb{border:1px solid var(--border);border-radius:11px;padding:11px;margin-bottom:10px;text-align:left;}
+.eq-bgrp{display:flex;gap:7px;}
+.eq-bgrp button{flex:1;padding:11px 0;border-radius:9px;border:1.5px solid var(--border);background:#fff;font:inherit;font-weight:700;font-size:.9rem;cursor:pointer;}
+.eq-bgrp button[aria-pressed="true"]{border-color:#15803d;background:#f0fdf4;color:#15803d;}
+.eq-sig{width:100%;padding:13px;border-radius:10px;border:none;background:var(--pdark);color:#fff;font:inherit;font-weight:700;font-size:.95rem;cursor:pointer;margin-top:4px;}
+.eq-rnav{display:flex;justify-content:space-between;gap:8px;margin-top:10px;}
+.dpset[data-eqv].on{background:var(--pdark);color:#fff;border-color:var(--pdark);}
+@media print{ .eq-f.venc::after{content:" ↑";} .eq-sw,.eq-chk{display:none;} .eq-barra{display:none;} }
 /* ── Tablero de ventiladores por zonas (drag & drop + tocar-tocar) ── */
 .vmz-hint{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:9px;padding:7px 12px;font-size:.76rem;font-weight:600;margin-bottom:12px;}
 .vmz-board{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;align-items:start;-webkit-user-select:none;user-select:none;}
@@ -2226,9 +2314,21 @@ document.documentElement.setAttribute('data-piel', 'inst');
     <div class="dash-bar">
       <div class="dash-bar-title">🔧 Ventiladores de la unidad — <span id="vmCount" style="color:var(--pdark);">…</span></div>
       <div class="dash-range">
+        <!-- Tres vistas (Diego, 14-sep-2026): la LISTA por cama es la que se
+             abre; la RONDA es la misma lista una cama a la vez; el TABLERO de
+             arrastre queda para mover equipos entre bodega, pasillo y camas. -->
+        <button class="dpset" data-eqv="lista" onclick="eqVista('lista')">📋 Lista</button>
+        <button class="dpset" data-eqv="ronda" onclick="eqVista('ronda')">🚶 Ronda</button>
+        <button class="dpset" data-eqv="tablero" onclick="eqVista('tablero')">🗺️ Tablero</button>
         <button class="dpset" onclick="vmNuevo()">＋ Agregar ventilador</button>
-        <button class="dpset" onclick="vmCargar()">↻ Actualizar</button>
+        <button class="dpset" onclick="eqRefrescar()">↻ Actualizar</button>
       </div>
+    </div>
+    <div id="eqBarra" class="eq-barra hidden">
+      <label for="eqFirma">Reviso como</label>
+      <select id="eqFirma"></select>
+      <span class="eq-rev" id="eqRevisadas">0/18</span>
+      <span class="eq-barra-h">revisadas este turno · tocar ✓ en cada cama</span>
     </div>
     <div id="vmAlerta"></div>
     <div id="vmBody"><div class="pivot-empty">Cargando ventiladores…</div></div>
@@ -2416,6 +2516,46 @@ document.documentElement.setAttribute('data-piel', 'inst');
 </div>
 
 <!-- MODAL MOVER VENTILADOR -->
+<!-- LISTA POR CAMA · ficha del equipo (movimientos, fallas, historial en una sola línea) -->
+<div class="tlmodal" id="eqFicha" role="dialog" aria-modal="true" style="width:min(460px,94vw);max-height:88vh;">
+  <div class="phdr">
+    <div class="ptitle"><span id="eqFichaTit">Equipo</span> <span id="eqFichaSub" class="eq-sub"></span></div>
+    <button class="xbtn" onclick="eqFichaCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:14px 18px 18px;overflow-y:auto;">
+    <div id="eqFichaDatos"></div>
+    <div id="eqFichaAcc" class="eq-ebtns" style="margin:12px 0 14px;"></div>
+    <div class="eq-rt">Historial</div>
+    <div id="eqFichaHist" class="eq-hist"></div>
+  </div>
+</div>
+<!-- LISTA POR CAMA · elegir ventilador, agrupado por marca -->
+<div class="tlmodal" id="eqElegir" role="dialog" aria-modal="true" style="width:min(460px,94vw);max-height:88vh;">
+  <div class="phdr">
+    <div class="ptitle" id="eqElegirTit">Ventilador para la cama</div>
+    <button class="xbtn" onclick="eqElegirCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:12px 18px 18px;overflow-y:auto;">
+    <div class="eq-leyenda">Verde = disponible · gris = en otra cama (se puede mover) · punteado = fuera de la unidad</div>
+    <div id="eqElegirCuerpo"></div>
+  </div>
+</div>
+<!-- LISTA POR CAMA · fecha de un filtro -->
+<div class="tlmodal" id="eqFecha" role="dialog" aria-modal="true" style="width:min(400px,94vw);">
+  <div class="phdr">
+    <div class="ptitle" id="eqFechaTit">Filtro</div>
+    <button class="xbtn" onclick="eqFechaCerrar()" aria-label="Cerrar">×</button>
+  </div>
+  <div style="padding:12px 18px 18px;display:flex;flex-direction:column;gap:9px;">
+    <div id="eqFechaAct" class="eq-leyenda"></div>
+    <button type="button" class="eq-ebtn libre" id="eqFechaNoche" style="padding:11px;" onclick="eqFechaSet(this.dataset.f)">🌙 Cambiado en este turno</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="date" id="eqFechaInput" style="flex:1;height:38px;">
+      <button type="button" class="eq-ebtn" style="padding:9px 12px;" onclick="eqFechaSet(v('eqFechaInput'))">Guardar</button>
+    </div>
+    <button type="button" class="eq-ebtn quitar" style="padding:9px;" onclick="eqFechaSet('')">🗑️ Sin fecha (quitar)</button>
+  </div>
+</div>
 <div class="tlmodal" id="vmMove" role="dialog" aria-modal="true" style="width:min(480px,94vw);max-height:82vh;">
   <div class="phdr">
     <div class="ptitle" id="vmMoveTit">🔁 Mover ventilador</div>
@@ -4860,7 +5000,7 @@ setTimeout(function () {
             : 'Sin errores de JavaScript. Revisa Ejecuciones en el editor de Apps Script.');
       // La mascota de la pantalla de carga acompaña el aviso (si es Don Mauri).
       try { if (typeof mauriPose === 'function') mauriPose('#lov .masc-persona', 'error'); } catch (_) {}
-      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 7.04-aviso-de-error-al-centro]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
+      l.innerHTML = '❌ La app no pudo iniciar. <span style="font-size:.65rem;color:#8e8e93;">[index 7.05-ventiladores-por-cama]</span><br><span style="font-size:.72rem;color:#aeaeb2;">' + det + '</span><br>' +
         '<button onclick="location.reload()" style="margin-top:12px;padding:9px 18px;border:none;border-radius:9px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer;">🔄 Reintentar</button>';
     }
   } catch (_) {}
@@ -6132,6 +6272,10 @@ function cerrarTodo(e) {
     // y el aviso de revisión (antes quedaban flotando sin telón)
     if($('vmMove')?.classList.contains('on')) vmCerrarMove();
     if(typeof vmCerrarMod==='function'&&$('vmMod')?.classList.contains('on')) vmCerrarMod();
+    // Lista de ventiladores por cama: sus tres ventanas también se cierran con un clic afuera
+    if($('eqFicha')?.classList.contains('on')) eqFichaCerrar();
+    if($('eqElegir')?.classList.contains('on')) eqElegirCerrar();
+    if($('eqFecha')?.classList.contains('on')) eqFechaCerrar();
     if($('bnMod')?.classList.contains('on')) bnCerrar();
     if($('transAviso')?.classList.contains('on')) transAvisoCerrar();
     if($('gsaMod')?.classList.contains('on')) gsaBandejaCerrar();
@@ -6269,6 +6413,7 @@ function fillForm(s) {
   set('fFecHME',_isoDia(s.DISP_HME_FECHA || (s.FILTRO_TIPO==='HME'?s.VENT_FECHA_FILTRO:''))||_isoDia(_cDisp.DISP_HME_FECHA));
   set('fFecHEPA',_isoDia(s.DISP_HEPA_FECHA || (s.FILTRO_TIPO==='HEPA'?s.VENT_FECHA_FILTRO:''))||_isoDia(_cDisp.DISP_HEPA_FECHA));
   set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)||_isoDia(_cDisp.DISP_TC_FECHA));
+  _dispOrigCapturar();   // lo que el panel CARGÓ: viaja al guardar para que no pise una edición posterior desde la lista de ventiladores
   set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA)||_isoDia(_cDisp.DISP_HUMID_FECHA));
   calcInsumosDias();
   { const _hme=$('fFecHME'); if(_hme) _hme.disabled=(s.VENT_H_ACTIVA===true||s.VENT_H_ACTIVA==='TRUE'); }
@@ -6685,6 +6830,7 @@ function fillFormReplica(s) {
   set('fFecHME',_isoDia(s.DISP_HME_FECHA || (s.FILTRO_TIPO==='HME'?s.VENT_FECHA_FILTRO:''))||_isoDia(_cDisp.DISP_HME_FECHA));
   set('fFecHEPA',_isoDia(s.DISP_HEPA_FECHA || (s.FILTRO_TIPO==='HEPA'?s.VENT_FECHA_FILTRO:''))||_isoDia(_cDisp.DISP_HEPA_FECHA));
   set('fFecSonda',_isoDia(s.VENT_FECHA_SONDA)||_isoDia(_cDisp.DISP_TC_FECHA));
+  _dispOrigCapturar();   // lo que el panel CARGÓ: viaja al guardar para que no pise una edición posterior desde la lista de ventiladores
   set('fFecHumid',_isoDia(s.DISP_HUMID_FECHA)||_isoDia(_cDisp.DISP_HUMID_FECHA));
   calcInsumosDias();
   { const _hme=$('fFecHME'); if(_hme) _hme.disabled=(s.VENT_H_ACTIVA===true||s.VENT_H_ACTIVA==='TRUE'); }
@@ -7575,6 +7721,7 @@ function guardar() {
     VENT_PMUSC:n(v('r_pmusc')),
     VENT_FECHA_SONDA:v('fFecSonda'),
     DISP_HME_FECHA:v('fFecHME'), DISP_HEPA_FECHA:v('fFecHEPA'), DISP_HUMID_FECHA:v('fFecHumid'),
+    DISP_ORIG_JSON: JSON.stringify(_dispOrig||{}),   // transitorio: lo que el panel cargó (ver _dispOrigCapturar)
     EX_RUIDOS_JSON: ruidosExtraJSON(),
     EVAL_DEGLUCION:v('fDeglucion'),
     APNEA_TEST:v('fApneaTest'),
@@ -8678,6 +8825,10 @@ const TUT_RECORRIDOS={
 function _tutDemoVM(){
   if((VM_ALL||[]).some(x=>x.id==='TUT_DEMO')) return;
   window._TUT_EQ=true;
+  // El tutorial enseña el TABLERO (arrastre, «A la lista», intercambios): sus
+  // pasos apuntan a la tarjeta del equipo de práctica, que solo existe ahí.
+  // Se cambia la vista para esta sesión sin tocar la preferencia guardada.
+  if(typeof EQ!=='undefined' && EQ.vista!=='tablero'){ EQ.vista='tablero'; if(typeof _eqPintarVista==='function') _eqPintarVista(); }
   (VM_ALL=VM_ALL||[]).push({ id:'TUT_DEMO', nombre:'🎓 VM DE PRUEBA', marca:'', modelo:'(tutorial)',
     estado:'Operativo', activo:true, ubicTipo:'BODEGA', ubicDetalle:'', fechaUbicacion:'',
     obs:'Equipo de práctica del tutorial: muévelo sin miedo, nada se guarda. Desaparece al recargar.' });
@@ -14302,9 +14453,19 @@ function autoFechasDispositivos(force, aunSinVM){
       return;
     }
     if(force){ e.value=f; ch=true; }
-    else if(!e.value){ e.value=_isoDia(camaF[id])||f; ch=true; } });
+    else if(!e.value){ e.value=_isoDia(camaF[id])||f; ch=true; _dispOrigMarcar(id, e.value); } });
   if(ch) calcInsumosDias();
 }
+/* ── «Las dos puertas escriben» (Diego, 14-sep-2026): las fechas de filtro
+   también se editan desde la lista de ventiladores por cama. El formulario
+   recuerda lo que CARGÓ (`_dispOrig`) y lo manda al guardar (DISP_ORIG_JSON,
+   transitorio); el servidor solo pisa lo que el colega tocó de verdad. Un
+   valor puesto SOLO por el arrastre automático cuenta como «cargado», no como
+   tocado — por eso autoFechasDispositivos lo anota aquí. ── */
+let _dispOrig=null;
+const _DISP_ORIG_CAMPOS={fFecHME:'hme',fFecHEPA:'hepa',fFecSonda:'tc'};
+function _dispOrigCapturar(){ _dispOrig={hme:v('fFecHME')||'',hepa:v('fFecHEPA')||'',tc:v('fFecSonda')||''}; }
+function _dispOrigMarcar(id,val){ const k=_DISP_ORIG_CAMPOS[id]; if(!k) return; if(!_dispOrig) _dispOrigCapturar(); _dispOrig[k]=val||''; }
 //  Checkbox de humidificación activa (bloque Dispositivos) ↔ fecha del
 //  dispositivo. Humidificación pasiva (HME) y activa son EXCLUYENTES: al
 //  activar la humidificación activa se retira el filtro HME del circuito
@@ -15546,13 +15707,289 @@ async function coordRestablecerPedir(){
   }, m=>toast('❌ '+m, 5200));
 }
 
-function initVentiladores(){ if(VM_ALL===null) vmCargar(); else vmRender(); }
+/* ═══ LISTA DE VENTILADORES POR CAMA (sep-2026) ═══════════════════════════
+   Feedback de los colegas vía Diego: «el drag and drop es buena idea, sin
+   embargo el revisar en el móvil los ventiladores se hace engorroso». Bajo
+   560 px el tablero ponía las 18 camas en fichas de a dos por fila, sin orden
+   de lectura. Esto es la hoja de papel «Entrega de turno Kinesiología» en la
+   app: una fila por cama, VM en uso · equipo · Trachcare · HEPA · HME ·
+   observaciones · check. Tres vistas: LISTA (por defecto), RONDA (la misma
+   lista una cama a la vez, para caminar la unidad) y TABLERO (el de siempre,
+   para mover equipos entre bodega, pasillo y camas).
+   · «VM en uso» es del EQUIPO y se hereda; lo que se confirma es el check.
+   · Las fechas de filtro son el MISMO dato que escribe la evolución; manda
+     la última edición (ver _dispAplicarUltimaEdicion en el servidor).
+   · El check es por cama y por turno; el turno lo decide el servidor.
+   Datos en UN viaje: GET_GRILLA_EQUIPOS. ═══════════════════════════════════ */
+const EQ={ data:null, vista:'lista', ronda:0, cargando:false };
+try{ EQ.vista=localStorage.getItem('rce_eq_vista')||'lista'; }catch(e){}
+if(['lista','ronda','tablero'].indexOf(EQ.vista)===-1) EQ.vista='lista';
+function initVentiladores(){
+  _eqPintarVista();
+  if(EQ.vista==='tablero'){ if(VM_ALL===null) vmCargar(); else vmRender(); return; }
+  if(EQ.data) _eqRender(); else eqCargar();
+}
+function eqVista(vista){ EQ.vista=vista; try{ localStorage.setItem('rce_eq_vista',vista); }catch(e){} initVentiladores(); }
+function eqRefrescar(){ if(EQ.vista==='tablero') vmCargar(); else { EQ.data=null; eqCargar(); } }
+function _eqPintarVista(){
+  document.querySelectorAll('[data-eqv]').forEach(b=>b.classList.toggle('on', b.dataset.eqv===EQ.vista));
+  const bar=$('eqBarra'); if(bar) bar.classList.toggle('hidden', EQ.vista==='tablero');
+  if(EQ.vista!=='tablero'){ const al=$('vmAlerta'); if(al) al.innerHTML=''; }
+}
+/* La sigla con que se revisa: sin login, es la que el colega elige arriba
+   (se recuerda en este navegador). El servidor la recibe como firmaKine. */
+function _eqFirma(){ return v('eqFirma') || (typeof YO!=='undefined'&&YO&&YO.firma) || ''; }
+function _eqFirmaSelect(){
+  const s=$('eqFirma'); if(!s||s.dataset.lleno) return;
+  let ult=''; try{ ult=localStorage.getItem('rce_eq_firma')||''; }catch(e){}
+  if(window.Turnos&&Turnos.fillFirmaSelect) Turnos.fillFirmaSelect(s, ult||(typeof YO!=='undefined'&&YO&&YO.firma)||'');
+  s.dataset.lleno='1';
+  s.addEventListener('change',()=>{ try{ localStorage.setItem('rce_eq_firma', s.value); }catch(e){} });
+}
+function eqCargar(){
+  if(EQ.cargando) return; EQ.cargando=true;
+  if(!EQ.data) $('vmBody').innerHTML='<div class="pivot-empty">Cargando la lista por cama…</div>';
+  gs('GET_GRILLA_EQUIPOS',{}, g=>{ EQ.cargando=false; EQ.data=g||null; if(EQ.vista!=='tablero') _eqRender(); },
+    msg=>{ EQ.cargando=false; $('vmBody').innerHTML='<div class="pivot-empty">Error al cargar: '+_escSt(msg||'')+' <button class="dpset" onclick="eqCargar()">Reintentar</button></div>';
+           avisoErrorCarga('Ventiladores — '+(msg||'desconocido'), eqCargar); });
+}
+function _eqRender(){ _eqFirmaSelect(); _eqCabecera(); if(EQ.vista==='ronda') _eqRondaRender(); else _eqListaRender(); }
+function _eqCabecera(){
+  const g=EQ.data; if(!g) return;
+  $('vmCount').textContent=`${g.revisadas}/${g.numCamas} camas revisadas · turno ${g.turno==='Noche'?'Noche':'Día'} ${_ddmm(g.fecha)}`;
+  const r=$('eqRevisadas'); if(r){ r.textContent=`${g.revisadas}/${g.numCamas}`; r.classList.toggle('ok', g.revisadas>=g.numCamas); }
+}
+function _eqCama(n){ return ((EQ.data&&EQ.data.camas)||[]).find(c=>String(c.cama)===String(n)); }
+/* Todos los equipos que la grilla conoce, por id (flota + los de las camas +
+   bodega, pasillo, equipos médicos y préstamo): para la ficha. */
+function _eqIndice(){
+  const g=EQ.data||{}; const m={}; const add=x=>{ if(x&&x.id) m[x.id]=x; };
+  (g.flota||[]).forEach(add);
+  (g.camas||[]).forEach(c=>{ add(c.vm); (c.otros||[]).forEach(add); });
+  const b=g.bodega||{}; ['VM','VNI','CNAF','APOYO'].forEach(k=>(b[k]||[]).forEach(add));
+  (g.pasillo||[]).forEach(add); (g.equipos||[]).forEach(add); (g.prestamo||[]).forEach(add);
+  return m;
+}
+const _EQ_ALERTA={ sin_equipo:'⚠️ Paciente en VM sin ventilador asignado', uso_sin_vm:'⚠️ Marcado en uso, pero la cama no está en VM', vm_sin_uso:'⚠️ Paciente en VM y el equipo dice «sin uso»' };
+function _eqRecalcAlerta(c){ c.alerta=(c.enVM&&!c.vm)?'sin_equipo':((c.vm&&c.vm.enUso&&!c.enVM)?'uso_sin_vm':((c.enVM&&c.vm&&!c.vm.enUso)?'vm_sin_uso':'')); }
+function _eqFiltroChip(c,f){
+  if(!f.aplica) return '';
+  const cls='eq-f'+(f.vence?' venc':(f.estaNoche?' noche':''))+(f.fija?' fija':'');
+  const tt=f.fija?'HEPA fijo del equipo: referencia, sin ciclo de cambio'
+    :(f.vence?'VENCIDO: tocaba cambiarlo el '+_ddmm(f.fechaCambio):(f.estaNoche?'Se cambia esta noche':(f.fechaCambio?'Cambio: '+_ddmm(f.fechaCambio):'Sin fecha')));
+  const quien=(f.edit&&f.edit.f)?' · escrita por '+f.edit.f:'';
+  return `<button type="button" class="${cls}" title="${_escSt(tt+quien)}" onclick="eqFechaMenu('${c.cama}','${f.k}')"><em>${_escSt(f.nombre)}</em>${f.fecha?_ddmm(f.fecha):'+'}</button>`;
+}
+function _eqFilaHTML(c){
+  const vm=c.vm; const enUso=!!(vm&&vm.enUso);
+  const est=vm?(/falla/i.test(vm.estado)?' 🔴':(/manten/i.test(vm.estado)?' 🟠':'')):'';
+  const eqBtn=vm
+    ? `<button type="button" class="eq-eq${enUso?'':' sin'}" onclick="eqFicha('${_escSt(vm.id)}')" title="${_escSt([vm.marca,vm.estado].filter(Boolean).join(' · '))} — tocar para ver la ficha">${_escSt(vm.nombre)}${est}</button>`
+    : `<button type="button" class="eq-eq elegir" onclick="eqElegir('${c.cama}')">${c.enVM?'⚠️ elegir ventilador':'sin ventilador'}</button>`;
+  const sw=`<button type="button" class="eq-sw" role="switch" aria-checked="${enUso}" aria-label="VM en uso cama ${c.cama}" ${vm?'':'disabled'} onclick="eqToggleUso('${c.cama}')" title="${vm?(enUso?'VM en uso — tocar para marcar sin uso':'Sin uso — tocar para marcar en uso'):'Primero elige el equipo'}"></button>`;
+  const chk=`<button type="button" class="eq-chk" aria-pressed="${!!c.check}" aria-label="Revisada cama ${c.cama}" onclick="eqCheck('${c.cama}',${c.check?'false':'true'})" title="${c.check?'Revisada '+_escSt(c.check.hora)+' '+_escSt(c.check.firma)+' — tocar para deshacer':'Tocar cuando esté revisada'}">${c.check?'✓':''}</button>`;
+  const filtros=(c.filtros||[]).map(f=>_eqFiltroChip(c,f)).join('');
+  const otros=(c.otros||[]).map(o=>`<span class="eq-otro" title="${_escSt(o.categoria)} del paciente — tocar para la ficha" onclick="eqFicha('${_escSt(o.id)}')">${_escSt(o.nombre)}</span>`).join('');
+  return `<div class="eq-fila${vm?'':' vacia'}${c.check?' rev':''}" data-cama="${c.cama}">
+    <span class="eq-n">${c.cama}</span>
+    <span class="eq-vm">${sw}${eqBtn}${otros}</span>
+    <span class="eq-chkbox">${chk}${c.check?`<span class="eq-chkt">${_escSt(c.check.hora)} ${_escSt(c.check.firma)}</span>`:''}</span>
+    ${filtros?`<span class="eq-filtros">${filtros}</span>`:''}
+    ${c.alerta?`<span class="eq-al">${_EQ_ALERTA[c.alerta]||_escSt(c.alerta)}</span>`:''}
+    ${vm&&vm.obs?`<span class="eq-obs">${_escSt(vm.obs)}</span>`:''}
+  </div>`;
+}
+function _eqBodegaHTML(g){
+  const b=g.bodega||{};
+  const chip=x=>`<span class="eq-bchip${/falla/i.test(x.estado)?' falla':(/manten/i.test(x.estado)?' mant':'')}" onclick="eqFicha('${_escSt(x.id)}')" title="${_escSt(x.estado||'')}">${_escSt(x.nombre)}${x.ubicTipo==='PRESTAMO'&&x.ubicDetalle?` <small>→ ${_escSt(x.ubicDetalle)}</small>`:''}</span>`;
+  const nom=a=>(a||[]).map(chip).join('')||'<i>—</i>';
+  const fila=(t,h)=>`<div class="eq-brow"><b>${t}</b>${h}</div>`;
+  const stock=(b.stock||[]).map(s=>`<span class="eq-bchip stock" title="${_escSt(s.categoria||'')} — sin número: se lleva por cantidad">${_escSt(s.nombre)} <b>${s.disponible}</b><small>/${s.cantidad}</small></span>`).join('');
+  const tot=['VM','VNI','CNAF','APOYO'].reduce((n,k)=>n+((b[k]||[]).length),0);
+  return `<div class="eq-bodega">
+    <div class="eq-bt">📦 Bodega ahora · ${tot} equipos con número${stock?' · y el stock sin número, por cantidad':''}</div>
+    ${fila('🫁 VMI',nom(b.VM))}${fila('😷 VNI',nom(b.VNI))}${fila('💨 CNAF',nom(b.CNAF))}${fila('🧰 Apoyo',nom(b.APOYO)+stock)}
+    ${(g.pasillo||[]).length?fila('🚪 Pasillo',nom(g.pasillo)):''}
+    ${(g.equipos||[]).length?fila('🔧 Equipos médicos',nom(g.equipos)):''}
+    ${(g.prestamo||[]).length?fila('🏥 Préstamo',nom(g.prestamo)):''}
+  </div>`;
+}
+function _eqListaRender(){
+  const g=EQ.data; if(!g) return;
+  $('vmBody').innerHTML=`<div class="eq-lista">
+    <div class="eq-enc"><span>C</span><span>VM en uso · equipo · filtros</span><span>✓</span></div>
+    ${g.camas.map(_eqFilaHTML).join('')}
+  </div>${_eqBodegaHTML(g)}`;
+}
+// ── acciones ──
+function eqToggleUso(cama){
+  const c=_eqCama(cama); if(!c||!c.vm) return;
+  const on=!c.vm.enUso;
+  gs('EQUIPO_EN_USO',{idVm:c.vm.id, enUso:on, firmaKine:_eqFirma()}, ()=>{
+    c.vm.enUso=on; _eqRecalcAlerta(c); _eqRender();
+    toast((on?'🟢 ':'⚪ ')+c.vm.nombre+(on?' en uso':' sin uso'),1800);
+  });
+}
+function eqCheck(cama, marcar, despues){
+  const f=_eqFirma();
+  if(!f){ toast('⚠️ Elige arriba con qué firma revisas'); const s=$('eqFirma'); if(s) s.focus(); return; }
+  const c=_eqCama(cama); if(!c) return;
+  const det=c.vm?{idVm:c.vm.id,nombre:c.vm.nombre,enUso:c.vm.enUso}:{};
+  (c.filtros||[]).forEach(x=>{ det[x.k]=x.fecha||''; });
+  gs('EQUIPO_CHECK',{idCama:String(cama), marcar:!!marcar, detalle:det, firmaKine:f}, r=>{
+    // Si el turno cambió mientras la lista estaba abierta, la lista es de otro turno: se recarga entera.
+    if(EQ.data && r && r.turnoKey && r.turnoKey!==EQ.data.turnoKey){ EQ.data=null; eqCargar(); return; }
+    c.check=(r&&r.check)||null;
+    EQ.data.revisadas=EQ.data.camas.filter(x=>x.check).length;
+    _eqRender();
+    if(despues) despues();
+  });
+}
+// ── fecha de un filtro ──
+let _eqFechaCtx=null;
+function eqFechaMenu(cama,k){
+  const c=_eqCama(cama); const f=c&&(c.filtros||[]).find(x=>x.k===k); if(!f) return;
+  if(f.fija){ toast('El HEPA de este equipo es fijo: se mantiene desde su instalación, sin ciclo de cambio.',3500); return; }
+  _eqFechaCtx={cama:String(cama),k:k};
+  const g=EQ.data; const etiq=_fechaEfTurno(g.fecha,g.turno);   // turno Noche ⇒ etiqueta del día siguiente (misma regla del formulario)
+  $('eqFechaTit').textContent=`${f.nombre} · cama ${cama}`;
+  $('eqFechaAct').textContent=f.fecha
+    ? `Etiqueta actual ${_ddmm(f.fecha)}${f.fechaCambio?' · cambio el '+_ddmm(f.fechaCambio):''}${(f.edit&&f.edit.f)?' · escrita por '+f.edit.f:''}`
+    : 'Sin fecha registrada';
+  const bn=$('eqFechaNoche'); bn.textContent=`🌙 Cambiado en este turno → etiqueta ${_ddmm(etiq)}`; bn.dataset.f=etiq;
+  $('eqFechaInput').value=f.fecha||'';
+  $('eqFecha').classList.add('on'); $('ovl').classList.add('on');
+}
+function eqFechaCerrar(){ $('eqFecha').classList.remove('on'); $('ovl').classList.remove('on'); _eqFechaCtx=null; }
+function eqFechaSet(fecha){
+  const x=_eqFechaCtx; if(!x) return;
+  gs('EQUIPO_FILTRO_FECHA',{idCama:x.cama,k:x.k,fecha:fecha||'',firmaKine:_eqFirma()}, r=>{
+    eqFechaCerrar(); toast((fecha?'📅 ':'🗑️ ')+((r&&r.accion)||'Guardado'),2200); eqCargar();
+  });
+}
+// ── elegir ventilador (por marca) ──
+let _eqElegirCama=null;
+function eqElegir(cama){
+  const g=EQ.data; if(!g) return; _eqElegirCama=String(cama);
+  const c=_eqCama(cama); const actual=(c&&c.vm)||null;
+  $('eqElegirTit').textContent='Ventilador para la cama '+cama;
+  const porMarca={};
+  (g.flota||[]).forEach(x=>{ const m=x.marca||'Sin marca'; (porMarca[m]=porMarca[m]||[]).push(x); });
+  const btn=x=>{
+    const aqui=x.ubicTipo==='CAMA'&&String(x.ubicDetalle)===String(cama);
+    const enOtra=x.ubicTipo==='CAMA'&&!aqui;
+    const fuera=x.ubicTipo==='PRESTAMO'||x.ubicTipo==='EQUIPOS';
+    const cls='eq-ebtn'+(aqui?' aqui':(enOtra?' ocupado':(fuera?' fuera':' libre')));
+    const suf=aqui?' ✓ aquí':(enOtra?' · cama '+_escSt(x.ubicDetalle):({PRESTAMO:' · préstamo',EQUIPOS:' · eq. médicos',PASILLO:' · pasillo'}[x.ubicTipo]||''));
+    return `<button type="button" class="${cls}" ${aqui?'disabled':''} onclick="eqElegirOk('${_escSt(x.id)}',${enOtra?'true':'false'})">${_escSt(x.nombre)}${suf}${/falla/i.test(x.estado)?' 🔴':''}</button>`;
+  };
+  let h='';
+  if(actual) h+=`<div class="eq-marca"><h4>El de ahora</h4><div class="eq-ebtns">${btn(actual)}</div></div>`;
+  Object.keys(porMarca).sort((a,b)=>a.localeCompare(b,'es')).forEach(m=>{ h+=`<div class="eq-marca"><h4>${_escSt(m)}</h4><div class="eq-ebtns">${porMarca[m].map(btn).join('')}</div></div>`; });
+  if(actual) h+=`<div class="eq-marca"><button type="button" class="eq-ebtn quitar" onclick="eqQuitar('${_escSt(actual.id)}')">📦 Sacar ${_escSt(actual.nombre)} de la cama ${cama} (queda en bodega)</button></div>`;
+  $('eqElegirCuerpo').innerHTML=h||'<i>No hay ventiladores en el inventario.</i>';
+  $('eqElegir').classList.add('on'); $('ovl').classList.add('on');
+}
+function eqElegirCerrar(){ $('eqElegir').classList.remove('on'); $('ovl').classList.remove('on'); }
+function eqElegirOk(idVm, enOtra){
+  const cama=_eqElegirCama; if(!cama) return;
+  const x=(EQ.data.flota||[]).find(k=>k.id===idVm)||{nombre:idVm}; const c=_eqCama(cama);
+  const firma=_eqFirma();
+  // El servidor rechaza dos VM invasivos en la misma cama: si ya hay uno, sale
+  // primero a bodega y recién después entra el nuevo (dos viajes, acción rara).
+  const entrar=()=>gs('MOVER_VENTILADOR',{idVm:idVm,tipo:'CAMA',detalle:String(cama),enUso:!!(c&&c.enVM),motivo:'desde la lista por cama',firmaKine:firma},
+    r=>{ loading(false); eqElegirCerrar(); toast('🔁 '+((r&&r.resumen)||'Asignado')); VM_ALL=null; eqCargar(); }, ()=>loading(false));
+  const mover=()=>{ loading(true,'Asignando…');
+    if(c&&c.vm&&c.vm.id!==idVm) gs('MOVER_VENTILADOR',{idVm:c.vm.id,tipo:'BODEGA',motivo:'reemplazado desde la lista por cama',firmaKine:firma}, entrar, ()=>loading(false));
+    else entrar(); };
+  if(enOtra) uiConfirm({ icono:'🔁', titulo:'Mover '+x.nombre, mensaje:`Está en la <b>cama ${_escSt(x.ubicDetalle||'')}</b>. ¿Lo traes a la cama ${cama}?`, confirmar:'🔁 Mover' }).then(okC=>{ if(okC) mover(); });
+  else mover();
+}
+function eqQuitar(idVm){
+  const x=_eqIndice()[idVm]||{nombre:idVm};
+  uiConfirm({ icono:'📦', titulo:'Sacar '+x.nombre+' de la cama', mensaje:'Queda en bodega y deja de estar en uso.', confirmar:'📦 A bodega' }).then(okC=>{
+    if(!okC) return; loading(true,'Moviendo…');
+    gs('MOVER_VENTILADOR',{idVm:idVm,tipo:'BODEGA',motivo:'desde la lista por cama',firmaKine:_eqFirma()},
+      r=>{ loading(false); eqElegirCerrar(); eqFichaCerrar(); toast('📦 '+((r&&r.resumen)||'A bodega')); VM_ALL=null; eqCargar(); }, ()=>loading(false));
+  });
+}
+// ── ficha del equipo: lo que ya existía (mover, falla, historial) con una sola puerta ──
+let _eqFichaId=null;
+function eqFicha(idVm){
+  const x=_eqIndice()[idVm]; if(!x) return; _eqFichaId=idVm;
+  $('eqFichaTit').textContent=x.nombre;
+  $('eqFichaSub').textContent=[x.marca,x.modelo,x.categoria].filter(Boolean).join(' · ');
+  const ubic=({CAMA:'Cama '+x.ubicDetalle,PRESTAMO:'Préstamo: '+x.ubicDetalle,PASILLO:'Pasillo',EQUIPOS:'Equipos médicos'})[x.ubicTipo]||'Bodega';
+  const estCls=/falla/i.test(x.estado)?'rojo':(/manten/i.test(x.estado)?'ambar':'verde');
+  const esVMCama=x.ubicTipo==='CAMA'&&x.categoria==='VM';
+  $('eqFichaDatos').innerHTML=`
+    <div class="eq-par"><span>Ubicación</span><b>${_escSt(ubic)}${x.fechaUbicacion?' · desde '+_ddmm(x.fechaUbicacion):''}</b></div>
+    <div class="eq-par"><span>Estado</span><b class="${estCls}">${_escSt(x.estado||'—')}</b></div>
+    ${esVMCama?`<div class="eq-par"><span>VM en uso</span><b>${x.enUso?'Sí':'No'}</b></div>`:''}
+    ${x.serie?`<div class="eq-par"><span>Serie</span><b>${_escSt(x.serie)}</b></div>`:''}
+    <div class="eq-par"><span>Próxima mantención</span><b>${x.fechaMantProx?_ddmm(x.fechaMantProx):'—'}</b></div>
+    ${x.obs?`<div class="eq-par"><span>Observación</span><b style="font-family:inherit;">${_escSt(x.obs)}</b></div>`:''}`;
+  $('eqFichaAcc').innerHTML=`
+    <button type="button" class="eq-ebtn" onclick="eqFichaMover()">🔁 Mover</button>
+    <button type="button" class="eq-ebtn" onclick="eqFichaFalla()">⚠️ Falla</button>
+    ${esVMCama?`<button type="button" class="eq-ebtn libre" onclick="eqFichaCerrar();eqElegir('${_escSt(x.ubicDetalle)}')">🔄 Cambiar</button>`:''}
+    <button type="button" class="eq-ebtn" onclick="eqFichaEditar()">✏️ Editar</button>`;
+  $('eqFichaHist').innerHTML='⏳ Cargando historial…';
+  $('eqFicha').classList.add('on'); $('ovl').classList.add('on');
+  gs('GET_HISTORIAL_EQUIPO',{idVm:idVm,limite:30}, d=>{
+    const it=(d&&d.items)||[];
+    $('eqFichaHist').innerHTML=it.length?it.map(i=>i.tipo==='falla'
+      ?`<div class="eq-h falla"><b>${_ddmm(i.fecha)}</b> · ⚠️ Falla: ${_escSt(i.desc)}${i.foto?` · <a href="${_escSt(i.foto)}" target="_blank" rel="noopener">📷 foto</a>`:''}${i.firma?` <span>${_escSt(i.firma)}</span>`:''}</div>`
+      :`<div class="eq-h"><b>${_ddmm(i.fecha)}</b> · ${_escSt(i.desde)} → <b>${_escSt(i.hacia)}</b>${i.motivo?' · '+_escSt(i.motivo):''}${i.firma?` <span>${_escSt(i.firma)}</span>`:''}</div>`).join('')
+      :'<i>Sin movimientos ni fallas registrados.</i>';
+  }, e=>{ $('eqFichaHist').innerHTML='❌ '+_escSt(e||''); });
+}
+function eqFichaCerrar(){ $('eqFicha').classList.remove('on'); $('ovl').classList.remove('on'); }
+/* Mover, falla y editar reutilizan los modales del tablero, que leen VM_ALL:
+   si la lista se abrió sin pasar por el tablero, se carga antes. */
+function _eqConVM(cb){ if(VM_ALL) return cb(); gs('GET_VENTILADORES',{}, r=>{ VM_ALL=r||[]; cb(); }); }
+function eqFichaMover(){ const id=_eqFichaId; if(!id) return; eqFichaCerrar(); _eqConVM(()=>vmMover(id)); }
+function eqFichaEditar(){ const id=_eqFichaId; if(!id) return; eqFichaCerrar(); _eqConVM(()=>vmEditar(id)); }
+function eqFichaFalla(){
+  const id=_eqFichaId; if(!id) return; eqFichaCerrar();
+  _eqConVM(()=>{ vmEditar(id); setTimeout(()=>{ const s=$('vmFallaSec'); if(s) s.scrollIntoView({block:'center'}); const d=$('vmFallaDesc'); if(d) d.focus(); },120); });
+}
+// ── modo ronda: la misma lista, una cama a la vez ──
+function _eqRondaRender(){
+  const g=EQ.data; if(!g) return; const n=g.camas.length; if(!(EQ.ronda>=0&&EQ.ronda<n)) EQ.ronda=0;
+  const c=g.camas[EQ.ronda]; const vm=c.vm;
+  const chips=(c.filtros||[]).map(f=>_eqFiltroChip(c,f)).join('');
+  $('vmBody').innerHTML=`<div class="eq-ronda">
+    <div class="eq-rn">${c.cama}</div>
+    <div class="eq-rp">Cama ${c.cama} de ${n}${c.check?' · ✓ revisada '+_escSt(c.check.hora)+' '+_escSt(c.check.firma):''}</div>
+    ${c.alerta?`<div class="eq-al" style="display:block;margin:0 0 10px;">${_EQ_ALERTA[c.alerta]||''}</div>`:''}
+    <div class="eq-rb"><div class="eq-rt">Ventilador</div>
+      ${vm?`<button type="button" class="eq-ebtn libre" style="width:100%;padding:11px;" onclick="eqFicha('${_escSt(vm.id)}')">${_escSt(vm.nombre)}${vm.obs?' · '+_escSt(vm.obs):''}</button>
+            <button type="button" class="eq-ebtn" style="margin-top:6px;" onclick="eqElegir('${c.cama}')">🔄 Cambiar</button>`
+          :`<button type="button" class="eq-ebtn" style="width:100%;padding:11px;" onclick="eqElegir('${c.cama}')">${c.enVM?'⚠️ Paciente en VM: elegir ventilador':'Sin ventilador en esta cama · elegir'}</button>`}
+      ${(c.otros||[]).length?`<div style="margin-top:6px;">${c.otros.map(o=>`<span class="eq-otro">${_escSt(o.nombre)}</span>`).join(' ')}</div>`:''}
+    </div>
+    ${vm?`<div class="eq-rb"><div class="eq-rt">¿VM en uso?</div><div class="eq-bgrp">
+      <button type="button" aria-pressed="${vm.enUso}" onclick="if(!_eqCama('${c.cama}').vm.enUso)eqToggleUso('${c.cama}')">Sí</button>
+      <button type="button" aria-pressed="${!vm.enUso}" onclick="if(_eqCama('${c.cama}').vm.enUso)eqToggleUso('${c.cama}')">No</button></div></div>`:''}
+    ${chips?`<div class="eq-rb"><div class="eq-rt">Filtros · tocar para fechar</div><div class="eq-filtros grande" style="margin:0;">${chips}</div></div>`:''}
+    <button type="button" class="eq-sig" onclick="eqRondaOk()">${c.check?'✓ Ya revisada · siguiente →':(vm?'✓ Revisada · siguiente →':'✓ Sin VM, revisada · siguiente →')}</button>
+    <div class="eq-rnav"><button type="button" class="dpset" onclick="eqRondaIr(-1)">← Anterior</button><button type="button" class="dpset" onclick="eqRondaIr(1)">Siguiente sin marcar →</button></div>
+  </div>`;
+}
+function eqRondaIr(d){ const n=(EQ.data&&EQ.data.camas.length)||18; EQ.ronda=(EQ.ronda+d+n)%n; _eqRondaRender(); }
+function eqRondaOk(){ const c=EQ.data&&EQ.data.camas[EQ.ronda]; if(!c) return; if(c.check){ eqRondaIr(1); return; } eqCheck(c.cama,true,()=>eqRondaIr(1)); }
 
 function vmCargar(){
-  $('vmBody').innerHTML='<div class="pivot-empty">Cargando ventiladores…</div>';
+  if(EQ.vista==='tablero') $('vmBody').innerHTML='<div class="pivot-empty">Cargando ventiladores…</div>';
   gs('GET_VENTILADORES',{},r=>{ VM_ALL=r||[];
     if(window._TUT_EQ) _tutDemoVM();   // la recarga del censo no borra el equipo de práctica
-    vmRender(); stkCargar(); },
+    // Con la LISTA o la RONDA a la vista, el tablero no pinta encima: un
+    // movimiento hecho desde la ficha repinta la lista (eqCargar). vmRender
+    // sigue pintando siempre que se lo llame explícitamente (tablero, guardias).
+    if(EQ.vista==='tablero'){ vmRender(); stkCargar(); }
+    else eqCargar();
+  },
     msg=>{ $('vmBody').innerHTML='<div class="pivot-empty">Error al cargar: '+(msg||'')+' <button class="dpset" onclick="vmCargar()">Reintentar</button></div>';
            avisoErrorCarga('Ventiladores — '+(msg||'desconocido'), vmCargar); });
 }

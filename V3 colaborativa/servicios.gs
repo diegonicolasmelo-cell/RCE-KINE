@@ -771,6 +771,7 @@ function _limpiarCamaInterno(idCama) {
     CAT_KINE: '', CAT_RESP_PJE: '', CAT_MOTOR_PJE: '', CAT_RESP_NIVEL: '', CAT_MOTOR_NIVEL: '',
     ULT_COOP: '', ULT_MRC: '', ULT_MRC_FECHA: '', ULT_FSS: '', ULT_FSS_FECHA: '', ULT_DINAMO: '',
     DISP_HME_FECHA: '', DISP_HEPA_FECHA: '', DISP_TC_FECHA: '', DISP_HUMID_FECHA: '',
+    DISP_EDIT_JSON: '',   // el sello de quién escribió los filtros es del episodio que se va
     WEAN_PVE_JSON: '', WEAN_CAND_PVE: false,
   };
   repoActualizar('CAMAS_ESTADO', 'ID_CAMA', String(idCama), vacio);
@@ -2627,6 +2628,7 @@ function obtenerVentiladores() {
         estado: x.ESTADO || 'Operativo', activo: esVerdadero(x.ACTIVO), obs: x.OBS || '',
         fechaMant: _statISO(x.FECHA_MANT), fechaMantProx: _statISO(x.FECHA_MANT_PROX),
         categoria: cat, deCama: _vmEsDeCama(cat),
+        enUso: esVerdadero(x.EN_USO),
       };
     });
     rows.sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }); });
@@ -2714,10 +2716,19 @@ function moverVentilador(d, ctx) {
       const fecha = _statISO(d.fecha) || hoyISO();
       const desde = _vmUbicLabel(vmx.UBIC_TIPO, vmx.UBIC_DETALLE);
       const hacia = _vmUbicLabel(tipo, detalle);
-      repoActualizar('VENTILADORES', 'ID_VM', d.idVm, {
+      const upd = {
         UBIC_TIPO: tipo, UBIC_DETALLE: detalle, FECHA_UBICACION: fecha,
         ESTADO: d.estado || vmx.ESTADO || 'Operativo', TIMESTAMP: ahoraTS(),
-      });
+      };
+      // «VM en uso» (lista por cama, sep-2026): un equipo que sale de la cama
+      // deja de estar en uso, siempre. Al ENTRAR a una cama solo cambia si
+      // quien lo mueve lo dice (d.enUso): la lista lo sugiere mirando si el
+      // paciente está en VM; el tablero de arrastre no opina y lo deja como
+      // estaba. conLock no es reentrante, así que esto vive aquí y no en una
+      // segunda escritura por fuera.
+      if (tipo !== 'CAMA') upd.EN_USO = false;
+      else if (d.enUso !== undefined) upd.EN_USO = esVerdadero(d.enUso);
+      repoActualizar('VENTILADORES', 'ID_VM', d.idVm, upd);
       repoInsertar('MOVIMIENTOS_VM', {
         ID_MOV: uid('MOV'), ID_VM: d.idVm, TIMESTAMP: ahoraTS(), FECHA: fecha,
         DESDE: desde, HACIA: hacia, MOTIVO: d.motivo || '',
@@ -3189,6 +3200,244 @@ function obtenerMovimientosStock(idStock, limite) {
         desde: String(x.DESDE || ''), hacia: String(x.HACIA || '') }; });
     return ok({ movs: filas, total: filas.length });
   } catch (e) { return err('obtenerMovimientosStock: ' + e.message, ERR.INTERNO, e); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LISTA DE VENTILADORES POR CAMA (sep-2026, feedback de los colegas vía Diego:
+   «el revisar en el móvil los ventiladores se hace engorroso»). Es la hoja de
+   papel «Entrega de turno Kinesiología» llevada a la app: una fila por cama,
+   VM en uso · equipo · Trachcare · HEPA · HME · observaciones · check.
+
+   Decisiones de Diego (14-sep-2026):
+   · A + modo ronda; el tablero de arrastre queda como segunda vista.
+   · «Las dos puertas escriben» las fechas de filtro (evolución y esta lista),
+     y manda la ÚLTIMA EDICIÓN — no la fecha mayor. La procedencia queda en
+     CAMAS_ESTADO.DISP_EDIT_JSON; la regla del guardado vive en svc_evoluciones
+     (_dispAplicarUltimaEdicion).
+   · El check es por cama y se reinicia cada turno: hoja CHECK_EQUIPOS, de
+     solo agregar (marcar = fila 'ok', desmarcar = fila 'anulado').
+   · La bodega se desglosa por NOMBRE (lo numerado) y por CANTIDAD (el stock
+     sin número: Aerogen, capnógrafos), agrupada VM · VNI · CNAF · APOYO.
+   · Una cama puede tener equipo SIN USO, o no tener equipo. Son tres estados.
+
+   Sin nombres ni RUT: la lista habla de camas y equipos, no de personas.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Clave del cliente ↔ catálogo de svc_eventos (allá el Trach Care es 'sonda'). */
+const _EQ_FILTROS = [
+  { k: 'tc',   ke: 'sonda', campo: 'DISP_TC_FECHA',   nombre: 'Trachcare' },
+  { k: 'hepa', ke: 'hepa',  campo: 'DISP_HEPA_FECHA', nombre: 'HEPA' },
+  { k: 'hme',  ke: 'hme',   campo: 'DISP_HME_FECHA',  nombre: 'HME' },
+];
+
+/** El turno de AHORA según el reloj del servidor y los cortes de CONFIG. El
+ *  check se ata a este turno, no al que el cliente tenga elegido en gDate. */
+function _eqTurnoAhora() { return turnoLogicoServidor(hoyISO(), _horaAhora()); }
+
+function _eqDispEdit(cama) {
+  try { const j = JSON.parse(String((cama && cama.DISP_EDIT_JSON) || '') || '{}'); return (j && typeof j === 'object') ? j : {}; }
+  catch (e) { return {}; }
+}
+
+/** Estado vigente del check por cama en un turno: la ÚLTIMA fila manda. */
+function _eqChecksDelTurno(turnoKey) {
+  const ult = {};
+  repoLeerTodos('CHECK_EQUIPOS', 'TURNO_KEY', String(turnoKey)).forEach(function (r) {
+    const k = String(r.ID_CAMA);
+    if (!ult[k] || String(r.TIMESTAMP) > String(ult[k].TIMESTAMP)) ult[k] = r;
+  });
+  const out = {};
+  Object.keys(ult).forEach(function (k) {
+    if (String(ult[k].ESTADO) === 'ok') out[k] = { hora: String(ult[k].HORA || ''), firma: String(ult[k].FIRMA || '') };
+  });
+  return out;
+}
+
+function _eqResumen(x) {
+  return {
+    id: String(x.ID_VM || ''), nombre: String(x.NOMBRE || ''), marca: String(x.MARCA || ''),
+    modelo: String(x.MODELO || ''), serie: String(x.NUM_SERIE || ''), categoria: _vmCategoria(x),
+    estado: String(x.ESTADO || 'Operativo'), enUso: esVerdadero(x.EN_USO), obs: String(x.OBS || ''),
+    ubicTipo: String(x.UBIC_TIPO || ''), ubicDetalle: String(x.UBIC_DETALLE || ''),
+    fechaUbicacion: _statISO(x.FECHA_UBICACION), fechaMantProx: _statISO(x.FECHA_MANT_PROX),
+  };
+}
+
+/**
+ * La lista completa, en UN viaje: las N camas con su equipo, su estado de uso,
+ * sus filtros con vencimiento (misma regla que la hoja diaria y «Cambios de
+ * esta noche»: estadoDispositivos), el check de ESTE turno, y abajo la bodega
+ * desglosada, pasillo, equipos médicos y préstamos. `flota` trae los VM
+ * invasivos con su ubicación, para el selector por marca.
+ */
+function obtenerGrillaEquipos() {
+  try {
+    const n = parseInt(leerConfig('NUM_CAMAS', '18'), 10) || 18;
+    const t = _eqTurnoAhora();
+    const checks = _eqChecksDelTurno(t.turnoKey);
+    const porId = {};
+    repoLeerTodos('CAMAS_ESTADO').forEach(function (c) { porId[String(c.ID_CAMA)] = c; });
+    const vents = repoLeerTodos('VENTILADORES').filter(function (x) { return esVerdadero(x.ACTIVO); });
+    const enCama = {}, otrosCama = {};
+    vents.forEach(function (x) {
+      if (x.UBIC_TIPO !== 'CAMA' || !x.UBIC_DETALLE) return;
+      const id = String(x.UBIC_DETALLE);
+      if (_vmEsDeCama(_vmCategoria(x))) enCama[id] = x;
+      else (otrosCama[id] = otrosCama[id] || []).push(x);
+    });
+    if (typeof _ventPorCamaMemo !== 'undefined') _ventPorCamaMemo = null;   // el HEPA fijo mira el equipo de la cama
+    const camas = [];
+    let revisadas = 0;
+    for (let i = 1; i <= n; i++) {
+      const id = String(i);
+      const c = porId[id] || { ID_CAMA: id };
+      const ocupada = esVerdadero(c.OCUPADA);
+      const enVM = ocupada && String(c.SOPORTE) === 'VM';
+      const vm = enCama[id] ? _eqResumen(enCama[id]) : null;
+      const edit = _eqDispEdit(c);
+      const est = ocupada ? estadoDispositivos(c, t.fecha) : [];
+      const filtros = _EQ_FILTROS.map(function (f) {
+        const e = est.filter(function (x) { return x.k === f.ke; })[0] || {};
+        return { k: f.k, nombre: f.nombre, fecha: _statISO(c[f.campo]), aplica: !!e.aplica, fija: !!e.fija,
+                 vence: !!e.vence, estaNoche: !!e.cambiaEstaNoche, fechaCambio: e.fechaCambio || '',
+                 edit: edit[f.k] || null };
+      });
+      // Tres estados del equipo (Diego: «puede tener VM sin uso o que no exista
+      // VM en esa sala») y los cruces que conviene avisar sin bloquear nada.
+      let alerta = '';
+      if (enVM && !vm) alerta = 'sin_equipo';            // paciente en VM y ninguna máquina asignada
+      else if (vm && vm.enUso && !enVM) alerta = 'uso_sin_vm';   // marcado en uso, pero la cama no está en VM
+      else if (enVM && vm && !vm.enUso) alerta = 'vm_sin_uso';   // paciente en VM y el equipo dice «sin uso»
+      const chk = checks[id] || null;
+      if (chk) revisadas++;
+      camas.push({ cama: id, ocupada: ocupada, enVM: enVM, viaAerea: String(c.VIA_AEREA || ''),
+                   vm: vm, otros: (otrosCama[id] || []).map(_eqResumen), filtros: filtros,
+                   check: chk, alerta: alerta });
+    }
+    // Bodega desglosada por categoría, con NOMBRE (Diego: «no solo cuántos sino cuáles»)
+    const bodega = { VM: [], VNI: [], CNAF: [], APOYO: [], stock: [] };
+    const pasillo = [], equipos = [], prestamo = [];
+    vents.forEach(function (x) {
+      const r = _eqResumen(x);
+      if (x.UBIC_TIPO === 'CAMA') return;
+      if (x.UBIC_TIPO === 'PASILLO') pasillo.push(r);
+      else if (x.UBIC_TIPO === 'EQUIPOS') equipos.push(r);
+      else if (x.UBIC_TIPO === 'PRESTAMO') prestamo.push(r);
+      else (bodega[r.categoria] || bodega.APOYO).push(r);
+    });
+    const ordNom = function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }); };
+    ['VM', 'VNI', 'CNAF', 'APOYO'].forEach(function (k) { bodega[k].sort(ordNom); });
+    pasillo.sort(ordNom); equipos.sort(ordNom); prestamo.sort(ordNom);
+    // Lo sin número va por cantidad: nadie distingue un Aerogen de otro.
+    try {
+      const st = obtenerStockEquipos();
+      if (st && st.ok) bodega.stock = (st.data || []).filter(function (s) { return !/baja/i.test(s.estado); })
+        .map(function (s) { return { nombre: s.nombre, categoria: s.categoria, disponible: s.disponible, cantidad: s.cantidad }; });
+    } catch (e) { bodega.stock = []; }
+    // Flota de VM invasivos para el selector por marca (verde = libre, gris = en otra cama)
+    const flota = vents.filter(function (x) { return _vmEsDeCama(_vmCategoria(x)); }).map(_eqResumen)
+      .sort(function (a, b) { return (a.marca || '').localeCompare(b.marca || '', 'es') || ordNom(a, b); });
+    return ok({ fecha: t.fecha, turno: t.turno, turnoKey: t.turnoKey, hora: _horaAhora(), numCamas: n,
+                camas: camas, revisadas: revisadas, bodega: bodega, pasillo: pasillo, equipos: equipos,
+                prestamo: prestamo, flota: flota });
+  } catch (e) { return err('obtenerGrillaEquipos: ' + e.message, ERR.INTERNO, e); }
+}
+
+/** Interruptor «VM en uso». Solo un equipo que está EN una cama puede estar en uso. */
+function equipoEnUso(d, ctx) {
+  return conLock(function () {
+    try {
+      const vmx = repoBuscarPorId('VENTILADORES', 'ID_VM', String(d.idVm || ''));
+      if (!vmx) return err('Ventilador no encontrado.', ERR.VALIDACION);
+      if (!esVerdadero(vmx.ACTIVO)) return err('El ventilador está dado de baja.', ERR.VALIDACION);
+      const on = esVerdadero(d.enUso);
+      if (on && vmx.UBIC_TIPO !== 'CAMA') return err('Para marcarlo en uso primero asígnalo a una cama.', ERR.VALIDACION);
+      repoActualizar('VENTILADORES', 'ID_VM', vmx.ID_VM, { EN_USO: on, TIMESTAMP: ahoraTS() });
+      return ok({ id: vmx.ID_VM, entidad: 'VENTILADORES', enUso: on,
+                  accion: (on ? 'en uso' : 'sin uso') + ': ' + String(vmx.NOMBRE || vmx.ID_VM) });
+    } catch (e) { return err('equipoEnUso: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/**
+ * Fecha de un filtro escrita desde la lista. Es el MISMO dato que escribe la
+ * evolución (CAMAS_ESTADO.DISP_*_FECHA): una puerta, no una copia. Deja el
+ * sello de procedencia en DISP_EDIT_JSON para que el guardado del turno sepa
+ * que esto se editó después de que el colega abrió su panel.
+ */
+function equipoFiltroFecha(d, ctx) {
+  ctx = ctx || {};
+  return conLock(function () {
+    try {
+      const f = _EQ_FILTROS.filter(function (x) { return x.k === String(d.k || ''); })[0];
+      if (!f) return err('Filtro desconocido.', ERR.VALIDACION);
+      const idCama = String(d.idCama || '');
+      const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+      if (!cama) return err('Cama no encontrada.', ERR.VALIDACION);
+      if (!esVerdadero(cama.OCUPADA)) return err('La cama ' + idCama + ' no tiene paciente: los filtros se registran con el episodio.', ERR.VALIDACION);
+      const fecha = String(d.fecha || '').slice(0, 10);
+      if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return err('Fecha inválida.', ERR.VALIDACION);
+      const edit = _eqDispEdit(cama);
+      edit[f.k] = { ts: ahoraTS(), f: String(ctx.firma || ''), o: 'grilla' };
+      const upd = { DISP_EDIT_JSON: JSON.stringify(edit) };
+      upd[f.campo] = fecha;
+      repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, upd);
+      return ok({ idCama: idCama, entidad: 'CAMAS_ESTADO', k: f.k, fecha: fecha, edit: edit[f.k],
+                  accion: f.nombre + ' cama ' + idCama + ': ' + (fecha || 'sin fecha') });
+    } catch (e) { return err('equipoFiltroFecha: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/**
+ * Check de la cama en el turno de AHORA. De solo agregar: marcar inserta una
+ * fila 'ok', desmarcar inserta una fila 'anulado'. Nada se pisa; el estado
+ * vigente es la última fila. Se admite en camas vacías: confirmar «aquí no hay
+ * VM» también es revisar.
+ */
+function equipoCheck(d, ctx) {
+  ctx = ctx || {};
+  return conLock(function () {
+    try {
+      const idCama = String(d.idCama || '');
+      if (!idCama) return err('Falta la cama.', ERR.VALIDACION);
+      const n = parseInt(leerConfig('NUM_CAMAS', '18'), 10) || 18;
+      const num = parseInt(idCama, 10);
+      if (!(num >= 1 && num <= n)) return err('Cama fuera de rango.', ERR.VALIDACION);
+      const marcar = (d.marcar === undefined || d.marcar === null) ? true : esVerdadero(d.marcar);
+      const t = _eqTurnoAhora();
+      const hora = _horaAhora();
+      let detalle = '';
+      try { detalle = JSON.stringify(d.detalle || {}); } catch (e) { detalle = '{}'; }
+      const fila = {
+        ID_CHECK: uid('CHK'), TURNO_KEY: t.turnoKey, FECHA: t.fecha, TURNO: t.turno,
+        ID_CAMA: idCama, HORA: hora, FIRMA: String(ctx.firma || ''), AUTOR_EMAIL: String(ctx.email || ''),
+        ESTADO: marcar ? 'ok' : 'anulado', DETALLE_JSON: detalle, TIMESTAMP: ahoraTS(),
+      };
+      repoInsertar('CHECK_EQUIPOS', fila);
+      return ok({ idCama: idCama, entidad: 'CHECK_EQUIPOS', id: fila.ID_CHECK, turnoKey: t.turnoKey,
+                  check: marcar ? { hora: hora, firma: fila.FIRMA } : null,
+                  accion: (marcar ? 'revisada' : 'check anulado') + ' cama ' + idCama });
+    } catch (e) { return err('equipoCheck: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/** Movimientos y fallas de un equipo en UNA sola línea de tiempo (lo más reciente primero). */
+function obtenerHistorialEquipo(idVm, limite) {
+  try {
+    const id = String(idVm || '');
+    if (!id) return err('Falta el equipo.', ERR.VALIDACION);
+    const lim = parseInt(limite, 10) || 40;
+    const items = repoLeerTodos('MOVIMIENTOS_VM', 'ID_VM', id).map(function (m) {
+      return { tipo: 'mov', ts: String(m.TIMESTAMP || ''), fecha: _statISO(m.FECHA),
+               desde: String(m.DESDE || ''), hacia: String(m.HACIA || ''), motivo: String(m.MOTIVO || ''),
+               firma: String(m.FIRMA || '') };
+    }).concat(repoLeerTodos('FALLAS_VM', 'ID_VM', id).map(function (f) {
+      return { tipo: 'falla', ts: String(f.TIMESTAMP || ''), fecha: _statISO(f.FECHA),
+               desc: String(f.DESCRIPCION || ''), foto: String(f.FOTO_URL || ''), firma: String(f.FIRMA || '') };
+    }));
+    items.sort(function (a, b) { return String(b.ts).localeCompare(String(a.ts)); });
+    return ok({ idVm: id, items: items.slice(0, lim), total: items.length });
+  } catch (e) { return err('obtenerHistorialEquipo: ' + e.message, ERR.INTERNO, e); }
 }
 
 
@@ -4176,6 +4425,10 @@ function guardarEvolucion(datos, ctx) {
       // evoluciones de noche salían tituladas "TURNO DÍA".
       datos.FECHA = fecha;
       datos.TURNO = turno;
+      // Lo que el formulario CARGÓ al abrirse (filtros del circuito), leído
+      // AHORA y no después: al re-guardar el mismo turno se heredan las claves
+      // de la fila anterior y un original viejo no debe colarse por ahí.
+      const _dispOrigPayload = _dispOrigDe(datos);
 
       // La vista previa (cliente) ya generó el texto que el kinesiólogo revisó:
       // se respeta tal cual para que el texto GUARDADO sea IDÉNTICO al de la
@@ -4416,6 +4669,13 @@ function guardarEvolucion(datos, ctx) {
         // se ancla al primer turno evolucionado para que los días no queden '?'.
         cama.FECHA_INGRESO = _tsIng ? _tsFecha(_tsIng) : fecha;
       }
+      // 🔧 Las DOS PUERTAS escriben los filtros (Diego, 14-sep-2026) y manda
+      // la ÚLTIMA EDICIÓN: si la lista de ventiladores cambió una fecha
+      // después de que este panel se abrió y el colega no tocó ese campo, la
+      // fecha de la cama es la buena y se corrige AQUÍ, en el payload, para
+      // que la fila del turno y la cama digan lo mismo. Ver el porqué de «no
+      // la fecha mayor» en la función.
+      _dispAplicarUltimaEdicion(datos, cama, _dispOrigPayload);
       if (!cama.TS_INGRESO) {
         cama.TS_INGRESO = _tsIng || _tsAhora();
       } else if (_hFormIng && _hFormIng !== _tsHora(cama.TS_INGRESO)
@@ -4985,6 +5245,10 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     DISP_HEPA_FECHA: dejaVM ? '' : val(evo.DISP_HEPA_FECHA, cama.DISP_HEPA_FECHA),
     DISP_TC_FECHA: (dejaVM && vaNew !== 'TOT' && vaNew !== 'TQT') ? '' : val(evo.VENT_FECHA_SONDA, cama.DISP_TC_FECHA),
     DISP_HUMID_FECHA: humidFinal,
+    // Sello de procedencia de cada filtro (lista por cama, sep-2026): lo que
+    // este turno CAMBIÓ de verdad queda firmado por él; lo que solo arrastró,
+    // conserva la firma de quien lo escribió (la evolución anterior o la lista).
+    DISP_EDIT_JSON: _dispSelloEdicion(cama, evo, fecha),
     WEAN_PVE_JSON: JSON.stringify(weanPve),
     WEAN_CAND_PVE: candPve,
     ULTIMO_TURNO_KEY: turnoKey,
@@ -5680,6 +5944,75 @@ function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos, _evos) {
  *  vía aérea; un cliente viejo (o un banco de prueba sin el campo) sigue igual. */
 function _ingresoEscrito(d) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String((d && d.PAC_FECHA_INGRESO) || ''));
+}
+
+/* ── Filtros del circuito: «las dos puertas escriben» (Diego, 14-sep-2026) ──
+   Las fechas de Trachcare/HEPA/HME se escriben desde el formulario de
+   evolución Y desde la lista de ventiladores por cama, sobre el MISMO dato
+   (CAMAS_ESTADO.DISP_*_FECHA). El choque: un colega abre su panel a las 08:00
+   (que carga las fechas de la cama), otro corrige el HME desde la lista a las
+   08:10, y el primero guarda a las 08:30 sin haber tocado el HME — su panel
+   todavía tiene la fecha vieja y la pisaría. Es la misma trampa de la cama 17
+   con los días de VM.
+
+   🔴 La regla es «manda la ÚLTIMA EDICIÓN», no «manda la fecha mayor»: si la
+   corrección de la lista fue a una fecha MÁS ANTIGUA (la etiqueta real lo
+   era), «la mayor manda» conservaría la equivocada y borraría la corrección
+   en silencio.
+
+   Cómo se sabe qué tocó el colega: el formulario manda DISP_ORIG_JSON
+   (transitorio, como PAC_RUT: no es columna) con lo que CARGÓ al abrirse.
+   Campo igual al original = no lo tocó; si además la cama ya no coincide con
+   ese original, la cama es más nueva y manda. Un payload viejo sin
+   DISP_ORIG_JSON se comporta como siempre. */
+const _DISP_PUERTAS = [
+  { k: 'hme',  payload: 'DISP_HME_FECHA',  cama: 'DISP_HME_FECHA' },
+  { k: 'hepa', payload: 'DISP_HEPA_FECHA', cama: 'DISP_HEPA_FECHA' },
+  { k: 'tc',   payload: 'VENT_FECHA_SONDA', cama: 'DISP_TC_FECHA' },
+];
+function _dispOrigDe(d) {
+  try { const j = JSON.parse(String((d && d.DISP_ORIG_JSON) || '') || 'null'); return (j && typeof j === 'object') ? j : null; }
+  catch (e) { return null; }
+}
+/* Normaliza a 'yyyy-MM-dd' sin depender de svc_stats (los arneses de las
+   guardias cargan svc_evoluciones solo, y _statISO vive allá). */
+function _dispIso(v) {
+  if (!v) return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') {
+    return (typeof _statISO === 'function') ? _statISO(v) : v.toISOString().slice(0, 10);
+  }
+  return String(v).slice(0, 10);
+}
+/** Devuelve la fecha que debe valer para un filtro: la del payload, salvo que
+ *  el colega no la haya tocado y la cama la tenga más nueva. Pura, para la guardia. */
+function _dispRespetaEdicion(k, payloadVal, camaVal, orig) {
+  if (!orig || !(k in orig)) return payloadVal;
+  const o = _dispIso(orig[k]), p = _dispIso(payloadVal), c = _dispIso(camaVal);
+  if (p === o && c !== o) return camaVal;
+  return payloadVal;
+}
+/** Corrige EN EL PAYLOAD los filtros que otro editó después de abrir el panel. */
+function _dispAplicarUltimaEdicion(datos, cama, orig) {
+  if (orig === undefined) orig = _dispOrigDe(datos);
+  if (!orig || !cama) return [];
+  const corregidos = [];
+  _DISP_PUERTAS.forEach(function (p) {
+    const antes = datos[p.payload];
+    const bueno = _dispRespetaEdicion(p.k, antes, cama[p.cama], orig);
+    if (_dispIso(bueno) !== _dispIso(antes)) { datos[p.payload] = _dispIso(bueno); corregidos.push(p.k); }
+  });
+  return corregidos;
+}
+/** El sello DISP_EDIT_JSON que le corresponde a la cama tras este guardado. */
+function _dispSelloEdicion(cama, evo, fecha) {
+  let sello = {};
+  try { sello = JSON.parse(String((cama && cama.DISP_EDIT_JSON) || '') || '{}') || {}; } catch (e) { sello = {}; }
+  if (typeof sello !== 'object') sello = {};
+  _DISP_PUERTAS.forEach(function (p) {
+    const nuevo = _dispIso(evo[p.payload]), viejo = _dispIso(cama && cama[p.cama]);
+    if (nuevo && nuevo !== viejo) sello[p.k] = { ts: ahoraTS(), f: String(evo.PLAN_FIRMA_KINE || ''), o: 'evolucion', t: String(fecha || '') };
+  });
+  return JSON.stringify(sello);
 }
 
 /**
@@ -6592,6 +6925,15 @@ function notifListar(datos) {
 // LA TANDA COMPLETA que el equipo ve al pasar a ese sello (el servidor solo
 // conoce el sello que arranca, no las versiones intermedias).
 const NOVEDADES = {
+  '7.05-ventiladores-por-cama': [
+    '🔧 Ventiladores abre en una LISTA por cama, como la hoja de entrega de turno: VM en uso · equipo · filtros · check. Se lee entera en el teléfono.',
+    '🚶 Botón «Ronda»: la misma lista una cama a la vez, con botones grandes, para recorrer la unidad con el teléfono en la mano.',
+    '✓ El check es por cama y se reinicia cada turno; queda con hora y sigla. Arriba se ve cuántas camas van revisadas.',
+    '📅 Las fechas de Trachcare, HEPA y HME se pueden escribir desde la lista o desde la evolución: es el mismo dato, y manda la última edición.',
+    '📦 La bodega se muestra por nombre (Vela 2, Vela 3…) y el stock sin número (capnógrafos) por cantidad. Tocar un equipo abre su ficha: mover, falla, historial.',
+    '🗺️ El tablero de arrastre sigue existiendo como tercera vista, para mover equipos entre bodega, pasillo y camas.',
+    '🔒 Sin cambios en la evolución ni en las cifras: las 396 columnas siguen igual.',
+  ],
   '7.02-con-resiembra-plantillas': [
     '📋 Las escalas ECF, Barthel y Charlson se miden desde la tarjeta de la cama, sin abrir la evolución; se ven pendientes mientras falten.',
     '✍️ Cada MRC, FSS y Pimáx queda con fecha y con las iniciales de quien lo midió. El dato lo usa cualquiera; la firma dice de dónde salió.',

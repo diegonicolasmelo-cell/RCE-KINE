@@ -80,6 +80,15 @@ function notifListar(datos) {
 // LA TANDA COMPLETA que el equipo ve al pasar a ese sello (el servidor solo
 // conoce el sello que arranca, no las versiones intermedias).
 const NOVEDADES = {
+  '7.05-ventiladores-por-cama': [
+    '🔧 Ventiladores abre en una LISTA por cama, como la hoja de entrega de turno: VM en uso · equipo · filtros · check. Se lee entera en el teléfono.',
+    '🚶 Botón «Ronda»: la misma lista una cama a la vez, con botones grandes, para recorrer la unidad con el teléfono en la mano.',
+    '✓ El check es por cama y se reinicia cada turno; queda con hora y sigla. Arriba se ve cuántas camas van revisadas.',
+    '📅 Las fechas de Trachcare, HEPA y HME se pueden escribir desde la lista o desde la evolución: es el mismo dato, y manda la última edición.',
+    '📦 La bodega se muestra por nombre (Vela 2, Vela 3…) y el stock sin número (capnógrafos) por cantidad. Tocar un equipo abre su ficha: mover, falla, historial.',
+    '🗺️ El tablero de arrastre sigue existiendo como tercera vista, para mover equipos entre bodega, pasillo y camas.',
+    '🔒 Sin cambios en la evolución ni en las cifras: las 396 columnas siguen igual.',
+  ],
   '7.02-con-resiembra-plantillas': [
     '📋 Las escalas ECF, Barthel y Charlson se miden desde la tarjeta de la cama, sin abrir la evolución; se ven pendientes mientras falten.',
     '✍️ Cada MRC, FSS y Pimáx queda con fecha y con las iniciales de quien lo midió. El dato lo usa cualquiera; la firma dice de dónde salió.',

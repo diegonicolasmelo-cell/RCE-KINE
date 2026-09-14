@@ -68,6 +68,7 @@ function obtenerVentiladores() {
         estado: x.ESTADO || 'Operativo', activo: esVerdadero(x.ACTIVO), obs: x.OBS || '',
         fechaMant: _statISO(x.FECHA_MANT), fechaMantProx: _statISO(x.FECHA_MANT_PROX),
         categoria: cat, deCama: _vmEsDeCama(cat),
+        enUso: esVerdadero(x.EN_USO),
       };
     });
     rows.sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }); });
@@ -155,10 +156,19 @@ function moverVentilador(d, ctx) {
       const fecha = _statISO(d.fecha) || hoyISO();
       const desde = _vmUbicLabel(vmx.UBIC_TIPO, vmx.UBIC_DETALLE);
       const hacia = _vmUbicLabel(tipo, detalle);
-      repoActualizar('VENTILADORES', 'ID_VM', d.idVm, {
+      const upd = {
         UBIC_TIPO: tipo, UBIC_DETALLE: detalle, FECHA_UBICACION: fecha,
         ESTADO: d.estado || vmx.ESTADO || 'Operativo', TIMESTAMP: ahoraTS(),
-      });
+      };
+      // «VM en uso» (lista por cama, sep-2026): un equipo que sale de la cama
+      // deja de estar en uso, siempre. Al ENTRAR a una cama solo cambia si
+      // quien lo mueve lo dice (d.enUso): la lista lo sugiere mirando si el
+      // paciente está en VM; el tablero de arrastre no opina y lo deja como
+      // estaba. conLock no es reentrante, así que esto vive aquí y no en una
+      // segunda escritura por fuera.
+      if (tipo !== 'CAMA') upd.EN_USO = false;
+      else if (d.enUso !== undefined) upd.EN_USO = esVerdadero(d.enUso);
+      repoActualizar('VENTILADORES', 'ID_VM', d.idVm, upd);
       repoInsertar('MOVIMIENTOS_VM', {
         ID_MOV: uid('MOV'), ID_VM: d.idVm, TIMESTAMP: ahoraTS(), FECHA: fecha,
         DESDE: desde, HACIA: hacia, MOTIVO: d.motivo || '',
@@ -630,4 +640,242 @@ function obtenerMovimientosStock(idStock, limite) {
         desde: String(x.DESDE || ''), hacia: String(x.HACIA || '') }; });
     return ok({ movs: filas, total: filas.length });
   } catch (e) { return err('obtenerMovimientosStock: ' + e.message, ERR.INTERNO, e); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LISTA DE VENTILADORES POR CAMA (sep-2026, feedback de los colegas vía Diego:
+   «el revisar en el móvil los ventiladores se hace engorroso»). Es la hoja de
+   papel «Entrega de turno Kinesiología» llevada a la app: una fila por cama,
+   VM en uso · equipo · Trachcare · HEPA · HME · observaciones · check.
+
+   Decisiones de Diego (14-sep-2026):
+   · A + modo ronda; el tablero de arrastre queda como segunda vista.
+   · «Las dos puertas escriben» las fechas de filtro (evolución y esta lista),
+     y manda la ÚLTIMA EDICIÓN — no la fecha mayor. La procedencia queda en
+     CAMAS_ESTADO.DISP_EDIT_JSON; la regla del guardado vive en svc_evoluciones
+     (_dispAplicarUltimaEdicion).
+   · El check es por cama y se reinicia cada turno: hoja CHECK_EQUIPOS, de
+     solo agregar (marcar = fila 'ok', desmarcar = fila 'anulado').
+   · La bodega se desglosa por NOMBRE (lo numerado) y por CANTIDAD (el stock
+     sin número: Aerogen, capnógrafos), agrupada VM · VNI · CNAF · APOYO.
+   · Una cama puede tener equipo SIN USO, o no tener equipo. Son tres estados.
+
+   Sin nombres ni RUT: la lista habla de camas y equipos, no de personas.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Clave del cliente ↔ catálogo de svc_eventos (allá el Trach Care es 'sonda'). */
+const _EQ_FILTROS = [
+  { k: 'tc',   ke: 'sonda', campo: 'DISP_TC_FECHA',   nombre: 'Trachcare' },
+  { k: 'hepa', ke: 'hepa',  campo: 'DISP_HEPA_FECHA', nombre: 'HEPA' },
+  { k: 'hme',  ke: 'hme',   campo: 'DISP_HME_FECHA',  nombre: 'HME' },
+];
+
+/** El turno de AHORA según el reloj del servidor y los cortes de CONFIG. El
+ *  check se ata a este turno, no al que el cliente tenga elegido en gDate. */
+function _eqTurnoAhora() { return turnoLogicoServidor(hoyISO(), _horaAhora()); }
+
+function _eqDispEdit(cama) {
+  try { const j = JSON.parse(String((cama && cama.DISP_EDIT_JSON) || '') || '{}'); return (j && typeof j === 'object') ? j : {}; }
+  catch (e) { return {}; }
+}
+
+/** Estado vigente del check por cama en un turno: la ÚLTIMA fila manda. */
+function _eqChecksDelTurno(turnoKey) {
+  const ult = {};
+  repoLeerTodos('CHECK_EQUIPOS', 'TURNO_KEY', String(turnoKey)).forEach(function (r) {
+    const k = String(r.ID_CAMA);
+    if (!ult[k] || String(r.TIMESTAMP) > String(ult[k].TIMESTAMP)) ult[k] = r;
+  });
+  const out = {};
+  Object.keys(ult).forEach(function (k) {
+    if (String(ult[k].ESTADO) === 'ok') out[k] = { hora: String(ult[k].HORA || ''), firma: String(ult[k].FIRMA || '') };
+  });
+  return out;
+}
+
+function _eqResumen(x) {
+  return {
+    id: String(x.ID_VM || ''), nombre: String(x.NOMBRE || ''), marca: String(x.MARCA || ''),
+    modelo: String(x.MODELO || ''), serie: String(x.NUM_SERIE || ''), categoria: _vmCategoria(x),
+    estado: String(x.ESTADO || 'Operativo'), enUso: esVerdadero(x.EN_USO), obs: String(x.OBS || ''),
+    ubicTipo: String(x.UBIC_TIPO || ''), ubicDetalle: String(x.UBIC_DETALLE || ''),
+    fechaUbicacion: _statISO(x.FECHA_UBICACION), fechaMantProx: _statISO(x.FECHA_MANT_PROX),
+  };
+}
+
+/**
+ * La lista completa, en UN viaje: las N camas con su equipo, su estado de uso,
+ * sus filtros con vencimiento (misma regla que la hoja diaria y «Cambios de
+ * esta noche»: estadoDispositivos), el check de ESTE turno, y abajo la bodega
+ * desglosada, pasillo, equipos médicos y préstamos. `flota` trae los VM
+ * invasivos con su ubicación, para el selector por marca.
+ */
+function obtenerGrillaEquipos() {
+  try {
+    const n = parseInt(leerConfig('NUM_CAMAS', '18'), 10) || 18;
+    const t = _eqTurnoAhora();
+    const checks = _eqChecksDelTurno(t.turnoKey);
+    const porId = {};
+    repoLeerTodos('CAMAS_ESTADO').forEach(function (c) { porId[String(c.ID_CAMA)] = c; });
+    const vents = repoLeerTodos('VENTILADORES').filter(function (x) { return esVerdadero(x.ACTIVO); });
+    const enCama = {}, otrosCama = {};
+    vents.forEach(function (x) {
+      if (x.UBIC_TIPO !== 'CAMA' || !x.UBIC_DETALLE) return;
+      const id = String(x.UBIC_DETALLE);
+      if (_vmEsDeCama(_vmCategoria(x))) enCama[id] = x;
+      else (otrosCama[id] = otrosCama[id] || []).push(x);
+    });
+    if (typeof _ventPorCamaMemo !== 'undefined') _ventPorCamaMemo = null;   // el HEPA fijo mira el equipo de la cama
+    const camas = [];
+    let revisadas = 0;
+    for (let i = 1; i <= n; i++) {
+      const id = String(i);
+      const c = porId[id] || { ID_CAMA: id };
+      const ocupada = esVerdadero(c.OCUPADA);
+      const enVM = ocupada && String(c.SOPORTE) === 'VM';
+      const vm = enCama[id] ? _eqResumen(enCama[id]) : null;
+      const edit = _eqDispEdit(c);
+      const est = ocupada ? estadoDispositivos(c, t.fecha) : [];
+      const filtros = _EQ_FILTROS.map(function (f) {
+        const e = est.filter(function (x) { return x.k === f.ke; })[0] || {};
+        return { k: f.k, nombre: f.nombre, fecha: _statISO(c[f.campo]), aplica: !!e.aplica, fija: !!e.fija,
+                 vence: !!e.vence, estaNoche: !!e.cambiaEstaNoche, fechaCambio: e.fechaCambio || '',
+                 edit: edit[f.k] || null };
+      });
+      // Tres estados del equipo (Diego: «puede tener VM sin uso o que no exista
+      // VM en esa sala») y los cruces que conviene avisar sin bloquear nada.
+      let alerta = '';
+      if (enVM && !vm) alerta = 'sin_equipo';            // paciente en VM y ninguna máquina asignada
+      else if (vm && vm.enUso && !enVM) alerta = 'uso_sin_vm';   // marcado en uso, pero la cama no está en VM
+      else if (enVM && vm && !vm.enUso) alerta = 'vm_sin_uso';   // paciente en VM y el equipo dice «sin uso»
+      const chk = checks[id] || null;
+      if (chk) revisadas++;
+      camas.push({ cama: id, ocupada: ocupada, enVM: enVM, viaAerea: String(c.VIA_AEREA || ''),
+                   vm: vm, otros: (otrosCama[id] || []).map(_eqResumen), filtros: filtros,
+                   check: chk, alerta: alerta });
+    }
+    // Bodega desglosada por categoría, con NOMBRE (Diego: «no solo cuántos sino cuáles»)
+    const bodega = { VM: [], VNI: [], CNAF: [], APOYO: [], stock: [] };
+    const pasillo = [], equipos = [], prestamo = [];
+    vents.forEach(function (x) {
+      const r = _eqResumen(x);
+      if (x.UBIC_TIPO === 'CAMA') return;
+      if (x.UBIC_TIPO === 'PASILLO') pasillo.push(r);
+      else if (x.UBIC_TIPO === 'EQUIPOS') equipos.push(r);
+      else if (x.UBIC_TIPO === 'PRESTAMO') prestamo.push(r);
+      else (bodega[r.categoria] || bodega.APOYO).push(r);
+    });
+    const ordNom = function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }); };
+    ['VM', 'VNI', 'CNAF', 'APOYO'].forEach(function (k) { bodega[k].sort(ordNom); });
+    pasillo.sort(ordNom); equipos.sort(ordNom); prestamo.sort(ordNom);
+    // Lo sin número va por cantidad: nadie distingue un Aerogen de otro.
+    try {
+      const st = obtenerStockEquipos();
+      if (st && st.ok) bodega.stock = (st.data || []).filter(function (s) { return !/baja/i.test(s.estado); })
+        .map(function (s) { return { nombre: s.nombre, categoria: s.categoria, disponible: s.disponible, cantidad: s.cantidad }; });
+    } catch (e) { bodega.stock = []; }
+    // Flota de VM invasivos para el selector por marca (verde = libre, gris = en otra cama)
+    const flota = vents.filter(function (x) { return _vmEsDeCama(_vmCategoria(x)); }).map(_eqResumen)
+      .sort(function (a, b) { return (a.marca || '').localeCompare(b.marca || '', 'es') || ordNom(a, b); });
+    return ok({ fecha: t.fecha, turno: t.turno, turnoKey: t.turnoKey, hora: _horaAhora(), numCamas: n,
+                camas: camas, revisadas: revisadas, bodega: bodega, pasillo: pasillo, equipos: equipos,
+                prestamo: prestamo, flota: flota });
+  } catch (e) { return err('obtenerGrillaEquipos: ' + e.message, ERR.INTERNO, e); }
+}
+
+/** Interruptor «VM en uso». Solo un equipo que está EN una cama puede estar en uso. */
+function equipoEnUso(d, ctx) {
+  return conLock(function () {
+    try {
+      const vmx = repoBuscarPorId('VENTILADORES', 'ID_VM', String(d.idVm || ''));
+      if (!vmx) return err('Ventilador no encontrado.', ERR.VALIDACION);
+      if (!esVerdadero(vmx.ACTIVO)) return err('El ventilador está dado de baja.', ERR.VALIDACION);
+      const on = esVerdadero(d.enUso);
+      if (on && vmx.UBIC_TIPO !== 'CAMA') return err('Para marcarlo en uso primero asígnalo a una cama.', ERR.VALIDACION);
+      repoActualizar('VENTILADORES', 'ID_VM', vmx.ID_VM, { EN_USO: on, TIMESTAMP: ahoraTS() });
+      return ok({ id: vmx.ID_VM, entidad: 'VENTILADORES', enUso: on,
+                  accion: (on ? 'en uso' : 'sin uso') + ': ' + String(vmx.NOMBRE || vmx.ID_VM) });
+    } catch (e) { return err('equipoEnUso: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/**
+ * Fecha de un filtro escrita desde la lista. Es el MISMO dato que escribe la
+ * evolución (CAMAS_ESTADO.DISP_*_FECHA): una puerta, no una copia. Deja el
+ * sello de procedencia en DISP_EDIT_JSON para que el guardado del turno sepa
+ * que esto se editó después de que el colega abrió su panel.
+ */
+function equipoFiltroFecha(d, ctx) {
+  ctx = ctx || {};
+  return conLock(function () {
+    try {
+      const f = _EQ_FILTROS.filter(function (x) { return x.k === String(d.k || ''); })[0];
+      if (!f) return err('Filtro desconocido.', ERR.VALIDACION);
+      const idCama = String(d.idCama || '');
+      const cama = repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', idCama);
+      if (!cama) return err('Cama no encontrada.', ERR.VALIDACION);
+      if (!esVerdadero(cama.OCUPADA)) return err('La cama ' + idCama + ' no tiene paciente: los filtros se registran con el episodio.', ERR.VALIDACION);
+      const fecha = String(d.fecha || '').slice(0, 10);
+      if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return err('Fecha inválida.', ERR.VALIDACION);
+      const edit = _eqDispEdit(cama);
+      edit[f.k] = { ts: ahoraTS(), f: String(ctx.firma || ''), o: 'grilla' };
+      const upd = { DISP_EDIT_JSON: JSON.stringify(edit) };
+      upd[f.campo] = fecha;
+      repoActualizar('CAMAS_ESTADO', 'ID_CAMA', idCama, upd);
+      return ok({ idCama: idCama, entidad: 'CAMAS_ESTADO', k: f.k, fecha: fecha, edit: edit[f.k],
+                  accion: f.nombre + ' cama ' + idCama + ': ' + (fecha || 'sin fecha') });
+    } catch (e) { return err('equipoFiltroFecha: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/**
+ * Check de la cama en el turno de AHORA. De solo agregar: marcar inserta una
+ * fila 'ok', desmarcar inserta una fila 'anulado'. Nada se pisa; el estado
+ * vigente es la última fila. Se admite en camas vacías: confirmar «aquí no hay
+ * VM» también es revisar.
+ */
+function equipoCheck(d, ctx) {
+  ctx = ctx || {};
+  return conLock(function () {
+    try {
+      const idCama = String(d.idCama || '');
+      if (!idCama) return err('Falta la cama.', ERR.VALIDACION);
+      const n = parseInt(leerConfig('NUM_CAMAS', '18'), 10) || 18;
+      const num = parseInt(idCama, 10);
+      if (!(num >= 1 && num <= n)) return err('Cama fuera de rango.', ERR.VALIDACION);
+      const marcar = (d.marcar === undefined || d.marcar === null) ? true : esVerdadero(d.marcar);
+      const t = _eqTurnoAhora();
+      const hora = _horaAhora();
+      let detalle = '';
+      try { detalle = JSON.stringify(d.detalle || {}); } catch (e) { detalle = '{}'; }
+      const fila = {
+        ID_CHECK: uid('CHK'), TURNO_KEY: t.turnoKey, FECHA: t.fecha, TURNO: t.turno,
+        ID_CAMA: idCama, HORA: hora, FIRMA: String(ctx.firma || ''), AUTOR_EMAIL: String(ctx.email || ''),
+        ESTADO: marcar ? 'ok' : 'anulado', DETALLE_JSON: detalle, TIMESTAMP: ahoraTS(),
+      };
+      repoInsertar('CHECK_EQUIPOS', fila);
+      return ok({ idCama: idCama, entidad: 'CHECK_EQUIPOS', id: fila.ID_CHECK, turnoKey: t.turnoKey,
+                  check: marcar ? { hora: hora, firma: fila.FIRMA } : null,
+                  accion: (marcar ? 'revisada' : 'check anulado') + ' cama ' + idCama });
+    } catch (e) { return err('equipoCheck: ' + e.message, ERR.INTERNO, e); }
+  });
+}
+
+/** Movimientos y fallas de un equipo en UNA sola línea de tiempo (lo más reciente primero). */
+function obtenerHistorialEquipo(idVm, limite) {
+  try {
+    const id = String(idVm || '');
+    if (!id) return err('Falta el equipo.', ERR.VALIDACION);
+    const lim = parseInt(limite, 10) || 40;
+    const items = repoLeerTodos('MOVIMIENTOS_VM', 'ID_VM', id).map(function (m) {
+      return { tipo: 'mov', ts: String(m.TIMESTAMP || ''), fecha: _statISO(m.FECHA),
+               desde: String(m.DESDE || ''), hacia: String(m.HACIA || ''), motivo: String(m.MOTIVO || ''),
+               firma: String(m.FIRMA || '') };
+    }).concat(repoLeerTodos('FALLAS_VM', 'ID_VM', id).map(function (f) {
+      return { tipo: 'falla', ts: String(f.TIMESTAMP || ''), fecha: _statISO(f.FECHA),
+               desc: String(f.DESCRIPCION || ''), foto: String(f.FOTO_URL || ''), firma: String(f.FIRMA || '') };
+    }));
+    items.sort(function (a, b) { return String(b.ts).localeCompare(String(a.ts)); });
+    return ok({ idVm: id, items: items.slice(0, lim), total: items.length });
+  } catch (e) { return err('obtenerHistorialEquipo: ' + e.message, ERR.INTERNO, e); }
 }

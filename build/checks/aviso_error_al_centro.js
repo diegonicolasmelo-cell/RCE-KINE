@@ -174,7 +174,10 @@ const VW = 1280, VH = 900;
 
   /* ── 9 · El sello de versión de esta entrega ────────────────────────────── */
   const sello = await p.evaluate(() => (document.querySelector('meta[name="rce-version"]') || {}).content || '');
-  si('el meta rce-version lleva el sello de esta entrega', /^7\.04-/.test(sello), sello || '(sin meta)');
+  // 🪤 Fijaba «7.04-» literal y se puso roja sola con la versión siguiente
+  // (14-sep-2026): una guardia que se cae por el sello enseña a ignorar el
+  // rojo. Lo que importa es que el sello exista y sea de la línea 7.x.
+  si('el meta rce-version lleva un sello de la línea 7.x', /^7\.\d+-/.test(sello), sello || '(sin meta)');
 
   si('sin errores JS en toda la corrida', errs.filter(e => !/favicon/.test(e)).length === 0, errs.join(' | '));
 

@@ -37,6 +37,10 @@ function guardarEvolucion(datos, ctx) {
       // evoluciones de noche salían tituladas "TURNO DÍA".
       datos.FECHA = fecha;
       datos.TURNO = turno;
+      // Lo que el formulario CARGÓ al abrirse (filtros del circuito), leído
+      // AHORA y no después: al re-guardar el mismo turno se heredan las claves
+      // de la fila anterior y un original viejo no debe colarse por ahí.
+      const _dispOrigPayload = _dispOrigDe(datos);
 
       // La vista previa (cliente) ya generó el texto que el kinesiólogo revisó:
       // se respeta tal cual para que el texto GUARDADO sea IDÉNTICO al de la
@@ -277,6 +281,13 @@ function guardarEvolucion(datos, ctx) {
         // se ancla al primer turno evolucionado para que los días no queden '?'.
         cama.FECHA_INGRESO = _tsIng ? _tsFecha(_tsIng) : fecha;
       }
+      // 🔧 Las DOS PUERTAS escriben los filtros (Diego, 14-sep-2026) y manda
+      // la ÚLTIMA EDICIÓN: si la lista de ventiladores cambió una fecha
+      // después de que este panel se abrió y el colega no tocó ese campo, la
+      // fecha de la cama es la buena y se corrige AQUÍ, en el payload, para
+      // que la fila del turno y la cama digan lo mismo. Ver el porqué de «no
+      // la fecha mayor» en la función.
+      _dispAplicarUltimaEdicion(datos, cama, _dispOrigPayload);
       if (!cama.TS_INGRESO) {
         cama.TS_INGRESO = _tsIng || _tsAhora();
       } else if (_hFormIng && _hFormIng !== _tsHora(cama.TS_INGRESO)
@@ -846,6 +857,10 @@ function _syncCamaDesdeEvolucion(idCama, cama, evo, turno, turnoKey, fecha, pati
     DISP_HEPA_FECHA: dejaVM ? '' : val(evo.DISP_HEPA_FECHA, cama.DISP_HEPA_FECHA),
     DISP_TC_FECHA: (dejaVM && vaNew !== 'TOT' && vaNew !== 'TQT') ? '' : val(evo.VENT_FECHA_SONDA, cama.DISP_TC_FECHA),
     DISP_HUMID_FECHA: humidFinal,
+    // Sello de procedencia de cada filtro (lista por cama, sep-2026): lo que
+    // este turno CAMBIÓ de verdad queda firmado por él; lo que solo arrastró,
+    // conserva la firma de quien lo escribió (la evolución anterior o la lista).
+    DISP_EDIT_JSON: _dispSelloEdicion(cama, evo, fecha),
     WEAN_PVE_JSON: JSON.stringify(weanPve),
     WEAN_CAND_PVE: candPve,
     ULTIMO_TURNO_KEY: turnoKey,
@@ -1541,6 +1556,75 @@ function _pronoSellarCiclo(idCama, turnoKey, fecha, turno, datos, _evos) {
  *  vía aérea; un cliente viejo (o un banco de prueba sin el campo) sigue igual. */
 function _ingresoEscrito(d) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String((d && d.PAC_FECHA_INGRESO) || ''));
+}
+
+/* ── Filtros del circuito: «las dos puertas escriben» (Diego, 14-sep-2026) ──
+   Las fechas de Trachcare/HEPA/HME se escriben desde el formulario de
+   evolución Y desde la lista de ventiladores por cama, sobre el MISMO dato
+   (CAMAS_ESTADO.DISP_*_FECHA). El choque: un colega abre su panel a las 08:00
+   (que carga las fechas de la cama), otro corrige el HME desde la lista a las
+   08:10, y el primero guarda a las 08:30 sin haber tocado el HME — su panel
+   todavía tiene la fecha vieja y la pisaría. Es la misma trampa de la cama 17
+   con los días de VM.
+
+   🔴 La regla es «manda la ÚLTIMA EDICIÓN», no «manda la fecha mayor»: si la
+   corrección de la lista fue a una fecha MÁS ANTIGUA (la etiqueta real lo
+   era), «la mayor manda» conservaría la equivocada y borraría la corrección
+   en silencio.
+
+   Cómo se sabe qué tocó el colega: el formulario manda DISP_ORIG_JSON
+   (transitorio, como PAC_RUT: no es columna) con lo que CARGÓ al abrirse.
+   Campo igual al original = no lo tocó; si además la cama ya no coincide con
+   ese original, la cama es más nueva y manda. Un payload viejo sin
+   DISP_ORIG_JSON se comporta como siempre. */
+const _DISP_PUERTAS = [
+  { k: 'hme',  payload: 'DISP_HME_FECHA',  cama: 'DISP_HME_FECHA' },
+  { k: 'hepa', payload: 'DISP_HEPA_FECHA', cama: 'DISP_HEPA_FECHA' },
+  { k: 'tc',   payload: 'VENT_FECHA_SONDA', cama: 'DISP_TC_FECHA' },
+];
+function _dispOrigDe(d) {
+  try { const j = JSON.parse(String((d && d.DISP_ORIG_JSON) || '') || 'null'); return (j && typeof j === 'object') ? j : null; }
+  catch (e) { return null; }
+}
+/* Normaliza a 'yyyy-MM-dd' sin depender de svc_stats (los arneses de las
+   guardias cargan svc_evoluciones solo, y _statISO vive allá). */
+function _dispIso(v) {
+  if (!v) return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') {
+    return (typeof _statISO === 'function') ? _statISO(v) : v.toISOString().slice(0, 10);
+  }
+  return String(v).slice(0, 10);
+}
+/** Devuelve la fecha que debe valer para un filtro: la del payload, salvo que
+ *  el colega no la haya tocado y la cama la tenga más nueva. Pura, para la guardia. */
+function _dispRespetaEdicion(k, payloadVal, camaVal, orig) {
+  if (!orig || !(k in orig)) return payloadVal;
+  const o = _dispIso(orig[k]), p = _dispIso(payloadVal), c = _dispIso(camaVal);
+  if (p === o && c !== o) return camaVal;
+  return payloadVal;
+}
+/** Corrige EN EL PAYLOAD los filtros que otro editó después de abrir el panel. */
+function _dispAplicarUltimaEdicion(datos, cama, orig) {
+  if (orig === undefined) orig = _dispOrigDe(datos);
+  if (!orig || !cama) return [];
+  const corregidos = [];
+  _DISP_PUERTAS.forEach(function (p) {
+    const antes = datos[p.payload];
+    const bueno = _dispRespetaEdicion(p.k, antes, cama[p.cama], orig);
+    if (_dispIso(bueno) !== _dispIso(antes)) { datos[p.payload] = _dispIso(bueno); corregidos.push(p.k); }
+  });
+  return corregidos;
+}
+/** El sello DISP_EDIT_JSON que le corresponde a la cama tras este guardado. */
+function _dispSelloEdicion(cama, evo, fecha) {
+  let sello = {};
+  try { sello = JSON.parse(String((cama && cama.DISP_EDIT_JSON) || '') || '{}') || {}; } catch (e) { sello = {}; }
+  if (typeof sello !== 'object') sello = {};
+  _DISP_PUERTAS.forEach(function (p) {
+    const nuevo = _dispIso(evo[p.payload]), viejo = _dispIso(cama && cama[p.cama]);
+    if (nuevo && nuevo !== viejo) sello[p.k] = { ts: ahoraTS(), f: String(evo.PLAN_FIRMA_KINE || ''), o: 'evolucion', t: String(fecha || '') };
+  });
+  return JSON.stringify(sello);
 }
 
 /**

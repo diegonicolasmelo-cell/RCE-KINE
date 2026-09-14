@@ -176,7 +176,7 @@ ciegas):
   agregar un servicio).
 - `api.gs`: dispatcher único `api(accion, datos, token)`; escrituras pasan
   por `_auditar`. `GET_LOGIN_INFO` es pre-auth (público).
-- `esquema.gs`: 26 hojas (24 NOTIFICACIONES —buzón, de SOLO agregar—, 25 GSA_IMPORTADAS —gases del laboratorio, sin RUT—, 26 PLANTILLAS_EVOLUCION —catálogo, se conserva en el reset—); **EVOLUCIONES tiene 396 columnas** y `testEsquema`
+- `esquema.gs`: 27 hojas (24 NOTIFICACIONES —buzón, de SOLO agregar—, 25 GSA_IMPORTADAS —gases del laboratorio, sin RUT—, 26 PLANTILLAS_EVOLUCION —catálogo, se conserva en el reset—, 27 EVALUACIONES —serie fechada con firma—, y desde la v7.05 CHECK_EQUIPOS —check de equipos por cama y turno, de solo agregar—); **EVOLUCIONES tiene 396 columnas** y `testEsquema`
   las asserta — al agregar columnas, SIEMPRE al final de la lista (la
   reparación reescribe encabezados: insertar al medio desalinea los datos)
   y avisar que hay que correr `crearORepararEstructura()`.
@@ -235,7 +235,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 12-sep-2026: 127 verdes, 0 rojas** (rama `v7-episodio-turno-con-relojes`: v7.00 + v6.26 + la resiembra de plantillas de Manuel; `develop` sigue en 124). El corredor
+**Estado al 14-sep-2026: 143 verdes, 0 rojas** (rama `ventiladores-por-cama` sobre develop 7.04). 🪤 **Una guardia no fija su propio sello**: `aviso_error_al_centro.js` exigía `/^7\.04-/` y se puso roja sola con la versión siguiente — se fija la línea (`7.x`), no la entrega. El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -334,6 +334,23 @@ está allá.
 
 ### Dónde está el código
 
+- 🔴 **`develop` YA TRAE LA LÍNEA 7 (medido el 14-sep-2026):** Manuel fusionó el
+  13-sep la v7.02 (episodio/turno) con el guardado obligatorio 6.27 → **7.03**, y
+  el cuadro de error al centro → **7.04** (`0c6d338`). O sea el párrafo de abajo
+  sobre «rama paralela sin fusionar» quedó **superado**: lo que Diego prueba en
+  `/dev` de la oficial es la línea 7 y develop la contiene. Lo que sigue sin
+  saberse es qué versión está PUBLICADA en `/exec` (preguntar o mirar el editor).
+- 🚧 **Rama `ventiladores-por-cama` — v7.05 PROGRAMADA (14-sep-2026), salida de
+  develop 7.04, SIN fusionar hasta que Diego la pruebe.** La pestaña Ventiladores
+  abre en una LISTA por cama (la hoja de entrega de turno en papel), con modo
+  Ronda y el tablero de arrastre como tercera vista; check por cama y turno
+  (hoja `CHECK_EQUIPOS`), «VM en uso» del equipo (`VENTILADORES.EN_USO`), y las
+  fechas de filtro editables desde la lista con la regla **«manda la última
+  edición»** (`DISP_EDIT_JSON` + `DISP_ORIG_JSON` transitorio). Se pegan index +
+  servicios + api + esquema + mantenimiento y se corre `crearORepararEstructura()`.
+  Detalle y trampas en BITACORA v7.05. Decisiones de Diego del 14-sep: A + ronda ·
+  las dos puertas escriben · check se reinicia cada turno · bodega por nombre ·
+  «puede tener VM sin uso o no existir VM en esa sala».
 - 🚧 **Rama paralela `separacion-episodio-turno` — v7.00 PROGRAMADA (11-sep),
   esperando que Diego la instale en SU planilla nueva.** Paquete de 12
   archivos + paso a paso en `INSTALAR_PLANILLA_NUEVA.md`; detalle en

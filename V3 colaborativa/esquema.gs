@@ -379,6 +379,15 @@ const ESQUEMA = {
     // adecuó», no es del turno). Se leen de aquí; no se heredan. — AL FINAL
     ['AET_ACTIVA','bool'],['AET_NIVEL','texto'],['AET_FECHA','texto'],
     ['UPOT_ACTIVO','bool'],['UPOT_MEDIDAS','texto'],['UPOT_FECHA','texto'],
+    // 🔧 Lista de ventiladores por cama (sep-2026, Diego: «las dos puertas
+    // escriben»). Las fechas de filtro DISP_TC/HEPA/HME_FECHA de arriba se
+    // escriben desde la evolución Y desde la pestaña Ventiladores. Aquí queda
+    // QUIÉN y CUÁNDO escribió cada una por última vez:
+    //   {"hme":{"ts":"2026-09-14 08:12","f":"MCC","o":"grilla"}, "hepa":{…}, "tc":{…}}
+    // Sirve para mostrar la procedencia, y para la regla «manda la ÚLTIMA
+    // EDICIÓN» del guardado de la evolución (svc_evoluciones, _dispRespetaEdicion).
+    // — SIEMPRE AL FINAL
+    ['DISP_EDIT_JSON','json'],
   ]},
   EVOLUCIONES:         { headerRows: 3, cols: _COLS_EVOLUCIONES },
   EVOLUCIONES_ARCHIVO: { headerRows: 3, cols: _COLS_EVOLUCIONES },
@@ -441,6 +450,12 @@ const ESQUEMA = {
     // desalinearía los datos. Vacía en los equipos ya cargados ⇒ se deriva
     // del modelo con _vmCategoria().
     ['CATEGORIA','texto'],
+    // 🔧 «VM en uso» de la hoja de entrega de turno (sep-2026, Diego): un
+    // equipo puede estar EN la cama sin estar ventilando (de respaldo, o el
+    // paciente ya salió de VM). Es un hecho del EQUIPO y se hereda turno a
+    // turno hasta que alguien lo cambie desde la lista por cama; el check del
+    // turno es lo que se confirma, no este dato. — SIEMPRE AL FINAL
+    ['EN_USO','bool'],
   ]},
   MOVIMIENTOS_VM: { headerRows: 1, cols: [
     ['ID_MOV','texto'],['ID_VM','texto'],['TIMESTAMP','ts'],['FECHA','texto'],
@@ -575,6 +590,22 @@ const ESQUEMA = {
     ['ORIGEN','texto'],        // turno · tarjeta · correccion
     ['ID_EVOLUCION','texto'],  // la fila del turno, si se midió dentro de uno
     ['ANULADA','bool'],
+    ['TIMESTAMP','ts'],
+  ]},
+  // 🔧 Check de equipos por cama y por turno (sep-2026, Diego: «el check es
+  // por cama y se reinicia en cada turno»). Reemplaza la columna «Check» y la
+  // firma al pie de la hoja de entrega de turno en papel. De SOLO AGREGAR,
+  // como NOTIFICACIONES: marcar es una fila, desmarcar es OTRA fila con
+  // ESTADO 'anulado'; el estado vigente de una cama en un turno es su ÚLTIMA
+  // fila. Se «reinicia» solo porque cada turno tiene su TURNO_KEY: si no hay
+  // fila de este turno, la cama no está revisada — nada que borrar a las 9 ni
+  // a las 21. Y queda el seguimiento que pidió Diego: qué turno no revisó qué
+  // cama. Sin nombre de paciente ni RUT: solo cama, equipo y filtros.
+  CHECK_EQUIPOS: { headerRows: 1, cols: [
+    ['ID_CHECK','texto'],['TURNO_KEY','texto'],['FECHA','texto'],['TURNO','texto'],
+    ['ID_CAMA','texto'],['HORA','texto'],['FIRMA','texto'],['AUTOR_EMAIL','email'],
+    ['ESTADO','texto'],        // ok | anulado
+    ['DETALLE_JSON','json'],   // foto de lo confirmado: {idVm, nombre, enUso, tc, hepa, hme}
     ['TIMESTAMP','ts'],
   ]},
 };

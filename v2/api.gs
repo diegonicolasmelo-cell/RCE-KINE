@@ -65,6 +65,10 @@ function api(accion, datos, token) {
       case 'GET_RUT_PREVIO':     return episodiosPorRut(datos.rut || '');
       case 'GET_PIVOT':          return datosPivot(datos.desde, datos.hasta);
       case 'GET_FALLAS_VM':      return obtenerFallasVM(datos.idVm || '', datos.limite || 30);
+      // Lista de ventiladores por cama (sep-2026): un viaje con las N camas,
+      // el check del turno de ahora y la bodega desglosada.
+      case 'GET_GRILLA_EQUIPOS': return obtenerGrillaEquipos();
+      case 'GET_HISTORIAL_EQUIPO': return obtenerHistorialEquipo(datos.idVm || '', datos.limite || 40);
       case 'GET_STOCK':          return obtenerStockEquipos();
       case 'GET_MOVS_STOCK':     return obtenerMovimientosStock(datos.id || '', datos.limite || 20);
       case 'GET_DOCUMENTOS':     return obtenerDocumentos(!!datos.refrescar);
@@ -138,6 +142,13 @@ function api(accion, datos, token) {
         return _auditar(ctx, accion, () => bajaVentilador(datos, ctx), datos);
       case 'REGISTRAR_FALLA_VM':
         return _auditar(ctx, accion, () => registrarFallaVM(datos, ctx), datos);
+      // Lista de ventiladores por cama (sep-2026)
+      case 'EQUIPO_EN_USO':
+        return _auditar(ctx, accion, () => equipoEnUso(datos, ctx), datos);
+      case 'EQUIPO_FILTRO_FECHA':
+        return _auditar(ctx, accion, () => equipoFiltroFecha(datos, ctx), datos);
+      case 'EQUIPO_CHECK':
+        return _auditar(ctx, accion, () => equipoCheck(datos, ctx), datos);
       case 'GUARDAR_STOCK':
         return _auditar(ctx, accion, () => guardarStockEquipo(datos, ctx), datos);
       case 'AJUSTAR_STOCK':
