@@ -1788,6 +1788,15 @@ function medirGrilla() {
 //    2) inventarioReconciliarCONFIRMAR()   → lo aplica
 // ═══════════════════════════════════════════════════════════════════════════
 
+/**
+ * Las dos camas donde hay un capnógrafo puesto (Diego, 14-sep-2026: «ocupé 2,
+ * uno en la cama 5 y otro en la 16, pero Nihon, no Dräger»). Son de la partida
+ * OPERATIVA; los Dräger se quedan de baja porque la unidad no los ocupa.
+ * 🪤 Esto se siembra UNA vez y solo si nadie ha repartido todavía: después
+ * manda lo que el equipo mueva desde la lista, no esta constante.
+ */
+const _INV_CAPN_CAMAS = ['5', '16'];
+
 /** El inventario que mandó Diego el 14-sep-2026. Una sola lista, sin repetidos. */
 function _invReal() {
   const V = function (nombre, marca, modelo, cat, ubic) {
@@ -1857,6 +1866,13 @@ function _invComparar() {
   const capnTotal = capn.reduce(function (n, x) { return n + (parseInt(x.CANTIDAD, 10) || 0); }, 0);
   const capnBaja = capn.filter(function (x) { return /baja/i.test(String(x.ESTADO || '')); })
                        .reduce(function (n, x) { return n + (parseInt(x.CANTIDAD, 10) || 0); }, 0);
+  // Diego, 14-sep: «aún no se usan y ocupé 2, uno en la cama 5 y otro en la 16,
+  // pero Nihon, no Dräger; así que en teoría [los Dräger] no se ocupan». O sea
+  // los dos que están puestos son de la partida OPERATIVA (Nihon Kohden) y los
+  // Dräger se quedan de baja, como estaban.
+  const capnUso = capn.filter(function (x) { return !/baja/i.test(String(x.ESTADO || '')); })[0] || null;
+  const capnAsig = capnUso ? _stkAsig(capnUso) : {};
+  const capnRepartidos = Object.keys(capnAsig).length > 0;
   const bases = stock.filter(function (x) { return /mr850|calefactora/i.test(String(x.NOMBRE)); })[0] || null;
   // La MR850 quedó cargada como equipo CON nombre propio; Diego decidió en
   // agosto que son 4 y van por cantidad (punto 6 del brainstorm de terreno).
@@ -1864,7 +1880,9 @@ function _invComparar() {
     return esVerdadero(y.ACTIVO) && /mr850|calefactora/i.test(String(y.NOMBRE));
   });
   return { real: real, altas: altas, mueven: mueven, iguales: iguales, bajas: bajas,
-           capn: capn, capnTotal: capnTotal, capnBaja: capnBaja, bases: bases, basesConNombre: basesConNombre };
+           capn: capn, capnTotal: capnTotal, capnBaja: capnBaja,
+           capnUso: capnUso, capnAsig: capnAsig, capnRepartidos: capnRepartidos,
+           bases: bases, basesConNombre: basesConNombre };
 }
 
 function _invInforme(d, p) {
@@ -1891,7 +1909,12 @@ function _invInforme(d, p) {
   p('');
   p('SIN NÚMERO, POR CANTIDAD:');
   p('   Capnógrafos en la planilla: ' + d.capnTotal + (d.capnTotal === 9 ? '  ✔ calza con los 9 del papel' : '  ⚠ el papel dice 9'));
-  if (d.capnBaja) p('   (de esos, ' + d.capnBaja + ' están marcados «De baja» desde la carga inicial: se cuentan en el inventario pero la unidad no los ocupa. Si ya se usan, cambiar el estado con ✏️ Editar.)');
+  if (d.capnBaja) p('   (de esos, ' + d.capnBaja + ' son los Dräger y siguen «De baja»: están en el inventario pero la unidad no los ocupa. Es lo que confirmó Diego el 14-sep.)');
+  if (d.capnUso) {
+    p('   ' + d.capnUso.NOMBRE + ': ' + (d.capnRepartidos
+      ? 'ya repartido a las camas ' + Object.keys(d.capnAsig).join(', ') + ' — no se toca'
+      : 'se pone 1 en la cama ' + _INV_CAPN_CAMAS.join(' y 1 en la cama ') + ' (los 2 que están puestos hoy)'));
+  }
   p('   Bases calefactoras MR850: ' + (d.bases ? 'ya existen como stock (' + d.bases.CANTIDAD + ')' : 'se crean como stock de 4'));
   if (d.basesConNombre.length) {
     p('   ⚠ Hay ' + d.basesConNombre.length + ' MR850 cargada con nombre propio (' +
@@ -1968,7 +1991,22 @@ function inventarioReconciliarCONFIRMAR() {
     if (r && r.ok) stockCreado = 1; else { fallos++; p('   ❌ stock MR850: ' + (r && r.error)); }
   }
 
+  // Los 2 capnógrafos que están puestos (Diego, 14-sep: camas 5 y 16, Nihon).
+  // 🔴 Solo si NADIE ha repartido todavía: si el equipo ya movió alguno desde
+  // la lista, manda lo que ellos anotaron, no esta constante.
+  let capnPuestos = 0;
+  if (d.capnUso && !d.capnRepartidos) {
+    _INV_CAPN_CAMAS.forEach(function (cama) {
+      const r = asignarStockACama({ id: d.capnUso.ID_STOCK, idCama: String(cama), delta: 1,
+                                    fecha: hoyISO(), detalle: MOT }, ctx);
+      if (r && r.ok) capnPuestos++; else { fallos++; p('   ❌ capnógrafo cama ' + cama + ': ' + (r && r.error)); }
+    });
+  } else if (d.capnRepartidos) {
+    p('   ℹ El capnógrafo ya estaba repartido (camas ' + Object.keys(d.capnAsig).join(', ') + '): no se tocó.');
+  }
+
   p('✔ Inventario reconciliado.');
+  p('   Capnógrafos puestos en cama: ' + capnPuestos);
   p('   Altas: ' + altas + ' · movidos/reactivados: ' + movidos + ' · dados de baja: ' + bajas +
     ' · stock creado: ' + stockCreado + (fallos ? ' · ❌ fallos: ' + fallos : ''));
   p('');

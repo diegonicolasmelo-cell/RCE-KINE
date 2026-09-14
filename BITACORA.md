@@ -5977,10 +5977,15 @@ planilla seguía con la carga inicial del 31-07, que ya no calzaba.
 - ✅ **Cierra el punto 6 del brainstorm de terreno** (MR850): la que estaba
   cargada con nombre propio se da de baja y pasa a stock por cantidad (4). El
   mismo equipo no puede estar contado dos veces.
-- **Capnógrafos**: la planilla ya suma 9 (5 Nihon Kohden + 4 Dräger), o sea
-  calza con el papel. 🔜 Pero los 4 Dräger están marcados «De baja» desde la
-  carga inicial («no se ocupan, decisión de la unidad»): **si ya se usan, hay
-  que cambiarles el estado** — el informe lo dice y no lo decide solo.
+- **Capnógrafos: la duda la cerró Diego en el momento** (14-sep, textual):
+  «aún no se usan y ocupé 2, uno en la cama 5 y otro en la 16, pero Nihon no
+  Dräger, así que en teoría no se ocupan». O sea la planilla suma 9 (5 Nihon
+  Kohden + 4 Dräger) y calza; **los 2 puestos son de la partida Nihon** y **los
+  4 Dräger se quedan «De baja», como estaban** — no había nada que corregir.
+  La reconciliación deja el reparto sembrado (cama 5 y cama 16, 3 libres).
+  🪤 **Pero solo si nadie repartió todavía**: si el equipo ya movió alguno desde
+  la lista, manda lo que ellos anotaron y la constante no toca nada. Una
+  constante escrita hoy no puede pisar el terreno de mañana.
 - Es **idempotente**: correrla dos veces no duplica, no mueve y no anota nada.
 
 ### Guardias

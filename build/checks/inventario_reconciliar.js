@@ -118,6 +118,16 @@ eq('la que estaba con nombre propio quedó de baja', (DB.VENTILADORES.find(x => 
 const capn = DB.STOCK_EQUIPOS.filter(x => /capn/i.test(String(x.NOMBRE)));
 eq('los capnógrafos suman los 9 del papel', capn.reduce((n, x) => n + (parseInt(x.CANTIDAD, 10) || 0), 0), 9);
 
+// Diego, 14-sep: «ocupé 2, uno en la cama 5 y otro en la 16, pero Nihon, no
+// Dräger; así que en teoría [los Dräger] no se ocupan».
+console.log('\n5b · Los 2 capnógrafos puestos son los NIHON, y los Dräger siguen de baja');
+const nihon = DB.STOCK_EQUIPOS.find(x => /nihon/i.test(String(x.NOMBRE)));
+const drager = DB.STOCK_EQUIPOS.find(x => /capn/i.test(String(x.NOMBRE)) && /dräger|drager/i.test(String(x.NOMBRE)));
+eq('el Nihon queda repartido en las camas 5 y 16', JSON.stringify(JSON.parse(nihon.ASIGNACION_JSON || '{}')), '{"5":1,"16":1}');
+eq('…y quedan 3 disponibles de los 5', 5 - Object.keys(JSON.parse(nihon.ASIGNACION_JSON || '{}')).length, 3);
+eq('el Dräger NO se reparte', String(drager.ASIGNACION_JSON || ''), '');
+eq('…y sigue «De baja», como estaba', drager.ESTADO, 'De baja');
+
 console.log('\n6 · Correrla dos veces no cambia nada');
 const foto = JSON.stringify(DB.VENTILADORES) + '|' + JSON.stringify(DB.STOCK_EQUIPOS);
 const movs = DB.MOVIMIENTOS_VM.length;
@@ -135,6 +145,8 @@ eq('pasillo trae los 20 de sala', (G.pasillo || []).length, 20);
 const bod = G.bodega || {};
 eq('bodega: 4 VMI, 1 VNI, 1 CNAF', (bod.VM || []).length + '/' + (bod.VNI || []).length + '/' + (bod.CNAF || []).length, '4/1/1');
 si('las bases calefactoras salen como stock', (bod.stock || []).some(s => /mr850|calefactora/i.test(s.nombre) && s.cantidad === 4));
+const sNihon = (bod.stock || []).find(s => /nihon/i.test(s.nombre)) || {};
+eq('el capnógrafo Nihon se ve 2 en uso y 3 libres', sNihon.enUso + '/' + sNihon.disponible, '2/3');
 si('ningún equipo dado de baja aparece', !JSON.stringify(G).includes('PB 980') && !JSON.stringify(G).includes('Vela 9'));
 
 console.log(fails.length ? `\n❌ ${fails.length} FALLOS: ${fails.join(' | ')}` : '\n✅ TODO OK');
