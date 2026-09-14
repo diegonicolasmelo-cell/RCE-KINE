@@ -1673,3 +1673,311 @@ function medirTablero() {
   console.log(informe);
   return informe;
 }
+
+/**
+ * medirGrilla() — cuánto tarda la pestaña Ventiladores en traer su lista.
+ *
+ * Diego, 14-sep-2026: «la velocidad en la que se ejecutan los cambios está muy
+ * lento y de golpe me apareció que había guardado correctamente». La v7.06 sacó
+ * la ESPERA del cliente (la pantalla se mueve al tocar y la escritura va por
+ * detrás), pero eso no hace más rápido el viaje: esto mide el viaje de verdad,
+ * en la planilla de la unidad, para saber si queda algo que recortar.
+ *
+ * Solo LEE. Se corre desde el editor y se mira el registro.
+ */
+function medirGrilla() {
+  const out = [];
+  const p = function (s) { out.push(s); };
+  const cron = function (etiqueta, fn) {
+    const t0 = Date.now();
+    let r = null, e = '';
+    try { r = fn(); } catch (ex) { e = ex.message; }
+    const ms = Date.now() - t0;
+    p('   ' + etiqueta + ': ' + ms + ' ms' + (e ? '   ⚠ ' + e : ''));
+    return { ms: ms, r: r };
+  };
+  const filasDe = function (hoja) {
+    try {
+      const h = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(hoja);
+      return h ? Math.max(0, h.getLastRow() - FILA_DATOS[hoja] + 1) : 0;
+    } catch (e) { return -1; }
+  };
+
+  p('MEDICIÓN DE LA LISTA DE VENTILADORES POR CAMA');
+  p('Tamaño de las hojas que toca: VENTILADORES ' + filasDe('VENTILADORES') +
+    ' · CAMAS_ESTADO ' + filasDe('CAMAS_ESTADO') +
+    ' · CHECK_EQUIPOS ' + filasDe('CHECK_EQUIPOS') +
+    ' · STOCK_EQUIPOS ' + filasDe('STOCK_EQUIPOS') +
+    ' · MOVIMIENTOS_STOCK ' + filasDe('MOVIMIENTOS_STOCK') +
+    ' · MOVIMIENTOS_VM ' + filasDe('MOVIMIENTOS_VM'));
+  p('');
+
+  // Calentamiento: la primera lectura paga el arranque en frío de Apps Script.
+  const cal = Date.now();
+  try { obtenerGrillaEquipos(); } catch (e) {}
+  p('Calentamiento: ' + (Date.now() - cal) + ' ms');
+  p('');
+
+  p('La carga de la pestaña (lo que el colega espera al entrar):');
+  const a = cron('GET_GRILLA_EQUIPOS', function () { return obtenerGrillaEquipos(); });
+  const b = cron('GET_GRILLA_EQUIPOS (2.ª vez)', function () { return obtenerGrillaEquipos(); });
+  p('');
+  p('Comparación: el censo del tablero de arrastre, que es la vista vieja:');
+  cron('GET_VENTILADORES', function () { return obtenerVentiladores(); });
+  p('');
+  p('Una escritura suelta (solo para tener la escala; no escribe nada):');
+  cron('leer una cama', function () { return repoBuscarPorId('CAMAS_ESTADO', 'ID_CAMA', '1'); });
+  p('');
+
+  const g = (a.r && a.r.data) || {};
+  p('Lo que devolvió: ' + ((g.camas || []).length) + ' camas · ' +
+    ((g.flota || []).length) + ' ventiladores en la flota · ' +
+    ((g.bodega && g.bodega.stock) || []).length + ' tipos de stock sin número · turno ' +
+    String(g.turno || '?') + ' ' + String(g.fecha || ''));
+  p('');
+  p('─────────────────────────────────────────────');
+  const ms = Math.min(a.ms, b.ms);
+  if (ms <= 1500) {
+    p('✔ ' + ms + ' ms: dentro de lo normal para un viaje a Apps Script.');
+    p('  Si el colega igual la siente lenta, el problema no es el servidor: es');
+    p('  cuántas veces se llama, y eso se mira en el cliente.');
+  } else if (ms <= 3000) {
+    p('⚠ ' + ms + ' ms: se nota. Mirar qué hoja creció — lo más probable es');
+    p('  MOVIMIENTOS_VM o CHECK_EQUIPOS, que son de solo agregar.');
+  } else {
+    p('🔴 ' + ms + ' ms: demasiado. CHECK_EQUIPOS y MOVIMIENTOS_VM son hojas de');
+    p('  SOLO AGREGAR y no se archivan nunca. Se leen por tramos (una columna');
+    p('  para ubicar las filas del turno y después solo ésas), así que la');
+    p('  columna que se baja entera es la que crece: con miles de filas toca');
+    p('  archivarlas por año, como EVOLUCIONES. Anotar la cifra antes de tocar.');
+  }
+
+  const informe = out.join('\n');
+  Logger.log(informe);
+  console.log(informe);
+  return informe;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  RECONCILIACIÓN DEL INVENTARIO (14-sep-2026) — el papel manda
+//
+//  Diego mandó el inventario REAL de la unidad: 20 equipos numerados en sala,
+//  6 en bodega, 9 capnógrafos y 4 bases calefactoras. Lo que la planilla tiene
+//  hoy viene de la carga inicial del 31-07 y ya no calza: hay equipos que no
+//  existen y faltan otros.
+//
+//  🔴 NADA SE BORRA. Lo que sobra se da de BAJA (ACTIVO=false): así se mantiene
+//  su historial de movimientos y sus fallas, que es lo que sirve para reclamar
+//  una mantención. Borrar una fila deja huérfanos los movimientos que la
+//  nombran, y eso no se puede deshacer.
+//
+//  🪤 LOS PURITAN BENNETT SE LLAMAN «PB 1» y «PB 2», no «Puritan Bennet 1».
+//  CONFIG.HEPA_FIJO_EQUIPOS trae «PB,Avea» y compara por PREFIJO del nombre:
+//  con el nombre largo el HEPA fijo de esos equipos deja de reconocerse y la
+//  app les empieza a pedir cambio de filtro cada 3 días. El nombre no es
+//  cosmético, es una regla clínica escrita en CONFIG.
+//
+//  🪤 LOS 20 DE SALA QUEDAN EN «PASILLO», NO EN UNA CAMA. Diego dio los
+//  nombres pero no en qué cama está cada uno, y ponerlos en camas inventadas
+//  sería peor que dejarlos sin ubicar: el tablero mentiría. En Pasillo se ven
+//  todos juntos y cada cama en VM muestra su «⚠️ paciente en VM sin ventilador
+//  asignado» hasta que alguien lo coloque desde la lista — que es un toque.
+//
+//  Uso desde el editor:
+//    1) inventarioReconciliarSIMULACRO()   → informa, no toca nada
+//    2) inventarioReconciliarCONFIRMAR()   → lo aplica
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** El inventario que mandó Diego el 14-sep-2026. Una sola lista, sin repetidos. */
+function _invReal() {
+  const V = function (nombre, marca, modelo, cat, ubic) {
+    return { nombre: nombre, marca: marca, modelo: modelo, categoria: cat, ubicTipo: ubic };
+  };
+  return [
+    // ── En sala (20). Sin cama asignada: Diego dio los nombres, no las camas ──
+    V('Servo U',  'Maquet',          'Servo-u', 'VM',   'PASILLO'),
+    V('Savina 1', 'Dräger',          'Savina',  'VM',   'PASILLO'),
+    V('Savina 2', 'Dräger',          'Savina',  'VM',   'PASILLO'),
+    V('Savina 3', 'Dräger',          'Savina',  'VM',   'PASILLO'),
+    V('Avea 1',   'Vyaire',          'Avea',    'VM',   'PASILLO'),
+    V('Avea 3',   'Vyaire',          'Avea',    'VM',   'PASILLO'),
+    V('PB 1',     'Puritan Bennett', '',        'VM',   'PASILLO'),
+    V('Mek 3',    'Mekics',          '',        'VM',   'PASILLO'),
+    V('Mek 6',    'Mekics',          '',        'VM',   'PASILLO'),
+    V('Mek 10',   'Mekics',          '',        'VM',   'PASILLO'),
+    V('Mek 12',   'Mekics',          '',        'VM',   'PASILLO'),
+    V('Mek 14',   'Mekics',          '',        'VM',   'PASILLO'),
+    V('Mek 15',   'Mekics',          '',        'VM',   'PASILLO'),
+    V('Mek 16',   'Mekics',          '',        'VM',   'PASILLO'),
+    V('Mek 17',   'Mekics',          '',        'VM',   'PASILLO'),
+    V('V60 3',    'Philips',         'V60',     'VNI',  'PASILLO'),
+    V('V60 4',    'Philips',         'V60',     'VNI',  'PASILLO'),
+    V('CNAF 1',   'Fisher & Paykel', 'Airvo 2', 'CNAF', 'PASILLO'),
+    V('CNAF 2',   'Fisher & Paykel', 'Airvo 2', 'CNAF', 'PASILLO'),
+    V('CNAF 4',   'Fisher & Paykel', 'Airvo 2', 'CNAF', 'PASILLO'),
+    // ── En bodega (6) ──
+    V('Vela 3',   'Vyaire',          'Vela',    'VM',   'BODEGA'),
+    V('Vela 8',   'Vyaire',          'Vela',    'VM',   'BODEGA'),
+    V('PB 2',     'Puritan Bennett', '',        'VM',   'BODEGA'),
+    V('Savina 4', 'Dräger',          'Savina',  'VM',   'BODEGA'),
+    V('V60 1',    'Philips',         'V60',     'VNI',  'BODEGA'),
+    V('CNAF 3',   'Fisher & Paykel', 'Airvo 2', 'CNAF', 'BODEGA'),
+  ];
+}
+
+/** Compara el papel con la planilla. Solo LEE; lo usan el simulacro y el real. */
+function _invComparar() {
+  const real = _invReal();
+  const clave = function (s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); };
+  const quiere = {};
+  real.forEach(function (x) { quiere[clave(x.nombre)] = x; });
+
+  const enPlanilla = repoLeerTodos('VENTILADORES');
+  const porNombre = {};
+  enPlanilla.forEach(function (x) { porNombre[clave(x.NOMBRE)] = x; });
+
+  const altas = [], mueven = [], iguales = [], bajas = [];
+  real.forEach(function (x) {
+    const y = porNombre[clave(x.nombre)];
+    if (!y) { altas.push(x); return; }
+    const mismaUbic = String(y.UBIC_TIPO) === x.ubicTipo && !String(y.UBIC_DETALLE || '');
+    if (!esVerdadero(y.ACTIVO) || !mismaUbic) {
+      mueven.push({ eq: x, fila: y, desde: _vmUbicLabel(y.UBIC_TIPO, y.UBIC_DETALLE), reactivar: !esVerdadero(y.ACTIVO) });
+    } else iguales.push(x);
+  });
+  enPlanilla.forEach(function (y) {
+    if (quiere[clave(y.NOMBRE)]) return;
+    if (!esVerdadero(y.ACTIVO)) return;   // ya estaba de baja: nada que hacer
+    bajas.push(y);
+  });
+
+  // El stock sin número: capnógrafos (9) y bases calefactoras (4)
+  const stock = repoLeerTodos('STOCK_EQUIPOS');
+  const capn = stock.filter(function (x) { return /capn/i.test(String(x.NOMBRE)); });
+  const capnTotal = capn.reduce(function (n, x) { return n + (parseInt(x.CANTIDAD, 10) || 0); }, 0);
+  const capnBaja = capn.filter(function (x) { return /baja/i.test(String(x.ESTADO || '')); })
+                       .reduce(function (n, x) { return n + (parseInt(x.CANTIDAD, 10) || 0); }, 0);
+  const bases = stock.filter(function (x) { return /mr850|calefactora/i.test(String(x.NOMBRE)); })[0] || null;
+  // La MR850 quedó cargada como equipo CON nombre propio; Diego decidió en
+  // agosto que son 4 y van por cantidad (punto 6 del brainstorm de terreno).
+  const basesConNombre = enPlanilla.filter(function (y) {
+    return esVerdadero(y.ACTIVO) && /mr850|calefactora/i.test(String(y.NOMBRE));
+  });
+  return { real: real, altas: altas, mueven: mueven, iguales: iguales, bajas: bajas,
+           capn: capn, capnTotal: capnTotal, capnBaja: capnBaja, bases: bases, basesConNombre: basesConNombre };
+}
+
+function _invInforme(d, p) {
+  const cuenta = function (arr, cat) { return arr.filter(function (x) { return (x.categoria || (x.eq && x.eq.categoria)) === cat; }).length; };
+  p('El papel de Diego (14-sep-2026): ' + d.real.length + ' equipos con número — ' +
+    cuenta(d.real, 'VM') + ' VMI · ' + cuenta(d.real, 'VNI') + ' VNI · ' + cuenta(d.real, 'CNAF') + ' CNAF,');
+  p('más 9 capnógrafos y 4 bases calefactoras, que van por cantidad.');
+  p('');
+  p('SE DAN DE ALTA (' + d.altas.length + '): ' + (d.altas.map(function (x) { return x.nombre; }).join(', ') || '—'));
+  p('');
+  p('SE MUEVEN O SE REACTIVAN (' + d.mueven.length + '):');
+  if (!d.mueven.length) p('   —');
+  d.mueven.forEach(function (m) {
+    p('   ' + m.fila.NOMBRE + ': ' + m.desde + ' → ' + m.eq.ubicTipo + (m.reactivar ? '   (estaba de baja: vuelve)' : ''));
+  });
+  p('');
+  p('SE DAN DE BAJA (' + d.bajas.length + ') — no se borran, conservan historial y fallas:');
+  if (!d.bajas.length) p('   —');
+  d.bajas.forEach(function (y) {
+    p('   ' + y.NOMBRE + '   (' + _vmUbicLabel(y.UBIC_TIPO, y.UBIC_DETALLE) + ')');
+  });
+  p('');
+  p('QUEDAN IGUAL (' + d.iguales.length + '): ' + (d.iguales.map(function (x) { return x.nombre; }).join(', ') || '—'));
+  p('');
+  p('SIN NÚMERO, POR CANTIDAD:');
+  p('   Capnógrafos en la planilla: ' + d.capnTotal + (d.capnTotal === 9 ? '  ✔ calza con los 9 del papel' : '  ⚠ el papel dice 9'));
+  if (d.capnBaja) p('   (de esos, ' + d.capnBaja + ' están marcados «De baja» desde la carga inicial: se cuentan en el inventario pero la unidad no los ocupa. Si ya se usan, cambiar el estado con ✏️ Editar.)');
+  p('   Bases calefactoras MR850: ' + (d.bases ? 'ya existen como stock (' + d.bases.CANTIDAD + ')' : 'se crean como stock de 4'));
+  if (d.basesConNombre.length) {
+    p('   ⚠ Hay ' + d.basesConNombre.length + ' MR850 cargada con nombre propio (' +
+      d.basesConNombre.map(function (y) { return y.NOMBRE; }).join(', ') + '): se da de baja,');
+    p('     porque el mismo equipo no puede estar contado dos veces.');
+  }
+  p('');
+  p('🪤 Los 20 de sala quedan en PASILLO: Diego mandó los nombres, no en qué cama');
+  p('   está cada uno. Se colocan desde la pestaña Ventiladores con un toque, y');
+  p('   mientras tanto cada cama en VM avisa que le falta el equipo.');
+  p('🪤 Los Puritan Bennett se llaman PB 1 y PB 2: CONFIG.HEPA_FIJO_EQUIPOS los');
+  p('   reconoce por ese prefijo para saber que su HEPA es fijo.');
+}
+
+/** Paso 1 — SIMULACRO: dice qué cambiaría. No escribe nada. */
+function inventarioReconciliarSIMULACRO() {
+  const out = [];
+  const p = function (s) { out.push(s); };
+  p('🔎 SIMULACRO de reconciliación del inventario — NO se ha tocado nada.');
+  p('');
+  _invInforme(_invComparar(), p);
+  p('');
+  p('Para aplicarlo de verdad: inventarioReconciliarCONFIRMAR()');
+  const informe = out.join('\n');
+  Logger.log(informe);
+  console.log(informe);
+  return informe;
+}
+
+/** Paso 2 — REAL. Da de alta, mueve, reactiva y da de baja lo que sobra. */
+function inventarioReconciliarCONFIRMAR() {
+  const out = [];
+  const p = function (s) { out.push(s); };
+  const d = _invComparar();
+  const ctx = { firma: 'Inventario', email: '' };
+  const MOT = 'Reconciliación del inventario (papel de Diego, 14-09-2026)';
+  let altas = 0, movidos = 0, bajas = 0, fallos = 0;
+
+  d.altas.forEach(function (x) {
+    const r = guardarVentilador({
+      nombre: x.nombre, marca: x.marca, modelo: x.modelo || '', categoria: x.categoria,
+      ubicTipo: x.ubicTipo, ubicDetalle: '', fecha: hoyISO(), estado: 'Operativo',
+      obs: x.ubicTipo === 'PASILLO' ? 'En sala · falta decir en qué cama' : '',
+      motivo: MOT,
+    }, ctx);
+    if (r && r.ok) altas++; else { fallos++; p('   ❌ alta ' + x.nombre + ': ' + (r && r.error)); }
+  });
+
+  d.mueven.forEach(function (m) {
+    if (m.reactivar) {
+      repoActualizar('VENTILADORES', 'ID_VM', m.fila.ID_VM, { ACTIVO: true, ESTADO: 'Operativo', TIMESTAMP: ahoraTS() });
+    }
+    const r = moverVentilador({ idVm: m.fila.ID_VM, tipo: m.eq.ubicTipo, detalle: '', fecha: hoyISO(), motivo: MOT }, ctx);
+    if (r && r.ok) movidos++; else { fallos++; p('   ❌ mover ' + m.fila.NOMBRE + ': ' + (r && r.error)); }
+  });
+
+  // Lo que sobra: de baja, nunca borrado. Las MR850 con nombre propio entran
+  // aquí solas (no están en el papel, que las cuenta por cantidad).
+  d.bajas.forEach(function (y) {
+    const r = bajaVentilador({ idVm: y.ID_VM, motivo: MOT + ' — no figura en el inventario de la unidad' }, ctx);
+    if (r && r.ok) bajas++; else { fallos++; p('   ❌ baja ' + y.NOMBRE + ': ' + (r && r.error)); }
+  });
+
+  // Bases calefactoras: por cantidad, sin repartir. Diego dijo «4 bases
+  // calefactoras» y no en qué camas: se reparten desde la lista con el ＋.
+  let stockCreado = 0;
+  if (!d.bases) {
+    const r = guardarStockEquipo({
+      nombre: 'Base calefactora MR850', marca: 'Fisher & Paykel', modelo: 'MR850',
+      categoria: 'Humidificación', cantidad: 4, estado: 'Operativo', fecha: hoyISO(),
+      obs: 'Sin numerar: se reparten por cantidad desde la lista por cama',
+      motivo: MOT,
+    }, ctx);
+    if (r && r.ok) stockCreado = 1; else { fallos++; p('   ❌ stock MR850: ' + (r && r.error)); }
+  }
+
+  p('✔ Inventario reconciliado.');
+  p('   Altas: ' + altas + ' · movidos/reactivados: ' + movidos + ' · dados de baja: ' + bajas +
+    ' · stock creado: ' + stockCreado + (fallos ? ' · ❌ fallos: ' + fallos : ''));
+  p('');
+  _invInforme(_invComparar(), p);   // el estado DESPUÉS: las tres listas deben salir vacías
+  p('');
+  p('Siguiente paso, en la app: pestaña Ventiladores → Lista, y colocar cada');
+  p('equipo en su cama. Las bases calefactoras se agregan con el ＋ de la fila.');
+  const informe = out.join('\n');
+  Logger.log(informe);
+  console.log(informe);
+  return informe;
+}

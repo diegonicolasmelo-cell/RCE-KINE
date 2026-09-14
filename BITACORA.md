@@ -5884,6 +5884,127 @@ tandas A y B que él aprobó tras el mockup.
   guardia `paridad_v3` de Manuel lo pidió, y funcionó). Sin cambio de esquema.
 
 
+## v7.06-ventiladores-rapido (14-sep-2026) — sacarle la espera a la lista, y el inventario de verdad
+
+Diego probó la v7.05 y devolvió tres cosas. La primera y la más dura, textual:
+**«la velocidad en la que se ejecutan los cambios está muy lento y de golpe me
+apareció que había guardado correctamente»**. Después: «la ronda debería abrir
+un modal para que la pantalla quede estática y funcione como algo aparte» y
+**«¿cómo incorporo un VNI o CNAF u otro dispositivo? No me permite la
+posibilidad»**. Y al final mandó el inventario real de la unidad.
+
+### 1 · La velocidad: el error era de diseño, no de red
+
+Medido antes de tocar nada: **cada viaje a Apps Script son ~1-1,5 s** (la cifra
+está escrita desde hace meses en el comentario de GET_BOOT, `api.gs:51`). O sea
+el viaje no se puede hacer más rápido — lo que se podía sacar era la **espera**.
+La v7.05 hacía tres cosas mal, y las tres se sumaban:
+
+| Qué hacía | Qué costaba |
+|---|---|
+| El interruptor «VM en uso» esperaba la respuesta para moverse | 1-1,5 s mirando una pantalla que no reacciona |
+| Después de cada escritura recargaba la grilla ENTERA | otro viaje, y el repintado borraba lo que el colega estuviera mirando |
+| Cambiar de ventilador eran TRES viajes (sacar · meter · recargar) | 3-4,5 s, y el «guardado correctamente» llegando cuando ya se había ido a otra cama |
+
+Eso último es exactamente lo que describió: el aviso «de golpe» no era un error,
+era el eco de una operación que había empezado mucho antes.
+
+**Lo que se hizo**: la pantalla cambia AL TOCAR y la escritura va por detrás
+(`_eqGuardar`). Si el servidor rechaza, **el cambio se deshace solo y se dice
+por qué** — un cambio que se pierde en silencio sería peor que la espera que se
+está sacando. Mientras hay algo anotándose se ve un testigo discreto
+«guardando…» en la barra, no un modal que bloquee.
+
+🔑 **Lo que hizo posible todo lo demás**: la ubicación de cada equipo pasó a
+vivir en **UN solo sitio del cliente** (`EQ.eq`, indexado por id). Las camas, la
+bodega, el pasillo y el selector se **derivan** de ahí. Mover un equipo es
+cambiar un campo, no sincronizar cinco listas — y por eso deshacer es una
+clausura de tres líneas (`_eqMoverLocal` devuelve cómo volver atrás).
+
+Y **cambiar de ventilador es UN viaje**: el que sale y el que entra van en el
+mismo `MOVER_VENTILADORES_LOTE`, que el servidor ya validaba entero antes de
+escribir nada (todo o nada). Esa puerta existía desde agosto para los
+intercambios del tablero; acá se aprovechó tal cual.
+
+**En el servidor** se sacaron dos costos que no servían a nadie:
+`obtenerGrillaEquipos` leía **MOVIMIENTOS_STOCK entera** a través de
+`obtenerStockEquipos`, solo para calcular un «último ajuste» que esta lista no
+muestra — una hoja completa en cada carga, para nada; y
+`moverVentiladoresLote` no aceptaba `enUso`, así que el cambio de ventilador
+necesitaba un viaje extra para dejar el nuevo marcado en uso.
+
+`medirGrilla()` en mantenimiento mide el viaje de verdad en la planilla de la
+unidad, por si algún día hay que volver a mirarlo.
+
+### 2 · La ronda, en su propia ventana
+
+Antes se pintaba dentro de la página. Ahora es un modal (`#eqRondaMod`), y —esto
+es lo que costó pensar— **los paneles de elegir equipo, fechar un filtro y ver
+la ficha se pintan DENTRO de esa misma ventana**, con «← Volver a la cama».
+Apilar un modal encima de otro en un teléfono de 360 px deja al colega sin
+saber qué × cierra qué.
+
+### 3 · VNI, CNAF y apoyo desde la lista — un hueco que quedó abierto
+
+Diego tenía razón: la v7.05 solo ofrecía `flota`, que son los **VM invasivos**.
+Los demás dispositivos existían en la bodega y se veían en la fila si ya estaban
+puestos, pero **no había forma de agregar uno**. Ahora cada fila trae un **＋**
+y el selector, bajo las marcas de ventilador, ofrece «Otros dispositivos del
+paciente» — que **conviven** con el ventilador y no tocan el interruptor «en
+uso», porque van con el PACIENTE y no con la cama (regla de agosto). Lo que no
+tiene número (capnógrafos, bases calefactoras) se reparte por cantidad.
+
+### 4 · El inventario real — `inventarioReconciliarSIMULACRO/CONFIRMAR`
+
+Diego mandó lo que hay hoy: **20 equipos en sala y 6 en bodega** (los dictó por
+voz y la lista traía **tres nombres repetidos** —Mek 17, Mek 15, Savina 3—: son
+23 menciones, 20 equipos), más **9 capnógrafos y 4 bases calefactoras**. La
+planilla seguía con la carga inicial del 31-07, que ya no calzaba.
+
+- 🔴 **NADA SE BORRA.** Lo que sobra queda `ACTIVO=false`, con su historial de
+  movimientos y sus fallas intactos — que es lo que sirve para reclamar una
+  mantención. Borrar la fila deja huérfanos los movimientos que la nombran.
+- 🪤 **Los Puritan Bennett se llaman «PB 1» y «PB 2», no «Puritan Bennet 1».**
+  `CONFIG.HEPA_FIJO_EQUIPOS` trae `PB,Avea` y compara por **prefijo del nombre**:
+  con el nombre largo el HEPA fijo de esos equipos deja de reconocerse y la app
+  empieza a pedirles cambio de filtro cada 3 días. **El nombre no es cosmético,
+  es una regla clínica escrita en CONFIG.** Guardia que lo fija.
+- 🪤 **Los 20 de sala quedan en PASILLO, no en camas.** Diego dio los nombres,
+  no en qué cama está cada uno; ponerlos en camas inventadas haría que el
+  tablero mienta. En Pasillo se ven todos juntos, y cada cama en VM muestra su
+  «⚠️ paciente en VM sin ventilador asignado» hasta que alguien lo coloque —
+  que ahora es un toque. El aviso no es un defecto: es el recordatorio.
+- ✅ **Cierra el punto 6 del brainstorm de terreno** (MR850): la que estaba
+  cargada con nombre propio se da de baja y pasa a stock por cantidad (4). El
+  mismo equipo no puede estar contado dos veces.
+- **Capnógrafos**: la planilla ya suma 9 (5 Nihon Kohden + 4 Dräger), o sea
+  calza con el papel. 🔜 Pero los 4 Dräger están marcados «De baja» desde la
+  carga inicial («no se ocupan, decisión de la unidad»): **si ya se usan, hay
+  que cambiarles el estado** — el informe lo dice y no lo decide solo.
+- Es **idempotente**: correrla dos veces no duplica, no mueve y no anota nada.
+
+### Guardias
+
+Nueva `inventario_reconciliar.js` (7 bloques, servidor real en el simulador).
+`equipos_lista_ui.js` creció de 8 a 12 bloques: la ronda en su ventana, la
+pantalla cambiando antes de que conteste el servidor (con el servidor tardando
+400 ms a propósito y midiendo que la pantalla responde en menos de 100), el
+rechazo que se deshace, los dispositivos agregables y el cambio en un viaje.
+**144 verdes, 0 rojas.**
+
+🪤 **Al escribir la guardia del rechazo**: con el servidor simulado contestando
+en 5 ms, «la pantalla se movió» no se puede medir — para cuando se mira, ya se
+deshizo. El retraso del simulador tuvo que hacerse regulable (`__retraso`). Una
+guardia que mide una carrera necesita poder frenar al otro corredor.
+
+🪤 **Y el banco de la guardia con navegador tuvo que arreglarse**: sus «otros»
+de una cama no llevaban `ubicTipo`/`ubicDetalle`. Con la v7.05 daba igual (el
+cliente usaba `c.otros` tal cual); con la v7.06 el cliente DERIVA la ubicación,
+así que un banco sin ese campo probaba otra cosa. El servidor siempre los mandó
+(`_eqResumen`): el banco estaba incompleto, no el código.
+
+---
+
 ## v7.05-ventiladores-por-cama (14-sep-2026) — la hoja de entrega de turno, en el teléfono
 
 Rama `ventiladores-por-cama`, salida de `develop` **en 7.04** (Manuel fusionó el

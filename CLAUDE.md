@@ -223,7 +223,7 @@ missing / @userCodeAppPanel...`. Lo aprendido, pagado caro:
 
 ## Verificación (skill `verificar`)
 
-**127 guardias** en `build/checks/*.js` (12-sep-2026); poco más de la mitad usan navegador
+**144 guardias** en `build/checks/*.js` (14-sep-2026); poco más de la mitad usan navegador
 (`chromium.launch`) y el resto son Node puro. Se juzgan **SOLO por el código de
 salida** (`0` = pasa) — varias imprimen a propósito fallos SIMULADOS para
 demostrar que los detectan, así que leer el texto y no el exit code lleva a
@@ -235,7 +235,7 @@ node build/verificar.js eventos          # solo las que contengan «eventos»
 node build/verificar.js --ver arranque   # la salida completa de una
 ```
 
-**Estado al 14-sep-2026: 143 verdes, 0 rojas** (rama `ventiladores-por-cama` sobre develop 7.04). 🪤 **Una guardia no fija su propio sello**: `aviso_error_al_centro.js` exigía `/^7\.04-/` y se puso roja sola con la versión siguiente — se fija la línea (`7.x`), no la entrega. El corredor
+**Estado al 14-sep-2026: 144 verdes, 0 rojas** (rama `ventiladores-por-cama`, v7.06, sobre develop 7.04). 🪤 **Una guardia no fija su propio sello**: `aviso_error_al_centro.js` exigía `/^7\.04-/` y se puso roja sola con la versión siguiente — se fija la línea (`7.x`), no la entrega. El corredor
 (`build/verificar.js`, ago-2026) **busca el Chromium de Playwright solo** y se
 lo pasa a cada hijo: antes eso se exportaba a mano y era la causa de la mayoría
 de las «rojas» —el navegador no estaba y el código estaba sano—. `rendimiento.js`
@@ -351,6 +351,25 @@ está allá.
   Detalle y trampas en BITACORA v7.05. Decisiones de Diego del 14-sep: A + ronda ·
   las dos puertas escriben · check se reinicia cada turno · bodega por nombre ·
   «puede tener VM sin uso o no existir VM en esa sala».
+  · 🆕 **La misma rama trae ahora la v7.06 (14-sep), con lo que Diego devolvió al
+    probarla**: ① **velocidad** —«está muy lento y de golpe me apareció que había
+    guardado correctamente»: la pantalla cambia AL TOCAR y la escritura va por
+    detrás (`_eqGuardar`), si el servidor rechaza se deshace y se dice, nada
+    recarga la grilla entera, y cambiar de ventilador es UN viaje
+    (`MOVER_VENTILADORES_LOTE`)—; ② la **ronda en su propio modal**, con elegir,
+    fechar y ficha DENTRO y «← Volver»; ③ **VNI, CNAF y apoyo agregables** desde
+    el ＋ de cada fila (iban con el paciente, no con la cama); ④ el **inventario
+    real** de la unidad en `inventarioReconciliarSIMULACRO/CONFIRMAR`.
+    🔑 Lo que lo sostiene: la ubicación de cada equipo vive en UN solo sitio del
+    cliente (`EQ.eq`) y camas, bodega y selector se DERIVAN de ahí.
+    · 🪤 **Los Puritan Bennett se llaman «PB 1»/«PB 2», nunca «Puritan Bennet 1»**:
+    `CONFIG.HEPA_FIJO_EQUIPOS` compara por PREFIJO del nombre, así que el nombre
+    largo hace que la app les pida cambio de HEPA cada 3 días.
+    · 🪤 **La reconciliación deja los 20 de sala en PASILLO**, no en camas: Diego
+    dio los nombres, no las camas. El «⚠️ paciente en VM sin ventilador» que sale
+    en cada cama ventilada es el recordatorio, no un defecto.
+    · v7.06 **NO cambia esquema**: se pegan index + servicios + api + mantenimiento,
+    sin `crearORepararEstructura()` (la v7.05 sí lo pide, si aún no se corrió).
 - 🚧 **Rama paralela `separacion-episodio-turno` — v7.00 PROGRAMADA (11-sep),
   esperando que Diego la instale en SU planilla nueva.** Paquete de 12
   archivos + paso a paso en `INSTALAR_PLANILLA_NUEVA.md`; detalle en
@@ -1542,6 +1561,8 @@ pestaña 🔐 COORDINACIÓN — sin abrir el editor.
 · `corregirPronosRepetidos` · `resellarDiasSoporte*` · `corregirIngresos*` ·
 `archivarAnioHistorico*` · `resetearBaseDeDatos*` · `cargarInventarioInicial` ·
 `medirArranque` · `medirGuardado` · `verificarTablero` / `medirTablero` ·
+`medirGrilla` (cuánto tarda la lista de ventiladores; solo lectura) ·
+`inventarioReconciliarSIMULACRO` / `inventarioReconciliarCONFIRMAR` ·
 `plantillasResembrarSimular` / `plantillasResembrarAplicarAhora` /
 `plantillasRestaurarDesde`. El detalle de cada una, en `BITACORA.md`.
 

@@ -221,6 +221,7 @@ function moverVentiladoresLote(d, ctx) {
           idVm: String(m.idVm), vmx: vmx, tipo: tipo,
           detalle: (tipo === 'CAMA' || tipo === 'PRESTAMO') ? String(m.detalle) : '',
           motivo: m.motivo || '', fecha: _statISO(m.fecha) || hoyISO(), estado: m.estado || '',
+          enUso: m.enUso,
         });
       });
 
@@ -251,10 +252,17 @@ function moverVentiladoresLote(d, ctx) {
       normal.forEach(function (m) {
         const desde = _vmUbicLabel(m.vmx.UBIC_TIPO, m.vmx.UBIC_DETALLE);
         const hacia = _vmUbicLabel(m.tipo, m.detalle);
-        repoActualizar('VENTILADORES', 'ID_VM', m.idVm, {
+        const cambios = {
           UBIC_TIPO: m.tipo, UBIC_DETALLE: m.detalle, FECHA_UBICACION: m.fecha,
           ESTADO: m.estado || m.vmx.ESTADO || 'Operativo', TIMESTAMP: ahoraTS(),
-        });
+        };
+        // «VM en uso» (lista por cama): misma regla que moverVentilador — salir
+        // de la cama lo apaga siempre; al entrar solo cambia si el que mueve lo
+        // dice. Aquí importa porque la lista cambia un ventilador con UN lote
+        // (sacar el viejo + meter el nuevo) en vez de dos viajes.
+        if (m.tipo !== 'CAMA') cambios.EN_USO = false;
+        else if (m.enUso !== undefined) cambios.EN_USO = esVerdadero(m.enUso);
+        repoActualizar('VENTILADORES', 'ID_VM', m.idVm, cambios);
         repoInsertar('MOVIMIENTOS_VM', {
           ID_MOV: uid('MOV'), ID_VM: m.idVm, TIMESTAMP: ahoraTS(), FECHA: m.fecha,
           DESDE: desde, HACIA: hacia, MOTIVO: m.motivo,
@@ -769,10 +777,19 @@ function obtenerGrillaEquipos() {
     ['VM', 'VNI', 'CNAF', 'APOYO'].forEach(function (k) { bodega[k].sort(ordNom); });
     pasillo.sort(ordNom); equipos.sort(ordNom); prestamo.sort(ordNom);
     // Lo sin número va por cantidad: nadie distingue un Aerogen de otro.
+    // 🪤 NO se usa obtenerStockEquipos: esa función lee además MOVIMIENTOS_STOCK
+    // ENTERA para calcular el «último ajuste» de cada tipo, dato que esta lista
+    // no muestra. Era una hoja completa leída en cada carga de la grilla para
+    // nada (sep-2026, cazado midiendo por qué la pestaña iba lenta).
     try {
-      const st = obtenerStockEquipos();
-      if (st && st.ok) bodega.stock = (st.data || []).filter(function (s) { return !/baja/i.test(s.estado); })
-        .map(function (s) { return { nombre: s.nombre, categoria: s.categoria, disponible: s.disponible, cantidad: s.cantidad }; });
+      bodega.stock = repoLeerTodos('STOCK_EQUIPOS')
+        .filter(function (x) { return esVerdadero(x.ACTIVO) && !/baja/i.test(String(x.ESTADO || '')); })
+        .map(function (x) {
+          const asig = _stkAsig(x), cant = parseInt(x.CANTIDAD, 10) || 0, enUso = _stkEnUso(asig);
+          return { id: String(x.ID_STOCK || ''), nombre: String(x.NOMBRE || ''), categoria: String(x.CATEGORIA || ''),
+                   cantidad: cant, enUso: enUso, disponible: Math.max(0, cant - enUso), asignacion: asig };
+        })
+        .sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }); });
     } catch (e) { bodega.stock = []; }
     // Flota de VM invasivos para el selector por marca (verde = libre, gris = en otra cama)
     const flota = vents.filter(function (x) { return _vmEsDeCama(_vmCategoria(x)); }).map(_eqResumen)

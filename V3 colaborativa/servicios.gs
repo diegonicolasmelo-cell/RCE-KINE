@@ -2781,6 +2781,7 @@ function moverVentiladoresLote(d, ctx) {
           idVm: String(m.idVm), vmx: vmx, tipo: tipo,
           detalle: (tipo === 'CAMA' || tipo === 'PRESTAMO') ? String(m.detalle) : '',
           motivo: m.motivo || '', fecha: _statISO(m.fecha) || hoyISO(), estado: m.estado || '',
+          enUso: m.enUso,
         });
       });
 
@@ -2811,10 +2812,17 @@ function moverVentiladoresLote(d, ctx) {
       normal.forEach(function (m) {
         const desde = _vmUbicLabel(m.vmx.UBIC_TIPO, m.vmx.UBIC_DETALLE);
         const hacia = _vmUbicLabel(m.tipo, m.detalle);
-        repoActualizar('VENTILADORES', 'ID_VM', m.idVm, {
+        const cambios = {
           UBIC_TIPO: m.tipo, UBIC_DETALLE: m.detalle, FECHA_UBICACION: m.fecha,
           ESTADO: m.estado || m.vmx.ESTADO || 'Operativo', TIMESTAMP: ahoraTS(),
-        });
+        };
+        // «VM en uso» (lista por cama): misma regla que moverVentilador — salir
+        // de la cama lo apaga siempre; al entrar solo cambia si el que mueve lo
+        // dice. Aquí importa porque la lista cambia un ventilador con UN lote
+        // (sacar el viejo + meter el nuevo) en vez de dos viajes.
+        if (m.tipo !== 'CAMA') cambios.EN_USO = false;
+        else if (m.enUso !== undefined) cambios.EN_USO = esVerdadero(m.enUso);
+        repoActualizar('VENTILADORES', 'ID_VM', m.idVm, cambios);
         repoInsertar('MOVIMIENTOS_VM', {
           ID_MOV: uid('MOV'), ID_VM: m.idVm, TIMESTAMP: ahoraTS(), FECHA: m.fecha,
           DESDE: desde, HACIA: hacia, MOTIVO: m.motivo,
@@ -3329,10 +3337,19 @@ function obtenerGrillaEquipos() {
     ['VM', 'VNI', 'CNAF', 'APOYO'].forEach(function (k) { bodega[k].sort(ordNom); });
     pasillo.sort(ordNom); equipos.sort(ordNom); prestamo.sort(ordNom);
     // Lo sin número va por cantidad: nadie distingue un Aerogen de otro.
+    // 🪤 NO se usa obtenerStockEquipos: esa función lee además MOVIMIENTOS_STOCK
+    // ENTERA para calcular el «último ajuste» de cada tipo, dato que esta lista
+    // no muestra. Era una hoja completa leída en cada carga de la grilla para
+    // nada (sep-2026, cazado midiendo por qué la pestaña iba lenta).
     try {
-      const st = obtenerStockEquipos();
-      if (st && st.ok) bodega.stock = (st.data || []).filter(function (s) { return !/baja/i.test(s.estado); })
-        .map(function (s) { return { nombre: s.nombre, categoria: s.categoria, disponible: s.disponible, cantidad: s.cantidad }; });
+      bodega.stock = repoLeerTodos('STOCK_EQUIPOS')
+        .filter(function (x) { return esVerdadero(x.ACTIVO) && !/baja/i.test(String(x.ESTADO || '')); })
+        .map(function (x) {
+          const asig = _stkAsig(x), cant = parseInt(x.CANTIDAD, 10) || 0, enUso = _stkEnUso(asig);
+          return { id: String(x.ID_STOCK || ''), nombre: String(x.NOMBRE || ''), categoria: String(x.CATEGORIA || ''),
+                   cantidad: cant, enUso: enUso, disponible: Math.max(0, cant - enUso), asignacion: asig };
+        })
+        .sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true }); });
     } catch (e) { bodega.stock = []; }
     // Flota de VM invasivos para el selector por marca (verde = libre, gris = en otra cama)
     const flota = vents.filter(function (x) { return _vmEsDeCama(_vmCategoria(x)); }).map(_eqResumen)
@@ -6925,6 +6942,14 @@ function notifListar(datos) {
 // LA TANDA COMPLETA que el equipo ve al pasar a ese sello (el servidor solo
 // conoce el sello que arranca, no las versiones intermedias).
 const NOVEDADES = {
+  '7.06-ventiladores-rapido': [
+    '⚡ La lista de ventiladores ya no hace esperar: al tocar algo la pantalla cambia al instante y el registro se anota por detrás.',
+    '↩️ Si el servidor rechaza un cambio, se deshace solo y lo dice. Ya no aparece un «guardado» de golpe, minutos después.',
+    '🔁 Cambiar el ventilador de una cama es una sola operación: el que sale va a bodega y el que entra queda puesto, sin pasos intermedios.',
+    '➕ En cada fila hay un ＋ para agregar VNI, CNAF o equipos de apoyo a la cama. Conviven con el ventilador, porque van con el paciente.',
+    '🚶 La Ronda abre en su propia ventana: elegir equipo, fechar un filtro o ver la ficha se hacen ahí dentro, con «← Volver».',
+    '🔒 Sin cambios en la evolución, en las cifras ni en el esquema: no hay que reparar la estructura.',
+  ],
   '7.05-ventiladores-por-cama': [
     '🔧 Ventiladores abre en una LISTA por cama, como la hoja de entrega de turno: VM en uso · equipo · filtros · check. Se lee entera en el teléfono.',
     '🚶 Botón «Ronda»: la misma lista una cama a la vez, con botones grandes, para recorrer la unidad con el teléfono en la mano.',

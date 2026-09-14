@@ -80,6 +80,14 @@ function notifListar(datos) {
 // LA TANDA COMPLETA que el equipo ve al pasar a ese sello (el servidor solo
 // conoce el sello que arranca, no las versiones intermedias).
 const NOVEDADES = {
+  '7.06-ventiladores-rapido': [
+    '⚡ La lista de ventiladores ya no hace esperar: al tocar algo la pantalla cambia al instante y el registro se anota por detrás.',
+    '↩️ Si el servidor rechaza un cambio, se deshace solo y lo dice. Ya no aparece un «guardado» de golpe, minutos después.',
+    '🔁 Cambiar el ventilador de una cama es una sola operación: el que sale va a bodega y el que entra queda puesto, sin pasos intermedios.',
+    '➕ En cada fila hay un ＋ para agregar VNI, CNAF o equipos de apoyo a la cama. Conviven con el ventilador, porque van con el paciente.',
+    '🚶 La Ronda abre en su propia ventana: elegir equipo, fechar un filtro o ver la ficha se hacen ahí dentro, con «← Volver».',
+    '🔒 Sin cambios en la evolución, en las cifras ni en el esquema: no hay que reparar la estructura.',
+  ],
   '7.05-ventiladores-por-cama': [
     '🔧 Ventiladores abre en una LISTA por cama, como la hoja de entrega de turno: VM en uso · equipo · filtros · check. Se lee entera en el teléfono.',
     '🚶 Botón «Ronda»: la misma lista una cama a la vez, con botones grandes, para recorrer la unidad con el teléfono en la mano.',
